@@ -15,38 +15,8 @@ import { parseActionMarkers } from '@/components/agents/platform-engineer/types'
 import type { ActionCard, IntegrationCard } from '@/components/agents/platform-engineer/types'
 import type { AgentCreateConfig, ActionCardStatus } from '@/components/agents/platform-engineer/cards/ActionConfirmCard'
 import { apiClient } from '@/lib/api/http'
-import { enableCapabilitiesBulk } from '@/lib/api/agents'
 import { useChatTransport } from '@/components/chat/hooks/useChatTransport'
 import type { ChatEvent } from '@/components/chat/hooks/useChatTransport'
-
-// Map PE tool-category names -> capability IDs (same IDs used by manual agent creation)
-const TOOL_CATEGORY_TO_CAPABILITY: Record<string, string> = {
-  browser_tools: 'browser-web',
-  scheduler_tools: 'scheduling',
-  email_tools: 'email',
-  gmail_tools: 'email',
-  web_search: 'browser-web',
-  file_tools: 'files-storage',
-  command_tools: 'system-commands',
-  database_tools: 'database-analytics',
-  elasticsearch_tools: 'database-analytics',
-  data_analysis_tools: 'database-analytics',
-  storage_tools: 'files-storage',
-  news_tools: 'social-media',
-  document_tools: 'documents',
-  github_tools: 'code-github',
-  gitlab_tools: 'code-github',
-  google_calendar_tools: 'meetings-calendar',
-  google_drive_tools: 'files-storage',
-  slack_tools: 'communication',
-  jira_tools: 'project-mgmt',
-  zoom_tools: 'meetings-calendar',
-  twitter_tools: 'social-media',
-  linkedin_tools: 'social-media',
-  youtube_tools: 'social-media',
-  clickup_tools: 'project-mgmt',
-  spawn_agent_tool: 'multi-agent',
-}
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
 const AGENT_NAME = 'platform_engineer_agent'
@@ -268,10 +238,10 @@ export default function PlatformEngineerPage() {
     }
   }, [isStreaming, messages, transport])
 
-  const handleConfirm = async (config: AgentCreateConfig) => {
+  const handleConfirm = async (config: AgentCreateConfig, messageId?: string) => {
     setMessages((prev) =>
       prev.map((m) =>
-        m._actionCard?.status === 'pending'
+        m._actionCard?.status === 'pending' && (!messageId || m.id === messageId)
           ? { ...m, _actionCard: { ...m._actionCard!, status: 'creating' } }
           : m
       )
@@ -310,27 +280,17 @@ export default function PlatformEngineerPage() {
       const created = responseData?.agent_name || config.name
       const agentId: string | undefined = responseData?.agent_id
 
-      // Also enable capabilities via the bulk endpoint as a fallback
-      if (agentId && config.tools_list && config.tools_list.length > 0) {
-        const capabilityIds = [...new Set(
-          config.tools_list
-            .map((t) => TOOL_CATEGORY_TO_CAPABILITY[t])
-            .filter(Boolean)
-        )]
-        if (capabilityIds.length > 0) {
-          try {
-            await enableCapabilitiesBulk(agentId, capabilityIds)
-          } catch (e) {
-            console.warn('enableCapabilitiesBulk failed (tools may already be enabled):', e)
-          }
-        }
-      }
       setMessages((prev) =>
-        prev.map((m) =>
-          m._actionCard?.status === 'creating'
-            ? { ...m, _actionCard: { ...m._actionCard!, status: 'created', createdAgentName: created } }
-            : m
-        )
+        prev.map((m) => {
+          if (m._actionCard?.status === 'creating') {
+            return { ...m, _actionCard: { ...m._actionCard!, status: 'created', createdAgentName: created } }
+          }
+          // Cancel any remaining pending duplicates for the same agent name
+          if (m._actionCard?.status === 'pending' && m._actionCard.config?.name === config.name) {
+            return { ...m, _actionCard: { ...m._actionCard!, status: 'cancelled' } }
+          }
+          return m
+        })
       )
     } catch (err: any) {
       const status = err?.response?.status
@@ -356,10 +316,10 @@ export default function PlatformEngineerPage() {
     }
   }
 
-  const handleCancelAction = () => {
+  const handleCancelAction = (messageId?: string) => {
     setMessages((prev) =>
       prev.map((m) =>
-        m._actionCard?.status === 'pending'
+        m._actionCard?.status === 'pending' && (!messageId || m.id === messageId)
           ? { ...m, _actionCard: { ...m._actionCard!, status: 'cancelled' } }
           : m
       )
@@ -526,35 +486,62 @@ export default function PlatformEngineerPage() {
               recentTools={recentTools}
               agentName="Platform Engineer"
             />
-            {/* Render action/integration cards on top of the ChatMessages */}
-            {messages.map((msg) => (
-              <div key={`cards-${msg.id}`}>
-                {msg._actionCard && msg._actionCard.status !== 'created' && (
-                  <div className="px-4 md:px-8 -mt-2 mb-4 ml-10">
-                    <ActionConfirmCard
-                      config={msg._actionCard.config}
-                      status={msg._actionCard.status}
-                      onConfirm={handleConfirm}
-                      onCancel={handleCancelAction}
-                    />
-                  </div>
-                )}
-                {msg._actionCard?.status === 'created' && msg._actionCard.createdAgentName && (
-                  <div className="px-4 md:px-8 -mt-2 mb-4 ml-10">
-                    <AgentCreatedCard agentName={msg._actionCard.createdAgentName} />
-                  </div>
-                )}
-                {msg._integrationCard && (
-                  <div className="px-4 md:px-8 -mt-2 mb-4 ml-10">
-                    <IntegrationPromptCard
-                      provider={msg._integrationCard.provider}
-                      message={msg._integrationCard.message}
-                      connect_url={msg._integrationCard.connect_url}
-                    />
-                  </div>
-                )}
-              </div>
-            ))}
+            {/* Render action/integration cards on top of the ChatMessages.
+                Deduplicate pending action cards by agent name — if the LLM emits
+                the same create_agent action in two turns, only the latest shows. */}
+            {(() => {
+              // Pass 1: collect agent names that already have a 'created' card anywhere in history.
+              const alreadyCreated = new Set<string>()
+              for (const msg of messages) {
+                if (msg._actionCard?.status === 'created' && msg._actionCard.config?.name) {
+                  alreadyCreated.add(msg._actionCard.config.name)
+                }
+              }
+
+              // Pass 2: walk in reverse to find the most-recent pending/creating card per agent
+              // name, but only for agents that have NOT already been created.
+              const latestPendingById = new Set<string>()
+              const seenAgentNames = new Set<string>()
+              for (let i = messages.length - 1; i >= 0; i--) {
+                const msg = messages[i]
+                if (msg._actionCard && msg._actionCard.status !== 'created') {
+                  const agentName = msg._actionCard.config?.name
+                  if (agentName && !alreadyCreated.has(agentName) && !seenAgentNames.has(agentName)) {
+                    seenAgentNames.add(agentName)
+                    latestPendingById.add(msg.id)
+                  }
+                }
+              }
+
+              return messages.map((msg) => (
+                <div key={`cards-${msg.id}`}>
+                  {msg._actionCard && msg._actionCard.status !== 'created' && latestPendingById.has(msg.id) && (
+                    <div className="px-4 md:px-8 -mt-2 mb-4 ml-10">
+                      <ActionConfirmCard
+                        config={msg._actionCard.config}
+                        status={msg._actionCard.status}
+                        onConfirm={(config) => handleConfirm(config, msg.id)}
+                        onCancel={() => handleCancelAction(msg.id)}
+                      />
+                    </div>
+                  )}
+                  {msg._actionCard?.status === 'created' && msg._actionCard.createdAgentName && (
+                    <div className="px-4 md:px-8 -mt-2 mb-4 ml-10">
+                      <AgentCreatedCard agentName={msg._actionCard.createdAgentName} />
+                    </div>
+                  )}
+                  {msg._integrationCard && (
+                    <div className="px-4 md:px-8 -mt-2 mb-4 ml-10">
+                      <IntegrationPromptCard
+                        provider={msg._integrationCard.provider}
+                        message={msg._integrationCard.message}
+                        connect_url={msg._integrationCard.connect_url}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))
+            })()}
           </div>
         )}
       </div>

@@ -420,6 +420,25 @@ const PROVIDERS = [
     apiTokenDescription: 'Use your NewsAPI key from newsapi.org to search news articles'
   },
   {
+    value: 'youtube',
+    label: 'YouTube',
+    icon: (
+      <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
+        <rect width="24" height="24" rx="6" fill="#FF0000"/>
+        <path d="M19.615 7.197A2.508 2.508 0 0017.85 5.42C16.346 5 12 5 12 5s-4.346 0-5.85.42a2.508 2.508 0 00-1.765 1.777C4 8.713 4 12 4 12s0 3.287.385 4.803a2.508 2.508 0 001.765 1.777C7.654 19 12 19 12 19s4.346 0 5.85-.42a2.508 2.508 0 001.765-1.777C20 15.287 20 12 20 12s0-3.287-.385-4.803zM10 15V9l5.2 3-5.2 3z" fill="white"/>
+      </svg>
+    ),
+    color: 'text-red-600',
+    bgColor: 'bg-red-50',
+    description: 'Search and discover recent YouTube videos using the YouTube Data API v3',
+    defaultScopes: [],
+    redirectUri: '',
+    setupGuide: 'https://console.cloud.google.com/apis/credentials',
+    supportsOAuth: false,
+    supportsApiToken: true,
+    apiTokenDescription: 'Use a YouTube Data API v3 key from Google Cloud Console (APIs & Services → Credentials → Create API Key, then restrict to YouTube Data API v3)'
+  },
+  {
     value: 'micromobility',
     label: 'Micromobility',
     icon: <MicromobilityIcon />,

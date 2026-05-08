@@ -223,6 +223,19 @@ class Tenant(BaseModel, StatusMixin):
         cascade="all, delete-orphan",
     )
 
+    creator_profile: Mapped["CreatorProfile"] = relationship(
+        "CreatorProfile",
+        back_populates="tenant",
+        uselist=False,
+        lazy="select",
+    )
+
+    public_profiles: Mapped[list["AgentPublicProfile"]] = relationship(
+        "AgentPublicProfile",
+        back_populates="tenant",
+        cascade="all, delete-orphan",
+    )
+
     def __repr__(self) -> str:
         """String representation."""
         return f"<Tenant(id={self.id}, name={self.name}, plan={self.plan})>"

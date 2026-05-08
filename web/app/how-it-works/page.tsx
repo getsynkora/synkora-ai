@@ -71,8 +71,8 @@ const steps = [
 const features = [
   {
     icon: Code2,
-    title: 'No Code Required',
-    description: 'Build powerful AI agents without writing a single line of code. Our visual builder makes it easy.'
+    title: 'Visual Builder',
+    description: 'Build and configure AI agents through an intuitive web interface — or go straight to the API.'
   },
   {
     icon: Blocks,
@@ -450,11 +450,11 @@ export default function HowItWorksPage() {
             How It Works
           </div>
           <h1 className="text-3xl sm:text-5xl font-bold text-gray-900 mb-6">
-            Build AI Agents in
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-rose-600"> Minutes</span>
+            Build LLM Applications
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-rose-600"> in Minutes</span>
           </h1>
           <p className="text-base sm:text-xl text-gray-600 mb-8 sm:mb-10 max-w-2xl mx-auto">
-            From idea to deployment in four simple steps. No coding required, just your imagination.
+            From agent definition to production deployment — with API access, RAG, tool integrations, and multi-channel delivery.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
             <Link

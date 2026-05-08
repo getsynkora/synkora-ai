@@ -2,8 +2,8 @@ import Link from 'next/link'
 import { Zap, Shield, Lock, Key, Eye, Server, CheckCircle, AlertTriangle, Mail } from 'lucide-react'
 
 export const metadata = {
-  title: 'Security - Synkora',
-  description: 'Learn about Synkora\'s security practices, how to report vulnerabilities, and our commitment to protecting your data.',
+  title: 'Security – Synkora',
+  description: 'Synkora security practices: encryption, multi-tenancy isolation, vulnerability disclosure, and self-hosting for full infrastructure control.',
 }
 
 export default function SecurityPage() {

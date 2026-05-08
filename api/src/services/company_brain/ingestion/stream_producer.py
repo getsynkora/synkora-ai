@@ -119,7 +119,7 @@ class StreamProducer:
         source_type: str,
         documents: list[dict[str, Any]],
     ) -> dict[str, int]:
-        """Fallback: dispatch Celery task directly (no Redis Streams)."""
+        """Dispatch Celery task directly. Used when company_brain_queue_backend != 'redis_streams'."""
         try:
             from src.tasks.company_brain_tasks import kb_process_batch_task
 

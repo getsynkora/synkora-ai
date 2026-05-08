@@ -1,0 +1,1 @@
+"""Newsletter rendering service package."""

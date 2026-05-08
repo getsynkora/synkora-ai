@@ -22,6 +22,7 @@ def register_youtube_tools(registry):
         internal_youtube_get_transcript,
         internal_youtube_get_transcript_segment,
         internal_youtube_list_transcript_languages,
+        internal_youtube_search_videos,
     )
 
     # YouTube tools - create wrappers that inject runtime_context
@@ -125,4 +126,52 @@ def register_youtube_tools(registry):
         function=internal_youtube_get_transcript_segment_wrapper,
     )
 
-    logger.info("Registered 3 YouTube tools")
+    async def internal_youtube_search_videos_wrapper(config: dict[str, Any] | None = None, **kwargs):
+        runtime_context = config.get("_runtime_context") if config else None
+        return await internal_youtube_search_videos(
+            query=kwargs.get("query", ""),
+            channel_id=kwargs.get("channel_id"),
+            max_results=kwargs.get("max_results", 10),
+            published_after_hours=kwargs.get("published_after_hours", 168),
+            order=kwargs.get("order", "date"),
+            runtime_context=runtime_context,
+            config=config,
+        )
+
+    registry.register_tool(
+        name="internal_youtube_search_videos",
+        description="Search for recent YouTube videos using the YouTube Data API v3. Use this to find the latest AI/tech videos by keyword or from specific channels. Requires a YouTube Data API key configured as an OAuth app.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Search query (e.g. 'AI news today', 'machine learning new model')",
+                },
+                "channel_id": {
+                    "type": "string",
+                    "description": "Optional YouTube channel ID to restrict search to a specific channel",
+                },
+                "max_results": {
+                    "type": "integer",
+                    "description": "Maximum number of results to return (1-50, default 10)",
+                    "default": 10,
+                },
+                "published_after_hours": {
+                    "type": "integer",
+                    "description": "Only return videos published in the last N hours (default 168 = 7 days)",
+                    "default": 168,
+                },
+                "order": {
+                    "type": "string",
+                    "description": "Sort order: date | relevance | viewCount | rating (default: date)",
+                    "enum": ["date", "relevance", "viewCount", "rating"],
+                    "default": "date",
+                },
+            },
+            "required": ["query"],
+        },
+        function=internal_youtube_search_videos_wrapper,
+    )
+
+    logger.info("Registered 4 YouTube tools")

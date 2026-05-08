@@ -534,6 +534,65 @@ ROUTER_REGISTRY: list[RouteConfig] = [
         prefix="",
         tags=["llm-proxy"],
     ),
+    # ===== Agent Landing Pages =====
+    RouteConfig(
+        module="src.controllers.agents.landing_page",
+        attribute="router",
+        prefix="/api/v1/agents",
+        tags=["landing-pages"],
+    ),
+    RouteConfig(
+        module="src.controllers.agents.landing_page",
+        attribute="public_router",
+        prefix="",
+        tags=["landing-pages"],
+    ),
+    RouteConfig(
+        module="src.controllers.agents.landing_page",
+        attribute="webhook_router",
+        prefix="",
+        tags=["webhooks"],
+    ),
+    # ===== Creator Profiles =====
+    RouteConfig(
+        module="src.controllers.creators",
+        attribute="router",
+        prefix="",
+        tags=["creators"],
+    ),
+    RouteConfig(
+        module="src.controllers.creators",
+        attribute="public_router",
+        prefix="",
+        tags=["creators"],
+    ),
+    # ===== Discount Codes =====
+    RouteConfig(
+        module="src.controllers.agents.discount_codes",
+        attribute="router",
+        prefix="/api/v1/agents",
+        tags=["discount-codes"],
+    ),
+    RouteConfig(
+        module="src.controllers.agents.discount_codes",
+        attribute="public_router",
+        prefix="",
+        tags=["discount-codes"],
+    ),
+    # ===== Agent User Subscriptions =====
+    RouteConfig(
+        module="src.controllers.agent_user_subscriptions",
+        attribute="router",
+        prefix="/api/v1",
+        tags=["agent-subscriptions"],
+    ),
+    # ===== Newsletter Templates =====
+    RouteConfig(
+        module="src.controllers.newsletter_templates",
+        attribute="router",
+        prefix="/api",
+        tags=["newsletter-templates"],
+    ),
 ]
 
 

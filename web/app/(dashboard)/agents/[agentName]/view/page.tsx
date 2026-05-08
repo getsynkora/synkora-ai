@@ -31,7 +31,8 @@ import {
   Cpu,
   Bell,
   Bot,
-  Server
+  Server,
+  DollarSign
 } from 'lucide-react'
 import { apiClient } from '@/lib/api/client'
 import { getLLMConfigs } from '@/lib/api/agent-llm-configs'
@@ -80,6 +81,7 @@ export default function AgentViewPage() {
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [showMoreActions, setShowMoreActions] = useState(false)
+  const [publicSlug, setPublicSlug] = useState<string | null>(null)
 
   useEffect(() => {
     fetchAgentDetails()
@@ -90,12 +92,22 @@ export default function AgentViewPage() {
       setLoading(true)
       const data = await apiClient.getAgent(agentName)
       setAgent(data)
-      
+
       // Fetch the default LLM config
       if (data.id) {
         const llmConfigs = await getLLMConfigs(data.id)
         const defaultConfig = llmConfigs.find(config => config.is_default)
         setDefaultLLMConfig(defaultConfig || null)
+      }
+
+      // Fetch public profile to get slug (for public page link)
+      try {
+        const profileRes = await apiClient.request('GET', `/api/v1/agents/${agentName}/public-profile`)
+        if (profileRes?.profile?.is_published && profileRes?.profile?.slug) {
+          setPublicSlug(profileRes.profile.slug)
+        }
+      } catch {
+        // No public profile yet — that's fine
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
@@ -246,6 +258,26 @@ export default function AgentViewPage() {
               <MessageSquare className="w-4 h-4" />
               Chat
             </button>
+
+            <button
+              onClick={() => router.push(`/agents/${agentName}/landing-page`)}
+              className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all text-sm font-medium"
+            >
+              <Globe className="w-4 h-4 text-primary-600" />
+              Landing Page
+            </button>
+
+            {publicSlug && (
+              <a
+                href={`/a/${publicSlug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all text-sm font-medium shadow-sm"
+              >
+                <DollarSign className="w-4 h-4" />
+                View Public Page
+              </a>
+            )}
 
             <button
               onClick={() => router.push(`/agents/${agentName}/knowledge-bases`)}

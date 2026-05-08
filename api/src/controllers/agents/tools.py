@@ -571,9 +571,9 @@ CAPABILITIES = [
     {
         "id": "multi-agent",
         "name": "Multi-Agent",
-        "description": "Spawn sub-agents, check background task status",
+        "description": "Spawn sub-agents, check background task status, call remote agents via A2A",
         "icon": "🤖",
-        "tool_patterns": ["spawn_agent", "check_task", "list_background_tasks"],
+        "tool_patterns": ["spawn_agent", "check_task", "list_background_tasks", "call_remote_agent"],
     },
 ]
 

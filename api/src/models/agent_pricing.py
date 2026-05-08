@@ -7,7 +7,7 @@ This module defines the agent pricing model for agent monetization.
 from decimal import Decimal
 from enum import StrEnum
 
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, Numeric
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, Numeric, String
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, relationship
@@ -21,6 +21,10 @@ class PricingModel(StrEnum):
     FREE = "FREE"
     PER_USE = "PER_USE"
     SUBSCRIPTION = "SUBSCRIPTION"
+    SESSION = "SESSION"  # single conversation (chat access)
+    DAILY = "DAILY"  # 24hr access
+    WEEKLY = "WEEKLY"  # 7-day access
+    MONTHLY = "MONTHLY"  # 30-day rolling
 
 
 class AgentPricing(BaseModel):
@@ -98,6 +102,22 @@ class AgentPricing(BaseModel):
         comment="Total revenue earned in credits",
     )
 
+    session_credits = Column(Integer, nullable=True, comment="Credits for single session access")
+    daily_credits = Column(Integer, nullable=True, comment="Credits for 24hr access")
+    weekly_credits = Column(Integer, nullable=True, comment="Credits for 7-day access")
+    trial_messages = Column(Integer, nullable=True, default=0, comment="Free messages before paywall")
+
+    email_subscription_model = Column(
+        String(20),
+        nullable=False,
+        default="FREE",
+        comment="Email subscription pricing model: FREE, ONE_TIME, MONTHLY",
+    )
+    email_subscription_price_cents = Column(Integer, nullable=True, comment="Email subscription price in cents")
+    email_subscription_trial_emails = Column(
+        Integer, nullable=True, default=0, comment="Free emails before email paywall"
+    )
+
     # Relationships
     agent: Mapped["Agent"] = relationship(
         "Agent",
@@ -115,6 +135,18 @@ class AgentPricing(BaseModel):
         order_by="AgentRevenue.created_at.desc()",
     )
 
+    discount_codes: Mapped[list["AgentDiscountCode"]] = relationship(
+        "AgentDiscountCode",
+        back_populates="agent_pricing",
+        cascade="all, delete-orphan",
+    )
+
+    user_subscriptions: Mapped[list["AgentUserSubscription"]] = relationship(
+        "AgentUserSubscription",
+        back_populates="agent_pricing",
+        cascade="all, delete-orphan",
+    )
+
     def __repr__(self) -> str:
         """String representation."""
         return f"<AgentPricing(id={self.id}, agent_id={self.agent_id}, model={self.pricing_model})>"
@@ -127,7 +159,14 @@ class AgentPricing(BaseModel):
     @property
     def is_paid(self) -> bool:
         """Check if agent requires payment."""
-        return self.pricing_model in (PricingModel.PER_USE, PricingModel.SUBSCRIPTION)
+        return self.pricing_model in (
+            PricingModel.PER_USE,
+            PricingModel.SUBSCRIPTION,
+            PricingModel.SESSION,
+            PricingModel.DAILY,
+            PricingModel.WEEKLY,
+            PricingModel.MONTHLY,
+        )
 
     def calculate_creator_revenue(self, amount: int) -> int:
         """Calculate creator's share of revenue."""

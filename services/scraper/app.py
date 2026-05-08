@@ -1259,6 +1259,25 @@ async def browser_resize(req: ResizeRequest):
         return {"success": False, "error": str(e)}
 
 
+class RenderHtmlRequest(BaseModel):
+    html: str
+    session_id: str = "default"
+    viewport_width: int = 1200
+    viewport_height: int = 900
+
+
+@app.post("/v1/browser/render-html")
+async def browser_render_html(req: RenderHtmlRequest):
+    """Load raw HTML into the browser session using page.set_content()."""
+    try:
+        session, page = await _get_session_and_page(req.session_id, None)
+        await page.set_viewport_size({"width": req.viewport_width, "height": req.viewport_height})
+        await page.set_content(req.html, wait_until="networkidle")
+        return {"success": True, "action": "render_html", "session_id": req.session_id}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
 class PdfRequest(BaseModel):
     session_id: str = "default"
     page_id: str | None = None

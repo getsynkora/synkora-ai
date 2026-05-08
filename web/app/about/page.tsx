@@ -2,8 +2,8 @@ import Link from 'next/link'
 import { Zap, Users, Target, Sparkles, Code, Globe, Heart, ArrowRight } from 'lucide-react'
 
 export const metadata = {
-  title: 'About - Synkora',
-  description: 'Learn about Synkora, the open-source AI agent platform built for developers and enterprises.',
+  title: 'About – Synkora',
+  description: 'Synkora is an open-source, multitenant LLM application platform for building, deploying, and managing AI agents with API-first architecture and enterprise-grade tenant isolation.',
 }
 
 export default function AboutPage() {
@@ -35,13 +35,13 @@ export default function AboutPage() {
             About Us
           </div>
           <h1 className="text-3xl sm:text-5xl font-bold text-gray-900 mb-6">
-            Build AI Agents for
+            The Open-Source
             <span className="block text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-rose-600">
-              Every Role in Your Company
+              LLM Application Platform
             </span>
           </h1>
           <p className="text-base sm:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Synkora is an open-source platform that lets you build AI-powered teammates—from product managers to engineers to marketers—that handle real work, not just chat.
+            Synkora is an open-source, multitenant platform that lets you build, deploy, and manage AI agents and LLM-powered applications — with API-first architecture, multi-provider model routing, and enterprise-grade tenant isolation.
           </p>
         </div>
       </section>
@@ -53,32 +53,32 @@ export default function AboutPage() {
             <div>
               <h2 className="text-3xl font-bold text-gray-900 mb-6">Our Mission</h2>
               <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-                Every startup struggles with the same problem: too much work, too few hands. Hiring is expensive and slow. We believe AI can change that—not by replacing humans, but by giving every team AI-powered teammates that handle the repetitive, time-consuming parts of work.
+                Every startup struggles with the same problem: too much work, too few hands. Hiring is expensive and slow. We believe AI can change that — not by replacing humans, but by giving every team the infrastructure to build AI-powered teammates that handle the repetitive, time-consuming parts of work.
               </p>
               <p className="text-lg text-gray-600 leading-relaxed">
-                Whether you need an AI Product Manager to keep your backlog organized, an AI Engineer to review PRs, or an AI Marketing Lead to scale content—Synkora lets you build them all on one open-source platform, with your own LLM keys.
+                Synkora gives you the platform to build AI agents for product management, engineering, marketing, support, and more — all on one open-source, API-first foundation with your own LLM keys and full tenant isolation.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-gradient-to-br from-red-50 to-pink-50 rounded-2xl p-6 border border-red-100">
                 <Target className="w-10 h-10 text-red-500 mb-4" />
-                <h3 className="font-bold text-gray-900 mb-2">Enterprise Ready</h3>
-                <p className="text-sm text-gray-600">Multi-tenancy, RBAC, and audit logging built-in</p>
+                <h3 className="font-bold text-gray-900 mb-2">API-First Architecture</h3>
+                <p className="text-sm text-gray-600">REST, SSE, and WebSocket for chat, workflows, and agent invocation</p>
               </div>
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100">
                 <Code className="w-10 h-10 text-blue-500 mb-4" />
-                <h3 className="font-bold text-gray-900 mb-2">Developer First</h3>
-                <p className="text-sm text-gray-600">Clean APIs, extensive docs, and great DX</p>
+                <h3 className="font-bold text-gray-900 mb-2">Multitenant by Design</h3>
+                <p className="text-sm text-gray-600">Per-tenant isolation, API keys, quotas, and model configs</p>
               </div>
               <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-100">
                 <Globe className="w-10 h-10 text-green-500 mb-4" />
                 <h3 className="font-bold text-gray-900 mb-2">Open Source</h3>
-                <p className="text-sm text-gray-600">Transparent, community-driven development</p>
+                <p className="text-sm text-gray-600">MIT licensed, transparent, community-driven development</p>
               </div>
               <div className="bg-gradient-to-br from-purple-50 to-violet-50 rounded-2xl p-6 border border-purple-100">
                 <Sparkles className="w-10 h-10 text-purple-500 mb-4" />
-                <h3 className="font-bold text-gray-900 mb-2">AI Native</h3>
-                <p className="text-sm text-gray-600">Built from ground up for LLM workflows</p>
+                <h3 className="font-bold text-gray-900 mb-2">LLM-Native</h3>
+                <p className="text-sm text-gray-600">Model routing, prompt caching, cost optimization, and observability</p>
               </div>
             </div>
           </div>

@@ -34,9 +34,16 @@ router = APIRouter()
 providers_router = APIRouter(prefix="/api/v1", tags=["llm-providers"])
 
 
-def invalidate_agent_llm_cache(agent_name: str):
-    """Invalidate agent cache and remove from memory when LLM configs change."""
-    logger.info(f"🔄 Starting cache invalidation for agent '{agent_name}'...")
+def invalidate_agent_llm_cache(agent_name: str, tenant_id: str = ""):
+    """Invalidate agent cache and remove from memory when LLM configs change.
+
+    Args:
+        agent_name: Name of the agent whose cache should be invalidated.
+        tenant_id: Tenant whose cache entry should be deleted.  Must be supplied
+                   so the correct tenant-scoped key is removed; without it the
+                   deletion targets a key that does not exist and becomes a no-op.
+    """
+    logger.info(f"Starting cache invalidation for agent '{agent_name}' (tenant={tenant_id or 'unscoped'})...")
 
     # Step 1: Invalidate Redis cache using sync client
     try:
@@ -45,34 +52,38 @@ def invalidate_agent_llm_cache(agent_name: str):
         cache = get_agent_cache()
         sync_redis = get_redis()
         if sync_redis:
-            config_key = cache._build_key("config", agent_name)
-            # Also invalidate the routing LLM-configs cache populated by _load_llm_configs_cached
+            # Tenant-scoped config key — matches what _cache_agent stores
+            config_key = cache._agent_config_key(agent_name, tenant_id)
+            # Routing LLM-configs cache is not tenant-scoped (no API keys, just metadata)
             llm_configs_key = cache._build_key("llm_configs", agent_name)
             deleted = sync_redis.delete(config_key, llm_configs_key)
-            logger.info(f"✅ Deleted Redis cache keys '{config_key}', '{llm_configs_key}' (deleted: {deleted})")
+            logger.info(f"Deleted Redis cache keys '{config_key}', '{llm_configs_key}' (deleted: {deleted})")
         else:
-            logger.warning("⚠️  Redis not available, skipping cache invalidation")
+            logger.warning("Redis not available, skipping cache invalidation")
     except Exception as e:
-        logger.error(f"❌ Error invalidating Redis cache: {e}")
+        logger.error(f"Error invalidating Redis cache: {e}")
 
-    # Step 2: Remove agent from in-memory registry
+    # Step 2: Remove agent from in-memory registry (best-effort; agent reloads on next request)
     try:
         from src.services.agents.agent_manager import AgentManager
 
         agent_manager = AgentManager()
 
         if agent_name in agent_manager.registry:
-            # Use sync unregister method instead of async delete_agent
-            agent_manager.registry.unregister(agent_name)
-            logger.info(f"🗑️  Removed agent '{agent_name}' from memory registry")
+            # Try tenant-scoped unregister first; fall back to zero-UUID (platform agents)
+            for reg_tenant in [tenant_id, "00000000-0000-0000-0000-000000000000"]:
+                try:
+                    agent_manager.registry.unregister(agent_name, reg_tenant)
+                    logger.info(f"Removed agent '{agent_name}' from memory registry (tenant={reg_tenant})")
+                    break
+                except KeyError:
+                    continue
         else:
-            logger.info(f"ℹ️  Agent '{agent_name}' not in memory registry, no need to remove")
-    except KeyError:
-        logger.info(f"ℹ️  Agent '{agent_name}' not found in registry")
+            logger.info(f"Agent '{agent_name}' not in memory registry, no need to remove")
     except Exception as e:
-        logger.warning(f"⚠️  Failed to remove agent from memory (non-critical): {e}")
+        logger.warning(f"Failed to remove agent from memory (non-critical): {e}")
 
-    logger.info(f"✅ Cache invalidation complete for agent '{agent_name}'")
+    logger.info(f"Cache invalidation complete for agent '{agent_name}'")
 
 
 async def get_agent_by_name_or_id(
@@ -161,7 +172,7 @@ async def create_llm_config(
         await db.refresh(config)
 
         # Invalidate cache after creating LLM config
-        invalidate_agent_llm_cache(agent.agent_name)
+        invalidate_agent_llm_cache(agent.agent_name, str(tenant_id))
 
         return AgentLLMConfigResponse(
             id=config.id,
@@ -438,7 +449,7 @@ async def update_llm_config(
         await db.refresh(config)
 
         # Invalidate cache after updating LLM config
-        invalidate_agent_llm_cache(agent.agent_name)
+        invalidate_agent_llm_cache(agent.agent_name, str(tenant_id))
 
         return AgentLLMConfigResponse(
             id=config.id,
@@ -489,7 +500,7 @@ async def delete_llm_config(
         await db.commit()
 
         # Invalidate cache after deleting LLM config
-        invalidate_agent_llm_cache(agent.agent_name)
+        invalidate_agent_llm_cache(agent.agent_name, str(tenant_id))
     except ValueError as e:
         await db.rollback()
         logger.warning(f"Failed to delete LLM config (ValueError): {e}")
@@ -526,7 +537,7 @@ async def set_default_config(
         await db.refresh(config)
 
         # Invalidate cache after setting default LLM config
-        invalidate_agent_llm_cache(agent.agent_name)
+        invalidate_agent_llm_cache(agent.agent_name, str(tenant_id))
 
         return AgentLLMConfigResponse(
             id=config.id,

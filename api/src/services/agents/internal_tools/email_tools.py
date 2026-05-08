@@ -98,6 +98,8 @@ async def internal_send_email(
 
         # Check if we should use async (Celery) or sync sending
         use_async = config.get("async", True) if config else True
+        apply_branding = config.get("apply_branding", True) if config else True
+        attachments = config.get("attachments") if config else None
 
         if use_async:
             # Send email asynchronously using Celery
@@ -109,6 +111,21 @@ async def internal_send_email(
                 bcc_list = [e.strip() for e in bcc.split(",")] if bcc else None
 
                 # Queue email task
+                # Serialize attachment bytes to base64 for Celery (bytes aren't JSON-serialisable)
+                serialized_attachments = None
+                if attachments:
+                    import base64 as _b64
+
+                    serialized_attachments = [
+                        {
+                            **a,
+                            "content": _b64.b64encode(a["content"]).decode()
+                            if isinstance(a.get("content"), bytes)
+                            else a.get("content"),
+                        }
+                        for a in attachments
+                    ]
+
                 task = send_email_task.delay(
                     tenant_id=str(tenant_id),
                     to_email=to_email,
@@ -119,6 +136,8 @@ async def internal_send_email(
                     from_name=from_name,
                     cc=cc_list,
                     bcc=bcc_list,
+                    apply_branding=apply_branding,
+                    attachments=serialized_attachments,
                 )
 
                 logger.info(f"Email task queued for {to_email} - Task ID: {task.id}")

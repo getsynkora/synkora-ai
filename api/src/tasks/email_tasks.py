@@ -69,6 +69,21 @@ def send_email_task(
                         tenant_id=uuid.UUID(tenant_id) if tenant_id else None,
                     )
 
+                # Deserialise base64-encoded attachment content back to bytes
+                decoded_attachments = None
+                if attachments:
+                    import base64 as _b64
+
+                    decoded_attachments = [
+                        {
+                            **a,
+                            "content": _b64.b64decode(a["content"])
+                            if isinstance(a.get("content"), str)
+                            else a.get("content"),
+                        }
+                        for a in attachments
+                    ]
+
                 email_service = EmailService(db)
 
                 result = await email_service.send_email(
@@ -79,6 +94,7 @@ def send_email_task(
                     from_email=from_email,
                     from_name=from_name,
                     tenant_id=uuid.UUID(tenant_id) if tenant_id else None,
+                    attachments=decoded_attachments,
                 )
 
                 if result.get("success"):

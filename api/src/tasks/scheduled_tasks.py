@@ -324,6 +324,17 @@ This is an automated scheduled task. Complete it thoroughly and provide your fin
                             )
 
                         for sub in subs:
+                            # Check if this email subscription requires active payment
+                            if sub.paid_subscription_id is not None:
+                                from src.models.agent_user_subscription import (
+                                    AgentUserSubscription,
+                                    SubscriptionAccessStatus,
+                                )
+
+                                paid_result = db.get(AgentUserSubscription, sub.paid_subscription_id)
+                                if paid_result is None or paid_result.status != SubscriptionAccessStatus.ACTIVE:
+                                    sub.is_active = False
+                                    continue
                             unsubscribe_url = f"{base_url}/unsubscribe?token={sub.unsubscribe_token}"
                             unsubscribe_footer = (
                                 f'<p style="font-size:11px;color:#9ca3af;text-align:center;margin:16px 0 0">'

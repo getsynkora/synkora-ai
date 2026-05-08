@@ -289,15 +289,13 @@ async def create_agent(
                 effective_top_p = pe_cfg_inherited.top_p
                 effective_additional_params = pe_cfg_inherited.additional_params or {}
             else:
-                # Fallback: no key, no PE config
-                encrypted_api_key = ""
-                effective_provider = llm_data.provider
-                effective_model = llm_data.model_name
-                effective_api_base = llm_data.api_base
-                effective_temperature = llm_data.temperature
-                effective_max_tokens = llm_data.max_tokens
-                effective_top_p = llm_data.top_p
-                effective_additional_params = llm_data.additional_params or {}
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=(
+                        "No API key provided and no Platform Engineer LLM configuration found. "
+                        "Supply an api_key or configure the Platform Engineer agent's LLM settings first."
+                    ),
+                )
 
             llm_config_entry = AgentLLMConfig(
                 tenant_id=tenant_id,
@@ -601,6 +599,17 @@ async def list_agents(
         has_next = page < total_pages
         has_prev = page > 1
 
+        # Fetch published slugs for all agents in one query
+        from src.models.agent_public_profile import AgentPublicProfile
+
+        slug_rows = await db.execute(
+            select(AgentPublicProfile.agent_id, AgentPublicProfile.slug).where(
+                AgentPublicProfile.agent_id.in_(agent_ids),
+                AgentPublicProfile.is_published.is_(True),
+            )
+        )
+        slug_map = {row.agent_id: row.slug for row in slug_rows}
+
         # Convert S3 URIs to presigned URLs for avatars
         agents_list = []
         for db_agent in db_agents:
@@ -615,6 +624,7 @@ async def list_agents(
                 {
                     "id": agent_id_str,
                     "agent_name": db_agent.agent_name,
+                    "public_slug": slug_map.get(db_agent.id),
                     "description": db_agent.description,
                     "agent_type": db_agent.agent_type,
                     "avatar": avatar_url,
@@ -835,6 +845,7 @@ async def get_agent(
                 "suggestion_prompts": db_agent.suggestion_prompts or [],
                 "status": db_agent.status,
                 "is_public": db_agent.is_public or False,
+                "allow_subscriptions": db_agent.allow_subscriptions or False,
                 "category": db_agent.category,
                 "tags": db_agent.tags or [],
                 "voice_enabled": db_agent.voice_enabled or False,

@@ -2,8 +2,8 @@ import Link from 'next/link'
 import { Zap, ArrowRight, Users, Code, BarChart3, HeadphonesIcon, PenTool, Database, Briefcase, Shield } from 'lucide-react'
 
 export const metadata = {
-  title: 'Use Cases - Synkora',
-  description: 'Discover how Synkora AI agents can automate roles across your organization - from product management to engineering to marketing.',
+  title: 'Use Cases – Synkora LLM Platform',
+  description: 'See what you can build on Synkora — AI agents for product management, engineering, customer support, marketing, and more. API-first, multitenant, self-hostable.',
 }
 
 const useCases = [
