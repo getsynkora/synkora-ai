@@ -202,7 +202,7 @@ async def _fetch_via_jina(url: str, max_length: int = MAX_CONTENT_LENGTH) -> dic
     try:
         async with httpx.AsyncClient(
             timeout=REQUEST_TIMEOUT,
-            follow_redirects=False,
+            follow_redirects=True,  # r.jina.ai is a trusted proxy — safe to follow its redirects
             headers={"User-Agent": USER_AGENT, "Accept": "text/plain"},
         ) as client:
             response = await client.get(jina_url)

@@ -5,7 +5,6 @@ Celery tasks for agent subscription expiry and creator payouts.
 """
 
 import logging
-from datetime import UTC, datetime
 
 from celery import shared_task
 from sqlalchemy import select
@@ -18,10 +17,10 @@ def expire_agent_subscriptions() -> dict:
     """Mark expired agent_user_subscriptions as EXPIRED. Runs hourly."""
     import asyncio
 
-    from src.core.database import get_db_session
+    from src.core.database import create_celery_async_session
 
     async def _run():
-        async with get_db_session() as db:
+        async with create_celery_async_session()() as db:
             from src.services.billing.agent_user_subscription_service import AgentUserSubscriptionService
 
             count = await AgentUserSubscriptionService.expire_stale_subscriptions(db)
@@ -37,10 +36,10 @@ def process_monthly_payouts() -> dict:
     """Process creator payouts for the previous month. Runs 1st of month at 2 AM UTC."""
     import asyncio
 
-    from src.core.database import get_db_session
+    from src.core.database import create_celery_async_session
 
     async def _run():
-        async with get_db_session() as db:
+        async with create_celery_async_session()() as db:
             from src.models.agent_revenue import AgentRevenue, RevenueStatus
             from src.services.billing.revenue_service import RevenueService
 
