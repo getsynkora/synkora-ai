@@ -189,7 +189,7 @@ class AgentLoaderService:
             cache_hit = False
 
             if db_agent:
-                await self._cache_agent(db_agent, db)
+                await self._cache_agent(db_agent, db, requesting_tenant_id=tenant_id)
                 logger.info(
                     f"Cache MISS for agent '{agent_name}', cached for next time ({time.time() - start_time:.3f}s)"
                 )
@@ -230,6 +230,7 @@ class AgentLoaderService:
             cached_data=cached_data,
             llm_config_id=effective_config_id,
             db=db,
+            requesting_tenant_id=tenant_id,
         )
 
         return AgentLoadResult(
@@ -254,27 +255,58 @@ class AgentLoaderService:
         return self._reconstruct_agent(cached_data)
 
     async def _load_from_database(self, agent_name: str, db: AsyncSession, tenant_id: str = "") -> Agent | None:
-        """Load agent from database, scoped to tenant to prevent cross-tenant leakage."""
+        """Load agent from database, scoped to tenant to prevent cross-tenant leakage.
+
+        Platform-shared agents (tenant_id = zero UUID) are accessible to all tenants.
+        """
         from uuid import UUID
+
+        _PLATFORM_TENANT_ID = UUID("00000000-0000-0000-0000-000000000000")
 
         filters = [Agent.agent_name == agent_name]
         if tenant_id:
             try:
-                filters.append(Agent.tenant_id == UUID(tenant_id))
+                tid = UUID(tenant_id)
             except ValueError:
                 logger.error("Invalid tenant_id format '%s' — refusing cross-tenant load", tenant_id)
                 return None
+            filters.append(Agent.tenant_id == tid)
 
         result = await db.execute(select(Agent).filter(*filters))
-        return result.scalar_one_or_none()
+        agent = result.scalar_one_or_none()
 
-    async def _cache_agent(self, db_agent: Agent, db: AsyncSession) -> None:
+        # Fall back to the platform-shared agent (zero UUID tenant) when not found under current tenant.
+        # This handles built-in agents like platform_engineer_agent that are shared across all tenants.
+        if agent is None and tenant_id and tid != _PLATFORM_TENANT_ID:
+            result = await db.execute(
+                select(Agent).filter(Agent.agent_name == agent_name, Agent.tenant_id == _PLATFORM_TENANT_ID)
+            )
+            agent = result.scalar_one_or_none()
+
+        return agent
+
+    async def _cache_agent(self, db_agent: Agent, db: AsyncSession, requesting_tenant_id: str = "") -> None:
         """Cache agent configuration."""
         from src.models.agent_llm_config import AgentLLMConfig
 
+        _PLATFORM_TENANT_ID = "00000000-0000-0000-0000-000000000000"
+        is_platform_agent = str(db_agent.tenant_id) == _PLATFORM_TENANT_ID
+
+        # For platform-shared agents scope the LLM config lookup to the requesting tenant
+        # so the cached entry contains that tenant's API key, not a random tenant's.
+        llm_tenant_filter = []
+        if is_platform_agent and requesting_tenant_id:
+            try:
+                llm_tenant_filter = [AgentLLMConfig.tenant_id == uuid.UUID(requesting_tenant_id)]
+            except ValueError:
+                pass
+
         # Load default LLM config
         llm_config_stmt = select(AgentLLMConfig).where(
-            AgentLLMConfig.agent_id == db_agent.id, AgentLLMConfig.enabled, AgentLLMConfig.is_default
+            AgentLLMConfig.agent_id == db_agent.id,
+            AgentLLMConfig.enabled,
+            AgentLLMConfig.is_default,
+            *llm_tenant_filter,
         )
         llm_config_result = await db.execute(llm_config_stmt)
         default_llm_config = llm_config_result.scalar_one_or_none()
@@ -316,11 +348,26 @@ class AgentLoaderService:
             "updated_at": db_agent.updated_at.isoformat() if db_agent.updated_at else None,
         }
 
+        cache_tenant_id = str(db_agent.tenant_id)
         await self.cache.set_agent_config(
             agent_name=db_agent.agent_name,
-            tenant_id=str(db_agent.tenant_id),
+            tenant_id=cache_tenant_id,
             config=agent_dict,
         )
+
+        # For platform-shared agents (zero UUID tenant), also cache under the requesting tenant's
+        # key so subsequent requests from that tenant hit the cache directly.
+        _PLATFORM_TENANT_ID = "00000000-0000-0000-0000-000000000000"
+        if (
+            cache_tenant_id == _PLATFORM_TENANT_ID
+            and requesting_tenant_id
+            and requesting_tenant_id != _PLATFORM_TENANT_ID
+        ):
+            await self.cache.set_agent_config(
+                agent_name=db_agent.agent_name,
+                tenant_id=requesting_tenant_id,
+                config=agent_dict,
+            )
 
     async def _load_agent_to_memory(
         self,
@@ -329,6 +376,7 @@ class AgentLoaderService:
         cached_data: dict[str, Any] | None,
         llm_config_id: str | None,
         db: AsyncSession,
+        requesting_tenant_id: str = "",
     ) -> Any:
         """Load agent into memory with LLM client."""
         _tenant_id = str(db_agent.tenant_id) if db_agent.tenant_id else ""
@@ -351,7 +399,11 @@ class AgentLoaderService:
 
         # Load LLM configuration
         llm_config, api_key, error = await self._resolve_llm_config(
-            db_agent=db_agent, cached_data=cached_data, llm_config_id=llm_config_id, db=db
+            db_agent=db_agent,
+            cached_data=cached_data,
+            llm_config_id=llm_config_id,
+            db=db,
+            requesting_tenant_id=requesting_tenant_id,
         )
 
         if error:
@@ -537,19 +589,29 @@ class AgentLoaderService:
         return [types.SimpleNamespace(**r) for r in serializable]
 
     async def _resolve_llm_config(
-        self, db_agent: Agent, cached_data: dict[str, Any] | None, llm_config_id: str | None, db: AsyncSession
+        self,
+        db_agent: Agent,
+        cached_data: dict[str, Any] | None,
+        llm_config_id: str | None,
+        db: AsyncSession,
+        requesting_tenant_id: str = "",
     ) -> tuple[ModelConfig | None, str | None, str | None]:
         """
         Resolve LLM configuration from cache or database.
+
+        For platform-shared agents (zero UUID tenant_id), LLM configs are stored per-tenant
+        so we must filter by the requesting tenant's ID to prevent cross-tenant key leakage.
 
         Returns:
             Tuple of (ModelConfig, api_key, error_message)
         """
         from src.models.agent_llm_config import AgentLLMConfig
 
+        _PLATFORM_TENANT_ID = "00000000-0000-0000-0000-000000000000"
+        is_platform_agent = str(db_agent.tenant_id) == _PLATFORM_TENANT_ID
+
         cached_llm = cached_data.get("default_llm_config") if cached_data else None
 
-        # Use cached config if available and no specific config requested
         if cached_llm and not llm_config_id:
             logger.info(f"Using CACHED LLM config: {cached_llm.get('provider')}/{cached_llm.get('model_name')}")
 
@@ -573,6 +635,17 @@ class AgentLoaderService:
 
             return llm_config, api_key, None
 
+        # Build base tenant filter for platform-shared agents.
+        # Regular agents: their configs are owned by the same tenant, so filtering by
+        # agent_id is sufficient. Platform agents: configs from all tenants share the
+        # same agent_id, so we MUST scope by requesting_tenant_id.
+        tenant_filter = []
+        if is_platform_agent and requesting_tenant_id:
+            try:
+                tenant_filter = [AgentLLMConfig.tenant_id == uuid.UUID(requesting_tenant_id)]
+            except ValueError:
+                pass
+
         # Load from database
         default_llm_config = None
 
@@ -580,7 +653,10 @@ class AgentLoaderService:
             try:
                 llm_config_uuid = uuid.UUID(llm_config_id)
                 stmt = select(AgentLLMConfig).where(
-                    AgentLLMConfig.id == llm_config_uuid, AgentLLMConfig.agent_id == db_agent.id, AgentLLMConfig.enabled
+                    AgentLLMConfig.id == llm_config_uuid,
+                    AgentLLMConfig.agent_id == db_agent.id,
+                    AgentLLMConfig.enabled,
+                    *tenant_filter,
                 )
                 result = await db.execute(stmt)
                 default_llm_config = result.scalar_one_or_none()
@@ -590,16 +666,19 @@ class AgentLoaderService:
         # Try default config
         if not default_llm_config:
             stmt = select(AgentLLMConfig).where(
-                AgentLLMConfig.agent_id == db_agent.id, AgentLLMConfig.enabled, AgentLLMConfig.is_default
+                AgentLLMConfig.agent_id == db_agent.id,
+                AgentLLMConfig.enabled,
+                AgentLLMConfig.is_default,
+                *tenant_filter,
             )
             result = await db.execute(stmt)
             default_llm_config = result.scalar_one_or_none()
 
-        # Try any enabled config
+        # Try any enabled config (still scoped to tenant for platform agents)
         if not default_llm_config:
             stmt = (
                 select(AgentLLMConfig)
-                .where(AgentLLMConfig.agent_id == db_agent.id, AgentLLMConfig.enabled)
+                .where(AgentLLMConfig.agent_id == db_agent.id, AgentLLMConfig.enabled, *tenant_filter)
                 .order_by(AgentLLMConfig.display_order, AgentLLMConfig.created_at)
                 .limit(1)
             )

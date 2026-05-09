@@ -31,6 +31,140 @@ from src.utils.config_helper import get_app_base_url
 router = APIRouter(prefix="/api/v1/billing", tags=["billing"])
 
 
+# ---------------------------------------------------------------------------
+# Agent Pricing routes (used by the dashboard billing/agent-pricing page)
+# ---------------------------------------------------------------------------
+
+
+class AgentPricingUpsertRequest(BaseModel):
+    agent_id: UUID
+    pricing_model: str = "FREE"
+    credits_per_use: int | None = None
+    session_credits: int | None = None
+    daily_credits: int | None = None
+    weekly_credits: int | None = None
+    monthly_subscription_credits: int | None = None
+    trial_messages: int | None = None
+    revenue_share_percentage: float | None = None
+    email_subscription_model: str | None = None
+    email_subscription_price_cents: int | None = None
+    email_subscription_trial_emails: int | None = None
+
+
+@router.get("/agents/{agent_id}/pricing")
+async def get_billing_agent_pricing(
+    agent_id: UUID,
+    tenant_id: UUID = Depends(get_current_tenant_id),
+    db: AsyncSession = Depends(get_async_db),
+):
+    """Get pricing configuration for an agent (by UUID)."""
+    from src.services.billing.agent_pricing_service import AgentPricingService
+
+    pricing = await AgentPricingService.get_agent_pricing(agent_id, db)
+    if pricing is None:
+        return {"pricing": None}
+    return {"pricing": pricing.__dict__}
+
+
+@router.put("/agents/{agent_id}/pricing")
+async def upsert_billing_agent_pricing(
+    agent_id: UUID,
+    body: AgentPricingUpsertRequest,
+    tenant_id: UUID = Depends(get_current_tenant_id),
+    db: AsyncSession = Depends(get_async_db),
+):
+    """Create or update pricing configuration for an agent."""
+    from sqlalchemy import select as _select
+
+    from src.models.agent import Agent
+    from src.models.agent_pricing import AgentPricing, PricingModel
+
+    # Verify agent belongs to this tenant
+    result = await db.execute(_select(Agent).where(Agent.id == agent_id, Agent.tenant_id == tenant_id))
+    agent = result.scalar_one_or_none()
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    pricing_result = await db.execute(_select(AgentPricing).where(AgentPricing.agent_id == agent_id))
+    pricing = pricing_result.scalar_one_or_none()
+
+    # Fields to update
+    updateable = {
+        "pricing_model": body.pricing_model,
+        "credits_per_use": body.credits_per_use,
+        "session_credits": body.session_credits,
+        "daily_credits": body.daily_credits,
+        "weekly_credits": body.weekly_credits,
+        "monthly_subscription_credits": body.monthly_subscription_credits,
+        "trial_messages": body.trial_messages,
+        "revenue_share_percentage": body.revenue_share_percentage,
+        "email_subscription_model": body.email_subscription_model,
+        "email_subscription_price_cents": body.email_subscription_price_cents,
+        "email_subscription_trial_emails": body.email_subscription_trial_emails,
+    }
+
+    if pricing is None:
+        pricing = AgentPricing(
+            agent_id=agent_id,
+            tenant_id=tenant_id,
+            is_active=True,
+            **{k: v for k, v in updateable.items() if v is not None},
+        )
+        db.add(pricing)
+    else:
+        for k, v in updateable.items():
+            if v is not None:
+                setattr(pricing, k, v)
+
+    await db.commit()
+    await db.refresh(pricing)
+    return {"pricing": pricing.__dict__}
+
+
+@router.get("/agents/{agent_id}/revenue")
+async def get_billing_agent_revenue(
+    agent_id: UUID,
+    start_date: str | None = Query(None),
+    end_date: str | None = Query(None),
+    tenant_id: UUID = Depends(get_current_tenant_id),
+    db: AsyncSession = Depends(get_async_db),
+):
+    """Get revenue records for an agent."""
+    from sqlalchemy import select as _select
+
+    from src.models.agent_pricing import AgentPricing
+    from src.models.agent_revenue import AgentRevenue
+
+    result = await db.execute(
+        _select(AgentRevenue)
+        .join(AgentPricing, AgentPricing.id == AgentRevenue.agent_pricing_id)
+        .where(AgentPricing.agent_id == agent_id)
+        .order_by(AgentRevenue.created_at.desc())
+        .limit(100)
+    )
+    records = result.scalars().all()
+    return {"revenue": [r.__dict__ for r in records]}
+
+
+@router.get("/agents/{agent_id}/earnings")
+async def get_billing_agent_earnings(
+    agent_id: UUID,
+    period: str = Query("monthly", pattern="^(daily|weekly|monthly|yearly)$"),
+    tenant_id: UUID = Depends(get_current_tenant_id),
+    db: AsyncSession = Depends(get_async_db),
+):
+    """Get earnings summary for an agent."""
+    from datetime import UTC, datetime, timedelta
+
+    from src.services.billing.agent_pricing_service import AgentPricingService
+
+    _period_days = {"daily": 1, "weekly": 7, "monthly": 30, "yearly": 365}
+    end_date = datetime.now(UTC)
+    start_date = end_date - timedelta(days=_period_days.get(period, 30))
+    earnings = await AgentPricingService.get_agent_earnings(agent_id, start_date=start_date, end_date=end_date, db=db)
+    return {"earnings": earnings}
+
+
 async def _get_tenant_owner_email(db: AsyncSession, tenant_id: UUID) -> str | None:
     """Fetch the email of the tenant owner account."""
     result = await db.execute(

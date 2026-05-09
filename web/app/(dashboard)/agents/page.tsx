@@ -23,6 +23,7 @@ interface SubAgent {
 interface Agent {
   id: string
   agent_name: string
+  public_slug?: string
   agent_type: string
   description: string | null
   avatar: string | null
@@ -38,6 +39,12 @@ interface Agent {
   tags: string[]
   is_sub_agent: boolean
 }
+
+const slugify = (text: string): string =>
+  text.toLowerCase().trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
 
 const getInitials = (name: string): string => {
   return name
@@ -95,6 +102,13 @@ const DropdownMenu = ({
       >
         <Settings size={15} className="text-gray-400" />
         Edit
+      </button>
+      <button
+        onClick={() => { router.push(`/agents/${agent.agent_name}/landing-page`); onClose() }}
+        className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+      >
+        <Globe size={15} className="text-primary-500" />
+        Landing Page
       </button>
       <button
         onClick={() => { router.push(`/agents/${agent.agent_name}/sub-agents`); onClose() }}
@@ -243,6 +257,15 @@ const AgentCard = ({
           >
             Start Chat
           </button>
+          <a
+            href={`/a/${agent.public_slug || slugify(agent.agent_name)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-2.5 text-gray-400 text-sm font-medium hover:text-primary-600 transition-colors"
+            title="View public page"
+          >
+            <Globe className="w-4 h-4" />
+          </a>
           <button
             onClick={() => router.push(`/agents/${agent.agent_name}/view`)}
             className="px-4 py-2.5 text-gray-400 text-sm font-medium hover:text-gray-600 transition-colors"

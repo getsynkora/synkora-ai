@@ -64,7 +64,7 @@ export default function AnimatedNav() {
                 <span className="text-2xl font-bold text-gray-900">Synkora</span>
                 <span className="px-1.5 py-0.5 bg-red-100 text-red-600 text-[10px] font-bold rounded uppercase tracking-wider">Beta</span>
               </div>
-              <span className="text-xs text-gray-600 -mt-1">No code AI platform</span>
+              <span className="text-xs text-gray-600 -mt-1">Open-source AI platform</span>
             </div>
           </div>
 
@@ -81,6 +81,12 @@ export default function AnimatedNav() {
               className="text-gray-600 hover:text-gray-900 font-medium transition-colors hidden md:block"
             >
               Pricing
+            </Link>
+            <Link
+              href="/alternatives"
+              className="text-gray-600 hover:text-gray-900 font-medium transition-colors hidden md:block"
+            >
+              Alternatives
             </Link>
             {/* GitHub Star */}
             <a

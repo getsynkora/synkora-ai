@@ -71,6 +71,25 @@ class ScraperServiceClient:
     # Browser – navigation & page info
     # -----------------------------------------------------------------------
 
+    async def browser_render_html(
+        self,
+        html: str,
+        session_id: str = "default",
+        viewport_width: int = 1200,
+        viewport_height: int = 900,
+    ) -> dict[str, Any]:
+        """Load raw HTML into a browser session via page.set_content()."""
+        return await self._browser(
+            "/v1/browser/render-html",
+            {
+                "html": html,
+                "session_id": session_id,
+                "viewport_width": viewport_width,
+                "viewport_height": viewport_height,
+            },
+            timeout=30.0,
+        )
+
     async def browser_navigate(self, url: str, session_id: str = "default", **kwargs) -> dict[str, Any]:
         return await self._browser("/v1/browser/navigate", {"url": url, "session_id": session_id, **kwargs})
 

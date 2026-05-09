@@ -45,7 +45,7 @@ class RateLimiter:
     - Sliding window rate limiting
     - Redis backend for distributed operation
     - Configurable limits per key pattern
-    - Graceful fallback when Redis unavailable
+    - Fails open when Redis is unavailable (allows requests, logs warning)
     """
 
     DEFAULT_REQUESTS = 100
@@ -68,9 +68,6 @@ class RateLimiter:
         self._redis = redis_client
         self.default_requests = default_requests
         self.default_window = default_window
-
-        self._memory_store: dict[str, list] = {}
-        self._memory_lock = threading.RLock()
 
         # Custom limits per key pattern
         self._custom_limits: dict[str, tuple[int, int]] = {}
@@ -115,7 +112,8 @@ class RateLimiter:
         """Check rate limit using async Redis — non-blocking, safe to call from ASGI middleware."""
         redis = self._get_redis()
         if not redis:
-            return self._check_memory(key, max_requests, window)
+            logger.warning("Redis unavailable for rate limiting — allowing request (fail open)")
+            return RateLimitResult(allowed=True, remaining=max_requests, reset_time=time.time() + window)
 
         now = time.time()
         window_start = now - window
@@ -154,41 +152,8 @@ class RateLimiter:
                 )
 
         except Exception as e:
-            logger.warning(f"Redis rate limit check failed: {e}")
-            return self._check_memory(key, max_requests, window)
-
-    def _check_memory(self, key: str, max_requests: int, window: int) -> RateLimitResult:
-        """Fallback in-memory rate limiting."""
-        now = time.time()
-        window_start = now - window
-
-        with self._memory_lock:
-            # Initialize if needed
-            if key not in self._memory_store:
-                self._memory_store[key] = []
-
-            # Clean old entries
-            self._memory_store[key] = [ts for ts in self._memory_store[key] if ts > window_start]
-
-            request_count = len(self._memory_store[key])
-
-            if request_count < max_requests:
-                self._memory_store[key].append(now)
-                return RateLimitResult(
-                    allowed=True,
-                    remaining=max_requests - request_count - 1,
-                    reset_time=now + window,
-                )
-            else:
-                oldest = min(self._memory_store[key]) if self._memory_store[key] else now
-                retry_after = oldest + window - now
-
-                return RateLimitResult(
-                    allowed=False,
-                    remaining=0,
-                    reset_time=now + window,
-                    retry_after=retry_after,
-                )
+            logger.warning(f"Redis rate limit check failed: {e} — allowing request (fail open)")
+            return RateLimitResult(allowed=True, remaining=max_requests, reset_time=time.time() + window)
 
     async def check(
         self,
@@ -242,9 +207,6 @@ class RateLimiter:
                 await redis.delete(full_key)
             except Exception as e:
                 logger.warning(f"Failed to reset rate limit in Redis: {e}")
-
-        with self._memory_lock:
-            self._memory_store.pop(full_key, None)
 
         logger.debug(f"Reset rate limit for: {key}")
 

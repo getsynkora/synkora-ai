@@ -334,6 +334,88 @@ async def chat_stream(
         # Log but don't block chat if billing validation fails (fail open for non-critical errors)
         logger.warning(f"Billing validation failed, allowing chat to proceed: {e}")
 
+    # AGENT PAYWALL: Check paid agent access (creator monetization, separate from platform billing)
+    try:
+        import json as _json_paywall
+
+        from sqlalchemy import or_
+
+        from src.config.redis import get_redis_async
+        from src.models.agent import Agent
+        from src.models.agent_pricing import AgentPricing
+        from src.services.billing.agent_user_subscription_service import AgentUserSubscriptionService
+
+        _agent_paywall_result = await db.execute(
+            select(Agent).filter(
+                Agent.agent_name == request.agent_name,
+                or_(Agent.tenant_id == tenant_id, Agent.is_public.is_(True)),
+            )
+        )
+        _agent_for_paywall = _agent_paywall_result.scalar_one_or_none()
+
+        if _agent_for_paywall:
+            _pricing_result = await db.execute(
+                select(AgentPricing).filter(AgentPricing.agent_id == _agent_for_paywall.id)
+            )
+            _pricing = _pricing_result.scalar_one_or_none()
+
+            if _pricing and _pricing.is_paid:
+                # Creator monetization gate: check if this user has an active subscription
+                _guest_token = http_request.cookies.get("agent_access_token")
+                _has_access = await AgentUserSubscriptionService.check_access(
+                    agent_id=_agent_for_paywall.id,
+                    db=db,
+                    subscriber_tenant_id=tenant_id,
+                    guest_token=_guest_token,
+                )
+
+                if not _has_access:
+                    # Check trial message budget via Redis
+                    _visitor_key = str(tenant_id) or _guest_token or client_ip
+                    _redis_paywall = get_redis_async()
+                    _trial_key = f"trial:{_agent_for_paywall.id}:{_visitor_key}"
+                    _trial_used = await _redis_paywall.incr(_trial_key)
+                    await _redis_paywall.expire(_trial_key, 86400)
+
+                    if _trial_used > (_pricing.trial_messages or 0):
+                        # Load public profile slug for frontend redirect
+                        from src.models.agent_public_profile import AgentPublicProfile
+
+                        _profile_result = await db.execute(
+                            select(AgentPublicProfile).filter(
+                                AgentPublicProfile.agent_id == _agent_for_paywall.id,
+                                AgentPublicProfile.is_published.is_(True),
+                            )
+                        )
+                        _profile = _profile_result.scalar_one_or_none()
+                        _slug = _profile.slug if _profile else None
+
+                        _paywall_data = {
+                            "agent_id": str(_agent_for_paywall.id),
+                            "pricing_id": str(_pricing.id),
+                            "slug": _slug,
+                            "trial_messages": _pricing.trial_messages or 0,
+                            "session_credits": _pricing.session_credits,
+                            "daily_credits": _pricing.daily_credits,
+                            "weekly_credits": _pricing.weekly_credits,
+                            "monthly_credits": _pricing.monthly_subscription_credits,
+                        }
+
+                        async def _paywall_stream():
+                            yield f"data: {_json_paywall.dumps({'type': 'paywall', 'data': _paywall_data})}\n\n"
+
+                        return StreamingResponse(
+                            _paywall_stream(),
+                            media_type="text/event-stream",
+                            headers={
+                                "Cache-Control": "no-cache",
+                                "Connection": "keep-alive",
+                                "X-Accel-Buffering": "no",
+                            },
+                        )
+    except Exception as _paywall_err:
+        logger.warning(f"Agent paywall check failed, allowing chat to proceed: {_paywall_err}")
+
     # SECURITY: Pass tenant_id to verify conversation ownership
     return StreamingResponse(
         chat_stream_service.stream_agent_response(

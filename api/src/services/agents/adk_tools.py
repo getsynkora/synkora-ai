@@ -227,6 +227,13 @@ class ADKToolRegistry:
 
         register_email_tools(self)
 
+        # Newsletter rendering tools - use modular registry
+        from src.services.agents.tool_registrations.newsletter_tools_registry import (
+            register_newsletter_tools,
+        )
+
+        register_newsletter_tools(self)
+
         # Role-based agent tools - use modular registry
         from src.services.agents.tool_registrations.role_tools_registry import register_role_tools
 
@@ -1020,12 +1027,13 @@ Supports: Git, GitHub CLI, npm, pip, Docker, file operations (ls, cat, mkdir, et
                 "  3. For sampling: SELECT * FROM table LIMIT 100\n"
                 "  4. Broad SELECT * on tables > 50 000 rows is automatically blocked.\n\n"
                 "• Supabase (PostgREST):\n"
-                "  Does NOT support raw SQL aggregates (COUNT/SUM/GROUP BY) or expressions like DATE_TRUNC.\n"
-                "  Use JSON format or simple SQL without aggregates:\n"
-                '  JSON:  {"table": "users", "select": "id,name,status", "eq": {"status": "active"}, "limit": 100}\n'
-                "  SQL:   SELECT id, name FROM users WHERE status = 'active' LIMIT 100\n"
-                "  For aggregations on Supabase, use an RPC call to a pre-created database function:\n"
-                '  RPC:   {"rpc": "my_aggregate_function", "params": {}}\n\n'
+                "  Supports simple aggregates: COUNT(*), MAX(col), MIN(col), SUM(col), AVG(col) with GROUP BY.\n"
+                "  Supports SQL syntax or JSON format:\n"
+                "  SQL (aggregates): SELECT binary_user_id, COUNT(*) AS errors FROM migration_queue GROUP BY binary_user_id ORDER BY errors DESC\n"
+                "  SQL (filtered):   SELECT id, name FROM users WHERE status = 'active' LIMIT 100\n"
+                '  JSON:             {"table": "users", "select": "id,name,status", "eq": {"status": "active"}, "limit": 100}\n'
+                "  Does NOT support: EXTRACT, DATE_TRUNC, CAST, CASE, COALESCE — use RPC for those:\n"
+                '  RPC:   {"rpc": "my_function", "params": {}}\n\n'
                 "• Elasticsearch: Use Elasticsearch DSL JSON.\n"
                 "• MongoDB: Use MongoDB query JSON."
             ),

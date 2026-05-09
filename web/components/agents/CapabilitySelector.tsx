@@ -57,6 +57,7 @@ export default function CapabilitySelector({
 }: CapabilitySelectorProps) {
   const [capabilities, setCapabilities] = useState<CapabilityWithTools[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [expandedCapability, setExpandedCapability] = useState<string | null>(null)
   const [oauthApps, setOAuthApps] = useState<OAuthApp[]>([])
@@ -121,13 +122,7 @@ export default function CapabilitySelector({
       }
     } catch (error) {
       console.error('Failed to load capabilities:', error)
-      // Fall back to static capabilities if API fails
-      setCapabilities(CAPABILITIES.map(c => ({
-        ...c,
-        tools: [],
-        tool_count: 0,
-        tool_patterns: c.toolPatterns,
-      })))
+      setLoadError('Failed to load capabilities. Please refresh the page.')
     } finally {
       setLoading(false)
     }
@@ -174,6 +169,14 @@ export default function CapabilitySelector({
     return (
       <div className="flex items-center justify-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="rounded-md bg-red-50 p-4 text-sm text-red-700">
+        {loadError}
       </div>
     )
   }
@@ -445,6 +448,7 @@ export function CapabilityToggles({
 }) {
   const [capabilities, setCapabilities] = useState<CapabilityWithTools[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [togglingCapability, setTogglingCapability] = useState<string | null>(null)
 
   useEffect(() => {
@@ -458,12 +462,7 @@ export function CapabilityToggles({
       setCapabilities(data as CapabilityWithTools[])
     } catch (error) {
       console.error('Failed to load capabilities:', error)
-      setCapabilities(CAPABILITIES.map(c => ({
-        ...c,
-        tools: [],
-        tool_count: 0,
-        tool_patterns: c.toolPatterns,
-      })))
+      setLoadError('Failed to load capabilities. Please refresh the page.')
     } finally {
       setLoading(false)
     }
@@ -494,6 +493,14 @@ export function CapabilityToggles({
     return (
       <div className="flex items-center justify-center py-4">
         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600" />
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
+        {loadError}
       </div>
     )
   }

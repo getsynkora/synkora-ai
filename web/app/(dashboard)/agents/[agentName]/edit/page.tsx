@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Info, Wrench, Settings, FileText, Activity, Zap, X, Sparkles, Link } from 'lucide-react'
+import { ArrowLeft, Info, Wrench, Settings, FileText, Activity, Zap, X, Sparkles, Link, Globe, DollarSign, Tag, Users } from 'lucide-react'
 import IntegrationsTab from '@/components/agents/integrations/IntegrationsTab'
 import ContextFilesUpload from '@/components/agents/ContextFilesUpload'
 import { apiClient } from '@/lib/api/client'
@@ -19,7 +19,7 @@ interface HumanContact {
   email: string
 }
 
-type Tab = 'general' | 'llm-models' | 'context' | 'vision' | 'observability' | 'multi-agent' | 'performance' | 'advanced' | 'integrations'
+type Tab = 'general' | 'llm-models' | 'context' | 'vision' | 'observability' | 'multi-agent' | 'performance' | 'advanced' | 'integrations' | 'landing-page'
 
 export default function EditAgentPage() {
   const params = useParams()
@@ -97,6 +97,10 @@ export default function EditAgentPage() {
   // Integrations config (MCP server + A2A)
   const [integrationsConfig, setIntegrationsConfig] = useState<any>({})
 
+  // Image generation LLM config ID (stored in agent_metadata)
+  const [imageGenLlmConfigId, setImageGenLlmConfigId] = useState<string>('')
+  const [agentLlmConfigs, setAgentLlmConfigs] = useState<AgentLLMConfig[]>([])
+
   // Store the agent ID (not the name) for integrations endpoints
   const [agentId, setAgentId] = useState<string>('')
 
@@ -107,6 +111,7 @@ export default function EditAgentPage() {
     fetchAgentDetails()
     fetchContacts()
     fetchPlanFeatures()
+    fetchAgentLlmConfigs()
   }, [agentName])
 
   const fetchPlanFeatures = async () => {
@@ -116,6 +121,15 @@ export default function EditAgentPage() {
       setHasServerlessExecution(features.serverless_execution === true)
     } catch {
       // Non-fatal: default to false (no serverless access)
+    }
+  }
+
+  const fetchAgentLlmConfigs = async () => {
+    try {
+      const configs = await apiClient.getAgentLLMConfigs(agentName)
+      setAgentLlmConfigs(Array.isArray(configs) ? configs : [])
+    } catch (error) {
+      console.error('Failed to fetch agent LLM configs:', error)
     }
   }
 
@@ -212,6 +226,9 @@ export default function EditAgentPage() {
         })
       }
 
+      // Set image generation LLM config ID from agent_metadata
+      setImageGenLlmConfigId(agent.agent_metadata?.image_generation_llm_config_id || '')
+
       // Set observability config - handle both null and existing config
       if (agent.observability_config) {
         setObservabilityConfig({
@@ -304,6 +321,7 @@ export default function EditAgentPage() {
         agentic_config: agenticConfig,
         integrations_config: integrationsConfig,
         pii_redaction: piiRedactionConfig,
+        ...(imageGenLlmConfigId ? { image_generation_llm_config_id: imageGenLlmConfigId } : {}),
       }
 
       const updateResponse = await apiClient.updateAgent(agentName, {
@@ -346,6 +364,7 @@ export default function EditAgentPage() {
     { id: 'performance' as Tab, label: 'Performance', icon: Zap },
     { id: 'integrations' as Tab, label: 'Integrations', icon: Link },
     { id: 'advanced' as Tab, label: 'Advanced', icon: Settings },
+    { id: 'landing-page' as Tab, label: 'Landing Page', icon: Globe },
   ]
 
   if (loading) {
@@ -449,7 +468,13 @@ export default function EditAgentPage() {
               <ContextTab agentName={agentName} />
             )}
             {activeTab === 'vision' && (
-              <VisionTab formData={formData} setFormData={setFormData} />
+              <VisionTab
+                formData={formData}
+                setFormData={setFormData}
+                agentLlmConfigs={agentLlmConfigs}
+                imageGenLlmConfigId={imageGenLlmConfigId}
+                setImageGenLlmConfigId={setImageGenLlmConfigId}
+              />
             )}
             {activeTab === 'observability' && (
               <ObservabilityTab 
@@ -491,6 +516,78 @@ export default function EditAgentPage() {
                 piiRedactionConfig={piiRedactionConfig}
                 setPiiRedactionConfig={setPiiRedactionConfig}
               />
+            )}
+            {activeTab === 'landing-page' && (
+              <div className="space-y-4 py-4">
+                <div className="rounded-lg border border-gray-200 p-6 flex items-start gap-4">
+                  <Globe className="h-10 w-10 text-primary-500 shrink-0 mt-1" />
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900 mb-1">Landing Page</h3>
+                    <p className="text-sm text-gray-500 mb-4">
+                      Hero image, tagline, description, gallery, video, SEO, and publish controls.
+                    </p>
+                    <a
+                      href={`/agents/${agentName}/landing-page`}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors"
+                    >
+                      <Globe className="h-4 w-4" />
+                      Open editor
+                    </a>
+                  </div>
+                </div>
+                <div className="rounded-lg border border-gray-200 p-6 flex items-start gap-4">
+                  <DollarSign className="h-10 w-10 text-primary-500 shrink-0 mt-1" />
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900 mb-1">Monetization</h3>
+                    <p className="text-sm text-gray-500 mb-4">
+                      Set pricing tiers (session, daily, weekly, monthly), trial messages, email subscription pricing, and revenue share.
+                    </p>
+                    {agentId ? (
+                      <a
+                        href={`/billing/agent-pricing/${agentId}`}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                      >
+                        <DollarSign className="h-4 w-4" />
+                        Configure pricing
+                      </a>
+                    ) : (
+                      <span className="text-sm text-gray-400">Loading...</span>
+                    )}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-gray-200 p-6 flex items-start gap-4">
+                  <Tag className="h-10 w-10 text-primary-500 shrink-0 mt-1" />
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900 mb-1">Discount Codes</h3>
+                    <p className="text-sm text-gray-500 mb-4">
+                      Create percentage or flat-credit discount codes for subscribers.
+                    </p>
+                    <a
+                      href={`/agents/${agentName}/discount-codes`}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      <Tag className="h-4 w-4" />
+                      Manage codes
+                    </a>
+                  </div>
+                </div>
+                <div className="rounded-lg border border-gray-200 p-6 flex items-start gap-4">
+                  <Users className="h-10 w-10 text-primary-500 shrink-0 mt-1" />
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-900 mb-1">Subscribers</h3>
+                    <p className="text-sm text-gray-500 mb-4">
+                      View everyone who has paid for access to this agent.
+                    </p>
+                    <a
+                      href={`/agents/${agentName}/subscribers`}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      <Users className="h-4 w-4" />
+                      View subscribers
+                    </a>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 
@@ -954,8 +1051,15 @@ function ObservabilityTab({ config, setConfig }: any) {
   )
 }
 
+// Image models that can be assigned for image generation
+const IMAGE_GENERATION_MODELS = new Set([
+  'gpt-image-2', 'dall-e-3', 'dall-e-2',
+  'imagen-3.0-generate-002', 'imagen-3.0-fast-generate-001',
+  'grok-2-image',
+])
+
 // Vision Tab Component
-function VisionTab({ formData }: any) {
+function VisionTab({ formData, agentLlmConfigs, imageGenLlmConfigId, setImageGenLlmConfigId }: any) {
   // Vision models by provider
   const VISION_MODELS = {
     OPENAI: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4-vision-preview'],
@@ -972,96 +1076,142 @@ function VisionTab({ formData }: any) {
     return visionModels.includes(model)
   }
 
-  if (!supportsVision(formData.provider)) {
-    return (
-      <div className="space-y-6 max-w-3xl">
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-          <h4 className="text-sm font-medium text-orange-900 mb-2">⚠️ Vision Not Supported</h4>
-          <p className="text-sm text-orange-800">
-            The selected provider ({formData.provider}) does not support vision capabilities. 
-            Please switch to OpenAI, Anthropic Claude, or Google Gemini to enable vision features.
-          </p>
-        </div>
-      </div>
-    )
-  }
+  // Filter LLM configs to only those with image generation models
+  const imageGenConfigs = (agentLlmConfigs || []).filter(
+    (cfg: AgentLLMConfig) => IMAGE_GENERATION_MODELS.has(cfg.model_name)
+  )
 
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
         <h3 className="text-lg font-semibold text-gray-900 mb-2">
-          Vision Configuration
+          Vision & Image Generation
         </h3>
         <p className="text-sm text-gray-600 mb-4">
-          Configure vision capabilities for image analysis in chat. Enable your agent to analyze images using advanced vision models.
+          Configure image analysis (vision) and image generation capabilities for this agent.
         </p>
       </div>
 
-      <div className="bg-red-50 border border-primary-200 rounded-lg p-4">
-        <h4 className="text-sm font-medium text-primary-900 mb-2">👁️ About Vision</h4>
-        <p className="text-sm text-primary-800 mb-2">
-          Vision-enabled agents can:
+      {/* ---- Image Generation section ---- */}
+      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+        <h4 className="text-sm font-semibold text-gray-900 mb-1">Image Generation Model</h4>
+        <p className="text-xs text-gray-500 mb-4">
+          Select which LLM config the image generation tool should use. Only configs with an image
+          model (gpt-image-2, dall-e-3, dall-e-2, Imagen, grok-2-image) are shown.
         </p>
-        <ul className="text-sm text-primary-800 space-y-1 list-disc list-inside">
-          <li>Analyze images attached to chat messages</li>
-          <li>Extract text from images (OCR)</li>
-          <li>Describe visual content and scenes</li>
-          <li>Answer questions about images</li>
-          <li>Identify objects, people, and activities</li>
-        </ul>
-      </div>
 
-      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-        <h4 className="text-sm font-medium text-emerald-900 mb-2">✅ Current Model Supports Vision</h4>
-        <p className="text-sm text-emerald-800">
-          Your selected model <strong>{formData.model_name}</strong> {isVisionModel(formData.provider, formData.model_name) ? 'supports' : 'may support'} vision capabilities.
-          {!isVisionModel(formData.provider, formData.model_name) && ' Please verify with your provider.'}
-        </p>
-      </div>
-
-      <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-        <h4 className="text-sm font-medium text-orange-900 mb-2">💡 Note</h4>
-        <p className="text-sm text-orange-800">
-          Vision configuration is stored in your agent's LLM config. The backend automatically handles vision API calls when images are attached to messages.
-          No additional configuration is needed - vision works automatically with compatible models!
-        </p>
-      </div>
-
-      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-        <h4 className="text-sm font-medium text-purple-900 mb-2">🎯 Supported Providers</h4>
-        <div className="space-y-2 text-sm text-purple-800">
-          <div>
-            <strong>OpenAI:</strong> gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-4-vision-preview
+        {imageGenConfigs.length === 0 ? (
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+            <p className="text-sm text-orange-800">
+              No image generation models found. Add an LLM config with an image model (e.g.
+              gpt-image-2, dall-e-3) in the <strong>AI Model</strong> tab, then come back here to
+              assign it.
+            </p>
           </div>
+        ) : (
           <div>
-            <strong>Anthropic:</strong> All Claude 3+ models (Opus, Sonnet, Haiku)
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+              Image Generation Config
+            </label>
+            <select
+              value={imageGenLlmConfigId}
+              onChange={(e) => setImageGenLlmConfigId(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
+            >
+              <option value="">— None (image generation disabled) —</option>
+              {imageGenConfigs.map((cfg: AgentLLMConfig) => (
+                <option key={cfg.id} value={cfg.id}>
+                  {cfg.name} ({cfg.model_name})
+                </option>
+              ))}
+            </select>
+            {imageGenLlmConfigId && (
+              <p className="text-xs text-emerald-700 mt-1.5">
+                Image generation tool will use this config. Click <strong>Save Changes</strong> to apply.
+              </p>
+            )}
           </div>
-          <div>
-            <strong>Google:</strong> gemini-1.5-pro, gemini-1.5-flash, gemini-pro-vision
-          </div>
+        )}
+      </div>
+
+      {/* ---- Vision (image analysis) section ---- */}
+      {!supportsVision(formData.provider) ? (
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+          <h4 className="text-sm font-medium text-orange-900 mb-2">Vision Not Supported</h4>
+          <p className="text-sm text-orange-800">
+            The selected provider ({formData.provider}) does not support vision capabilities.
+            Please switch to OpenAI, Anthropic Claude, or Google Gemini to enable vision features.
+          </p>
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="bg-red-50 border border-primary-200 rounded-lg p-4">
+            <h4 className="text-sm font-medium text-primary-900 mb-2">About Vision</h4>
+            <p className="text-sm text-primary-800 mb-2">
+              Vision-enabled agents can:
+            </p>
+            <ul className="text-sm text-primary-800 space-y-1 list-disc list-inside">
+              <li>Analyze images attached to chat messages</li>
+              <li>Extract text from images (OCR)</li>
+              <li>Describe visual content and scenes</li>
+              <li>Answer questions about images</li>
+              <li>Identify objects, people, and activities</li>
+            </ul>
+          </div>
 
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-        <h4 className="text-sm font-medium text-gray-900 mb-2">📋 How to Use</h4>
-        <ol className="text-sm text-gray-800 space-y-2 list-decimal list-inside">
-          <li>Ensure your agent uses a vision-capable model (see supported models above)</li>
-          <li>In chat, attach images using the file upload button</li>
-          <li>Ask questions about the images in your message</li>
-          <li>The agent will automatically analyze the images and respond</li>
-        </ol>
-      </div>
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+            <h4 className="text-sm font-medium text-emerald-900 mb-2">Current Model Supports Vision</h4>
+            <p className="text-sm text-emerald-800">
+              Your selected model <strong>{formData.model_name}</strong> {isVisionModel(formData.provider, formData.model_name) ? 'supports' : 'may support'} vision capabilities.
+              {!isVisionModel(formData.provider, formData.model_name) && ' Please verify with your provider.'}
+            </p>
+          </div>
 
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <h4 className="text-sm font-medium text-red-900 mb-2">⚠️ Important Notes</h4>
-        <ul className="text-sm text-red-800 space-y-1 list-disc list-inside">
-          <li>Vision API calls are more expensive than text-only calls</li>
-          <li>Image tokens count towards your total token limit</li>
-          <li>Large images may require more tokens to process</li>
-          <li>Maximum file size: 10MB per image</li>
-          <li>Supported formats: JPEG, PNG, GIF, WebP</li>
-        </ul>
-      </div>
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+            <h4 className="text-sm font-medium text-orange-900 mb-2">Note</h4>
+            <p className="text-sm text-orange-800">
+              Vision configuration is stored in your agent's LLM config. The backend automatically handles vision API calls when images are attached to messages.
+              No additional configuration is needed — vision works automatically with compatible models!
+            </p>
+          </div>
+
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <h4 className="text-sm font-medium text-purple-900 mb-2">Supported Providers</h4>
+            <div className="space-y-2 text-sm text-purple-800">
+              <div>
+                <strong>OpenAI:</strong> gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-4-vision-preview
+              </div>
+              <div>
+                <strong>Anthropic:</strong> All Claude 3+ models (Opus, Sonnet, Haiku)
+              </div>
+              <div>
+                <strong>Google:</strong> gemini-1.5-pro, gemini-1.5-flash, gemini-pro-vision
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <h4 className="text-sm font-medium text-gray-900 mb-2">How to Use</h4>
+            <ol className="text-sm text-gray-800 space-y-2 list-decimal list-inside">
+              <li>Ensure your agent uses a vision-capable model (see supported models above)</li>
+              <li>In chat, attach images using the file upload button</li>
+              <li>Ask questions about the images in your message</li>
+              <li>The agent will automatically analyze the images and respond</li>
+            </ol>
+          </div>
+
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <h4 className="text-sm font-medium text-red-900 mb-2">Important Notes</h4>
+            <ul className="text-sm text-red-800 space-y-1 list-disc list-inside">
+              <li>Vision API calls are more expensive than text-only calls</li>
+              <li>Image tokens count towards your total token limit</li>
+              <li>Large images may require more tokens to process</li>
+              <li>Maximum file size: 10MB per image</li>
+              <li>Supported formats: JPEG, PNG, GIF, WebP</li>
+            </ul>
+          </div>
+        </>
+      )}
     </div>
   )
 }

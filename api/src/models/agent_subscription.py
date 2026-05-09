@@ -33,6 +33,13 @@ class AgentSubscription(BaseModel):
 
     is_active = Column(Boolean, nullable=False, default=True)
 
+    paid_subscription_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("agent_user_subscriptions.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="FK to AgentUserSubscription if this email sub requires payment. NULL = free subscription.",
+    )
+
     # Relationship
     agent = relationship("Agent", back_populates="subscriptions")
 

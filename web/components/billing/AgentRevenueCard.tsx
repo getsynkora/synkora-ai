@@ -54,12 +54,12 @@ export default function AgentRevenueCard({
       </h3>
 
       <div className="mb-6 grid grid-cols-2 gap-4">
-        <div className="rounded-lg bg-emerald-50 p-4">
+        <div className="rounded-lg bg-primary-50 p-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-emerald-700">Total Revenue</span>
-            <TrendingUp className="h-4 w-4 text-emerald-600" />
+            <span className="text-sm text-primary-700">Total Revenue</span>
+            <TrendingUp className="h-4 w-4 text-primary-600" />
           </div>
-          <p className="mt-2 text-2xl font-bold text-emerald-900">
+          <p className="mt-2 text-2xl font-bold text-primary-900">
             ${totalRevenue.toFixed(2)}
           </p>
         </div>
@@ -94,7 +94,7 @@ export default function AgentRevenueCard({
               <p className="text-lg font-semibold text-gray-900">
                 ${item.revenue_amount.toFixed(2)}
               </p>
-              <p className="text-sm text-emerald-600">
+              <p className="text-sm text-primary-600">
                 Your share: ${item.creator_earnings.toFixed(2)}
               </p>
               <p className="text-xs text-gray-500">

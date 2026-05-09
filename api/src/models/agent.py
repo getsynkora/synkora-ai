@@ -11,7 +11,7 @@ from sqlalchemy import JSON, Boolean, Column, ForeignKey, Integer, String, Text,
 logger = logging.getLogger(__name__)
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, relationship
 
 from src.models.base import BaseModel, StatusMixin, TenantMixin
 
@@ -260,6 +260,13 @@ class Agent(BaseModel, StatusMixin, TenantMixin):
 
     subscriptions = relationship(
         "AgentSubscription", back_populates="agent", cascade="all, delete-orphan", lazy="select"
+    )
+
+    public_profile: Mapped["AgentPublicProfile"] = relationship(
+        "AgentPublicProfile",
+        back_populates="agent",
+        uselist=False,
+        lazy="select",
     )
 
     def __repr__(self) -> str:

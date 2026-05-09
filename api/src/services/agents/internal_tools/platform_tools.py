@@ -43,6 +43,10 @@ PLATFORM_TOOL_CATALOG = {
         "description": "Send emails via SMTP (no OAuth needed — uses platform SMTP config)",
         "requires_oauth": [],
     },
+    "newsletter_tools": {
+        "description": "Render 'The Signal' newsletter from structured JSON into production-quality HTML with PDF and share image generation",
+        "requires_oauth": [],
+    },
     "file_tools": {
         "description": "Read, write, and edit files in the agent workspace",
         "requires_oauth": [],
@@ -522,6 +526,7 @@ TOOL_CATEGORY_TO_CAPABILITY_ID: dict[str, str] = {
     "youtube_tools": "social-media",
     "news_tools": "social-media",
     "spawn_agent_tool": "multi-agent",
+    "newsletter_tools": "email",
 }
 
 

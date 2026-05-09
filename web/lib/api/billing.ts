@@ -170,14 +170,16 @@ export const getUsageAnalytics = async (
 
 // Agent Pricing
 export const getAgentPricing = async (agentId: string): Promise<AgentPricing> => {
-  return await apiClient.request('GET', `/api/v1/billing/agents/${agentId}/pricing`);
+  const res = await apiClient.request('GET', `/api/v1/billing/agents/${agentId}/pricing`);
+  return res?.pricing ?? res;
 };
 
 export const setAgentPricing = async (
   agentId: string,
   data: SetAgentPricingRequest
 ): Promise<AgentPricing> => {
-  return await apiClient.request('PUT', `/api/v1/billing/agents/${agentId}/pricing`, data);
+  const res = await apiClient.request('PUT', `/api/v1/billing/agents/${agentId}/pricing`, data);
+  return res?.pricing ?? res;
 };
 
 // Agent Revenue
@@ -185,9 +187,10 @@ export const getAgentRevenue = async (
   agentId: string,
   filters?: { start_date?: string; end_date?: string }
 ): Promise<AgentRevenue[]> => {
-  return await apiClient.request('GET', `/api/v1/billing/agents/${agentId}/revenue`, undefined, {
+  const res = await apiClient.request('GET', `/api/v1/billing/agents/${agentId}/revenue`, undefined, {
     params: filters,
   });
+  return res?.revenue ?? res ?? [];
 };
 
 export const getAgentEarnings = async (
@@ -200,9 +203,10 @@ export const getAgentEarnings = async (
   pending_payout: number;
   paid_out: number;
 }> => {
-  return await apiClient.request('GET', `/api/v1/billing/agents/${agentId}/earnings`, undefined, {
+  const res = await apiClient.request('GET', `/api/v1/billing/agents/${agentId}/earnings`, undefined, {
     params: { period },
   });
+  return res?.earnings ?? res;
 };
 
 export const getCreatorRevenue = async (filters?: {

@@ -19,7 +19,10 @@
 [![Code of Conduct](https://img.shields.io/badge/code%20of-conduct-ff69b4.svg)](CODE_OF_CONDUCT.md)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/getsynkora/synkora-ai/graphs/commit-activity)
 
-**Build AI agents for every role in your company. From product management to engineering to marketing — deploy intelligent AI teammates that handle real work, not just chat. Open-source, use your own LLM keys, full control.**
+**The open-source AI agent platform your team actually owns.**
+
+Build and deploy AI agents across Slack, WhatsApp, Teams, web widget, and REST API.
+Multi-tenant. API-first. Self-host on your infrastructure. Bring your own LLM keys. MIT licensed.
 
 [Features](#key-features) •
 [Quick Start](#quick-start) •
@@ -33,13 +36,14 @@
 
 ## Overview
 
-Synkora is an open-source platform for building AI-powered teammates. Create agents that act as your AI Product Manager, AI Software Engineer, AI Marketing Lead, AI Support Agent, and more. Each agent can be equipped with custom tools, knowledge bases, and integrations to handle real work autonomously.
+Synkora is an open-source platform for teams building and deploying AI agents. Unlike frameworks like LangChain or CrewAI that give you building blocks, Synkora gives you the entire platform — web UI, multi-tenant workspaces, RAG knowledge bases, multi-channel deployment, billing, scheduled tasks, and observability — ready to self-host or run on Synkora Cloud.
 
 **Why Synkora?**
-- **Role-based AI agents** - Pre-built templates for PM, Engineering, Marketing, Support, and more
-- **Your LLM keys** - Use OpenAI, Anthropic, Google, or any provider via LiteLLM. No vendor lock-in
-- **Real work, not just chat** - Agents integrate with Jira, GitHub, Slack, HubSpot, and 50+ tools
-- **Open source** - Self-host on your infrastructure or use our cloud. You own your data
+- **Platform, not a framework** - No infrastructure code to write. Deploy agents from a web UI or REST API in minutes
+- **You own it** - Self-host on your own servers. MIT licensed. No vendor lock-in, no phone-home
+- **Your LLM keys** - Use OpenAI, Anthropic, Google, or any provider via LiteLLM. Switch anytime
+- **Multi-tenant by design** - Per-tenant isolation, API keys, quotas, and model configs out of the box
+- **Deploy everywhere** - Slack, WhatsApp, Teams, Telegram, web widget, REST API — from one platform
 
 
 ## See It In Action
@@ -47,7 +51,7 @@ Synkora is an open-source platform for building AI-powered teammates. Create age
 <table>
   <tr>
     <td align="center" width="50%">
-      <strong>RajuClaw — Personal AI Assistant</strong><br><br>
+      <strong>Personal AI Assistant</strong><br><br>
       <video src="https://github.com/user-attachments/assets/ce64d4bc-c47e-48f6-af2d-9287d6b3b836" controls width="100%">
         Your browser does not support the video tag.
       </video>
@@ -82,13 +86,13 @@ Synkora is an open-source platform for building AI-powered teammates. Create age
 
 ## Key Features
 
-### AI Teammates for Every Role
-- **AI Product Manager** - Backlog prioritization, sprint planning, status reports (Jira, Linear, Notion)
-- **AI Software Engineer** - Code review, bug triage, documentation generation (GitHub, GitLab, Sentry)
-- **AI Marketing Lead** - Content creation, SEO optimization, campaign analysis (HubSpot, Analytics)
-- **AI Support Agent** - Ticket handling, knowledge base Q&A, smart escalation (Zendesk, Intercom)
-- **AI Data Analyst** - Natural language queries, automated reports, anomaly detection (SQL, BigQuery)
-- **AI HR Coordinator** - Onboarding automation, policy Q&A, leave management (BambooHR, Gusto)
+### What You Can Build
+- **Customer support agents** - 24/7 query handling from your knowledge base, with HITL escalation to humans
+- **Engineering assistants** - Code review, bug triage, and documentation via GitHub, GitLab, and Sentry
+- **Marketing automation** - Content drafting, campaign analysis, and social scheduling
+- **Data agents** - Natural language queries over your databases, automated reports, anomaly detection
+- **Internal copilots** - HR, finance, and ops agents connected to your existing tools via 50+ integrations
+- **Personal AI assistants** - General-purpose assistants with voice, browser control, and messaging integrations
 
 ### Core Capabilities
 - **Multi-Provider LLM Support**: OpenAI, Anthropic, Google, and more via LiteLLM — use your own keys
@@ -829,12 +833,12 @@ Built with amazing open source technologies:
 See [CHANGELOG.md](CHANGELOG.md) for recent changes and version history.
 
 ### Upcoming Features
+- Agent monetization — let creators publish and charge for agents
 - Enhanced multi-agent workflow orchestration
-- Advanced analytics dashboard with custom reports
-- Additional LLM provider integrations
+- Visual workflow DAG editor
 - Improved knowledge base search with hybrid retrieval
 - Multi-language UI support
-- Plugin marketplace
+- Additional LLM provider integrations
 
 
 ## Project Status

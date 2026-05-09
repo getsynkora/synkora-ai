@@ -5,7 +5,14 @@ slug: /
 
 # Welcome to Synkora
 
-Synkora is a production-ready AI/LLM application platform for building, deploying, and managing AI agents at scale. Whether you're creating customer support bots, intelligent assistants, or complex multi-agent workflows, Synkora provides the infrastructure and tools you need.
+Synkora is a production-ready, multitenant LLM application platform for building, deploying,
+and managing AI agents at scale. It provides an application abstraction over LLM workflows —
+combining prompt management, multi-provider model routing, RAG-powered knowledge bases,
+a tool/function registry, and full observability in a single API-first platform.
+
+:::info Correct Classification
+Synkora is an **LLM application platform** — not a low-code workflow tool (Dify, n8n), not an agent orchestration framework (CrewAI, LangChain), and not a domain-specific SaaS. It is infrastructure for building, deploying, and operating AI applications at the application layer.
+:::
 
 ## What is Synkora?
 

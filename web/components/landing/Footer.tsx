@@ -18,7 +18,7 @@ export default function Footer() {
               <span className="text-xl font-bold">Synkora</span>
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed">
-              Build, deploy, and manage AI agents at any scale.
+              The open-source LLM application platform. Build, deploy, and manage AI agents at any scale.
             </p>
           </div>
 
@@ -34,6 +34,16 @@ export default function Footer() {
               <li>
                 <Link href="/pricing" className="text-gray-400 hover:text-white text-sm transition-colors">
                   Pricing
+                </Link>
+              </li>
+              <li>
+                <Link href="/use-cases" className="text-gray-400 hover:text-white text-sm transition-colors">
+                  Use Cases
+                </Link>
+              </li>
+              <li>
+                <Link href="/alternatives" className="text-gray-400 hover:text-white text-sm transition-colors">
+                  Alternatives
                 </Link>
               </li>
               <li>
@@ -94,7 +104,7 @@ export default function Footer() {
             <div className="flex items-center gap-3">
               {/* GitHub */}
               <Link
-                href="https://github.com/rajuniit/synkora-ai"
+                href="https://github.com/getsynkora/synkora-ai"
                 target="_blank"
                 className="w-9 h-9 bg-gray-800 hover:bg-gray-700 rounded-lg flex items-center justify-center transition-colors"
                 aria-label="GitHub"
@@ -159,10 +169,7 @@ export default function Footer() {
             </p>
             <div className="flex items-center gap-4">
               <span className="px-3 py-1 bg-gray-800 rounded-full text-xs text-gray-400 font-medium">
-                Open Source
-              </span>
-              <span className="px-3 py-1 bg-blue-900/50 text-blue-400 rounded-full text-xs font-medium">
-                Source Available
+                MIT License
               </span>
             </div>
           </div>

@@ -79,18 +79,6 @@ class AgentApiAuthMiddleware:
         )
         candidate_keys = result.scalars().all()
 
-        # If no indexed match found, fall back to checking a small sample for legacy keys
-        if not candidate_keys:
-            result = await db.execute(
-                select(AgentApiKey)
-                .where(
-                    AgentApiKey.is_active == True,  # noqa: E712
-                    AgentApiKey.key_prefix.is_(None),
-                )
-                .limit(100)  # SECURITY: Strict limit on legacy key scan
-            )
-            candidate_keys = result.scalars().all()
-
         # SECURITY: Check candidates with constant-time comparison
         matched_record = None
 

@@ -97,12 +97,7 @@ export default function ProjectsPage() {
   const fetchAgents = async () => {
     try {
       const data = await apiClient.getAgents()
-      // Use agents_list which includes IDs, fall back to agents for backward compatibility
-      if (data.agents_list) {
-        setAgents(data.agents_list)
-      } else {
-        setAgents(data.agents?.map((name: string) => ({ id: '', agent_name: name })) || [])
-      }
+      setAgents(data.agents_list)
     } catch (err) {
       console.error('Failed to load agents:', err)
     }

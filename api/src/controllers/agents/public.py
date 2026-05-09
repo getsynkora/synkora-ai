@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.controllers.agents.models import AgentResponse
 from src.core.database import get_async_db
 from src.models.agent import Agent
+from src.models.agent_public_profile import AgentPublicProfile
 from src.services.agents.agent_manager import AgentManager
 from src.services.storage.s3_storage import S3StorageService
 
@@ -117,6 +118,16 @@ async def list_public_agents(
         result = await db.execute(query.limit(limit).offset(offset))
         agents = result.scalars().all()
 
+        # Fetch published slugs for all agents in one query
+        agent_ids = [a.id for a in agents]
+        slug_result = await db.execute(
+            select(AgentPublicProfile.agent_id, AgentPublicProfile.slug).where(
+                AgentPublicProfile.agent_id.in_(agent_ids),
+                AgentPublicProfile.is_published.is_(True),
+            )
+        )
+        slug_map = {row.agent_id: row.slug for row in slug_result}
+
         # Build response
         agents_list = []
         for agent in agents:
@@ -124,6 +135,7 @@ async def list_public_agents(
                 {
                     "id": str(agent.id),
                     "agent_name": agent.agent_name,
+                    "slug": slug_map.get(agent.id),
                     "description": agent.description,
                     "avatar": get_avatar_url(agent.avatar),
                     "category": agent.category,

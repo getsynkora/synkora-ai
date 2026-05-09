@@ -157,10 +157,8 @@ class DigestService:
         """
         Resolve an LLM config to use for digest generation.
 
-        Priority:
-          1. First active agent belonging to the tenant (uses its LLM config).
-          2. Platform OpenAI key from settings.
-          3. Platform Anthropic key from settings.
+        Uses the tenant's default agent LLM config. The tenant must configure
+        at least one agent with a default LLM config before digest generation works.
         """
         from src.models.agent import Agent
         from src.models.agent_llm_config import AgentLLMConfig
@@ -174,42 +172,24 @@ class DigestService:
         )
         llm_config_row = result.scalar_one_or_none()
 
-        if llm_config_row and llm_config_row.api_key:
-            try:
-                api_key = decrypt_value(llm_config_row.api_key)
-            except Exception:
-                api_key = ""
+        if not llm_config_row or not llm_config_row.api_key:
+            raise RuntimeError(
+                "No LLM configuration found for digest generation. Configure a default LLM model on one of your agents."
+            )
 
-            if api_key:
-                return {
-                    "provider": llm_config_row.provider or "openai",
-                    "model": llm_config_row.model_name or "gpt-4o-mini",
-                    "api_key": api_key,
-                    "api_base": llm_config_row.api_base,
-                    "max_tokens": 2000,
-                }
+        api_key = decrypt_value(llm_config_row.api_key)
+        if not api_key:
+            raise RuntimeError(
+                "LLM configuration has no API key. Update the API key in the agent's LLM configuration settings."
+            )
 
-        # Fall back to platform keys
-        from src.config.settings import settings
-
-        if settings.openai_api_key:
-            return {
-                "provider": "openai",
-                "model": "gpt-4o-mini",
-                "api_key": settings.openai_api_key,
-                "max_tokens": 2000,
-            }
-        if settings.anthropic_api_key:
-            return {
-                "provider": "anthropic",
-                "model": "claude-haiku-4-5-20251001",
-                "api_key": settings.anthropic_api_key,
-                "max_tokens": 2000,
-            }
-
-        raise RuntimeError(
-            "No LLM config available for digest generation. Add an agent LLM config or set OPENAI_API_KEY."
-        )
+        return {
+            "provider": llm_config_row.provider,
+            "model": llm_config_row.model_name,
+            "api_key": api_key,
+            "api_base": llm_config_row.api_base,
+            "max_tokens": 2000,
+        }
 
     async def _process_items(
         self,

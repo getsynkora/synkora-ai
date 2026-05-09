@@ -6,8 +6,40 @@ import { SecurityInit } from '../components/common/SecurityInit'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
-  title: 'Synkora - AI Application Platform',
-  description: 'Build and deploy AI applications',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://synkora.ai'),
+  title: 'Synkora – Open-Source LLM Application Platform',
+  description: 'Multitenant, API-first platform for building, deploying, and managing AI agents. Multi-provider LLM support, RAG, tool registry, and full observability. Self-host or cloud.',
+  openGraph: {
+    title: 'Synkora – Open-Source LLM Application Platform',
+    description: 'Multitenant, API-first platform for building, deploying, and managing AI agents. Multi-provider LLM support, RAG, tool registry, and full observability. Self-host or cloud.',
+    type: 'website',
+    siteName: 'Synkora',
+    images: [{ url: '/hero-image.jpg', width: 1200, height: 630, alt: 'Synkora – Open-Source LLM Platform' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Synkora – Open-Source LLM Application Platform',
+    description: 'Multitenant, API-first platform for building, deploying, and managing AI agents. Multi-provider LLM support, RAG, tool registry, and full observability. Self-host or cloud.',
+    images: ['/hero-image.jpg'],
+  },
+}
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Synkora',
+  applicationCategory: 'DeveloperApplication',
+  operatingSystem: 'Web',
+  description: 'Multitenant, API-first open-source LLM application platform for building, deploying, and managing AI agents.',
+  url: 'https://synkora.ai',
+  softwareVersion: 'latest',
+  license: 'https://opensource.org/licenses/MIT',
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'USD',
+    description: 'Free tier available. Self-hostable.',
+  },
 }
 
 export default function RootLayout({
@@ -18,6 +50,24 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className} suppressHydrationWarning>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            name: 'Synkora',
+            url: 'https://synkora.ai',
+            potentialAction: {
+              '@type': 'SearchAction',
+              target: { '@type': 'EntryPoint', urlTemplate: 'https://synkora.ai/alternatives?q={search_term_string}' },
+              'query-input': 'required name=search_term_string',
+            },
+          }) }}
+        />
         <SecurityInit />
         {children}
         <Toaster 

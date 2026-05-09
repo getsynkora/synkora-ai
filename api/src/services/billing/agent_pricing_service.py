@@ -328,3 +328,57 @@ class AgentPricingService:
             }
             for row in rows
         ]
+
+    @staticmethod
+    async def calculate_agent_cost_by_tier(
+        pricing: "AgentPricing",
+        tier: str,
+        db: AsyncSession,
+        discount_code: str | None = None,
+    ) -> int:
+        """Calculate credit cost for a specific access tier, applying optional discount."""
+        from src.services.billing.discount_code_service import DiscountCodeService
+
+        tier_map = {
+            "SESSION": pricing.session_credits,
+            "DAILY": pricing.daily_credits,
+            "WEEKLY": pricing.weekly_credits,
+            "MONTHLY": pricing.monthly_subscription_credits,
+        }
+        base = tier_map.get(tier)
+        if base is None:
+            raise ValueError(f"No credit cost configured for tier '{tier}'")
+
+        if discount_code:
+            discount = await DiscountCodeService.validate_code(discount_code, pricing.id, db)
+            if discount:
+                return await DiscountCodeService.apply_and_consume(discount.id, base, db)
+
+        return base
+
+    @staticmethod
+    async def get_upsell_prompt(agent_id: UUID, db: AsyncSession) -> dict | None:
+        """Return pricing data for the paywall upsell prompt.
+
+        Returns a dict with pricing info for the agent if paid, None if free.
+        """
+        from src.models.agent_public_profile import AgentPublicProfile
+
+        pricing = await AgentPricingService.get_agent_pricing(agent_id, db)
+        if pricing is None or pricing.is_free:
+            return None
+
+        # Get slug for deep-link
+        profile_result = await db.execute(select(AgentPublicProfile).where(AgentPublicProfile.agent_id == agent_id))
+        profile = profile_result.scalar_one_or_none()
+
+        return {
+            "pricing_id": str(pricing.id),
+            "pricing_model": pricing.pricing_model,
+            "session_credits": pricing.session_credits,
+            "daily_credits": pricing.daily_credits,
+            "weekly_credits": pricing.weekly_credits,
+            "monthly_credits": pricing.monthly_subscription_credits,
+            "trial_messages": pricing.trial_messages or 0,
+            "slug": profile.slug if profile else None,
+        }

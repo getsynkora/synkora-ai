@@ -506,6 +506,7 @@ export default function AgentToolsPage() {
   const [availableTools, setAvailableTools] = useState<Tool[]>([]);
   const [toolGroups, setToolGroups] = useState<ToolGroup[]>(TOOL_GROUPS);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeOnly, setActiveOnly] = useState(false);
   const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
   const [toolConfig, setToolConfig] = useState<Record<string, string>>({});
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
@@ -1670,21 +1671,21 @@ export default function AgentToolsPage() {
   const filteredGroups = toolGroups.map(group => {
     if (group.id === 'custom') {
       const filtered = customTools.filter(tool =>
-        searchQuery === '' ||
-        tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        tool.description?.toLowerCase().includes(searchQuery.toLowerCase())
+        (searchQuery === '' || tool.name.toLowerCase().includes(searchQuery.toLowerCase()) || tool.description?.toLowerCase().includes(searchQuery.toLowerCase())) &&
+        (!activeOnly || tool.enabled)
       );
       return { ...group, filteredCustomTools: filtered };
     }
-    
+
     const filtered = group.tools.filter(tool =>
-      searchQuery === '' ||
-      tool.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tool.description.toLowerCase().includes(searchQuery.toLowerCase())
+      (searchQuery === '' || tool.displayName.toLowerCase().includes(searchQuery.toLowerCase()) || tool.description.toLowerCase().includes(searchQuery.toLowerCase())) &&
+      (!activeOnly || enabledToolNames.includes(tool.name))
     );
     return { ...group, tools: filtered, filteredCustomTools: [] };
-  }).filter(group => 
-    group.id === 'custom' ? (group.filteredCustomTools.length > 0) || searchQuery === '' : group.tools.length > 0
+  }).filter(group =>
+    group.id === 'custom'
+      ? (group.filteredCustomTools.length > 0) || (searchQuery === '' && !activeOnly)
+      : group.tools.length > 0
   );
 
   return (
@@ -1712,9 +1713,9 @@ export default function AgentToolsPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-6">
-        {/* Search Bar */}
-        <div className="mb-5">
-          <div className="relative">
+        {/* Search Bar + Active Filter */}
+        <div className="mb-5 flex gap-2">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
@@ -1724,6 +1725,22 @@ export default function AgentToolsPage() {
               className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white"
             />
           </div>
+          <button
+            onClick={() => setActiveOnly(v => !v)}
+            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-colors whitespace-nowrap ${
+              activeOnly
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <CheckCircle className={`w-4 h-4 ${activeOnly ? 'text-emerald-600' : 'text-gray-400'}`} />
+            Active only
+            {activeOnly && (
+              <span className="ml-1 bg-emerald-100 text-emerald-700 text-xs font-semibold px-1.5 py-0.5 rounded-full">
+                {agentTools.filter(t => t.enabled).length}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Stats */}

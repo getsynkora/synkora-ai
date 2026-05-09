@@ -107,7 +107,6 @@ services:
   # Elasticsearch
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.15.5
-    platform: linux/amd64
     container_name: synkora-elasticsearch
     environment:
       - discovery.type=single-node
@@ -448,7 +447,7 @@ services:
       qdrant:
         condition: service_started
       elasticsearch:
-        condition: service_healthy
+        condition: service_started
       minio:
         condition: service_healthy
       synkora-ml:

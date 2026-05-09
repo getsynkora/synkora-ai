@@ -50,21 +50,75 @@ def register_email_tools(registry):
         logger.warning(f"📧 Could not resolve [EMAIL_REDACTED] - {field_name} not in task_config")
         return value
 
+    async def _resolve_body(body: str | None) -> tuple[str | None, bool, list | None]:
+        """
+        If body is a Redis key that resolves to stored content (e.g. a newsletter
+        render key), return (html_content, is_html=True, attachments).
+        Otherwise return (body, False, None) unchanged.
+        """
+        if not body:
+            return body, False, None
+        try:
+            import json as _json
+
+            from src.config.redis import get_redis_async
+
+            redis = get_redis_async()
+            raw = await redis.get(body)
+            if not raw:
+                return body, False, None
+            payload = _json.loads(raw)
+            html_content = payload.get("html")
+            if not html_content:
+                return body, False, None
+            logger.info(f"📧 Resolved body from Redis key ({len(html_content)} bytes)")
+            await redis.delete(body)
+
+            # Fetch PDF and image from S3 as attachments
+            attachments = []
+            for s3_key, filename, content_type in [
+                (payload.get("pdf_s3_key"), "newsletter.pdf", "application/pdf"),
+                (payload.get("image_s3_key"), "newsletter-preview.jpg", "image/jpeg"),
+            ]:
+                if not s3_key:
+                    continue
+                try:
+                    from src.services.storage.s3_storage import get_s3_storage
+
+                    file_bytes = get_s3_storage().download_file(s3_key)
+                    attachments.append({"filename": filename, "content": file_bytes, "content_type": content_type})
+                    logger.info(f"📧 Attached {filename} from S3 ({len(file_bytes)} bytes)")
+                except Exception as exc:
+                    logger.warning(f"📧 Could not attach {filename}: {exc}")
+
+            return html_content, True, attachments or None
+        except Exception:
+            return body, False, None
+
     # Email tools - create wrappers that inject runtime_context
     async def internal_send_email_wrapper(config: dict[str, Any] | None = None, **kwargs):
         runtime_context = config.get("_runtime_context") if config else None
         to_email = kwargs.get("to_email")
+        body = kwargs.get("body")
+        html = kwargs.get("html", False)
 
         logger.info(f"📧 [send_email] Called with to_email={to_email!r}, subject={kwargs.get('subject')!r}")
 
-        # Resolve [EMAIL_REDACTED] if present
+        # Resolve [EMAIL_REDACTED] placeholder from shared_state
         to_email = _resolve_redacted_email(to_email, runtime_context)
+
+        # Resolve body: if it's a Redis key, fetch stored HTML + attachments
+        resolved_body, is_stored_html, attachments = await _resolve_body(body)
+        if is_stored_html:
+            body, html = resolved_body, True
+            # Newsletter HTML is already fully designed — skip the branding wrapper
+            config = {**(config or {}), "apply_branding": False, "attachments": attachments}
 
         return await internal_send_email(
             to_email=to_email,
             subject=kwargs.get("subject"),
-            body=kwargs.get("body"),
-            html=kwargs.get("html", False),
+            body=body,
+            html=html,
             from_email=kwargs.get("from_email"),
             from_name=kwargs.get("from_name"),
             cc=kwargs.get("cc"),

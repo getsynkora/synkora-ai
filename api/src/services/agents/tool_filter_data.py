@@ -3768,6 +3768,21 @@ TOOL_KEYWORDS: dict[str, list[str]] = {
         "tell",
         "useful",
     ],
+    "internal_render_newsletter": [
+        "design",
+        "editorial",
+        "email template",
+        "format newsletter",
+        "generate newsletter",
+        "html email",
+        "newsletter",
+        "render",
+        "render newsletter",
+        "render template",
+        "signal",
+        "template",
+        "the signal",
+    ],
     "internal_send_email": [
         "any",
         "both",
@@ -4026,8 +4041,20 @@ TOOL_KEYWORDS: dict[str, list[str]] = {
         "svg",
         "upload",
     ],
-    # Spawn tools
+    # Spawn / remote agent tools
     "spawn_agent": ["agent", "child", "delegate", "spawn", "sub-task"],
+    "call_remote_agent": [
+        "remote",
+        "agent",
+        "a2a",
+        "delegate",
+        "handoff",
+        "writer",
+        "send",
+        "call",
+        "external",
+        "pipeline",
+    ],
     # Start tools
     "internal_start_jira_sprint": [
         "changes",
@@ -4668,6 +4695,7 @@ TOOL_CATEGORIES_V2: dict[str, dict] = {
     "content_output": {
         "keywords": ["summary", "report", "document", "pdf", "email", "send", "notify"],
         "tools": [
+            "internal_render_newsletter",
             "internal_send_email",
             "internal_slack_send_message",
             "internal_generate_pdf",

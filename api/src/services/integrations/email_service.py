@@ -53,6 +53,7 @@ class EmailService:
         from_name: str | None = None,
         tenant_id: UUID | None = None,
         provider: str | None = None,
+        attachments: list[dict] | None = None,
     ) -> dict[str, Any]:
         """
         Send an email using the configured provider.
@@ -123,6 +124,26 @@ class EmailService:
                     from_name=from_name or default_from_name,
                     config=config_data,
                 )
+            elif provider_name == "resend":
+                return self._send_via_resend(
+                    to_email=to_email,
+                    subject=subject,
+                    html_content=html_content,
+                    text_content=text_content,
+                    from_email=from_email or default_from_email,
+                    from_name=from_name or default_from_name,
+                    config=config_data,
+                )
+            elif provider_name == "mailtrap":
+                return self._send_via_mailtrap(
+                    to_email=to_email,
+                    subject=subject,
+                    html_content=html_content,
+                    text_content=text_content,
+                    from_email=from_email or default_from_email,
+                    from_name=from_name or default_from_name,
+                    config=config_data,
+                )
             else:  # smtp
                 return self._send_via_smtp(
                     to_email=to_email,
@@ -132,6 +153,7 @@ class EmailService:
                     from_email=from_email or default_from_email,
                     from_name=from_name or default_from_name,
                     config=config_data,
+                    attachments=attachments,
                 )
         except Exception as e:
             logger.error(f"Failed to send email: {str(e)}")
@@ -146,22 +168,40 @@ class EmailService:
         from_email: str,
         from_name: str | None,
         config: dict[str, Any],
+        attachments: list[dict] | None = None,
     ) -> dict[str, Any]:
         """Send email via SMTP."""
+        from email.mime.application import MIMEApplication
+        from email.mime.image import MIMEImage
+
         try:
-            # Create message
-            msg = MIMEMultipart("alternative")
+            # Use "mixed" when attachments are present, "alternative" otherwise
+            if attachments:
+                msg = MIMEMultipart("mixed")
+                alt = MIMEMultipart("alternative")
+                if text_content:
+                    alt.attach(MIMEText(text_content, "plain"))
+                alt.attach(MIMEText(html_content, "html"))
+                msg.attach(alt)
+                for a in attachments:
+                    content = a.get("content", b"")
+                    filename = a.get("filename", "attachment")
+                    ctype = a.get("content_type", "application/octet-stream")
+                    if ctype.startswith("image/"):
+                        part = MIMEImage(content, name=filename)
+                    else:
+                        part = MIMEApplication(content, Name=filename)
+                    part["Content-Disposition"] = f'attachment; filename="{filename}"'
+                    msg.attach(part)
+            else:
+                msg = MIMEMultipart("alternative")
+                if text_content:
+                    msg.attach(MIMEText(text_content, "plain"))
+                msg.attach(MIMEText(html_content, "html"))
+
             msg["Subject"] = subject
             msg["From"] = f"{from_name} <{from_email}>" if from_name else from_email
             msg["To"] = to_email
-
-            # Add text and HTML parts
-            if text_content:
-                part1 = MIMEText(text_content, "plain")
-                msg.attach(part1)
-
-            part2 = MIMEText(html_content, "html")
-            msg.attach(part2)
 
             # Connect to SMTP server
             # Support both flat and nested config structures
@@ -181,7 +221,10 @@ class EmailService:
                 f"SMTP config - host: {smtp_host}, port: {smtp_port}, username: {smtp_username}, has_password: {bool(smtp_password)}, use_tls: {use_tls}"
             )
 
-            if not smtp_host or not smtp_username or not smtp_password:
+            require_auth = settings.get("require_auth", True)
+            if not smtp_host:
+                return {"success": False, "message": "SMTP configuration is incomplete"}
+            if require_auth and (not smtp_username or not smtp_password):
                 logger.error(
                     f"SMTP configuration is incomplete - host: {smtp_host}, username: {smtp_username}, has_password: {bool(smtp_password)}"
                 )
@@ -198,20 +241,29 @@ class EmailService:
             )
 
             try:
+                # Port 465 implies implicit SSL even when use_tls is False
+                use_ssl = settings.get("use_ssl", False) or (not use_tls and smtp_port == 465)
                 if use_tls:
                     logger.debug("Creating SMTP connection (will use STARTTLS)...")
                     server = smtplib.SMTP(smtp_host, smtp_port, timeout=smtp_timeout)
                     logger.debug("SMTP connection established, starting TLS...")
                     server.starttls()
                     logger.debug("TLS negotiation complete")
-                else:
+                elif use_ssl:
                     logger.debug("Creating SMTP_SSL connection...")
                     server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=smtp_timeout)
                     logger.debug("SMTP_SSL connection established")
+                else:
+                    logger.debug("Creating plain SMTP connection (no TLS)...")
+                    server = smtplib.SMTP(smtp_host, smtp_port, timeout=smtp_timeout)
+                    logger.debug("Plain SMTP connection established")
 
-                logger.debug("Authenticating with SMTP server...")
-                server.login(smtp_username, smtp_password)
-                logger.debug("SMTP authentication successful")
+                if require_auth and smtp_username and smtp_password:
+                    logger.debug("Authenticating with SMTP server...")
+                    server.login(smtp_username, smtp_password)
+                    logger.debug("SMTP authentication successful")
+                else:
+                    logger.debug("Skipping SMTP auth (require_auth=False or no credentials)")
 
                 logger.debug(f"Sending email to {to_email}...")
                 server.sendmail(from_email, to_email, msg.as_string())
@@ -485,6 +537,101 @@ class EmailService:
         except Exception as e:
             logger.error(f"Brevo send failed: {str(e)}")
             return {"success": False, "message": f"Brevo send failed: {str(e)}", "provider": "brevo"}
+
+    def _send_via_resend(
+        self,
+        to_email: str,
+        subject: str,
+        html_content: str,
+        text_content: str | None,
+        from_email: str,
+        from_name: str | None,
+        config: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Send email via Resend API (https://resend.com)."""
+        try:
+            api_key = config.get("api_key") or config.get("credentials", {}).get("api_key")
+            if not api_key:
+                return {"success": False, "message": "Resend api_key is required", "provider": "resend"}
+
+            sender = f"{from_name} <{from_email}>" if from_name else from_email
+            payload: dict[str, Any] = {
+                "from": sender,
+                "to": [to_email],
+                "subject": subject,
+                "html": html_content,
+            }
+            if text_content:
+                payload["text"] = text_content
+
+            response = requests.post(
+                "https://api.resend.com/emails",
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json=payload,
+                timeout=30,
+            )
+
+            if response.status_code in [200, 201]:
+                logger.info(f"Email sent to {to_email} via Resend")
+                return {
+                    "success": True,
+                    "message": "Email sent successfully",
+                    "provider": "resend",
+                    "message_id": response.json().get("id"),
+                }
+
+            error_msg = response.text or f"HTTP {response.status_code}"
+            logger.warning(f"Resend API returned {response.status_code}: {error_msg}")
+            return {"success": False, "message": f"Resend API error: {error_msg}", "provider": "resend"}
+
+        except Exception as e:
+            logger.error(f"Resend send failed: {e}")
+            return {"success": False, "message": f"Resend send failed: {str(e)}", "provider": "resend"}
+
+    def _send_via_mailtrap(
+        self,
+        to_email: str,
+        subject: str,
+        html_content: str,
+        text_content: str | None,
+        from_email: str,
+        from_name: str | None,
+        config: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Send email via Mailtrap sending API (https://send.api.mailtrap.io)."""
+        try:
+            api_token = config.get("api_token") or config.get("credentials", {}).get("api_token")
+            if not api_token:
+                return {"success": False, "message": "Mailtrap api_token is required", "provider": "mailtrap"}
+
+            sender_email = from_email or "hello@demomailtrap.co"
+            payload = {
+                "from": {"email": sender_email, "name": from_name or "Newsletter Agent"},
+                "to": [{"email": to_email}],
+                "subject": subject,
+                "html": html_content,
+            }
+            if text_content:
+                payload["text"] = text_content
+
+            response = requests.post(
+                "https://send.api.mailtrap.io/api/send",
+                headers={"Authorization": f"Bearer {api_token}", "Content-Type": "application/json"},
+                json=payload,
+                timeout=30,
+            )
+
+            if response.status_code in [200, 201]:
+                logger.info(f"Email sent to {to_email} via Mailtrap")
+                return {"success": True, "message": "Email sent successfully", "provider": "mailtrap"}
+
+            error_msg = response.text or f"HTTP {response.status_code}"
+            logger.warning(f"Mailtrap API returned {response.status_code}: {error_msg}")
+            return {"success": False, "message": f"Mailtrap API error: {error_msg}", "provider": "mailtrap"}
+
+        except Exception as e:
+            logger.error(f"Mailtrap send failed: {e}")
+            return {"success": False, "message": f"Mailtrap send failed: {str(e)}", "provider": "mailtrap"}
 
     async def send_verification_email(
         self,
@@ -1753,12 +1900,15 @@ class EmailService:
                     )
                     return {"success": False, "message": "SMTP configuration is incomplete", "provider": "smtp"}
 
-                # Try to connect
+                # Try to connect — port 465 implies implicit SSL
+                use_ssl = not use_tls and smtp_port == 465
                 if use_tls:
                     server = smtplib.SMTP(smtp_host, smtp_port, timeout=10)
                     server.starttls()
-                else:
+                elif use_ssl:
                     server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=10)
+                else:
+                    server = smtplib.SMTP(smtp_host, smtp_port, timeout=10)
 
                 server.login(smtp_username, smtp_password)
                 server.quit()

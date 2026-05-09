@@ -442,7 +442,11 @@ class AdvancedPromptScanner:
         return detections
 
     def _get_reputation_violations(self, key: str) -> int:
-        """Fetch violation count from Redis (sync fallback to in-memory on error)."""
+        """Fetch violation count from Redis, falling back to the in-process cache.
+
+        _set_reputation_violations always writes to both Redis and reputation_cache,
+        so the in-process cache is always up-to-date for the current worker.
+        """
         try:
             from src.config.redis import get_redis
 
@@ -453,7 +457,6 @@ class AdvancedPromptScanner:
                     return int(raw)
         except Exception:
             pass
-        # Fall back to in-memory cache
         return self.reputation_cache.get(key, {"violations": 0})["violations"]
 
     def _set_reputation_violations(self, key: str, violations: int) -> None:

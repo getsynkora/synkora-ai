@@ -283,7 +283,8 @@ class SupabaseConnector:
             return None
         select_raw = select_m.group(1).strip()
 
-        q: dict[str, Any] = {"table": table, "select": self._convert_select(select_raw)}
+        select_str, alias_map = self._convert_select(select_raw)
+        q: dict[str, Any] = {"table": table, "select": select_str}
 
         # WHERE clause (stop before GROUP BY / HAVING / ORDER BY / LIMIT)
         where_m = re.search(
@@ -294,10 +295,10 @@ class SupabaseConnector:
         if where_m:
             self._apply_where(q, where_m.group(1).strip())
 
-        # ORDER BY (stop before LIMIT)
+        # ORDER BY (stop before LIMIT) — pass alias_map to resolve aggregate aliases
         order_m = re.search(r"\bORDER\s+BY\s+(.*?)(?:\bLIMIT\b|$)", sql, re.IGNORECASE | re.DOTALL)
         if order_m:
-            q["order"] = self._convert_order(order_m.group(1).strip())
+            q["order"] = self._convert_order(order_m.group(1).strip(), alias_map)
 
         # LIMIT / OFFSET
         limit_m = re.search(r"\bLIMIT\s+(\d+)", sql, re.IGNORECASE)
@@ -329,29 +330,47 @@ class SupabaseConnector:
             parts.append("".join(buf).strip())
         return parts
 
-    def _convert_select(self, select_raw: str) -> str:
-        """Translate a SQL SELECT column list to a PostgREST select string."""
+    def _convert_select(self, select_raw: str) -> tuple[str, dict[str, str]]:
+        """Translate a SQL SELECT column list to a PostgREST select string.
+
+        Returns (select_string, alias_map) where alias_map maps SQL alias ->
+        PostgREST expression, e.g. {"errors": "count()", "last_error": "completed_at.max()"}.
+        Used by _convert_order to rewrite ORDER BY aliases to PostgREST expressions.
+        """
         if select_raw.strip() == "*":
-            return "*"
+            return "*", {}
 
         parts: list[str] = []
+        alias_map: dict[str, str] = {}
+
         for col in self._split_csv(select_raw):
             col = col.strip()
 
             # COUNT(*) [AS alias]
-            if re.match(r"COUNT\s*\(\s*\*\s*\)(?:\s+AS\s+\w+)?$", col, re.IGNORECASE):
-                parts.append("count()")
+            m = re.match(r"COUNT\s*\(\s*\*\s*\)(?:\s+AS\s+(\w+))?$", col, re.IGNORECASE)
+            if m:
+                expr = "count()"
+                parts.append(expr)
+                if m.group(1):
+                    alias_map[m.group(1).lower()] = expr
                 continue
 
             # COUNT(col) [AS alias]
-            if re.match(r"COUNT\s*\(\s*\w+\s*\)(?:\s+AS\s+\w+)?$", col, re.IGNORECASE):
-                parts.append("count()")
+            m = re.match(r"COUNT\s*\(\s*\w+\s*\)(?:\s+AS\s+(\w+))?$", col, re.IGNORECASE)
+            if m:
+                expr = "count()"
+                parts.append(expr)
+                if m.group(1):
+                    alias_map[m.group(1).lower()] = expr
                 continue
 
             # SUM/AVG/MAX/MIN(col) [AS alias]
-            m = re.match(r"(SUM|AVG|MAX|MIN)\s*\(\s*(\w+)\s*\)(?:\s+AS\s+\w+)?$", col, re.IGNORECASE)
+            m = re.match(r"(SUM|AVG|MAX|MIN)\s*\(\s*(\w+)\s*\)(?:\s+AS\s+(\w+))?$", col, re.IGNORECASE)
             if m:
-                parts.append(f"{m.group(2)}.{m.group(1).lower()}()")
+                expr = f"{m.group(2)}.{m.group(1).lower()}()"
+                parts.append(expr)
+                if m.group(3):
+                    alias_map[m.group(3).lower()] = expr
                 continue
 
             # plain col [AS alias] — keep only the column name
@@ -363,7 +382,7 @@ class SupabaseConnector:
             # Unrecognised expression — include as-is
             parts.append(col)
 
-        return ",".join(parts) if parts else "*"
+        return (",".join(parts) if parts else "*"), alias_map
 
     def _apply_where(self, q: dict[str, Any], where: str) -> None:
         """Parse a simple WHERE clause and add PostgREST filter keys to q."""
@@ -421,15 +440,24 @@ class SupabaseConnector:
 
                 logger.debug("Supabase SQL translator: skipping unrecognised WHERE condition: %s", cond)
 
-    def _convert_order(self, order_raw: str) -> str:
-        """Translate a SQL ORDER BY clause to a PostgREST order string."""
+    def _convert_order(self, order_raw: str, alias_map: dict[str, str] | None = None) -> str:
+        """Translate a SQL ORDER BY clause to a PostgREST order string.
+
+        alias_map resolves SELECT aliases to PostgREST aggregate expressions so that
+        e.g. ORDER BY errors DESC (where errors = COUNT(*)) becomes count().desc
+        instead of the invalid errors.desc.
+        """
+        alias_map = alias_map or {}
         parts: list[str] = []
         for col in self._split_csv(order_raw):
             col = col.strip()
             m = re.match(r"(\w+)(?:\s+(ASC|DESC))?$", col, re.IGNORECASE)
             if m:
                 direction = (m.group(2) or "asc").lower()
-                parts.append(f"{m.group(1)}.{direction}")
+                name = m.group(1)
+                # Resolve alias to its PostgREST aggregate expression if present
+                expr = alias_map.get(name.lower(), name)
+                parts.append(f"{expr}.{direction}")
             else:
                 parts.append(col)
         return ",".join(parts)

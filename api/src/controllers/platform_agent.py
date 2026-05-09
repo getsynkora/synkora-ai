@@ -199,7 +199,7 @@ async def upsert_platform_agent_llm_config(
     try:
         from src.controllers.agents.llm_configs import invalidate_agent_llm_cache
 
-        invalidate_agent_llm_cache(PLATFORM_ENGINEER_AGENT_NAME)
+        invalidate_agent_llm_cache(PLATFORM_ENGINEER_AGENT_NAME, str(tenant_id))
         logger.info("Invalidated PE agent cache after LLM config update")
     except Exception as e:
         logger.warning(f"Failed to invalidate PE agent cache: {e}")

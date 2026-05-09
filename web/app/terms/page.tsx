@@ -1,5 +1,10 @@
 import Link from 'next/link'
 
+export const metadata = {
+  title: 'Terms of Service – Synkora',
+  description: 'Read the Synkora Terms of Service. Governs your use of the open-source LLM application platform, whether self-hosted or on Synkora Cloud.',
+}
+
 export default function TermsOfServicePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-pink-50 py-12 px-4">

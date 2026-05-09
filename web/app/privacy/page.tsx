@@ -1,5 +1,10 @@
 import Link from 'next/link'
 
+export const metadata = {
+  title: 'Privacy Policy – Synkora',
+  description: 'Synkora Privacy Policy. Explains how we collect, use, and protect data on the Synkora LLM platform. Self-hosted deployments give you full data control.',
+}
+
 export default function PrivacyPolicyPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-pink-50 py-12 px-4">

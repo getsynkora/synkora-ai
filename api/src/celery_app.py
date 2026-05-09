@@ -59,6 +59,7 @@ celery_app = Celery(
         "src.tasks.batch_poll_task",  # LLM batch API polling
         "src.tasks.gdpr_tasks",  # GDPR Article 15 export + Article 17 erasure
         "src.tasks.retention_tasks",  # Data retention policy enforcement
+        "src.tasks.payout_tasks",  # Agent subscription expiry and creator payouts
     ],
 )
 
@@ -190,6 +191,16 @@ celery_app.conf.update(
         "cleanup-old-files-weekly": {
             "task": "tasks.cleanup_old_files",
             "schedule": crontab(hour=4, minute=0, day_of_week=0),
+        },
+        # Expire stale agent access subscriptions every hour
+        "expire-agent-subscriptions-hourly": {
+            "task": "billing.expire_agent_subscriptions",
+            "schedule": crontab(minute=0),
+        },
+        # Process creator payouts on the 1st of each month at 2 AM UTC
+        "process-monthly-creator-payouts": {
+            "task": "billing.process_monthly_payouts",
+            "schedule": crontab(hour=2, minute=0, day_of_month=1),
         },
     },
 )

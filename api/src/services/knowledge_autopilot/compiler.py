@@ -282,8 +282,8 @@ class KnowledgeCompiler:
         Priority order:
         1. Explicit llm_config dict (e.g. from API with api_key)
         2. Specific AgentLLMConfig by llm_config_id (user-selected on wiki page)
-        3. Tenant's most recently updated enabled agent LLM config (fallback)
 
+        A llm_config_id is required when no explicit config dict is supplied.
         API key is then overridden with KB's embedding_config key if available.
         """
         if llm_config and llm_config.get("api_key"):
@@ -293,27 +293,15 @@ class KnowledgeCompiler:
         from src.models.knowledge_base import KnowledgeBase
         from src.services.agents.security import decrypt_value
 
-        # Use the user-selected config if provided
-        if llm_config_id:
-            result = await self.db.execute(select(AgentLLMConfig).filter(AgentLLMConfig.id == llm_config_id))
-            agent_config = result.scalar_one_or_none()
-            if not agent_config:
-                raise ValueError(f"LLM configuration '{llm_config_id}' not found.")
-        else:
-            # Get the tenant's best agent LLM config (for provider, model, api_base)
-            result = await self.db.execute(
-                select(AgentLLMConfig)
-                .filter(
-                    AgentLLMConfig.tenant_id == tenant_id,
-                    AgentLLMConfig.enabled.is_(True),
-                )
-                .order_by(AgentLLMConfig.updated_at.desc())
-                .limit(1)
+        if not llm_config_id:
+            raise ValueError(
+                "No LLM configuration selected. Choose an LLM configuration on the knowledge base settings page."
             )
-            agent_config = result.scalar_one_or_none()
 
+        result = await self.db.execute(select(AgentLLMConfig).filter(AgentLLMConfig.id == llm_config_id))
+        agent_config = result.scalar_one_or_none()
         if not agent_config:
-            raise ValueError("No LLM configuration found. Please configure an LLM provider on any agent first.")
+            raise ValueError(f"LLM configuration '{llm_config_id}' not found.")
 
         provider = agent_config.provider
         model = agent_config.model_name
@@ -321,31 +309,29 @@ class KnowledgeCompiler:
         temperature = agent_config.temperature or 0.7
         max_tokens = agent_config.max_tokens
 
-        # Try KB's embedding_config API key first (user updates this via KB edit page)
+        # Use KB's embedding_config API key (user updates this via KB edit page).
+        # If the KB has no key of its own, use the selected agent LLM config's key.
         api_key = ""
         kb_result = await self.db.execute(select(KnowledgeBase).filter(KnowledgeBase.id == knowledge_base_id))
         kb = kb_result.scalar_one_or_none()
 
         if kb and kb.embedding_config and kb.embedding_config.get("api_key"):
             try:
-                api_key = decrypt_value(kb.embedding_config["api_key"])
-                if api_key and api_key.strip():
-                    # Also use KB's api_base if the agent config doesn't have one
+                kb_api_key = decrypt_value(kb.embedding_config["api_key"])
+                if kb_api_key and kb_api_key.strip():
+                    api_key = kb_api_key
                     if not api_base and kb.embedding_config.get("api_base"):
                         api_base = kb.embedding_config["api_base"]
                     logger.info("Using KB embedding API key for compilation")
             except Exception as e:
-                logger.warning(f"Failed to decrypt KB embedding key: {e}")
-                api_key = ""
+                raise ValueError(f"Failed to decrypt knowledge base API key: {e}") from e
 
-        # Fall back to agent config's own API key
         if not api_key or not api_key.strip():
             api_key = decrypt_value(agent_config.api_key) if agent_config.api_key else ""
 
         if not api_key or not api_key.strip():
             raise ValueError(
-                "No valid API key found. Update the API key in the knowledge base edit page "
-                "or in an agent's LLM configuration."
+                "No API key found. Set an API key in the knowledge base settings or in the selected LLM configuration."
             )
 
         return {

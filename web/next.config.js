@@ -80,11 +80,14 @@ const nextConfig = {
         process.env.NEXT_PUBLIC_SENTRY_HOST || '',
       ].filter(Boolean).join(' '),
       "worker-src 'self' blob:",
-      // Allow iframes for document embedding (PDFs via API proxy, PowerPoint via Office Online)
+      // Allow iframes for document embedding, Office Online, and video providers
       [
         "frame-src 'self'",
         apiUrl,
         'https://view.officeapps.live.com',
+        'https://www.youtube.com',
+        'https://www.youtube-nocookie.com',
+        'https://player.vimeo.com',
         isDev ? 'http://localhost:9000' : '',
         process.env.NEXT_PUBLIC_MINIO_PUBLIC_URL || '',
       ].filter(Boolean).join(' '),
@@ -146,6 +149,16 @@ const nextConfig = {
             key: 'Strict-Transport-Security',
             value: 'max-age=31536000; includeSubDomains; preload',
           }] : []),
+        ],
+      },
+      // Public agent landing pages — relax COEP so YouTube/Vimeo iframes work
+      {
+        source: '/a/:path*',
+        headers: [
+          {
+            key: 'Cross-Origin-Embedder-Policy',
+            value: 'unsafe-none',
+          },
         ],
       },
       // CORS headers for widget.js to allow embedding on external sites

@@ -25,7 +25,7 @@ export default function AgentPricingPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
       </div>
     )
   }
@@ -64,8 +64,8 @@ export default function AgentPricingPage() {
                   ${(earnings.total_earnings || 0).toFixed(2)}
                 </p>
               </div>
-              <div className="rounded-full bg-emerald-100 p-3">
-                <DollarSign className="h-6 w-6 text-emerald-600" />
+              <div className="rounded-full bg-primary-100 p-3">
+                <DollarSign className="h-6 w-6 text-primary-600" />
               </div>
             </div>
           </div>
@@ -169,7 +169,7 @@ export default function AgentPricingPage() {
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
                       ${item.revenue_amount.toFixed(2)}
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-emerald-600">
+                    <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-primary-600">
                       ${item.creator_earnings.toFixed(2)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm">

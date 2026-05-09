@@ -1,14 +1,11 @@
 """
 AI image generation tool.
 
-Works with any provider the agent is configured to use:
-  - OpenAI / LiteLLM proxy / Azure / OpenRouter → gpt-image-2
-  - Google / Gemini (direct)                    → Imagen 3
-  - xAI / Grok                                  → grok-2-image
-  - Anthropic                                   → not supported (clear error)
-  - Unknown                                     → gpt-image-2 attempt
-
-The agent's existing api_key and api_base are reused — no extra setup.
+Loads the image-generation LLM config from agent_metadata.image_generation_llm_config_id.
+The config must be one of the agent's AgentLLMConfig rows whose model is an image model:
+  - OpenAI image models (gpt-image-2, dall-e-3, dall-e-2)
+  - Google Imagen models (imagen-3.0-generate-002, imagen-3.0-fast-generate-001)
+  - xAI / Grok image model (grok-2-image)
 """
 
 from __future__ import annotations
@@ -28,7 +25,8 @@ _SIZE_MAP: dict[str, tuple[str, str]] = {
     "landscape": ("1536x1024", "16:9"),
 }
 
-_QUALITY_MAP: dict[str, str] = {
+# gpt-image-2 quality values: low | medium | high
+_GPT_IMAGE_2_QUALITY_MAP: dict[str, str] = {
     "standard": "medium",
     "hd": "high",
     "low": "low",
@@ -36,19 +34,23 @@ _QUALITY_MAP: dict[str, str] = {
     "high": "high",
 }
 
+# dall-e-3 / dall-e-2 quality values: standard | hd
+_DALLE_QUALITY_MAP: dict[str, str] = {
+    "standard": "standard",
+    "hd": "hd",
+    "high": "hd",
+    "medium": "standard",
+    "low": "standard",
+}
+
 _GPT_IMAGE_2 = "gpt-image-2"
 _IMAGEN_3 = "imagen-3.0-generate-002"
 _GROK_IMAGE = "grok-2-image"
 
-# Providers that use the OpenAI /images/generations endpoint
-_OPENAI_COMPAT = {"openai", "litellm", "azure", "openrouter", "lm_studio", "vllm"}
-_GOOGLE_PROVIDERS = {"google", "gemini", "google-genai", "google_genai"}
-_GROK_PROVIDERS = {"xai", "grok", "x-ai", "x_ai"}
-
-# Models that speak the OpenAI images API (not chat models)
-_OPENAI_IMAGE_MODELS = {"gpt-image-2", "dall-e-3", "dall-e-2"}
-# Models that are Google Imagen (use Google GenAI SDK)
 _GOOGLE_IMAGE_MODELS = {"imagen-3.0-generate-002", "imagen-3.0-fast-generate-001"}
+_OPENAI_IMAGE_MODELS = {"gpt-image-2", "dall-e-3", "dall-e-2"}
+_GROK_IMAGE_MODELS = {"grok-2-image"}
+_GROK_PROVIDERS = {"xai", "grok", "x-ai", "x_ai"}
 
 
 async def internal_generate_image(
@@ -59,7 +61,8 @@ async def internal_generate_image(
 ) -> dict[str, Any]:
     """Generate an AI image from a text prompt.
 
-    Works automatically with whatever provider the agent is configured to use.
+    Uses the image LLM config assigned to this agent via the Vision tab
+    (agent_metadata.image_generation_llm_config_id).
 
     Args:
         prompt:  Detailed description of the image to generate.
@@ -70,84 +73,47 @@ async def internal_generate_image(
     config = config or {}
     runtime_context = config.get("_runtime_context")
 
-    provider = "openai"
-    api_key: str | None = None
-    api_base: str | None = None
-    configured_model: str | None = None
+    if not runtime_context:
+        return {"success": False, "error": "No runtime context available."}
 
-    if runtime_context and runtime_context.llm_client:
-        llm = runtime_context.llm_client
-        provider = getattr(llm, "provider", "openai").lower()
-        llm_cfg = getattr(llm, "config", None)
-        if llm_cfg:
-            api_key = getattr(llm_cfg, "api_key", None)
-            api_base = getattr(llm_cfg, "api_base", None)
-            configured_model = getattr(llm_cfg, "model_name", None)
+    # ------------------------------------------------------------------
+    # Load the image-generation LLM config from agent_metadata
+    # ------------------------------------------------------------------
+    image_llm_config = await _load_image_llm_config(runtime_context)
+    if "success" in image_llm_config:
+        # _load_image_llm_config only sets "success" on error
+        return image_llm_config
 
-    if not api_key:
-        return {
-            "success": False,
-            "error": "No API key found in the agent's LLM configuration.",
-        }
-
-    # Anthropic has no image generation API
-    if provider == "anthropic":
-        return {
-            "success": False,
-            "error": (
-                "Anthropic does not support image generation. "
-                "To use this tool, configure the agent with an OpenAI, Google, or xAI model."
-            ),
-        }
+    model_name: str = image_llm_config["model_name"]
+    provider: str = image_llm_config["provider"].lower()
+    api_key: str = image_llm_config["api_key"]
+    api_base: str | None = image_llm_config.get("api_base")
 
     size_key = size.lower().strip() if size.lower().strip() in _SIZE_MAP else "square"
     openai_size, google_ratio = _SIZE_MAP[size_key]
-    gpt_quality = _QUALITY_MAP.get(quality.lower().strip(), "medium")
+    quality_key = quality.lower().strip()
+    # gpt-image-2 uses low/medium/high; dall-e-3/dall-e-2 use standard/hd
+    if model_name == _GPT_IMAGE_2:
+        mapped_quality = _GPT_IMAGE_2_QUALITY_MAP.get(quality_key, "medium")
+    else:
+        mapped_quality = _DALLE_QUALITY_MAP.get(quality_key, "standard")
 
-    tenant_id = str(runtime_context.tenant_id) if runtime_context else "default"
+    tenant_id = str(runtime_context.tenant_id)
     date_path = datetime.now(UTC).strftime("%Y-%m-%d")
     file_id = uuid.uuid4().hex[:12]
 
-    # If the agent's LLM config is explicitly set to a Google Imagen model, use Google SDK
-    if configured_model in _GOOGLE_IMAGE_MODELS:
+    if model_name in _GOOGLE_IMAGE_MODELS:
         return await _generate_google(
             prompt=prompt,
             api_key=api_key,
             aspect_ratio=google_ratio,
-            model=configured_model,
+            model=model_name,
             tenant_id=tenant_id,
             date_path=date_path,
             file_id=file_id,
         )
 
-    # If the agent's LLM config is explicitly set to an OpenAI image model, use it directly
-    if configured_model in _OPENAI_IMAGE_MODELS:
-        return await _generate_openai_compat(
-            prompt=prompt,
-            api_key=api_key,
-            api_base=api_base,
-            model=configured_model,
-            size=openai_size,
-            quality=gpt_quality,
-            tenant_id=tenant_id,
-            date_path=date_path,
-            file_id=file_id,
-            provider_label=provider,
-        )
-
-    # Google direct (uses google-genai SDK, not OpenAI-compat)
-    if provider in _GOOGLE_PROVIDERS:
-        return await _generate_google(
-            prompt=prompt,
-            api_key=api_key,
-            aspect_ratio=google_ratio,
-            tenant_id=tenant_id,
-            date_path=date_path,
-            file_id=file_id,
-        )
-
-    # xAI / Grok — OpenAI-compat but different default base URL
-    if provider in _GROK_PROVIDERS:
+    if model_name in _GROK_IMAGE_MODELS or provider in _GROK_PROVIDERS:
         return await _generate_openai_compat(
             prompt=prompt,
             api_key=api_key,
@@ -161,20 +127,109 @@ async def internal_generate_image(
             provider_label="xai",
         )
 
-    # OpenAI / LiteLLM proxy / Azure / OpenRouter / unknown → gpt-image-2
-    # AsyncOpenAI with api_base routes through the proxy's /images/generations endpoint
-    return await _generate_openai_compat(
-        prompt=prompt,
-        api_key=api_key,
-        api_base=api_base,
-        model=_GPT_IMAGE_2,
-        size=openai_size,
-        quality=gpt_quality,
-        tenant_id=tenant_id,
-        date_path=date_path,
-        file_id=file_id,
-        provider_label=provider,
-    )
+    if model_name in _OPENAI_IMAGE_MODELS:
+        return await _generate_openai_compat(
+            prompt=prompt,
+            api_key=api_key,
+            api_base=api_base,
+            model=model_name,
+            size=openai_size,
+            quality=mapped_quality,
+            tenant_id=tenant_id,
+            date_path=date_path,
+            file_id=file_id,
+            provider_label=provider,
+        )
+
+    return {
+        "success": False,
+        "error": (
+            f"Model '{model_name}' is not a supported image generation model. "
+            "Please assign a valid image model in the agent's Vision tab "
+            "(e.g. gpt-image-2, dall-e-3, imagen-3.0-generate-002)."
+        ),
+    }
+
+
+async def _load_image_llm_config(runtime_context: Any) -> dict[str, Any]:
+    """Return a plain dict with model_name, provider, api_key, api_base.
+
+    Queries the database for agent_metadata.image_generation_llm_config_id,
+    then fetches the AgentLLMConfig row and decrypts the API key.
+    Returns an error dict on failure.
+    """
+    agent_id = runtime_context.agent_id
+    db_session = runtime_context.db_session
+
+    if not agent_id or not db_session:
+        return {"success": False, "error": "No agent context available for image generation."}
+
+    try:
+        from sqlalchemy import select
+
+        from src.models.agent import Agent
+        from src.models.agent_llm_config import AgentLLMConfig
+        from src.services.agents.security import decrypt_value
+
+        # Fetch agent metadata to get the assigned image LLM config ID
+        result = await db_session.execute(select(Agent.agent_metadata).where(Agent.id == agent_id))
+        agent_metadata: dict | None = result.scalar_one_or_none()
+
+        if not agent_metadata:
+            return {
+                "success": False,
+                "error": (
+                    "No image generation model configured for this agent. Please assign one in the agent's Vision tab."
+                ),
+            }
+
+        image_config_id = agent_metadata.get("image_generation_llm_config_id")
+        if not image_config_id:
+            return {
+                "success": False,
+                "error": (
+                    "No image generation model configured for this agent. Please assign one in the agent's Vision tab."
+                ),
+            }
+
+        # Fetch the AgentLLMConfig row
+        cfg_result = await db_session.execute(
+            select(AgentLLMConfig).where(
+                AgentLLMConfig.id == image_config_id,
+                AgentLLMConfig.agent_id == agent_id,
+            )
+        )
+        llm_cfg = cfg_result.scalar_one_or_none()
+
+        if not llm_cfg:
+            return {
+                "success": False,
+                "error": (
+                    f"Image generation LLM config '{image_config_id}' not found. "
+                    "Please reassign it in the agent's Vision tab."
+                ),
+            }
+
+        if not llm_cfg.enabled:
+            return {
+                "success": False,
+                "error": f"Image generation LLM config '{llm_cfg.name}' is disabled.",
+            }
+
+        decrypted_key = decrypt_value(llm_cfg.api_key)
+        if not decrypted_key:
+            return {"success": False, "error": "Image generation LLM config has no API key."}
+
+        return {
+            "model_name": llm_cfg.model_name,
+            "provider": llm_cfg.provider,
+            "api_key": decrypted_key,
+            "api_base": llm_cfg.api_base,
+        }
+
+    except Exception as exc:
+        logger.error(f"Failed to load image LLM config: {exc}")
+        return {"success": False, "error": f"Failed to load image generation config: {exc}"}
 
 
 async def _generate_openai_compat(
@@ -201,8 +256,11 @@ async def _generate_openai_compat(
             "prompt": prompt,
             "size": size,
             "n": 1,
-            "response_format": "b64_json",
         }
+        # gpt-image-2 does not accept response_format — it always returns b64_json.
+        # dall-e-2 and dall-e-3 require it to receive base64 instead of a URL.
+        if model != _GPT_IMAGE_2:
+            kwargs["response_format"] = "b64_json"
         if quality is not None:
             kwargs["quality"] = quality
 

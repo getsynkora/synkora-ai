@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Signal &mdash; {{ date }}</title>
+<style>
+  body { margin: 0; padding: 0; background: #ffffff; font-family: Arial, Helvetica, sans-serif; color: #111111; }
+  a { color: #0066cc; }
+  h1, h2, h3 { font-family: Georgia, 'Times New Roman', serif; }
+  .section { border-top: 2px solid #111111; padding-top: 16px; margin-top: 24px; }
+  .section-label { font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; color: #666666; margin-bottom: 12px; }
+  .item { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid #eeeeee; }
+  .item:last-child { border-bottom: none; }
+  .meta { font-size: 11px; color: #888888; margin-top: 4px; }
+</style>
+</head>
+<body style="margin:0;padding:0;background:#ffffff;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0">
+<tr><td align="center" style="padding:20px 10px;">
+<table width="{{ container_width }}" cellpadding="0" cellspacing="0" border="0" style="max-width:{{ container_width }}px;width:100%;">
+
+<!-- Masthead -->
+<tr><td style="border-top:3px solid #111111;padding-top:16px;padding-bottom:16px;">
+  <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:36px;font-weight:bold;color:#111111;margin:0;letter-spacing:-1px;">The Signal</h1>
+  <p style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#666666;margin:6px 0 0 0;">{{ date }} &middot; {{ edition }} &middot; AI &amp; Technology</p>
+</td></tr>
+
+{% if lead_headline %}
+<!-- Lead Story -->
+<tr><td class="section">
+  <div class="section-label">Lead Story</div>
+  <h2 style="font-family:Georgia,'Times New Roman',serif;font-size:22px;color:#111111;margin:0 0 8px 0;"><a href="{{ lead_url }}" style="color:#111111;text-decoration:none;">{{ lead_headline }}</a></h2>
+  <p style="font-size:14px;line-height:1.6;color:#333333;margin:0;">{{ lead_summary }}</p>
+  {% if lead_why_it_matters %}
+  <p style="font-size:13px;line-height:1.5;color:#555555;margin:10px 0 0 0;font-style:italic;"><strong>Why it matters:</strong> {{ lead_why_it_matters }}</p>
+  {% endif %}
+  <p class="meta">{{ lead_source }} &middot; <a href="{{ lead_url }}">Read more &rarr;</a></p>
+</td></tr>
+{% endif %}
+
+{% if news_items %}
+<tr><td class="section">
+  <div class="section-label">Today in Tech</div>
+  {% for item in news_items %}
+  <div class="item">
+    <a href="{{ item.url or '#' }}" style="font-family:Georgia,'Times New Roman',serif;font-size:15px;font-weight:bold;color:#111111;text-decoration:none;">{{ item.title }}</a>
+    {% if item.summary %}<p style="font-size:12px;color:#444444;line-height:1.5;margin:4px 0 0 0;">{{ item.summary | truncate(160, false, '&hellip;') }}</p>{% endif %}
+    <p class="meta">{{ item.source or '' }}{% if item.score %} &middot; {{ item.score }} pts{% endif %}</p>
+  </div>
+  {% endfor %}
+</td></tr>
+{% endif %}
+
+{% if github_items %}
+<tr><td class="section">
+  <div class="section-label">GitHub Trending</div>
+  {% for repo in github_items %}
+  <div class="item">
+    <a href="{{ repo.url or '#' }}" style="font-weight:bold;color:#111111;">{{ repo.name }}</a>
+    {% if repo.language %}<span class="meta" style="margin-left:8px;">{{ repo.language }}</span>{% endif %}
+    {% if repo.description %}<p style="font-size:12px;color:#555555;margin:3px 0 0 0;">{{ repo.description | truncate(120, false, '&hellip;') }}</p>{% endif %}
+    <p class="meta">+{{ repo.stars_today or 0 }} stars today</p>
+  </div>
+  {% endfor %}
+</td></tr>
+{% endif %}
+
+{% if papers %}
+<tr><td class="section">
+  <div class="section-label">Research</div>
+  {% for paper in papers %}
+  <div class="item">
+    <a href="{{ paper.url or '#' }}" style="font-family:Georgia,'Times New Roman',serif;font-weight:bold;color:#111111;font-size:14px;">{{ paper.title }}</a>
+    {% if paper.summary %}<p style="font-size:12px;color:#444444;line-height:1.5;margin:4px 0 0 0;">{{ paper.summary | truncate(200, false, '&hellip;') }}</p>{% endif %}
+  </div>
+  {% endfor %}
+</td></tr>
+{% endif %}
+
+{% if products %}
+<tr><td class="section">
+  <div class="section-label">Product Launches</div>
+  {% for product in products %}
+  <div class="item">
+    <a href="{{ product.url or '#' }}" style="font-weight:bold;color:#111111;font-size:14px;">{{ product.name }}</a>
+    {% if product.tagline %}<span style="font-size:13px;color:#444444;margin-left:6px;">&mdash; {{ product.tagline }}</span>{% endif %}
+    {% if product.upvotes %}<p class="meta">&#9650; {{ product.upvotes }} upvotes</p>{% endif %}
+  </div>
+  {% endfor %}
+</td></tr>
+{% endif %}
+
+{% if youtube_items %}
+<tr><td class="section">
+  <div class="section-label">Must Watch</div>
+  {% for video in youtube_items %}
+  <div class="item">
+    <a href="{{ video.url or '#' }}" style="font-weight:bold;color:#111111;font-size:14px;">{{ video.title }}</a>
+    {% if video.channel %}<p class="meta">{{ video.channel }}</p>{% endif %}
+  </div>
+  {% endfor %}
+</td></tr>
+{% endif %}
+
+{% if editors_take %}
+<tr><td class="section">
+  <div class="section-label">Editor's Take</div>
+  <p style="font-family:Georgia,'Times New Roman',serif;font-size:15px;color:#111111;line-height:1.65;font-style:italic;margin:0;">{{ editors_take }}</p>
+</td></tr>
+{% endif %}
+
+<!-- Footer -->
+<tr><td style="border-top:2px solid #111111;padding-top:14px;padding-bottom:20px;margin-top:24px;">
+  <p style="font-family:Georgia,'Times New Roman',serif;font-size:16px;font-weight:bold;color:#111111;margin:0;">The Signal</p>
+  <p style="font-size:11px;color:#888888;margin:4px 0 0 0;">{{ date }} &middot; AI &amp; Technology Digest</p>
+  {% if pdf_url or image_url %}
+  <p style="font-size:12px;margin:10px 0 0 0;">
+    {% if pdf_url %}<a href="{{ pdf_url }}" style="color:#0066cc;margin-right:12px;">PDF Version</a>{% endif %}
+    {% if image_url %}<a href="{{ image_url }}" style="color:#0066cc;">Share Image</a>{% endif %}
+  </p>
+  {% endif %}
+</td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>
