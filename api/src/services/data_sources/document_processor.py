@@ -391,6 +391,29 @@ class DocumentProcessor:
                     # raises MissingGreenlet in SQLAlchemy async.
                     await self.db.refresh(kb)
                     await self.db.refresh(data_source)
+
+                    # Mark the stub document as ERROR so the UI doesn't show it stuck
+                    # as "Processing" forever. Do this in a new mini-transaction so the
+                    # rollback above doesn't undo it.
+                    try:
+                        err_result = await self.db.execute(
+                            select(Document).filter(
+                                Document.knowledge_base_id == kb.id,
+                                Document.external_id == doc["id"],
+                            )
+                        )
+                        err_doc = err_result.scalar_one_or_none()
+                        if err_doc and err_doc.status != DocumentStatus.COMPLETED:
+                            err_doc.status = DocumentStatus.ERROR
+                            err_doc.doc_metadata = {
+                                **(err_doc.doc_metadata or {}),
+                                "error": str(e)[:500],
+                            }
+                            await self.db.commit()
+                    except Exception as mark_err:
+                        logger.warning(f"Could not mark document as ERROR: {mark_err}")
+                        await self.db.rollback()
+
                     continue
 
             # Update knowledge base stats
