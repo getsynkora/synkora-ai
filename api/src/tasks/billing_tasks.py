@@ -420,7 +420,7 @@ def _find_missing_deductions(db) -> list:
             AND m.created_at < NOW() - INTERVAL '1 hour'
             AND NOT EXISTS (
                 SELECT 1 FROM credit_transactions ct
-                WHERE ct.transaction_metadata->>'message_id' = m.id::text
+                WHERE ct.transaction_metadata::jsonb->>'message_id' = m.id::text
             )
             LIMIT 100
         """)

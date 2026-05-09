@@ -162,15 +162,24 @@ async def _crawl_and_process_kb(
     visited: set[str] = set()
     queue: list[str] = [url]
     semaphore = _asyncio.Semaphore(CRAWL_CONCURRENCY)
-    headers = {"User-Agent": "AI-Agent/1.0 (Web Crawler)"}
+    # Use a browser-like UA — "AI-Agent/1.0 (Web Crawler)" triggers Cloudflare/WAF blocks.
+    # Googlebot is avoided because sites verify it via reverse DNS (our IP won't pass).
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        )
+    }
 
     async def fetch_page(client: httpx.AsyncClient, page_url: str) -> dict[str, Any] | None:
         """Fetch and parse a single page. Returns doc dict or None on failure.
 
         Strategy:
         1. Try a plain HTTP GET with BeautifulSoup (fast, no JS).
-        2. If the page returns empty text (SPA/JS-rendered), fall back to the
-           scraper microservice which uses a headless Playwright browser.
+        2. If that fails for any reason (HTTP error, exception, empty text after
+           stripping boilerplate) fall back to Jina Reader which handles JS-rendered
+           SPAs and Cloudflare-protected sites.
         """
         is_valid, err = validate_url(
             page_url, allowed_schemes=["http", "https"], block_private_ips=True, resolve_dns=True
@@ -182,41 +191,47 @@ async def _crawl_and_process_kb(
         title = page_url
         text = ""
         new_links: list[str] = []
+        _use_jina = False  # set to True whenever plain HTTP can't deliver usable text
 
         # --- Attempt 1: plain HTTP (fast, no JS) ---
         try:
             async with semaphore:
                 response = await client.get(page_url, follow_redirects=True, timeout=20)
             if response.status_code >= 400:
-                logger.warning(f"Crawl skipped {page_url} — HTTP {response.status_code}")
-                return None
-            content_type = response.headers.get("content-type", "")
-            if "text/html" not in content_type and "text/plain" not in content_type:
-                logger.warning(f"Crawl skipped {page_url} — non-HTML content-type: {content_type}")
-                return None
-            soup = BeautifulSoup(response.content, "html.parser")
-            title = soup.title.string.strip() if soup.title and soup.title.string else page_url
-            for tag in soup(["script", "style", "nav", "footer", "header", "aside", "noscript"]):
-                tag.decompose()
-            lines = [ln.strip() for ln in soup.get_text(separator="\n").splitlines() if ln.strip()]
-            text = "\n".join(lines)
+                logger.info(f"Plain HTTP {response.status_code} for {page_url} — trying Jina Reader")
+                _use_jina = True
+            else:
+                content_type = response.headers.get("content-type", "")
+                if "text/html" not in content_type and "text/plain" not in content_type:
+                    logger.info(f"Non-HTML content-type '{content_type}' for {page_url} — trying Jina Reader")
+                    _use_jina = True
+                else:
+                    soup = BeautifulSoup(response.content, "html.parser")
+                    title = soup.title.string.strip() if soup.title and soup.title.string else page_url
+                    for tag in soup(["script", "style", "nav", "footer", "header", "aside", "noscript"]):
+                        tag.decompose()
+                    lines = [ln.strip() for ln in soup.get_text(separator="\n").splitlines() if ln.strip()]
+                    text = "\n".join(lines)
 
-            if include_subpages:
-                for a in soup.find_all("a", href=True):
-                    href = a["href"]
-                    if href.startswith(("#", "mailto:", "javascript:", "tel:")):
-                        continue
-                    full = urljoin(page_url, href).split("#")[0].rstrip("/")
-                    parsed_full = urlparse(full)
-                    if parsed_full.netloc == parsed_base.netloc and full not in visited:
-                        new_links.append(full)
+                    if include_subpages:
+                        for a in soup.find_all("a", href=True):
+                            href = a["href"]
+                            if href.startswith(("#", "mailto:", "javascript:", "tel:")):
+                                continue
+                            full = urljoin(page_url, href).split("#")[0].rstrip("/")
+                            parsed_full = urlparse(full)
+                            if parsed_full.netloc == parsed_base.netloc and full not in visited:
+                                new_links.append(full)
+
+                    if not text:
+                        logger.info(f"Empty text after plain HTTP parse for {page_url} — trying Jina Reader")
+                        _use_jina = True
         except Exception as exc:
-            logger.warning(f"Failed to fetch {page_url}: {exc}")
-            return None
+            logger.info(f"Plain HTTP fetch failed for {page_url}: {exc} — trying Jina Reader")
+            _use_jina = True
 
-        # --- Attempt 2: SPA/JS fallback via Jina Reader (already implemented in web_tools) ---
-        if not text:
-            logger.info(f"SPA detected at {page_url} — falling back to Jina Reader")
+        # --- Attempt 2: Jina Reader (handles SPAs, Cloudflare, JS-rendered pages) ---
+        if _use_jina:
             try:
                 from src.services.agents.internal_tools.web_tools import _fetch_via_jina
 

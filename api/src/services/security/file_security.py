@@ -43,6 +43,9 @@ class FileSecurityService:
         # Documents
         "application/pdf": [b"%PDF-"],
         "text/plain": [],  # Text files are validated separately
+        "text/markdown": [],
+        "text/x-markdown": [],
+        "text/html": [],
         "text/csv": [],
         "application/json": [],
         # Microsoft Office (new format)

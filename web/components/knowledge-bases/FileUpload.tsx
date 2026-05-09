@@ -88,30 +88,55 @@ export default function FileUpload({ onUploadComplete, onUpload }: FileUploadPro
 
       // Upload files
       const filesToUpload = files.map(f => f.file)
-      
-      await onUpload(filesToUpload, (progress) => {
+
+      const result = await onUpload(filesToUpload, (progress) => {
         // Update progress for all files
         setFiles(prev => prev.map(f => ({ ...f, progress })))
       })
 
-      // Mark all as success
-      setFiles(prev => prev.map(f => ({ ...f, status: 'success' as const, progress: 100 })))
-      
-      toast.success(`Successfully uploaded ${files.length} file(s)`)
-      
-      // Clear files after a delay
-      setTimeout(() => {
-        setFiles([])
-        onUploadComplete()
-      }, 2000)
+      // Build a map of filename → error from failed_files
+      const failedMap: Record<string, string> = {}
+      if (result?.failed_files?.length) {
+        for (const f of result.failed_files) {
+          if (f.filename) failedMap[f.filename] = f.error || 'Rejected by server'
+        }
+      }
+
+      // Mark each file success or error based on server response
+      setFiles(prev => prev.map(f => {
+        const serverError = failedMap[f.file.name]
+        if (serverError) {
+          return { ...f, status: 'error' as const, progress: 100, error: serverError }
+        }
+        return { ...f, status: 'success' as const, progress: 100 }
+      }))
+
+      const successCount = filesToUpload.length - Object.keys(failedMap).length
+      const failCount = Object.keys(failedMap).length
+
+      if (successCount > 0) {
+        toast.success(`Successfully uploaded ${successCount} file${successCount !== 1 ? 's' : ''}`)
+      }
+      if (failCount > 0) {
+        const names = Object.keys(failedMap).join(', ')
+        toast.error(`${failCount} file${failCount !== 1 ? 's' : ''} rejected: ${names}`)
+      }
+
+      // Clear only successful files after a delay; keep failed ones visible
+      if (successCount > 0) {
+        setTimeout(() => {
+          setFiles(prev => prev.filter(f => f.status === 'error'))
+          onUploadComplete()
+        }, 2000)
+      }
     } catch (error) {
       // Mark all as error
-      setFiles(prev => prev.map(f => ({ 
-        ...f, 
+      setFiles(prev => prev.map(f => ({
+        ...f,
         status: 'error' as const,
         error: error instanceof Error ? error.message : 'Upload failed'
       })))
-      
+
       toast.error('Failed to upload files')
     } finally {
       setUploading(false)

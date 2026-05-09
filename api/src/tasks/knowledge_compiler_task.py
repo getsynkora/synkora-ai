@@ -74,7 +74,7 @@ async def _compile_all_wikis():
     from sqlalchemy import select
 
     from src.core.database import create_celery_async_session
-    from src.models.wiki_article import WikiArticle
+    from src.models.wiki_article import WikiArticle, WikiCompilationJob
     from src.services.knowledge_autopilot.compiler import KnowledgeCompiler
 
     async with create_celery_async_session()() as db:
@@ -95,10 +95,34 @@ async def _compile_all_wikis():
         failed = 0
 
         for kb_id, tenant_id in kb_tenants:
+            # Look up the llm_config_id from the most recent successful compilation job
+            job_result = await db.execute(
+                select(WikiCompilationJob)
+                .filter(
+                    WikiCompilationJob.knowledge_base_id == kb_id,
+                    WikiCompilationJob.status == "completed",
+                )
+                .order_by(WikiCompilationJob.completed_at.desc())
+                .limit(1)
+            )
+            last_job = job_result.scalar_one_or_none()
+            llm_config_id = None
+            if last_job and last_job.compilation_metadata:
+                llm_config_id = last_job.compilation_metadata.get("llm_config_id")
+
+            if not llm_config_id:
+                logger.warning(
+                    f"KB {kb_id}: no llm_config_id found in previous compilation jobs — skipping scheduled recompile. "
+                    "Run a manual compilation from the UI to set it."
+                )
+                failed += 1
+                continue
+
             try:
                 result = await compiler.compile(
                     knowledge_base_id=kb_id,
                     tenant_id=str(tenant_id),
+                    llm_config_id=llm_config_id,
                 )
                 if result.get("status") == "completed":
                     compiled += 1

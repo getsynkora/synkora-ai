@@ -236,6 +236,7 @@ class KnowledgeCompiler:
                 "documents_processed": len(documents),
                 "segments_processed": len(segments),
                 "total_articles": articles_created + articles_updated,
+                "llm_config_id": str(llm_config_id) if llm_config_id else None,
             }
             await self.db.commit()
 
