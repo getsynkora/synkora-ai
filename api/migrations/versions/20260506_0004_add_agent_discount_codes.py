@@ -53,10 +53,11 @@ def upgrade() -> None:
             sa.Column("code", sa.String(50), nullable=False),
             sa.Column(
                 "discount_type",
-                sa.Enum(
+                pg.ENUM(
                     "PERCENTAGE",
                     "FLAT_CREDITS",
                     name="discounttype",
+                    create_type=False,
                 ),
                 nullable=False,
             ),
