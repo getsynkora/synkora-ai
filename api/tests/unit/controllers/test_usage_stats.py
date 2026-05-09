@@ -72,10 +72,17 @@ class TestGetUsageStats:
             mock_plan.features = {"feature1": True}
 
             mock_plan_instance = mock_plan_service.return_value
+            mock_plan_instance.get_usage_stats = AsyncMock(
+                return_value={
+                    "plan_name": "Pro Plan",
+                    "plan_tier": "pro",
+                    "usage": {
+                        "agents": {"current": 3, "limit": 10},
+                        "team_members": {"current": 2, "limit": 5},
+                    },
+                }
+            )
             mock_plan_instance.get_tenant_plan = AsyncMock(return_value=mock_plan)
-            mock_plan_instance.get_agent_count = AsyncMock(return_value=3)
-            mock_plan_instance.get_team_member_count = AsyncMock(return_value=2)
-            mock_plan_instance.get_api_calls_count = AsyncMock(return_value=500)
 
             mock_credit_instance = mock_credit_service.return_value
             mock_credit_instance.get_balance = AsyncMock(return_value=Decimal("100.50"))
@@ -88,7 +95,7 @@ class TestGetUsageStats:
         assert data["plan_tier"] == "pro"
         assert data["current_usage"]["agents"] == 3
         assert data["current_usage"]["team_members"] == 2
-        assert data["current_usage"]["api_calls_this_month"] == 500
+        assert data["current_usage"]["api_calls_this_month"] == 0
         assert data["limits"]["max_agents"] == 10
         assert float(data["credit_balance"]) == 100.50
 
@@ -117,10 +124,17 @@ class TestGetUsageStats:
             mock_plan.features = {}
 
             mock_plan_instance = mock_plan_service.return_value
+            mock_plan_instance.get_usage_stats = AsyncMock(
+                return_value={
+                    "plan_name": "Enterprise",
+                    "plan_tier": "enterprise",
+                    "usage": {
+                        "agents": {"current": 100, "limit": 0},
+                        "team_members": {"current": 50, "limit": 0},
+                    },
+                }
+            )
             mock_plan_instance.get_tenant_plan = AsyncMock(return_value=mock_plan)
-            mock_plan_instance.get_agent_count = AsyncMock(return_value=100)
-            mock_plan_instance.get_team_member_count = AsyncMock(return_value=50)
-            mock_plan_instance.get_api_calls_count = AsyncMock(return_value=100000)
 
             mock_credit_instance = mock_credit_service.return_value
             mock_credit_instance.get_balance = AsyncMock(return_value=None)
@@ -140,7 +154,7 @@ class TestGetUsageStats:
 
         with patch("src.controllers.usage_stats.PlanRestrictionService") as mock_plan_service:
             mock_plan_instance = mock_plan_service.return_value
-            mock_plan_instance.get_tenant_plan = AsyncMock(side_effect=Exception("Database error"))
+            mock_plan_instance.get_usage_stats = AsyncMock(side_effect=Exception("Database error"))
 
             response = test_client.get("/usage-stats")
 

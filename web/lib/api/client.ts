@@ -196,6 +196,7 @@ interface ExtendedAPIClient extends APIClient {
   stopSlackBot: typeof slackBots.stopSlackBot
   restartSlackBot: typeof slackBots.restartSlackBot
   getSlackBotStatus: typeof slackBots.getSlackBotStatus
+  downloadSlackManifest: typeof slackBots.downloadSlackManifest
 
   // Telegram Bots
   getTelegramBots: typeof telegramBots.getTelegramBots
@@ -416,6 +417,7 @@ export const apiClient: ExtendedAPIClient = Object.assign(_apiClient, {
   stopSlackBot: slackBots.stopSlackBot,
   restartSlackBot: slackBots.restartSlackBot,
   getSlackBotStatus: slackBots.getSlackBotStatus,
+  downloadSlackManifest: slackBots.downloadSlackManifest,
 
   // Telegram Bots
   getTelegramBots: telegramBots.getTelegramBots,

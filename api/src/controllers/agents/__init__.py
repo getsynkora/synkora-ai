@@ -17,6 +17,7 @@ from .llm_configs import router as agents_llm_configs_router
 from .mcp_servers import agents_mcp_servers_router
 from .public import agents_public_router
 from .skills import agents_skills_router
+from .slack_manifest import slack_manifest_router
 from .tools import agents_tools_router
 from .versions import versions_router as agents_versions_router
 
@@ -36,4 +37,5 @@ agents_router.include_router(agents_conversations_router)
 agents_router.include_router(agents_public_router)
 agents_router.include_router(agents_llm_configs_router)
 agents_router.include_router(agents_versions_router)
+agents_router.include_router(slack_manifest_router, tags=["slack-manifest"])
 agents_router.include_router(agents_index_router)  # Must be last due to /{agent_name} catch-all route
