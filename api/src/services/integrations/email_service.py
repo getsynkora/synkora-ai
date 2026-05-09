@@ -241,7 +241,8 @@ class EmailService:
             )
 
             try:
-                use_ssl = settings.get("use_ssl", False)
+                # Port 465 implies implicit SSL even when use_tls is False
+                use_ssl = settings.get("use_ssl", False) or (not use_tls and smtp_port == 465)
                 if use_tls:
                     logger.debug("Creating SMTP connection (will use STARTTLS)...")
                     server = smtplib.SMTP(smtp_host, smtp_port, timeout=smtp_timeout)
@@ -1899,12 +1900,15 @@ class EmailService:
                     )
                     return {"success": False, "message": "SMTP configuration is incomplete", "provider": "smtp"}
 
-                # Try to connect
+                # Try to connect — port 465 implies implicit SSL
+                use_ssl = not use_tls and smtp_port == 465
                 if use_tls:
                     server = smtplib.SMTP(smtp_host, smtp_port, timeout=10)
                     server.starttls()
-                else:
+                elif use_ssl:
                     server = smtplib.SMTP_SSL(smtp_host, smtp_port, timeout=10)
+                else:
+                    server = smtplib.SMTP(smtp_host, smtp_port, timeout=10)
 
                 server.login(smtp_username, smtp_password)
                 server.quit()

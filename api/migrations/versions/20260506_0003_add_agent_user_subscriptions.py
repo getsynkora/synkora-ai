@@ -60,7 +60,7 @@ def upgrade() -> None:
             sa.Column("amount_cents", sa.Integer(), nullable=False),
             sa.Column(
                 "status",
-                sa.Enum(
+                pg.ENUM(
                     "ACTIVE",
                     "CANCELLED",
                     "EXPIRED",
