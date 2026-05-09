@@ -250,12 +250,18 @@ class FileSecurityService:
 
     def _validate_file_signature(self, content: bytes, mime_type: str) -> bool:
         """Validate file magic numbers/signatures"""
+        # All text/* types are valid — python-magic detects .md/.txt content as
+        # text/x-script.python, text/html, text/x-c, etc. depending on content.
+        # Text files have no fixed magic bytes so signature checking is not meaningful.
+        if mime_type.startswith("text/"):
+            return True
+
         if mime_type not in self.ALLOWED_FILE_SIGNATURES:
             return False
 
         signatures = self.ALLOWED_FILE_SIGNATURES[mime_type]
 
-        # Text files don't have specific signatures
+        # Types registered with no signatures have no magic bytes to check
         if not signatures:
             return True
 

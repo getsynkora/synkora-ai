@@ -52,50 +52,47 @@ async def get_usage_stats(
         restriction_service = PlanRestrictionService(db)
         credit_service = CreditService(db)
 
-        # Get plan details
+        # Get full usage stats + plan in one call
+        stats = await restriction_service.get_usage_stats(tenant_id)
         plan = await restriction_service.get_tenant_plan(tenant_id)
-
-        # Get current usage
-        agent_count = await restriction_service.get_agent_count(tenant_id)
-        team_member_count = await restriction_service.get_team_member_count(tenant_id)
-        api_calls_count = await restriction_service.get_api_calls_count(tenant_id)
 
         # Get credit balance
         credit_balance = await credit_service.get_balance(tenant_id)
 
-        # Calculate usage percentages
-        agent_percentage = (agent_count / plan.max_agents * 100) if plan.max_agents else 0
-        team_member_percentage = (team_member_count / plan.max_team_members * 100) if plan.max_team_members else 0
-        api_calls_percentage = (
-            (api_calls_count / plan.max_api_calls_per_month * 100) if plan.max_api_calls_per_month else 0
-        )
+        usage = stats.get("usage", {})
+
+        def _pct(current: int, limit: int | None) -> float:
+            return round(current / limit * 100, 2) if limit else 0.0
+
+        agents = usage.get("agents", {})
+        team_members = usage.get("team_members", {})
 
         return UsageStatsResponse(
-            plan_name=plan.name,
-            plan_tier=plan.tier,
+            plan_name=stats.get("plan_name", "Free"),
+            plan_tier=stats.get("plan_tier", "FREE"),
             limits={
-                "max_agents": plan.max_agents,
-                "max_team_members": plan.max_team_members,
-                "max_api_calls_per_month": plan.max_api_calls_per_month,
-                "max_knowledge_bases": plan.max_knowledge_bases,
-                "max_data_sources": plan.max_data_sources,
-                "max_custom_tools": plan.max_custom_tools,
-                "max_database_connections": plan.max_database_connections,
-                "max_mcp_servers": plan.max_mcp_servers,
-                "max_scheduled_tasks": plan.max_scheduled_tasks,
-                "max_widgets": plan.max_widgets,
-                "max_slack_bots": plan.max_slack_bots,
-                "features": plan.features or {},
+                "max_agents": plan.max_agents if plan else None,
+                "max_team_members": plan.max_team_members if plan else None,
+                "max_api_calls_per_month": plan.max_api_calls_per_month if plan else None,
+                "max_knowledge_bases": plan.max_knowledge_bases if plan else None,
+                "max_data_sources": plan.max_data_sources if plan else None,
+                "max_custom_tools": plan.max_custom_tools if plan else None,
+                "max_database_connections": plan.max_database_connections if plan else None,
+                "max_mcp_servers": plan.max_mcp_servers if plan else None,
+                "max_scheduled_tasks": plan.max_scheduled_tasks if plan else None,
+                "max_widgets": plan.max_widgets if plan else None,
+                "max_slack_bots": plan.max_slack_bots if plan else None,
+                "features": plan.features or {} if plan else {},
             },
             current_usage={
-                "agents": agent_count,
-                "team_members": team_member_count,
-                "api_calls_this_month": api_calls_count,
+                "agents": agents.get("current", 0),
+                "team_members": team_members.get("current", 0),
+                "api_calls_this_month": 0,
             },
             usage_percentage={
-                "agents": round(agent_percentage, 2),
-                "team_members": round(team_member_percentage, 2),
-                "api_calls": round(api_calls_percentage, 2),
+                "agents": _pct(agents.get("current", 0), agents.get("limit")),
+                "team_members": _pct(team_members.get("current", 0), team_members.get("limit")),
+                "api_calls": 0.0,
             },
             credit_balance=credit_balance,
         )

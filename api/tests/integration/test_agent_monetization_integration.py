@@ -19,6 +19,7 @@ from sqlalchemy import select
 # Shared auth fixture
 # ---------------------------------------------------------------------------
 
+
 @pytest_asyncio.fixture
 async def auth_headers(async_client: AsyncClient, async_db_session: AsyncSession):
     """Register + activate + login; return (headers, tenant_id)."""
@@ -90,13 +91,12 @@ async def test_agent(async_client: AsyncClient, auth_headers):
 # Agent Public Profile tests
 # ---------------------------------------------------------------------------
 
+
 class TestAgentPublicProfile:
     """Test agent public profile CRUD and publish flow."""
 
     @pytest.mark.asyncio
-    async def test_get_public_profile_initially_empty(
-        self, async_client: AsyncClient, test_agent
-    ):
+    async def test_get_public_profile_initially_empty(self, async_client: AsyncClient, test_agent):
         """Fetching a profile that doesn't exist returns 404 or empty."""
         agent_name, headers = test_agent
         resp = await async_client.get(
@@ -107,9 +107,7 @@ class TestAgentPublicProfile:
         assert resp.status_code in [status.HTTP_200_OK, status.HTTP_404_NOT_FOUND]
 
     @pytest.mark.asyncio
-    async def test_upsert_public_profile(
-        self, async_client: AsyncClient, test_agent
-    ):
+    async def test_upsert_public_profile(self, async_client: AsyncClient, test_agent):
         """Create/update public profile with hero content."""
         agent_name, headers = test_agent
         payload = {
@@ -130,9 +128,7 @@ class TestAgentPublicProfile:
         assert data.get("tagline") == payload["tagline"] or data.get("profile", {}).get("tagline") == payload["tagline"]
 
     @pytest.mark.asyncio
-    async def test_upsert_sets_slug(
-        self, async_client: AsyncClient, test_agent
-    ):
+    async def test_upsert_sets_slug(self, async_client: AsyncClient, test_agent):
         """Profile upsert auto-generates a slug."""
         agent_name, headers = test_agent
         await async_client.put(
@@ -156,12 +152,11 @@ class TestAgentPublicProfile:
     ):
         """After publishing, the public endpoint returns the profile."""
         from src.models.agent import Agent
+
         agent_name, headers = test_agent
 
         # Agent must be set to public first (required by publish endpoint)
-        agent_result = await async_db_session.execute(
-            select(Agent).where(Agent.agent_name == agent_name)
-        )
+        agent_result = await async_db_session.execute(select(Agent).where(Agent.agent_name == agent_name))
         agent = agent_result.scalar_one_or_none()
         if agent:
             agent.is_public = True
@@ -198,9 +193,7 @@ class TestAgentPublicProfile:
         assert data.get("tagline") == "Public test"
 
     @pytest.mark.asyncio
-    async def test_unpublished_profile_not_accessible(
-        self, async_client: AsyncClient, test_agent
-    ):
+    async def test_unpublished_profile_not_accessible(self, async_client: AsyncClient, test_agent):
         """Unpublished profiles are not accessible via public endpoint."""
         agent_name, headers = test_agent
         slug = f"nonexistent-slug-{uuid.uuid4().hex[:8]}"
@@ -211,6 +204,7 @@ class TestAgentPublicProfile:
 # ---------------------------------------------------------------------------
 # Agent Pricing tests
 # ---------------------------------------------------------------------------
+
 
 class TestAgentPricing:
     """Test agent pricing configuration."""
@@ -224,9 +218,7 @@ class TestAgentPricing:
         return (data.get("data") or data).get("id") or data.get("id")
 
     @pytest.mark.asyncio
-    async def test_get_pricing_initially_empty(
-        self, async_client: AsyncClient, test_agent
-    ):
+    async def test_get_pricing_initially_empty(self, async_client: AsyncClient, test_agent):
         """Agent has no pricing config initially."""
         agent_name, headers = test_agent
         agent_id = await TestAgentPricing._get_agent_id(async_client, agent_name, headers)
@@ -239,9 +231,7 @@ class TestAgentPricing:
         assert data.get("pricing") is None
 
     @pytest.mark.asyncio
-    async def test_upsert_subscription_pricing(
-        self, async_client: AsyncClient, test_agent
-    ):
+    async def test_upsert_subscription_pricing(self, async_client: AsyncClient, test_agent):
         """Set SESSION/DAILY/WEEKLY/MONTHLY pricing tiers."""
         agent_name, headers = test_agent
         agent_id = await TestAgentPricing._get_agent_id(async_client, agent_name, headers)
@@ -268,9 +258,7 @@ class TestAgentPricing:
         assert pricing.get("trial_messages") == 3
 
     @pytest.mark.asyncio
-    async def test_upsert_free_pricing(
-        self, async_client: AsyncClient, test_agent
-    ):
+    async def test_upsert_free_pricing(self, async_client: AsyncClient, test_agent):
         """Set FREE pricing model."""
         agent_name, headers = test_agent
         agent_id = await TestAgentPricing._get_agent_id(async_client, agent_name, headers)
@@ -287,6 +275,7 @@ class TestAgentPricing:
 # Discount Code tests
 # ---------------------------------------------------------------------------
 
+
 class TestDiscountCodes:
     """Test agent discount code CRUD."""
 
@@ -294,7 +283,7 @@ class TestDiscountCodes:
     async def _ensure_pricing(async_client, agent_name, headers):
         """Create pricing record required for discount codes to work."""
         agent_resp = await async_client.get(f"/api/v1/agents/{agent_name}", headers=headers)
-        agent_data = (agent_resp.json().get("data") or agent_resp.json())
+        agent_data = agent_resp.json().get("data") or agent_resp.json()
         agent_id = agent_data.get("id")
         await async_client.put(
             f"/api/v1/billing/agents/{agent_id}/pricing",
@@ -303,9 +292,7 @@ class TestDiscountCodes:
         )
 
     @pytest.mark.asyncio
-    async def test_list_codes_empty(
-        self, async_client: AsyncClient, test_agent
-    ):
+    async def test_list_codes_empty(self, async_client: AsyncClient, test_agent):
         """New agent (with pricing) has no discount codes."""
         agent_name, headers = test_agent
         await TestDiscountCodes._ensure_pricing(async_client, agent_name, headers)
@@ -320,9 +307,7 @@ class TestDiscountCodes:
         assert len(codes) == 0
 
     @pytest.mark.asyncio
-    async def test_create_percentage_discount(
-        self, async_client: AsyncClient, test_agent
-    ):
+    async def test_create_percentage_discount(self, async_client: AsyncClient, test_agent):
         """Create a percentage discount code."""
         agent_name, headers = test_agent
         await TestDiscountCodes._ensure_pricing(async_client, agent_name, headers)
@@ -342,9 +327,7 @@ class TestDiscountCodes:
         assert code.get("discount_value") == 20.0 or code.get("discount_type") == "PERCENTAGE"
 
     @pytest.mark.asyncio
-    async def test_create_flat_credits_discount(
-        self, async_client: AsyncClient, test_agent
-    ):
+    async def test_create_flat_credits_discount(self, async_client: AsyncClient, test_agent):
         """Create a flat credits discount code."""
         agent_name, headers = test_agent
         await TestDiscountCodes._ensure_pricing(async_client, agent_name, headers)
@@ -361,9 +344,7 @@ class TestDiscountCodes:
         assert resp.status_code in [status.HTTP_200_OK, status.HTTP_201_CREATED]
 
     @pytest.mark.asyncio
-    async def test_duplicate_code_rejected(
-        self, async_client: AsyncClient, test_agent
-    ):
+    async def test_duplicate_code_rejected(self, async_client: AsyncClient, test_agent):
         """Creating a code with the same name twice should fail."""
         agent_name, headers = test_agent
         await TestDiscountCodes._ensure_pricing(async_client, agent_name, headers)
@@ -386,9 +367,7 @@ class TestDiscountCodes:
         ]
 
     @pytest.mark.asyncio
-    async def test_delete_discount_code(
-        self, async_client: AsyncClient, test_agent
-    ):
+    async def test_delete_discount_code(self, async_client: AsyncClient, test_agent):
         """Create then delete a discount code."""
         agent_name, headers = test_agent
         await TestDiscountCodes._ensure_pricing(async_client, agent_name, headers)
@@ -418,7 +397,7 @@ class TestDiscountCodes:
 
         # Get agent UUID
         agent_resp = await async_client.get(f"/api/v1/agents/{agent_name}", headers=headers)
-        agent_data = (agent_resp.json().get("data") or agent_resp.json())
+        agent_data = agent_resp.json().get("data") or agent_resp.json()
         agent_id = agent_data.get("id")
 
         # Create pricing using agent UUID
@@ -427,7 +406,7 @@ class TestDiscountCodes:
             headers=headers,
             json={"agent_id": str(agent_id), "pricing_model": "SUBSCRIPTION", "session_credits": 10},
         )
-        pricing = (pricing_resp.json().get("pricing") or pricing_resp.json())
+        pricing = pricing_resp.json().get("pricing") or pricing_resp.json()
         pricing_id = pricing.get("id")
 
         if not pricing_id:
@@ -455,13 +434,12 @@ class TestDiscountCodes:
 # Creator Profile tests
 # ---------------------------------------------------------------------------
 
+
 class TestCreatorProfile:
     """Test creator profile management."""
 
     @pytest.mark.asyncio
-    async def test_get_creator_profile_initially_empty(
-        self, async_client: AsyncClient, auth_headers
-    ):
+    async def test_get_creator_profile_initially_empty(self, async_client: AsyncClient, auth_headers):
         """New user has no creator profile."""
         headers, _ = auth_headers
         resp = await async_client.get("/api/v1/creator-profile", headers=headers)
@@ -469,9 +447,7 @@ class TestCreatorProfile:
         assert resp.status_code in [status.HTTP_200_OK, status.HTTP_404_NOT_FOUND]
 
     @pytest.mark.asyncio
-    async def test_upsert_creator_profile(
-        self, async_client: AsyncClient, auth_headers
-    ):
+    async def test_upsert_creator_profile(self, async_client: AsyncClient, auth_headers):
         """Create/update creator profile with bio and social links."""
         headers, _ = auth_headers
         payload = {
@@ -511,13 +487,20 @@ class TestCreatorProfile:
         email2 = f"creator2_{uuid.uuid4().hex[:8]}@example.com"
         await async_client.post(
             "/console/api/auth/register",
-            json={"email": email2, "password": "SecureTest123!", "name": "Second", "tenant_name": f"Org2_{uuid.uuid4().hex[:4]}"},
+            json={
+                "email": email2,
+                "password": "SecureTest123!",
+                "name": "Second",
+                "tenant_name": f"Org2_{uuid.uuid4().hex[:4]}",
+            },
         )
         result = await async_db_session.execute(select(Account).filter_by(email=email2))
         acct2 = result.scalar_one()
         acct2.status = AccountStatus.ACTIVE
         await async_db_session.commit()
-        login2 = await async_client.post("/console/api/auth/login", json={"email": email2, "password": "SecureTest123!"})
+        login2 = await async_client.post(
+            "/console/api/auth/login", json={"email": email2, "password": "SecureTest123!"}
+        )
         headers2 = {"Authorization": f"Bearer {login2.json()['data']['access_token']}"}
 
         # Try to set same username
@@ -532,9 +515,7 @@ class TestCreatorProfile:
         ]
 
     @pytest.mark.asyncio
-    async def test_get_creator_earnings(
-        self, async_client: AsyncClient, auth_headers
-    ):
+    async def test_get_creator_earnings(self, async_client: AsyncClient, auth_headers):
         """Earnings endpoint returns zero for new creator."""
         headers, _ = auth_headers
         resp = await async_client.get("/api/v1/creator-profile/earnings", headers=headers)
@@ -546,9 +527,7 @@ class TestCreatorProfile:
             assert earnings.get("total_credits", 0) == 0 or earnings is not None
 
     @pytest.mark.asyncio
-    async def test_get_creator_payouts(
-        self, async_client: AsyncClient, auth_headers
-    ):
+    async def test_get_creator_payouts(self, async_client: AsyncClient, auth_headers):
         """Payouts endpoint returns empty list for new creator."""
         headers, _ = auth_headers
         resp = await async_client.get("/api/v1/creator-profile/payouts", headers=headers)
@@ -563,13 +542,12 @@ class TestCreatorProfile:
 # Agent User Subscriptions tests
 # ---------------------------------------------------------------------------
 
+
 class TestAgentUserSubscriptions:
     """Test agent access subscription management."""
 
     @pytest.mark.asyncio
-    async def test_list_my_subscriptions_empty(
-        self, async_client: AsyncClient, auth_headers
-    ):
+    async def test_list_my_subscriptions_empty(self, async_client: AsyncClient, auth_headers):
         """New user has no agent subscriptions."""
         headers, _ = auth_headers
         resp = await async_client.get(
@@ -583,16 +561,14 @@ class TestAgentUserSubscriptions:
         assert len(subs) == 0
 
     @pytest.mark.asyncio
-    async def test_subscribe_to_free_agent(
-        self, async_client: AsyncClient, test_agent, auth_headers
-    ):
+    async def test_subscribe_to_free_agent(self, async_client: AsyncClient, test_agent, auth_headers):
         """Subscribing to a free agent succeeds without credits."""
         agent_name, creator_headers = test_agent
         subscriber_headers, _ = auth_headers
 
         # Get agent UUID
         agent_resp = await async_client.get(f"/api/v1/agents/{agent_name}", headers=creator_headers)
-        agent_data = (agent_resp.json().get("data") or agent_resp.json())
+        agent_data = agent_resp.json().get("data") or agent_resp.json()
         agent_id = agent_data.get("id")
 
         # Ensure it has FREE pricing
@@ -611,9 +587,7 @@ class TestAgentUserSubscriptions:
         assert isinstance(subs, list)
 
     @pytest.mark.asyncio
-    async def test_list_agent_subscribers(
-        self, async_client: AsyncClient, test_agent
-    ):
+    async def test_list_agent_subscribers(self, async_client: AsyncClient, test_agent):
         """Creator can list their agent's subscribers."""
         agent_name, headers = test_agent
         resp = await async_client.get(

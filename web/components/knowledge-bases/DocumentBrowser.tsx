@@ -334,7 +334,7 @@ export default function DocumentBrowser({
                           Processing
                         </span>
                       ) : doc.status === 'ERROR' ? (
-                        <span className="text-red-500">Error</span>
+                        <span className="text-red-500" title={doc.metadata?.error || 'Processing failed'}>Error</span>
                       ) : (
                         doc.chunk_count
                       )}
