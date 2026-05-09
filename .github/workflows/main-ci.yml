@@ -120,15 +120,8 @@ jobs:
          pip-audit \
            --requirement /tmp/requirements-audit.txt \
            --ignore-vuln CVE-2025-69872 \
-           --ignore-vuln CVE-2026-41066 \
            --ignore-vuln CVE-2026-35029 \
            --ignore-vuln GHSA-69x8-hrgq-fjj8 \
-           --ignore-vuln CVE-2026-27448 \
-           --ignore-vuln CVE-2026-27459 \
-           --ignore-vuln CVE-2026-26007 \
-           --ignore-vuln CVE-2026-34073 \
-           --ignore-vuln CVE-2026-39892 \
-           --ignore-vuln CVE-2025-69277 \
            --format markdown \
            --output api/pip-audit-report.md
        continue-on-error: false

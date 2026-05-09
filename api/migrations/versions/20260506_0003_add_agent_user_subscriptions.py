@@ -65,6 +65,7 @@ def upgrade() -> None:
                     "CANCELLED",
                     "EXPIRED",
                     name="subscriptionaccessstatus",
+                    create_type=False,
                 ),
                 nullable=False,
                 server_default="ACTIVE",

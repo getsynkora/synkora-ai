@@ -26,7 +26,7 @@ const features = [
 function Cell({ value }: { value: 'yes' | 'no' | 'partial' }) {
   if (value === 'yes') return <Check className="w-5 h-5 text-green-500 mx-auto" />
   if (value === 'no') return <X className="w-5 h-5 text-red-400 mx-auto" />
-  return <Minus className="w-5 h-5 text-yellow-400 mx-auto" title="Partial" />
+  return <Minus className="w-5 h-5 text-yellow-400 mx-auto" aria-label="Partial" />
 }
 
 const breadcrumbLd = {
