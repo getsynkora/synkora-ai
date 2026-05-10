@@ -2,11 +2,10 @@
 Seed data for default subscription plans
 
 Pricing Strategy:
-- Free: Entry point for trying the platform
-- Hobby ($9/mo): Budget-friendly for individual creators and hobbyists
-- Starter ($19/mo): For individuals and small teams getting started
+- Free: Full-featured entry point with generous limits (all features unlocked)
 - Professional ($79/mo): For growing businesses with advanced needs
 - Enterprise ($299/mo): For large organizations with full features
+- Hobby / Starter: Hidden legacy tiers (is_active=False), existing subscribers unaffected
 
 Simplified Credit Model (BYOK - Bring Your Own Key):
 - 1 credit = 1 platform action (message, tool use, KB query, agent execution)
@@ -45,59 +44,59 @@ async def seed_subscription_plans(db: AsyncSession, update: bool = False) -> Non
         return
 
     plans = [
-        # FREE TIER - Entry point
+        # FREE TIER - Full-featured entry point with generous limits
         {
             "name": "Free",
             "tier": PlanTier.FREE,
-            "description": "Perfect for trying out Synkora",
+            "description": "Everything you need to build and deploy AI agents",
             "price_monthly": Decimal("0.00"),
             "price_yearly": Decimal("0.00"),
-            "credits_monthly": 200,  # 200 messages/actions per month
+            "credits_monthly": 3000,
             "credits_rollover": False,
             # Column-based limits (enforced by middleware)
-            "max_agents": 10,
-            "max_team_members": 1,
-            "max_api_calls_per_month": 200,
-            "max_knowledge_bases": 2,
-            "max_data_sources": 5,
-            "max_custom_tools": 0,
-            "max_database_connections": 0,
-            "max_mcp_servers": 0,
-            "max_scheduled_tasks": 0,
-            "max_widgets": 2,
-            "max_slack_bots": 0,
-            "max_api_keys": 0,  # No API access on Free
+            "max_agents": 20,
+            "max_team_members": 5,
+            "max_api_calls_per_month": 3000,
+            "max_knowledge_bases": 10,
+            "max_data_sources": 50,
+            "max_custom_tools": 10,
+            "max_database_connections": 3,
+            "max_mcp_servers": 5,
+            "max_scheduled_tasks": 5,
+            "max_widgets": 10,
+            "max_slack_bots": 2,
+            "max_api_keys": 5,
             # Feature flags (for UI/feature gating)
             "features": {
-                "max_conversations": 100,
-                "max_messages_per_conversation": 200,
+                "max_conversations": 1000,
+                "max_messages_per_conversation": 2000,
                 "knowledge_bases": True,
-                "custom_tools": False,
-                "mcp_servers": False,
-                "api_access": False,
+                "custom_tools": True,
+                "mcp_servers": True,
+                "api_access": True,
                 "priority_support": False,
                 "advanced_analytics": False,
                 "custom_domains": False,
-                "webhooks": False,
+                "webhooks": True,
                 "white_label": False,
                 "sso": False,
                 "audit_logs": False,
                 "overage_allowed": False,
                 "grace_period_days": 0,
+                "platform_engineer_agent": True,
                 "serverless_execution": False,
             },
             "is_active": True,
         },
-        # HOBBY TIER - Budget-friendly entry
+        # HOBBY TIER - Hidden (legacy, not available for new subscriptions)
         {
             "name": "Hobby",
             "tier": PlanTier.HOBBY,
             "description": "For individual creators and hobbyists",
             "price_monthly": Decimal("9.00"),
-            "price_yearly": Decimal("90.00"),  # 2 months free
-            "credits_monthly": 1000,  # 1,000 messages/actions per month
+            "price_yearly": Decimal("90.00"),
+            "credits_monthly": 1000,
             "credits_rollover": False,
-            # Column-based limits
             "max_agents": 15,
             "max_team_members": 2,
             "max_api_calls_per_month": 1000,
@@ -109,8 +108,7 @@ async def seed_subscription_plans(db: AsyncSession, update: bool = False) -> Non
             "max_scheduled_tasks": 5,
             "max_widgets": 5,
             "max_slack_bots": 1,
-            "max_api_keys": 0,  # No API access on Hobby
-            # Feature flags
+            "max_api_keys": 0,
             "features": {
                 "max_conversations": 500,
                 "max_messages_per_conversation": 1000,
@@ -130,18 +128,17 @@ async def seed_subscription_plans(db: AsyncSession, update: bool = False) -> Non
                 "platform_engineer_agent": True,
                 "serverless_execution": False,
             },
-            "is_active": True,
+            "is_active": False,
         },
-        # STARTER TIER - Small teams
+        # STARTER TIER - Hidden (legacy, not available for new subscriptions)
         {
             "name": "Starter",
             "tier": PlanTier.STARTER,
             "description": "For individuals and small teams",
             "price_monthly": Decimal("19.00"),
-            "price_yearly": Decimal("190.00"),  # 2 months free
-            "credits_monthly": 3000,  # 3,000 messages/actions per month
+            "price_yearly": Decimal("190.00"),
+            "credits_monthly": 3000,
             "credits_rollover": False,
-            # Column-based limits
             "max_agents": 25,
             "max_team_members": 3,
             "max_api_calls_per_month": 5000,
@@ -153,8 +150,7 @@ async def seed_subscription_plans(db: AsyncSession, update: bool = False) -> Non
             "max_scheduled_tasks": 10,
             "max_widgets": 10,
             "max_slack_bots": 3,
-            "max_api_keys": 10,  # API access with limit
-            # Feature flags
+            "max_api_keys": 10,
             "features": {
                 "max_conversations": 2000,
                 "max_messages_per_conversation": 5000,
@@ -170,12 +166,12 @@ async def seed_subscription_plans(db: AsyncSession, update: bool = False) -> Non
                 "sso": False,
                 "audit_logs": False,
                 "overage_allowed": True,
-                "overage_rate_per_credit": 0.01,  # $0.01 per credit overage
+                "overage_rate_per_credit": 0.01,
                 "grace_period_days": 7,
                 "platform_engineer_agent": True,
                 "serverless_execution": False,
             },
-            "is_active": True,
+            "is_active": False,
         },
         # PROFESSIONAL TIER - Growing businesses
         {

@@ -74,6 +74,7 @@ const nextConfig = {
         // Sentry error reporting (self-hosted + cloud)
         'https://*.sentry.io',
         'https://ingest.sentry.io',
+        'https://logs.synkora.ai',
         // Cloudflare Analytics beacon
         'https://cloudflareinsights.com',
         process.env.NEXT_PUBLIC_LOGS_URL || '',
