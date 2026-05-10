@@ -44,3 +44,10 @@ export async function getSlackBotStatus(botId: string): Promise<any> {
   const { data } = await apiClient.axios.get(`/api/v1/slack-bots/${botId}/status`)
   return data
 }
+
+export async function downloadSlackManifest(agentId: string): Promise<Blob> {
+  const response = await apiClient.axios.get(`/api/v1/agents/${agentId}/slack-manifest`, {
+    responseType: 'blob',
+  })
+  return response.data
+}

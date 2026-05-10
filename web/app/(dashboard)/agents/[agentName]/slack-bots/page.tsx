@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { extractErrorMessage } from '@/lib/api/error'
 import { useParams, useRouter } from "next/navigation";
-import { Plus, Power, PowerOff, RefreshCw, Trash2, Settings, ExternalLink, Copy, Check, ChevronRight } from "lucide-react";
+import { Plus, Power, PowerOff, RefreshCw, Trash2, Settings, ExternalLink, Copy, Check, ChevronRight, Download } from "lucide-react";
 import toast from "react-hot-toast";
 import { apiClient } from "@/lib/api/client";
 
@@ -34,6 +34,29 @@ export default function SlackBotsPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [agentId, setAgentId] = useState<string | null>(null);
+  const [manifestLoading, setManifestLoading] = useState(false);
+
+  const handleDownloadManifest = async () => {
+    if (!agentId) return;
+    try {
+      setManifestLoading(true);
+      const blob = await apiClient.downloadSlackManifest(agentId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `slack-manifest-${agentName}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success("Manifest downloaded!");
+    } catch {
+      toast.error("Failed to download manifest");
+    } finally {
+      setManifestLoading(false);
+    }
+  };
 
   const handleCopyWebhookUrl = async (botId: string, webhookUrl: string) => {
     try {
@@ -57,10 +80,10 @@ export default function SlackBotsPage() {
       
       // First get the agent to get its ID
       const agent = await apiClient.getAgent(agentName);
-      const agentId = agent.id;
-      
+      setAgentId(agent.id);
+
       // Then get bots for this agent
-      const botsData = await apiClient.getSlackBots(agentId);
+      const botsData = await apiClient.getSlackBots(agent.id);
       setBots(botsData);
     } catch (err: any) {
       console.error("Error loading Slack bots:", err);
@@ -221,31 +244,45 @@ export default function SlackBotsPage() {
           </button>
         </div>
 
-        {/* Setup Guide Link */}
+        {/* Setup Guide */}
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-        <div className="flex items-start">
-          <div className="flex-shrink-0">
-            <ExternalLink className="h-4 w-4 text-red-600" />
-          </div>
-          <div className="ml-3 flex-1">
-            <h3 className="text-xs font-medium text-red-800">
-              Need help setting up a Slack bot?
-            </h3>
-            <p className="mt-1 text-xs text-red-700">
-              Follow our step-by-step guide to create a Slack app and get the required tokens.
-            </p>
-            <a
-              href="https://api.slack.com/apps"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-2 inline-flex items-center text-xs font-medium text-red-600 hover:text-red-700"
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3 flex-1">
+              <ExternalLink className="h-4 w-4 text-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-xs font-medium text-red-800">
+                  Quick setup: create a Slack app from manifest
+                </h3>
+                <p className="mt-1 text-xs text-red-700">
+                  Download the pre-configured manifest for this agent, then go to the Slack API Dashboard
+                  → <strong>Create New App</strong> → <strong>From a manifest</strong> and paste it in.
+                  All scopes and settings will be configured automatically.
+                </p>
+                <a
+                  href="https://api.slack.com/apps"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-flex items-center text-xs font-medium text-red-600 hover:text-red-700"
+                >
+                  Go to Slack API Dashboard
+                  <ExternalLink className="ml-1 h-3 w-3" />
+                </a>
+              </div>
+            </div>
+            <button
+              onClick={handleDownloadManifest}
+              disabled={!agentId || manifestLoading}
+              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Go to Slack API Dashboard
-              <ExternalLink className="ml-1 h-3 w-3" />
-            </a>
+              {manifestLoading ? (
+                <div className="h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Download className="h-3.5 w-3.5" />
+              )}
+              Download Manifest
+            </button>
           </div>
         </div>
-      </div>
 
         {/* Error Message */}
         {error && (

@@ -94,7 +94,7 @@ class SlackConnector(BaseConnector):
 
                     if user_token and user_token.access_token:
                         logger.info(f"Using user's personal Slack token for data source {self.data_source.name}")
-                        return decrypt_value(user_token.access_token)
+                        return user_token.access_token
             else:
                 # No specific user - try to find any user token for this tenant/oauth_app
                 # This handles cases where the data source was created before we tracked account_id
@@ -105,7 +105,7 @@ class SlackConnector(BaseConnector):
 
                 if user_token and user_token.access_token:
                     logger.info(f"Using first available user token for Slack data source {self.data_source.name}")
-                    return decrypt_value(user_token.access_token)
+                    return user_token.access_token
 
         # Fall back to data source's direct token
         if self.data_source.access_token_encrypted:

@@ -146,7 +146,7 @@ export default function EditAgentPage() {
     try {
       setLoading(true)
       const agent = await apiClient.getAgent(agentName)
-        
+
       // Extract extra headers from additional_params if present
       let extraHeadersStr = ''
       if (agent.llm_config.additional_params?.extra_headers) {
