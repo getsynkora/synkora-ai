@@ -897,6 +897,128 @@ class WidgetChatRequest(BaseModel):
     user_hash: str | None = Field(None, description="HMAC-SHA256(identity_secret, user.id) for identity verification")
 
 
+class PushRegisterRequest(BaseModel):
+    """Request model for registering an FCM push token."""
+
+    fcm_token: str = Field(..., description="FCM device token")
+    platform: str = Field(..., description="Platform: android | ios | web")
+    conversation_id: str | None = Field(None, description="Active conversation ID to link to this token")
+    user_id: str | None = Field(None, description="App-side user identifier for per-user push targeting")
+
+
+@widgets_router.post("/widgets/push/register")
+async def register_push_token(
+    request: PushRegisterRequest, http_request: Request, db: AsyncSession = Depends(get_async_db)
+):
+    """
+    Register an FCM device token for push notifications.
+    Safe to call on every app launch — upserts on (widget_id, fcm_token).
+    """
+    import uuid as uuid_mod
+
+    from src.models.widget_push_subscription import WidgetPushSubscription
+
+    api_key = http_request.headers.get("X-Widget-API-Key")
+    if not api_key:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Widget API key is required")
+
+    widget = await WidgetAuthMiddleware.validate_api_key(api_key, db)
+    if not widget:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or inactive widget API key")
+
+    if request.platform not in ("android", "ios", "web"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="platform must be android, ios, or web")
+
+    conversation_uuid = None
+    if request.conversation_id:
+        try:
+            conversation_uuid = uuid_mod.UUID(request.conversation_id)
+        except ValueError:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid conversation_id format")
+
+    # Upsert: find existing by (widget_id, fcm_token) and update, or create new
+    result = await db.execute(
+        select(WidgetPushSubscription).filter(
+            WidgetPushSubscription.widget_id == widget.id,
+            WidgetPushSubscription.fcm_token == request.fcm_token,
+        )
+    )
+    sub = result.scalar_one_or_none()
+
+    if sub:
+        sub.platform = request.platform
+        if conversation_uuid:
+            sub.conversation_id = conversation_uuid
+        if request.user_id is not None:
+            sub.external_user_id = request.user_id
+    else:
+        sub = WidgetPushSubscription(
+            widget_id=widget.id,
+            tenant_id=widget.tenant_id,
+            conversation_id=conversation_uuid,
+            fcm_token=request.fcm_token,
+            platform=request.platform,
+            external_user_id=request.user_id,
+        )
+        db.add(sub)
+
+    await db.commit()
+
+    # Subscribe token to FCM topics for bulk/user-targeted sends (fire-and-forget)
+    widget_topic_id = str(widget.id).replace("-", "")
+    _fire_subscribe_to_topics(request.fcm_token, widget_topic_id, request.user_id, widget)
+
+    return {"registered": True}
+
+
+def _fire_subscribe_to_topics(fcm_token: str, widget_topic_id: str, user_id: str | None, widget: Any) -> None:
+    """
+    Subscribe the FCM token to topics in a background thread (fire-and-forget).
+    Topics:
+      synkora_w_{widget_topic_id}                    — all subscribers for this widget (bulk send)
+      synkora_w_{widget_topic_id}_u_{safe_user_id}   — per-user targeting (when user_id provided)
+    Failure is silent — topic subscription is best-effort.
+    """
+    import re
+    import threading
+
+    def _subscribe() -> None:
+        try:
+            import firebase_admin
+            from firebase_admin import credentials, messaging
+            from src.utils.encryption import decrypt_value
+
+            if not widget.fcm_server_key:
+                return
+
+            try:
+                fcm_key = decrypt_value(widget.fcm_server_key)
+            except Exception:
+                fcm_key = widget.fcm_server_key
+
+            app_name = f"synkora_{abs(hash(fcm_key))}"
+            try:
+                app = firebase_admin.get_app(app_name)
+            except ValueError:
+                cred = credentials.Certificate(fcm_key)
+                app = firebase_admin.initialize_app(cred, name=app_name)
+
+            # Subscribe to widget-wide topic
+            bulk_topic = f"synkora_w_{widget_topic_id}"
+            messaging.subscribe_to_topic([fcm_token], bulk_topic, app=app)
+
+            # Subscribe to per-user topic if user_id provided
+            if user_id:
+                safe_uid = re.sub(r"[^a-zA-Z0-9_-]", "_", user_id)[:100]
+                user_topic = f"synkora_w_{widget_topic_id}_u_{safe_uid}"
+                messaging.subscribe_to_topic([fcm_token], user_topic, app=app)
+
+        except Exception as e:
+            logger.warning(f"FCM topic subscription failed (non-critical): {e}")
+
+    threading.Thread(target=_subscribe, daemon=True).start()
+
+
 @widgets_router.post("/widgets/chat")
 async def widget_chat(request: WidgetChatRequest, http_request: Request, db: AsyncSession = Depends(get_async_db)):
     """
@@ -913,13 +1035,15 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
         if not widget:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or inactive widget API key")
 
-        # Validate domain
+        # Validate domain — skip check for mobile SDK requests (no Origin header) when mobile_allowed=True
         origin = http_request.headers.get("Origin") or http_request.headers.get("Referer")
-        if not WidgetAuthMiddleware.validate_domain(widget, origin):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Domain not allowed for this widget")
+        is_mobile_request = not origin
+        if not (is_mobile_request and getattr(widget, "mobile_allowed", False)):
+            if not WidgetAuthMiddleware.validate_domain(widget, origin):
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Domain not allowed for this widget")
 
         # Check rate limit
-        if not WidgetAuthMiddleware.check_rate_limit(widget):
+        if not await WidgetAuthMiddleware.check_rate_limit_async(widget):
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Rate limit exceeded for this widget"
             )
@@ -978,7 +1102,7 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
         client_ip = http_request.client.host if http_request.client else "unknown"
         http_request.headers.get("User-Agent", "unknown")
 
-        scan_result = advanced_prompt_scanner.scan_comprehensive(
+        scan_result = await advanced_prompt_scanner.scan_comprehensive_async(
             text=request.message, user_id=f"widget_{widget.id}", ip_address=client_ip, context="widget_chat"
         )
 
@@ -1115,17 +1239,61 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
             agent_loader=AgentLoaderService(agent_manager), chat_service=ChatService()
         )
 
-        # Return streaming response with loaded conversation history
+        agent_slug = agent.slug or agent.agent_name
+        _widget_id = str(widget.id)
+        _agent_name = agent.agent_name
+
+        # Release request DB resources before the long SSE stream. The stream
+        # service opens short sessions for its own DB work.
+        await db.close()
+
+        # Build the raw stream
+        raw_stream = chat_stream_service.stream_agent_response(
+            agent_slug,
+            request.message,
+            conversation_history,
+            resolved_conversation_id,
+            None,  # attachments
+            None,  # llm_config_id
+            db=None,
+        )
+
+        # Wrap stream to fire FCM push after done event
+
+        async def stream_with_fcm():
+            import json as _json
+
+            conv_id = resolved_conversation_id
+            reply_chunks: list[str] = []
+            async for chunk in raw_stream:
+                yield chunk
+                try:
+                    data_str = chunk.replace("data: ", "").strip()
+                    if data_str:
+                        parsed = _json.loads(data_str)
+                        if parsed.get("type") == "done":
+                            conv_id = parsed.get("conversation_id") or conv_id
+                        elif parsed.get("type") == "chunk":
+                            reply_chunks.append(parsed.get("content", ""))
+                except Exception:
+                    pass
+            # Stream exhausted — fire FCM push (fire-and-forget)
+            if conv_id:
+                try:
+                    from src.tasks.notification_tasks import send_fcm_push_task
+
+                    preview = "".join(reply_chunks)[:100]
+                    send_fcm_push_task.delay(
+                        widget_id=_widget_id,
+                        conversation_id=conv_id,
+                        agent_name=_agent_name,
+                        reply_preview=preview,
+                    )
+                except Exception as _fcm_err:
+                    logger.warning(f"FCM push dispatch failed (non-critical): {_fcm_err}")
+
         return StreamingResponse(
-            chat_stream_service.stream_agent_response(
-                agent.agent_name,
-                request.message,
-                conversation_history,  # Pass loaded history for memory
-                resolved_conversation_id,
-                None,  # attachments
-                None,  # llm_config_id
-                db,
-            ),
+            stream_with_fcm(),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",

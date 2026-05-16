@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: synkora-celery-worker-company-brain
+  namespace: synkora-production
+  labels:
+    app: synkora
+    component: celery-worker-company-brain
+    version: v1
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: synkora
+      component: celery-worker-company-brain
+  template:
+    metadata:
+      labels:
+        app: synkora
+        component: celery-worker-company-brain
+        version: v1
+    spec:
+      imagePullSecrets:
+      - name: ecr-registry-secret
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: celery-worker-company-brain
+        image: IMAGE_PLACEHOLDER
+        imagePullPolicy: Always
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        command: ["celery"]
+        # Handles Company Brain ingestion, stream draining, sync fan-out, and tier migration.
+        args: ["-A", "src.celery_app", "worker", "--loglevel=info", "-Q", "company_brain",
+               "--concurrency=2"]
+        envFrom:
+        - configMapRef:
+            name: synkora-config
+        - secretRef:
+            name: synkora-secrets
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "250m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 10Gi
+      terminationGracePeriodSeconds: 3660

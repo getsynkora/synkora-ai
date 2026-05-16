@@ -1,13 +1,16 @@
 """
-Multi-source parallel retriever for Company Brain.
+Multi-domain parallel retriever for Company Brain.
 
-Runs searches against the configured backend for each relevant source type
-in parallel, then returns all results for the assembler to merge and rank.
+Flow:
+  1. Resolve domains from QueryIntent (loads tenant's BrainDomain rows via cache)
+  2. For each active domain, resolve its knowledge_base_ids from DataSource rows
+  3. Fan out searches in parallel across all domains (asyncio.gather)
+  4. Weight results by domain.rerank_weight before returning to assembler
 
-The retriever also handles:
-  - Metadata pre-filtering (cuts search space 10-100x before scoring)
-  - Per-source result limits
-  - PageIndex routing for long-form documents (optional)
+When a tenant has no domains configured, falls back to the legacy source_type
+fan-out behaviour so existing deployments keep working without migration.
+
+Concurrency limit: max 8 parallel domain searches to protect the search backend.
 """
 
 import asyncio
@@ -21,8 +24,8 @@ from .router import QueryIntent
 
 logger = logging.getLogger(__name__)
 
-# How many results to pull per source before merging
-_DEFAULT_PER_SOURCE_LIMIT = 10
+_DEFAULT_PER_DOMAIN_LIMIT = 10
+_MAX_PARALLEL_DOMAINS = 8  # semaphore cap — protects backend at 100-agent load
 
 
 async def retrieve(
@@ -30,22 +33,123 @@ async def retrieve(
     query: str,
     intent: QueryIntent,
     limit: int = 20,
+    db: Any | None = None,
 ) -> list[SearchResult]:
     """
-    Run parallel searches for each source type implied by the intent.
+    Parallel domain fan-out retrieval.
 
     Args:
-        tenant_id: Scopes all searches to this tenant.
-        query:     User's natural language query.
-        intent:    Routing intent from the query router.
-        limit:     Total results to return after merging.
+        tenant_id:  Scopes all searches to this tenant.
+        query:      User's natural language query.
+        intent:     Routing intent from the query router.
+        limit:      Total results to return after merging.
+        db:         Async DB session — needed to resolve domain → KB mappings.
 
     Returns:
-        List of SearchResult sorted by score (descending), capped at `limit`.
+        List of SearchResult sorted by weighted score (descending), capped at limit.
     """
-    backend = get_search_backend()
-    source_types = intent.source_types or _all_source_types()
+    # --- Domain-aware path (tenant has domains configured) ---
+    if db is not None:
+        try:
+            from src.services.company_brain.domain_service import (
+                get_domain_source_types,
+                get_domains_cached,
+            )
 
+            all_domains = await get_domains_cached(tenant_id, db)
+            active_domains = [d for d in all_domains if d["is_active"]]
+
+            if active_domains:
+                # Filter to requested domains if intent specified any
+                if intent.domains:
+                    slug_set = set(intent.domains)
+                    target_domains = [d for d in active_domains if d["slug"] in slug_set]
+                else:
+                    target_domains = active_domains
+
+                if target_domains:
+                    return await _fan_out_by_domain(
+                        tenant_id=tenant_id,
+                        query=query,
+                        intent=intent,
+                        domains=target_domains,
+                        limit=limit,
+                        db=db,
+                        get_source_types_fn=get_domain_source_types,
+                    )
+        except Exception as exc:
+            logger.warning("Domain-aware retrieval failed, falling back to source_type mode: %s", exc)
+
+    # --- Legacy source-type path (no domains, or domain load failed) ---
+    return await _fan_out_by_source_type(tenant_id, query, intent, limit)
+
+
+# ---------------------------------------------------------------------------
+# Domain fan-out
+# ---------------------------------------------------------------------------
+
+
+async def _fan_out_by_domain(
+    tenant_id: str,
+    query: str,
+    intent: QueryIntent,
+    domains: list[dict],
+    limit: int,
+    db: Any,
+    get_source_types_fn: Any,
+) -> list[SearchResult]:
+    """Search each domain in parallel, weight results, merge and sort."""
+    semaphore = asyncio.Semaphore(_MAX_PARALLEL_DOMAINS)
+    per_domain = max(_DEFAULT_PER_DOMAIN_LIMIT, limit)
+
+    async def search_domain(domain: dict) -> tuple[list[SearchResult], float]:
+        async with semaphore:
+            source_types = await get_source_types_fn(domain["id"], tenant_id, db)
+            if not source_types:
+                # Domain exists but has no active data sources yet
+                return [], 1.0
+
+            filters = SearchFilter(
+                source_types=source_types,
+                time_from=intent.time_from,
+                time_to=intent.time_to,
+                storage_tiers=intent.tiers,
+            )
+            results = await _search_with_filter(tenant_id, query, filters, per_domain)
+            return results, domain.get("rerank_weight", 1.0)
+
+    raw = await asyncio.gather(
+        *[search_domain(d) for d in domains],
+        return_exceptions=True,
+    )
+
+    all_results: list[SearchResult] = []
+    for domain, outcome in zip(domains, raw, strict=False):
+        if isinstance(outcome, Exception):
+            logger.warning("Domain search failed for '%s': %s", domain["slug"], outcome)
+            continue
+        results, weight = outcome
+        # Apply domain weight to each result score
+        for r in results:
+            r.score = r.score * weight
+        all_results.extend(results)
+
+    all_results.sort(key=lambda r: r.score, reverse=True)
+    return all_results[:limit]
+
+
+# ---------------------------------------------------------------------------
+# Legacy source-type fan-out (unchanged behaviour for undomained deployments)
+# ---------------------------------------------------------------------------
+
+
+async def _fan_out_by_source_type(
+    tenant_id: str,
+    query: str,
+    intent: QueryIntent,
+    limit: int,
+) -> list[SearchResult]:
+    source_types = intent.source_types or _all_source_types()
     filters = SearchFilter(
         source_types=source_types,
         time_from=intent.time_from,
@@ -53,64 +157,54 @@ async def retrieve(
         storage_tiers=intent.tiers,
     )
 
-    per_source_limit = max(_DEFAULT_PER_SOURCE_LIMIT, limit)
-
     if len(source_types) <= 1:
-        # Single source — one direct search
-        try:
-            response = await backend.search(
-                tenant_id=tenant_id,
-                query=query,
-                filters=filters,
-                limit=limit,
+        return await _search_with_filter(tenant_id, query, filters, limit)
+
+    per_source = max(_DEFAULT_PER_DOMAIN_LIMIT, limit)
+    semaphore = asyncio.Semaphore(_MAX_PARALLEL_DOMAINS)
+
+    async def search_one(source_type: str) -> list[SearchResult]:
+        async with semaphore:
+            f = SearchFilter(
+                source_types=[source_type],
+                time_from=intent.time_from,
+                time_to=intent.time_to,
+                storage_tiers=intent.tiers,
             )
-            return response.results
-        except Exception as exc:
-            logger.error("Retriever search failed: %s", exc)
-            return []
+            return await _search_with_filter(tenant_id, query, f, per_source)
 
-    # Multiple sources — search each in parallel with per-source limit
-    tasks = []
-    for source_type in source_types:
-        source_filter = SearchFilter(
-            source_types=[source_type],
-            time_from=intent.time_from,
-            time_to=intent.time_to,
-            storage_tiers=intent.tiers,
-        )
-        tasks.append(_search_source(backend, tenant_id, query, source_filter, per_source_limit))
-
-    results_per_source = await asyncio.gather(*tasks, return_exceptions=True)
+    outcomes = await asyncio.gather(*[search_one(s) for s in source_types], return_exceptions=True)
     all_results: list[SearchResult] = []
-
-    for source_type, result in zip(source_types, results_per_source, strict=False):
-        if isinstance(result, Exception):
-            logger.warning("Search failed for source %s: %s", source_type, result)
+    for source_type, outcome in zip(source_types, outcomes, strict=False):
+        if isinstance(outcome, Exception):
+            logger.warning("Source search failed for '%s': %s", source_type, outcome)
         else:
-            all_results.extend(result)
+            all_results.extend(outcome)
 
-    # If PageIndex is enabled for long-form doc sources, fetch and merge those too
     if intent.use_pageindex:
-        pageindex_results = await _fetch_pageindex(tenant_id, query, intent)
-        all_results.extend(pageindex_results)
+        all_results.extend(await _fetch_pageindex(tenant_id, query, intent))
 
-    # Sort by score (RRF or plain score) — assembler will re-rank with dedup
     all_results.sort(key=lambda r: r.score, reverse=True)
     return all_results[:limit]
 
 
-async def _search_source(
-    backend: Any,
+# ---------------------------------------------------------------------------
+# Shared helpers
+# ---------------------------------------------------------------------------
+
+
+async def _search_with_filter(
     tenant_id: str,
     query: str,
     filters: SearchFilter,
     limit: int,
 ) -> list[SearchResult]:
     try:
+        backend = get_search_backend()
         resp = await backend.search(tenant_id=tenant_id, query=query, filters=filters, limit=limit)
         return resp.results
     except Exception as exc:
-        logger.warning("Source search failed (%s): %s", filters.source_types, exc)
+        logger.warning("Search failed (filters=%s): %s", filters.source_types, exc)
         return []
 
 
@@ -119,19 +213,12 @@ async def _fetch_pageindex(
     query: str,
     intent: QueryIntent,
 ) -> list[SearchResult]:
-    """
-    Placeholder for PageIndex integration.
-
-    When COMPANY_BRAIN_ENABLE_PAGEINDEX=true and the intent is deep_doc,
-    route the query through the PageIndex tree search for Confluence / Notion docs.
-    Returns an empty list until the PageIndex client is wired up.
-    """
+    """Placeholder for deep-doc PageIndex traversal."""
     logger.debug("PageIndex routing requested but not yet implemented — skipping")
     return []
 
 
 def _all_source_types() -> list[str]:
-    """Return all known source types (used when intent has no specific source)."""
     return [
         "slack",
         "github",

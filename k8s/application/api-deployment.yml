@@ -10,7 +10,7 @@ metadata:
     component: api
     version: v1
 spec:
-  replicas: 1
+  replicas: 2
   progressDeadlineSeconds: 700
   strategy:
     type: RollingUpdate

@@ -6,6 +6,8 @@ Exports all agent-related routers.
 
 from fastapi import APIRouter
 
+from .agent_public_profile import public_router as agents_public_profile_public_router
+from .agent_public_profile import router as agents_public_profile_router
 from .chat import agents_chat_router
 from .chat_config import router as agents_chat_config_router
 from .context_files import agents_context_files_router
@@ -38,4 +40,5 @@ agents_router.include_router(agents_public_router)
 agents_router.include_router(agents_llm_configs_router)
 agents_router.include_router(agents_versions_router)
 agents_router.include_router(slack_manifest_router, tags=["slack-manifest"])
-agents_router.include_router(agents_index_router)  # Must be last due to /{agent_name} catch-all route
+agents_router.include_router(agents_public_profile_router)
+agents_router.include_router(agents_index_router)  # Must be last due to /{agent_slug} catch-all route

@@ -191,7 +191,7 @@ class TestActivityLogsStatsIntegration:
         # Days must be between 1 and 365
         response = await async_client.get("/api/v1/api/v1/activity-logs/stats?days=0", headers=headers)
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     @pytest.mark.asyncio
     async def test_get_activity_stats_days_too_high(self, async_client: AsyncClient, auth_headers):
@@ -200,7 +200,7 @@ class TestActivityLogsStatsIntegration:
 
         response = await async_client.get("/api/v1/api/v1/activity-logs/stats?days=400", headers=headers)
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 class TestActivityLogsGetIntegration:
@@ -305,7 +305,7 @@ class TestActivityLogsCleanupIntegration:
         # Days must be between 30 and 365
         response = await async_client.delete("/api/v1/api/v1/activity-logs/cleanup?days=10", headers=headers)
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 class TestActivityLogsTenantIsolation:

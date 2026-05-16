@@ -145,10 +145,10 @@ function testListAgents() {
 }
 
 function testChatStream() {
-    if (!config.authToken || !config.agentName) return;
+    if (!config.authToken || !config.agentSlug) return;
 
     const payload = JSON.stringify({
-        agent_name: config.agentName,
+        agent_slug: config.agentSlug,
         message: randomMessage(),
         conversation_history: [],
         conversation_id: null,
@@ -183,7 +183,7 @@ function testChatStream() {
 }
 
 function testWidgetChat() {
-    if (!config.agentId) return;
+    if (!config.widgetApiKey) return;
 
     const payload = JSON.stringify({
         message: randomMessage(),
@@ -193,7 +193,7 @@ function testWidgetChat() {
     const res = http.post(`${config.baseUrl}/api/v1/widgets/chat`, payload, {
         headers: {
             'Content-Type': 'application/json',
-            'X-Widget-ID': config.agentId,
+            'X-Widget-API-Key': config.widgetApiKey,
         },
         tags: { endpoint: 'widget_chat' },
         timeout: '60s',
@@ -310,7 +310,7 @@ export function setup() {
     console.log(`Load test starting against: ${config.baseUrl}`);
     console.log(`Scenario: ${selectedScenario}`);
     console.log(`Auth: ${config.authToken ? 'configured' : 'NOT configured (authenticated endpoints will be skipped)'}`);
-    console.log(`Agent: ${config.agentName || 'NOT set'}`);
+    console.log(`Agent slug: ${config.agentSlug || 'NOT set'}`);
     console.log(`KB ID: ${config.kbId || 'NOT set (KB search will be skipped)'}`);
 
     return { startTime: Date.now() };

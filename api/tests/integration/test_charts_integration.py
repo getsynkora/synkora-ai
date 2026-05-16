@@ -229,7 +229,7 @@ class TestChartsValidation:
             headers=headers,
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     @pytest.mark.asyncio
     async def test_create_chart_empty_title(self, async_client: AsyncClient, auth_headers, test_agent):
@@ -249,7 +249,7 @@ class TestChartsValidation:
             headers=headers,
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 class TestChartsAuthorization:

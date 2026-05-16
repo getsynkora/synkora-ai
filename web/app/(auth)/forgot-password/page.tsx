@@ -5,6 +5,7 @@ import { extractErrorMessage } from '@/lib/api/error'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import axios from 'axios'
+import AuthPageFrame from '@/components/auth/AuthPageFrame'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -33,10 +34,11 @@ export default function ForgotPasswordPage() {
 
   if (isSubmitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 via-pink-50 to-white px-4">
-        <div className="w-full max-w-md">
+      <AuthPageFrame>
+        <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center px-4 py-8">
+          <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-400 to-primary-600 rounded-2xl mb-4">
+            <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-[1.5rem] bg-red-500">
               <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
@@ -47,35 +49,37 @@ export default function ForgotPasswordPage() {
             </p>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-xl border-2 border-red-100 p-5 sm:p-8">
+          <div className="rounded-[1.9rem] border border-black/10 bg-white p-5 shadow-[0_24px_60px_rgba(0,0,0,0.08)] sm:p-8">
             <div className="text-center space-y-4">
               <p className="text-sm text-gray-600">
                 Didn't receive the email? Check your spam folder or try again.
               </p>
               <button
                 onClick={() => setIsSubmitted(false)}
-                className="text-sm font-medium text-primary-500 hover:text-primary-600"
+                className="text-sm font-medium text-red-500 hover:text-red-600"
               >
                 Try another email
               </button>
             </div>
 
             <div className="mt-6 pt-6 border-t border-gray-200 text-center">
-              <Link href="/signin" className="text-sm font-medium text-primary-500 hover:text-primary-600">
+              <Link href="/signin" className="text-sm font-medium text-red-500 hover:text-red-600">
                 ← Back to sign in
               </Link>
             </div>
           </div>
+          </div>
         </div>
-      </div>
+      </AuthPageFrame>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 via-pink-50 to-white px-4">
-      <div className="w-full max-w-md">
+    <AuthPageFrame>
+      <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-400 to-primary-600 rounded-2xl mb-4">
+          <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-[1.5rem] bg-red-500">
             <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
             </svg>
@@ -84,7 +88,7 @@ export default function ForgotPasswordPage() {
           <p className="text-gray-600">No worries, we'll send you reset instructions</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-xl border-2 border-red-100 p-5 sm:p-8">
+        <div className="rounded-[1.9rem] border border-black/10 bg-white p-5 shadow-[0_24px_60px_rgba(0,0,0,0.08)] sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
@@ -96,7 +100,7 @@ export default function ForgotPasswordPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                className="w-full rounded-[1.1rem] border border-gray-200 bg-gray-50 px-4 py-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
                 placeholder="you@example.com"
               />
             </div>
@@ -104,7 +108,7 @@ export default function ForgotPasswordPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white font-bold py-3 px-4 rounded-lg transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded-[1.1rem] bg-red-500 px-4 py-3 font-bold text-white transition-all disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isLoading ? (
                 <span className="flex items-center justify-center">
@@ -121,12 +125,13 @@ export default function ForgotPasswordPage() {
           </form>
 
           <div className="mt-6 text-center">
-            <Link href="/signin" className="text-sm font-medium text-primary-500 hover:text-primary-600">
+            <Link href="/signin" className="text-sm font-medium text-red-500 hover:text-red-600">
               ← Back to sign in
             </Link>
           </div>
         </div>
+        </div>
       </div>
-    </div>
+    </AuthPageFrame>
   )
 }

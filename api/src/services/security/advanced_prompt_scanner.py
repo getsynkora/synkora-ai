@@ -287,6 +287,66 @@ class AdvancedPromptScanner:
             ],
         }
 
+    async def scan_comprehensive_async(
+        self, text: str, user_id: str | None = None, ip_address: str | None = None, context: str | None = None
+    ) -> dict[str, bool | list[Detection] | int | str]:
+        """
+        Async request-path variant of scan_comprehensive.
+
+        Pattern scanning remains CPU-local; reputation reads/writes use the
+        async Redis client so public chat endpoints do not block the event loop.
+        """
+        if not text or not text.strip():
+            return self._safe_result()
+
+        normalized_text = self._normalize_text(text)
+
+        detections = []
+        total_risk_score = 0
+
+        pattern_detections = self._scan_patterns(normalized_text, text)
+        detections.extend(pattern_detections)
+
+        semantic_detections = self._scan_semantic(normalized_text, text)
+        detections.extend(semantic_detections)
+
+        behavioral_detections = self._scan_behavioral(normalized_text, text)
+        detections.extend(behavioral_detections)
+
+        if context:
+            context_detections = self._scan_context(normalized_text, text, context)
+            detections.extend(context_detections)
+
+        if user_id or ip_address:
+            reputation_score = await self._analyze_reputation_async(user_id, ip_address)
+            total_risk_score += reputation_score
+
+        for detection in detections:
+            total_risk_score += self._get_risk_score(detection.severity, detection.confidence)
+
+        is_safe = total_risk_score < 50
+        threat_level = self._calculate_threat_level(total_risk_score)
+        recommendation = self._get_recommendation(threat_level, total_risk_score)
+
+        if not is_safe:
+            self._log_detection(text, detections, total_risk_score, user_id, ip_address)
+
+        if user_id or ip_address:
+            await self._update_reputation_async(user_id, ip_address, threat_level)
+
+        return {
+            "is_safe": is_safe,
+            "threat_level": threat_level.value,
+            "detections": [self._detection_to_dict(d) for d in detections],
+            "risk_score": total_risk_score,
+            "recommendation": recommendation,
+            "scan_timestamp": time.time(),
+            "layers_triggered": len({d.pattern_id.split("_")[0] for d in detections}),
+            "mitigation_actions": [
+                d.mitigation for d in detections if d.severity in [ThreatLevel.HIGH, ThreatLevel.CRITICAL]
+            ],
+        }
+
     def _normalize_text(self, text: str) -> str:
         """Normalize text for consistent analysis"""
         # NFKC normalization resolves homoglyphs (e.g. Cyrillic а → Latin a, fullwidth chars)
@@ -459,6 +519,20 @@ class AdvancedPromptScanner:
             pass
         return self.reputation_cache.get(key, {"violations": 0})["violations"]
 
+    async def _get_reputation_violations_async(self, key: str) -> int:
+        """Async Redis-backed reputation lookup."""
+        try:
+            from src.config.redis import get_redis_async
+
+            redis = get_redis_async()
+            if redis:
+                raw = await redis.get(f"reputation:{key}")
+                if raw is not None:
+                    return int(raw)
+        except Exception:
+            pass
+        return self.reputation_cache.get(key, {"violations": 0})["violations"]
+
     def _set_reputation_violations(self, key: str, violations: int) -> None:
         """Persist violation count to Redis (TTL=24h) and always update in-memory cache."""
         # Always update in-memory cache so callers that inspect reputation_cache
@@ -470,6 +544,18 @@ class AdvancedPromptScanner:
             redis = get_redis()
             if redis:
                 redis.setex(f"reputation:{key}", 86400, violations)
+        except Exception:
+            pass
+
+    async def _set_reputation_violations_async(self, key: str, violations: int) -> None:
+        """Async Redis-backed reputation write."""
+        self.reputation_cache[key] = {"score": 0, "violations": violations}
+        try:
+            from src.config.redis import get_redis_async
+
+            redis = get_redis_async()
+            if redis:
+                await redis.setex(f"reputation:{key}", 86400, violations)
         except Exception:
             pass
 
@@ -486,6 +572,20 @@ class AdvancedPromptScanner:
             reputation_score += violations * 5
 
         return min(reputation_score, 50)  # Cap reputation penalty
+
+    async def _analyze_reputation_async(self, user_id: str | None, ip_address: str | None) -> int:
+        """Layer 5: Reputation analysis using async Redis calls."""
+        reputation_score = 0
+
+        if user_id:
+            violations = await self._get_reputation_violations_async(f"user_{user_id}")
+            reputation_score += violations * 10
+
+        if ip_address:
+            violations = await self._get_reputation_violations_async(f"ip_{ip_address}")
+            reputation_score += violations * 5
+
+        return min(reputation_score, 50)
 
     def _calculate_pattern_confidence(self, match, category: str) -> float:
         """Calculate confidence score for pattern match"""
@@ -611,6 +711,19 @@ class AdvancedPromptScanner:
                 key = f"ip_{ip_address}"
                 current = self._get_reputation_violations(key)
                 self._set_reputation_violations(key, current + 1)
+
+    async def _update_reputation_async(self, user_id: str | None, ip_address: str | None, threat_level: ThreatLevel):
+        """Update reputation scores using async Redis calls."""
+        if threat_level in [ThreatLevel.HIGH, ThreatLevel.CRITICAL]:
+            if user_id:
+                key = f"user_{user_id}"
+                current = await self._get_reputation_violations_async(key)
+                await self._set_reputation_violations_async(key, current + 1)
+
+            if ip_address:
+                key = f"ip_{ip_address}"
+                current = await self._get_reputation_violations_async(key)
+                await self._set_reputation_violations_async(key, current + 1)
 
     def _detection_to_dict(self, detection: Detection) -> dict:
         """Convert Detection object to dictionary"""

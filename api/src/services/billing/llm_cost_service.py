@@ -33,8 +33,8 @@ def _resolve_pricing(
 
     Priority:
     1. routing_rules["cost_per_1k_input/output"]  — DB, per-config override
-    2. model_router._BUILTIN_COSTS[model_name]     — code fallback (input only)
-    3. llm_provider_presets.MODEL_COMPARISON_DATA  — code fallback, convert 1M -> 1k
+    2. model_router._BUILTIN_COSTS / _BUILTIN_OUTPUT_COSTS — exact-match tables
+    3. llm_provider_presets.MODEL_COMPARISON_DATA  — prefix-match, convert 1M -> 1k
     4. None, None                                  — unknown model, cost not tracked
     """
     # 1. DB override wins
@@ -49,31 +49,35 @@ def _resolve_pricing(
 
     try:
         from src.services.agents.llm_provider_presets import MODEL_COMPARISON_DATA
-        from src.services.agents.routing.model_router import _BUILTIN_COSTS
+        from src.services.agents.routing.model_router import _BUILTIN_COSTS, _BUILTIN_OUTPUT_COSTS
     except ImportError:
         return None, None
 
-    # 2+3. Try to match both sources simultaneously
     builtin_inp: float | None = None
+    builtin_out: float | None = None
     preset_inp: float | None = None
     preset_out: float | None = None
 
-    for key, cost in _BUILTIN_COSTS.items():
-        if normalized.startswith(key) or key in normalized:
-            builtin_inp = cost
+    # 2. Exact-match against built-in tables (normalized strips date suffix)
+    for key in _BUILTIN_COSTS:
+        if normalized == key or normalized.startswith(key + "-") or key == normalized:
+            builtin_inp = _BUILTIN_COSTS[key]
+            builtin_out = _BUILTIN_OUTPUT_COSTS.get(key)
             break
 
+    # 3. Prefix-match MODEL_COMPARISON_DATA for additional coverage
     for preset_key, preset in MODEL_COMPARISON_DATA.items():
         if normalized.startswith(preset_key.lower()) or preset_key.lower() in normalized:
-            raw_inp = preset.get("cost_input_per_1m", 0)
-            raw_out = preset.get("cost_output_per_1m", 0)
+            raw_inp = preset.get("cost_input_per_1m") or 0
+            raw_out = preset.get("cost_output_per_1m") or 0
             preset_inp = raw_inp / 1000 if raw_inp else None
             preset_out = raw_out / 1000 if raw_out else None
             break
 
     if builtin_inp is not None:
-        # _BUILTIN_COSTS has input; use preset for output if available
-        return builtin_inp, preset_out
+        # Use builtin output rate first; fall back to preset if not declared
+        out_rate = builtin_out if builtin_out is not None else preset_out
+        return builtin_inp, out_rate
 
     if preset_inp is not None:
         return preset_inp, preset_out

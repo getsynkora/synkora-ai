@@ -40,6 +40,8 @@ class Agent(BaseModel, StatusMixin, TenantMixin):
 
     agent_name = Column(String(255), nullable=False, index=True, comment="Unique agent name per tenant")
 
+    slug = Column(String(255), nullable=True, unique=True, index=True, comment="Globally unique slug for URL routing")
+
     agent_type = Column(String(50), nullable=False, default="LLM", comment="Agent type (llm, research, code)")
 
     description = Column(Text, nullable=True, comment="Agent description")
@@ -159,6 +161,15 @@ class Agent(BaseModel, StatusMixin, TenantMixin):
         comment="Execution backend: celery | lambda | cloud_run",
     )
 
+    # Email template assignment
+    email_template_id = Column(
+        UUID,
+        ForeignKey("email_templates.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        comment="Assigned email template used by internal_send_email and internal_render_newsletter",
+    )
+
     # ADK-style workflow agent fields
     workflow_type = Column(
         String(50),
@@ -211,6 +222,13 @@ class Agent(BaseModel, StatusMixin, TenantMixin):
 
     pricing = relationship(
         "AgentPricing", back_populates="agent", uselist=False, cascade="all, delete-orphan", lazy="select"
+    )
+
+    email_template = relationship(
+        "EmailTemplate",
+        back_populates="agents",
+        foreign_keys=[email_template_id],
+        lazy="select",
     )
 
     usage_analytics = relationship(

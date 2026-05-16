@@ -37,10 +37,10 @@ export async function uploadFile(file: File): Promise<any> {
   return data
 }
 
-export async function uploadAgentAvatar(agentName: string, file: File): Promise<any> {
+export async function uploadAgentAvatar(agentSlug: string, file: File): Promise<any> {
   const formData = new FormData()
   formData.append('file', file)
-  formData.append('agent_name', agentName)
+  formData.append('agent_slug', agentSlug)
   formData.append('entity_type', 'agent_avatar')
   const { data } = await apiClient.axios.post('/api/v1/files/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },

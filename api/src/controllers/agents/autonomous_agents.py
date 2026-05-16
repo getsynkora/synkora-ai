@@ -1,7 +1,7 @@
 """
 Autonomous Agent API endpoints.
 
-Mounts at /api/v1/agents/{agent_name}/autonomous and provides CRUD for
+Mounts at /api/v1/agents/{agent_slug}/autonomous and provides CRUD for
 autonomous schedules, immediate trigger, and memory management.
 """
 
@@ -42,8 +42,8 @@ _MAX_MEMORY_MESSAGES = 50
 # ---------------------------------------------------------------------------
 
 
-async def _get_agent(agent_name: str, tenant_id: UUID, db: AsyncSession) -> Agent:
-    result = await db.execute(select(Agent).filter(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+async def _get_agent(agent_slug: str, tenant_id: UUID, db: AsyncSession) -> Agent:
+    result = await db.execute(select(Agent).filter(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
     agent = result.scalar_one_or_none()
     if not agent:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
@@ -113,18 +113,18 @@ def _execution_to_schema(ex: TaskExecution) -> AutonomousRunSchema:
 
 
 # ---------------------------------------------------------------------------
-# GET /agents/{agent_name}/autonomous
+# GET /agents/{agent_slug}/autonomous
 # ---------------------------------------------------------------------------
 
 
-@router.get("/{agent_name}/autonomous", response_model=AutonomousStatusSchema)
+@router.get("/{agent_slug}/autonomous", response_model=AutonomousStatusSchema)
 async def get_autonomous_config(
-    agent_name: str,
+    agent_slug: str,
     tenant_id: UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
     """Return autonomous schedule config and last 20 run records."""
-    agent = await _get_agent(agent_name, tenant_id, db)
+    agent = await _get_agent(agent_slug, tenant_id, db)
     task = await _get_task(agent.id, tenant_id, db)
 
     runs: list[AutonomousRunSchema] = []
@@ -141,20 +141,20 @@ async def get_autonomous_config(
 
 
 # ---------------------------------------------------------------------------
-# POST /agents/{agent_name}/autonomous  — enable / create
+# POST /agents/{agent_slug}/autonomous  — enable / create
 # ---------------------------------------------------------------------------
 
 
-@router.post("/{agent_name}/autonomous", response_model=AutonomousStatusSchema, status_code=status.HTTP_201_CREATED)
+@router.post("/{agent_slug}/autonomous", response_model=AutonomousStatusSchema, status_code=status.HTTP_201_CREATED)
 async def create_autonomous_config(
-    agent_name: str,
+    agent_slug: str,
     body: AutonomousConfigCreate,
     tenant_id: UUID = Depends(get_current_tenant_id),
     account=Depends(get_current_account),
     db: AsyncSession = Depends(get_async_db),
 ):
     """Enable autonomous mode for an agent."""
-    agent = await _get_agent(agent_name, tenant_id, db)
+    agent = await _get_agent(agent_slug, tenant_id, db)
 
     # Idempotency: if a task already exists, raise conflict
     existing = await _get_task(agent.id, tenant_id, db)
@@ -202,19 +202,19 @@ async def create_autonomous_config(
 
 
 # ---------------------------------------------------------------------------
-# PATCH /agents/{agent_name}/autonomous
+# PATCH /agents/{agent_slug}/autonomous
 # ---------------------------------------------------------------------------
 
 
-@router.patch("/{agent_name}/autonomous", response_model=AutonomousStatusSchema)
+@router.patch("/{agent_slug}/autonomous", response_model=AutonomousStatusSchema)
 async def update_autonomous_config(
-    agent_name: str,
+    agent_slug: str,
     body: AutonomousConfigUpdate,
     tenant_id: UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
     """Update goal, schedule, max_steps, or active state."""
-    agent = await _get_agent(agent_name, tenant_id, db)
+    agent = await _get_agent(agent_slug, tenant_id, db)
     task = await _get_task(agent.id, tenant_id, db)
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Autonomous config not found")
@@ -267,18 +267,18 @@ async def update_autonomous_config(
 
 
 # ---------------------------------------------------------------------------
-# DELETE /agents/{agent_name}/autonomous
+# DELETE /agents/{agent_slug}/autonomous
 # ---------------------------------------------------------------------------
 
 
-@router.delete("/{agent_name}/autonomous", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{agent_slug}/autonomous", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_autonomous_config(
-    agent_name: str,
+    agent_slug: str,
     tenant_id: UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
     """Delete autonomous schedule and set autonomous_enabled=False."""
-    agent = await _get_agent(agent_name, tenant_id, db)
+    agent = await _get_agent(agent_slug, tenant_id, db)
     task = await _get_task(agent.id, tenant_id, db)
     if task:
         await db.delete(task)
@@ -288,18 +288,18 @@ async def delete_autonomous_config(
 
 
 # ---------------------------------------------------------------------------
-# POST /agents/{agent_name}/autonomous/trigger  — immediate run
+# POST /agents/{agent_slug}/autonomous/trigger  — immediate run
 # ---------------------------------------------------------------------------
 
 
-@router.post("/{agent_name}/autonomous/trigger", status_code=status.HTTP_202_ACCEPTED)
+@router.post("/{agent_slug}/autonomous/trigger", status_code=status.HTTP_202_ACCEPTED)
 async def trigger_autonomous_run(
-    agent_name: str,
+    agent_slug: str,
     tenant_id: UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
     """Enqueue an immediate autonomous run."""
-    agent = await _get_agent(agent_name, tenant_id, db)
+    agent = await _get_agent(agent_slug, tenant_id, db)
     task = await _get_task(agent.id, tenant_id, db)
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Autonomous config not found")
@@ -311,18 +311,18 @@ async def trigger_autonomous_run(
 
 
 # ---------------------------------------------------------------------------
-# GET /agents/{agent_name}/autonomous/memory
+# GET /agents/{agent_slug}/autonomous/memory
 # ---------------------------------------------------------------------------
 
 
-@router.get("/{agent_name}/autonomous/memory", response_model=list[AutonomousMemoryMessageSchema])
+@router.get("/{agent_slug}/autonomous/memory", response_model=list[AutonomousMemoryMessageSchema])
 async def get_autonomous_memory(
-    agent_name: str,
+    agent_slug: str,
     tenant_id: UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
     """Return the last 50 messages from the autonomous memory conversation."""
-    agent = await _get_agent(agent_name, tenant_id, db)
+    agent = await _get_agent(agent_slug, tenant_id, db)
     task = await _get_task(agent.id, tenant_id, db)
     if not task:
         return []
@@ -351,20 +351,20 @@ async def get_autonomous_memory(
 
 
 # ---------------------------------------------------------------------------
-# GET /agents/{agent_name}/autonomous/approvals
+# GET /agents/{agent_slug}/autonomous/approvals
 # ---------------------------------------------------------------------------
 
 
-@router.get("/{agent_name}/autonomous/approvals", response_model=list[ApprovalRequestSchema])
+@router.get("/{agent_slug}/autonomous/approvals", response_model=list[ApprovalRequestSchema])
 async def list_pending_approvals(
-    agent_name: str,
+    agent_slug: str,
     tenant_id: UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
     """List pending approval requests for this agent, newest first."""
     from src.models.agent_approval import AgentApprovalRequest, ApprovalStatus
 
-    agent = await _get_agent(agent_name, tenant_id, db)
+    agent = await _get_agent(agent_slug, tenant_id, db)
     result = await db.execute(
         select(AgentApprovalRequest)
         .filter(
@@ -393,16 +393,16 @@ async def list_pending_approvals(
 
 
 # ---------------------------------------------------------------------------
-# POST /agents/{agent_name}/autonomous/approvals/{approval_id}/respond
+# POST /agents/{agent_slug}/autonomous/approvals/{approval_id}/respond
 # ---------------------------------------------------------------------------
 
 
 @router.post(
-    "/{agent_name}/autonomous/approvals/{approval_id}/respond",
+    "/{agent_slug}/autonomous/approvals/{approval_id}/respond",
     status_code=status.HTTP_200_OK,
 )
 async def respond_to_approval(
-    agent_name: str,
+    agent_slug: str,
     approval_id: UUID,
     body: ApprovalRespondBody,
     tenant_id: UUID = Depends(get_current_tenant_id),
@@ -412,7 +412,7 @@ async def respond_to_approval(
     from src.models.agent_approval import AgentApprovalRequest
     from src.services.human_approval_service import HumanApprovalService
 
-    agent = await _get_agent(agent_name, tenant_id, db)
+    agent = await _get_agent(agent_slug, tenant_id, db)
 
     # Verify approval belongs to this agent and tenant
     result = await db.execute(
@@ -436,18 +436,18 @@ async def respond_to_approval(
 
 
 # ---------------------------------------------------------------------------
-# DELETE /agents/{agent_name}/autonomous/memory
+# DELETE /agents/{agent_slug}/autonomous/memory
 # ---------------------------------------------------------------------------
 
 
-@router.delete("/{agent_name}/autonomous/memory", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{agent_slug}/autonomous/memory", status_code=status.HTTP_204_NO_CONTENT)
 async def clear_autonomous_memory(
-    agent_name: str,
+    agent_slug: str,
     tenant_id: UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
     """Delete all messages in the autonomous memory conversation and reset summary."""
-    agent = await _get_agent(agent_name, tenant_id, db)
+    agent = await _get_agent(agent_slug, tenant_id, db)
     task = await _get_task(agent.id, tenant_id, db)
     if not task:
         return

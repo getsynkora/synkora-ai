@@ -20,6 +20,8 @@ import {
   GitBranch,
   Webhook,
   Radio,
+  ChevronRight,
+  Home,
 } from 'lucide-react'
 import { apiClient } from '@/lib/api/client'
 
@@ -69,7 +71,8 @@ export default function DataSourcesPage() {
       const data = await apiClient.getDataSources()
       setDataSources(Array.isArray(data) ? data : [])
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      const message = err instanceof Error ? err.message : 'An error occurred'
+      setError(message)
       toast.error('Failed to load data sources')
     } finally {
       setLoading(false)
@@ -79,7 +82,6 @@ export default function DataSourcesPage() {
   const filterDataSources = () => {
     let filtered = dataSources
 
-    // Search filter
     if (searchQuery) {
       filtered = filtered.filter(source =>
         source.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -87,12 +89,10 @@ export default function DataSourcesPage() {
       )
     }
 
-    // Type filter
     if (filterType !== 'all') {
       filtered = filtered.filter(source => source.type === filterType)
     }
 
-    // Status filter
     if (filterStatus !== 'all') {
       filtered = filtered.filter(source => source.status === filterStatus)
     }
@@ -114,7 +114,7 @@ export default function DataSourcesPage() {
     setDeleting(true)
     try {
       await apiClient.deleteDataSource(deleteModal.source.id.toString())
-      toast.success(`Data source deleted successfully`)
+      toast.success('Data source deleted successfully')
       closeDeleteModal()
       fetchDataSources()
     } catch (err) {
@@ -127,334 +127,384 @@ export default function DataSourcesPage() {
 
   const getSourceIcon = (sourceType: string) => {
     switch (sourceType?.toUpperCase()) {
-      case 'SLACK': return <Slack className="w-5 h-5" />
-      case 'GMAIL': return <Mail className="w-5 h-5" />
+      case 'SLACK':
+        return <Slack className="h-5 w-5" />
+      case 'GMAIL':
+        return <Mail className="h-5 w-5" />
       case 'GITHUB':
-      case 'GITLAB': return <GitBranch className="w-5 h-5" />
-      default: return <Database className="w-5 h-5" />
+      case 'GITLAB':
+        return <GitBranch className="h-5 w-5" />
+      default:
+        return <Database className="h-5 w-5" />
     }
   }
 
   const getSourceColor = (sourceType: string) => {
     switch (sourceType?.toUpperCase()) {
-      case 'SLACK': return 'bg-purple-100 text-purple-800'
-      case 'GMAIL': return 'bg-red-100 text-red-800'
+      case 'SLACK':
+        return 'bg-[#f6edf1] text-[#8b5a74]'
+      case 'GMAIL':
+        return 'bg-[#fbe9e7] text-[#b5533f]'
       case 'GITHUB':
-      case 'GITLAB': return 'bg-gray-800 text-gray-100'
-      default: return 'bg-blue-100 text-blue-800'
+      case 'GITLAB':
+        return 'bg-[#f1eadc] text-[#5b564e]'
+      default:
+        return 'bg-[#edf4f6] text-[#486c77]'
     }
   }
 
   const getStatusColor = (status: string) => {
     switch (status?.toUpperCase()) {
-      case 'ACTIVE':   return 'bg-green-100 text-green-800'
-      case 'SYNCING':  return 'bg-blue-100 text-blue-800'
-      case 'INACTIVE': return 'bg-yellow-100 text-yellow-800'
-      case 'ERROR':    return 'bg-red-100 text-red-800'
-      default:         return 'bg-gray-100 text-gray-800'
+      case 'ACTIVE':
+        return 'bg-[#e8f4ee] text-[#2d8b69]'
+      case 'SYNCING':
+        return 'bg-[#edf4f6] text-[#486c77]'
+      case 'INACTIVE':
+        return 'bg-[#f8f0dd] text-[#9a6700]'
+      case 'ERROR':
+        return 'bg-red-50 text-red-700'
+      default:
+        return 'bg-[#f1eadc] text-[#6e675d]'
     }
   }
 
   const getStatusIcon = (status: string) => {
     switch (status?.toUpperCase()) {
-      case 'ACTIVE':  return <CheckCircle className="w-3 h-3" />
-      case 'SYNCING': return <RefreshCw className="w-3 h-3 animate-spin" />
-      case 'ERROR':   return <AlertCircle className="w-3 h-3" />
-      default:        return <Clock className="w-3 h-3" />
+      case 'ACTIVE':
+        return <CheckCircle className="h-3 w-3" />
+      case 'SYNCING':
+        return <RefreshCw className="h-3 w-3 animate-spin" />
+      case 'ERROR':
+        return <AlertCircle className="h-3 w-3" />
+      default:
+        return <Clock className="h-3 w-3" />
     }
+  }
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Never'
+
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+    if (diffDays === 0) return 'Today'
+    if (diffDays === 1) return 'Yesterday'
+    if (diffDays < 7) return `${diffDays} days ago`
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
+
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }
 
   const uniqueTypes = Array.from(new Set(dataSources.map(s => s.type)))
   const uniqueStatuses = Array.from(new Set(dataSources.map(s => s.status)))
+  const searchFieldClass = 'w-full rounded-[1.2rem] border border-black/10 bg-white/80 py-3 pl-11 pr-4 text-sm text-gray-900 shadow-[0_12px_28px_rgba(0,0,0,0.04)] transition-all focus:border-[#2d8b69] focus:outline-none focus:ring-2 focus:ring-[#2d8b69]/15'
+  const filterFieldClass = 'rounded-[1rem] border border-black/10 bg-white px-3 py-2.5 text-sm text-gray-700 shadow-[0_8px_18px_rgba(0,0,0,0.04)] transition-all focus:border-[#2d8b69] focus:outline-none focus:ring-2 focus:ring-[#2d8b69]/15'
+  const totalDocuments = dataSources.reduce((sum, source) => sum + source.total_documents, 0)
+  const activeSources = dataSources.filter(source => source.status?.toUpperCase() === 'ACTIVE').length
+  const syncingSources = dataSources.filter(source => source.status?.toUpperCase() === 'SYNCING').length
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+      <div className="dashboard-resource-page flex h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-red-600"></div>
+          <p className="text-gray-600">Loading your data sources...</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header - More Compact */}
+    <div className="dashboard-resource-page min-h-screen p-4 md:p-6">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-4 flex items-center gap-1.5 text-sm">
+          <Link href="/" className="flex items-center gap-1 text-gray-500 transition-colors hover:text-[#171717]">
+            <Home className="h-3.5 w-3.5" />
+            Home
+          </Link>
+          <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
+          <span className="font-medium text-gray-900">Data Sources</span>
+        </div>
+
         <div className="mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-gradient-to-r from-red-500 to-red-600 rounded-lg shadow-sm">
-                <Database className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Data Sources</h1>
-                <p className="text-gray-600 mt-0.5 text-sm">
-                  Connect and manage data sources for your knowledge bases
-                </p>
-              </div>
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <div>
+              <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 md:text-3xl">Connected Sources</h1>
+              <p className="mt-1 hidden text-sm text-gray-600 sm:block">
+                Manage synced data sources that feed your knowledge bases
+              </p>
             </div>
             <Link
               href="/data-sources/connect"
-              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition-all shadow-sm hover:shadow-md"
+              className="inline-flex flex-shrink-0 items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
             >
-              <Plus className="w-4 h-4" />
-              Connect Source
+              <Plus className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="hidden sm:inline">Connect Source</span>
+              <span className="sm:hidden">Connect</span>
             </Link>
           </div>
 
-          {/* Stats Bar - More Compact */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-5">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center gap-2.5 mb-1.5">
-                <div className="p-1.5 bg-red-100 rounded-lg">
-                  <Database className="w-4 h-4 text-red-600" />
+          <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-[1.4rem] border border-black/10 bg-white/80 p-4 shadow-[0_16px_35px_rgba(0,0,0,0.05)]">
+              <div className="flex items-center gap-3">
+                <div className="rounded-[1rem] bg-[#f3ecde] p-2.5">
+                  <Database className="h-[18px] w-[18px] text-[#171717]" />
                 </div>
-                <p className="text-xs font-medium text-gray-600">Total Sources</p>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-500">Total Sources</p>
+                  <p className="mt-1 text-2xl font-semibold text-gray-900">{dataSources.length}</p>
+                </div>
               </div>
-              <p className="text-2xl font-bold text-gray-900">{dataSources.length}</p>
             </div>
-            
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center gap-2.5 mb-1.5">
-                <div className="p-1.5 bg-green-100 rounded-lg">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
+
+            <div className="rounded-[1.4rem] border border-black/10 bg-white/80 p-4 shadow-[0_16px_35px_rgba(0,0,0,0.05)]">
+              <div className="flex items-center gap-3">
+                <div className="rounded-[1rem] bg-[#e8f4ee] p-2.5">
+                  <CheckCircle className="h-[18px] w-[18px] text-[#2d8b69]" />
                 </div>
-                <p className="text-xs font-medium text-gray-600">Active</p>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-500">Active</p>
+                  <p className="mt-1 text-2xl font-semibold text-gray-900">{activeSources}</p>
+                </div>
               </div>
-              <p className="text-2xl font-bold text-gray-900">
-                {dataSources.filter(s => s.status?.toUpperCase() === 'ACTIVE').length}
-              </p>
             </div>
-            
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center gap-2.5 mb-1.5">
-                <div className="p-1.5 bg-purple-100 rounded-lg">
-                  <FileText className="w-4 h-4 text-purple-600" />
+
+            <div className="rounded-[1.4rem] border border-black/10 bg-white/80 p-4 shadow-[0_16px_35px_rgba(0,0,0,0.05)]">
+              <div className="flex items-center gap-3">
+                <div className="rounded-[1rem] bg-[#edf4f6] p-2.5">
+                  <FileText className="h-[18px] w-[18px] text-[#486c77]" />
                 </div>
-                <p className="text-xs font-medium text-gray-600">Documents</p>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-500">Documents</p>
+                  <p className="mt-1 text-2xl font-semibold text-gray-900">{totalDocuments}</p>
+                </div>
               </div>
-              <p className="text-2xl font-bold text-gray-900">
-                {dataSources.reduce((sum, s) => sum + s.total_documents, 0)}
-              </p>
             </div>
-            
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center gap-2.5 mb-1.5">
-                <div className="p-1.5 bg-red-100 rounded-lg">
-                  <RefreshCw className="w-4 h-4 text-red-600" />
+
+            <div className="rounded-[1.4rem] border border-black/10 bg-white/80 p-4 shadow-[0_16px_35px_rgba(0,0,0,0.05)]">
+              <div className="flex items-center gap-3">
+                <div className="rounded-[1rem] bg-[#f8f0dd] p-2.5">
+                  <RefreshCw className="h-[18px] w-[18px] text-[#9a6700]" />
                 </div>
-                <p className="text-xs font-medium text-gray-600">Syncing</p>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-500">Syncing</p>
+                  <p className="mt-1 text-2xl font-semibold text-gray-900">{syncingSources}</p>
+                </div>
               </div>
-              <p className="text-2xl font-bold text-gray-900">
-                {dataSources.filter(s => s.status?.toUpperCase() === 'SYNCING').length}
-              </p>
             </div>
           </div>
 
-          {/* Search and Filter Bar - More Compact */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3.5">
-            <div className="flex flex-col md:flex-row gap-3">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search data sources..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-gray-400" />
-                <select
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
-                  className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                >
-                  <option key="all-types" value="all">All Types</option>
-                  {uniqueTypes.map(type => (
-                    <option key={`type-${type}`} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                >
-                  <option key="all-statuses" value="all">All Statuses</option>
-                  {uniqueStatuses.map(status => (
-                    <option key={`status-${status}`} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </select>
+          {dataSources.length > 0 && (
+            <div className="rounded-[1.4rem] border border-black/10 bg-white/80 p-3.5 shadow-[0_12px_28px_rgba(0,0,0,0.04)]">
+              <div className="flex flex-col gap-3 md:flex-row">
+                <div className="relative flex-1">
+                  <Search className="absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search data sources..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className={searchFieldClass}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-gray-400" />
+                  <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                    className={filterFieldClass}
+                  >
+                    <option value="all">All Types</option>
+                    {uniqueTypes.map(type => (
+                      <option key={`type-${type}`} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className={filterFieldClass}
+                  >
+                    <option value="all">All Statuses</option>
+                    {uniqueStatuses.map(status => (
+                      <option key={`status-${status}`} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
-        {/* Error Message */}
         {error && (
-          <div className="mb-6 bg-red-50 border-l-4 border-red-500 rounded-lg p-4">
+          <div className="mb-6 rounded-[1.3rem] border border-red-200 bg-red-50/90 p-4">
             <div className="flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600" />
+              <AlertCircle className="h-5 w-5 text-red-600" />
               <p className="text-red-700">{error}</p>
             </div>
           </div>
         )}
 
-        {/* Data Sources Grid */}
         {filteredSources.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm border-2 border-dashed border-gray-300 p-10 text-center">
-            <Database className="w-14 h-14 text-gray-400 mx-auto mb-3" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-1.5">
-              {dataSources.length === 0 ? 'No data sources connected' : 'No results found'}
+          <div className="rounded-[2rem] border border-black/10 bg-white/80 p-10 text-center shadow-[0_22px_55px_rgba(0,0,0,0.06)]">
+            <div className="relative mx-auto mb-6 h-28 w-28">
+              <div className="absolute inset-0 rotate-6 rounded-[1.75rem] bg-[#f3ecde]"></div>
+              <div className="absolute inset-0 flex items-center justify-center rounded-[1.75rem] border border-black/10 bg-white shadow-[0_18px_40px_rgba(0,0,0,0.05)]">
+                <Database className="h-10 w-10 text-[#2d8b69]" />
+              </div>
+            </div>
+
+            <h3 className="mb-2 text-xl font-semibold text-gray-900">
+              {dataSources.length === 0 ? 'Connect your first data source' : 'No results found'}
             </h3>
-            <p className="text-gray-600 text-sm mb-5">
+            <p className="mx-auto mb-6 max-w-md text-gray-600">
               {dataSources.length === 0
-                ? 'Connect your first data source to start syncing documents.'
-                : 'Try adjusting your search or filter criteria.'}
+                ? 'Connect Slack, email, repositories, or other systems so your knowledge bases stay fresh and useful.'
+                : 'Try adjusting your search or filters to find what you are looking for.'}
             </p>
             {dataSources.length === 0 && (
               <Link
                 href="/data-sources/connect"
-                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition-all shadow-sm hover:shadow-md"
+                className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="h-5 w-5" />
                 Connect Data Source
               </Link>
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filteredSources.map((source) => (
               <div
                 key={source.id}
-                className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all hover:border-red-300"
+                className="group relative flex min-h-[292px] flex-col rounded-[1.7rem] border border-black/10 bg-white/80 shadow-[0_18px_40px_rgba(0,0,0,0.05)] transition-all hover:-translate-y-0.5 hover:border-black/15 hover:shadow-[0_22px_50px_rgba(0,0,0,0.08)]"
               >
-                <div className="p-5">
-                  {/* Header */}
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-start gap-2.5 flex-1">
-                      <div className={`p-2 rounded-lg ${getSourceColor(source.type)}`}>
+                <div className="absolute right-4 top-4 z-20">
+                  <button
+                    type="button"
+                    onClick={() => openDeleteModal(source)}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-red-200 bg-red-50/90 text-red-600 shadow-[0_8px_18px_rgba(0,0,0,0.06)] transition-colors hover:bg-red-100"
+                    aria-label={`Delete ${source.name || source.type || 'data source'}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <Link
+                  href={`/data-sources/${source.id}`}
+                  className="flex flex-1 flex-col p-5 pr-16 focus:outline-none"
+                  aria-label={`Open ${source.name || source.type || 'data source'}`}
+                >
+                  <div className="mb-4 flex items-start gap-3">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <div className={`rounded-[1.1rem] p-3 transition-colors group-hover:opacity-90 ${getSourceColor(source.type)}`}>
                         {getSourceIcon(source.type)}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-base font-semibold text-gray-900 mb-0.5">
+                      <div className="min-w-0">
+                        <h3 className="truncate text-[1.05rem] font-semibold text-gray-900">
                           {source.name || source.type?.toUpperCase() || 'UNKNOWN'}
                         </h3>
-                        <Link
-                          href={`/knowledge-bases/${source.knowledge_base_id}`}
-                          className="text-xs text-red-600 hover:text-red-700 truncate block"
-                        >
+                        <p className="mt-1 text-sm font-medium text-[#2d8b69]">
                           {source.knowledge_base_name || `KB #${source.knowledge_base_id}`}
-                        </Link>
+                        </p>
                       </div>
                     </div>
+                    <span className="inline-flex items-center rounded-full bg-[#f1eadc] px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-[#6e675d]">
+                      {source.type?.toUpperCase() || 'SOURCE'}
+                    </span>
                   </div>
 
-                  {/* Status Badge */}
-                  <div className="mb-3 flex items-center gap-2 flex-wrap">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(source.status)}`}>
+                  <div className="mb-4 flex flex-wrap items-center gap-2">
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${getStatusColor(source.status)}`}>
                       {getStatusIcon(source.status)}
                       {source.status?.toUpperCase()}
                     </span>
                     {WEBHOOK_SOURCES.includes(source.type?.toUpperCase()) && !source.config?.signing_secret && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                        <Webhook className="w-3 h-3" />
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f8f0dd] px-2.5 py-1 text-[11px] font-medium text-[#9a6700]">
+                        <Webhook className="h-3 w-3" />
                         Setup needed
                       </span>
                     )}
                     {source.status?.toUpperCase() === 'SYNCING' && (
-                      <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 animate-pulse">
-                        <Radio className="w-3 h-3" /> Live
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#edf4f6] px-2.5 py-1 text-[11px] font-medium text-[#486c77]">
+                        <Radio className="h-3 w-3" />
+                        Live
                       </span>
                     )}
                   </div>
 
-                  {/* Stats */}
-                  <div className="grid grid-cols-2 gap-3 mb-3 py-3 border-t border-b border-gray-100">
-                    <div>
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <FileText className="w-3.5 h-3.5 text-gray-400" />
-                        <p className="text-xs text-gray-500">Documents</p>
+                  <div className="grid grid-cols-3 gap-2.5">
+                    <div className="min-w-0 rounded-[1.15rem] border border-black/10 bg-[#fcfaf5] px-3 py-3">
+                      <div className="mb-1 flex items-center gap-1.5">
+                        <FileText className="h-3.5 w-3.5 text-gray-400" />
+                        <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-gray-500">Documents</p>
                       </div>
-                      <p className="text-lg font-bold text-gray-900">{source.total_documents}</p>
+                      <p className="text-base font-semibold text-gray-900">{source.total_documents}</p>
                     </div>
-                    <div>
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <Clock className="w-3.5 h-3.5 text-gray-400" />
-                        <p className="text-xs text-gray-500">Last Sync</p>
+                    <div className="min-w-0 rounded-[1.15rem] border border-black/10 bg-[#eef7f1] px-3 py-3">
+                      <div className="mb-1 flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5 text-gray-400" />
+                        <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-gray-500">Last Sync</p>
                       </div>
-                      <p className="text-xs font-medium text-gray-900">
-                        {source.last_sync_at
-                          ? new Date(source.last_sync_at).toLocaleDateString()
-                          : 'Never'}
+                      <p className="text-sm font-semibold text-gray-900">
+                        {formatDate(source.last_sync_at)}
+                      </p>
+                    </div>
+                    <div className="min-w-0 rounded-[1.15rem] border border-black/10 bg-[#f4efe4] px-3 py-3">
+                      <div className="mb-1 text-[10px] font-medium uppercase tracking-[0.1em] text-gray-500">Knowledge Base</div>
+                      <p className="truncate text-sm font-semibold text-gray-900">
+                        {source.knowledge_base_name || `KB #${source.knowledge_base_id}`}
                       </p>
                     </div>
                   </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-2">
-                    <Link
-                      href={`/data-sources/${source.id}`}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      View
-                    </Link>
-                    <button
-                      onClick={() => openDeleteModal(source)}
-                      className="inline-flex items-center justify-center px-3 py-2 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
+                </Link>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* Delete Confirmation Modal */}
       {deleteModal.show && deleteModal.source && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <AlertCircle className="w-6 h-6 text-red-600" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-[1.8rem] border border-black/10 bg-[#fcfaf5] p-6 shadow-[0_24px_70px_rgba(0,0,0,0.2)]">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="rounded-[1rem] bg-red-50 p-2.5">
+                <AlertCircle className="h-6 w-6 text-red-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900">Delete Data Source</h3>
             </div>
-            
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to delete the <span className="font-semibold">{deleteModal.source.name}</span> data source? 
+
+            <p className="mb-6 text-gray-600">
+              Are you sure you want to delete the <span className="font-semibold">{deleteModal.source.name}</span> data source?
               This action cannot be undone and will permanently delete all associated documents.
             </p>
-            
-            <div className="flex gap-3 justify-end">
+
+            <div className="flex justify-end gap-3">
               <button
                 onClick={closeDeleteModal}
                 disabled={deleting}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                className="rounded-[1rem] bg-[#f1eadc] px-4 py-2.5 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#e8ddc8] disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
                 disabled={deleting}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="flex items-center gap-2 rounded-[1rem] bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-50"
               >
                 {deleting ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                     Deleting...
                   </>
                 ) : (
                   <>
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="h-4 w-4" />
                     Delete
                   </>
                 )}

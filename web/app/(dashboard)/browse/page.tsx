@@ -14,16 +14,27 @@ import {
   Star,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   LayoutGrid,
   List,
   SlidersHorizontal,
   CheckCircle,
   Award,
-  Tag,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+
+interface AgentPricing {
+  model: string
+  is_free: boolean
+  credits_per_use?: number | null
+  session_credits?: number | null
+  daily_credits?: number | null
+  weekly_credits?: number | null
+  monthly_credits?: number | null
+  trial_messages: number
+}
 
 interface PublicAgent {
   id: string
@@ -41,6 +52,7 @@ interface PublicAgent {
   system_prompt?: string
   tools?: any[]
   provider?: string
+  pricing?: AgentPricing | null
 }
 
 interface Category {
@@ -65,14 +77,6 @@ const getCategoryIcon = (category: string, size: number = 32) => {
   return <Icon size={size} />
 }
 
-const getInitials = (name: string) =>
-  name
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
-
 // Get rating from likes/dislikes
 const getRating = (agent: PublicAgent) => {
   const total = agent.likes_count + agent.dislikes_count
@@ -87,6 +91,57 @@ const getBadge = (agent: PublicAgent) => {
   if (rating >= 4.9) return { type: 'top_rated', label: 'TOP RATED' }
   if (agent.usage_count > 100) return { type: 'verified', label: 'VERIFIED' }
   return null
+}
+
+// Format pricing for display
+const formatPricing = (pricing?: AgentPricing | null): { label: string; sub: string } => {
+  if (!pricing || pricing.is_free || pricing.model === 'FREE') {
+    return { label: 'Free', sub: '' }
+  }
+  switch (pricing.model) {
+    case 'PER_USE':
+      return { label: `${pricing.credits_per_use ?? '?'} cr`, sub: '/use' }
+    case 'SESSION':
+      return { label: `${pricing.session_credits ?? '?'} cr`, sub: '/session' }
+    case 'DAILY':
+      return { label: `${pricing.daily_credits ?? '?'} cr`, sub: '/day' }
+    case 'WEEKLY':
+      return { label: `${pricing.weekly_credits ?? '?'} cr`, sub: '/week' }
+    case 'SUBSCRIPTION':
+    case 'MONTHLY':
+      return { label: `${pricing.monthly_credits ?? '?'} cr`, sub: '/mo' }
+    default:
+      return { label: 'Free', sub: '' }
+  }
+}
+
+const renderAgentAvatar = (agent: PublicAgent, sizeClasses: string, iconSize: number) => {
+  if (agent.avatar) {
+    return (
+      <div className={`relative overflow-hidden rounded-[1.7rem] bg-white shadow-[0_18px_32px_rgba(0,0,0,0.12)] ${sizeClasses}`}>
+        {agent.avatar.startsWith('http://') || agent.avatar.startsWith('https://') ? (
+          <img
+            src={agent.avatar}
+            alt={agent.agent_name}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <Image
+            src={agent.avatar}
+            alt={agent.agent_name}
+            fill
+            className="object-cover"
+          />
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className={`flex items-center justify-center rounded-[1.7rem] bg-white text-[#2d8b69] shadow-[0_18px_32px_rgba(0,0,0,0.12)] ${sizeClasses}`}>
+      {getCategoryIcon(agent.category, iconSize)}
+    </div>
+  )
 }
 
 // Main categories from agent creation
@@ -119,6 +174,10 @@ export default function BrowsePage() {
     fetchCategories()
     fetchAgents()
   }, [selectedCategory, sortBy, searchQuery])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [selectedCategory, sortBy, searchQuery, selectedTags])
 
   const fetchCategories = async () => {
     try {
@@ -199,246 +258,332 @@ export default function BrowsePage() {
 
   // Use main categories for the sidebar
   const displayCategories = mainCategories
+  const categoryCountMap = useMemo(
+    () => new Map(categories.map((item) => [item.category, item.count])),
+    [categories]
+  )
+  const hasActiveFilters = Boolean(searchQuery || selectedCategory || selectedTags.length)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40">
-      {/* Breadcrumb */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-3">
-          <nav className="flex items-center gap-2 text-sm">
-            <button onClick={() => router.push('/')} className="text-gray-500 hover:text-red-600">
+    <div className="dashboard-app min-h-full px-4 py-4 md:px-8 md:py-6 xl:px-10">
+      <div className="mx-auto max-w-[90rem]">
+        <div className="dashboard-surface mb-4 rounded-full px-5 py-3">
+          <nav className="flex items-center gap-2 text-sm text-[#7a736a]">
+            <button onClick={() => router.push('/')} className="transition-colors hover:text-[#171717]">
               Home
             </button>
-            <ChevronRight size={14} className="text-gray-400" />
-            <button onClick={() => router.push('/browse')} className="text-gray-500 hover:text-red-600">
+            <ChevronRight size={14} className="text-[#9a9388]" />
+            <button onClick={() => router.push('/browse')} className="transition-colors hover:text-[#171717]">
               Marketplace
             </button>
             {selectedCategory && (
               <>
-                <ChevronRight size={14} className="text-gray-400" />
-                <span className="text-gray-900 font-medium">{selectedCategory} Agents</span>
+                <ChevronRight size={14} className="text-[#9a9388]" />
+                <span className="font-medium text-[#171717]">{selectedCategory}</span>
               </>
             )}
           </nav>
         </div>
-      </div>
 
-      {/* Hero Section */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="flex items-start justify-between">
+        <div className="dashboard-surface mb-6 rounded-[2rem] p-5 md:p-6 xl:p-7">
+          <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
             <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
-                {selectedCategory ? `${selectedCategory} AI Agents` : 'AI Agents Marketplace'}
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6e675d]">
+                <Sparkles className="h-3 w-3 text-[#2d8b69]" />
+                Marketplace Access
+              </div>
+              <h1 className="text-[1.8rem] font-semibold tracking-[-0.05em] text-[#171717] md:text-[2.65rem]">
+                {selectedCategory ? (
+                  <>
+                    <span className="highlight-mint">{selectedCategory}</span> agents
+                  </>
+                ) : (
+                  <>
+                    Browse <span className="highlight-mint">AI agents</span>
+                  </>
+                )}
               </h1>
-              <p className="mt-2 text-gray-600 max-w-2xl">
-                Scale your operations with autonomous intelligence. Discover, deploy, and manage
-                specialized agents for sales, HR, and document analysis.
+              <p className="mt-3 max-w-3xl text-[13px] leading-relaxed text-[#5b564e] md:text-[15px]">
+                Discover marketplace agents with clearer pricing, stronger trust signals, and cleaner category navigation. Deploy the right specialist without digging through clutter.
               </p>
             </div>
+
             <button
               onClick={clearAllFilters}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              className="inline-flex flex-shrink-0 items-center gap-2 rounded-full border border-black/10 bg-white/[0.78] px-5 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white md:text-[14px]"
             >
               <SlidersHorizontal size={16} />
-              Clear All Filters
+              Clear Filters
             </button>
           </div>
-        </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-8">
-        <div className="flex flex-col md:flex-row gap-6 md:gap-8">
-          {/* Left Sidebar - hidden on mobile by default, shown on md+ */}
-          <div className="w-full md:w-64 md:flex-shrink-0">
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
-              {/* Categories */}
-              <div className="mb-6">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                  CATEGORIES
-                </h3>
-                <div className="space-y-1">
-                  {displayCategories.map((cat) => (
+          <div className="mt-5 flex flex-wrap gap-3">
+            <div className="dashboard-chip rounded-full px-4 py-2 text-[13px] font-medium">{filteredAgents.length} visible</div>
+            <div className="dashboard-chip rounded-full px-4 py-2 text-[13px] font-medium">{displayCategories.length} categories</div>
+            <div className="dashboard-chip rounded-full px-4 py-2 text-[13px] font-medium">{availableTags.length} tags</div>
+            <div className="dashboard-chip rounded-full px-4 py-2 text-[13px] font-medium">{viewMode === 'grid' ? 'Grid view' : 'List view'}</div>
+          </div>
+
+          <div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_auto]">
+            <label className="relative block">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a8378]" />
+              <input
+                type="text"
+                placeholder="Search agents, tools, or use cases..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full rounded-full border border-black/10 bg-white/[0.78] py-3 pl-11 pr-4 text-[13px] text-[#171717] outline-none transition-all focus:border-[#ff5f8f] focus:ring-2 focus:ring-[#ff5f8f]/20 md:text-[14px]"
+              />
+            </label>
+
+            <label className="relative block">
+              <select
+                aria-label="Sort by"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="w-full appearance-none rounded-full border border-black/10 bg-white/[0.78] px-4 py-3 pr-12 text-[13px] text-[#171717] outline-none transition-all focus:border-[#ff5f8f] focus:ring-2 focus:ring-[#ff5f8f]/20 md:text-[14px]"
+              >
+                <option value="popular">Most Popular</option>
+                <option value="recent">Recently Added</option>
+                <option value="rating">Highest Rated</option>
+                <option value="name">Name (A-Z)</option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#5b564e]" />
+            </label>
+
+            <div className="flex items-center rounded-full border border-black/10 bg-white/[0.78] p-1">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
+                  viewMode === 'grid' ? 'bg-[#181818] text-[#f7f2e7]' : 'text-[#6f685e] hover:bg-black/5'
+                }`}
+                aria-label="Grid view"
+              >
+                <LayoutGrid size={18} />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
+                  viewMode === 'list' ? 'bg-[#181818] text-[#f7f2e7]' : 'text-[#6f685e] hover:bg-black/5'
+                }`}
+                aria-label="List view"
+              >
+                <List size={18} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-6 xl:grid-cols-[248px_minmax(0,1fr)]">
+          <aside className="dashboard-surface rounded-[1.75rem] p-3 md:p-4 xl:sticky xl:top-24 xl:h-fit">
+            <div className="mb-4">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8a8378]">Categories</p>
+              <div className="space-y-1">
+                {displayCategories.map((cat) => {
+                  const isActive = selectedCategory === cat
+                  return (
                     <button
                       key={cat}
-                      onClick={() =>
-                        setSelectedCategory(cat === selectedCategory ? '' : cat)
-                      }
-                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-left transition-colors ${
-                        selectedCategory === cat
-                          ? 'bg-red-50 text-red-700 font-medium'
-                          : 'text-gray-700 hover:bg-gray-50'
+                      onClick={() => setSelectedCategory(isActive ? '' : cat)}
+                      className={`relative flex w-full items-center gap-2 overflow-hidden rounded-[0.95rem] px-2 py-2 text-left transition-all ${
+                        isActive
+                          ? 'border border-black/10 bg-white/[0.82] text-[#171717] shadow-sm'
+                          : 'text-[#5b564e] hover:bg-white/[0.62] hover:text-[#171717]'
                       }`}
                     >
-                      <span className="text-gray-400">
-                        {getCategoryIcon(cat, 16)}
+                      {isActive && (
+                        <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-[#63dfbe]" aria-hidden="true" />
+                      )}
+                      <span className={`flex h-7 w-7 items-center justify-center rounded-full ${isActive ? 'bg-[#181818] text-[#f7f2e7]' : 'bg-white/80 text-[#8a8378]'}`}>
+                        {getCategoryIcon(cat, 14)}
                       </span>
-                      {cat}
+                      <span className="flex-1 text-[13px] font-medium leading-none">{cat}</span>
+                      <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[#8a8378]">
+                        {categoryCountMap.get(cat) ?? 0}
+                      </span>
                     </button>
-                  ))}
-                </div>
+                  )
+                })}
               </div>
+            </div>
 
-              {availableTags.length > 0 && (
-                <>
-                  <div className="border-t border-gray-200 my-4" />
-
-                  {/* Tags Filter */}
-                  <div>
-                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                      TAGS
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {availableTags.map((tag) => (
+            {availableTags.length > 0 && (
+              <>
+                <div className="mb-3 border-t border-black/[0.08]" />
+                <div>
+                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8a8378]">Tags</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {availableTags.map((tag) => {
+                      const isSelected = selectedTags.includes(tag)
+                      return (
                         <button
                           key={tag}
                           onClick={() => toggleTag(tag)}
-                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                            selectedTags.includes(tag)
-                              ? 'bg-red-500 text-white'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          className={`rounded-full px-2.5 py-1.5 text-[11px] font-medium transition-colors ${
+                            isSelected
+                              ? 'bg-[#181818] text-[#f7f2e7]'
+                              : 'border border-black/10 bg-white/70 text-[#5b564e] hover:bg-white'
                           }`}
                         >
                           {tag}
                         </button>
-                      ))}
-                    </div>
+                      )
+                    })}
                   </div>
-                </>
+                </div>
+              </>
+            )}
+          </aside>
+
+          <section className="min-w-0">
+            <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-[13px] uppercase tracking-[0.18em] text-[#8a8378]">Results</p>
+                <p className="mt-1 text-[15px] text-[#5b564e]">
+                  Showing <span className="font-semibold text-[#171717]">{filteredAgents.length}</span> marketplace agents
+                  {selectedCategory && <> in <span className="font-semibold text-[#171717]">{selectedCategory}</span></>}
+                </p>
+              </div>
+
+              {hasActiveFilters && (
+                <div className="flex flex-wrap gap-2">
+                  {selectedCategory && (
+                    <span className="rounded-full border border-black/10 bg-white/70 px-3 py-2 text-xs font-medium text-[#171717]">
+                      {selectedCategory}
+                    </span>
+                  )}
+                  {selectedTags.map((tag) => (
+                    <span key={tag} className="rounded-full border border-black/10 bg-white/70 px-3 py-2 text-xs font-medium text-[#171717]">
+                      {tag}
+                    </span>
+                  ))}
+                  {searchQuery && (
+                    <span className="rounded-full border border-black/10 bg-white/70 px-3 py-2 text-xs font-medium text-[#171717]">
+                      {searchQuery}
+                    </span>
+                  )}
+                </div>
               )}
             </div>
-          </div>
 
-          {/* Right Content */}
-          <div className="flex-1 min-w-0">
-            {/* Toolbar */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="text-sm text-gray-600">
-                Showing <span className="font-semibold text-gray-900">{filteredAgents.length} Agents</span>
-                {selectedCategory && (
-                  <span>
-                    {' '}
-                    for "<span className="text-gray-900">{selectedCategory}</span>"
-                  </span>
-                )}
-              </div>
-
-              <div className="flex items-center gap-3">
-                {/* Sort */}
-                <div className="flex items-center gap-2">
-                  <select
-                    aria-label="Sort by"
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="rounded-lg border border-gray-200 bg-white text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                  >
-                    <option value="popular">Most Popular</option>
-                    <option value="recent">Recently Added</option>
-                    <option value="rating">Highest Rated</option>
-                    <option value="name">Name (A-Z)</option>
-                  </select>
-                </div>
-
-                {/* View Toggle */}
-                <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`p-2 ${
-                      viewMode === 'grid' ? 'bg-red-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
-                    }`}
-                    aria-label="Grid view"
-                  >
-                    <LayoutGrid size={18} />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`p-2 ${
-                      viewMode === 'list' ? 'bg-red-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
-                    }`}
-                    aria-label="List view"
-                  >
-                    <List size={18} />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Agent Cards Grid */}
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className={viewMode === 'grid' ? 'grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3' : 'space-y-4'}>
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="bg-white rounded-xl border border-gray-200 overflow-hidden animate-pulse"
-                  >
-                    <div className="h-32 bg-gray-100" />
-                    <div className="p-4 space-y-3">
-                      <div className="h-4 bg-gray-100 rounded w-3/4" />
-                      <div className="h-3 bg-gray-100 rounded w-1/2" />
-                      <div className="h-10 bg-gray-100 rounded" />
+                  <div key={i} className="dashboard-panel animate-pulse overflow-hidden rounded-[2rem]">
+                    <div className="border-b border-black/10 bg-[#efe7d8] pt-10 pb-12">
+                      <div className="mx-auto h-24 w-24 rounded-[1.7rem] bg-white shadow-lg" />
+                    </div>
+                    <div className="p-5">
+                      <div className="mb-2 h-5 w-40 rounded bg-black/10" />
+                      <div className="mb-3 h-4 w-24 rounded bg-black/5" />
+                      <div className="mb-2 h-4 w-full rounded bg-black/5" />
+                      <div className="mb-4 h-4 w-3/4 rounded bg-black/5" />
+                      <div className="mb-4 border-t border-black/10 pt-4">
+                        <div className="flex gap-6">
+                          <div className="h-8 w-12 rounded bg-black/10" />
+                          <div className="h-8 w-12 rounded bg-black/10" />
+                        </div>
+                      </div>
+                      <div className="h-10 w-32 rounded-full bg-black/5" />
                     </div>
                   </div>
                 ))}
               </div>
+            ) : paginatedAgents.length === 0 ? (
+              <div className="dashboard-surface rounded-[2rem] py-20 text-center">
+                <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-[#f1eadc] text-[#171717]">
+                  <Search className="h-8 w-8" />
+                </div>
+                <h3 className="mb-2 text-[1.05rem] font-semibold text-[#171717] md:text-[1.35rem]">No matching agents</h3>
+                <p className="mb-6 text-[13px] text-[#6c655c] md:text-[14px]">
+                  Try clearing filters or broadening your search terms.
+                </p>
+                <button
+                  onClick={clearAllFilters}
+                  className="inline-flex items-center gap-2 rounded-full bg-[#181818] px-6 py-3 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 md:text-[14px]"
+                >
+                  Reset Filters
+                </button>
+              </div>
             ) : (
-              <div
-                className={
-                  viewMode === 'grid'
-                    ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5'
-                    : 'space-y-4'
-                }
-              >
+              <div className={viewMode === 'grid' ? 'grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3' : 'space-y-4'}>
                 {paginatedAgents.map((agent) => {
                   const badge = getBadge(agent)
                   const rating = getRating(agent)
+                  const price = formatPricing(agent.pricing)
 
                   if (viewMode === 'list') {
                     return (
                       <div
                         key={agent.id}
                         onClick={() => router.push(`/browse/${agent.id}`)}
-                        className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer flex gap-4"
+                        className="dashboard-panel flex cursor-pointer flex-col gap-5 rounded-[2rem] p-5 transition-all duration-300 hover:-translate-y-1 md:flex-row md:items-center"
                       >
-                        <div className="w-20 h-20 rounded-lg bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center text-red-500 flex-shrink-0">
-                          {getCategoryIcon(agent.category, 32)}
+                        <div className="flex h-36 items-center justify-center rounded-[1.8rem] bg-[#efe7d8] px-6 md:w-48">
+                          {renderAgentAvatar(agent, 'h-24 w-24 md:h-28 md:w-28', 36)}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-base font-semibold text-gray-900">
-                              {agent.agent_name}
-                            </h3>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-2 flex flex-wrap items-center gap-2">
                             {badge && (
-                              <span
-                                className={`px-2 py-0.5 rounded text-xs font-medium ${
-                                  badge.type === 'top_rated'
-                                    ? 'bg-amber-100 text-amber-700'
-                                    : 'bg-green-100 text-green-700'
-                                }`}
-                              >
-                                {badge.type === 'verified' && <CheckCircle size={10} className="inline mr-1" />}
-                                {badge.type === 'top_rated' && <Award size={10} className="inline mr-1" />}
+                              <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${
+                                badge.type === 'top_rated'
+                                  ? 'bg-[#fff0d9] text-[#171717]'
+                                  : 'bg-[rgba(99,223,190,0.18)] text-[#171717]'
+                              }`}>
+                                {badge.type === 'verified' && <CheckCircle size={12} />}
+                                {badge.type === 'top_rated' && <Award size={12} />}
                                 {badge.label}
                               </span>
                             )}
-                            <div className="flex items-center gap-1 text-sm text-amber-500 ml-auto">
-                              <Star size={14} fill="currentColor" />
-                              {rating}
+                            <span className="rounded-full border border-black/10 bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#5b564e]">
+                              {agent.category || 'General'}
+                            </span>
+                          </div>
+
+                          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                            <div className="min-w-0">
+                              <h3 className="line-clamp-1 text-[1.35rem] font-semibold tracking-[-0.04em] text-[#171717]">
+                                {agent.agent_name}
+                              </h3>
+                              <p className="mt-2 line-clamp-2 text-[14px] leading-relaxed text-[#5b564e]">
+                                {agent.description || 'AI agent for your business needs.'}
+                              </p>
+                            </div>
+
+                            <div className="flex items-center gap-5 lg:ml-6 lg:flex-col lg:items-end lg:text-right">
+                              <div className="flex items-center gap-1 text-[#b7832f]">
+                                <Star size={16} fill="currentColor" />
+                                <span className="text-sm font-semibold text-[#171717]">{rating.toFixed(1)}</span>
+                              </div>
+                              <div>
+                                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8a8378]">
+                                  {price.label === 'Free' ? 'Access' : 'Starting at'}
+                                </p>
+                                <p className="text-lg font-semibold text-[#171717]">
+                                  {price.label}
+                                  {price.sub && <span className="ml-1 text-sm font-medium text-[#7a736a]">{price.sub}</span>}
+                                </p>
+                              </div>
                             </div>
                           </div>
-                          <p className="text-xs text-gray-500 mt-0.5">{agent.category || 'General'}</p>
-                          <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                            {agent.description || 'AI agent for your business needs.'}
-                          </p>
-                        </div>
-                        <div className="flex flex-col items-end justify-between">
-                          <div className="text-right">
-                            <div className="text-xs text-gray-500 uppercase">STARTING AT</div>
-                            <div className="text-lg font-bold text-gray-900">$49<span className="text-sm font-normal text-gray-500">/mo</span></div>
+
+                          <div className="mt-5 flex items-center justify-between gap-4 border-t border-black/10 pt-4">
+                            <div className="flex items-center gap-6">
+                              <div>
+                                <p className="text-xs uppercase tracking-[0.16em] text-[#8a8378]">Uses</p>
+                                <p className="text-lg font-semibold text-[#171717]">{agent.usage_count}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs uppercase tracking-[0.16em] text-[#8a8378]">Likes</p>
+                                <p className="text-lg font-semibold text-[#171717]">{agent.likes_count}</p>
+                              </div>
+                            </div>
+
+                            <button className="rounded-full bg-[#181818] px-5 py-2.5 text-sm font-semibold uppercase tracking-[0.14em] text-[#f7f2e7] transition-transform hover:-translate-y-0.5">
+                              View Details
+                            </button>
                           </div>
-                          <button className="px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
-                            View Details
-                          </button>
                         </div>
                       </div>
                     )
@@ -448,77 +593,76 @@ export default function BrowsePage() {
                     <div
                       key={agent.id}
                       onClick={() => router.push(`/browse/${agent.id}`)}
-                      className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
+                      className="dashboard-panel group flex cursor-pointer flex-col overflow-hidden rounded-[2rem] transition-all duration-300 hover:-translate-y-1"
                     >
-                      {/* Card Header */}
-                      <div className="relative h-32 bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center">
+                      <div className="relative flex items-center justify-center border-b border-black/10 bg-[#efe7d8] pt-10 pb-12">
                         {badge && (
-                          <span
-                            className={`absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${
-                              badge.type === 'top_rated'
-                                ? 'bg-amber-100 text-amber-700'
-                                : 'bg-green-100 text-green-700'
-                            }`}
-                          >
+                          <span className={`absolute left-4 top-4 inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${
+                            badge.type === 'top_rated'
+                              ? 'bg-[#fff0d9] text-[#171717]'
+                              : 'bg-[rgba(99,223,190,0.18)] text-[#171717]'
+                          }`}>
                             {badge.type === 'verified' && <CheckCircle size={12} />}
                             {badge.type === 'top_rated' && <Award size={12} />}
                             {badge.label}
                           </span>
                         )}
-                        <div className="w-16 h-16 rounded-xl bg-white/80 backdrop-blur-sm flex items-center justify-center text-red-500 shadow-sm group-hover:scale-110 transition-transform">
-                          {agent.avatar ? (
-                            agent.avatar.startsWith('http://') || agent.avatar.startsWith('https://') ? (
-                              <img
-                                src={agent.avatar}
-                                alt={agent.agent_name}
-                                className="w-full h-full object-cover rounded-xl"
-                              />
-                            ) : (
-                              <Image
-                                src={agent.avatar}
-                                alt={agent.agent_name}
-                                fill
-                                className="object-cover rounded-xl"
-                              />
-                            )
-                          ) : (
-                            getCategoryIcon(agent.category, 32)
-                          )}
+
+                        <div className="absolute right-4 top-4 rounded-full border border-black/10 bg-white/78 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#171717]">
+                          {price.label}
+                          {price.sub && <span className="ml-1 font-medium text-[#7a736a]">{price.sub}</span>}
                         </div>
+
+                        {renderAgentAvatar(agent, 'h-24 w-24', 34)}
                       </div>
 
-                      {/* Card Body */}
-                      <div className="p-4">
-                        <div className="flex items-start justify-between">
+                      <div className="flex flex-1 flex-col p-5">
+                        <div className="mb-2 flex items-start justify-between gap-3">
                           <div>
-                            <h3 className="text-base font-semibold text-gray-900">
+                            <h3 className="line-clamp-2 text-[1.3rem] font-semibold leading-tight tracking-[-0.04em] text-[#171717]">
                               {agent.agent_name}
                             </h3>
-                            <p className="text-xs text-gray-500 mt-0.5">
+                            <p className="mt-2 text-[12px] uppercase tracking-[0.16em] text-[#7a736a]">
                               {agent.category || 'General'}
                             </p>
                           </div>
-                          <div className="flex items-center gap-1 text-amber-500">
-                            <Star size={14} fill="currentColor" />
-                            <span className="text-sm font-medium">{rating}</span>
+
+                          <div className="flex items-center gap-1 text-[#b7832f]">
+                            <Star size={15} fill="currentColor" />
+                            <span className="text-sm font-semibold text-[#171717]">{rating.toFixed(1)}</span>
                           </div>
                         </div>
 
-                        <p className="text-sm text-gray-600 mt-2 line-clamp-2 min-h-[40px]">
+                        <p className="mb-4 line-clamp-2 text-[14px] leading-relaxed text-[#5b564e]">
                           {agent.description || 'AI agent for your business needs.'}
                         </p>
 
-                        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
-                          <div>
-                            <div className="text-xs text-gray-500 uppercase">STARTING AT</div>
-                            <div className="text-lg font-bold text-gray-900">
-                              $49<span className="text-sm font-normal text-gray-500">/mo</span>
+                        {agent.tags?.length > 0 && (
+                          <div className="mb-4 flex flex-wrap gap-2">
+                            {agent.tags.slice(0, 2).map((tag) => (
+                              <span key={tag} className="rounded-full border border-black/10 bg-white/70 px-3 py-1 text-[11px] font-medium text-[#5b564e]">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="mb-5 border-t border-black/10 pt-4">
+                          <div className="flex items-center gap-6">
+                            <div>
+                              <p className="mb-0.5 text-xs uppercase tracking-[0.16em] text-[#8a8378]">Uses</p>
+                              <p className="text-xl font-semibold text-[#171717]">{agent.usage_count}</p>
+                            </div>
+                            <div>
+                              <p className="mb-0.5 text-xs uppercase tracking-[0.16em] text-[#8a8378]">Likes</p>
+                              <p className="text-xl font-semibold text-[#171717]">{agent.likes_count}</p>
                             </div>
                           </div>
-                          <button className="px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
-                            View Details
-                          </button>
                         </div>
+
+                        <button className="mt-auto rounded-full border border-black/15 bg-white/70 px-5 py-2.5 text-center text-sm font-semibold uppercase tracking-[0.14em] text-[#171717] transition-colors hover:bg-white">
+                          View Details
+                        </button>
                       </div>
                     </div>
                   )
@@ -526,13 +670,12 @@ export default function BrowsePage() {
               </div>
             )}
 
-            {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-8">
+              <div className="dashboard-surface mt-8 flex items-center justify-center gap-3 rounded-full px-4 py-3">
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-[#5b564e] transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
                   aria-label="Previous page"
                 >
                   <ChevronLeft size={18} />
@@ -554,10 +697,10 @@ export default function BrowsePage() {
                     <button
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors ${
+                      className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold transition-colors ${
                         currentPage === pageNum
-                          ? 'bg-red-500 text-white'
-                          : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                          ? 'bg-[#181818] text-[#f7f2e7]'
+                          : 'text-[#5b564e] hover:bg-black/5'
                       }`}
                     >
                       {pageNum}
@@ -567,10 +710,10 @@ export default function BrowsePage() {
 
                 {totalPages > 5 && currentPage < totalPages - 2 && (
                   <>
-                    <span className="text-gray-400">...</span>
+                    <span className="text-[#8a8378]">...</span>
                     <button
                       onClick={() => setCurrentPage(totalPages)}
-                      className="w-10 h-10 rounded-lg text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50"
+                      className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-[#5b564e] transition-colors hover:bg-black/5"
                     >
                       {totalPages}
                     </button>
@@ -580,17 +723,16 @@ export default function BrowsePage() {
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-[#5b564e] transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
                   aria-label="Next page"
                 >
                   <ChevronRight size={18} />
                 </button>
               </div>
             )}
-          </div>
+          </section>
         </div>
       </div>
-
     </div>
   )
 }

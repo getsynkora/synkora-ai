@@ -2,14 +2,16 @@
 
 import { useEffect, useCallback, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import toast from 'react-hot-toast'
 import { getDebate, getDebateStartStreamUrl, stopDebate } from '@/lib/api/war-room'
 import type { DebateEvent } from '@/lib/api/war-room'
 import { useWarRoomStore } from '@/lib/store/warRoomStore'
 import { secureStorage } from '@/lib/auth/secure-storage'
 import { DebateArena } from '@/components/war-room/DebateArena'
-import { ArrowLeft, GitPullRequest, ExternalLink, PlugZap } from 'lucide-react'
+import { Swords, GitPullRequest, ExternalLink, PlugZap, Share2 } from 'lucide-react'
 import { ConnectAgentModal } from '@/components/war-room/ConnectAgentModal'
 import { cn } from '@/lib/utils/cn'
+import DashboardPageShell, { DashboardPagePanel } from '@/components/dashboard/DashboardPageShell'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   pending: { label: 'Ready to Start', color: 'text-gray-500' },
@@ -93,8 +95,8 @@ export default function DebateSessionPage() {
 
   if (!currentDebate) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-gray-200 border-t-red-500 rounded-full animate-spin" />
+      <div className="dashboard-resource-page flex min-h-screen items-center justify-center">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-[#171717]" />
       </div>
     )
   }
@@ -104,132 +106,136 @@ export default function DebateSessionPage() {
   const isLive = currentDebate.status === 'active' || currentDebate.status === 'synthesizing'
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="mx-4 mt-4 bg-white/80 backdrop-blur-sm rounded-lg shadow-sm border border-gray-200 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 min-w-0">
-            <button onClick={() => router.push('/war-room')} className="text-gray-500 hover:text-gray-700 flex-shrink-0">
-              <ArrowLeft className="w-5 h-5" />
+    <DashboardPageShell
+      title={currentDebate.topic}
+      description="Run a live multi-agent debate, monitor status in real time, and share the session externally when needed."
+      icon={Swords}
+      badge="War Room"
+      maxWidthClassName="max-w-6xl"
+      breadcrumbs={[
+        { label: 'Home', href: '/' },
+        { label: 'War Room', href: '/war-room' },
+        { label: currentDebate.topic },
+      ]}
+      stats={[
+        { label: 'Status', value: statusInfo.label },
+        { label: 'Agents', value: currentDebate.participants.length },
+        { label: 'Round', value: `${currentDebate.current_round}/${currentDebate.rounds}` },
+      ]}
+      actions={
+        <>
+          {canStart ? (
+            <button
+              onClick={() => router.push(`/war-room/create?edit=${debateId}`)}
+              className="inline-flex items-center gap-2 rounded-[1rem] border border-black/10 bg-white/85 px-4 py-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-white hover:text-[#171717]"
+            >
+              Edit
             </button>
-            <div className="min-w-0">
-              <h2 className="text-sm font-semibold text-gray-900 truncate">{currentDebate.topic}</h2>
-              <div className="flex items-center gap-3 mt-0.5">
-                <span className={cn('text-xs font-medium flex items-center gap-1.5', statusInfo.color)}>
-                  {isLive && <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />}
-                  {statusInfo.label}
-                </span>
-                <span className="text-[11px] text-gray-500">
-                  {currentDebate.participants.length} agents | Round {currentDebate.current_round}/{currentDebate.rounds}
-                </span>
-              </div>
+          ) : null}
+          {currentDebate.allow_external && currentDebate.share_token ? (
+            <button
+              onClick={() => setShowConnectModal(true)}
+              className="inline-flex items-center gap-2 rounded-[1rem] border border-[#f0d8bf] bg-[#fff5e7] px-4 py-3 text-sm font-semibold text-[#9d6a1d] transition-colors hover:bg-[#fef0da]"
+            >
+              <PlugZap className="h-4 w-4" />
+              Connect Agent
+            </button>
+          ) : null}
+          {currentDebate.share_token ? (
+            <button
+              onClick={() => {
+                const url = `${window.location.origin}/war-room/${currentDebate.share_token}/live`
+                navigator.clipboard.writeText(url)
+                toast.success('Share link copied')
+              }}
+              className="inline-flex items-center gap-2 rounded-[1rem] border border-black/10 bg-white/85 px-4 py-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-white hover:text-[#171717]"
+            >
+              <Share2 className="h-4 w-4" />
+              Copy Share Link
+            </button>
+          ) : null}
+          {isLive ? (
+            <button
+              onClick={async () => {
+                try {
+                  abortRef.current?.abort()
+                  const updated = await stopDebate(debateId)
+                  setDebate(updated)
+                } catch (err) {
+                  console.error('Failed to stop debate:', err)
+                }
+              }}
+              className="inline-flex items-center gap-2 rounded-[1rem] border border-[#eed6dd] bg-[#fdf3f5] px-4 py-3 text-sm font-semibold text-[#8a445c] transition-colors hover:bg-[#f9e9ed]"
+            >
+              Stop Debate
+            </button>
+          ) : null}
+          {canStart ? (
+            <button
+              onClick={startStream}
+              className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+            >
+              Start Debate
+            </button>
+          ) : null}
+        </>
+      }
+    >
+      {currentDebate.debate_metadata?.context?.type === 'github_pr' ? (
+        <DashboardPagePanel className="mb-6 p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="rounded-[0.9rem] bg-[#edf7f1] p-2">
+              <GitPullRequest className="h-4 w-4 text-[#2d8b69]" />
             </div>
-          </div>
-
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {canStart && (
-              <button
-                onClick={() => router.push(`/war-room/create?edit=${debateId}`)}
-                className="px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors font-medium"
-              >
-                Edit
-              </button>
-            )}
-            {currentDebate.allow_external && currentDebate.share_token && (
-              <button
-                onClick={() => setShowConnectModal(true)}
-                className="px-3 py-1.5 text-xs text-red-600 border border-red-200 rounded-lg hover:border-red-300 hover:bg-red-50 transition-colors font-medium inline-flex items-center gap-1.5"
-              >
-                <PlugZap className="w-3.5 h-3.5" />
-                Connect Agent
-              </button>
-            )}
-            {currentDebate.share_token && (
-              <button
-                onClick={() => {
-                  const url = `${window.location.origin}/war-room/${currentDebate.share_token}/live`
-                  navigator.clipboard.writeText(url)
-                }}
-                className="px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors"
-              >
-                Copy Share Link
-              </button>
-            )}
-            {isLive && (
-              <button
-                onClick={async () => {
-                  try {
-                    abortRef.current?.abort()
-                    const updated = await stopDebate(debateId)
-                    setDebate(updated)
-                  } catch (err) {
-                    console.error('Failed to stop debate:', err)
-                  }
-                }}
-                className="px-4 py-1.5 bg-red-500 text-white text-xs font-medium rounded-lg hover:bg-red-600 transition-all"
-              >
-                Stop Debate
-              </button>
-            )}
-            {canStart && (
-              <button
-                onClick={startStream}
-                className="px-4 py-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-medium rounded-lg hover:from-red-600 hover:to-red-700 transition-all"
-              >
-                Start Debate
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* PR Context Badge */}
-        {currentDebate.debate_metadata?.context?.type === 'github_pr' && (
-          <div className="flex items-center gap-2 mt-3 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
-            <GitPullRequest className="w-4 h-4 text-green-600 flex-shrink-0" />
-            <span className="text-xs font-medium text-gray-700 truncate">
-              {currentDebate.debate_metadata.context.pr_title}
-            </span>
-            <span className="text-[10px] text-gray-400 flex-shrink-0">
-              {currentDebate.debate_metadata.context.repo_full_name}#{currentDebate.debate_metadata.context.pr_number}
-            </span>
-            {currentDebate.debate_metadata.context.github_url && (
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-gray-900">
+                {currentDebate.debate_metadata.context.pr_title}
+              </p>
+              <p className="text-xs text-gray-500">
+                {currentDebate.debate_metadata.context.repo_full_name}#{currentDebate.debate_metadata.context.pr_number}
+              </p>
+            </div>
+            {currentDebate.debate_metadata.context.github_url ? (
               <a
                 href={currentDebate.debate_metadata.context.github_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="ml-auto flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                className="inline-flex items-center gap-1 rounded-[0.9rem] border border-black/10 bg-white/90 px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-white hover:text-[#171717]"
               >
-                <ExternalLink className="w-3.5 h-3.5" />
+                Open PR
+                <ExternalLink className="h-3.5 w-3.5" />
               </a>
-            )}
+            ) : null}
           </div>
-        )}
+        </DashboardPagePanel>
+      ) : null}
 
-        {/* Participant pills */}
-        <div className="flex items-center gap-2 mt-3 overflow-x-auto pb-1">
+      <DashboardPagePanel className="mb-6 p-4">
+        <div className="flex flex-wrap items-center gap-2">
           {currentDebate.participants.map((p) => (
             <span
               key={p.id}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-gray-700 border flex-shrink-0"
+              className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium text-gray-700"
               style={{ backgroundColor: `${p.color}10`, borderColor: `${p.color}30` }}
             >
-              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: p.color }} />
               {p.agent_name}
-              {p.role && <span className="text-gray-500">({p.role})</span>}
-              {p.is_external && <span className="text-red-600 text-[10px]">EXT</span>}
+              {p.role ? <span className="text-gray-500">({p.role})</span> : null}
+              {p.is_external ? <span className="text-[#b84a3a] text-[10px]">EXT</span> : null}
             </span>
           ))}
         </div>
-      </div>
+      </DashboardPagePanel>
 
-      {/* Arena */}
-      <DebateArena
-        messages={currentDebate.messages}
-        participants={currentDebate.participants}
-        streamingParticipantId={streamingParticipantId}
-        streamingContent={streamingContent}
-        verdict={currentDebate.verdict}
-      />
+      <DashboardPagePanel className="overflow-hidden">
+        <DebateArena
+          messages={currentDebate.messages}
+          participants={currentDebate.participants}
+          streamingParticipantId={streamingParticipantId}
+          streamingContent={streamingContent}
+          verdict={currentDebate.verdict}
+        />
+      </DashboardPagePanel>
 
       {/* Connect Agent Modal */}
       {currentDebate.share_token && (
@@ -240,6 +246,6 @@ export default function DebateSessionPage() {
           topic={currentDebate.topic}
         />
       )}
-    </div>
+    </DashboardPageShell>
   )
 }

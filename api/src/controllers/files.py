@@ -98,7 +98,7 @@ files_router = APIRouter()
 @files_router.post("/upload", response_model=AgentResponse)
 async def upload_file(
     file: UploadFile = File(...),
-    agent_name: str | None = Form(None),
+    agent_slug: str | None = Form(None),
     entity_type: str | None = Form(None),
     tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
@@ -108,7 +108,7 @@ async def upload_file(
 
     Args:
         file: File to upload
-        agent_name: Optional agent name to update avatar for
+        agent_slug: Optional agent slug to update avatar for
         entity_type: Optional entity type (e.g., "agent_avatar")
         tenant_id: Tenant ID
         db: Database session
@@ -168,15 +168,15 @@ async def upload_file(
         source_type = "uploads"
         if entity_type == "agent_avatar":
             source_type = "agent-avatars"
-            if agent_name:
-                # Include agent name in filename for avatars
+            if agent_slug:
+                # Include agent slug in filename for avatars
                 original_filename = file.filename or "avatar.jpg"
                 # SECURITY: Sanitize the original filename
                 safe_original = sanitize_filename(original_filename)
                 file_extension = safe_original.split(".")[-1] if "." in safe_original else "jpg"
-                # SECURITY: Also sanitize agent_name as it comes from user input
-                safe_agent_name = sanitize_filename(agent_name).replace(".", "_")
-                filename = f"{safe_agent_name}_avatar.{file_extension}"
+                # SECURITY: Also sanitize agent_slug as it comes from user input
+                safe_agent_slug = sanitize_filename(agent_slug).replace(".", "_")
+                filename = f"{safe_agent_slug}_avatar.{file_extension}"
             else:
                 # SECURITY: Sanitize user-provided filename
                 filename = sanitize_filename(file.filename)
@@ -201,13 +201,13 @@ async def upload_file(
 
         # Update entity if specified
         updated_entity = None
-        if entity_type == "agent_avatar" and agent_name:
-            # Decode URL-encoded agent name
-            decoded_agent_name = unquote(agent_name)
+        if entity_type == "agent_avatar" and agent_slug:
+            # Decode URL-encoded agent slug
+            decoded_agent_slug = unquote(agent_slug)
 
             # Update agent avatar
             agent_result = await db.execute(
-                select(Agent).filter(Agent.agent_name == decoded_agent_name, Agent.tenant_id == tenant_id)
+                select(Agent).filter(Agent.slug == decoded_agent_slug, Agent.tenant_id == tenant_id)
             )
             db_agent = agent_result.scalar_one_or_none()
 
@@ -221,7 +221,7 @@ async def upload_file(
                         "key": result["key"],
                         "filename": file.filename,
                         "content_type": file.content_type,
-                        "warning": f"Agent '{agent_name}' not found - avatar not updated",
+                        "warning": f"Agent '{agent_slug}' not found - avatar not updated",
                     },
                 )
 
@@ -236,7 +236,7 @@ async def upload_file(
 
             updated_entity = {
                 "type": "agent",
-                "name": decoded_agent_name,
+                "name": decoded_agent_slug,
                 "field_updated": "avatar",
                 "previous_value": old_avatar,
                 "new_value": result["url"],  # S3 URI
@@ -254,8 +254,8 @@ async def upload_file(
             response_data["updated_entity"] = updated_entity
 
         message = "File uploaded successfully"
-        if entity_type == "agent_avatar" and agent_name and updated_entity:
-            message = f"Avatar uploaded and updated successfully for agent '{agent_name}'"
+        if entity_type == "agent_avatar" and agent_slug and updated_entity:
+            message = f"Avatar uploaded and updated successfully for agent '{agent_slug}'"
 
         return AgentResponse(success=True, message=message, data=response_data)
 

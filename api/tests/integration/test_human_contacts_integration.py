@@ -324,7 +324,7 @@ class TestHumanContactsValidation:
             headers=headers,
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     @pytest.mark.asyncio
     async def test_create_contact_empty_name(self, async_client: AsyncClient, auth_headers):
@@ -340,7 +340,7 @@ class TestHumanContactsValidation:
             headers=headers,
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     @pytest.mark.asyncio
     async def test_create_contact_invalid_email(self, async_client: AsyncClient, auth_headers):
@@ -356,7 +356,7 @@ class TestHumanContactsValidation:
             headers=headers,
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     @pytest.mark.asyncio
     async def test_create_contact_invalid_preferred_channel(self, async_client: AsyncClient, auth_headers):
@@ -372,7 +372,7 @@ class TestHumanContactsValidation:
             headers=headers,
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     @pytest.mark.asyncio
     async def test_create_contact_invalid_notification_preferences(self, async_client: AsyncClient, auth_headers):
@@ -388,7 +388,7 @@ class TestHumanContactsValidation:
             headers=headers,
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     @pytest.mark.asyncio
     async def test_get_contact_invalid_id_format(self, async_client: AsyncClient, auth_headers):

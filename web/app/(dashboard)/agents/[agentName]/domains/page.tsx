@@ -16,11 +16,13 @@ import {
   Shield,
   FileText,
   ArrowLeft,
+  Globe2,
 } from "lucide-react";
 import { apiClient } from "@/lib/api/client";
 import { getDNSRecords } from "@/lib/api/agent-domains";
 import { AgentDomain } from "@/types/agent-domain";
 import toast from "react-hot-toast";
+import AgentPageShell from '@/components/agents/AgentPageShell'
 
 export default function AgentDomainsPage() {
   const params = useParams();
@@ -138,33 +140,23 @@ export default function AgentDomainsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <button
-            onClick={() => router.push(`/agents/${agentName}/view`)}
-            className="flex items-center gap-2 text-red-600 hover:text-red-700 mb-4 transition-colors text-sm font-medium"
-          >
-            <ArrowLeft size={16} />
-            Back to Agent Details
-          </button>
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Custom Domains</h1>
-              <p className="text-gray-600 mt-1 text-sm">
-                Configure custom domains for your agent's chat interface
-              </p>
-            </div>
-            <button
-              onClick={() => router.push(`/agents/${agentName}/domains/create`)}
-              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all shadow-sm text-xs font-medium"
-            >
-              <Plus className="w-4 h-4" />
-              Add Domain
-            </button>
-          </div>
-        </div>
+    <AgentPageShell
+      agentName={agentName}
+      title="Custom Domains"
+      description="Configure custom domains for your agent's chat interface."
+      icon={Globe2}
+      badge="Branded Access"
+      maxWidthClassName="max-w-[90rem]"
+      actions={
+        <button
+          onClick={() => router.push(`/agents/${agentName}/domains/create`)}
+          className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+        >
+          <Plus className="w-4 h-4" />
+          Add Domain
+        </button>
+      }
+    >
 
         {/* Error Message */}
         {error && (
@@ -355,7 +347,6 @@ export default function AgentDomainsPage() {
             </li>
           </ul>
         </div>
-      </div>
-    </div>
+    </AgentPageShell>
   );
 }

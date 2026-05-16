@@ -37,6 +37,7 @@ import {
 import Link from 'next/link';
 import { apiClient } from '@/lib/api/client';
 import { CapabilityToggles } from '@/components/agents/CapabilitySelector';
+import AgentPageShell from '@/components/agents/AgentPageShell';
 
 interface Tool {
   name: string;
@@ -1689,30 +1690,17 @@ export default function AgentToolsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-3.5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => router.push(`/agents/${agentName}/view`)}
-                className="p-1.5 hover:bg-red-50 rounded-lg transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4 text-red-600" />
-              </button>
-              <div>
-                <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Tool Configuration</h1>
-                <p className="text-xs text-gray-600">
-                  Configure tools for <span className="font-semibold">{agent?.agent_name || agentName}</span>
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-6 py-6">
+    <AgentPageShell
+      agentName={agentName}
+      title="Tool Configuration"
+      description={<>Configure tools for <span className="font-semibold text-gray-900">{agent?.agent_name || agentName}</span>.</>}
+      icon={Settings}
+      backHref={`/agents/${agentName}/view`}
+      backLabel="Back to Agent"
+      badge="Capability Control"
+      maxWidthClassName="max-w-7xl"
+    >
+      <div className="px-0 py-0">
         {/* Search Bar + Active Filter */}
         <div className="mb-5 flex gap-2">
           <div className="relative flex-1">
@@ -2353,6 +2341,6 @@ export default function AgentToolsPage() {
           </div>
         </div>
       )}
-    </div>
+    </AgentPageShell>
   );
 }

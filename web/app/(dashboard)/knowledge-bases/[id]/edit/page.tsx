@@ -147,6 +147,12 @@ export default function EditKnowledgeBasePage() {
 
   const selectedVectorDB = VECTOR_DB_PROVIDERS.find(p => p.value === formData.vector_db_provider)
   const selectedEmbedding = EMBEDDING_PROVIDERS.find(p => p.value === formData.embedding_config.provider)
+  const fieldClass = 'w-full rounded-[1.15rem] border border-gray-200 bg-gray-50 px-4 py-4 text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500'
+  const compactFieldClass = 'w-full rounded-[1rem] border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500'
+  const textareaClass = `${fieldClass} resize-none`
+  const labelClass = 'mb-2 block text-sm font-semibold text-gray-700'
+  const compactLabelClass = 'mb-1.5 block text-sm font-semibold text-gray-700'
+  const helpClass = 'mt-2 text-xs leading-relaxed text-gray-500'
 
   useEffect(() => {
     fetchKnowledgeBase()
@@ -281,102 +287,107 @@ export default function EditKnowledgeBasePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading knowledge base...</p>
+      <div className="dashboard-resource-page flex min-h-screen items-center justify-center p-6">
+        <div className="rounded-[2rem] border border-black/10 bg-white/85 px-8 py-10 text-center shadow-[0_24px_60px_rgba(0,0,0,0.06)]">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#f3ecde]">
+            <Loader2 className="h-5 w-5 animate-spin text-[#171717]" />
+          </div>
+          <p className="text-sm font-semibold text-gray-900">Loading knowledge base...</p>
+          <p className="mt-1 text-sm text-gray-500">Preparing your existing configuration.</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40">
-      <div className="max-w-4xl mx-auto p-6">
-        {/* Header */}
+    <div className="dashboard-resource-page min-h-screen p-4 md:p-6">
+      <div className="mx-auto max-w-5xl">
         <div className="mb-8">
           <Link
             href={`/knowledge-bases/${id}`}
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium mb-4 transition-colors"
+            className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-[#171717]"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="h-4 w-4" />
             Back to Knowledge Base
           </Link>
 
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Edit Knowledge Base</h1>
-              <p className="text-gray-600 mt-1">
-                Update the settings for your knowledge base
+              <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/55 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#6e675d]">
+                <BookOpen className="h-3.5 w-3.5 text-[#2d8b69]" />
+                Knowledge Base
+              </div>
+              <h1 className="mt-4 text-2xl font-extrabold tracking-tight text-gray-900 md:text-3xl">
+                Edit Knowledge Base
+              </h1>
+              <p className="mt-2 max-w-2xl text-gray-600">
+                Update the settings and processing details for your existing knowledge base.
               </p>
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="rounded-full border border-black/10 bg-white/65 px-4 py-2 text-sm font-medium text-gray-500">
               Step {currentStep} of {steps.length}
             </div>
           </div>
         </div>
 
-        {/* Progress Bar */}
         <div className="mb-8">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 rounded-[1.75rem] border border-black/10 bg-white/70 p-4 shadow-[0_18px_44px_rgba(0,0,0,0.05)]">
             {steps.map((step, idx) => (
-              <div key={step.num} className="flex items-center flex-1">
-                <div className="flex items-center gap-3 flex-1">
+              <div key={step.num} className="flex flex-1 items-center">
+                <div className="flex flex-1 items-center gap-3">
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all ${
+                    className={`flex h-10 w-10 items-center justify-center rounded-full font-semibold transition-all ${
                       currentStep >= step.num
-                        ? 'bg-red-500 text-white'
-                        : 'bg-gray-200 text-gray-500'
+                        ? 'bg-[#171717] text-white'
+                        : 'bg-[#ece4d3] text-[#8a8378]'
                     }`}
                   >
                     {currentStep > step.num ? (
-                      <CheckCircle className="w-5 h-5" />
+                      <CheckCircle className="h-5 w-5" />
                     ) : (
                       step.num
                     )}
                   </div>
                   <div className="hidden sm:block">
-                    <p className={`text-sm font-medium ${currentStep >= step.num ? 'text-gray-900' : 'text-gray-500'}`}>
+                    <p className={`text-sm font-semibold ${currentStep >= step.num ? 'text-gray-900' : 'text-gray-500'}`}>
                       {step.label}
                     </p>
                     <p className="text-xs text-gray-500">{step.description}</p>
                   </div>
                 </div>
                 {idx < steps.length - 1 && (
-                  <div className={`h-1 flex-1 mx-4 rounded-full ${currentStep > step.num ? 'bg-red-500' : 'bg-gray-200'}`} />
+                  <div className={`mx-4 h-1 flex-1 rounded-full ${currentStep > step.num ? 'bg-[#171717]' : 'bg-[#e7decb]'}`} />
                 )}
               </div>
             ))}
           </div>
         </div>
 
-        {/* Error Message */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+          <div className="mb-6 rounded-[1.35rem] border border-red-200 bg-red-50/90 p-4">
             <div className="flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600" />
+              <AlertCircle className="h-5 w-5 text-red-600" />
               <p className="text-red-700">{error}</p>
             </div>
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
-          {/* Step 1: Edit Name and Description */}
           {currentStep === 1 && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2.5 bg-red-100 rounded-xl">
-                  <BookOpen className="w-5 h-5 text-red-600" />
+            <div className="rounded-[2rem] border border-black/10 bg-white/78 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.06)] sm:p-8">
+              <div className="mb-6 flex items-center gap-3">
+                <div className="rounded-[1rem] bg-[#f3ecde] p-3">
+                  <BookOpen className="h-5 w-5 text-[#171717]" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900">Basic Information</h2>
-                  <p className="text-sm text-gray-500">Update the name and description</p>
+                  <p className="text-sm text-gray-500">Update the name and description your team sees first.</p>
                 </div>
               </div>
 
               <div className="space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={labelClass}>
                     Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -384,31 +395,31 @@ export default function EditKnowledgeBasePage() {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                    placeholder="e.g., Product Documentation, Support Articles"
+                    className={fieldClass}
+                    placeholder="e.g., Product Documentation, Support Articles, Company Policies"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={labelClass}>
                     Description <span className="text-gray-400">(optional)</span>
                   </label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                     rows={3}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+                    className={textareaClass}
                     placeholder="Briefly describe what kind of information is stored here..."
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end mt-8">
+              <div className="mt-8 flex justify-end">
                 <button
                   type="button"
                   onClick={() => setCurrentStep(2)}
                   disabled={!formData.name}
-                  className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded-[1.15rem] bg-[#171717] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Continue
                 </button>
@@ -416,158 +427,182 @@ export default function EditKnowledgeBasePage() {
             </div>
           )}
 
-          {/* Step 2: Review & Save */}
           {currentStep === 2 && (
             <div className="space-y-6">
-              {/* Summary Card */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2.5 bg-red-100 rounded-xl">
-                    <CheckCircle className="w-5 h-5 text-red-600" />
+              <div className="rounded-[2rem] border border-black/10 bg-white/78 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.06)] sm:p-8">
+                <div className="mb-6 flex items-center gap-3">
+                  <div className="rounded-[1rem] bg-[#e8f4ee] p-3">
+                    <CheckCircle className="h-5 w-5 text-[#2d8b69]" />
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold text-gray-900">Review Changes</h2>
-                    <p className="text-sm text-gray-500">Confirm your updates before saving</p>
+                    <p className="text-sm text-gray-500">Confirm your updates before saving.</p>
                   </div>
                 </div>
 
-                {/* Summary */}
-                <div className="bg-gray-50 rounded-xl p-5">
+                <div className="mb-6 rounded-[1.5rem] border border-black/10 bg-[#f7f2e7] p-5">
                   <div className="flex items-start gap-4">
-                    <div className="p-3 bg-white rounded-xl shadow-sm">
-                      <BookOpen className="w-8 h-8 text-red-600" />
+                    <div className="rounded-[1.15rem] bg-white p-3 shadow-[0_12px_28px_rgba(0,0,0,0.05)]">
+                      <BookOpen className="h-8 w-8 text-[#171717]" />
                     </div>
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-gray-900">{formData.name}</h3>
-                      <p className="text-gray-600 mt-1">
+                      <p className="mt-1 text-gray-600">
                         {formData.description || 'No description provided'}
                       </p>
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <span className="inline-flex items-center rounded-full bg-[#171717] px-2.5 py-1 text-xs font-medium text-white">
                           {formData.vector_db_provider}
                         </span>
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                        <span className="inline-flex items-center rounded-full bg-[#e8f4ee] px-2.5 py-1 text-xs font-medium text-[#2d8b69]">
                           {formData.embedding_config.model_name}
                         </span>
+                        <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-xs font-medium text-[#6e675d] shadow-[0_8px_18px_rgba(0,0,0,0.04)]">
+                          Ready to save
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-black/10 pt-5">
+                  <h4 className="mb-3 font-medium text-gray-900">Changes overview</h4>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#f1eadc]">
+                        <span className="text-xs font-semibold text-[#171717]">1</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Basic details</p>
+                        <p className="text-sm text-gray-500">Name and description are updated without changing your existing content.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#f1eadc]">
+                        <span className="text-xs font-semibold text-[#171717]">2</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Advanced configuration</p>
+                        <p className="text-sm text-gray-500">Review vector storage, embedding model, and chunking only if you need to adjust them.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#f1eadc]">
+                        <span className="text-xs font-semibold text-[#171717]">3</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Save changes</p>
+                        <p className="text-sm text-gray-500">Apply your updates and return to the knowledge base detail page.</p>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Advanced Options (Collapsible) */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="overflow-hidden rounded-[2rem] border border-black/10 bg-white/78 shadow-[0_24px_60px_rgba(0,0,0,0.06)]">
                 <button
                   type="button"
                   onClick={() => setShowAdvanced(!showAdvanced)}
-                  className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                  className="flex w-full items-center justify-between px-6 py-5 transition-colors hover:bg-[#fcfaf5]"
                 >
                   <div className="flex items-center gap-3">
-                    <Settings className="w-5 h-5 text-gray-500" />
+                    <div className="rounded-[0.95rem] bg-[#f3ecde] p-2.5">
+                      <Settings className="h-5 w-5 text-[#171717]" />
+                    </div>
                     <div className="text-left">
-                      <p className="font-medium text-gray-900">Advanced Settings</p>
-                      <p className="text-sm text-gray-500">Configure storage and processing options</p>
+                      <p className="font-semibold text-gray-900">Advanced Settings</p>
+                      <p className="text-sm text-gray-500">Configure storage and processing options.</p>
                     </div>
                   </div>
                   {showAdvanced ? (
-                    <ChevronUp className="w-5 h-5 text-gray-400" />
+                    <ChevronUp className="h-5 w-5 text-gray-400" />
                   ) : (
-                    <ChevronDown className="w-5 h-5 text-gray-400" />
+                    <ChevronDown className="h-5 w-5 text-gray-400" />
                   )}
                 </button>
 
                 {showAdvanced && (
-                  <div className="px-6 pb-6 border-t border-gray-100">
-                    {/* Vector Database Section */}
-                    <div className="pt-5 pb-5 border-b border-gray-100">
-                      <h3 className="font-medium text-gray-900 mb-4">Vector Database</h3>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+                  <div className="border-t border-black/10 px-6 pb-6">
+                    <div className="border-b border-black/10 py-5">
+                      <h3 className="mb-4 font-semibold text-gray-900">Vector Database</h3>
+                      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
                         {VECTOR_DB_PROVIDERS.map((provider) => (
                           <button
                             key={provider.value}
                             type="button"
                             onClick={() => handleProviderChange(provider.value)}
-                            className={`p-3 rounded-xl border-2 transition-all text-left ${
+                            className={`rounded-[1.1rem] border p-3 text-left transition-all ${
                               formData.vector_db_provider === provider.value
-                                ? 'border-red-500 bg-red-50'
-                                : 'border-gray-200 hover:border-gray-300'
+                                ? 'border-black/10 bg-[#f7f2e7] shadow-[0_12px_28px_rgba(0,0,0,0.04)]'
+                                : 'border-black/10 bg-white hover:bg-[#fcfaf5]'
                             }`}
                           >
-                            <div className="text-xl mb-1">{provider.icon}</div>
-                            <div className="font-medium text-sm text-gray-900">{provider.label}</div>
+                            <div className="mb-1 text-xl">{provider.icon}</div>
+                            <div className="text-sm font-medium text-gray-900">{provider.label}</div>
                           </button>
                         ))}
                       </div>
 
-                      {/* Dynamic Vector DB Fields */}
                       {selectedVectorDB && (
-                        <div className="space-y-3 mt-4">
+                        <div className="mt-4 space-y-3">
                           {selectedVectorDB.fields.includes('url') && (
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Database URL
-                              </label>
+                              <label className={compactLabelClass}>Database URL</label>
                               <input
                                 type="text"
                                 value={formData.vector_db_config.url || ''}
                                 onChange={(e) => updateVectorDBConfig('url', e.target.value)}
-                                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                className={compactFieldClass}
                                 placeholder={selectedVectorDB.defaults?.url || 'http://localhost:6333'}
                               />
                             </div>
                           )}
                           {selectedVectorDB.fields.includes('api_key') && (
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                              <label className={compactLabelClass}>
                                 API Key {selectedVectorDB.value === 'PINECONE' && <span className="text-red-500">*</span>}
                               </label>
                               <input
                                 type="password"
                                 value={formData.vector_db_config.api_key || ''}
                                 onChange={(e) => updateVectorDBConfig('api_key', e.target.value)}
-                                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                className={compactFieldClass}
                                 placeholder="Enter API key (leave blank to keep existing)"
                               />
                             </div>
                           )}
                           {selectedVectorDB.fields.includes('environment') && (
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Environment
-                              </label>
+                              <label className={compactLabelClass}>Environment</label>
                               <input
                                 type="text"
                                 value={formData.vector_db_config.environment || ''}
                                 onChange={(e) => updateVectorDBConfig('environment', e.target.value)}
-                                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                className={compactFieldClass}
                                 placeholder="e.g., us-east-1-aws"
                               />
                             </div>
                           )}
                           {selectedVectorDB.fields.includes('collection_name') && (
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Collection Name
-                              </label>
+                              <label className={compactLabelClass}>Collection Name</label>
                               <input
                                 type="text"
                                 value={formData.vector_db_config.collection_name || ''}
                                 onChange={(e) => updateVectorDBConfig('collection_name', e.target.value)}
-                                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                className={compactFieldClass}
                                 placeholder="Auto-generated if not provided"
                               />
                             </div>
                           )}
                           {selectedVectorDB.fields.includes('index_name') && (
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Index Name
-                              </label>
+                              <label className={compactLabelClass}>Index Name</label>
                               <input
                                 type="text"
                                 value={formData.vector_db_config.index_name || ''}
                                 onChange={(e) => updateVectorDBConfig('index_name', e.target.value)}
-                                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                className={compactFieldClass}
                                 placeholder="Enter index name"
                               />
                             </div>
@@ -576,23 +611,22 @@ export default function EditKnowledgeBasePage() {
                       )}
                     </div>
 
-                    {/* Embedding Model Section */}
-                    <div className="pt-5 pb-5 border-b border-gray-100">
-                      <h3 className="font-medium text-gray-900 mb-4">Embedding Model</h3>
-                      <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div className="border-b border-black/10 py-5">
+                      <h3 className="mb-4 font-semibold text-gray-900">Embedding Model</h3>
+                      <div className="mb-4 grid grid-cols-2 gap-3">
                         {EMBEDDING_PROVIDERS.map((provider) => (
                           <button
                             key={provider.value}
                             type="button"
                             onClick={() => handleEmbeddingProviderChange(provider.value)}
-                            className={`p-3 rounded-xl border-2 transition-all text-left ${
+                            className={`rounded-[1.1rem] border p-3 text-left transition-all ${
                               formData.embedding_config.provider === provider.value
-                                ? 'border-red-500 bg-red-50'
-                                : 'border-gray-200 hover:border-gray-300'
+                                ? 'border-black/10 bg-[#f7f2e7] shadow-[0_12px_28px_rgba(0,0,0,0.04)]'
+                                : 'border-black/10 bg-white hover:bg-[#fcfaf5]'
                             }`}
                           >
-                            <div className="text-xl mb-1">{provider.icon}</div>
-                            <div className="font-medium text-sm text-gray-900">{provider.label}</div>
+                            <div className="mb-1 text-xl">{provider.icon}</div>
+                            <div className="text-sm font-medium text-gray-900">{provider.label}</div>
                             <div className="text-xs text-gray-500">{provider.description}</div>
                           </button>
                         ))}
@@ -601,11 +635,11 @@ export default function EditKnowledgeBasePage() {
                       {selectedEmbedding && (
                         <div className="space-y-3">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
+                            <label className={compactLabelClass}>Model</label>
                             <select
                               value={formData.embedding_config.model_name}
                               onChange={(e) => handleModelChange(e.target.value)}
-                              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                              className={compactFieldClass}
                             >
                               {selectedEmbedding.models.map((model) => (
                                 <option key={model.value} value={model.value}>
@@ -619,14 +653,12 @@ export default function EditKnowledgeBasePage() {
                             formData.embedding_config.provider === 'COHERE' ||
                             formData.embedding_config.provider === 'LITELLM') && (
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                API Key
-                              </label>
+                              <label className={compactLabelClass}>API Key</label>
                               <input
                                 type="password"
                                 value={formData.embedding_config.api_key}
                                 onChange={(e) => updateEmbeddingConfig('api_key', e.target.value)}
-                                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                className={compactFieldClass}
                                 placeholder="Enter API key (leave blank to keep existing)"
                               />
                             </div>
@@ -634,14 +666,12 @@ export default function EditKnowledgeBasePage() {
 
                           {formData.embedding_config.provider === 'LITELLM' && (
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Custom Base URL (Optional)
-                              </label>
+                              <label className={compactLabelClass}>Custom Base URL (Optional)</label>
                               <input
                                 type="text"
                                 value={formData.embedding_config.api_base}
                                 onChange={(e) => updateEmbeddingConfig('api_base', e.target.value)}
-                                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                className={compactFieldClass}
                                 placeholder="e.g., https://api.openai.com/v1"
                               />
                             </div>
@@ -650,12 +680,11 @@ export default function EditKnowledgeBasePage() {
                       )}
                     </div>
 
-                    {/* Chunking Settings Section */}
                     <div className="pt-5">
-                      <h3 className="font-medium text-gray-900 mb-4">Text Processing</h3>
+                      <h3 className="mb-4 font-semibold text-gray-900">Text Processing</h3>
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Processing Strategy</label>
+                          <label className={compactLabelClass}>Processing Strategy</label>
                           <select
                             value={formData.chunking_strategy}
                             onChange={(e) => {
@@ -667,7 +696,7 @@ export default function EditKnowledgeBasePage() {
                                 chunk_overlap: strategy === 'CODE' ? 300 : 150,
                               }))
                             }}
-                            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                            className={compactFieldClass}
                           >
                             {CHUNKING_STRATEGIES.map((strategy) => (
                               <option key={strategy.value} value={strategy.value}>
@@ -677,30 +706,30 @@ export default function EditKnowledgeBasePage() {
                           </select>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Chunk Size</label>
+                            <label className={compactLabelClass}>Chunk Size</label>
                             <input
                               type="number"
                               min="500"
                               max="3000"
                               value={formData.chunk_size}
                               onChange={(e) => setFormData(prev => ({ ...prev, chunk_size: parseInt(e.target.value) }))}
-                              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                              className={compactFieldClass}
                             />
-                            <p className="text-xs text-gray-500 mt-1">Characters per chunk</p>
+                            <p className={helpClass}>Characters per chunk (500-3000)</p>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Overlap</label>
+                            <label className={compactLabelClass}>Overlap</label>
                             <input
                               type="number"
                               min="0"
                               max="500"
                               value={formData.chunk_overlap}
                               onChange={(e) => setFormData(prev => ({ ...prev, chunk_overlap: parseInt(e.target.value) }))}
-                              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                              className={compactFieldClass}
                             />
-                            <p className="text-xs text-gray-500 mt-1">Overlap between chunks</p>
+                            <p className={helpClass}>Overlap between chunks (0-500)</p>
                           </div>
                         </div>
                       </div>
@@ -709,28 +738,27 @@ export default function EditKnowledgeBasePage() {
                 )}
               </div>
 
-              {/* Navigation Buttons */}
               <div className="flex justify-between">
                 <button
                   type="button"
                   onClick={() => setCurrentStep(1)}
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+                  className="rounded-[1.15rem] border border-black/10 bg-[#f1eadc] px-6 py-3 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#e8ddc8]"
                 >
                   Back
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="flex items-center gap-2 rounded-[1.15rem] bg-[#171717] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {saving ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <Loader2 className="h-5 w-5 animate-spin" />
                       Saving...
                     </>
                   ) : (
                     <>
-                      <Save className="w-5 h-5" />
+                      <Save className="h-5 w-5" />
                       Save Changes
                     </>
                   )}

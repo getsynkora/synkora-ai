@@ -15,7 +15,10 @@ import {
   AlertCircle,
   Clock,
   Loader2,
-  Copy
+  Copy,
+  Home,
+  ChevronRight,
+  Server
 } from 'lucide-react'
 import { apiClient } from '@/lib/api/client'
 import { extractErrorMessage } from '@/lib/api/error'
@@ -100,10 +103,10 @@ export default function DatabaseConnectionDetailsPage() {
   }
 
   const getStatusColor = (status: string) => {
-    if (status === 'active') return 'bg-green-100 text-green-800'
-    if (status === 'inactive') return 'bg-gray-100 text-gray-800'
-    if (status === 'error') return 'bg-red-100 text-red-800'
-    return 'bg-yellow-100 text-yellow-800' // pending
+    if (status === 'active') return 'bg-[#e8f4ee] text-[#2d8b69]'
+    if (status === 'inactive') return 'bg-[#f1eadc] text-[#6e675d]'
+    if (status === 'error') return 'bg-[#fbe9e7] text-[#b44736]'
+    return 'bg-[#f8eed9] text-[#ad7d25]' // pending
   }
 
   const getStatusIcon = (status: string) => {
@@ -120,10 +123,39 @@ export default function DatabaseConnectionDetailsPage() {
     return 'Pending'
   }
 
+  const getTypeColor = (type: string) => {
+    switch (type?.toUpperCase()) {
+      case 'POSTGRESQL': return 'bg-[#e7f0ff] text-[#325b93]'
+      case 'ELASTICSEARCH': return 'bg-[#efe7f7] text-[#6b4d86]'
+      case 'MYSQL': return 'bg-[#f7eadb] text-[#9c6228]'
+      case 'MONGODB': return 'bg-[#e8f4ee] text-[#2d8b69]'
+      default: return 'bg-[#f3ecde] text-[#6e675d]'
+    }
+  }
+
+  const formatDateTime = (value: string | null) => {
+    if (!value) return 'Never'
+    return new Date(value).toLocaleString()
+  }
+
+  const getLastTestStatusText = (status: string | null) => {
+    if (!status) return 'Not available'
+    if (status === 'success') return 'Success'
+    if (status === 'failed') return 'Failed'
+    return getStatusText(status)
+  }
+
+  const authSegment = connection?.username ? `${connection.username}@` : ''
+  const databaseSegment = connection?.database || ''
+  const connectionString = `${connection?.type.toLowerCase()}://${authSegment}${connection?.host}:${connection?.port}/${databaseSegment}`
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+      <div className="dashboard-resource-page flex h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-red-600"></div>
+          <p className="text-gray-600">Loading connection details...</p>
+        </div>
       </div>
     )
   }
@@ -133,206 +165,251 @@ export default function DatabaseConnectionDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-8">
-      <div className="max-w-5xl mx-auto">
-        <div className="mb-6">
-          <Link
-            href="/database-connections"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Connections
+    <div className="dashboard-resource-page min-h-screen p-4 md:p-6">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-4 flex items-center gap-1.5 text-sm">
+          <Link href="/" className="flex items-center gap-1 text-gray-500 transition-colors hover:text-[#171717]">
+            <Home className="h-3.5 w-3.5" />
+            Home
           </Link>
-          
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-teal-100 rounded-lg">
-                <Database className="w-6 h-6 text-teal-600" />
-              </div>
-              <div>
-                <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">{connection.name}</h1>
-                <p className="text-gray-600 mt-1">{connection.type}</p>
-              </div>
-            </div>
+          <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
+          <Link href="/database-connections" className="text-gray-500 transition-colors hover:text-[#171717]">
+            Database Connections
+          </Link>
+          <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
+          <span className="truncate font-medium text-gray-900">{connection.name}</span>
+        </div>
 
-            <div className="flex gap-3 flex-wrap">
-              <button
-                onClick={testConnection}
-                disabled={testing}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-teal-600 bg-teal-50 rounded-lg hover:bg-teal-100 transition-colors disabled:opacity-50"
-              >
-                {testing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Testing...
-                  </>
-                ) : (
-                  <>
-                    <TestTube className="w-4 h-4" />
-                    Test Connection
-                  </>
-                )}
-              </button>
-              <Link
-                href={`/database-connections/${connection.id}/edit`}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <Edit className="w-4 h-4" />
-                Edit
-              </Link>
-              <button
-                onClick={() => setDeleteModal(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-                Delete
-              </button>
+        <div className="mb-6 overflow-hidden rounded-[2rem] border border-[#eadfce] bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.96),_rgba(247,240,231,0.94)_50%,_rgba(237,230,220,0.92)_100%)] shadow-[0_28px_80px_-42px_rgba(88,63,39,0.32)]">
+          <div className="flex flex-col gap-6 p-6 md:p-8">
+            <Link
+              href="/database-connections"
+              className="inline-flex w-fit items-center gap-2 rounded-full border border-[#dbcdb9] bg-white/80 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-[#cdb79d] hover:text-gray-900"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Connections
+            </Link>
+
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-3xl space-y-3">
+                <div className="inline-flex items-center gap-2 rounded-full border border-[#dfd1be] bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#7c5d45]">
+                  <Database className="h-3.5 w-3.5" />
+                  Connection Details
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className={`rounded-[1.2rem] p-3.5 shadow-[0_16px_30px_-24px_rgba(74,49,22,0.3)] ${getTypeColor(connection.type)}`}>
+                    <Database className="h-6 w-6" />
+                  </div>
+                  <div className="min-w-0">
+                    <h1 className="truncate text-3xl font-semibold tracking-[-0.04em] text-gray-950 md:text-[2.6rem]">
+                      {connection.name}
+                    </h1>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${getTypeColor(connection.type)}`}>
+                        {connection.type}
+                      </span>
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${getStatusColor(connection.status)}`}>
+                        {getStatusIcon(connection.status)}
+                        {getStatusText(connection.status)}
+                      </span>
+                    </div>
+                    {connection.description && (
+                      <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600">
+                        {connection.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={testConnection}
+                  disabled={testing}
+                  className="inline-flex items-center gap-2 rounded-full bg-[#171717] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
+                >
+                  {testing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Testing...
+                    </>
+                  ) : (
+                    <>
+                      <TestTube className="h-4 w-4" />
+                      Test Connection
+                    </>
+                  )}
+                </button>
+                <Link
+                  href={`/database-connections/${params.id as string}/edit`}
+                  className="inline-flex items-center gap-2 rounded-full border border-[#ddd2c2] bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition-colors hover:border-[#ccb59a] hover:text-gray-900"
+                >
+                  <Edit className="h-4 w-4" />
+                  Edit
+                </Link>
+                <button
+                  onClick={() => setDeleteModal(true)}
+                  className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-5 py-3 text-sm font-semibold text-red-600 transition-colors hover:bg-red-100"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Status Card */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-sm font-medium text-gray-500 mb-4">Status</h2>
-            <div className="space-y-4">
-              <div>
-                <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${getStatusColor(connection.status)}`}>
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
+          <div className="space-y-6">
+            <div className="rounded-[1.7rem] border border-black/10 bg-white/80 p-5 shadow-[0_18px_40px_rgba(0,0,0,0.05)]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">Status</p>
+              <div className="mt-4 space-y-4">
+                <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold ${getStatusColor(connection.status)}`}>
                   {getStatusIcon(connection.status)}
                   {getStatusText(connection.status)}
                 </span>
-              </div>
-              
-              {connection.last_tested_at && (
-                <div className="text-sm text-gray-600">
-                  <p className="font-medium mb-1">Last Tested</p>
-                  <p>{new Date(connection.last_tested_at).toLocaleString()}</p>
-                </div>
-              )}
-              
-              {connection.last_error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm font-medium text-red-900 mb-1">Last Error</p>
-                  <p className="text-sm text-red-700">{connection.last_error}</p>
-                </div>
-              )}
-            </div>
-          </div>
 
-          {/* Connection Details */}
-          <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Connection Details</h2>
-            
-            {connection.description && (
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-700">{connection.description}</p>
-              </div>
-            )}
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Host</label>
-                <div className="flex items-center gap-2">
-                  <p className="text-gray-900 font-mono">{connection.host}</p>
-                  <button
-                    onClick={() => copyToClipboard(connection.host)}
-                    className="p-1 text-gray-400 hover:text-gray-600"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </button>
+                <div className="grid gap-3">
+                  <div className="rounded-[1.15rem] border border-black/10 bg-[#fcfaf5] px-4 py-3">
+                    <div className="text-[10px] font-medium uppercase tracking-[0.1em] text-gray-500">Last Tested</div>
+                    <div className="mt-1 text-sm font-semibold text-gray-900">{formatDateTime(connection.last_tested_at)}</div>
+                  </div>
+
+                  <div className="rounded-[1.15rem] border border-black/10 bg-[#eef7f1] px-4 py-3">
+                    <div className="text-[10px] font-medium uppercase tracking-[0.1em] text-gray-500">Last Test Status</div>
+                    <div className="mt-1 text-sm font-semibold text-gray-900">
+                      {getLastTestStatusText(connection.last_test_status)}
+                    </div>
+                  </div>
                 </div>
+
+                {connection.last_error && (
+                  <div className="rounded-[1.2rem] border border-red-200 bg-red-50/90 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-red-700">Last Error</p>
+                    <p className="mt-2 text-sm leading-6 text-red-700">{connection.last_error}</p>
+                  </div>
+                )}
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Port</label>
-                <p className="text-gray-900 font-mono">{connection.port}</p>
-              </div>
-              
-              {connection.database && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">Database</label>
-                  <p className="text-gray-900 font-mono">{connection.database}</p>
+            </div>
+
+            <div className="rounded-[1.7rem] border border-black/10 bg-white/80 p-5 shadow-[0_18px_40px_rgba(0,0,0,0.05)]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">Metadata</p>
+              <div className="mt-4 grid gap-3">
+                <div className="rounded-[1.15rem] border border-black/10 bg-[#fcfaf5] px-4 py-3">
+                  <div className="text-[10px] font-medium uppercase tracking-[0.1em] text-gray-500">Created</div>
+                  <div className="mt-1 text-sm font-semibold text-gray-900">{formatDateTime(connection.created_at)}</div>
                 </div>
-              )}
-              
-              {connection.username && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">Username</label>
-                  <p className="text-gray-900 font-mono">{connection.username}</p>
-                </div>
-              )}
-              
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-500 mb-1">Connection String</label>
-                <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg font-mono text-sm">
-                  <p className="flex-1 truncate text-gray-900">
-                    {connection.type.toLowerCase()}://{connection.username}@{connection.host}:{connection.port}/{connection.database || ''}
-                  </p>
-                  <button
-                    onClick={() => copyToClipboard(`${connection.type.toLowerCase()}://${connection.username}@${connection.host}:${connection.port}/${connection.database || ''}`)}
-                    className="p-1 text-gray-400 hover:text-gray-600"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </button>
+                <div className="rounded-[1.15rem] border border-black/10 bg-[#f4efe4] px-4 py-3">
+                  <div className="text-[10px] font-medium uppercase tracking-[0.1em] text-gray-500">Last Updated</div>
+                  <div className="mt-1 text-sm font-semibold text-gray-900">{formatDateTime(connection.updated_at)}</div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Metadata */}
-        <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Metadata</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-500 mb-1">Created</label>
-              <p className="text-gray-900">{new Date(connection.created_at).toLocaleString()}</p>
+          <div className="space-y-6">
+            <div className="rounded-[1.8rem] border border-black/10 bg-white/80 p-6 shadow-[0_18px_40px_rgba(0,0,0,0.05)] md:p-7">
+              <div className="mb-5 flex items-center gap-3">
+                <div className="rounded-[1rem] bg-[#f3ecde] p-2.5">
+                  <Server className="h-[18px] w-[18px] text-[#171717]" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Connection Details</h2>
+                  <p className="text-sm text-gray-500">Core host and credential information</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="rounded-[1.2rem] border border-black/10 bg-[#fcfaf5] p-4">
+                  <div className="text-[10px] font-medium uppercase tracking-[0.1em] text-gray-500">Host</div>
+                  <div className="mt-2 flex items-start gap-2">
+                    <p className="min-w-0 flex-1 break-all font-mono text-sm font-semibold text-gray-900">{connection.host}</p>
+                    <button
+                      onClick={() => copyToClipboard(connection.host)}
+                      className="rounded-full border border-black/10 p-2 text-gray-500 transition-colors hover:bg-white hover:text-[#171717]"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="rounded-[1.2rem] border border-black/10 bg-[#fcfaf5] p-4">
+                  <div className="text-[10px] font-medium uppercase tracking-[0.1em] text-gray-500">Port</div>
+                  <div className="mt-2 font-mono text-sm font-semibold text-gray-900">{connection.port}</div>
+                </div>
+
+                <div className="rounded-[1.2rem] border border-black/10 bg-[#eef7f1] p-4">
+                  <div className="text-[10px] font-medium uppercase tracking-[0.1em] text-gray-500">Database</div>
+                  <div className="mt-2 font-mono text-sm font-semibold text-gray-900">{connection.database || 'Not configured'}</div>
+                </div>
+
+                <div className="rounded-[1.2rem] border border-black/10 bg-[#f4efe4] p-4">
+                  <div className="text-[10px] font-medium uppercase tracking-[0.1em] text-gray-500">Username</div>
+                  <div className="mt-2 font-mono text-sm font-semibold text-gray-900">{connection.username || 'Not configured'}</div>
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-500 mb-1">Last Updated</label>
-              <p className="text-gray-900">{new Date(connection.updated_at).toLocaleString()}</p>
+
+            <div className="rounded-[1.8rem] border border-black/10 bg-white/80 p-6 shadow-[0_18px_40px_rgba(0,0,0,0.05)] md:p-7">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Connection String</h2>
+                  <p className="text-sm text-gray-500">Quick copy reference for this connection</p>
+                </div>
+                <button
+                  onClick={() => copyToClipboard(connectionString)}
+                  className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-[#fcfaf5] px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-white hover:text-[#171717]"
+                >
+                  <Copy className="h-4 w-4" />
+                  Copy
+                </button>
+              </div>
+
+              <div className="rounded-[1.3rem] border border-black/10 bg-[#fcfaf5] p-4">
+                <p className="break-all font-mono text-sm leading-6 text-gray-900">{connectionString}</p>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Delete Modal */}
       {deleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <AlertCircle className="w-6 h-6 text-red-600" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-[1.8rem] border border-black/10 bg-[#fcfaf5] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.18)]">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="rounded-[1rem] bg-red-50 p-2.5">
+                <Trash2 className="h-6 w-6 text-red-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900">Delete Connection</h3>
             </div>
-            
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to delete <span className="font-semibold">{connection.name}</span>? 
+
+            <p className="mb-6 text-gray-600">
+              Are you sure you want to delete <span className="font-semibold text-gray-900">{connection.name}</span>?
               This action cannot be undone.
             </p>
-            
-            <div className="flex gap-3 justify-end">
+
+            <div className="flex justify-end gap-3">
               <button
                 onClick={() => setDeleteModal(false)}
                 disabled={deleting}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                className="rounded-[1rem] border border-black/10 bg-[#f1eadc] px-4 py-2.5 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#e8ddc8] disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
               >
                 {deleting ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Deleting...
                   </>
                 ) : (
                   <>
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="h-4 w-4" />
                     Delete
                   </>
                 )}

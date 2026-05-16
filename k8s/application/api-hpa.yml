@@ -8,7 +8,7 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: synkora-api
-  minReplicas: 1
+  minReplicas: 2
   # 7-node cluster (s-2vcpu-4gb). API pod requests 500Mi/500m.
   # Capped at 5 to prevent cluster OOM during rolling updates or crash loops.
   # Raise alongside cluster node count.

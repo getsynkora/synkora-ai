@@ -40,7 +40,7 @@ export type ChatEvent =
   | { type: 'error'; error: string; error_code?: string; error_type?: string }
 
 export interface ChatPayload {
-  agent_name: string
+  agent_slug: string
   message: string
   conversation_id?: string
   conversation_history?: Array<{ role: string; content: string }>
@@ -114,10 +114,8 @@ async function* makeSseStream(
           continue
         }
 
-        if (data.type === 'error') {
-          throw new Error((data as { type: 'error'; error: string }).error)
-        }
         yield data
+        if (data.type === 'error') return
       }
     }
   } finally {
@@ -264,7 +262,8 @@ export function useChatTransport(
           cb.onDone()
           wsCallbackRef.current = null
         } else if (data.type === 'error') {
-          cb.onError(new Error((data.error as string) || 'Stream error'))
+          cb.onEvent(chatEvent)
+          cb.onDone()
           wsCallbackRef.current = null
         } else {
           cb.onEvent(chatEvent)

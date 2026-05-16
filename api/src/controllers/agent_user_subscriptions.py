@@ -59,15 +59,15 @@ async def cancel_my_subscription(
     return {"cancelled": True, "subscription_id": str(sub.id)}
 
 
-@router.get("/agents/{agent_name}/paid-subscribers")
+@router.get("/agents/{agent_slug}/paid-subscribers")
 async def list_agent_paid_subscribers(
-    agent_name: str,
+    agent_slug: str,
     db: AsyncSession = Depends(get_async_db),
     account=Depends(get_current_account),
     tenant_id: UUID = Depends(get_current_tenant_id),
 ):
     """List subscribers for an agent (owner only)."""
-    agent_result = await db.execute(select(Agent).where(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+    agent_result = await db.execute(select(Agent).where(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
     agent = agent_result.scalar_one_or_none()
     if agent is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")

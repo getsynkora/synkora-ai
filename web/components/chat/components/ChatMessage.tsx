@@ -1,22 +1,42 @@
 'use client'
 
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { memo, useState, useMemo, useRef, useEffect } from 'react'
 import Image from 'next/image'
+import dynamic from 'next/dynamic'
 import { Copy, Check, RefreshCw, Sparkles, FileText, Image as ImageIcon, Download, File, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Message, Attachment, GeneratedImageData } from '../types'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import DOMPurify from 'dompurify'
 import { SourcesList } from './SourceCard'
 import { VoicePlayer } from './VoicePlayer'
-import { ChartRenderer } from '@/components/charts/ChartRenderer'
-import { MermaidDiagram } from '@/components/diagrams/MermaidDiagram'
-import { DiagramRenderer } from '@/components/diagrams/DiagramRenderer'
-import { MarkdownViewer, detectMarkdownUrls } from './MarkdownViewer'
-import { DocumentViewer, detectDocumentUrls } from './DocumentViewer'
 import { ToolStatusDisplay } from './ToolStatusDisplay'
+
+const ChartRenderer = dynamic(
+  () => import('@/components/charts/ChartRenderer').then((mod) => mod.ChartRenderer),
+  { ssr: false }
+)
+const MermaidDiagram = dynamic(
+  () => import('@/components/diagrams/MermaidDiagram').then((mod) => mod.MermaidDiagram),
+  { ssr: false }
+)
+const DiagramRenderer = dynamic(
+  () => import('@/components/diagrams/DiagramRenderer').then((mod) => mod.DiagramRenderer),
+  { ssr: false }
+)
+const MarkdownViewer = dynamic(
+  () => import('./MarkdownViewer').then((mod) => mod.MarkdownViewer),
+  { ssr: false }
+)
+const DocumentViewer = dynamic(
+  () => import('./DocumentViewer').then((mod) => mod.DocumentViewer),
+  { ssr: false }
+)
+const CodeBlock = dynamic(
+  () => import('./CodeBlock').then((mod) => mod.CodeBlock),
+  { ssr: false }
+)
 
 interface ToolStatus {
   tool_name: string
@@ -33,6 +53,15 @@ interface ToolStatus {
   duration_ms?: number
   input_tokens?: number
   output_tokens?: number
+}
+
+function sanitizeSvg(svgContent: string): string {
+  if (typeof window === 'undefined') return ''
+  return DOMPurify.sanitize(svgContent, {
+    USE_PROFILES: { svg: true, svgFilters: true },
+    ADD_TAGS: ['use'],
+    FORBID_ATTR: ['xlink:href'],
+  })
 }
 
 /**
@@ -66,6 +95,86 @@ function detectImageUrls(content: string): string[] {
   }
 
   return Array.from(imageUrls)
+}
+
+function detectMarkdownUrls(content: string): string[] {
+  const urlRegex = /(https?:\/\/[^\s]+\.md[^\s]*)/gi
+  const matches = content.match(urlRegex)
+  return matches || []
+}
+
+function detectDocumentUrls(content: string): Array<{ url: string; type: string }> {
+  const documents: Array<{ url: string; type: string }> = []
+  const seenFiles = new Set<string>()
+  const patterns = [
+    {
+      regex: /https?:\/\/[^\s)>\]"'*]+\/api\/documents\/stream\/[^\s)>\]"'*]+\.pdf/gi,
+      type: 'pdf',
+    },
+    {
+      regex: /https?:\/\/[^\s)>\]"'*]+\.pdf(?:\?[^\s)>\]"'*]*)?/gi,
+      type: 'pdf',
+    },
+    {
+      regex: /https?:\/\/[^\s)>\]"'*]+\.pptx?(?:\?[^\s)>\]"'*]*)?/gi,
+      type: 'powerpoint',
+    },
+    {
+      regex: /https?:\/\/[^\s)>\]"'*]+\/api\/documents\/stream\/[^\s)>\]"'*]+\.pptx?/gi,
+      type: 'powerpoint',
+    },
+    {
+      regex: /https:\/\/docs\.google\.com\/document\/d\/[a-zA-Z0-9_-]+(?:\/[^\s]*)?/gi,
+      type: 'google_doc',
+    },
+    {
+      regex: /https:\/\/docs\.google\.com\/spreadsheets\/d\/[a-zA-Z0-9_-]+(?:\/[^\s]*)?/gi,
+      type: 'google_sheet',
+    },
+  ]
+
+  for (const pattern of patterns) {
+    const matches = content.match(pattern.regex)
+    if (!matches) continue
+
+    for (const url of matches) {
+      const cleanUrl = url.replace(/[.,;!?)>\]*_]+$/, '')
+      let fileKey = cleanUrl
+      if (cleanUrl.includes('/api/documents/stream/')) {
+        fileKey = cleanUrl.split('/api/documents/stream/')[1]
+      } else if (cleanUrl.includes('?')) {
+        fileKey = cleanUrl.split('?')[0].split('/').pop() || cleanUrl
+      } else {
+        fileKey = cleanUrl.split('/').pop() || cleanUrl
+      }
+
+      if (seenFiles.has(fileKey)) continue
+      seenFiles.add(fileKey)
+      documents.push({ url: cleanUrl, type: pattern.type })
+    }
+  }
+
+  return documents
+}
+
+function PlainCodeBlock({ language, code }: { language?: string; code: string }) {
+  return (
+    <div className="not-prose relative group/code my-3 max-w-full overflow-hidden rounded-lg">
+      <div className="flex items-center justify-between px-3 py-1.5 bg-gray-800 rounded-t-lg border-b border-gray-700">
+        <span className="text-xs text-gray-400 font-mono">{language || 'code'}</span>
+        <button
+          onClick={() => navigator.clipboard.writeText(code)}
+          className="text-xs text-gray-400 hover:text-white transition-colors flex items-center gap-1"
+        >
+          <Copy size={12} />
+          Copy
+        </button>
+      </div>
+      <pre className="overflow-x-auto bg-gray-950 text-gray-100 !my-0 p-3 text-[13px] leading-relaxed rounded-b-lg">
+        <code>{code}</code>
+      </pre>
+    </div>
+  )
 }
 
 interface ChatConfig {
@@ -207,7 +316,7 @@ function TableWithExport({ children, ...props }: any) {
  * ChatMessage - Individual message component with rich formatting
  * Supports markdown, code highlighting, tables, and media attachments
  */
-export function ChatMessage({
+export const ChatMessage = memo(function ChatMessage({
   message,
   isStreaming = false,
   thinkingStatus,
@@ -267,8 +376,8 @@ export function ChatMessage({
     return (
       <div className={cn('flex justify-end group', className)}>
         <div className="max-w-[85%] sm:max-w-[72%]">
-          <div className="bg-gray-900 rounded-2xl px-4 py-3">
-            <p className="text-[14px] text-white leading-relaxed whitespace-pre-wrap">{message.content}</p>
+          <div className="bg-gray-900 rounded-2xl rounded-tr-sm px-4 py-3.5 shadow-sm">
+            <p className="text-[15px] text-white/95 leading-[1.65] whitespace-pre-wrap tracking-[-0.01em]">{message.content}</p>
             {message.attachments && message.attachments.length > 0 && (
               <div className="mt-2 space-y-1.5">
                 {message.attachments.map((attachment, index) => (
@@ -316,12 +425,12 @@ export function ChatMessage({
     )
   }
 
-  // Assistant message — left-aligned open layout
+  // Assistant message — left-aligned layout
   return (
     <div className={cn('group', className)}>
       <div className="flex items-center gap-2 mb-3">
         {agentAvatar ? (
-          <div className="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center bg-white relative shrink-0">
+          <div className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center bg-white relative shrink-0 ring-1 ring-slate-200">
             {agentAvatar.startsWith('http://') || agentAvatar.startsWith('https://') ? (
               <Image
                 src={agentAvatar}
@@ -337,13 +446,13 @@ export function ChatMessage({
           </div>
         ) : (
           <div
-            className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
+            className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
             style={{ background: primaryColor }}
           >
-            <Sparkles size={11} className="text-white" />
+            <Sparkles size={12} className="text-white" />
           </div>
         )}
-        <span className="text-sm font-bold text-gray-900">{agentName || 'Assistant'}</span>
+        <span className="text-sm font-semibold text-gray-700 tracking-[-0.01em]">{agentName || 'Assistant'}</span>
         {message.metadata?.confidence && (
           <span className="text-[11px] text-gray-400">Confidence: {message.metadata.confidence}</span>
         )}
@@ -462,6 +571,9 @@ export function ChatMessage({
 
                   // Mermaid diagram: render as visual diagram instead of code block
                   if (language === 'mermaid') {
+                    if (isStreaming) {
+                      return <PlainCodeBlock language={language} code={codeString} />
+                    }
                     return (
                       <div className="my-4">
                         <MermaidDiagram code={codeString} />
@@ -484,32 +596,11 @@ export function ChatMessage({
                     )
                   }
 
-                  return (
-                    <div className="relative group/code my-3 max-w-full rounded-lg overflow-hidden">
-                      <div className="flex items-center justify-between px-3 py-1.5 bg-gray-800 rounded-t-lg border-b border-gray-700">
-                        <span className="text-xs text-gray-400 font-mono">{language || 'code'}</span>
-                        <button
-                          onClick={() => navigator.clipboard.writeText(codeString)}
-                          className="text-xs text-gray-400 hover:text-white transition-colors flex items-center gap-1"
-                        >
-                          <Copy size={12} />
-                          Copy
-                        </button>
-                      </div>
-                      <div className="overflow-x-auto">
-                        <SyntaxHighlighter
-                          style={vscDarkPlus}
-                          language={language || 'text'}
-                          PreTag="div"
-                          className="!rounded-t-none !rounded-b-lg !my-0 !text-[13px]"
-                          customStyle={{ margin: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
-                          {...props}
-                        >
-                          {codeString}
-                        </SyntaxHighlighter>
-                      </div>
-                    </div>
-                  )
+                  if (isStreaming) {
+                    return <PlainCodeBlock language={language} code={codeString} />
+                  }
+
+                  return <CodeBlock language={language} code={codeString} />
                 },
                 pre: ({ children, ...props }: any) => (
                   <div {...props}>{children}</div>
@@ -580,12 +671,12 @@ export function ChatMessage({
                   </ol>
                 ),
                 li: ({ children, ...props }: any) => (
-                  <li className="text-[15px] leading-relaxed text-gray-700 relative pl-4 before:content-['•'] before:absolute before:left-0 before:text-gray-400" {...props}>
+                  <li className="text-[15px] leading-[1.65] text-gray-700 relative pl-4 before:content-['•'] before:absolute before:left-0 before:text-gray-400" {...props}>
                     {children}
                   </li>
                 ),
                 p: ({ children, ...props }: any) => (
-                  <p className="mb-3 last:mb-0 text-[15px] leading-relaxed text-gray-700" {...props}>
+                  <p className="mb-3 last:mb-0 text-[15px] leading-[1.7] text-gray-700 tracking-[-0.005em]" {...props}>
                     {children}
                   </p>
                 ),
@@ -693,7 +784,7 @@ export function ChatMessage({
                 {infographic.svg_content ? (
                   <div
                     className="w-full overflow-auto"
-                    dangerouslySetInnerHTML={{ __html: infographic.svg_content }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeSvg(infographic.svg_content) }}
                   />
                 ) : infographic.png_url ? (
                   <img
@@ -1171,7 +1262,8 @@ export function ChatMessage({
         {isOverflowing && !isStreaming && (
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="mt-2 text-xs font-medium text-teal-600 hover:text-teal-700 transition-colors"
+            className="mt-2 text-xs font-medium transition-colors"
+            style={{ color: primaryColor }}
           >
             {isCollapsed ? 'Show more ↓' : 'Show less ↑'}
           </button>
@@ -1179,10 +1271,10 @@ export function ChatMessage({
 
         {/* Message Actions */}
         {!isStreaming && (
-          <div className="flex items-center gap-2 mt-4 flex-wrap">
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 flex-wrap">
             <button
               onClick={handleCopy}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors"
             >
               {copied ? <Check size={12} /> : <Copy size={12} />}
               {copied ? 'Copied' : 'Copy'}
@@ -1198,7 +1290,7 @@ export function ChatMessage({
                 a.click()
                 URL.revokeObjectURL(url)
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors"
             >
               <Download size={12} />
               Export
@@ -1209,7 +1301,7 @@ export function ChatMessage({
             {onRetry && (
               <button
                 onClick={() => onRetry(message.id)}
-                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                 title="Regenerate"
               >
                 <RefreshCw size={12} />
@@ -1236,7 +1328,7 @@ export function ChatMessage({
               ) : (
                 <button
                   onClick={() => setConfirmingDelete(true)}
-                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                   title="Delete message"
                 >
                   <Trash2 size={12} />
@@ -1258,7 +1350,7 @@ export function ChatMessage({
       </div>
     </div>
   )
-}
+})
 
 interface AttachmentPreviewProps {
   attachment: Attachment

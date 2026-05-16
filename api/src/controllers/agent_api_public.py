@@ -69,7 +69,7 @@ async def chat_with_agent_stream(
     client_ip = http_request.client.host if http_request.client else "unknown"
     user_agent = http_request.headers.get("User-Agent", "unknown")
 
-    scan_result = advanced_prompt_scanner.scan_comprehensive(
+    scan_result = await advanced_prompt_scanner.scan_comprehensive_async(
         text=request.message, user_id=f"api_key_{api_key.id}", ip_address=client_ip, context="agent_api_chat"
     )
 
@@ -140,16 +140,22 @@ async def chat_with_agent_stream(
         limit=30,
     )
 
+    agent_name = agent.agent_name
+    tenant_id = api_key.tenant_id
+    conversation_id = str(conversation.id)
+
+    await db.close()
+
     return StreamingResponse(
         chat_stream_service.stream_agent_response(
-            agent_name=agent.agent_name,
+            agent_name=agent_name,
             message=request.message,
             conversation_history=conversation_history,
-            conversation_id=str(conversation.id),
+            conversation_id=conversation_id,
             attachments=None,
             llm_config_id=None,
-            db=db,
-            tenant_id=api_key.tenant_id,
+            db=None,
+            tenant_id=tenant_id,
         ),
         media_type="text/event-stream",
         headers={

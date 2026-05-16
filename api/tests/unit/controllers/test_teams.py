@@ -240,7 +240,7 @@ class TestCreateInvitation:
 
         response = test_client.post("/teams/invitations", json={"email": "invalid-email", "role": "member"})
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_create_invitation_invalid_role(self, client):
         """Test creating invitation with invalid role."""
@@ -248,7 +248,7 @@ class TestCreateInvitation:
 
         response = test_client.post("/teams/invitations", json={"email": "invite@example.com", "role": "superadmin"})
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 class TestListInvitations:

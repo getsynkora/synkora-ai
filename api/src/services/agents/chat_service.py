@@ -10,6 +10,11 @@ import logging
 import uuid
 from typing import Any
 
+# Strong references prevent GC before background cache tasks complete.
+# The event loop only keeps weak refs; without this set tasks can be
+# silently collected mid-execution under GC pressure.
+_bg_cache_tasks: set[asyncio.Task] = set()
+
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -178,12 +183,15 @@ class ChatService:
         """
         try:
             cache_service = get_conversation_cache()
-            # Run cache update in background to not block
-            asyncio.create_task(
+            # Run cache update in background; store a strong ref so GC
+            # cannot collect the task before it completes.
+            task = asyncio.create_task(
                 cache_service.append_message(
                     conversation_id=conversation_id, message={"role": role, "content": content}
                 )
             )
+            _bg_cache_tasks.add(task)
+            task.add_done_callback(_bg_cache_tasks.discard)
         except Exception as e:
             # Don't fail message save if cache update fails
             logger.warning(f"Failed to append message to cache: {e}")
@@ -202,8 +210,9 @@ class ChatService:
             import time
 
             cache_service = get_conversation_cache()
-            # Run cache update in background
-            asyncio.create_task(
+            # Run cache update in background; store a strong ref so GC
+            # cannot collect the task before it completes.
+            task = asyncio.create_task(
                 cache_service.set_conversation_metadata(
                     conversation_id=conversation_id,
                     metadata={
@@ -213,6 +222,8 @@ class ChatService:
                     },
                 )
             )
+            _bg_cache_tasks.add(task)
+            task.add_done_callback(_bg_cache_tasks.discard)
         except Exception as e:
             logger.warning(f"Failed to update conversation metadata cache: {e}")
 
@@ -295,8 +306,9 @@ class ChatService:
             db: Database session
         """
         try:
-            message.status = MessageStatus.FAILED
-            message.error = error
+            await db.execute(
+                update(Message).where(Message.id == message.id).values(status=MessageStatus.FAILED, error=error)
+            )
             await db.commit()
 
             logger.info(f"Marked message {message.id} as failed")

@@ -227,6 +227,12 @@ class ADKToolRegistry:
 
         register_email_tools(self)
 
+        from src.services.agents.tool_registrations.push_notification_tools_registry import (
+            register_push_notification_tools,
+        )
+
+        register_push_notification_tools(self)
+
         # Newsletter rendering tools - use modular registry
         from src.services.agents.tool_registrations.newsletter_tools_registry import (
             register_newsletter_tools,
@@ -1567,19 +1573,25 @@ Supports: Git, GitHub CLI, npm, pip, Docker, file operations (ls, cat, mkdir, et
 
             logger.info(f"Loading custom tools for agent {agent_id}, found {len(agent_tools)} tool operations")
 
-            # Group by custom_tool_id to avoid loading the same tool multiple times
+            # Load all required CustomTool rows in a single IN query (avoids N+1).
+            unique_custom_tool_ids = list({at.custom_tool_id for at in agent_tools if at.custom_tool_id})
+            ct_result = await db.execute(
+                select(CustomTool).filter(CustomTool.id.in_(unique_custom_tool_ids), CustomTool.enabled)
+            )
+            custom_tools_by_id = {ct.id: ct for ct in ct_result.scalars().all()}
+
             custom_tools_map = {}
             for agent_tool in agent_tools:
-                if agent_tool.custom_tool_id not in custom_tools_map:
-                    result = await db.execute(select(CustomTool).filter(CustomTool.id == agent_tool.custom_tool_id))
-                    custom_tool = result.scalar_one_or_none()
-
-                    if custom_tool and custom_tool.enabled:
-                        custom_tools_map[agent_tool.custom_tool_id] = {"custom_tool": custom_tool, "operations": []}
+                ct_id = agent_tool.custom_tool_id
+                if ct_id is None:
+                    continue
+                custom_tool = custom_tools_by_id.get(ct_id)
+                if custom_tool and ct_id not in custom_tools_map:
+                    custom_tools_map[ct_id] = {"custom_tool": custom_tool, "operations": []}
 
                 # Add this operation to the list
-                if agent_tool.custom_tool_id in custom_tools_map:
-                    custom_tools_map[agent_tool.custom_tool_id]["operations"].append(
+                if ct_id in custom_tools_map:
+                    custom_tools_map[ct_id]["operations"].append(
                         {
                             "operation_id": agent_tool.operation_id,
                             "tool_name": agent_tool.tool_name,

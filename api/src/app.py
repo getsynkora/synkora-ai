@@ -126,6 +126,28 @@ async def lifespan(app: FastAPI):  # noqa: ARG001
     except Exception as e:
         logging.warning(f"Failed to pre-warm async DB pool: {e}")
 
+    # Clear stale conversation lane Redis locks left by a previous process/restart.
+    # In-process asyncio locks are reset on restart, so any Redis keys still present
+    # are orphaned and would block new requests for up to the full TTL (15 min).
+    try:
+        from src.config.redis import get_redis_async
+
+        _redis = get_redis_async()
+        _stale_keys = await _redis.keys("conversation_lane:*")
+        if _stale_keys:
+            await _redis.delete(*_stale_keys)
+            logging.info(f"Cleared {len(_stale_keys)} stale conversation lane lock(s) from Redis")
+    except Exception as e:
+        logging.warning(f"Failed to clear stale conversation lane locks: {e}")
+
+    # Set up Elasticsearch index/ILM for agent session tracing
+    try:
+        from src.services.agents.agent_trace_setup import setup_agent_trace
+
+        await setup_agent_trace()
+    except Exception as e:
+        logging.warning(f"Agent trace ES setup failed (non-critical): {e}")
+
     # SECURITY: Fail fast if AUDIT_CHAIN_SECRET is missing in production.
     # Without this secret, audit log entries cannot be HMAC-chained and
     # tamper detection is completely disabled.

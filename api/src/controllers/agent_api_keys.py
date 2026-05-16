@@ -108,10 +108,10 @@ async def list_api_keys(
             agent_uuid = UUID(agent_id)
             query = query.filter(AgentApiKey.agent_id == agent_uuid)
         except ValueError:
-            # If not a UUID, treat as agent name and look up the agent
+            # If not a UUID, treat as agent slug and look up the agent
             result = await db.execute(
                 select(Agent).filter(
-                    Agent.agent_name == agent_id,
+                    Agent.slug == agent_id,
                     Agent.tenant_id == tenant_id,
                 )
             )

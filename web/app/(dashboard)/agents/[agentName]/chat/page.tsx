@@ -221,9 +221,9 @@ export default function AdvancedChatPage() {
     }
   }, [agentName])
 
-  const fetchChatConfig = useCallback(async () => {
+  const fetchChatConfig = useCallback(async (id: string) => {
     try {
-      const response = await fetch(`${API_URL}/api/v1/agents/${encodeURIComponent(agentName)}/chat-config`)
+      const response = await fetch(`${API_URL}/api/v1/agents/${encodeURIComponent(id)}/chat-config`)
       if (response.ok) {
         const result = await response.json()
         if (result.success && result.data) {
@@ -236,7 +236,7 @@ export default function AdvancedChatPage() {
       console.error('Failed to fetch chat config:', error)
       // Continue with default styling if config fetch fails
     }
-  }, [agentName])
+  }, [])
 
   const applyCustomization = (config: ChatConfig) => {
     // Apply CSS custom properties for theming
@@ -428,19 +428,18 @@ export default function AdvancedChatPage() {
     setNews(Array.from(new Map(allNews.map((n) => [n.url, n])).values()))
   }, [messages])
 
-  // Load agent info and chat config on mount
+  // Load agent info on mount
   useEffect(() => {
     fetchAgentInfo()
-    fetchChatConfig()
-  }, [agentName, fetchAgentInfo, fetchChatConfig])
+  }, [agentName, fetchAgentInfo])
 
-  // Load conversations and agent config when agent ID is available.
-  // Both are independent of each other — run in parallel.
+  // Load conversations, agent config, and chat config when agent ID is available.
+  // All are independent of each other — run in parallel.
   useEffect(() => {
     if (agentId) {
-      Promise.all([fetchAgentConfiguration(), loadConversations()])
+      Promise.all([fetchAgentConfiguration(), loadConversations(), fetchChatConfig(agentId)])
     }
-  }, [agentId, fetchAgentConfiguration, loadConversations])
+  }, [agentId, fetchAgentConfiguration, loadConversations, fetchChatConfig])
 
   // Note: Messages are loaded by the useEffect at line 280-285 that watches currentConversation?.id
   // Removed duplicate useEffect here to prevent race conditions with streaming
@@ -516,6 +515,7 @@ export default function AdvancedChatPage() {
     // events are yielded and we must NOT reload messages from the backend —
     // that would overwrite the locally-displayed error with stale old messages.
     let streamStarted = false
+    let streamHadError = false
 
     try {
       let fullResponse = ''
@@ -524,7 +524,7 @@ export default function AdvancedChatPage() {
       // Single loop handles both SSE (default) and WebSocket transports.
       // The transport hook abstracts protocol differences — event handling is written once.
       for await (const event of transport.sendMessage({
-        agent_name: agentName,
+        agent_slug: agentName,
         message,
         conversation_id: activeConversation?.id,
         attachments: attachments as unknown[],
@@ -701,6 +701,7 @@ export default function AdvancedChatPage() {
           })
           if (agentId) loadConversations()
         } else if (event.type === 'error') {
+          streamHadError = true
           const errorMsg = (event as any).error || 'Something went wrong. Please try again.'
           setThinkingStatus('')
           setMessages((prev) => {
@@ -725,6 +726,7 @@ export default function AdvancedChatPage() {
         })
       }
     } catch (error) {
+      streamHadError = true
       console.error('Failed to send message:', error)
       setMessages((prev) => {
         const newMessages = [...prev]
@@ -733,6 +735,7 @@ export default function AdvancedChatPage() {
           newMessages[lastIndex] = {
             ...newMessages[lastIndex],
             content: `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
+            isError: true,
           }
         }
         return newMessages
@@ -748,7 +751,7 @@ export default function AdvancedChatPage() {
       // the first event (middleware 400/401, network error, etc.), the backend never saved
       // anything, so reloading would overwrite the locally-displayed error with stale data.
       const convId = activeConversation?.id || currentConversation?.id
-      if (convId && streamStarted) {
+      if (convId && streamStarted && !streamHadError) {
         loadConversationMessages(convId, true)
       }
     }
@@ -1027,7 +1030,7 @@ export default function AdvancedChatPage() {
 
   return (
     <>
-    <div style={getChatStyles()} className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 custom-scrollbar-container">
+    <div style={getChatStyles()} className="dashboard-resource-page min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.98),_rgba(247,240,231,0.94)_55%,_rgba(239,232,223,0.92)_100%)] custom-scrollbar-container">
       <style jsx global>{`
         /* Custom scrollbar styling */
         .custom-scrollbar-container ::-webkit-scrollbar {
@@ -1080,14 +1083,14 @@ export default function AdvancedChatPage() {
           onMouseLeave={() => setIsSidebarExpanded(false)}
         >
           <div
-            className={`transition-all duration-300 ease-in-out ${isSidebarExpanded || isMobileSidebarOpen ? 'w-56' : 'w-14'} h-full bg-white border-r border-gray-200/80 shadow-sm relative overflow-hidden`}
+            className={`transition-all duration-300 ease-in-out ${isSidebarExpanded || isMobileSidebarOpen ? 'w-56' : 'w-14'} h-full border-r border-[#ece2d6] bg-[rgba(255,255,255,0.86)] shadow-sm relative overflow-hidden backdrop-blur`}
           >
             {/* Collapsed State - Show Icons */}
             {!isSidebarExpanded && !isMobileSidebarOpen && (
-              <div className="flex flex-col h-full pt-3 bg-gray-50/50">
+              <div className="flex h-full flex-col bg-[rgba(252,249,244,0.8)] pt-3">
                 {/* Synkora Logo */}
                 <div className="flex justify-center mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#171717]">
                     <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
@@ -1098,7 +1101,7 @@ export default function AdvancedChatPage() {
                 <div className="flex-1 flex flex-col items-center space-y-2">
                   <button
                     onClick={() => window.location.href = '/agents'}
-                    className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm text-gray-500 hover:text-gray-700 transition-all"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-all hover:bg-white hover:text-[#171717] hover:shadow-sm"
                     title="Home"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1112,7 +1115,7 @@ export default function AdvancedChatPage() {
                         setCurrentConversation(conversations[0])
                       }
                     }}
-                    className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm text-gray-500 hover:text-gray-700 transition-all"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-all hover:bg-white hover:text-[#171717] hover:shadow-sm"
                     title="Chat History"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1125,7 +1128,7 @@ export default function AdvancedChatPage() {
                 <div className="pb-4 flex flex-col items-center space-y-2">
                   <button
                     onClick={() => window.location.href = '/settings/profile'}
-                    className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm text-gray-500 hover:text-gray-700 transition-all"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-all hover:bg-white hover:text-[#171717] hover:shadow-sm"
                     title="Profile"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1137,7 +1140,7 @@ export default function AdvancedChatPage() {
                     onClick={() => {
                       window.location.href = `/agents/${agentName}/edit`
                     }}
-                    className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-sm text-gray-500 hover:text-gray-700 transition-all"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-all hover:bg-white hover:text-[#171717] hover:shadow-sm"
                     title="Settings"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1151,7 +1154,7 @@ export default function AdvancedChatPage() {
                       localStorage.removeItem('token')
                       window.location.href = '/signin'
                     }}
-                    className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-600 transition-all"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-all hover:bg-[#fbf1f4] hover:text-[#8a445c]"
                     title="Logout"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1193,10 +1196,10 @@ export default function AdvancedChatPage() {
         {/* Main Content Area */}
         <div className="flex-1 flex overflow-hidden">
           {/* Center - Chat Widget */}
-          <div className="flex-1 flex flex-col h-screen bg-white min-w-0">
+          <div className="flex-1 flex min-w-0 flex-col h-screen rounded-l-[1.25rem] border border-black/5 bg-[rgba(255,255,255,0.86)] backdrop-blur">
               {/* Error Message */}
               {agentLoadError && (
-                <div className="flex-shrink-0 p-3 bg-red-50 border-b border-red-200">
+                <div className="flex-shrink-0 border-b border-[#eed6dd] bg-[#fbf1f4] p-3">
                   <div className="flex items-center gap-2 text-red-800">
                     <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
@@ -1210,11 +1213,11 @@ export default function AdvancedChatPage() {
               )}
 
               {/* Compact Chat Header */}
-              <div className="flex-shrink-0 px-4 py-3 border-b border-gray-100" style={{
+              <div className="flex-shrink-0 border-b border-[#ece2d6] px-3 py-2.5 sm:px-4" style={{
                 background: `linear-gradient(135deg, ${chatConfig?.chat_primary_color || '#ff444f'}15, ${chatConfig?.chat_primary_color || '#ff444f'}05)`
               }}>
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2.5">
                     {/* Mobile sidebar toggle */}
                     <button
                       className="md:hidden p-1.5 rounded-lg hover:bg-black/5 transition-colors text-gray-600"
@@ -1226,7 +1229,7 @@ export default function AdvancedChatPage() {
                       </svg>
                     </button>
                     <div 
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-md"
+                      className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-white shadow-md"
                       style={{ background: `linear-gradient(135deg, ${chatConfig?.chat_primary_color || '#ff444f'}, ${chatConfig?.chat_primary_color || '#ff444f'}dd)` }}
                     >
                       {agent?.avatar ? (
@@ -1236,16 +1239,16 @@ export default function AdvancedChatPage() {
                       )}
                     </div>
                     <div>
-                      <h2 className="text-lg font-bold text-gray-900">{chatConfig?.chat_title || agent?.agent_name}</h2>
-                      <p className="text-xs font-medium text-gray-500">Online • Ready to help</p>
+                      <h2 className="text-base font-bold text-gray-900">{chatConfig?.chat_title || agent?.agent_name}</h2>
+                      <p className="text-[11px] font-medium text-gray-500">Online • Ready to help</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex flex-shrink-0 items-center gap-1.5">
                     {llmConfigs && llmConfigs.length > 0 && (
                       <select
                         value={selectedModelId || ''}
                         onChange={(e) => setSelectedModelId(e.target.value)}
-                        className="hidden sm:block text-xs px-2 py-1 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 max-w-[140px]"
+                        className="hidden max-w-[132px] rounded-lg border border-black/10 bg-white/85 px-2 py-1 text-[11px] focus:outline-none focus:ring-2 sm:block"
                         style={{
                           '--tw-ring-color': chatConfig?.chat_primary_color || '#ff444f'
                         } as React.CSSProperties}
@@ -1259,24 +1262,24 @@ export default function AdvancedChatPage() {
                     )}
                     <button
                       onClick={handleNewChat}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900"
+                      className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-gray-600 transition-colors hover:bg-[#f3ecde] hover:text-[#171717]"
                       title="New Chat"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                       </svg>
-                      <span className="text-xs font-medium">New chat</span>
+                      <span className="text-[11px] font-medium">New chat</span>
                     </button>
                     {currentConversation && (
                       <button
                         onClick={() => setShareConvId(currentConversation.id)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900"
+                        className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-gray-600 transition-colors hover:bg-[#f3ecde] hover:text-[#171717]"
                         title="Share conversation"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                         </svg>
-                        <span className="text-xs font-medium">Share</span>
+                        <span className="text-[11px] font-medium">Share</span>
                       </button>
                     )}
                   </div>
@@ -1324,7 +1327,7 @@ export default function AdvancedChatPage() {
 
           {/* Right Sidebar - Widgets (hidden on mobile) */}
           {showSidebar && rightWidgets.length > 0 && (
-            <div className="hidden lg:block w-72 bg-white border-l border-gray-200/80 shadow-sm overflow-y-auto p-3 space-y-3">
+            <div className="hidden w-72 space-y-3 overflow-y-auto border-l border-[#ece2d6] bg-[rgba(255,255,255,0.82)] p-3 shadow-sm backdrop-blur lg:block">
               {rightWidgets.map((widget, idx) => (
                 <div key={idx}>{renderWidget(widget)}</div>
               ))}

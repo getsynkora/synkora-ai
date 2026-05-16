@@ -1,8 +1,11 @@
+from contextlib import asynccontextmanager
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import uuid4
 
 import pytest
 
-from src.services.agents.function_calling import FunctionCallingHandler
+from src.services.agents.function_calling import FunctionCallingHandler, _compact_schema
 
 
 @pytest.fixture
@@ -20,17 +23,19 @@ def mock_llm_client():
 
 @pytest.fixture
 def mock_tool_registry():
-    # tool_registry is imported inside _get_available_tools, so patch it at the source
-    with patch("src.services.agents.adk_tools.tool_registry") as mock:
-        mock.list_tools.return_value = [
-            {
-                "name": "test_tool",
-                "description": "A test tool",
-                "parameters": {"type": "object", "properties": {"arg": {"type": "string"}}},
-            },
-            {"name": "other_tool", "description": "Another tool", "parameters": {}},
-        ]
-        mock.execute_tool = AsyncMock()
+    mock = MagicMock()
+    mock.list_tools.return_value = [
+        {
+            "name": "test_tool",
+            "description": "A test tool",
+            "parameters": {"type": "object", "properties": {"arg": {"type": "string"}}},
+        },
+        {"name": "other_tool", "description": "Another tool", "parameters": {}},
+    ]
+    mock.execute_tool = AsyncMock()
+
+    fake_adk_tools = SimpleNamespace(tool_registry=mock)
+    with patch.dict("sys.modules", {"src.services.agents.adk_tools": fake_adk_tools}):
         yield mock
 
 
@@ -147,16 +152,29 @@ class TestFunctionCallingHandler:
 
     @pytest.mark.asyncio
     async def test_execute_functions_with_runtime_context(self, handler, mock_tool_registry):
-        mock_context = MagicMock()
+        class RuntimeContextStub:
+            tenant_id = uuid4()
+            agent_id = uuid4()
+            conversation_id = uuid4()
+            event_sequence = 0
+
+            @asynccontextmanager
+            async def scoped_db_context(self):
+                yield self
+
+        mock_context = RuntimeContextStub()
         handler.runtime_context = mock_context
 
         function_calls = [{"name": "test_tool", "arguments": {"arg": "val"}}]
         mock_tool_registry.execute_tool.return_value = "Success"
 
-        await handler._execute_functions(function_calls)
+        fake_trace_service = SimpleNamespace(fire_tool_call=MagicMock())
+        with patch.dict("sys.modules", {"src.services.agents.agent_trace_service": fake_trace_service}):
+            await handler._execute_functions(function_calls)
 
         # Should call with runtime_context instead of config
         mock_tool_registry.execute_tool.assert_called_with("test_tool", {"arg": "val"}, runtime_context=mock_context)
+        fake_trace_service.fire_tool_call.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_generate_with_functions_stream(self, handler, mock_llm_client, mock_tool_registry):
@@ -326,3 +344,180 @@ class TestFunctionCallingHandler:
         await handler._generate_openai_with_tools([], 0.7, 100)
 
         mock_langfuse.create_generation.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# _compact_schema
+# ---------------------------------------------------------------------------
+
+
+class TestCompactSchema:
+    def test_strips_property_descriptions(self):
+        schema = {
+            "type": "object",
+            "properties": {
+                "owner": {"type": "string", "description": "Repository owner username"},
+                "repo": {"type": "string", "description": "Repository name"},
+            },
+            "required": ["owner", "repo"],
+        }
+        result = _compact_schema(schema)
+        assert "description" not in result["properties"]["owner"]
+        assert "description" not in result["properties"]["repo"]
+
+    def test_preserves_types(self):
+        schema = {
+            "type": "object",
+            "properties": {
+                "count": {"type": "integer", "description": "Number of items"},
+                "name": {"type": "string", "description": "Item name"},
+            },
+        }
+        result = _compact_schema(schema)
+        assert result["properties"]["count"]["type"] == "integer"
+        assert result["properties"]["name"]["type"] == "string"
+
+    def test_preserves_enums(self):
+        schema = {
+            "type": "object",
+            "properties": {
+                "event": {
+                    "type": "string",
+                    "enum": ["COMMENT", "APPROVE", "REQUEST_CHANGES"],
+                    "description": "The review action to take",
+                }
+            },
+        }
+        result = _compact_schema(schema)
+        assert result["properties"]["event"]["enum"] == ["COMMENT", "APPROVE", "REQUEST_CHANGES"]
+        assert "description" not in result["properties"]["event"]
+
+    def test_preserves_required_array(self):
+        schema = {
+            "type": "object",
+            "properties": {
+                "a": {"type": "string", "description": "A"},
+                "b": {"type": "string", "description": "B"},
+            },
+            "required": ["a"],
+        }
+        result = _compact_schema(schema)
+        assert result["required"] == ["a"]
+
+    def test_preserves_default_values(self):
+        schema = {
+            "type": "object",
+            "properties": {
+                "limit": {"type": "integer", "default": 10, "description": "Max items"},
+            },
+        }
+        result = _compact_schema(schema)
+        assert result["properties"]["limit"]["default"] == 10
+
+    def test_handles_nested_object_properties(self):
+        schema = {
+            "type": "object",
+            "properties": {
+                "comment": {
+                    "type": "object",
+                    "description": "A review comment object",
+                    "properties": {
+                        "path": {"type": "string", "description": "File path"},
+                        "line": {"type": "integer", "description": "Line number"},
+                    },
+                }
+            },
+        }
+        result = _compact_schema(schema)
+        assert "description" not in result["properties"]["comment"]
+        nested = result["properties"]["comment"]["properties"]
+        assert "description" not in nested["path"]
+        assert "description" not in nested["line"]
+        assert nested["path"]["type"] == "string"
+
+    def test_handles_array_items_with_descriptions(self):
+        schema = {
+            "type": "object",
+            "properties": {
+                "comments": {
+                    "type": "array",
+                    "description": "List of inline comments",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "body": {"type": "string", "description": "Comment text"},
+                        },
+                    },
+                }
+            },
+        }
+        result = _compact_schema(schema)
+        assert "description" not in result["properties"]["comments"]
+        assert "description" not in result["properties"]["comments"]["items"]["properties"]["body"]
+        assert result["properties"]["comments"]["items"]["properties"]["body"]["type"] == "string"
+
+    def test_empty_schema_unchanged(self):
+        assert _compact_schema({}) == {}
+
+    def test_schema_without_descriptions_unchanged(self):
+        schema = {
+            "type": "object",
+            "properties": {"name": {"type": "string"}},
+            "required": ["name"],
+        }
+        result = _compact_schema(schema)
+        assert result == schema
+
+    def test_anthropic_format_strips_parameter_descriptions(self, mock_tool_registry, mock_langfuse, mock_llm_client):
+        """End-to-end: Anthropic format converter must use compact schemas."""
+        verbose_tool = {
+            "name": "verbose_tool",
+            "description": "Does something important",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "The full canonical name, as stored in the primary database",
+                    }
+                },
+                "required": ["name"],
+            },
+        }
+        mock_tool_registry.list_tools.return_value = [verbose_tool]
+        mock_llm_client.provider = "ANTHROPIC"
+        handler = FunctionCallingHandler(llm_client=mock_llm_client, tools=["verbose_tool"])
+        handler.provider = "anthropic"
+
+        result = handler._convert_to_anthropic_format()
+
+        assert len(result) == 1
+        # Tool-level description preserved
+        assert result[0]["description"] == "Does something important"
+        # Parameter description stripped
+        prop = result[0]["input_schema"]["properties"]["name"]
+        assert "description" not in prop
+        assert prop["type"] == "string"
+        # Required preserved
+        assert result[0]["input_schema"]["required"] == ["name"]
+
+    def test_openai_format_strips_parameter_descriptions(self, mock_tool_registry, mock_langfuse, mock_llm_client):
+        """End-to-end: OpenAI format converter must use compact schemas."""
+        verbose_tool = {
+            "name": "verbose_tool",
+            "description": "Does something",
+            "parameters": {
+                "type": "object",
+                "properties": {"query": {"type": "string", "description": "The SQL query to execute"}},
+                "required": ["query"],
+            },
+        }
+        mock_tool_registry.list_tools.return_value = [verbose_tool]
+        handler = FunctionCallingHandler(llm_client=mock_llm_client, tools=["verbose_tool"])
+
+        result = handler._convert_to_openai_format()
+
+        assert len(result) == 1
+        prop = result[0]["function"]["parameters"]["properties"]["query"]
+        assert "description" not in prop
+        assert prop["type"] == "string"

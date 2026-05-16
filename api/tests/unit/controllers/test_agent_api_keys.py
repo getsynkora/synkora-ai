@@ -155,7 +155,7 @@ class TestCreateApiKey:
 
         response = test_client.post("/api/v1/agent-api-keys", json={"key_name": "Tenant Key", "permissions": ["chat"]})
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 class TestListApiKeys:

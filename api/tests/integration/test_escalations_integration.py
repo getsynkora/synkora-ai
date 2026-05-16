@@ -209,7 +209,7 @@ class TestEscalationsCreateIntegration:
             headers=headers,
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     @pytest.mark.asyncio
     async def test_create_escalation_invalid_priority(self, async_client: AsyncClient, auth_headers):
@@ -230,7 +230,7 @@ class TestEscalationsCreateIntegration:
             headers=headers,
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     @pytest.mark.asyncio
     async def test_create_escalation_empty_subject(self, async_client: AsyncClient, auth_headers):
@@ -251,7 +251,7 @@ class TestEscalationsCreateIntegration:
             headers=headers,
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 class TestEscalationsResolveIntegration:
@@ -288,7 +288,7 @@ class TestEscalationsResolveIntegration:
             headers=headers,
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 class TestEscalationsInProgressIntegration:

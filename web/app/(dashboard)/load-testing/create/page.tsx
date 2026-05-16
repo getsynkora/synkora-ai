@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import {
+  Activity,
   ArrowLeft,
   Server,
   Settings,
@@ -18,6 +19,7 @@ import {
 } from 'lucide-react'
 import { createLoadTest, getProxyConfigs, type ProxyConfig } from '@/lib/api/load-testing'
 import { useEffect } from 'react'
+import DashboardPageShell from '@/components/dashboard/DashboardPageShell'
 
 interface LoadStage {
   duration: string
@@ -202,23 +204,21 @@ export default function CreateLoadTestPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <Link
-            href="/load-testing"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Load Tests
-          </Link>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Create Load Test</h1>
-          <p className="text-gray-600 mt-1">
-            Configure a new load test for your API endpoint
-          </p>
-        </div>
-
+    <DashboardPageShell
+      title="Create Load Test"
+      description="Configure a new load test for your API endpoint."
+      icon={Activity}
+      badge="Labs"
+      backHref="/load-testing"
+      backLabel="Back to Load Tests"
+      maxWidthClassName="max-w-5xl"
+      breadcrumbs={[
+        { label: 'Home', href: '/' },
+        { label: 'Load Testing', href: '/load-testing' },
+        { label: 'Create Load Test' },
+      ]}
+    >
+      <div className="[&_input]:rounded-[1rem] [&_input]:border [&_input]:border-black/10 [&_input]:bg-[#fcfaf5] [&_input]:px-4 [&_input]:py-3 [&_input]:text-sm [&_input]:text-gray-900 [&_input]:placeholder-gray-400 [&_input]:focus:border-transparent [&_input]:focus:outline-none [&_input]:focus:ring-2 [&_input]:focus:ring-[#79dfbc] [&_select]:rounded-[1rem] [&_select]:border [&_select]:border-black/10 [&_select]:bg-[#fcfaf5] [&_select]:px-4 [&_select]:py-3 [&_select]:text-sm [&_select]:text-gray-900 [&_select]:focus:border-transparent [&_select]:focus:outline-none [&_select]:focus:ring-2 [&_select]:focus:ring-[#79dfbc] [&_textarea]:rounded-[1rem] [&_textarea]:border [&_textarea]:border-black/10 [&_textarea]:bg-[#fcfaf5] [&_textarea]:px-4 [&_textarea]:py-3 [&_textarea]:text-sm [&_textarea]:text-gray-900 [&_textarea]:placeholder-gray-400 [&_textarea]:focus:border-transparent [&_textarea]:focus:outline-none [&_textarea]:focus:ring-2 [&_textarea]:focus:ring-[#79dfbc] [&_label]:font-semibold [&_label]:text-gray-700 [&_.bg-white.rounded-xl.shadow-sm.border.border-gray-100.p-6]:rounded-[1.9rem] [&_.bg-white.rounded-xl.shadow-sm.border.border-gray-100.p-6]:border-[#e5d9ca] [&_.bg-white.rounded-xl.shadow-sm.border.border-gray-100.p-6]:bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,245,239,0.96))] [&_.bg-white.rounded-xl.shadow-sm.border.border-gray-100.p-6]:shadow-[0_24px_60px_-46px_rgba(73,45,23,0.3)]">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Info */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -883,6 +883,6 @@ export default function CreateLoadTestPage() {
           </div>
         </form>
       </div>
-    </div>
+    </DashboardPageShell>
   )
 }

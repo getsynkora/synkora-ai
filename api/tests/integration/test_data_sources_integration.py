@@ -110,7 +110,7 @@ class TestDataSourcesCreateValidation:
             headers=headers,
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     @pytest.mark.asyncio
     async def test_create_data_source_invalid_type(self, async_client: AsyncClient, auth_headers):
@@ -127,7 +127,7 @@ class TestDataSourcesCreateValidation:
             headers=headers,
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     @pytest.mark.asyncio
     async def test_create_data_source_nonexistent_knowledge_base(self, async_client: AsyncClient, auth_headers):

@@ -62,9 +62,9 @@ class CheckoutRequest(BaseModel):
 # --- Auth-required endpoints ---
 
 
-@router.get("/{agent_name}/public-profile")
+@router.get("/{agent_slug}/public-profile")
 async def get_agent_public_profile(
-    agent_name: str,
+    agent_slug: str,
     db: AsyncSession = Depends(get_async_db),
     account=Depends(get_current_account),
     tenant_id: UUID = Depends(get_current_tenant_id),
@@ -74,7 +74,7 @@ async def get_agent_public_profile(
 
     from src.models.agent_public_profile import AgentPublicProfile
 
-    result = await db.execute(sa_select(Agent).where(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+    result = await db.execute(sa_select(Agent).where(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
     agent = result.scalar_one_or_none()
     if agent is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
@@ -86,9 +86,9 @@ async def get_agent_public_profile(
     return {"profile": profile.__dict__}
 
 
-@router.put("/{agent_name}/public-profile")
+@router.put("/{agent_slug}/public-profile")
 async def upsert_agent_public_profile(
-    agent_name: str,
+    agent_slug: str,
     body: PublicProfileUpsertRequest,
     db: AsyncSession = Depends(get_async_db),
     account=Depends(get_current_account),
@@ -97,7 +97,7 @@ async def upsert_agent_public_profile(
     """Create or update the public landing page profile for an agent."""
     from sqlalchemy import select
 
-    result = await db.execute(select(Agent).where(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+    result = await db.execute(select(Agent).where(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
     agent = result.scalar_one_or_none()
     if agent is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
@@ -115,9 +115,9 @@ async def upsert_agent_public_profile(
     return {"profile": profile.__dict__}
 
 
-@router.post("/{agent_name}/public-profile/publish")
+@router.post("/{agent_slug}/public-profile/publish")
 async def publish_agent_public_profile(
-    agent_name: str,
+    agent_slug: str,
     db: AsyncSession = Depends(get_async_db),
     account=Depends(get_current_account),
     tenant_id: UUID = Depends(get_current_tenant_id),
@@ -125,7 +125,7 @@ async def publish_agent_public_profile(
     """Publish the agent landing page."""
     from sqlalchemy import select
 
-    result = await db.execute(select(Agent).where(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+    result = await db.execute(select(Agent).where(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
     agent = result.scalar_one_or_none()
     if agent is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
@@ -148,10 +148,6 @@ async def get_public_agent_landing(slug: str, db: AsyncSession = Depends(get_asy
     Falls back to default (free) landing page data when no published profile
     exists but a public agent with a matching slugified name is found.
     """
-    import re
-
-    from sqlalchemy import func as sa_func
-    from sqlalchemy import or_
     from sqlalchemy import select as sa_select
 
     from src.models.agent_pricing import AgentPricing
@@ -209,30 +205,14 @@ async def get_public_agent_landing(slug: str, db: AsyncSession = Depends(get_asy
             else None,
         }
 
-    # ── Fallback: no published profile — find agent by slugified name ──
-    def _slugify(text: str) -> str:
-        text = text.lower().strip()
-        text = re.sub(r"[^\w\s-]", "", text)
-        text = re.sub(r"[\s_-]+", "-", text)
-        return re.sub(r"^-+|-+$", "", text)
-
-    # Query public agents whose names are close to the slug
-    approximate_name = slug.replace("-", " ")
+    # ── Fallback: no published profile — find agent by slug field ──
     result = await db.execute(
-        sa_select(Agent)
-        .where(
+        sa_select(Agent).where(
             Agent.is_public.is_(True),
-            or_(
-                sa_func.lower(Agent.agent_name) == approximate_name,
-                sa_func.lower(Agent.agent_name) == slug,
-            ),
+            Agent.slug == slug,
         )
-        .limit(10)
     )
-    candidates = result.scalars().all()
-
-    # Verify with exact slugify to handle special chars
-    agent = next((a for a in candidates if _slugify(a.agent_name) == slug), None)
+    agent = result.scalar_one_or_none()
 
     if agent is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
@@ -387,6 +367,11 @@ async def create_guest_checkout(
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Stripe is not configured or unavailable",
+        )
 
     return {"checkout_url": checkout_url}
 

@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Mic, Volume2, Key, Save, Trash2 } from 'lucide-react'
+import { Mic, Volume2, Key, Save, Trash2 } from 'lucide-react'
 import { apiClient } from '@/lib/api/client'
+import AgentPageShell, { AgentPagePanel } from '@/components/agents/AgentPageShell'
 
 interface VoiceConfig {
   stt_provider: 'web_speech' | 'openai_whisper'
@@ -148,25 +149,17 @@ export default function AgentVoicePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <button
-            onClick={() => router.push(`/agents/${agentName}/view`)}
-            className="flex items-center gap-2 text-red-600 hover:text-red-700 mb-4 text-sm font-medium"
-          >
-            <ArrowLeft size={16} />
-            Back to Agent
-          </button>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Voice Settings</h1>
-          <p className="text-gray-600 mt-1 text-sm">
-            Configure voice input and output for <span className="font-semibold">{agentData?.agent_name}</span>
-          </p>
-        </div>
+    <AgentPageShell
+      agentName={agentName}
+      title="Voice Settings"
+      description={<>Configure voice input and output for <span className="font-semibold text-gray-900">{agentData?.agent_name}</span>.</>}
+      icon={Mic}
+      badge="Voice Experience"
+      maxWidthClassName="max-w-[90rem]"
+    >
 
         {/* Enable Voice */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-5">
+        <AgentPagePanel className="p-5 mb-5">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
@@ -187,12 +180,12 @@ export default function AgentVoicePage() {
               <div className="w-12 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
             </label>
           </div>
-        </div>
+        </AgentPagePanel>
 
         {voiceEnabled && (
           <>
             {/* Speech-to-Text Configuration */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-5">
+            <AgentPagePanel className="p-5 mb-5">
               <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <Mic size={20} className="text-red-600" />
                 Speech-to-Text (STT)
@@ -226,10 +219,10 @@ export default function AgentVoicePage() {
                   </div>
                 )}
               </div>
-            </div>
+            </AgentPagePanel>
 
             {/* Text-to-Speech Configuration */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-5">
+            <AgentPagePanel className="p-5 mb-5">
               <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <Volume2 size={20} className="text-red-600" />
                 Text-to-Speech (TTS)
@@ -292,10 +285,10 @@ export default function AgentVoicePage() {
                   </div>
                 )}
               </div>
-            </div>
+            </AgentPagePanel>
 
             {/* Language Configuration */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-5">
+            <AgentPagePanel className="p-5 mb-5">
               <h2 className="text-base font-semibold text-gray-900 mb-4">Language Settings</h2>
               
               <div>
@@ -321,10 +314,10 @@ export default function AgentVoicePage() {
                   <option value="zh-TW">Chinese (Traditional)</option>
                 </select>
               </div>
-            </div>
+            </AgentPagePanel>
 
             {/* API Keys Management */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-5">
+            <AgentPagePanel className="p-5 mb-5">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
                   <Key size={20} className="text-red-600" />
@@ -407,7 +400,7 @@ export default function AgentVoicePage() {
                   <p className="text-xs mt-1">Add API keys to use cloud-based voice providers</p>
                 </div>
               )}
-            </div>
+            </AgentPagePanel>
           </>
         )}
 
@@ -422,13 +415,12 @@ export default function AgentVoicePage() {
           <button
             onClick={handleSaveConfig}
             disabled={saving}
-            className="flex items-center gap-2 px-5 py-2 text-sm bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-sm"
+            className="flex items-center gap-2 rounded-[1rem] bg-[#171717] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
           >
             <Save size={16} />
             {saving ? 'Saving...' : 'Save Configuration'}
           </button>
         </div>
-      </div>
-    </div>
+    </AgentPageShell>
   )
 }

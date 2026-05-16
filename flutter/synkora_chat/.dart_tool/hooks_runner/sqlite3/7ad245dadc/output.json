@@ -1,0 +1,17 @@
+{
+  "assets": [
+    {
+      "encoding": {
+        "file": "/Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/sqlite3/build/download-1862fe43/libsqlite3.dylib",
+        "id": "package:sqlite3/src/ffi/libsqlite3.g.dart",
+        "link_mode": {
+          "type": "dynamic_loading_bundle"
+        }
+      },
+      "type": "code_assets/code"
+    }
+  ],
+  "assets_for_linking": {},
+  "status": "success",
+  "timestamp": "2026-05-11 18:45:42.000"
+}

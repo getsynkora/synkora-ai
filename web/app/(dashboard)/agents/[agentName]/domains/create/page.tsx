@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { extractErrorMessage } from '@/lib/api/error'
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Save, AlertCircle, CheckCircle, Copy, Globe } from "lucide-react";
+import { Save, AlertCircle, CheckCircle, Copy, Globe } from "lucide-react";
 import { createAgentDomain, getDNSRecords } from "@/lib/api/agent-domains";
 import { AgentDomainCreate, AgentDomain, DNSRecordsResponse } from "@/types/agent-domain";
 import toast from "react-hot-toast";
+import AgentPageShell, { AgentPagePanel } from '@/components/agents/AgentPageShell'
 
 export default function CreateDomainPage() {
   const params = useParams();
@@ -22,6 +23,11 @@ export default function CreateDomainPage() {
     subdomain: "",
     domain: "",
   });
+
+  const fieldClass =
+    "w-full rounded-[1.1rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]";
+  const panelClass =
+    "rounded-[1.9rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,245,239,0.96))] p-6 shadow-[0_24px_60px_-46px_rgba(73,45,23,0.3)] sm:p-7";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,46 +68,54 @@ export default function CreateDomainPage() {
     const platformDomain = dnsRecords.platform_domain;
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
-        <div className="max-w-4xl mx-auto">
-          {/* Header */}
-          <div className="mb-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center shadow-sm">
-                <CheckCircle className="w-6 h-6 text-emerald-600" />
-              </div>
-              <div>
-                <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Domain Created Successfully!</h1>
-                <p className="text-gray-600 mt-0.5 text-sm">Configure DNS to activate your custom domain</p>
-              </div>
-            </div>
+      <AgentPageShell
+        agentName={agentName}
+        title="Domain Created Successfully"
+        description="Configure DNS to activate your custom domain."
+        icon={CheckCircle}
+        badge="Custom Domain"
+        maxWidthClassName="max-w-5xl"
+        actions={
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => router.push(`/agents/${agentName}/domains`)}
+              className="rounded-[1rem] bg-[#171717] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+            >
+              Go to Domains
+            </button>
+            <button
+              onClick={() => router.push(`/agents/${agentName}/domains/${createdDomain.id}/edit`)}
+              className="rounded-[1rem] border border-black/10 bg-white/85 px-5 py-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-white hover:text-[#171717]"
+            >
+              Customize Chat Interface
+            </button>
           </div>
-
-          {/* DNS Configuration Instructions */}
+        }
+      >
           <div className="space-y-5">
             {/* Domain Info */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <div className={panelClass}>
               <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <Globe className="w-4 h-4 text-red-600" />
+                <Globe className="w-4 h-4 text-[#2d8b69]" />
                 Your Domain
               </h2>
-              <div className="flex items-center gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center gap-3 rounded-[1rem] border border-[#d8e5d9] bg-[linear-gradient(180deg,_rgba(244,249,245,0.98),_rgba(235,245,238,0.95))] p-3">
                 <div className="flex-1">
-                  <p className="text-xs text-red-700 mb-1">Domain</p>
+                  <p className="mb-1 text-xs text-[#24543b]">Domain</p>
                   <p className="text-base font-mono font-semibold text-gray-900">{fullDomain}</p>
                 </div>
                 <button
                   onClick={() => copyToClipboard(fullDomain)}
-                  className="p-2 hover:bg-red-100 rounded-lg transition-colors"
+                  className="rounded-[0.9rem] p-2 transition-colors hover:bg-[#dfeee3]"
                   title="Copy domain"
                 >
-                  <Copy className="w-4 h-4 text-red-600" />
+                  <Copy className="w-4 h-4 text-[#24543b]" />
                 </button>
               </div>
             </div>
 
             {/* DNS Configuration Steps */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <div className={panelClass}>
               <h2 className="text-base font-semibold text-gray-900 mb-5">Setup Instructions</h2>
               
               <div className="space-y-5">
@@ -114,7 +128,7 @@ export default function CreateDomainPage() {
                     <p className="text-xs text-gray-600 mb-2">
                       Log in to your domain provider (e.g., GoDaddy, Namecheap, Cloudflare) and add the following DNS record:
                     </p>
-                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                    <div className="rounded-[1rem] border border-[#e5d9ca] bg-[#fcfaf5] p-3">
                       <div className="grid grid-cols-3 gap-3 text-xs mb-2">
                         <div>
                           <p className="text-gray-500 mb-1 text-xs">Type</p>
@@ -131,7 +145,7 @@ export default function CreateDomainPage() {
                       </div>
                       <button
                         onClick={() => copyToClipboard(`${cnameRecord?.name || createdDomain.subdomain || "@"} CNAME ${cnameRecord?.value || platformDomain}`)}
-                        className="text-xs text-red-600 hover:text-red-700 flex items-center gap-1.5 font-medium"
+                        className="flex items-center gap-1.5 text-xs font-medium text-[#24543b] hover:text-[#1d4631]"
                       >
                         <Copy className="w-3.5 h-3.5" />
                         Copy DNS record
@@ -179,98 +193,93 @@ export default function CreateDomainPage() {
             </div>
 
             {/* Important Notes */}
-            <div className="bg-red-50 border border-red-200 rounded-lg shadow-sm p-4">
-              <h3 className="font-semibold text-red-900 text-sm mb-2 flex items-center gap-2">
+            <div className="rounded-[1rem] border border-[#ead8aa] bg-[linear-gradient(180deg,_rgba(255,251,237,0.98),_rgba(251,244,217,0.96))] p-4 shadow-sm">
+              <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#8b6615]">
                 <AlertCircle className="w-4 h-4" />
                 Important Notes
               </h3>
-              <ul className="space-y-1.5 text-xs text-red-800">
+              <ul className="space-y-1.5 text-xs text-[#8b6615]">
                 <li className="flex items-start gap-2">
-                  <span className="text-red-600 mt-0.5">•</span>
+                  <span className="mt-0.5 text-[#8b6615]">•</span>
                   <span>SSL certificates will be automatically provisioned once the domain is verified</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-red-600 mt-0.5">•</span>
+                  <span className="mt-0.5 text-[#8b6615]">•</span>
                   <span>Make sure to use the exact DNS record values provided above</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-red-600 mt-0.5">•</span>
+                  <span className="mt-0.5 text-[#8b6615]">•</span>
                   <span>If using Cloudflare, disable the proxy (orange cloud) for the DNS record</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-red-600 mt-0.5">•</span>
+                  <span className="mt-0.5 text-[#8b6615]">•</span>
                   <span>Contact support if you encounter any issues with DNS configuration</span>
                 </li>
               </ul>
             </div>
-
-            {/* Actions */}
-            <div className="flex items-center gap-3 pt-2">
-              <button
-                onClick={() => router.push(`/agents/${agentName}/domains`)}
-                className="px-5 py-2 text-sm bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all shadow-sm font-medium"
-              >
-                Go to Domains
-              </button>
-              <button
-                onClick={() => router.push(`/agents/${agentName}/domains/${createdDomain.id}/edit`)}
-                className="px-5 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-white hover:border-red-300 transition-colors shadow-sm font-medium"
-              >
-                Customize Chat Interface
-              </button>
-            </div>
           </div>
-        </div>
-      </div>
+      </AgentPageShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
-      <div className="max-w-3xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
+    <AgentPageShell
+      agentName={agentName}
+      title="Add Custom Domain"
+      description="Configure a custom domain for your agent's chat interface."
+      icon={Globe}
+      badge="Custom Domain"
+      maxWidthClassName="max-w-5xl"
+      actions={
+        <div className="flex flex-wrap gap-3">
           <button
-            onClick={() => router.push(`/agents/${agentName}/domains`)}
-            className="flex items-center gap-2 text-red-600 hover:text-red-700 mb-4 transition-colors text-sm font-medium"
+            type="submit"
+            form="create-domain-form"
+            disabled={loading}
+            className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <ArrowLeft size={16} />
-            Back to Domains
+            <Save className="w-4 h-4" />
+            {loading ? "Creating..." : "Create Domain"}
           </button>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Add Custom Domain</h1>
-          <p className="text-gray-600 mt-1 text-sm">
-            Configure a custom domain for your agent's chat interface
-          </p>
+          <button
+            type="button"
+            onClick={() => router.push(`/agents/${agentName}/domains`)}
+            className="rounded-[1rem] border border-black/10 bg-white/85 px-5 py-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-white hover:text-[#171717]"
+          >
+            Cancel
+          </button>
         </div>
+      }
+    >
 
         {/* Error Message */}
         {error && (
-          <div className="mb-5 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+          <div className="mb-5 flex items-start gap-2 rounded-[1rem] border border-[#eed6dd] bg-[linear-gradient(180deg,_rgba(252,245,247,0.98),_rgba(249,236,240,0.96))] p-3">
+            <AlertCircle className="w-4 h-4 text-[#8a445c] flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-medium text-red-900 text-sm">Error</h3>
-              <p className="text-red-700 text-xs mt-1">{error}</p>
+              <h3 className="font-medium text-[#8a445c] text-sm">Error</h3>
+              <p className="text-[#8a445c] text-xs mt-1">{error}</p>
             </div>
           </div>
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit}>
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-5">
+        <form id="create-domain-form" onSubmit={handleSubmit}>
+          <div className={panelClass + " space-y-5"}>
             {/* Domain Type */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Domain Type
               </label>
               <div className="space-y-2">
-                <label className="flex items-start gap-2 p-3 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-red-200 hover:bg-red-50/50 transition-colors">
+                <label className="flex items-start gap-3 rounded-[1rem] border-2 border-gray-200 bg-white/70 p-4 cursor-pointer transition-colors hover:border-[#d4baa1] hover:bg-[#f7f2e7]">
                   <input
                     type="radio"
                     checked={formData.is_custom_domain}
                     onChange={() =>
                       setFormData({ ...formData, is_custom_domain: true })
                     }
-                    className="mt-0.5 w-4 h-4 text-red-600 focus:ring-red-500"
+                    className="mt-0.5 h-4 w-4 text-[#2d8b69] focus:ring-[#79dfbc]"
                   />
                   <div className="flex-1">
                     <span className="font-medium text-gray-900 block mb-0.5 text-sm">
@@ -281,14 +290,14 @@ export default function CreateDomainPage() {
                     </span>
                   </div>
                 </label>
-                <label className="flex items-start gap-2 p-3 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-red-200 hover:bg-red-50/50 transition-colors">
+                <label className="flex items-start gap-3 rounded-[1rem] border-2 border-gray-200 bg-white/70 p-4 cursor-pointer transition-colors hover:border-[#d4baa1] hover:bg-[#f7f2e7]">
                   <input
                     type="radio"
                     checked={!formData.is_custom_domain}
                     onChange={() =>
                       setFormData({ ...formData, is_custom_domain: false })
                     }
-                    className="mt-0.5 w-4 h-4 text-red-600 focus:ring-red-500"
+                    className="mt-0.5 h-4 w-4 text-[#2d8b69] focus:ring-[#79dfbc]"
                   />
                   <div className="flex-1">
                     <span className="font-medium text-gray-900 block mb-0.5 text-sm">
@@ -320,7 +329,7 @@ export default function CreateDomainPage() {
                       setFormData({ ...formData, domain: e.target.value })
                     }
                     placeholder="yourdomain.com"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className={fieldClass}
                     required
                   />
                   <p className="text-xs text-gray-500 mt-1">
@@ -343,7 +352,7 @@ export default function CreateDomainPage() {
                       setFormData({ ...formData, subdomain: e.target.value })
                     }
                     placeholder="myagent"
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className={fieldClass}
                     required
                   />
                   <p className="text-xs text-gray-500 mt-1">
@@ -368,10 +377,10 @@ export default function CreateDomainPage() {
                       setFormData({ ...formData, subdomain: e.target.value })
                     }
                     placeholder="yourname"
-                    className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className={`flex-1 ${fieldClass}`}
                     required
                   />
-                  <span className="text-gray-600 text-sm">.platform.com</span>
+                  <span className="text-gray-600 text-sm font-medium">.platform.com</span>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
                   Choose a unique subdomain for your agent
@@ -380,49 +389,29 @@ export default function CreateDomainPage() {
             )}
 
             {/* Info Box */}
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <h3 className="font-medium text-red-900 mb-2 text-xs">Next Steps</h3>
-              <ul className="space-y-1 text-xs text-red-800">
+            <div className="rounded-[1rem] border border-[#ead8aa] bg-[linear-gradient(180deg,_rgba(255,251,237,0.98),_rgba(251,244,217,0.96))] p-4">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#8b6615]">Next Steps</h3>
+              <ul className="space-y-1 text-xs text-[#8b6615]">
                 <li className="flex items-start gap-2">
-                  <span className="text-red-600 mt-0.5">•</span>
+                  <span className="mt-0.5">•</span>
                   <span>After creating the domain, you'll receive DNS configuration instructions</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-red-600 mt-0.5">•</span>
+                  <span className="mt-0.5">•</span>
                   <span>Add the required DNS records to your domain provider</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-red-600 mt-0.5">•</span>
+                  <span className="mt-0.5">•</span>
                   <span>DNS verification typically takes 5-10 minutes</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="text-red-600 mt-0.5">•</span>
+                  <span className="mt-0.5">•</span>
                   <span>Once verified, you can customize the chat interface</span>
                 </li>
               </ul>
             </div>
           </div>
-
-          {/* Actions */}
-          <div className="flex items-center gap-3 mt-5">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex items-center gap-2 px-5 py-2 text-sm bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm font-medium"
-            >
-              <Save className="w-4 h-4" />
-              {loading ? "Creating..." : "Create Domain"}
-            </button>
-            <button
-              type="button"
-              onClick={() => router.push(`/agents/${agentName}/domains`)}
-              className="px-5 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-white hover:border-red-300 transition-colors shadow-sm font-medium"
-            >
-              Cancel
-            </button>
-          </div>
         </form>
-      </div>
-    </div>
+    </AgentPageShell>
   );
 }

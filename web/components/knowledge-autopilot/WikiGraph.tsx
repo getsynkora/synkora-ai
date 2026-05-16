@@ -486,7 +486,7 @@ export function WikiGraph({ kbId }: WikiGraphProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full bg-gray-900">
+      <div className="flex h-full min-h-[32rem] items-center justify-center bg-gray-900">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 border-[3px] border-gray-700 border-b-primary-500 rounded-full animate-spin" />
           <span className="text-xs font-bold text-gray-500">Loading graph...</span>
@@ -497,7 +497,7 @@ export function WikiGraph({ kbId }: WikiGraphProps) {
 
   if (!graphData || graphData.nodes.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full bg-gray-900 gap-3">
+      <div className="flex h-full min-h-[32rem] flex-col items-center justify-center gap-3 bg-gray-900">
         <div className="w-16 h-16 rounded-2xl bg-gray-800 flex items-center justify-center border border-gray-700">
           <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -510,7 +510,7 @@ export function WikiGraph({ kbId }: WikiGraphProps) {
   }
 
   return (
-    <div ref={containerRef} className="relative w-full h-full select-none">
+    <div ref={containerRef} className="relative h-full min-h-[32rem] w-full select-none">
       <canvas
         ref={canvasRef}
         onClick={handleCanvasClick}
@@ -519,7 +519,7 @@ export function WikiGraph({ kbId }: WikiGraphProps) {
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
         onWheel={handleWheel}
-        className={hoveredNode ? 'cursor-pointer' : 'cursor-grab active:cursor-grabbing'}
+        className={hoveredNode ? 'h-full w-full cursor-pointer' : 'h-full w-full cursor-grab active:cursor-grabbing'}
       />
 
       {/* Zoom/pan hint — fades out after a moment */}

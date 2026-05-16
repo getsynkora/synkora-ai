@@ -119,7 +119,7 @@ class TestUploadFile:
 
         # Create test image file
         files = {"file": ("avatar.png", b"PNG image content", "image/png")}
-        data = {"agent_name": agent_name, "entity_type": "agent_avatar"}
+        data = {"agent_slug": agent_name, "entity_type": "agent_avatar"}
 
         response = test_client.post("/files/upload", files=files, data=data)
 
@@ -134,7 +134,7 @@ class TestUploadFile:
 
         # Create test non-image file
         files = {"file": ("doc.pdf", b"PDF content", "application/pdf")}
-        data = {"agent_name": "test-agent", "entity_type": "agent_avatar"}
+        data = {"agent_slug": "test-agent", "entity_type": "agent_avatar"}
 
         response = test_client.post("/files/upload", files=files, data=data)
 
@@ -147,7 +147,7 @@ class TestUploadFile:
         # Create large test file (>5MB)
         large_content = b"x" * (6 * 1024 * 1024)  # 6MB
         files = {"file": ("avatar.png", large_content, "image/png")}
-        data = {"agent_name": "test-agent", "entity_type": "agent_avatar"}
+        data = {"agent_slug": "test-agent", "entity_type": "agent_avatar"}
 
         response = test_client.post("/files/upload", files=files, data=data)
 
@@ -172,7 +172,7 @@ class TestUploadFile:
         mock_storage.generate_presigned_url.return_value = "https://s3.amazonaws.com/bucket/key?signed"
 
         files = {"file": ("avatar.png", b"PNG content", "image/png")}
-        data = {"agent_name": "nonexistent-agent", "entity_type": "agent_avatar"}
+        data = {"agent_slug": "nonexistent-agent", "entity_type": "agent_avatar"}
 
         response = test_client.post("/files/upload", files=files, data=data)
 
@@ -217,7 +217,7 @@ class TestUploadFile:
         mock_storage.generate_presigned_url.return_value = "https://presigned.url"
 
         files = {"file": ("avatar.jpg", b"JPG content", "image/jpeg")}
-        data = {"agent_name": agent_name, "entity_type": "agent_avatar"}
+        data = {"agent_slug": agent_name, "entity_type": "agent_avatar"}
 
         response = test_client.post("/files/upload", files=files, data=data)
 
@@ -246,7 +246,7 @@ class TestUploadFile:
         mock_storage.generate_presigned_url.return_value = "https://presigned.url"
 
         files = {"file": ("avatar.png", b"PNG content", "image/png")}
-        data = {"agent_name": agent_name, "entity_type": "agent_avatar"}
+        data = {"agent_slug": agent_name, "entity_type": "agent_avatar"}
 
         response = test_client.post("/files/upload", files=files, data=data)
 

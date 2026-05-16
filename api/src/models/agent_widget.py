@@ -110,6 +110,19 @@ class AgentWidget(BaseModel, TenantMixin):
         comment="When True, resolve agent from widget_agent_routes table based on org_id",
     )
 
+    mobile_allowed = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        comment="When True, Origin header check is skipped — allows Flutter/mobile SDK access",
+    )
+
+    fcm_server_key = Column(
+        Text,
+        nullable=True,
+        comment="SECURITY: Encrypted FCM Server Key for sending push notifications to mobile users",
+    )
+
     # Relationships
     agent = relationship("Agent", back_populates="widgets")
     routes = relationship("WidgetAgentRoute", back_populates="widget", cascade="all, delete-orphan")

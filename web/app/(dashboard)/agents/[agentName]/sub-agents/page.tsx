@@ -7,6 +7,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { Plus, Trash2, ArrowUp, ArrowDown, ArrowLeft, Users, Check, X, Workflow, Settings, Save } from "lucide-react";
 import { apiClient } from "@/lib/api/client";
+import AgentPageShell, { AgentPagePanel } from '@/components/agents/AgentPageShell';
 
 interface SubAgent {
   id: string;
@@ -25,6 +26,11 @@ interface AvailableAgent {
   agent_type: string;
   status: string;
 }
+
+const warmFieldClass =
+  "w-full rounded-[1.1rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]";
+const warmHelpTextClass = "text-xs leading-5 text-gray-500";
+const warmSectionLabelClass = "block text-sm font-semibold text-gray-800";
 
 export default function SubAgentsPage() {
   const params = useParams();
@@ -265,46 +271,34 @@ export default function SubAgentsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40">
-      {/* Header */}
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.push(`/agents/${agentName}/view`)}
-              className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Sub-Agents Configuration</h1>
-              <p className="text-sm text-gray-600 mt-1">
-                Configure sub-agents for <span className="font-semibold">{agent?.agent_name || agentName}</span>
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => setShowAddDialog(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all font-medium shadow-sm"
-          >
-            <Plus className="w-5 h-5" />
-            Add Sub-Agent
-          </button>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-6">
+    <AgentPageShell
+      agentName={agentName}
+      title="Sub-Agents Configuration"
+      description={<>Configure sub-agents for <span className="font-semibold text-gray-900">{agent?.agent_name || agentName}</span>.</>}
+      icon={Users}
+      badge="Multi-Agent Setup"
+      actions={
+        <button
+          onClick={() => setShowAddDialog(true)}
+          className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+        >
+          <Plus className="w-5 h-5" />
+          Add Sub-Agent
+        </button>
+      }
+    >
+      <div>
         {/* Workflow Configuration Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
-          <div className="px-5 py-3 border-b border-gray-200 bg-gradient-to-r from-red-50 to-red-100/50">
+        <AgentPagePanel className="mb-6 overflow-hidden">
+          <div className="border-b border-[#eadfce] bg-[linear-gradient(180deg,_rgba(248,243,236,0.98),_rgba(243,237,229,0.96))] px-5 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-red-100 rounded-md">
-                  <Workflow className="w-5 h-5 text-red-600" />
+                <div className="rounded-[1rem] bg-[#f3d9db] p-2.5 shadow-[0_12px_24px_-20px_rgba(123,49,55,0.4)]">
+                  <Workflow className="w-5 h-5 text-[#d14c3f]" />
                 </div>
                 <div>
                   <h2 className="text-base font-semibold text-gray-900">Workflow Configuration</h2>
-                  <p className="text-xs text-gray-600">
+                  <p className="text-sm text-gray-600">
                     Configure how sub-agents are orchestrated and executed
                   </p>
                 </div>
@@ -312,7 +306,7 @@ export default function SubAgentsPage() {
               <button
                 onClick={handleSaveWorkflowConfig}
                 disabled={isSavingWorkflow}
-                className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all text-xs font-medium shadow-sm disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />
                 {isSavingWorkflow ? "Saving..." : "Save Config"}
@@ -320,16 +314,16 @@ export default function SubAgentsPage() {
             </div>
           </div>
 
-          <div className="p-5 space-y-4">
+          <div className="space-y-5 p-5">
             {/* Workflow Type Selection */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
+            <div className="space-y-2.5">
+              <label className={warmSectionLabelClass}>
                 Workflow Type
               </label>
               <select
                 value={workflowType}
                 onChange={(e) => setWorkflowType(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className={warmFieldClass}
               >
                 <option value="">None (Standard Agent)</option>
                 <option value="sequential">Sequential - Execute sub-agents one after another</option>
@@ -337,7 +331,7 @@ export default function SubAgentsPage() {
                 <option value="loop">Loop - Iterative execution with refinement</option>
                 <option value="custom">Custom - Specialized orchestration flow</option>
               </select>
-              <p className="text-xs text-gray-500">
+              <p className={warmHelpTextClass}>
                 {workflowType === "" && "This agent will function as a standard agent without workflow orchestration."}
                 {workflowType === "sequential" && "Sub-agents will execute in order. Output of one agent becomes input to the next."}
                 {workflowType === "parallel" && "All sub-agents execute simultaneously. Results are aggregated."}
@@ -348,9 +342,9 @@ export default function SubAgentsPage() {
 
             {/* Workflow Configuration Options (shown when workflow type is selected) */}
             {workflowType && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200">
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
+              <div className="grid grid-cols-1 gap-4 border-t border-[#eadfce] pt-5 md:grid-cols-2">
+                <div className="space-y-2.5">
+                  <label className={warmSectionLabelClass}>
                     Max Iterations
                   </label>
                   <Input
@@ -360,32 +354,32 @@ export default function SubAgentsPage() {
                       ...workflowConfig,
                       max_iterations: parseInt(e.target.value) || 10
                     })}
-                    className="w-full px-3 py-2 text-sm focus:ring-red-500"
+                    className={warmFieldClass}
                   />
-                  <p className="text-xs text-gray-500">
+                  <p className={warmHelpTextClass}>
                     Maximum iterations for loop/custom workflows
                   </p>
                 </div>
 
                 {workflowType === "custom" && (
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                  <div className="space-y-2.5">
+                    <label className={warmSectionLabelClass}>
                       Custom Workflow Config (JSON)
                     </label>
                     <textarea
                       value={customConfigText}
                       onChange={(e) => setCustomConfigText(e.target.value)}
                       rows={8}
-                      className="w-full px-3 py-2 text-xs font-mono border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                      className="w-full rounded-[1.1rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-xs font-mono text-gray-900 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]"
                     />
-                    <p className="text-xs text-gray-500">
+                    <p className={warmHelpTextClass}>
                       Example: {"{\"nodes\":[{\"type\":\"agent\",\"agents\":[\"story_generator\"]},{\"type\":\"loop\",\"agents\":[\"critic\",\"reviser\"],\"iterations\":2},{\"type\":\"sequential\",\"agents\":[\"grammar_check\",\"tone_check\"]}],\"stop_on_error\":true}"}
                     </p>
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
+                <div className="space-y-2.5">
+                  <label className={warmSectionLabelClass}>
                     Timeout (seconds)
                   </label>
                   <Input
@@ -395,15 +389,15 @@ export default function SubAgentsPage() {
                       ...workflowConfig,
                       timeout_seconds: parseInt(e.target.value) || 300
                     })}
-                    className="w-full px-3 py-2 text-sm focus:ring-red-500"
+                    className={warmFieldClass}
                   />
-                  <p className="text-xs text-gray-500">
+                  <p className={warmHelpTextClass}>
                     Maximum execution time for the entire workflow
                   </p>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2 cursor-pointer">
+                <div className="rounded-[1.25rem] border border-[#e6ddd1] bg-[#fcfaf5] p-4">
+                  <label className="flex cursor-pointer items-center gap-3">
                     <input
                       type="checkbox"
                       checked={workflowConfig.continue_on_error}
@@ -411,19 +405,19 @@ export default function SubAgentsPage() {
                         ...workflowConfig,
                         continue_on_error: e.target.checked
                       })}
-                      className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                      className="h-4 w-4 rounded border-gray-300 text-[#2d8b69] focus:ring-[#79dfbc]"
                     />
-                    <span className="text-sm font-medium text-gray-700">
+                    <span className="text-sm font-semibold text-gray-800">
                       Continue on Error
                     </span>
                   </label>
-                  <p className="text-xs text-gray-500 ml-6">
+                  <p className={`${warmHelpTextClass} ml-7 mt-2`}>
                     Continue executing remaining sub-agents if one fails
                   </p>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2 cursor-pointer">
+                <div className="rounded-[1.25rem] border border-[#e6ddd1] bg-[#fcfaf5] p-4">
+                  <label className="flex cursor-pointer items-center gap-3">
                     <input
                       type="checkbox"
                       checked={workflowConfig.aggregate_outputs}
@@ -431,13 +425,13 @@ export default function SubAgentsPage() {
                         ...workflowConfig,
                         aggregate_outputs: e.target.checked
                       })}
-                      className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                      className="h-4 w-4 rounded border-gray-300 text-[#2d8b69] focus:ring-[#79dfbc]"
                     />
-                    <span className="text-sm font-medium text-gray-700">
+                    <span className="text-sm font-semibold text-gray-800">
                       Aggregate Outputs
                     </span>
                   </label>
-                  <p className="text-xs text-gray-500 ml-6">
+                  <p className={`${warmHelpTextClass} ml-7 mt-2`}>
                     Combine outputs from all sub-agents into final response
                   </p>
                 </div>
@@ -445,11 +439,11 @@ export default function SubAgentsPage() {
             )}
 
             {/* Workflow Status Indicator */}
-            <div className="flex items-center gap-2 pt-3 border-t border-gray-200">
+            <div className="flex items-center gap-2 border-t border-[#eadfce] pt-4">
               <Settings className="w-4 h-4 text-gray-400" />
-              <span className="text-xs text-gray-600">
+              <span className="text-sm text-gray-600">
                 {workflowType ? (
-                  <span className="font-medium text-red-600">
+                  <span className="font-semibold text-[#2d8b69]">
                     Workflow Mode: {workflowType.charAt(0).toUpperCase() + workflowType.slice(1)}
                   </span>
                 ) : (
@@ -458,40 +452,40 @@ export default function SubAgentsPage() {
               </span>
             </div>
           </div>
-        </div>
+        </AgentPagePanel>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-          <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
+          <AgentPagePanel className="p-4">
             <div className="text-xs text-gray-600">Total Sub-Agents</div>
             <div className="text-2xl font-bold text-gray-900 mt-1">
               {subAgents.length}
             </div>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
+          </AgentPagePanel>
+          <AgentPagePanel className="p-4">
             <div className="text-xs text-gray-600">Active Sub-Agents</div>
             <div className="text-2xl font-bold text-emerald-600 mt-1">
               {subAgents.filter(t => t.is_active).length}
             </div>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
+          </AgentPagePanel>
+          <AgentPagePanel className="p-4">
             <div className="text-xs text-gray-600">Available to Add</div>
-            <div className="text-2xl font-bold text-red-600 mt-1">
+            <div className="text-2xl font-bold text-[#d14c3f] mt-1">
               {availableAgents.length}
             </div>
-          </div>
+          </AgentPagePanel>
         </div>
 
         {/* Sub-Agents List */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="px-5 py-3 border-b border-gray-200">
+        <AgentPagePanel className="overflow-hidden">
+          <div className="border-b border-[#eadfce] px-5 py-4">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-red-100 rounded-md">
-                <Users className="w-5 h-5 text-red-600" />
+              <div className="rounded-[1rem] bg-[#f1eadc] p-2.5">
+                <Users className="w-5 h-5 text-[#171717]" />
               </div>
               <div>
                 <h2 className="text-base font-semibold text-gray-900">Configured Sub-Agents</h2>
-                <p className="text-xs text-gray-600">
+                <p className="text-sm text-gray-600">
                   Sub-agents are executed in order when called by the parent agent
                 </p>
               </div>
@@ -500,8 +494,8 @@ export default function SubAgentsPage() {
 
           {subAgents.length === 0 ? (
             <div className="p-10 text-center">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="w-6 h-6 text-red-400" />
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#f1eadc]">
+                <Users className="w-6 h-6 text-[#b18a62]" />
               </div>
               <h3 className="text-base font-semibold text-gray-900 mb-2">No Sub-Agents Configured</h3>
               <p className="text-gray-600 text-sm mb-4 max-w-md mx-auto">
@@ -509,7 +503,7 @@ export default function SubAgentsPage() {
               </p>
               <button
                 onClick={() => setShowAddDialog(true)}
-                className="inline-flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all text-xs font-medium shadow-sm"
+                className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
               >
                 <Plus className="w-4 h-4" />
                 Add Your First Sub-Agent
@@ -517,8 +511,8 @@ export default function SubAgentsPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-red-50">
+              <table className="min-w-full divide-y divide-[#efe5d8]">
+                <thead className="bg-[#f8f4ed]">
                   <tr>
                     <th className="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Order
@@ -539,10 +533,10 @@ export default function SubAgentsPage() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {subAgents.map((subAgent, index) => (
-                    <tr key={subAgent.id} className="hover:bg-red-50 transition-colors">
+                    <tr key={subAgent.id} className="transition-colors hover:bg-[#fcfaf5]">
                       <td className="px-5 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-medium bg-red-100 text-red-700 px-2 py-1 rounded">
+                          <span className="rounded-[0.8rem] bg-[#f6dfd9] px-2.5 py-1 font-mono text-xs font-medium text-[#b84a3a]">
                             {subAgent.execution_order}
                           </span>
                           <div className="flex flex-col gap-0.5">
@@ -554,7 +548,7 @@ export default function SubAgentsPage() {
                                   subAgent.execution_order - 1
                                 )
                               }
-                              className="p-0.5 hover:bg-red-100 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                              className="rounded p-0.5 transition-colors hover:bg-[#f1eadc] disabled:cursor-not-allowed disabled:opacity-30"
                             >
                               <ArrowUp className="w-3 h-3" />
                             </button>
@@ -566,7 +560,7 @@ export default function SubAgentsPage() {
                                   subAgent.execution_order + 1
                                 )
                               }
-                              className="p-0.5 hover:bg-red-100 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                              className="rounded p-0.5 transition-colors hover:bg-[#f1eadc] disabled:cursor-not-allowed disabled:opacity-30"
                             >
                               <ArrowDown className="w-3 h-3" />
                             </button>
@@ -592,7 +586,7 @@ export default function SubAgentsPage() {
                             className={`p-1.5 rounded-lg transition-colors ${
                               subAgent.is_active
                                 ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-                                : 'bg-gray-200 text-gray-400 hover:bg-gray-300'
+                                : 'bg-[#f3ede2] text-[#9e8f7f] hover:bg-[#ece2d3]'
                             }`}
                           >
                             {subAgent.is_active ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
@@ -616,7 +610,7 @@ export default function SubAgentsPage() {
                               subAgent.sub_agent_name
                             )
                           }
-                          className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="rounded-lg p-1.5 text-[#b84a3a] transition-colors hover:bg-[#f8ece8]"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -627,7 +621,7 @@ export default function SubAgentsPage() {
               </table>
             </div>
           )}
-        </div>
+        </AgentPagePanel>
       </div>
 
       {/* Add Sub-Agent Modal */}
@@ -648,7 +642,7 @@ export default function SubAgentsPage() {
             <select
               value={selectedAgentId}
               onChange={(e) => setSelectedAgentId(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              className={warmFieldClass}
             >
               <option value="">Select an agent</option>
               {availableAgents.map((agent) => (
@@ -669,7 +663,7 @@ export default function SubAgentsPage() {
               value={executionOrder}
               onChange={(e) => setExecutionOrder(parseInt(e.target.value) || 0)}
               placeholder="0"
-              className="w-full px-3 py-2 text-sm focus:ring-red-500"
+              className={warmFieldClass}
             />
             <p className="text-xs text-gray-500">
               Lower numbers execute first. Use same number for parallel execution (future feature).
@@ -679,19 +673,19 @@ export default function SubAgentsPage() {
           <div className="flex justify-end gap-2 pt-3 border-t border-gray-200">
             <button
               onClick={() => setShowAddDialog(false)}
-              className="px-4 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-white hover:border-red-300 transition-colors font-medium"
+              className="rounded-[1rem] border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-[#fcfaf5]"
             >
               Cancel
             </button>
             <button
               onClick={handleAddSubAgent}
-              className="px-4 py-2 text-sm bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all font-medium shadow-sm"
+              className="rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
             >
               Add Sub-Agent
             </button>
           </div>
         </div>
       </Modal>
-    </div>
+    </AgentPageShell>
   );
 }

@@ -3,7 +3,14 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Info, Wrench, Settings, FileText, Activity, Zap, X, Sparkles, Link, Globe, DollarSign, Tag, Users } from 'lucide-react'
+import { Info, Wrench, Settings, FileText, Activity, Zap, X, Sparkles, Link, Globe, DollarSign, Tag, Users, Mail, ExternalLink, Trash2 } from 'lucide-react'
+import {
+  listEmailTemplates,
+  getAgentEmailTemplate,
+  assignEmailTemplate,
+  removeEmailTemplate,
+  type EmailTemplate,
+} from '@/lib/api/email-templates'
 import IntegrationsTab from '@/components/agents/integrations/IntegrationsTab'
 import ContextFilesUpload from '@/components/agents/ContextFilesUpload'
 import { apiClient } from '@/lib/api/client'
@@ -19,7 +26,7 @@ interface HumanContact {
   email: string
 }
 
-type Tab = 'general' | 'llm-models' | 'context' | 'vision' | 'observability' | 'multi-agent' | 'performance' | 'advanced' | 'integrations' | 'landing-page'
+type Tab = 'general' | 'llm-models' | 'context' | 'vision' | 'observability' | 'multi-agent' | 'performance' | 'advanced' | 'integrations' | 'landing-page' | 'email'
 
 export default function EditAgentPage() {
   const params = useParams()
@@ -97,6 +104,13 @@ export default function EditAgentPage() {
   // Integrations config (MCP server + A2A)
   const [integrationsConfig, setIntegrationsConfig] = useState<any>({})
 
+  // Email template assignment
+  const [assignedTemplate, setAssignedTemplate] = useState<EmailTemplate | null>(null)
+  const [allTemplates, setAllTemplates] = useState<EmailTemplate[]>([])
+  const [emailTabLoading, setEmailTabLoading] = useState(false)
+  const [emailTabSaving, setEmailTabSaving] = useState(false)
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('')
+
   // Image generation LLM config ID (stored in agent_metadata)
   const [imageGenLlmConfigId, setImageGenLlmConfigId] = useState<string>('')
   const [agentLlmConfigs, setAgentLlmConfigs] = useState<AgentLLMConfig[]>([])
@@ -112,6 +126,7 @@ export default function EditAgentPage() {
     fetchContacts()
     fetchPlanFeatures()
     fetchAgentLlmConfigs()
+    fetchEmailTemplateData()
   }, [agentName])
 
   const fetchPlanFeatures = async () => {
@@ -139,6 +154,49 @@ export default function EditAgentPage() {
       setHumanContacts(Array.isArray(contactsData) ? contactsData : [])
     } catch (error) {
       console.error('Failed to fetch contacts:', error)
+    }
+  }
+
+  const fetchEmailTemplateData = async () => {
+    try {
+      const [templates, assigned] = await Promise.all([
+        listEmailTemplates(),
+        getAgentEmailTemplate(agentName).catch(() => null),
+      ])
+      setAllTemplates(templates)
+      setAssignedTemplate(assigned)
+      setSelectedTemplateId(assigned?.id ?? '')
+    } catch (error) {
+      console.error('Failed to fetch email template data:', error)
+    }
+  }
+
+  const handleAssignTemplate = async () => {
+    if (!selectedTemplateId) return
+    setEmailTabSaving(true)
+    try {
+      const updated = await assignEmailTemplate(agentName, selectedTemplateId)
+      setAssignedTemplate(updated)
+      toast.success('Email template assigned')
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to assign template')
+    } finally {
+      setEmailTabSaving(false)
+    }
+  }
+
+  const handleRemoveTemplate = async () => {
+    if (!confirm('Remove the assigned email template from this agent?')) return
+    setEmailTabSaving(true)
+    try {
+      await removeEmailTemplate(agentName)
+      setAssignedTemplate(null)
+      setSelectedTemplateId('')
+      toast.success('Email template removed')
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to remove template')
+    } finally {
+      setEmailTabSaving(false)
     }
   }
 
@@ -344,8 +402,8 @@ export default function EditAgentPage() {
       })
 
       toast.success('Agent updated successfully!')
-      const newName = updateResponse?.data?.agent_name || formData.name || agentName
-      router.push(`/agents/${newName}/view`)
+      const newSlug = updateResponse?.data?.slug || agentName
+      router.push(`/agents/${newSlug}/view`)
     } catch (error) {
       console.error('Failed to update agent:', error)
       toast.error('Failed to update agent')
@@ -365,51 +423,51 @@ export default function EditAgentPage() {
     { id: 'integrations' as Tab, label: 'Integrations', icon: Link },
     { id: 'advanced' as Tab, label: 'Advanced', icon: Settings },
     { id: 'landing-page' as Tab, label: 'Landing Page', icon: Globe },
+    { id: 'email' as Tab, label: 'Email', icon: Mail },
   ]
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading agent details...</p>
+      <div className="agent-workspace min-h-full px-4 py-4 md:px-8 md:py-6 xl:px-10">
+        <div className="mx-auto flex min-h-[70vh] max-w-[90rem] items-center justify-center">
+          <div className="dashboard-surface rounded-[2rem] px-10 py-12 text-center">
+            <div className="mx-auto h-12 w-12 animate-spin rounded-full border-[3px] border-black/10 border-t-[#181818]"></div>
+            <p className="mt-4 text-[14px] text-[#5b564e]">Loading agent details...</p>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="agent-workspace min-h-full px-4 py-4 md:px-8 md:py-6 xl:px-10">
+      <div className="mx-auto max-w-[90rem]">
         {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => router.push(`/agents/${agentName}/view`)}
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-primary-600 mb-6 transition-colors group"
-          >
-            <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-            <span className="text-sm font-medium">Back to Agent Details</span>
-          </button>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="mb-6">
+          <div className="dashboard-surface flex flex-col gap-4 rounded-[2rem] p-5 md:p-6 xl:flex-row xl:items-center xl:justify-between xl:p-7">
             <div>
-              <h1 className="text-2xl md:text-4xl font-extrabold text-gray-900 tracking-tight">
-                Edit Agent
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6e675d]">
+                <Sparkles className="h-3 w-3 text-[#ff5f8f]" />
+                Agent Editor
+              </div>
+              <h1 className="text-[1.8rem] font-semibold tracking-[-0.05em] text-[#171717] md:text-[2.65rem]">
+                Edit <span className="highlight-mint">Agent</span>
               </h1>
-              <p className="text-sm md:text-lg text-gray-600 mt-1 md:mt-2">
+              <p className="mt-2 text-[13px] text-[#5b564e] md:text-[15px]">
                 Configure <span className="font-semibold text-gray-900">{formData.name}</span> settings
               </p>
             </div>
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push(`/agents/${agentName}/view`)}
-                className="px-5 py-2.5 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium"
+                className="rounded-full border border-black/10 bg-white/[0.72] px-5 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={saving || !formData.name}
-                className="px-5 py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-lg hover:from-primary-600 hover:to-primary-700 transition-all font-medium shadow-lg shadow-primary-500/30 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+                className="rounded-full bg-[#181818] px-5 py-3 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {saving ? (
                   <span className="flex items-center gap-2">
@@ -425,8 +483,8 @@ export default function EditAgentPage() {
         </div>
 
         {/* Modern Tabs */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
-          <div className="border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+        <div className="dashboard-panel overflow-hidden rounded-[2rem]">
+          <div className="border-b border-black/[0.08] bg-[#f1eadc]">
             <nav className="flex flex-wrap gap-1 p-2">
               {tabs.map((tab) => {
                 const Icon = tab.icon
@@ -437,8 +495,8 @@ export default function EditAgentPage() {
                     onClick={() => setActiveTab(tab.id)}
                     className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-all rounded-lg ${
                       isActive
-                        ? 'text-white bg-gradient-to-r from-primary-500 to-primary-600 shadow-md shadow-primary-500/30'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                        ? 'bg-[#181818] text-[#f7f2e7] shadow-[0_18px_40px_rgba(0,0,0,0.12)]'
+                        : 'border border-black/10 bg-white/60 text-gray-600 hover:text-gray-900 hover:bg-white/80'
                     }`}
                   >
                     <Icon size={16} />
@@ -519,8 +577,10 @@ export default function EditAgentPage() {
             )}
             {activeTab === 'landing-page' && (
               <div className="space-y-4 py-4">
-                <div className="rounded-lg border border-gray-200 p-6 flex items-start gap-4">
-                  <Globe className="h-10 w-10 text-primary-500 shrink-0 mt-1" />
+                <div className="dashboard-surface rounded-[1.5rem] p-6 flex items-start gap-4">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-100 mt-1">
+                    <Globe className="h-5 w-5 text-primary-600" />
+                  </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-900 mb-1">Landing Page</h3>
                     <p className="text-sm text-gray-500 mb-4">
@@ -528,15 +588,17 @@ export default function EditAgentPage() {
                     </p>
                     <a
                       href={`/agents/${agentName}/landing-page`}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors"
+                      className="inline-flex items-center gap-2 rounded-full bg-[#181818] px-4 py-2.5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5"
                     >
                       <Globe className="h-4 w-4" />
                       Open editor
                     </a>
                   </div>
                 </div>
-                <div className="rounded-lg border border-gray-200 p-6 flex items-start gap-4">
-                  <DollarSign className="h-10 w-10 text-primary-500 shrink-0 mt-1" />
+                <div className="dashboard-surface rounded-[1.5rem] p-6 flex items-start gap-4">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#fff0d9] mt-1">
+                    <DollarSign className="h-5 w-5 text-[#d9a441]" />
+                  </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-900 mb-1">Monetization</h3>
                     <p className="text-sm text-gray-500 mb-4">
@@ -544,8 +606,8 @@ export default function EditAgentPage() {
                     </p>
                     {agentId ? (
                       <a
-                        href={`/billing/agent-pricing/${agentId}`}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                        href={`/billing/agent-pricing/${agentId}?from=${agentName}`}
+                        className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/[0.72] px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-white"
                       >
                         <DollarSign className="h-4 w-4" />
                         Configure pricing
@@ -555,8 +617,10 @@ export default function EditAgentPage() {
                     )}
                   </div>
                 </div>
-                <div className="rounded-lg border border-gray-200 p-6 flex items-start gap-4">
-                  <Tag className="h-10 w-10 text-primary-500 shrink-0 mt-1" />
+                <div className="dashboard-surface rounded-[1.5rem] p-6 flex items-start gap-4">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-100 mt-1">
+                    <Tag className="h-5 w-5 text-[#ff5f8f]" />
+                  </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-900 mb-1">Discount Codes</h3>
                     <p className="text-sm text-gray-500 mb-4">
@@ -564,15 +628,17 @@ export default function EditAgentPage() {
                     </p>
                     <a
                       href={`/agents/${agentName}/discount-codes`}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                      className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/[0.72] px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-white"
                     >
                       <Tag className="h-4 w-4" />
                       Manage codes
                     </a>
                   </div>
                 </div>
-                <div className="rounded-lg border border-gray-200 p-6 flex items-start gap-4">
-                  <Users className="h-10 w-10 text-primary-500 shrink-0 mt-1" />
+                <div className="dashboard-surface rounded-[1.5rem] p-6 flex items-start gap-4">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-100 mt-1">
+                    <Users className="h-5 w-5 text-primary-600" />
+                  </div>
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-900 mb-1">Subscribers</h3>
                     <p className="text-sm text-gray-500 mb-4">
@@ -580,7 +646,7 @@ export default function EditAgentPage() {
                     </p>
                     <a
                       href={`/agents/${agentName}/subscribers`}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                      className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/[0.72] px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-white"
                     >
                       <Users className="h-4 w-4" />
                       View subscribers
@@ -589,24 +655,111 @@ export default function EditAgentPage() {
                 </div>
               </div>
             )}
+            {activeTab === 'email' && (
+              <div className="space-y-6 py-4 max-w-2xl">
+                <div>
+                  <h2 className="text-base font-semibold text-gray-900 mb-1">Email <span className="highlight-pink">Template</span></h2>
+                  <p className="text-sm text-gray-500">
+                    Assign a reusable email template to this agent. When the agent sends emails or renders newsletters,
+                    the selected template will be applied automatically.
+                  </p>
+                </div>
+
+                {/* Currently assigned */}
+                {assignedTemplate ? (
+                  <div className="rounded-lg border border-green-200 bg-green-50 p-4 flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <Mail className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="font-medium text-gray-900 text-sm">{assignedTemplate.name}</p>
+                        {assignedTemplate.description && (
+                          <p className="text-xs text-gray-500 mt-0.5">{assignedTemplate.description}</p>
+                        )}
+                        <span className="mt-1 inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                          {assignedTemplate.template_type}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleRemoveTemplate}
+                      disabled={emailTabSaving}
+                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                      title="Remove template"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400 italic">No email template assigned.</p>
+                )}
+
+                {/* Assign / change */}
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-gray-700">
+                    {assignedTemplate ? 'Change template' : 'Assign a template'}
+                  </label>
+                  {allTemplates.length === 0 ? (
+                    <div className="rounded-lg border border-dashed border-gray-300 p-5 text-center">
+                      <Mail className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500 mb-3">No email templates found.</p>
+                      <a
+                        href="/email-templates"
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700"
+                      >
+                        <ExternalLink size={14} />
+                        Create a template
+                      </a>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <select
+                        value={selectedTemplateId}
+                        onChange={e => setSelectedTemplateId(e.target.value)}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      >
+                        <option value="">— select a template —</option>
+                        {allTemplates.map(t => (
+                          <option key={t.id} value={t.id}>
+                            {t.name} ({t.template_type})
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={handleAssignTemplate}
+                        disabled={!selectedTemplateId || emailTabSaving || selectedTemplateId === assignedTemplate?.id}
+                        className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {emailTabSaving ? 'Saving…' : 'Assign'}
+                      </button>
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-400">
+                    Manage all templates in{' '}
+                    <a href="/email-templates" className="text-primary-600 hover:underline inline-flex items-center gap-1">
+                      Email Templates <ExternalLink size={11} />
+                    </a>
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Footer */}
-          <div className="border-t border-gray-200 px-8 py-4 bg-gray-50 flex justify-between items-center">
-            <div className="text-sm text-gray-600">
+          <div className="flex items-center justify-between border-t border-black/[0.08] bg-[#f1eadc] px-6 py-4 md:px-8">
+            <div className="text-[13px] text-gray-600">
               Configure tools and MCP servers from the agent's dedicated pages
             </div>
             <div className="flex gap-3">
               <button
                 onClick={() => router.push(`/agents/${agentName}/view`)}
-                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+                className="rounded-full border border-black/10 bg-white/[0.72] px-6 py-2.5 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={saving || !formData.name}
-                className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded-full bg-[#181818] px-6 py-2.5 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>

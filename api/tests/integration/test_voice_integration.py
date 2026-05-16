@@ -167,7 +167,7 @@ class TestVoiceTranscriptionIntegration:
 
         response = client.post("/api/v1/voice/transcribe", headers=headers)
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 class TestVoiceSynthesisIntegration:
@@ -227,7 +227,7 @@ class TestVoiceSynthesisIntegration:
             headers=headers,
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_synthesize_with_invalid_agent_id(self, client: TestClient, auth_headers):
         """Test synthesis with invalid agent ID format."""

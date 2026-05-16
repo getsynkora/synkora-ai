@@ -646,7 +646,7 @@ class DistributedConnectionManager(ConnectionManager):
         if self._redis_pubsub:
             await self._redis_pubsub.unsubscribe()
             await self._redis_pubsub.punsubscribe()
-            await self._redis_pubsub.close()
+            await self._redis_pubsub.aclose()
 
         if hasattr(self, "_pubsub_redis") and self._pubsub_redis:
             await self._pubsub_redis.aclose()

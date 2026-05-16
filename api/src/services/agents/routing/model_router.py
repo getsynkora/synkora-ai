@@ -52,32 +52,64 @@ _FAST_MODEL_NAMES: frozenset[str] = frozenset(
 # Operators can override per-config via routing_rules.cost_per_1k_input.
 # ---------------------------------------------------------------------------
 _BUILTIN_COSTS: dict[str, float] = {
-    # Anthropic
+    # Anthropic — input cost per 1k tokens
     "claude-opus-4-6": 0.015,
     "claude-sonnet-4-6": 0.003,
-    "claude-haiku-4-5": 0.00025,
-    "claude-haiku-4-5-20251001": 0.00025,
+    "claude-haiku-4-5": 0.0008,
+    "claude-haiku-4-5-20251001": 0.0008,
     "claude-3-5-sonnet-20241022": 0.003,
     "claude-3-5-haiku-20241022": 0.0008,
     "claude-3-haiku-20240307": 0.00025,
-    # OpenAI
+    # OpenAI — input cost per 1k tokens
     "gpt-4o": 0.005,
     "gpt-4o-mini": 0.00015,
     "gpt-4-turbo": 0.01,
     "o1": 0.015,
     "o1-mini": 0.003,
     "o3-mini": 0.0011,
-    # Google
+    # Google — input cost per 1k tokens
     "gemini-1.5-pro": 0.00125,
     "gemini-1.5-flash": 0.000075,
     "gemini-2.0-flash": 0.0001,
     "gemini-2.5-pro": 0.00125,
-    # Mistral
+    # Mistral — input cost per 1k tokens
     "mistral-small-latest": 0.001,
     "mistral-large-latest": 0.003,
-    # Meta / Groq
+    # Meta / Groq — input cost per 1k tokens
     "llama-3.1-8b-instant": 0.00005,
     "llama3-70b-8192": 0.00059,
+}
+
+# Output cost per 1k tokens for every model in _BUILTIN_COSTS.
+# Output is billed separately (typically 3–5x input rate).
+# Source: official provider pricing pages.
+_BUILTIN_OUTPUT_COSTS: dict[str, float] = {
+    # Anthropic
+    "claude-opus-4-6": 0.075,  # $75 / 1M output
+    "claude-sonnet-4-6": 0.015,  # $15 / 1M output
+    "claude-haiku-4-5": 0.004,  # $4  / 1M output
+    "claude-haiku-4-5-20251001": 0.004,
+    "claude-3-5-sonnet-20241022": 0.015,
+    "claude-3-5-haiku-20241022": 0.004,
+    "claude-3-haiku-20240307": 0.00125,  # $1.25 / 1M output
+    # OpenAI
+    "gpt-4o": 0.015,  # $15 / 1M output
+    "gpt-4o-mini": 0.0006,  # $0.60 / 1M output
+    "gpt-4-turbo": 0.030,  # $30 / 1M output
+    "o1": 0.060,  # $60 / 1M output
+    "o1-mini": 0.012,  # $12 / 1M output
+    "o3-mini": 0.0044,  # $4.40 / 1M output
+    # Google
+    "gemini-1.5-pro": 0.005,  # $5   / 1M output
+    "gemini-1.5-flash": 0.0003,  # $0.30 / 1M output
+    "gemini-2.0-flash": 0.0004,  # $0.40 / 1M output
+    "gemini-2.5-pro": 0.010,  # $10  / 1M output
+    # Mistral
+    "mistral-small-latest": 0.003,  # $3   / 1M output
+    "mistral-large-latest": 0.009,  # $9   / 1M output
+    # Meta / Groq
+    "llama-3.1-8b-instant": 0.00008,
+    "llama3-70b-8192": 0.00079,
 }
 
 # ---------------------------------------------------------------------------

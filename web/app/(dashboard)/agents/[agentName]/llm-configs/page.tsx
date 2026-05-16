@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { useParams} from 'next/navigation'
-import { ArrowLeft, X, AlertTriangle } from 'lucide-react'
-import Link from 'next/link'
+import { Brain, X, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { LLMConfigForm, LLMConfigList } from '@/components/agents/llm-configs'
 import RoutingModePanel from '@/components/agents/llm-configs/RoutingModePanel'
 import { useLLMConfigManager } from '@/hooks/useAgentLLMConfigs'
 import { AgentLLMConfig, AgentLLMConfigCreate, AgentLLMConfigUpdate, RoutingMode } from '@/types/agent-llm-config'
 import { updateAgent, getAgent } from '@/lib/api/agents'
+import AgentPageShell, { AgentPagePanel } from '@/components/agents/AgentPageShell'
 
 export default function AgentLLMConfigsPage() {
   const params = useParams()
@@ -122,13 +122,13 @@ export default function AgentLLMConfigsPage() {
   const deletingConfig = configs.find(c => c.id === deletingConfigId)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40">
+    <div className="dashboard-resource-page min-h-screen">
       {/* Delete Confirmation Modal */}
       {deletingConfigId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-[1.8rem] border border-black/10 bg-[#fcfaf5] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.18)]">
             <div className="flex items-center gap-3 mb-4">
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[1rem] bg-red-50">
                 <AlertTriangle className="w-5 h-5 text-red-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900">Delete Configuration</h3>
@@ -144,14 +144,14 @@ export default function AgentLLMConfigsPage() {
               <button
                 onClick={() => setDeletingConfigId(null)}
                 disabled={isDeleting}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                className="rounded-[1rem] border border-black/10 bg-[#f1eadc] px-4 py-2.5 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#e8ddc8] disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
                 disabled={isDeleting}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
+                className="flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
               >
                 {isDeleting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                 Delete
@@ -160,30 +160,18 @@ export default function AgentLLMConfigsPage() {
           </div>
         </div>
       )}
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center gap-4">
-            <Link
-              href={`/agents/${agentName}/view`}
-              className="p-2 hover:bg-red-50 rounded-lg transition-colors text-red-600"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">AI Model Config</h1>
-              <p className="text-sm text-gray-500 mt-1">
-                Manage AI models for <span className="font-semibold text-gray-700">{agentName}</span>
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <AgentPageShell
+        agentName={agentName}
+        title="AI Model Config"
+        description={<>Manage AI models for <span className="font-semibold text-gray-900">{agentName}</span>.</>}
+        icon={Brain}
+        backHref={`/agents/${agentName}/view`}
+        backLabel="Back to Agent"
+        badge="Model Routing"
+      >
         {showForm ? (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <AgentPagePanel className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-gray-900">
                 {editingConfig ? 'Edit Configuration' : 'Add Configuration'}
@@ -201,7 +189,7 @@ export default function AgentLLMConfigsPage() {
               onCancel={handleCancel}
               isSubmitting={isSubmitting}
             />
-          </div>
+          </AgentPagePanel>
         ) : (
           <div>
             {/* Routing mode panel */}
@@ -212,30 +200,30 @@ export default function AgentLLMConfigsPage() {
               onSave={handleSaveRouting}
             />
 
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">
-                Model Configurations
-              </h2>
-              <p className="text-sm text-gray-600">
-                Add multiple models and configure routing rules on each to control which queries
-                each model handles. The routing mode above determines how the agent picks between them.
-              </p>
-            </div>
+            <AgentPagePanel className="p-6">
+              <div className="mb-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                  Model Configurations
+                </h2>
+                <p className="text-sm text-gray-600">
+                  Add multiple models and configure routing rules on each to control which queries
+                  each model handles. The routing mode above determines how the agent picks between them.
+                </p>
+              </div>
 
-            <LLMConfigList
-              configs={configs}
-              onAdd={handleAdd}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onSetDefault={handleSetDefault}
-              onToggleEnabled={handleToggleEnabled}
-              isLoading={isLoading}
-            />
-          </div>
+              <LLMConfigList
+                configs={configs}
+                onAdd={handleAdd}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onSetDefault={handleSetDefault}
+                onToggleEnabled={handleToggleEnabled}
+                isLoading={isLoading}
+              />
+            </AgentPagePanel>
           </div>
         )}
-      </div>
+      </AgentPageShell>
     </div>
   )
 }

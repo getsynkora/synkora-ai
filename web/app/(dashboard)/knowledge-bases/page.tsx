@@ -8,15 +8,14 @@ import {
   Plus,
   Edit,
   Trash2,
-  Eye,
   FileText,
   AlertCircle,
   CheckCircle,
   Search,
-  Clock,
   FolderOpen,
   ChevronRight,
-  Home
+  Home,
+  MoreHorizontal
 } from 'lucide-react'
 import { apiClient } from '@/lib/api/client'
 
@@ -40,6 +39,7 @@ export default function KnowledgeBasesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null)
   const [deleteModal, setDeleteModal] = useState<{ show: boolean; kb: KnowledgeBase | null }>({
     show: false,
     kb: null,
@@ -53,6 +53,28 @@ export default function KnowledgeBasesPage() {
   useEffect(() => {
     filterKnowledgeBases()
   }, [searchQuery, knowledgeBases])
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null
+      if (target?.closest('[data-kb-menu-root="true"]')) return
+      setOpenMenuId(null)
+    }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpenMenuId(null)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('keydown', handleEscape)
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [])
 
   const fetchKnowledgeBases = async () => {
     try {
@@ -122,7 +144,7 @@ export default function KnowledgeBasesPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40">
+      <div className="dashboard-resource-page flex h-screen items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading your knowledge bases...</p>
@@ -132,11 +154,11 @@ export default function KnowledgeBasesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
+    <div className="dashboard-resource-page min-h-screen p-4 md:p-6">
       <div className="max-w-6xl mx-auto">
         {/* Breadcrumb */}
         <div className="flex items-center gap-1.5 text-sm mb-4">
-          <Link href="/" className="text-gray-500 hover:text-red-600 transition-colors flex items-center gap-1">
+          <Link href="/" className="flex items-center gap-1 text-gray-500 transition-colors hover:text-[#171717]">
             <Home className="w-3.5 h-3.5" />
             Home
           </Link>
@@ -145,17 +167,17 @@ export default function KnowledgeBasesPage() {
         </div>
 
         {/* Header */}
-        <div className="mb-6 md:mb-8">
-          <div className="flex items-center justify-between gap-3 mb-4 md:mb-6">
+        <div className="mb-6">
+          <div className="mb-5 flex items-center justify-between gap-3">
             <div>
               <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Your Knowledge</h1>
-              <p className="text-sm text-gray-600 mt-1 hidden sm:block">
+              <p className="mt-1 text-sm text-gray-600 hidden sm:block">
                 Store and organize information for your AI agents to use
               </p>
             </div>
             <Link
               href="/knowledge-bases/create"
-              className="inline-flex items-center gap-2 px-4 py-2 md:px-5 md:py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl transition-all shadow-sm hover:shadow-md font-medium text-sm flex-shrink-0"
+              className="inline-flex flex-shrink-0 items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
             >
               <Plus className="w-4 h-4 md:w-5 md:h-5" />
               <span className="hidden sm:inline">Add Knowledge Base</span>
@@ -163,42 +185,41 @@ export default function KnowledgeBasesPage() {
             </Link>
           </div>
 
-          {/* Stats Bar */}
-          <div className="grid grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+          <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="rounded-[1.4rem] border border-black/10 bg-white/80 p-4 shadow-[0_16px_35px_rgba(0,0,0,0.05)]">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-red-100 rounded-xl">
-                  <BookOpen className="w-5 h-5 text-red-600" />
+                <div className="rounded-[1rem] bg-[#f3ecde] p-2.5">
+                  <BookOpen className="h-[18px] w-[18px] text-[#171717]" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Knowledge Bases</p>
-                  <p className="text-2xl font-bold text-gray-900">{knowledgeBases.length}</p>
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-500">Knowledge Bases</p>
+                  <p className="mt-1 text-2xl font-semibold text-gray-900">{knowledgeBases.length}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div className="rounded-[1.4rem] border border-black/10 bg-white/80 p-4 shadow-[0_16px_35px_rgba(0,0,0,0.05)]">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-blue-100 rounded-xl">
-                  <FileText className="w-5 h-5 text-blue-600" />
+                <div className="rounded-[1rem] bg-[#e8f4ee] p-2.5">
+                  <FileText className="h-[18px] w-[18px] text-[#2d8b69]" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Total Documents</p>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-500">Total Documents</p>
+                  <p className="mt-1 text-2xl font-semibold text-gray-900">
                     {knowledgeBases.reduce((sum, kb) => sum + kb.document_count, 0)}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div className="rounded-[1.4rem] border border-black/10 bg-white/80 p-4 shadow-[0_16px_35px_rgba(0,0,0,0.05)]">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-purple-100 rounded-xl">
-                  <CheckCircle className="w-5 h-5 text-purple-600" />
+                <div className="rounded-[1rem] bg-[#f1eadc] p-2.5">
+                  <CheckCircle className="h-[18px] w-[18px] text-[#5b564e]" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Active</p>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-500">Active</p>
+                  <p className="mt-1 text-2xl font-semibold text-gray-900">
                     {knowledgeBases.filter(kb => kb.is_active).length}
                   </p>
                 </div>
@@ -209,13 +230,13 @@ export default function KnowledgeBasesPage() {
           {/* Search Bar - Simplified */}
           {knowledgeBases.length > 0 && (
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Search className="absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search your knowledge bases..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent shadow-sm"
+                className="w-full rounded-[1.2rem] border border-black/10 bg-white/80 py-3 pl-11 pr-4 text-sm text-gray-900 shadow-[0_12px_28px_rgba(0,0,0,0.04)] focus:border-[#2d8b69] focus:outline-none focus:ring-2 focus:ring-[#2d8b69]/15"
               />
             </div>
           )}
@@ -223,7 +244,7 @@ export default function KnowledgeBasesPage() {
 
         {/* Error Message */}
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4">
+          <div className="mb-6 rounded-[1.3rem] border border-red-200 bg-red-50/90 p-4">
             <div className="flex items-center gap-3">
               <AlertCircle className="w-5 h-5 text-red-600" />
               <p className="text-red-700">{error}</p>
@@ -233,12 +254,12 @@ export default function KnowledgeBasesPage() {
 
         {/* Knowledge Bases Grid */}
         {filteredKBs.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+          <div className="rounded-[2rem] border border-black/10 bg-white/80 p-10 text-center shadow-[0_22px_55px_rgba(0,0,0,0.06)]">
             {/* Illustration */}
-            <div className="w-32 h-32 mx-auto mb-6 relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-red-100 to-red-50 rounded-2xl transform rotate-6"></div>
-              <div className="absolute inset-0 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center">
-                <FolderOpen className="w-12 h-12 text-red-500" />
+            <div className="relative mx-auto mb-6 h-28 w-28">
+              <div className="absolute inset-0 rotate-6 rounded-[1.75rem] bg-[#f3ecde]"></div>
+              <div className="absolute inset-0 flex items-center justify-center rounded-[1.75rem] border border-black/10 bg-white shadow-[0_18px_40px_rgba(0,0,0,0.05)]">
+                <FolderOpen className="w-10 h-10 text-[#2d8b69]" />
               </div>
             </div>
 
@@ -253,7 +274,7 @@ export default function KnowledgeBasesPage() {
             {knowledgeBases.length === 0 && (
               <Link
                 href="/knowledge-bases/create"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl transition-all shadow-sm hover:shadow-md font-medium"
+                className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
               >
                 <Plus className="w-5 h-5" />
                 Add Knowledge Base
@@ -261,82 +282,115 @@ export default function KnowledgeBasesPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filteredKBs.map((kb) => (
               <div
                 key={kb.id}
-                className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all hover:border-red-200 group"
+                className="group relative flex min-h-[292px] flex-col rounded-[1.7rem] border border-black/10 bg-white/80 shadow-[0_18px_40px_rgba(0,0,0,0.05)] transition-all hover:-translate-y-0.5 hover:border-black/15 hover:shadow-[0_22px_50px_rgba(0,0,0,0.08)]"
               >
-                <div className="p-5">
-                  {/* Header */}
-                  <div className="flex items-start gap-3 mb-4">
-                    <div className="p-2.5 bg-red-100 rounded-xl group-hover:bg-red-200 transition-colors">
-                      <BookOpen className="w-5 h-5 text-red-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-semibold text-gray-900 truncate">
-                        {kb.name}
-                      </h3>
-                      <p className="text-sm text-gray-500 line-clamp-2 mt-1">
-                        {kb.description || 'No description added'}
-                      </p>
-                    </div>
-                  </div>
+                <div
+                  className="absolute right-4 top-4 z-20"
+                  data-kb-menu-root="true"
+                >
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      setOpenMenuId(openMenuId === kb.id ? null : kb.id)
+                    }}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-black/10 bg-white/90 text-[#5b564e] shadow-[0_8px_18px_rgba(0,0,0,0.08)] transition-colors hover:bg-white hover:text-[#171717]"
+                    aria-label={`Open actions for ${kb.name}`}
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </button>
 
-                  {/* Status Badge */}
-                  <div className="mb-4">
-                    {kb.is_active ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                        Active
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full"></span>
-                        Inactive
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Stats */}
-                  <div className="flex items-center gap-4 mb-4 py-3 border-t border-gray-100">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm text-gray-600">
-                        <span className="font-semibold text-gray-900">{kb.document_count}</span> documents
-                      </span>
+                  {openMenuId === kb.id && (
+                    <div className="absolute right-0 top-11 w-40 overflow-hidden rounded-[1.1rem] border border-black/10 bg-[#fcfaf5] py-1.5 shadow-[0_20px_45px_rgba(0,0,0,0.14)]">
+                      <Link
+                        href={`/knowledge-bases/${kb.id}/edit`}
+                        prefetch={false}
+                        onClick={() => setOpenMenuId(null)}
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-[#171717] transition-colors hover:bg-[#f3ecde]"
+                      >
+                        <Edit className="h-4 w-4" />
+                        Edit
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpenMenuId(null)
+                          openDeleteModal(kb)
+                        }}
+                        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete
+                      </button>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm text-gray-500">{formatDate(kb.updated_at)}</span>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-2">
-                    <Link
-                      href={`/knowledge-bases/${kb.id}`}
-                      prefetch={false}
-                      className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
-                    >
-                      <Eye className="w-4 h-4" />
-                      Open
-                    </Link>
-                    <Link
-                      href={`/knowledge-bases/${kb.id}/edit`}
-                      prefetch={false}
-                      className="inline-flex items-center justify-center px-3 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Link>
-                    <button
-                      onClick={() => openDeleteModal(kb)}
-                      className="inline-flex items-center justify-center px-3 py-2.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                  )}
                 </div>
+
+                <Link
+                  href={`/knowledge-bases/${kb.id}`}
+                  prefetch={false}
+                  className="flex flex-1 flex-col p-5 pr-16 focus:outline-none"
+                  aria-label={`Open ${kb.name}`}
+                >
+                  <div className="mb-4 flex items-start gap-3">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <div className="rounded-[1.1rem] bg-[#f3ecde] p-3 transition-colors group-hover:bg-[#ece2cd]">
+                        <BookOpen className="w-5 h-5 text-[#171717]" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="truncate text-[1.05rem] font-semibold text-gray-900">
+                          {kb.name}
+                        </h3>
+                        <p className="mt-1 line-clamp-2 text-sm text-gray-500">
+                          {kb.description || 'No description added'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mb-4 flex flex-wrap gap-2">
+                    <span
+                      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${
+                        kb.is_active
+                          ? 'bg-[#e8f4ee] text-[#2d8b69]'
+                          : 'bg-[#f1eadc] text-[#6e675d]'
+                      }`}
+                    >
+                      <span
+                        className={`mr-1.5 h-1.5 w-1.5 rounded-full ${
+                          kb.is_active ? 'bg-[#2d8b69]' : 'bg-[#8a8378]'
+                        }`}
+                      />
+                      {kb.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                    <span className="inline-flex items-center rounded-full bg-[#f7f2e7] px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-[#6e675d]">
+                      {kb.vector_db_provider}
+                    </span>
+                    <span className="inline-flex items-center rounded-full bg-[#f7f2e7] px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-[#6e675d]">
+                      {kb.embedding_provider}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2.5">
+                    <div className="min-w-0 rounded-[1.15rem] border border-black/10 bg-[#fcfaf5] px-3 py-3">
+                      <div className="text-[10px] font-medium uppercase leading-snug tracking-[0.1em] text-gray-500 break-words">Documents</div>
+                      <div className="mt-1 text-base font-semibold text-gray-900">{kb.document_count}</div>
+                    </div>
+                    <div className="min-w-0 rounded-[1.15rem] border border-black/10 bg-[#eef7f1] px-3 py-3">
+                      <div className="text-[10px] font-medium uppercase leading-snug tracking-[0.1em] text-gray-500 break-words">Chunks</div>
+                      <div className="mt-1 text-base font-semibold text-gray-900">{kb.total_chunks}</div>
+                    </div>
+                    <div className="min-w-0 rounded-[1.15rem] border border-black/10 bg-[#f4efe4] px-3 py-3">
+                      <div className="text-[10px] font-medium uppercase leading-snug tracking-[0.1em] text-gray-500 break-words">Updated</div>
+                      <div className="mt-1 text-sm font-semibold text-gray-900">{formatDate(kb.updated_at)}</div>
+                    </div>
+                  </div>
+                </Link>
               </div>
             ))}
           </div>
@@ -345,32 +399,32 @@ export default function KnowledgeBasesPage() {
 
       {/* Delete Confirmation Modal */}
       {deleteModal.show && deleteModal.kb && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2.5 bg-red-100 rounded-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-[1.8rem] border border-black/10 bg-[#fcfaf5] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.18)]">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="rounded-[1rem] bg-red-50 p-2.5">
                 <Trash2 className="w-6 h-6 text-red-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900">Delete Knowledge Base</h3>
             </div>
 
-            <p className="text-gray-600 mb-6">
+            <p className="mb-6 text-gray-600">
               Are you sure you want to delete <span className="font-semibold text-gray-900">"{deleteModal.kb.name}"</span>?
               All documents and data will be permanently removed.
             </p>
 
-            <div className="flex gap-3 justify-end">
+            <div className="flex justify-end gap-3">
               <button
                 onClick={closeDeleteModal}
                 disabled={deleting}
-                className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                className="rounded-[1rem] border border-black/10 bg-[#f1eadc] px-4 py-2.5 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#e8ddc8] disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
                 disabled={deleting}
-                className="px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {deleting ? (
                   <>

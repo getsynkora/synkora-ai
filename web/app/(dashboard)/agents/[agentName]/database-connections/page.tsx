@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { ArrowLeft, Database, Save, Loader2 } from 'lucide-react'
 import { apiClient } from '@/lib/api/client'
+import AgentPageShell, { AgentPagePanel } from '@/components/agents/AgentPageShell'
 
 interface DbConnection {
   id: string
@@ -61,42 +62,31 @@ export default function AgentDatabaseConnectionsPage() {
   const attachedCount = connections.filter(c => c.attached).length
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
-      <div className="max-w-3xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <button
-            onClick={() => router.push(`/agents/${encodeURIComponent(agentName)}/view`)}
-            className="inline-flex items-center gap-2 text-red-600 hover:text-red-700 font-medium mb-3 transition-colors text-sm"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Agent
-          </button>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-red-100 rounded-lg">
-                <Database className="w-6 h-6 text-red-600" />
-              </div>
-              <div>
-                <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Database Connections</h1>
-                <p className="text-gray-600 mt-0.5 text-sm">
-                  Select which databases <span className="font-medium">{agentName}</span> can access
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={save}
-              disabled={saving || loading}
-              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-lg transition-all shadow-sm disabled:opacity-50"
-            >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              Save
-            </button>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+    <AgentPageShell
+      agentName={agentName}
+      title="Database Connections"
+      description={<>Select which databases <span className="font-semibold text-gray-900">{agentName}</span> can access.</>}
+      icon={Database}
+      backHref={`/agents/${encodeURIComponent(agentName)}/view`}
+      backLabel="Back to Agent"
+      badge="Data Access"
+      maxWidthClassName="max-w-[90rem]"
+      stats={[
+        { label: 'Attached', value: attachedCount },
+        { label: 'Available', value: connections.length },
+      ]}
+      actions={
+        <button
+          onClick={save}
+          disabled={saving || loading}
+          className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          Save
+        </button>
+      }
+    >
+      <AgentPagePanel className="overflow-hidden">
           {loading ? (
             <div className="flex items-center justify-center py-16">
               <Loader2 className="w-8 h-8 text-red-500 animate-spin" />
@@ -112,14 +102,14 @@ export default function AgentDatabaseConnectionsPage() {
               </p>
               <button
                 onClick={() => router.push('/database-connections')}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
+                className="inline-flex items-center gap-2 rounded-[1rem] border border-black/10 bg-[#f1eadc] px-4 py-2.5 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#e8ddc8]"
               >
                 Go to Database Connections
               </button>
             </div>
           ) : (
             <>
-              <div className="px-5 py-3.5 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+              <div className="flex items-center justify-between border-b border-black/10 bg-[#fcfaf5] px-5 py-3.5">
                 <span className="text-sm text-gray-600">
                   {attachedCount} of {connections.length} attached
                 </span>
@@ -127,12 +117,12 @@ export default function AgentDatabaseConnectionsPage() {
                   Only attached connections are accessible to the agent
                 </span>
               </div>
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-black/5">
                 {connections.map(conn => (
-                  <div key={conn.id} className="flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors">
+                  <div key={conn.id} className="flex items-center justify-between px-5 py-4 transition-colors hover:bg-[#fcfaf5]">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-50 rounded-lg">
-                        <Database className="w-4 h-4 text-blue-600" />
+                      <div className="rounded-[0.95rem] bg-[#f3ecde] p-2.5">
+                        <Database className="w-4 h-4 text-[#171717]" />
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-900">{conn.name}</p>
@@ -145,7 +135,7 @@ export default function AgentDatabaseConnectionsPage() {
                     <button
                       onClick={() => toggle(conn.id)}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        conn.attached ? 'bg-red-600' : 'bg-gray-200'
+                        conn.attached ? 'bg-[#171717]' : 'bg-gray-200'
                       }`}
                     >
                       <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
@@ -157,8 +147,7 @@ export default function AgentDatabaseConnectionsPage() {
               </div>
             </>
           )}
-        </div>
-      </div>
-    </div>
+      </AgentPagePanel>
+    </AgentPageShell>
   )
 }

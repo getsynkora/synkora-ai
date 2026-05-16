@@ -8,7 +8,6 @@ import {
   Database,
   Plus,
   Trash2,
-  Eye,
   Edit,
   CheckCircle,
   XCircle,
@@ -16,7 +15,11 @@ import {
   Search,
   Filter,
   AlertCircle,
-  Server
+  Server,
+  MoreHorizontal,
+  Home,
+  ChevronRight,
+  FolderOpen
 } from 'lucide-react'
 
 interface DatabaseConnection {
@@ -44,6 +47,7 @@ export default function DatabaseConnectionsPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null)
   const [deleteModal, setDeleteModal] = useState<{ show: boolean; connection: DatabaseConnection | null }>({
     show: false,
     connection: null,
@@ -57,6 +61,28 @@ export default function DatabaseConnectionsPage() {
   useEffect(() => {
     filterConnections()
   }, [searchQuery, filterType, filterStatus, connections])
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null
+      if (target?.closest('[data-db-menu-root="true"]')) return
+      setOpenMenuId(null)
+    }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpenMenuId(null)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('keydown', handleEscape)
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [])
 
   const fetchConnections = async () => {
     try {
@@ -109,6 +135,14 @@ export default function DatabaseConnectionsPage() {
     }
   }
 
+  const openDeleteModal = (connection: DatabaseConnection) => {
+    setDeleteModal({ show: true, connection })
+  }
+
+  const closeDeleteModal = () => {
+    setDeleteModal({ show: false, connection: null })
+  }
+
   const getTypeIcon = (type: string) => {
     switch (type?.toUpperCase()) {
       case 'POSTGRESQL': return <Database className="w-4 h-4" />
@@ -119,19 +153,19 @@ export default function DatabaseConnectionsPage() {
 
   const getTypeColor = (type: string) => {
     switch (type?.toUpperCase()) {
-      case 'POSTGRESQL': return 'bg-blue-100 text-blue-800'
-      case 'ELASTICSEARCH': return 'bg-purple-100 text-purple-800'
-      case 'MYSQL': return 'bg-orange-100 text-orange-800'
-      case 'MONGODB': return 'bg-green-100 text-green-800'
-      default: return 'bg-amber-100 text-amber-800'
+      case 'POSTGRESQL': return 'bg-[#e7f0ff] text-[#325b93]'
+      case 'ELASTICSEARCH': return 'bg-[#efe7f7] text-[#6b4d86]'
+      case 'MYSQL': return 'bg-[#f7eadb] text-[#9c6228]'
+      case 'MONGODB': return 'bg-[#e8f4ee] text-[#2d8b69]'
+      default: return 'bg-[#f3ecde] text-[#6e675d]'
     }
   }
 
   const getStatusColor = (status: string) => {
-    if (status === 'active') return 'bg-green-100 text-green-800'
-    if (status === 'inactive') return 'bg-gray-100 text-gray-800'
-    if (status === 'error') return 'bg-red-100 text-red-800'
-    return 'bg-yellow-100 text-yellow-800' // pending
+    if (status === 'active') return 'bg-[#e8f4ee] text-[#2d8b69]'
+    if (status === 'inactive') return 'bg-[#f1eadc] text-[#6e675d]'
+    if (status === 'error') return 'bg-[#fbe9e7] text-[#b44736]'
+    return 'bg-[#f8eed9] text-[#ad7d25]' // pending
   }
 
   const getStatusIcon = (status: string) => {
@@ -148,145 +182,190 @@ export default function DatabaseConnectionsPage() {
     return 'Pending'
   }
 
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Never'
+
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+    if (diffDays === 0) return 'Today'
+    if (diffDays === 1) return 'Yesterday'
+    if (diffDays < 7) return `${diffDays} days ago`
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
+
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  }
+
   const uniqueTypes = Array.from(new Set(connections.map(c => c.type)))
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+      <div className="dashboard-resource-page flex h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-red-600"></div>
+          <p className="text-gray-600">Loading your database connections...</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header - More Compact */}
+    <div className="dashboard-resource-page min-h-screen p-4 md:p-6">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-4 flex items-center gap-1.5 text-sm">
+          <Link href="/" className="flex items-center gap-1 text-gray-500 transition-colors hover:text-[#171717]">
+            <Home className="h-3.5 w-3.5" />
+            Home
+          </Link>
+          <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
+          <span className="font-medium text-gray-900">Database Connections</span>
+        </div>
+
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-5 flex items-center justify-between gap-3">
             <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Database Connections</h1>
-              <p className="text-gray-600 mt-1 text-sm">
+              <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 md:text-3xl">Database Connections</h1>
+              <p className="mt-1 hidden text-sm text-gray-600 sm:block">
                 Manage database connections for data analysis agents
               </p>
             </div>
             <Link
               href="/database-connections/create"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition-all shadow-sm hover:shadow-md text-sm font-medium"
+              className="inline-flex flex-shrink-0 items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
             >
-              <Plus className="w-4 h-4" />
-              Add Connection
+              <Plus className="h-4 w-4 md:h-5 md:w-5" />
+              <span className="hidden sm:inline">Add Connection</span>
+              <span className="sm:hidden">Add</span>
             </Link>
           </div>
 
-          {/* Stats Bar - More Compact */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-5">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="p-1.5 bg-red-100 rounded-lg">
-                  <Database className="w-4 h-4 text-red-600" />
+          <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-[1.4rem] border border-black/10 bg-white/80 p-4 shadow-[0_16px_35px_rgba(0,0,0,0.05)]">
+              <div className="flex items-center gap-3">
+                <div className="rounded-[1rem] bg-[#f3ecde] p-2.5">
+                  <Database className="h-[18px] w-[18px] text-[#171717]" />
                 </div>
-                <p className="text-xs font-medium text-gray-600">Total</p>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-500">Total</p>
+                  <p className="mt-1 text-2xl font-semibold text-gray-900">{connections.length}</p>
+                </div>
               </div>
-              <p className="text-2xl font-bold text-gray-900">{connections.length}</p>
             </div>
-            
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="p-1.5 bg-emerald-100 rounded-lg">
-                  <CheckCircle className="w-4 h-4 text-emerald-600" />
+
+            <div className="rounded-[1.4rem] border border-black/10 bg-white/80 p-4 shadow-[0_16px_35px_rgba(0,0,0,0.05)]">
+              <div className="flex items-center gap-3">
+                <div className="rounded-[1rem] bg-[#e8f4ee] p-2.5">
+                  <CheckCircle className="h-[18px] w-[18px] text-[#2d8b69]" />
                 </div>
-                <p className="text-xs font-medium text-gray-600">Active</p>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-500">Active</p>
+                  <p className="mt-1 text-2xl font-semibold text-gray-900">
+                    {connections.filter(c => c.status === 'active').length}
+                  </p>
+                </div>
               </div>
-              <p className="text-2xl font-bold text-gray-900">
-                {connections.filter(c => c.status === 'active').length}
-              </p>
             </div>
-            
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="p-1.5 bg-gray-100 rounded-lg">
-                  <XCircle className="w-4 h-4 text-gray-600" />
+
+            <div className="rounded-[1.4rem] border border-black/10 bg-white/80 p-4 shadow-[0_16px_35px_rgba(0,0,0,0.05)]">
+              <div className="flex items-center gap-3">
+                <div className="rounded-[1rem] bg-[#f1eadc] p-2.5">
+                  <XCircle className="h-[18px] w-[18px] text-[#5b564e]" />
                 </div>
-                <p className="text-xs font-medium text-gray-600">Inactive</p>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-500">Inactive</p>
+                  <p className="mt-1 text-2xl font-semibold text-gray-900">
+                    {connections.filter(c => c.status === 'inactive').length}
+                  </p>
+                </div>
               </div>
-              <p className="text-2xl font-bold text-gray-900">
-                {connections.filter(c => c.status === 'inactive').length}
-              </p>
             </div>
-            
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="p-1.5 bg-yellow-100 rounded-lg">
-                  <Clock className="w-4 h-4 text-yellow-600" />
+
+            <div className="rounded-[1.4rem] border border-black/10 bg-white/80 p-4 shadow-[0_16px_35px_rgba(0,0,0,0.05)]">
+              <div className="flex items-center gap-3">
+                <div className="rounded-[1rem] bg-[#f8eed9] p-2.5">
+                  <Clock className="h-[18px] w-[18px] text-[#ad7d25]" />
                 </div>
-                <p className="text-xs font-medium text-gray-600">Pending</p>
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-500">Pending</p>
+                  <p className="mt-1 text-2xl font-semibold text-gray-900">
+                    {connections.filter(c => c.status === 'pending').length}
+                  </p>
+                </div>
               </div>
-              <p className="text-2xl font-bold text-gray-900">
-                {connections.filter(c => c.status === 'pending').length}
-              </p>
             </div>
           </div>
 
-          {/* Search and Filter Bar - More Compact */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-            <div className="flex flex-col md:flex-row gap-3">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <div className="rounded-[1.3rem] border border-black/10 bg-white/80 p-3 shadow-[0_12px_28px_rgba(0,0,0,0.04)]">
+            <div className="flex flex-col gap-3 lg:flex-row">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Search connections..."
+                  placeholder="Search database connections..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full rounded-[1.1rem] border border-black/10 bg-[#fcfaf5] py-3 pl-11 pr-4 text-sm text-gray-900 focus:border-[#2d8b69] focus:outline-none focus:ring-2 focus:ring-[#2d8b69]/15"
                 />
               </div>
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-gray-400" />
-                <select
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
-                  className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                >
-                  <option value="all">All Types</option>
-                  {uniqueTypes.map(type => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                >
-                  <option value="all">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="pending">Pending</option>
-                  <option value="error">Error</option>
-                </select>
+
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <div className="flex items-center gap-2 rounded-[1.1rem] border border-black/10 bg-[#fcfaf5] px-3">
+                  <Filter className="h-4 w-4 text-gray-400" />
+                  <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                    className="min-w-[140px] bg-transparent py-3 text-sm text-gray-700 focus:outline-none"
+                  >
+                    <option value="all">All Types</option>
+                    {uniqueTypes.map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2 rounded-[1.1rem] border border-black/10 bg-[#fcfaf5] px-3">
+                  <CheckCircle className="h-4 w-4 text-gray-400" />
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="min-w-[140px] bg-transparent py-3 text-sm text-gray-700 focus:outline-none"
+                  >
+                    <option value="all">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="pending">Pending</option>
+                    <option value="error">Error</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Error Message */}
         {error && (
-          <div className="mb-6 bg-red-50 border-l-4 border-red-500 rounded-lg p-4">
+          <div className="mb-6 rounded-[1.3rem] border border-red-200 bg-red-50/90 p-4">
             <div className="flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600" />
+              <AlertCircle className="h-5 w-5 text-red-600" />
               <p className="text-red-700">{error}</p>
             </div>
           </div>
         )}
 
-        {/* Connections Grid - More Compact */}
         {filteredConnections.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm border-2 border-dashed border-gray-300 p-10 text-center">
-            <Database className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-            <h3 className="text-base font-semibold text-gray-900 mb-2">
+          <div className="rounded-[2rem] border border-black/10 bg-white/80 p-10 text-center shadow-[0_22px_55px_rgba(0,0,0,0.06)]">
+            <div className="relative mx-auto mb-6 h-28 w-28">
+              <div className="absolute inset-0 rotate-6 rounded-[1.75rem] bg-[#f3ecde]"></div>
+              <div className="absolute inset-0 flex items-center justify-center rounded-[1.75rem] border border-black/10 bg-white shadow-[0_18px_40px_rgba(0,0,0,0.05)]">
+                <FolderOpen className="h-10 w-10 text-[#2d8b69]" />
+              </div>
+            </div>
+
+            <h3 className="mb-2 text-xl font-semibold text-gray-900">
               {connections.length === 0 ? 'No database connections yet' : 'No results found'}
             </h3>
-            <p className="text-sm text-gray-600 mb-5">
+            <p className="mx-auto mb-6 max-w-md text-gray-600">
               {connections.length === 0
                 ? 'Add your first database connection to enable data analysis.'
                 : 'Try adjusting your search or filter criteria.'}
@@ -294,128 +373,158 @@ export default function DatabaseConnectionsPage() {
             {connections.length === 0 && (
               <Link
                 href="/database-connections/create"
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition-all shadow-sm hover:shadow-md text-sm font-medium"
+                className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="h-5 w-5" />
                 Add Connection
               </Link>
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filteredConnections.map((connection) => (
               <div
                 key={connection.id}
-                className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all hover:border-red-300"
+                className="group relative flex min-h-[300px] flex-col rounded-[1.7rem] border border-black/10 bg-white/80 shadow-[0_18px_40px_rgba(0,0,0,0.05)] transition-all hover:-translate-y-0.5 hover:border-black/15 hover:shadow-[0_22px_50px_rgba(0,0,0,0.08)]"
               >
-                <div className="p-4">
-                  {/* Header - More Compact */}
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-start gap-2.5 flex-1">
-                      <div className={`p-1.5 rounded-lg ${getTypeColor(connection.type)}`}>
-                        {getTypeIcon(connection.type)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-base font-semibold text-gray-900 mb-0.5 truncate">
-                          {connection.name}
-                        </h3>
-                        <p className="text-xs text-gray-500 truncate">
-                          {connection.host}:{connection.port}
-                        </p>
-                      </div>
+                <div
+                  className="absolute right-4 top-4 z-20"
+                  data-db-menu-root="true"
+                >
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      setOpenMenuId(openMenuId === connection.id ? null : connection.id)
+                    }}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-black/10 bg-white/90 text-[#5b564e] shadow-[0_8px_18px_rgba(0,0,0,0.08)] transition-colors hover:bg-white hover:text-[#171717]"
+                    aria-label={`Open actions for ${connection.name}`}
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </button>
+
+                  {openMenuId === connection.id && (
+                    <div className="absolute right-0 top-11 w-44 overflow-hidden rounded-[1.1rem] border border-black/10 bg-[#fcfaf5] py-1.5 shadow-[0_20px_45px_rgba(0,0,0,0.14)]">
+                      <Link
+                        href={`/database-connections/${connection.id}/edit`}
+                        onClick={() => setOpenMenuId(null)}
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-[#171717] transition-colors hover:bg-[#f3ecde]"
+                      >
+                        <Edit className="h-4 w-4" />
+                        Edit
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpenMenuId(null)
+                          openDeleteModal(connection)
+                        }}
+                        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <Link
+                  href={`/database-connections/${connection.id}`}
+                  className="flex flex-1 flex-col p-5 pr-16 focus:outline-none"
+                  aria-label={`Open ${connection.name}`}
+                >
+                  <div className="mb-4 flex items-start gap-3">
+                    <div className={`rounded-[1.1rem] p-3 transition-colors ${getTypeColor(connection.type)}`}>
+                      {getTypeIcon(connection.type)}
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="truncate text-[1.05rem] font-semibold text-gray-900">
+                        {connection.name}
+                      </h3>
+                      <p className="mt-1 truncate text-sm text-gray-500">
+                        {connection.host}:{connection.port}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Status Badge - More Compact */}
-                  <div className="mb-3">
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(connection.status)}`}>
+                  <div className="mb-4 flex flex-wrap gap-2">
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${getStatusColor(connection.status)}`}>
                       {getStatusIcon(connection.status)}
                       {getStatusText(connection.status)}
                     </span>
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] ${getTypeColor(connection.type)}`}>
+                      {connection.type}
+                    </span>
                   </div>
 
-                  {/* Description - More Compact */}
-                  {connection.description && (
-                    <p className="text-xs text-gray-600 mb-3 line-clamp-2">
-                      {connection.description}
-                    </p>
-                  )}
+                  <p className="mb-4 line-clamp-2 text-sm text-gray-600">
+                    {connection.description || 'No description added'}
+                  </p>
 
-                  {/* Database Info - More Compact */}
-                  {connection.database && (
-                    <div className="mb-3 p-2.5 bg-gray-50 rounded-lg">
-                      <p className="text-xs text-gray-500 mb-0.5">Database</p>
-                      <p className="text-xs font-medium text-gray-900 truncate">{connection.database}</p>
+                  <div className="grid grid-cols-3 gap-2.5">
+                    <div className="min-w-0 rounded-[1.15rem] border border-black/10 bg-[#fcfaf5] px-3 py-3">
+                      <div className="break-words text-[10px] font-medium uppercase leading-snug tracking-[0.1em] text-gray-500">Database</div>
+                      <div className="mt-1 truncate text-sm font-semibold text-gray-900">
+                        {connection.database || 'N/A'}
+                      </div>
                     </div>
-                  )}
-
-                  {/* Action Buttons - More Compact */}
-                  <div className="flex gap-1.5">
-                    <Link
-                      href={`/database-connections/${connection.id}`}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                    >
-                      <Eye className="w-3.5 h-3.5" />
-                      View
-                    </Link>
-                    <Link
-                      href={`/database-connections/${connection.id}/edit`}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                    >
-                      <Edit className="w-3.5 h-3.5" />
-                      Edit
-                    </Link>
-                    <button
-                      onClick={() => setDeleteModal({ show: true, connection })}
-                      className="inline-flex items-center justify-center px-3 py-2 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="min-w-0 rounded-[1.15rem] border border-black/10 bg-[#eef7f1] px-3 py-3">
+                      <div className="break-words text-[10px] font-medium uppercase leading-snug tracking-[0.1em] text-gray-500">User</div>
+                      <div className="mt-1 truncate text-sm font-semibold text-gray-900">
+                        {connection.username || 'N/A'}
+                      </div>
+                    </div>
+                    <div className="min-w-0 rounded-[1.15rem] border border-black/10 bg-[#f4efe4] px-3 py-3">
+                      <div className="break-words text-[10px] font-medium uppercase leading-snug tracking-[0.1em] text-gray-500">Tested</div>
+                      <div className="mt-1 text-sm font-semibold text-gray-900">
+                        {formatDate(connection.last_tested_at)}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                </Link>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* Delete Confirmation Modal - Modern Design */}
       {deleteModal.show && deleteModal.connection && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border border-gray-200">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <AlertCircle className="w-6 h-6 text-red-600" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-[1.8rem] border border-black/10 bg-[#fcfaf5] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.18)]">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="rounded-[1rem] bg-red-50 p-2.5">
+                <Trash2 className="h-6 w-6 text-red-600" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900">Delete Connection</h3>
             </div>
-            
-            <p className="text-sm text-gray-600 mb-6">
-              Are you sure you want to delete <span className="font-semibold">"{deleteModal.connection.name}"</span>? 
+
+            <p className="mb-6 text-gray-600">
+              Are you sure you want to delete <span className="font-semibold text-gray-900">"{deleteModal.connection.name}"</span>?
               This action cannot be undone and will permanently remove this database connection.
             </p>
-            
-            <div className="flex gap-3 justify-end">
+
+            <div className="flex justify-end gap-3">
               <button
-                onClick={() => setDeleteModal({ show: false, connection: null })}
+                onClick={closeDeleteModal}
                 disabled={deleting}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                className="rounded-[1rem] border border-black/10 bg-[#f1eadc] px-4 py-2.5 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#e8ddc8] disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
                 disabled={deleting}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm hover:shadow-md"
+                className="flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {deleting ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                     Deleting...
                   </>
                 ) : (
                   <>
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="h-4 w-4" />
                     Delete
                   </>
                 )}

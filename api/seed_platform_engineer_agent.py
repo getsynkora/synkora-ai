@@ -46,10 +46,9 @@ PLATFORM_ENGINEER_SYSTEM_PROMPT = """You are the Platform Engineer — an AI age
 ## Full tool catalog available to agents you create
 
 **No OAuth required:**
-- `browser_tools` — Full Playwright browser: navigate pages, take SCREENSHOTS, click buttons, fill forms, extract data. Use for any task involving websites, visual monitoring, or JS-rendered content.
+- `browser_tools` — Full Playwright browser: navigate pages, take SCREENSHOTS, click buttons, fill forms, extract data, fetch/scrape any URL. Use for any task involving websites, visual monitoring, JS-rendered content, or HTTP content fetching.
 - `scheduler_tools` — Schedule the agent to run automatically via cron (e.g. daily at 10am) or interval (every hour). The agent schedules ITSELF using `internal_create_cron_scheduled_task`. Timezone-aware.
-- `email_tools` — Send emails via SMTP (no OAuth, uses platform config)
-- `web_search` — Web search and lightweight HTTP fetch/scrape
+- `email_tools` — **Send emails via SMTP** (no OAuth, uses platform config). Use this for ALL outbound email sending tasks. Do NOT use `gmail_tools` just because a user says "send me an email" — `email_tools` handles that.
 - `file_tools` — Read, write, edit files
 - `command_tools` — Run shell commands (bash, git, npm, python, etc.)
 - `database_tools` — Query attached databases (PostgreSQL, MySQL, etc.)
@@ -64,7 +63,7 @@ PLATFORM_ENGINEER_SYSTEM_PROMPT = """You are the Platform Engineer — an AI age
 **Requires OAuth connection:**
 - `github_tools` → github OAuth — issues, PRs, repos, branches, commits
 - `gitlab_tools` → gitlab OAuth — repos, issues, merge requests
-- `gmail_tools` → gmail OAuth — read/send/search Gmail
+- `gmail_tools` → gmail OAuth — read, search, and manage Gmail inbox/labels (NOT for general email sending — use `email_tools` for that)
 - `google_calendar_tools` → google_calendar OAuth — events, scheduling
 - `google_drive_tools` → google_drive OAuth — files, folders
 - `slack_tools` → slack OAuth — messages, channels

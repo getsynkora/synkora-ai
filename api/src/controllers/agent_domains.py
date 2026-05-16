@@ -24,27 +24,27 @@ from src.services.domains.dns_service import DNSService
 from src.services.domains.domain_resolver import DomainResolver
 from src.services.domains.domain_service import DomainService
 
-router = APIRouter(prefix="/api/v1/agents/{agent_name}/domains", tags=["agent-domains"])
+router = APIRouter(prefix="/api/v1/agents/{agent_slug}/domains", tags=["agent-domains"])
 
 # Public domain resolution router (no auth required)
 public_router = APIRouter(prefix="/api/domains", tags=["domain-resolution"])
 
 
-async def _get_agent_by_name(db: AsyncSession, agent_name: str, tenant_id: uuid.UUID) -> Agent:
-    """Helper function to get agent by name."""
-    result = await db.execute(select(Agent).where(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+async def _get_agent_by_name(db: AsyncSession, agent_slug: str, tenant_id: uuid.UUID) -> Agent:
+    """Helper function to get agent by slug."""
+    result = await db.execute(select(Agent).where(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
     agent = result.scalar_one_or_none()
     if not agent:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_name}' not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_slug}' not found")
     return agent
 
 
 @router.get("", response_model=list[AgentDomainResponse])
 async def list_agent_domains(
-    agent_name: str, tenant_id: uuid.UUID = Depends(get_current_tenant_id), db: AsyncSession = Depends(get_async_db)
+    agent_slug: str, tenant_id: uuid.UUID = Depends(get_current_tenant_id), db: AsyncSession = Depends(get_async_db)
 ):
     """List all domains for an agent."""
-    agent = await _get_agent_by_name(db, agent_name, tenant_id)
+    agent = await _get_agent_by_name(db, agent_slug, tenant_id)
     domain_service = DomainService(db)
 
     domains = await domain_service.list_domains(agent_id=agent.id, tenant_id=tenant_id)
@@ -53,13 +53,13 @@ async def list_agent_domains(
 
 @router.post("", response_model=AgentDomainResponse, status_code=status.HTTP_201_CREATED)
 async def create_agent_domain(
-    agent_name: str,
+    agent_slug: str,
     domain_data: AgentDomainCreate,
     tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
     """Create a new domain for an agent."""
-    agent = await _get_agent_by_name(db, agent_name, tenant_id)
+    agent = await _get_agent_by_name(db, agent_slug, tenant_id)
     domain_service = DomainService(db)
 
     try:
@@ -77,13 +77,13 @@ async def create_agent_domain(
 
 @router.get("/{domain_id}", response_model=AgentDomainResponse)
 async def get_agent_domain(
-    agent_name: str,
+    agent_slug: str,
     domain_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
     """Get a specific domain."""
-    agent = await _get_agent_by_name(db, agent_name, tenant_id)
+    agent = await _get_agent_by_name(db, agent_slug, tenant_id)
     domain_service = DomainService(db)
 
     domain = await domain_service.get_domain(domain_id=domain_id, tenant_id=tenant_id)
@@ -96,14 +96,14 @@ async def get_agent_domain(
 
 @router.put("/{domain_id}", response_model=AgentDomainResponse)
 async def update_agent_domain(
-    agent_name: str,
+    agent_slug: str,
     domain_id: uuid.UUID,
     domain_data: AgentDomainUpdate,
     tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
     """Update a domain."""
-    agent = await _get_agent_by_name(db, agent_name, tenant_id)
+    agent = await _get_agent_by_name(db, agent_slug, tenant_id)
     domain_service = DomainService(db)
 
     # Verify domain belongs to agent
@@ -128,13 +128,13 @@ async def update_agent_domain(
 
 @router.delete("/{domain_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_agent_domain(
-    agent_name: str,
+    agent_slug: str,
     domain_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
     """Delete a domain."""
-    agent = await _get_agent_by_name(db, agent_name, tenant_id)
+    agent = await _get_agent_by_name(db, agent_slug, tenant_id)
     domain_service = DomainService(db)
 
     # Verify domain belongs to agent
@@ -148,13 +148,13 @@ async def delete_agent_domain(
 
 @router.get("/{domain_id}/dns-records", response_model=DNSRecordsResponse)
 async def get_required_dns_records(
-    agent_name: str,
+    agent_slug: str,
     domain_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
     """Get required DNS records for domain setup."""
-    agent = await _get_agent_by_name(db, agent_name, tenant_id)
+    agent = await _get_agent_by_name(db, agent_slug, tenant_id)
     domain_service = DomainService(db)
     dns_service = DNSService(db)
 
@@ -177,13 +177,13 @@ async def get_required_dns_records(
 
 @router.post("/{domain_id}/verify", response_model=DNSVerificationResponse)
 async def verify_domain_dns(
-    agent_name: str,
+    agent_slug: str,
     domain_id: uuid.UUID,
     tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
     """Verify DNS configuration for a custom domain."""
-    agent = await _get_agent_by_name(db, agent_name, tenant_id)
+    agent = await _get_agent_by_name(db, agent_slug, tenant_id)
     domain_service = DomainService(db)
     dns_service = DNSService(db)
 
@@ -227,17 +227,17 @@ async def verify_domain_dns(
 async def resolve_current_domain(
     request: Request,
     hostname: str | None = None,
-    agent_name: str | None = None,
+    agent_slug: str | None = None,
     db: AsyncSession = Depends(get_async_db),
 ):
     """
-    Resolve domain or agent_name to agent and configuration.
+    Resolve domain or agent_slug to agent and configuration.
     Used by custom domain chat pages and direct agent access.
     No authentication required - public endpoint.
 
     Query Parameters:
         hostname: Optional hostname to resolve (e.g., 'product-owner.synkora.ai')
-        agent_name: Optional agent name to resolve (e.g., 'Product Owner Agent')
+        agent_slug: Optional agent slug to resolve (e.g., 'product-owner-agent')
     """
     resolver = DomainResolver(db)
     agent = None
@@ -246,9 +246,9 @@ async def resolve_current_domain(
     # If hostname is provided in query param, use it
     if hostname:
         agent = await resolver.resolve_agent_from_domain(hostname)
-    # If agent_name is provided, resolve by name
-    elif agent_name:
-        agent = await resolver.resolve_agent_by_name(agent_name)
+    # If agent_slug is provided, resolve by slug
+    elif agent_slug:
+        agent = await resolver.resolve_agent_by_slug(agent_slug)
         resolved_hostname = None
     # Otherwise, try to get hostname from request headers
     # In Kubernetes/proxy environments, check X-Forwarded-Host first

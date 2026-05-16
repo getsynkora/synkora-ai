@@ -82,6 +82,20 @@ def extract_user_friendly_error(error: Exception) -> str:
         if re.search(pattern, error_str, re.IGNORECASE):
             return "API key is invalid or expired. Please check your LLM configuration."
 
+    # Check for payload / context too large errors FIRST — Groq returns 413 with
+    # code=rate_limit_exceeded when TPM is exceeded, so this must come before
+    # the generic rate-limit check to avoid showing the wrong message.
+    if re.search(r"413", error_str) or re.search(
+        r"Payload Too Large|Request Entity Too Large|request.*too.*large", error_str, re.IGNORECASE
+    ):
+        # Groq free-tier TPM exceeded — give a specific, actionable message
+        if re.search(r"tokens per minute|TPM|Limit \d+, Requested \d+", error_str):
+            return (
+                "Your message is too large for this model's token limit. "
+                "Try shortening your message, reducing the system prompt, or upgrading your Groq plan."
+            )
+        return "The conversation has grown too large. Please start a new conversation or clear history."
+
     # Check for rate limit / service unavailable errors
     rate_limit_patterns = [
         r"RateLimitError",
@@ -97,17 +111,6 @@ def extract_user_friendly_error(error: Exception) -> str:
     for pattern in rate_limit_patterns:
         if re.search(pattern, error_str, re.IGNORECASE):
             return "The AI service is busy. Please try again in a few seconds."
-
-    # Check for payload too large errors
-    payload_patterns = [
-        r"413",
-        r"Payload Too Large",
-        r"Request Entity Too Large",
-        r"request.*too.*large",
-    ]
-    for pattern in payload_patterns:
-        if re.search(pattern, error_str, re.IGNORECASE):
-            return "The conversation has grown too large. Please start a new conversation or clear history."
 
     # Check for connection/network errors
     connection_patterns = [
@@ -204,6 +207,10 @@ _EXPECTED_ERROR_PATTERNS = [
     r"model.*not.*found",
     r"Invalid proxy server token",
     r"maximum allowed",  # Anthropic max_tokens exceeded
+    r"413",  # Payload too large / Groq TPM exceeded
+    r"Payload Too Large",
+    r"Request Entity Too Large",
+    r"tokens per minute",  # Groq TPM rate limit
 ]
 
 

@@ -6,11 +6,19 @@ import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { FileText, Loader2, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react'
+import DOMPurify from 'dompurify'
 
 interface MarkdownViewerProps {
   url: string
   primaryColor?: string
   onError?: (error: string) => void
+}
+
+function sanitizeSvg(svg: string): string {
+  return DOMPurify.sanitize(svg, {
+    USE_PROFILES: { svg: true, svgFilters: true },
+    FORBID_ATTR: ['xlink:href'],
+  })
 }
 
 /**
@@ -34,7 +42,7 @@ export function MarkdownViewer({ url, primaryColor = '#0d9488', onError }: Markd
           mermaid.initialize({
             startOnLoad: false,
             theme: 'default',
-            securityLevel: 'loose',
+            securityLevel: 'strict',
             fontFamily: 'inherit',
           })
         })
@@ -78,7 +86,7 @@ export function MarkdownViewer({ url, primaryColor = '#0d9488', onError }: Markd
         el.innerHTML = ''
         try {
           mermaidRef.current.render(id, code, (svgCode: string) => {
-            el.innerHTML = svgCode
+            el.innerHTML = sanitizeSvg(svgCode)
           })
         } catch (err) {
           console.error('Mermaid rendering error:', err)

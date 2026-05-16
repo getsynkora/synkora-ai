@@ -179,7 +179,7 @@ class TestSlackBotsCRUDIntegration:
             headers=headers,
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_get_slack_bot(self, client: TestClient, db_session: Session, auth_headers, test_agent):
         """Test getting a specific Slack bot."""

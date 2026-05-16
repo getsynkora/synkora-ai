@@ -309,7 +309,7 @@ export default function CreateAgentPage() {
 
       if (data.success) {
         const createdAgentId = data.data?.agent_id
-        const createdAgentName = data.data?.agent_name || formData.name
+        const createdAgentSlug = data.data?.slug || data.data?.agent_name || formData.name
 
         // Enable selected capabilities with OAuth apps
         if (selectedCapabilities.length > 0 && createdAgentId) {
@@ -326,7 +326,7 @@ export default function CreateAgentPage() {
           toast.success('Agent created successfully!')
         }
 
-        router.push(`/agents/${createdAgentName}/edit?tab=llm-models`)
+        router.push(`/agents/${createdAgentSlug}/edit?tab=llm-models`)
       } else {
         toast.error('Failed to create agent: ' + data.message)
       }
@@ -354,36 +354,37 @@ export default function CreateAgentPage() {
   const progress = (currentStep / STEPS.length) * 100
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
+    <div className="agent-workspace min-h-full px-4 py-4 md:px-8 md:py-6 xl:px-10">
+      <div className="mx-auto max-w-[90rem] py-1">
+        <div className="mb-4 flex items-center justify-between gap-4">
+          <nav className="flex items-center gap-2 text-sm text-[#8a8378]">
             <button
               onClick={() => router.push('/agents')}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+              className="inline-flex items-center gap-1.5 transition-colors hover:text-[#171717]"
             >
-              <ArrowLeft size={20} />
-              <span className="font-medium">Back to Agents</span>
+              <ArrowLeft size={14} />
+              <span className="font-medium">Agents</span>
             </button>
-            <button
-              onClick={() => setShowTemplateSelector(true)}
-              className="flex items-center gap-2 px-4 py-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-            >
-              <Sparkles size={18} />
-              <span className="font-medium">Use Template</span>
-            </button>
-          </div>
+            <span className="text-black/20">/</span>
+            <span className="font-medium text-[#171717]">Create Agent</span>
+          </nav>
+          <button
+            onClick={() => setShowTemplateSelector(true)}
+            className="inline-flex items-center gap-2 rounded-full bg-[#181818] px-4 py-2 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5"
+          >
+            <Sparkles size={18} />
+            <span className="font-medium">Use Template</span>
+          </button>
         </div>
-      </div>
 
-      <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-8">
         {/* Progress Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
+        <div className="dashboard-surface mb-6 rounded-[2rem] p-5 md:p-6">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <p className="text-xs font-semibold text-primary-600 uppercase tracking-wide">Creation Wizard</p>
-              <h2 className="text-lg font-bold text-gray-900">Step {currentStep}: {STEPS[currentStep - 1].name}</h2>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8a8378]">Creation Wizard</p>
+              <h2 className="text-[1.05rem] font-semibold text-gray-900 md:text-[1.2rem]">
+                Step {currentStep}: <span className="highlight-mint">{STEPS[currentStep - 1].name}</span>
+              </h2>
             </div>
             <span className="text-sm text-gray-500 font-medium">{currentStep} of {STEPS.length}</span>
           </div>
@@ -424,7 +425,7 @@ export default function CreateAgentPage() {
         </div>
 
         {/* Step Content */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="dashboard-panel overflow-hidden rounded-[2rem]">
           <div className="p-4 md:p-8">
             {currentStep === 1 && (
               <Step1Basics
@@ -460,12 +461,12 @@ export default function CreateAgentPage() {
           </div>
 
           {/* Footer Navigation */}
-          <div className="border-t border-gray-200 px-8 py-4 bg-gray-50 flex items-center justify-between">
+          <div className="flex items-center justify-between border-t border-black/[0.08] bg-[#f1eadc] px-6 py-4 md:px-8">
             <div>
               {currentStep > 1 && (
                 <button
                   onClick={prevStep}
-                  className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 transition-colors"
+                  className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-medium text-[#5b564e] transition-colors hover:bg-white/50 hover:text-[#171717]"
                 >
                   <ArrowLeft size={18} />
                   Back
@@ -476,7 +477,7 @@ export default function CreateAgentPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/agents')}
-                className="px-5 py-2.5 text-gray-600 hover:text-gray-900 font-medium transition-colors"
+                className="rounded-full px-5 py-2.5 text-[13px] font-medium text-[#5b564e] transition-colors hover:bg-white/50 hover:text-[#171717]"
               >
                 Cancel
               </button>
@@ -484,7 +485,7 @@ export default function CreateAgentPage() {
               {currentStep < STEPS.length ? (
                 <button
                   onClick={nextStep}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-lg hover:from-primary-600 hover:to-primary-700 transition-all font-medium shadow-sm"
+                  className="inline-flex items-center gap-2 rounded-full bg-[#181818] px-6 py-2.5 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5"
                 >
                   Continue
                   <ArrowRight size={18} />
@@ -493,7 +494,7 @@ export default function CreateAgentPage() {
                 <button
                   onClick={handleSubmit}
                   disabled={creating}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-2 rounded-full bg-[#181818] px-6 py-2.5 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {creating ? (
                     <>
@@ -533,8 +534,8 @@ function Step1Basics({ formData, setFormData, onAvatarUpload, onAvatarRemove, na
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-extrabold text-gray-900 mb-3">Define Your Agent</h1>
-        <p className="text-lg text-gray-600">
+        <h1 className="mb-3 text-gray-900">Define <span className="highlight-mint">Your Agent</span></h1>
+        <p className="max-w-3xl text-[15px] text-gray-600">
           Give your AI agent an identity. A clear name and purpose helps users understand what it does.
         </p>
       </div>
@@ -601,8 +602,8 @@ function Step1Basics({ formData, setFormData, onAvatarUpload, onAvatarRemove, na
                   onClick={() => setFormData({ ...formData, agent_type: type.value })}
                   className={`relative p-4 rounded-2xl border-2 transition-all text-left ${
                     formData.agent_type === type.value
-                      ? 'border-primary-500 bg-primary-50 shadow-lg shadow-primary-500/20'
-                      : 'border-gray-200 hover:border-primary-300 hover:shadow-md bg-white'
+                      ? 'border-black/15 bg-primary-50 shadow-[0_18px_40px_rgba(0,0,0,0.06)]'
+                      : 'border-gray-200 hover:border-black/10 hover:shadow-md bg-white'
                   }`}
                 >
                   <type.icon className={`w-6 h-6 mb-2 ${
@@ -615,7 +616,7 @@ function Step1Basics({ formData, setFormData, onAvatarUpload, onAvatarRemove, na
                   </div>
                   <div className="text-xs text-gray-500">{type.desc}</div>
                   {formData.agent_type === type.value && (
-                    <div className="absolute top-2 right-2 w-5 h-5 bg-primary-500 rounded-full flex items-center justify-center">
+                    <div className="absolute top-2 right-2 w-5 h-5 bg-[#181818] rounded-full flex items-center justify-center">
                       <Check size={12} className="text-white" />
                     </div>
                   )}
@@ -758,19 +759,19 @@ function Step2AIModel({ formData, setFormData }: any) {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-extrabold text-gray-900 mb-3">Choose Your AI Brain</h1>
-        <p className="text-lg text-gray-600">
+        <h1 className="mb-3 text-gray-900">Choose Your <span className="highlight-mint">AI Brain</span></h1>
+        <p className="max-w-3xl text-[15px] text-gray-600">
           Select the AI provider and model that will power your agent.
         </p>
       </div>
 
       {/* Step 1: Select Provider */}
       <div>
-        <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <span className="w-7 h-7 bg-primary-600 text-white rounded-full flex items-center justify-center text-sm font-bold">1</span>
-          Select Provider
-          <span className="text-sm font-normal text-gray-500 ml-2">({providers.length} available)</span>
-        </h2>
+          <h2 className="mb-4 flex items-center gap-2 text-[1rem] font-semibold text-gray-900">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#181818] text-[12px] font-bold text-white">1</span>
+            Select Provider
+            <span className="text-sm font-normal text-gray-500 ml-2">({providers.length} available)</span>
+          </h2>
 
         {/* Provider Search */}
         {providers.length > 6 && (
@@ -792,8 +793,8 @@ function Step2AIModel({ formData, setFormData }: any) {
               onClick={() => handleProviderSelect(provider.provider_id)}
               className={`relative p-4 rounded-2xl border-2 transition-all text-left group ${
                 formData.llm_provider === provider.provider_id
-                  ? 'border-primary-500 bg-primary-50 shadow-lg shadow-primary-500/20'
-                  : 'border-gray-200 hover:border-primary-300 hover:shadow-md bg-white'
+                  ? 'border-black/15 bg-primary-50 shadow-[0_18px_40px_rgba(0,0,0,0.06)]'
+                  : 'border-gray-200 hover:border-black/10 hover:shadow-md bg-white'
               }`}
             >
               <div className="flex items-center gap-3">
@@ -810,7 +811,7 @@ function Step2AIModel({ formData, setFormData }: any) {
                 </div>
               </div>
               {formData.llm_provider === provider.provider_id && (
-                <div className="absolute top-2 right-2 w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
+                <div className="absolute top-2 right-2 w-6 h-6 bg-[#181818] rounded-full flex items-center justify-center">
                   <Check size={14} className="text-white" />
                 </div>
               )}
@@ -827,8 +828,8 @@ function Step2AIModel({ formData, setFormData }: any) {
       {/* Step 2: Select Model */}
       {formData.llm_provider && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <span className="w-7 h-7 bg-primary-600 text-white rounded-full flex items-center justify-center text-sm font-bold">2</span>
+          <h2 className="mb-4 flex items-center gap-2 text-[1rem] font-semibold text-gray-900">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#181818] text-[12px] font-bold text-white">2</span>
             Select Model
             {models.length > 0 && (
               <span className="text-sm font-normal text-gray-500 ml-2">({models.length} available)</span>
@@ -872,12 +873,12 @@ function Step2AIModel({ formData, setFormData }: any) {
                       onClick={() => handleModelSelect(model.model_name)}
                       className={`relative flex flex-col gap-0 rounded-2xl border-2 text-left transition-all duration-150 overflow-hidden ${
                         isSelected
-                          ? 'border-primary-500 shadow-lg shadow-primary-500/15'
-                          : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-md'
+                          ? 'border-black/15 shadow-[0_18px_40px_rgba(0,0,0,0.06)]'
+                          : 'border-gray-200 bg-white hover:border-black/10 hover:shadow-md'
                       }`}
                     >
                       {/* Coloured top accent strip */}
-                      <div className={`h-1 w-full ${isSelected ? 'bg-primary-500' : 'bg-transparent'}`} />
+                      <div className={`h-1 w-full ${isSelected ? 'bg-[#63dfbe]' : 'bg-transparent'}`} />
 
                       {/* Body */}
                       <div className={`flex-1 px-5 pt-4 pb-3 ${isSelected ? 'bg-primary-50' : ''}`}>
@@ -900,7 +901,7 @@ function Step2AIModel({ formData, setFormData }: any) {
                             )}
                           </div>
                           {isSelected && (
-                            <div className="shrink-0 w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
+                            <div className="shrink-0 w-6 h-6 bg-[#181818] rounded-full flex items-center justify-center">
                               <Check size={13} className="text-white" />
                             </div>
                           )}
@@ -999,8 +1000,8 @@ function Step2AIModel({ formData, setFormData }: any) {
       {/* Step 3: API Key (always required) */}
       {formData.llm_model && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <span className="w-7 h-7 bg-primary-600 text-white rounded-full flex items-center justify-center text-sm font-bold">3</span>
+          <h2 className="mb-4 flex items-center gap-2 text-[1rem] font-semibold text-gray-900">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#181818] text-[12px] font-bold text-white">3</span>
             Enter API Key
             <span className="text-red-500">*</span>
           </h2>
@@ -1071,12 +1072,12 @@ function Step2AIModel({ formData, setFormData }: any) {
           <div className="flex items-center gap-4">
             <span className="text-4xl">{PROVIDER_ICONS[formData.llm_provider] || PROVIDER_ICONS.default}</span>
             <div className="flex-1">
-              <div className={`text-sm font-semibold uppercase tracking-wide ${
+              <div className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${
                 formData.llm_api_key ? 'text-green-600' : 'text-primary-600'
               }`}>
                 {formData.llm_api_key ? 'Ready to Go!' : 'Almost There'}
               </div>
-              <div className="text-xl font-bold text-gray-900">{selectedProvider?.provider_name} / {selectedModel?.name}</div>
+              <div className="text-[1.15rem] font-semibold text-gray-900">{selectedProvider?.provider_name} / {selectedModel?.name}</div>
             </div>
             {formData.llm_api_key ? (
               <div className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-full text-sm font-bold shadow-lg shadow-green-500/30">
@@ -1107,8 +1108,8 @@ function Step3Personality({ formData, setFormData, onPersonalityChange }: {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-extrabold text-gray-900 mb-3">Set the Tone</h1>
-        <p className="text-lg text-gray-600">
+        <h1 className="mb-3 text-gray-900">Set the <span className="highlight-pink">Tone</span></h1>
+        <p className="max-w-3xl text-[15px] text-gray-600">
           Pick a starting personality, then customize the system prompt as needed.
         </p>
       </div>
@@ -1123,23 +1124,23 @@ function Step3Personality({ formData, setFormData, onPersonalityChange }: {
               onClick={() => onPersonalityChange(personality.id)}
               className={`p-4 rounded-2xl border-2 transition-all text-left relative ${
                 formData.personality === personality.id
-                  ? 'border-primary-500 bg-primary-50 shadow-lg shadow-primary-500/20'
-                  : 'border-gray-200 hover:border-primary-300 hover:shadow-md bg-white'
+                  ? 'border-black/15 bg-red-50 shadow-[0_18px_40px_rgba(0,0,0,0.06)]'
+                  : 'border-gray-200 hover:border-black/10 hover:shadow-md bg-white'
               }`}
             >
               {formData.personality === personality.id && (
-                <div className="absolute top-2 right-2 w-5 h-5 bg-primary-500 rounded-full flex items-center justify-center">
+                <div className="absolute top-2 right-2 w-5 h-5 bg-[#181818] rounded-full flex items-center justify-center">
                   <Check size={12} className="text-white" />
                 </div>
               )}
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-2 ${
                 formData.personality === personality.id
-                  ? 'bg-primary-100'
+                  ? 'bg-red-100'
                   : 'bg-gray-100'
               }`}>
                 <personality.icon className={`w-5 h-5 ${
                   formData.personality === personality.id
-                    ? 'text-primary-600'
+                    ? 'text-[#171717]'
                     : 'text-gray-500'
                 }`} />
               </div>
@@ -1190,7 +1191,7 @@ Define your agent's personality, behavior, and capabilities here. Be specific ab
 
         {/* Visual Preview - Takes 2 columns */}
         <div className="col-span-2">
-          <div className="bg-gray-50 rounded-xl p-5 sticky top-4">
+            <div className="bg-gray-50 rounded-xl p-5 sticky top-4 border border-black/[0.08]">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
               <span className="text-sm font-medium text-gray-700">Live Preview</span>
@@ -1219,7 +1220,7 @@ Define your agent's personality, behavior, and capabilities here. Be specific ab
             </div>
 
             {/* Personality Label */}
-            <div className="text-center p-3 bg-gradient-to-br from-primary-50 to-primary-100 rounded-xl">
+            <div className="text-center p-3 bg-gradient-to-br from-primary-50 to-primary-100 rounded-xl border border-black/[0.06]">
               <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm">
                 {selectedPersonality && <selectedPersonality.icon className="w-5 h-5 text-primary-600" />}
               </div>
@@ -1253,8 +1254,8 @@ function Step4Capabilities({
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-extrabold text-gray-900 mb-3">Add Superpowers</h1>
-        <p className="text-lg text-gray-600">
+        <h1 className="mb-3 text-gray-900">Add <span className="highlight-mint">Superpowers</span></h1>
+        <p className="max-w-3xl text-[15px] text-gray-600">
           Select capabilities to unlock powerful tools and integrations for your agent.
         </p>
       </div>
@@ -1316,8 +1317,8 @@ function Step5Review({ formData, setFormData, selectedCapabilities, humanContact
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-extrabold text-gray-900 mb-3">Ready to Launch!</h1>
-        <p className="text-lg text-gray-600">
+        <h1 className="mb-3 text-gray-900">Ready to <span className="highlight-pink">Launch</span></h1>
+        <p className="max-w-3xl text-[15px] text-gray-600">
           Review your agent configuration. You can always edit these later.
         </p>
       </div>
@@ -1364,7 +1365,7 @@ function Step5Review({ formData, setFormData, selectedCapabilities, humanContact
             Personality
           </h3>
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
               {selectedPersonality && <selectedPersonality.icon className="w-6 h-6 text-primary-600" />}
             </div>
             <div>
@@ -1521,14 +1522,14 @@ function CreatorTip({ step }: { step: number }) {
   const tip = tips[step as keyof typeof tips]
 
   return (
-    <div className="mt-6 p-5 bg-gradient-to-r from-primary-50 to-primary-100/50 border border-primary-200 rounded-xl">
+    <div className="mt-6 rounded-[1.4rem] border border-primary-200 bg-gradient-to-r from-primary-50 to-primary-100/50 p-5">
       <div className="flex items-start gap-3">
-        <div className="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0">
-          <Lightbulb className="w-4 h-4 text-primary-600" />
+        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#181818] text-white">
+          <Lightbulb className="w-4 h-4" />
         </div>
         <div>
-          <h4 className="font-semibold text-primary-900 mb-1">{tip.title}</h4>
-          <p className="text-sm text-primary-800">{tip.content}</p>
+          <h4 className="mb-1 text-[14px] font-semibold text-primary-900">{tip.title}</h4>
+          <p className="text-[13px] text-primary-800">{tip.content}</p>
         </div>
       </div>
     </div>

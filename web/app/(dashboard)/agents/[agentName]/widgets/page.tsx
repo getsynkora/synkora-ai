@@ -14,11 +14,11 @@ import {
   Globe,
   Key,
   AlertCircle,
-  ArrowLeft,
-  ChevronRight,
+  LayoutPanelTop,
 } from "lucide-react";
 import { apiClient } from "@/lib/api/client";
 import toast from "react-hot-toast";
+import AgentPageShell from '@/components/agents/AgentPageShell'
 
 interface Widget {
   widget_id: string;
@@ -126,50 +126,22 @@ export default function AgentWidgetsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-sm mb-4">
-        <button
-          onClick={() => router.push("/agents")}
-          className="text-gray-500 hover:text-red-600 transition-colors"
-        >
-          Agents
-        </button>
-        <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
-        <button
-          onClick={() => router.push(`/agents/${encodeURIComponent(agentName)}/view`)}
-          className="text-gray-500 hover:text-red-600 transition-colors"
-        >
-          {agentName}
-        </button>
-        <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
-        <span className="text-gray-900 font-medium">Widgets</span>
-      </div>
-
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <button
-            onClick={() => router.push(`/agents/${encodeURIComponent(agentName)}/view`)}
-            className="inline-flex items-center gap-2 text-red-600 hover:text-red-700 font-medium mb-2 transition-colors text-sm"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Agent
-          </button>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Agent Widgets</h1>
-          <p className="text-gray-600 mt-1 text-sm">
-            Embed your agent <span className="font-semibold">{agentName}</span> on external websites
-          </p>
-        </div>
+    <AgentPageShell
+      agentName={agentName}
+      title="Agent Widgets"
+      description={<>Embed your agent <span className="font-semibold text-gray-900">{agentName}</span> on external websites.</>}
+      icon={LayoutPanelTop}
+      badge="Embeddable UI"
+      actions={
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all text-xs font-medium shadow-sm"
+          className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
         >
           <Plus className="w-4 h-4" />
           Create Widget
         </button>
-      </div>
+      }
+    >
 
       {/* Error Message */}
       {error && (
@@ -296,13 +268,16 @@ export default function AgentWidgetsPage() {
       {/* Embed Code Modal */}
       {showEmbedCode && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-900">Embed Code</h2>
+          <div className="w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-[1.9rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,245,239,0.96))] shadow-[0_32px_90px_-42px_rgba(73,45,23,0.35)]">
+            <div className="p-6 sm:p-7">
+              <div className="mb-5 flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7a5e]">Widget Setup</p>
+                  <h2 className="mt-2 text-[2rem] font-semibold tracking-[-0.04em] text-gray-950">Embed Code</h2>
+                </div>
                 <button
                   onClick={() => setShowEmbedCode(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="rounded-[0.95rem] p-2 text-gray-400 transition-colors hover:bg-[#f3ecde] hover:text-[#171717]"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -310,26 +285,27 @@ export default function AgentWidgetsPage() {
                 </button>
               </div>
 
-              <p className="text-gray-600 text-sm mb-4">
+              <p className="mb-4 text-sm leading-6 text-gray-600">
                 Copy and paste this code into your website's HTML:
               </p>
 
               <div className="relative">
-                <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-xs">
+                <pre className="overflow-x-auto rounded-[1.25rem] bg-[#171717] p-4 text-xs text-[#f6f1e8] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
                   <code>{embedCode}</code>
                 </pre>
                 <button
                   onClick={() => copyToClipboard(embedCode)}
-                  className="absolute top-2 right-2 p-2 bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
+                  className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-[0.8rem] bg-white/10 px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/20"
                   title="Copy to clipboard"
                 >
                   <Copy className="w-4 h-4" />
+                  Copy
                 </button>
               </div>
 
-              <div className="mt-5 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <h3 className="font-medium text-red-900 text-sm mb-2">Setup Instructions</h3>
-                <ol className="list-decimal list-inside space-y-1 text-xs text-red-800">
+              <div className="mt-5 rounded-[1.25rem] border border-[#e5d9ca] bg-[#fcfaf5] p-4">
+                <h3 className="mb-2 text-sm font-semibold text-gray-900">Setup Instructions</h3>
+                <ol className="list-decimal list-inside space-y-1.5 text-xs leading-6 text-gray-600">
                   <li>Copy the embed code above</li>
                   <li>Paste it into your website's HTML where you want the widget to appear</li>
                   <li>The widget will automatically load and connect to your agent</li>
@@ -352,8 +328,7 @@ export default function AgentWidgetsPage() {
           }}
         />
       )}
-      </div>
-    </div>
+    </AgentPageShell>
   );
 }
 
@@ -413,80 +388,112 @@ function CreateWidgetModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
-        <div className="p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Create Widget</h2>
+      <div className="w-full max-w-[56rem] rounded-[2rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.985),_rgba(249,245,239,0.965))] shadow-[0_36px_110px_-44px_rgba(73,45,23,0.36)]">
+        <div className="p-7 sm:p-8">
+          <div className="mb-6 flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#9a7a5e]">Embeddable UI</p>
+              <h2 className="mt-2 text-[2rem] font-semibold tracking-[-0.04em] text-gray-950">Create Widget</h2>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-gray-600">
+                Configure a website widget for this agent. Keep it narrow and simple so it can be embedded without extra setup.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-[0.95rem] p-2 text-gray-400 transition-colors hover:bg-[#f3ecde] hover:text-[#171717]"
+              aria-label="Close"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs">
+            <div className="mb-5 rounded-[1rem] border border-[#eed6dd] bg-[linear-gradient(180deg,_rgba(252,245,247,0.98),_rgba(249,236,240,0.96))] p-3 text-xs text-[#8a445c]">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="grid gap-5 md:grid-cols-2">
+              <div className="md:col-span-2">
+                <label className="mb-1.5 block text-sm font-semibold text-gray-700">
                 Widget Name *
-              </label>
-              <input
-                type="text"
-                value={formData.widget_name}
-                onChange={(e) =>
-                  setFormData({ ...formData, widget_name: e.target.value })
-                }
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                placeholder="My Website Widget"
-                required
-              />
+                </label>
+                <input
+                  type="text"
+                  value={formData.widget_name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, widget_name: e.target.value })
+                  }
+                  className="w-full rounded-[1.1rem] border border-black/10 bg-[#fcfaf5] px-4 py-3.5 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]"
+                  placeholder="My Website Widget"
+                  required
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+                  Allowed Domains
+                </label>
+                <input
+                  type="text"
+                  value={formData.allowed_domains}
+                  onChange={(e) =>
+                    setFormData({ ...formData, allowed_domains: e.target.value })
+                  }
+                  className="w-full rounded-[1.1rem] border border-black/10 bg-[#fcfaf5] px-4 py-3.5 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]"
+                  placeholder="example.com, *.example.com"
+                />
+                <p className="mt-2 text-xs leading-6 text-gray-500">
+                  Comma-separated list. Use <span className="font-semibold text-gray-700">*</span> for wildcards. Leave empty to allow all domains.
+                </p>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+                  Rate Limit
+                </label>
+                <div className="rounded-[1.15rem] border border-black/10 bg-[#fcfaf5] px-4 py-3">
+                  <input
+                    type="number"
+                    value={formData.rate_limit}
+                    onChange={(e) =>
+                      setFormData({ ...formData, rate_limit: parseInt(e.target.value) })
+                    }
+                    className="w-full border-0 bg-transparent p-0 text-sm text-gray-900 focus:outline-none focus:ring-0"
+                    min="1"
+                    max="10000"
+                    required
+                  />
+                  <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#9a7a5e]">
+                    Requests per hour
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-[1.25rem] border border-[#e5d9ca] bg-[#fcfaf5] p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#9a7a5e]">Notes</p>
+                <p className="mt-2 text-sm leading-6 text-gray-600">
+                  Widgets are created active by default. You can edit routing, verification, theme, and domain restrictions later.
+                </p>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                Allowed Domains
-              </label>
-              <input
-                type="text"
-                value={formData.allowed_domains}
-                onChange={(e) =>
-                  setFormData({ ...formData, allowed_domains: e.target.value })
-                }
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                placeholder="example.com, *.example.com (leave empty for all)"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Comma-separated list. Use * for wildcards. Leave empty to allow all domains.
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                Rate Limit (requests/hour)
-              </label>
-              <input
-                type="number"
-                value={formData.rate_limit}
-                onChange={(e) =>
-                  setFormData({ ...formData, rate_limit: parseInt(e.target.value) })
-                }
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                min="1"
-                max="10000"
-                required
-              />
-            </div>
-
-            <div className="flex gap-3 pt-4">
+            <div className="flex flex-col-reverse gap-3 border-t border-[#ece2d6] pt-5 sm:flex-row sm:justify-end">
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-4 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-red-50 hover:border-red-300 transition-colors"
+                className="inline-flex items-center justify-center rounded-[1rem] border border-black/10 bg-white/80 px-5 py-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-white hover:text-[#171717]"
                 disabled={loading}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="flex-1 px-4 py-2 text-sm bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all disabled:opacity-50 font-medium shadow-sm"
+                className="inline-flex items-center justify-center rounded-[1rem] bg-[#171717] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
                 disabled={loading}
               >
                 {loading ? "Creating..." : "Create Widget"}

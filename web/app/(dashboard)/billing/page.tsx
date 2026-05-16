@@ -220,7 +220,7 @@ function BillingContent() {
   return (
     <>
       <Toaster position="top-right" />
-      <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
+      <div className="dashboard-resource-page min-h-screen p-4 md:p-6">
         <div className="max-w-7xl mx-auto">
           {/* Header - More Compact */}
           <div className="mb-6">
@@ -412,7 +412,7 @@ function BillingContent() {
 export default function BillingPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
+      <div className="dashboard-resource-page min-h-screen p-4 md:p-6">
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
         </div>

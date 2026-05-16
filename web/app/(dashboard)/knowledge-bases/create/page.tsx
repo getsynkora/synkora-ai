@@ -11,7 +11,6 @@ import {
   FileText,
   Globe,
   Plus,
-  X,
   ChevronDown,
   ChevronUp,
   Settings,
@@ -158,6 +157,12 @@ export default function CreateKnowledgeBasePage() {
 
   const selectedVectorDB = VECTOR_DB_PROVIDERS.find(p => p.value === formData.vector_db_provider)
   const selectedEmbedding = EMBEDDING_PROVIDERS.find(p => p.value === formData.embedding_config.provider)
+  const fieldClass = 'w-full rounded-[1.15rem] border border-gray-200 bg-gray-50 px-4 py-4 text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500'
+  const compactFieldClass = 'w-full rounded-[1rem] border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500'
+  const textareaClass = `${fieldClass} resize-none`
+  const labelClass = 'mb-2 block text-sm font-semibold text-gray-700'
+  const compactLabelClass = 'mb-1.5 block text-sm font-semibold text-gray-700'
+  const helpClass = 'mt-2 text-xs leading-relaxed text-gray-500'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -253,13 +258,13 @@ export default function CreateKnowledgeBasePage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40">
-      <div className="max-w-6xl mx-auto p-6">
+    <div className="dashboard-resource-page min-h-screen p-4 md:p-6">
+      <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8">
           <Link
             href="/knowledge-bases"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium mb-4 transition-colors"
+            className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-[#171717]"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Knowledge
@@ -267,12 +272,16 @@ export default function CreateKnowledgeBasePage() {
 
           <div className="flex items-start justify-between">
             <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/55 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#6e675d]">
+                <BookOpen className="h-3.5 w-3.5 text-[#2d8b69]" />
+                Knowledge Base
+              </div>
               <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Create Knowledge Base</h1>
-              <p className="text-gray-600 mt-1">
+              <p className="mt-2 text-gray-600">
                 Set up a place to store information your AI agents can use
               </p>
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="rounded-full border border-black/10 bg-white/65 px-4 py-2 text-sm font-medium text-gray-500">
               Step {currentStep} of {steps.length}
             </div>
           </div>
@@ -280,15 +289,15 @@ export default function CreateKnowledgeBasePage() {
 
         {/* Progress Bar */}
         <div className="mb-8">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 rounded-[1.75rem] border border-black/10 bg-white/70 p-4 shadow-[0_18px_44px_rgba(0,0,0,0.05)]">
             {steps.map((step, idx) => (
               <div key={step.num} className="flex items-center flex-1">
                 <div className="flex items-center gap-3 flex-1">
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all ${
+                    className={`flex h-10 w-10 items-center justify-center rounded-full font-semibold transition-all ${
                       currentStep >= step.num
-                        ? 'bg-red-500 text-white'
-                        : 'bg-gray-200 text-gray-500'
+                        ? 'bg-[#171717] text-white'
+                        : 'bg-[#ece4d3] text-[#8a8378]'
                     }`}
                   >
                     {currentStep > step.num ? (
@@ -298,14 +307,14 @@ export default function CreateKnowledgeBasePage() {
                     )}
                   </div>
                   <div className="hidden sm:block">
-                    <p className={`text-sm font-medium ${currentStep >= step.num ? 'text-gray-900' : 'text-gray-500'}`}>
+                    <p className={`text-sm font-semibold ${currentStep >= step.num ? 'text-gray-900' : 'text-gray-500'}`}>
                       {step.label}
                     </p>
                     <p className="text-xs text-gray-500">{step.description}</p>
                   </div>
                 </div>
                 {idx < steps.length - 1 && (
-                  <div className={`h-1 flex-1 mx-4 rounded-full ${currentStep > step.num ? 'bg-red-500' : 'bg-gray-200'}`} />
+                  <div className={`mx-4 h-1 flex-1 rounded-full ${currentStep > step.num ? 'bg-[#171717]' : 'bg-[#e7decb]'}`} />
                 )}
               </div>
             ))}
@@ -317,7 +326,7 @@ export default function CreateKnowledgeBasePage() {
           <div className="lg:col-span-2">
             {/* Error Message */}
             {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+              <div className="mb-6 rounded-[1.35rem] border border-red-200 bg-red-50/90 p-4">
                 <div className="flex items-center gap-3">
                   <AlertCircle className="w-5 h-5 text-red-600" />
                   <p className="text-red-700">{error}</p>
@@ -328,10 +337,10 @@ export default function CreateKnowledgeBasePage() {
             <form onSubmit={handleSubmit}>
               {/* Step 1: Name and Description */}
               {currentStep === 1 && (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <div className="rounded-[2rem] border border-black/10 bg-white/78 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.06)] sm:p-8">
                   <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2.5 bg-red-100 rounded-xl">
-                      <BookOpen className="w-5 h-5 text-red-600" />
+                    <div className="rounded-[1rem] bg-[#f3ecde] p-3">
+                      <BookOpen className="h-5 w-5 text-[#171717]" />
                     </div>
                     <div>
                       <h2 className="text-lg font-semibold text-gray-900">Name Your Knowledge Base</h2>
@@ -341,7 +350,7 @@ export default function CreateKnowledgeBasePage() {
 
                   <div className="space-y-5">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className={labelClass}>
                         Name <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -349,20 +358,20 @@ export default function CreateKnowledgeBasePage() {
                         required
                         value={formData.name}
                         onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        className={fieldClass}
                         placeholder="e.g., Product Documentation, Support Articles, Company Policies"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className={labelClass}>
                         Description <span className="text-gray-400">(optional)</span>
                       </label>
                       <textarea
                         value={formData.description}
                         onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                         rows={3}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+                        className={textareaClass}
                         placeholder="Briefly describe what kind of information you'll store here..."
                       />
                     </div>
@@ -373,7 +382,7 @@ export default function CreateKnowledgeBasePage() {
                       type="button"
                       onClick={() => setCurrentStep(2)}
                       disabled={!formData.name}
-                      className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="rounded-[1.15rem] bg-[#171717] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Continue
                     </button>
@@ -385,10 +394,10 @@ export default function CreateKnowledgeBasePage() {
               {currentStep === 2 && (
                 <div className="space-y-6">
                   {/* Summary Card */}
-                  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                  <div className="rounded-[2rem] border border-black/10 bg-white/78 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.06)] sm:p-8">
                     <div className="flex items-center gap-3 mb-6">
-                      <div className="p-2.5 bg-red-100 rounded-xl">
-                        <CheckCircle className="w-5 h-5 text-red-600" />
+                      <div className="rounded-[1rem] bg-[#e8f4ee] p-3">
+                        <CheckCircle className="h-5 w-5 text-[#2d8b69]" />
                       </div>
                       <div>
                         <h2 className="text-lg font-semibold text-gray-900">Review Your Knowledge Base</h2>
@@ -397,10 +406,10 @@ export default function CreateKnowledgeBasePage() {
                     </div>
 
                     {/* Summary */}
-                    <div className="bg-gray-50 rounded-xl p-5 mb-6">
+                    <div className="mb-6 rounded-[1.5rem] border border-black/10 bg-[#f7f2e7] p-5">
                       <div className="flex items-start gap-4">
-                        <div className="p-3 bg-white rounded-xl shadow-sm">
-                          <BookOpen className="w-8 h-8 text-red-600" />
+                        <div className="rounded-[1.15rem] bg-white p-3 shadow-[0_12px_28px_rgba(0,0,0,0.05)]">
+                          <BookOpen className="w-8 h-8 text-[#171717]" />
                         </div>
                         <div className="flex-1">
                           <h3 className="text-lg font-semibold text-gray-900">{formData.name}</h3>
@@ -408,7 +417,7 @@ export default function CreateKnowledgeBasePage() {
                             {formData.description || 'No description provided'}
                           </p>
                           <div className="flex flex-wrap gap-2 mt-3">
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                            <span className="inline-flex items-center rounded-full bg-[#e8f4ee] px-2.5 py-1 text-xs font-medium text-[#2d8b69]">
                               Ready to add content
                             </span>
                           </div>
@@ -417,12 +426,12 @@ export default function CreateKnowledgeBasePage() {
                     </div>
 
                     {/* What happens next */}
-                    <div className="border-t border-gray-100 pt-5">
+                    <div className="border-t border-black/10 pt-5">
                       <h4 className="font-medium text-gray-900 mb-3">What happens next?</h4>
                       <div className="space-y-3">
                         <div className="flex items-start gap-3">
-                          <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <span className="text-xs font-semibold text-red-600">1</span>
+                          <div className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#f1eadc]">
+                            <span className="text-xs font-semibold text-[#171717]">1</span>
                           </div>
                           <div>
                             <p className="text-sm font-medium text-gray-900">Create knowledge base</p>
@@ -430,8 +439,8 @@ export default function CreateKnowledgeBasePage() {
                           </div>
                         </div>
                         <div className="flex items-start gap-3">
-                          <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <span className="text-xs font-semibold text-red-600">2</span>
+                          <div className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#f1eadc]">
+                            <span className="text-xs font-semibold text-[#171717]">2</span>
                           </div>
                           <div>
                             <p className="text-sm font-medium text-gray-900">Add your content</p>
@@ -439,8 +448,8 @@ export default function CreateKnowledgeBasePage() {
                           </div>
                         </div>
                         <div className="flex items-start gap-3">
-                          <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <span className="text-xs font-semibold text-red-600">3</span>
+                          <div className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#f1eadc]">
+                            <span className="text-xs font-semibold text-[#171717]">3</span>
                           </div>
                           <div>
                             <p className="text-sm font-medium text-gray-900">Connect to agents</p>
@@ -452,16 +461,18 @@ export default function CreateKnowledgeBasePage() {
                   </div>
 
                   {/* Advanced Options (Collapsible) */}
-                  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                  <div className="overflow-hidden rounded-[2rem] border border-black/10 bg-white/78 shadow-[0_24px_60px_rgba(0,0,0,0.06)]">
                     <button
                       type="button"
                       onClick={() => setShowAdvanced(!showAdvanced)}
-                      className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                      className="flex w-full items-center justify-between px-6 py-5 transition-colors hover:bg-[#fcfaf5]"
                     >
                       <div className="flex items-center gap-3">
-                        <Settings className="w-5 h-5 text-gray-500" />
+                        <div className="rounded-[0.95rem] bg-[#f3ecde] p-2.5">
+                          <Settings className="h-5 w-5 text-[#171717]" />
+                        </div>
                         <div className="text-left">
-                          <p className="font-medium text-gray-900">Advanced Settings</p>
+                          <p className="font-semibold text-gray-900">Advanced Settings</p>
                           <p className="text-sm text-gray-500">Configure storage and processing options (optional)</p>
                         </div>
                       </div>
@@ -473,20 +484,20 @@ export default function CreateKnowledgeBasePage() {
                     </button>
 
                     {showAdvanced && (
-                      <div className="px-6 pb-6 border-t border-gray-100">
+                      <div className="border-t border-black/10 px-6 pb-6">
                         {/* Vector Database Section */}
-                        <div className="pt-5 pb-5 border-b border-gray-100">
-                          <h3 className="font-medium text-gray-900 mb-4">Vector Database</h3>
+                        <div className="border-b border-black/10 py-5">
+                          <h3 className="mb-4 font-semibold text-gray-900">Vector Database</h3>
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
                             {VECTOR_DB_PROVIDERS.map((provider) => (
                               <button
                                 key={provider.value}
                                 type="button"
                                 onClick={() => handleProviderChange(provider.value)}
-                                className={`p-3 rounded-xl border-2 transition-all text-left ${
+                                className={`rounded-[1.1rem] border p-3 text-left transition-all ${
                                   formData.vector_db_provider === provider.value
-                                    ? 'border-red-500 bg-red-50'
-                                    : 'border-gray-200 hover:border-gray-300'
+                                    ? 'border-black/10 bg-[#f7f2e7] shadow-[0_12px_28px_rgba(0,0,0,0.04)]'
+                                    : 'border-black/10 bg-white hover:bg-[#fcfaf5]'
                                 }`}
                               >
                                 <div className="text-xl mb-1">{provider.icon}</div>
@@ -500,21 +511,21 @@ export default function CreateKnowledgeBasePage() {
                             <div className="space-y-3 mt-4">
                               {selectedVectorDB.fields.includes('url') && (
                                 <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  <label className={compactLabelClass}>
                                     Database URL
                                   </label>
                                   <input
                                     type="text"
                                     value={formData.vector_db_config.url || ''}
                                     onChange={(e) => updateVectorDBConfig('url', e.target.value)}
-                                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                    className={compactFieldClass}
                                     placeholder={selectedVectorDB.defaults?.url || 'http://localhost:6333'}
                                   />
                                 </div>
                               )}
                               {selectedVectorDB.fields.includes('api_key') && (
                                 <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  <label className={compactLabelClass}>
                                     API Key {selectedVectorDB.value === 'PINECONE' && <span className="text-red-500">*</span>}
                                   </label>
                                   <input
@@ -522,49 +533,49 @@ export default function CreateKnowledgeBasePage() {
                                     required={selectedVectorDB.value === 'PINECONE'}
                                     value={formData.vector_db_config.api_key || ''}
                                     onChange={(e) => updateVectorDBConfig('api_key', e.target.value)}
-                                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                    className={compactFieldClass}
                                     placeholder="Enter your API key"
                                   />
                                 </div>
                               )}
                               {selectedVectorDB.fields.includes('environment') && (
                                 <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  <label className={compactLabelClass}>
                                     Environment
                                   </label>
                                   <input
                                     type="text"
                                     value={formData.vector_db_config.environment || ''}
                                     onChange={(e) => updateVectorDBConfig('environment', e.target.value)}
-                                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                    className={compactFieldClass}
                                     placeholder="e.g., us-east-1-aws"
                                   />
                                 </div>
                               )}
                               {selectedVectorDB.fields.includes('collection_name') && (
                                 <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  <label className={compactLabelClass}>
                                     Collection Name
                                   </label>
                                   <input
                                     type="text"
                                     value={formData.vector_db_config.collection_name || ''}
                                     onChange={(e) => updateVectorDBConfig('collection_name', e.target.value)}
-                                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                    className={compactFieldClass}
                                     placeholder="Auto-generated if not provided"
                                   />
                                 </div>
                               )}
                               {selectedVectorDB.fields.includes('index_name') && (
                                 <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  <label className={compactLabelClass}>
                                     Index Name
                                   </label>
                                   <input
                                     type="text"
                                     value={formData.vector_db_config.index_name || ''}
                                     onChange={(e) => updateVectorDBConfig('index_name', e.target.value)}
-                                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                    className={compactFieldClass}
                                     placeholder="Enter index name"
                                   />
                                 </div>
@@ -574,18 +585,18 @@ export default function CreateKnowledgeBasePage() {
                         </div>
 
                         {/* Embedding Model Section */}
-                        <div className="pt-5 pb-5 border-b border-gray-100">
-                          <h3 className="font-medium text-gray-900 mb-4">Embedding Model</h3>
+                        <div className="border-b border-black/10 py-5">
+                          <h3 className="mb-4 font-semibold text-gray-900">Embedding Model</h3>
                           <div className="grid grid-cols-2 gap-3 mb-4">
                             {EMBEDDING_PROVIDERS.map((provider) => (
                               <button
                                 key={provider.value}
                                 type="button"
                                 onClick={() => handleEmbeddingProviderChange(provider.value)}
-                                className={`p-3 rounded-xl border-2 transition-all text-left ${
+                                className={`rounded-[1.1rem] border p-3 text-left transition-all ${
                                   formData.embedding_config.provider === provider.value
-                                    ? 'border-red-500 bg-red-50'
-                                    : 'border-gray-200 hover:border-gray-300'
+                                    ? 'border-black/10 bg-[#f7f2e7] shadow-[0_12px_28px_rgba(0,0,0,0.04)]'
+                                    : 'border-black/10 bg-white hover:bg-[#fcfaf5]'
                                 }`}
                               >
                                 <div className="text-xl mb-1">{provider.icon}</div>
@@ -598,11 +609,11 @@ export default function CreateKnowledgeBasePage() {
                           {selectedEmbedding && (
                             <div className="space-y-3">
                               <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Model</label>
+                                <label className={compactLabelClass}>Model</label>
                                 <select
                                   value={formData.embedding_config.model_name}
                                   onChange={(e) => handleModelChange(e.target.value)}
-                                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                  className={compactFieldClass}
                                 >
                                   {selectedEmbedding.models.map((model) => (
                                     <option key={model.value} value={model.value}>
@@ -616,7 +627,7 @@ export default function CreateKnowledgeBasePage() {
                                 formData.embedding_config.provider === 'COHERE' ||
                                 formData.embedding_config.provider === 'LITELLM') && (
                                 <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  <label className={compactLabelClass}>
                                     API Key <span className="text-red-500">*</span>
                                   </label>
                                   <input
@@ -624,7 +635,7 @@ export default function CreateKnowledgeBasePage() {
                                     required
                                     value={formData.embedding_config.api_key}
                                     onChange={(e) => updateEmbeddingConfig('api_key', e.target.value)}
-                                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                    className={compactFieldClass}
                                     placeholder="Enter your API key"
                                   />
                                 </div>
@@ -632,14 +643,14 @@ export default function CreateKnowledgeBasePage() {
 
                               {formData.embedding_config.provider === 'LITELLM' && (
                                 <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  <label className={compactLabelClass}>
                                     Custom Base URL (Optional)
                                   </label>
                                   <input
                                     type="text"
                                     value={formData.embedding_config.api_base}
                                     onChange={(e) => updateEmbeddingConfig('api_base', e.target.value)}
-                                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                    className={compactFieldClass}
                                     placeholder="e.g., https://api.openai.com/v1"
                                   />
                                 </div>
@@ -650,10 +661,10 @@ export default function CreateKnowledgeBasePage() {
 
                         {/* Chunking Settings Section */}
                         <div className="pt-5">
-                          <h3 className="font-medium text-gray-900 mb-4">Text Processing</h3>
+                          <h3 className="mb-4 font-semibold text-gray-900">Text Processing</h3>
                           <div className="space-y-4">
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Processing Strategy</label>
+                              <label className={compactLabelClass}>Processing Strategy</label>
                               <select
                                 value={formData.chunking_strategy}
                                 onChange={(e) => {
@@ -665,7 +676,7 @@ export default function CreateKnowledgeBasePage() {
                                     chunk_overlap: strategy === 'CODE' ? 300 : 150,
                                   }))
                                 }}
-                                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                className={compactFieldClass}
                               >
                                 {CHUNKING_STRATEGIES.map((strategy) => (
                                   <option key={strategy.value} value={strategy.value}>
@@ -677,28 +688,28 @@ export default function CreateKnowledgeBasePage() {
 
                             <div className="grid grid-cols-2 gap-4">
                               <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Chunk Size</label>
+                                <label className={compactLabelClass}>Chunk Size</label>
                                 <input
                                   type="number"
                                   min="500"
                                   max="3000"
                                   value={formData.chunk_size}
                                   onChange={(e) => setFormData(prev => ({ ...prev, chunk_size: parseInt(e.target.value) }))}
-                                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                  className={compactFieldClass}
                                 />
-                                <p className="text-xs text-gray-500 mt-1">Characters per chunk (500-3000)</p>
+                                <p className={helpClass}>Characters per chunk (500-3000)</p>
                               </div>
                               <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Overlap</label>
+                                <label className={compactLabelClass}>Overlap</label>
                                 <input
                                   type="number"
                                   min="0"
                                   max="500"
                                   value={formData.chunk_overlap}
                                   onChange={(e) => setFormData(prev => ({ ...prev, chunk_overlap: parseInt(e.target.value) }))}
-                                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                  className={compactFieldClass}
                                 />
-                                <p className="text-xs text-gray-500 mt-1">Overlap between chunks (0-500)</p>
+                                <p className={helpClass}>Overlap between chunks (0-500)</p>
                               </div>
                             </div>
                           </div>
@@ -712,14 +723,14 @@ export default function CreateKnowledgeBasePage() {
                     <button
                       type="button"
                       onClick={() => setCurrentStep(1)}
-                      className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+                      className="rounded-[1.15rem] border border-black/10 bg-[#f1eadc] px-6 py-3 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#e8ddc8]"
                     >
                       Back
                     </button>
                     <button
                       type="submit"
                       disabled={loading}
-                      className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="flex items-center gap-2 rounded-[1.15rem] bg-[#171717] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {loading ? (
                         <>
@@ -743,37 +754,37 @@ export default function CreateKnowledgeBasePage() {
           <div className="lg:col-span-1">
             <div className="sticky top-6 space-y-6">
               {/* Illustration Card */}
-              <div className="bg-gradient-to-br from-red-50 to-red-100/50 rounded-2xl p-6 text-center">
+              <div className="rounded-[2rem] border border-black/10 bg-[#171717] p-6 text-center text-[#f7f2e7] shadow-[0_28px_70px_rgba(0,0,0,0.18)]">
                 {/* Illustration */}
                 <div className="relative w-40 h-40 mx-auto mb-6">
                   {/* Stacked cards effect */}
-                  <div className="absolute top-4 left-4 right-4 h-32 bg-white/60 rounded-xl transform rotate-6 shadow-sm"></div>
-                  <div className="absolute top-2 left-2 right-2 h-32 bg-white/80 rounded-xl transform rotate-3 shadow-sm"></div>
-                  <div className="absolute inset-0 bg-white rounded-xl shadow-md flex flex-col p-4">
-                    <div className="h-2 w-3/4 bg-gray-200 rounded mb-2"></div>
-                    <div className="h-2 w-full bg-gray-100 rounded mb-2"></div>
-                    <div className="h-2 w-5/6 bg-gray-100 rounded mb-2"></div>
-                    <div className="h-2 w-full bg-gray-100 rounded mb-2"></div>
+                  <div className="absolute top-4 left-4 right-4 h-32 rounded-xl bg-white/10 shadow-sm rotate-6"></div>
+                  <div className="absolute top-2 left-2 right-2 h-32 rounded-xl bg-white/15 shadow-sm rotate-3"></div>
+                  <div className="absolute inset-0 flex flex-col rounded-xl bg-[#f7f2e7] p-4 text-left shadow-md">
+                    <div className="mb-2 h-2 w-3/4 rounded bg-[#d8cfc0]"></div>
+                    <div className="mb-2 h-2 w-full rounded bg-[#e8ddc8]"></div>
+                    <div className="mb-2 h-2 w-5/6 rounded bg-[#e8ddc8]"></div>
+                    <div className="mb-2 h-2 w-full rounded bg-[#e8ddc8]"></div>
                     <div className="flex-1"></div>
                     <div className="self-end">
-                      <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
-                        <Sparkles className="w-4 h-4 text-red-600" />
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#e8f4ee]">
+                        <Sparkles className="h-4 w-4 text-[#2d8b69]" />
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <h3 className="mb-2 text-lg font-semibold text-white">
                   Knowledge Base
                 </h3>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm leading-relaxed text-[#d8d0c3]">
                   Your AI agents will use this knowledge to provide accurate, relevant answers based on your content.
                 </p>
               </div>
 
               {/* Tips Card */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-                <h4 className="font-medium text-gray-900 mb-4">Tips for great results</h4>
+              <div className="rounded-[1.75rem] border border-black/10 bg-white/78 p-5 shadow-[0_18px_40px_rgba(0,0,0,0.05)]">
+                <h4 className="mb-4 font-semibold text-gray-900">Tips for great results</h4>
                 <ul className="space-y-3 text-sm">
                   <li className="flex items-start gap-2">
                     <CheckCircle className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
@@ -791,12 +802,12 @@ export default function CreateKnowledgeBasePage() {
               </div>
 
               {/* Content Types Card */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-                <h4 className="font-medium text-gray-900 mb-4">Supported content</h4>
+              <div className="rounded-[1.75rem] border border-black/10 bg-white/78 p-5 shadow-[0_18px_40px_rgba(0,0,0,0.05)]">
+                <h4 className="mb-4 font-semibold text-gray-900">Supported content</h4>
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Upload className="w-4 h-4 text-blue-600" />
+                    <div className="rounded-lg bg-[#f3ecde] p-2">
+                      <Upload className="w-4 h-4 text-[#171717]" />
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">Documents</p>
@@ -804,8 +815,8 @@ export default function CreateKnowledgeBasePage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-purple-100 rounded-lg">
-                      <FileText className="w-4 h-4 text-purple-600" />
+                    <div className="rounded-lg bg-[#eef7f1] p-2">
+                      <FileText className="w-4 h-4 text-[#2d8b69]" />
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">Text</p>
@@ -813,8 +824,8 @@ export default function CreateKnowledgeBasePage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-red-100 rounded-lg">
-                      <Globe className="w-4 h-4 text-red-600" />
+                    <div className="rounded-lg bg-[#f4efe4] p-2">
+                      <Globe className="w-4 h-4 text-[#5b564e]" />
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">Websites</p>

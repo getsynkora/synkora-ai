@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.controllers.agents.models import AgentResponse
 from src.core.database import get_async_db
 from src.models.agent import Agent
+from src.models.agent_pricing import AgentPricing
 from src.models.agent_public_profile import AgentPublicProfile
 from src.services.agents.agent_manager import AgentManager
 from src.services.storage.s3_storage import S3StorageService
@@ -128,9 +129,28 @@ async def list_public_agents(
         )
         slug_map = {row.agent_id: row.slug for row in slug_result}
 
+        # Fetch pricing for all agents in one query
+        pricing_result = await db.execute(
+            select(AgentPricing).where(AgentPricing.agent_id.in_(agent_ids), AgentPricing.is_active.is_(True))
+        )
+        pricing_map = {p.agent_id: p for p in pricing_result.scalars().all()}
+
         # Build response
         agents_list = []
         for agent in agents:
+            pricing = pricing_map.get(agent.id)
+            pricing_data = None
+            if pricing:
+                pricing_data = {
+                    "model": pricing.pricing_model,
+                    "is_free": pricing.pricing_model == "FREE",
+                    "credits_per_use": pricing.credits_per_use,
+                    "session_credits": pricing.session_credits,
+                    "daily_credits": pricing.daily_credits,
+                    "weekly_credits": pricing.weekly_credits,
+                    "monthly_credits": pricing.monthly_subscription_credits,
+                    "trial_messages": pricing.trial_messages or 0,
+                }
             agents_list.append(
                 {
                     "id": str(agent.id),
@@ -146,6 +166,7 @@ async def list_public_agents(
                     "model_name": agent.llm_config.get("model", "Unknown Model"),
                     "provider": agent.llm_config.get("provider", "Unknown"),
                     "created_at": agent.created_at.isoformat(),
+                    "pricing": pricing_data,
                 }
             )
 

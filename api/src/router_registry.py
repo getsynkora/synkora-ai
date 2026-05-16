@@ -119,6 +119,12 @@ ROUTER_REGISTRY: list[RouteConfig] = [
         tags=["autonomous-agents"],
     ),
     RouteConfig(
+        module="src.controllers.agents.agent_lens",
+        attribute="router",
+        prefix="/api/v1/agents",
+        tags=["agent-lens"],
+    ),
+    RouteConfig(
         module="src.controllers.agents.conversation_shares",
         attribute="conversation_shares_router",
         prefix="/api/v1/agents",
@@ -189,6 +195,13 @@ ROUTER_REGISTRY: list[RouteConfig] = [
         attribute="providers_router",
         prefix="",
         tags=["llm-providers"],
+    ),
+    # ===== Email Templates =====
+    RouteConfig(
+        module="src.controllers.email_templates",
+        attribute="router",
+        prefix="/api/v1",
+        tags=["email-templates"],
     ),
     # ===== MCP Server Host (expose agents as MCP servers) =====
     RouteConfig(
@@ -267,6 +280,13 @@ ROUTER_REGISTRY: list[RouteConfig] = [
         attribute="scim_router",
         prefix="",
         tags=["scim"],
+    ),
+    # ===== Company Brain =====
+    RouteConfig(
+        module="src.controllers.brain_domains",
+        attribute="router",
+        prefix="/api/v1",
+        tags=["company-brain"],
     ),
     # ===== Knowledge Bases & Data =====
     RouteConfig(
@@ -553,6 +573,13 @@ ROUTER_REGISTRY: list[RouteConfig] = [
         prefix="",
         tags=["webhooks"],
     ),
+    # ===== Agent Public Profiles =====
+    RouteConfig(
+        module="src.controllers.agents.agent_public_profile",
+        attribute="public_router",
+        prefix="",
+        tags=["agent-public-profiles"],
+    ),
     # ===== Creator Profiles =====
     RouteConfig(
         module="src.controllers.creators",
@@ -585,6 +612,19 @@ ROUTER_REGISTRY: list[RouteConfig] = [
         attribute="router",
         prefix="/api/v1",
         tags=["agent-subscriptions"],
+    ),
+    # ===== Agent Monetization (purchase endpoints) =====
+    RouteConfig(
+        module="src.controllers.agents.monetization",
+        attribute="router",
+        prefix="/api/v1/agents",
+        tags=["agent-monetization"],
+    ),
+    RouteConfig(
+        module="src.controllers.agents.monetization",
+        attribute="public_router",
+        prefix="",
+        tags=["agent-monetization"],
     ),
     # ===== Newsletter Templates =====
     RouteConfig(

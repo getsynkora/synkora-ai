@@ -76,7 +76,7 @@ export default function MCPServersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
+    <div className="dashboard-resource-page min-h-screen p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header - More Compact */}
         <div className="mb-6">
@@ -275,6 +275,11 @@ function MCPServerModal({
     JSON.stringify(serverHeaders, null, 2)
   )
   const [saving, setSaving] = useState(false)
+  const fieldClass = 'w-full rounded-[1.15rem] border border-gray-200 bg-gray-50 px-4 py-4 text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500'
+  const textareaClass = `${fieldClass} resize-y`
+  const codeClass = 'w-full rounded-[1.15rem] border border-gray-200 bg-gray-50 px-4 py-4 font-mono text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500'
+  const labelClass = 'mb-2 block text-sm font-semibold text-gray-700'
+  const helpClass = 'mt-2 text-xs leading-relaxed text-gray-500'
 
   // Reset auth config template when auth type changes (only when creating, not editing)
   const handleAuthTypeChange = (newAuthType: string) => {
@@ -341,27 +346,31 @@ function MCPServerModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-red-50 to-red-100">
-          <h2 className="text-xl font-bold text-gray-900">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-2xl overflow-hidden rounded-[2rem] border border-black/10 bg-[#fcfaf5] shadow-[0_32px_90px_rgba(0,0,0,0.18)]">
+        <div className="border-b border-black/10 bg-white px-8 py-6">
+          <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/55 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#6e675d]">
+            <Server className="h-3.5 w-3.5 text-[#2d8b69]" />
+            MCP Server
+          </div>
+          <h2 className="mt-4 text-3xl font-semibold tracking-tight text-gray-900">
             {server ? 'Edit MCP Server' : 'Add MCP Server'}
           </h2>
-          <p className="text-sm text-gray-600 mt-0.5">
+          <p className="mt-2 text-base text-gray-600">
             Configure your Model Context Protocol server
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto max-h-[calc(90vh-180px)]">
+        <form onSubmit={handleSubmit} className="max-h-[calc(90vh-210px)] space-y-6 overflow-y-auto px-8 py-7">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className={labelClass}>
               Server Name *
             </label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              className={fieldClass}
               placeholder="My MCP Server"
               required
             />
@@ -369,18 +378,18 @@ function MCPServerModal({
 
           {/* Transport Type Selector */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className={labelClass}>
               Transport Type *
             </label>
             <select
               value={formData.transport_type}
               onChange={(e) => setFormData({ ...formData, transport_type: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              className={fieldClass}
             >
               <option value="http">HTTP/SSE (Remote Server)</option>
               <option value="stdio">Stdio (Local Command)</option>
             </select>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className={helpClass}>
               {formData.transport_type === 'http' 
                 ? 'Connect to a remote MCP server via HTTP'
                 : 'Run a local MCP server using a command (e.g., npx, python)'}
@@ -390,18 +399,18 @@ function MCPServerModal({
           {/* Conditional Fields based on transport type */}
           {formData.transport_type === 'http' ? (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className={labelClass}>
                 Server URL *
               </label>
               <input
                 type="url"
                 value={formData.url}
                 onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className={fieldClass}
                 placeholder="https://api.example.com/mcp"
                 required={formData.transport_type === 'http'}
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className={helpClass}>
                 Must point to the MCP endpoint path, not just the root domain.
                 Example: <span className="font-mono">https://api.example.com/mcp</span>
               </p>
@@ -410,25 +419,25 @@ function MCPServerModal({
             <>
               {/* Command Field */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClass}>
                   Command *
                 </label>
                 <input
                   type="text"
                   value={formData.command}
                   onChange={(e) => setFormData({ ...formData, command: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className={fieldClass}
                   placeholder="npx"
                   required={formData.transport_type === 'stdio'}
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className={helpClass}>
                   The command to execute (e.g., npx, python, node)
                 </p>
               </div>
 
               {/* Args Field */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClass}>
                   Arguments
                 </label>
                 <div className="space-y-2">
@@ -442,7 +451,7 @@ function MCPServerModal({
                           newArgs[index] = e.target.value
                           setFormData({ ...formData, args: newArgs })
                         }}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        className={fieldClass}
                         placeholder="Argument"
                       />
                       <button
@@ -451,7 +460,7 @@ function MCPServerModal({
                           const newArgs = formData.args.filter((_: string, i: number) => i !== index)
                           setFormData({ ...formData, args: newArgs })
                         }}
-                        className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="rounded-[1rem] px-4 py-3 text-sm font-medium text-[#5b564e] transition-colors hover:bg-white"
                       >
                         Remove
                       </button>
@@ -460,19 +469,19 @@ function MCPServerModal({
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, args: [...formData.args, ''] })}
-                    className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-[#171717] transition-colors hover:bg-[#f7f2e7]"
                   >
                     + Add Argument
                   </button>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className={helpClass}>
                   Example for GitHub MCP: ["-y", "@modelcontextprotocol/server-github"]
                 </p>
               </div>
 
               {/* Environment Variables */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClass}>
                   Environment Variables
                 </label>
                 <div className="space-y-2">
@@ -487,7 +496,7 @@ function MCPServerModal({
                           newEnvVars[e.target.value] = value
                           setFormData({ ...formData, env_vars: newEnvVars })
                         }}
-                        className="w-1/3 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        className={`${fieldClass} w-1/3`}
                         placeholder="KEY"
                       />
                       <input
@@ -498,7 +507,7 @@ function MCPServerModal({
                           newEnvVars[key] = e.target.value
                           setFormData({ ...formData, env_vars: newEnvVars })
                         }}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        className={`flex-1 ${fieldClass}`}
                         placeholder="value"
                       />
                       <button
@@ -508,7 +517,7 @@ function MCPServerModal({
                           delete newEnvVars[key]
                           setFormData({ ...formData, env_vars: newEnvVars })
                         }}
-                        className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="rounded-[1rem] px-4 py-3 text-sm font-medium text-[#5b564e] transition-colors hover:bg-white"
                       >
                         Remove
                       </button>
@@ -521,12 +530,12 @@ function MCPServerModal({
                       newEnvVars[''] = ''
                       setFormData({ ...formData, env_vars: newEnvVars })
                     }}
-                    className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-[#171717] transition-colors hover:bg-[#f7f2e7]"
                   >
                     + Add Environment Variable
                   </button>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className={helpClass}>
                   Example: GITHUB_PERSONAL_ACCESS_TOKEN=ghp_xxxxx
                 </p>
               </div>
@@ -534,13 +543,13 @@ function MCPServerModal({
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className={labelClass}>
               Description *
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              className={textareaClass}
               rows={3}
               placeholder="Describe what this MCP server provides..."
               required
@@ -551,13 +560,13 @@ function MCPServerModal({
           {formData.transport_type === 'http' && (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClass}>
                   Server Type
                 </label>
                 <select
                   value={formData.server_type}
                   onChange={(e) => setFormData({ ...formData, server_type: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className={fieldClass}
                 >
                   <option value="http">HTTP</option>
                   <option value="websocket">WebSocket</option>
@@ -566,13 +575,13 @@ function MCPServerModal({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClass}>
                   Authentication
                 </label>
                 <select
                   value={formData.auth_type}
                   onChange={(e) => handleAuthTypeChange(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className={fieldClass}
                 >
                   <option value="none">None</option>
                   <option value="api_key">API Key</option>
@@ -586,17 +595,17 @@ function MCPServerModal({
           {/* Auth Config - Show when auth_type is not 'none' and transport is HTTP */}
           {formData.transport_type === 'http' && formData.auth_type !== 'none' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className={labelClass}>
                 Auth Config (JSON)
               </label>
               <textarea
                 value={authConfigJson}
                 onChange={(e) => setAuthConfigJson(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent font-mono text-sm"
+                className={codeClass}
                 rows={5}
               />
               {formData.auth_type === 'api_key' && (
-                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-900 space-y-1">
+                <div className="mt-3 rounded-[1.15rem] border border-black/10 bg-[#eef6ff] p-4 text-xs text-[#294a7c] space-y-1.5">
                   <p className="font-semibold">API Key fields:</p>
                   <p><span className="font-mono font-bold">api_key</span> — your actual API key value</p>
                   <p><span className="font-mono font-bold">header_name</span> — the HTTP header to send it in</p>
@@ -606,14 +615,14 @@ function MCPServerModal({
                 </div>
               )}
               {formData.auth_type === 'bearer' && (
-                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-900 space-y-1">
+                <div className="mt-3 rounded-[1.15rem] border border-black/10 bg-[#eef6ff] p-4 text-xs text-[#294a7c] space-y-1.5">
                   <p className="font-semibold">Bearer Token fields:</p>
                   <p><span className="font-mono font-bold">token</span> — your bearer token (sent as <span className="font-mono">Authorization: Bearer &lt;token&gt;</span>)</p>
-                  <p className="text-blue-700 mt-1">Use this for GitHub, PostHog personal API keys, and most OAuth2 APIs.</p>
+                  <p className="mt-1 text-[#45638f]">Use this for GitHub, PostHog personal API keys, and most OAuth2 APIs.</p>
                 </div>
               )}
               {formData.auth_type === 'oauth' && (
-                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-900 space-y-1">
+                <div className="mt-3 rounded-[1.15rem] border border-black/10 bg-[#eef6ff] p-4 text-xs text-[#294a7c] space-y-1.5">
                   <p className="font-semibold">OAuth fields:</p>
                   <p><span className="font-mono font-bold">client_id</span> — OAuth application client ID</p>
                   <p><span className="font-mono font-bold">client_secret</span> — OAuth application client secret</p>
@@ -625,49 +634,49 @@ function MCPServerModal({
           {/* Headers - Only for HTTP transport */}
           {formData.transport_type === 'http' && (
             <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Custom Headers (JSON) - Optional
-            </label>
-            <textarea
-              value={headersJson}
-              onChange={(e) => setHeadersJson(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent font-mono text-sm"
-              rows={4}
-              placeholder={`{\n  "X-Project-ID": "your_project_id"\n}`}
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Extra HTTP headers the server requires — for example a project ID or API version header.
-              Do not put your auth credentials here; use the Auth Config above instead.
-            </p>
+              <label className={labelClass}>
+                Custom Headers (JSON) - Optional
+              </label>
+              <textarea
+                value={headersJson}
+                onChange={(e) => setHeadersJson(e.target.value)}
+                className={codeClass}
+                rows={4}
+                placeholder={`{\n  "X-Project-ID": "your_project_id"\n}`}
+              />
+              <p className={helpClass}>
+                Extra HTTP headers the server requires — for example a project ID or API version header.
+                Do not put your auth credentials here; use the Auth Config above instead.
+              </p>
             </div>
           )}
 
           {/* Use SSE Toggle - Only for HTTP transport */}
           {formData.transport_type === 'http' && (
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Use Server-Sent Events (SSE)
+            <div className="flex items-center justify-between rounded-[1.25rem] border border-black/10 bg-[#f7f2e7] p-4">
+              <div className="flex-1 pr-4">
+                <label className="mb-1 block text-sm font-semibold text-gray-700">
+                  Use Server-Sent Events (SSE)
+                </label>
+                <p className="text-xs text-gray-500">
+                  Enable SSE for streaming responses. Disable for servers that only support POST requests (e.g., GitHub MCP).
+                </p>
+              </div>
+              <label className="relative inline-flex cursor-pointer items-center">
+                <input
+                  type="checkbox"
+                  checked={formData.use_sse}
+                  onChange={(e) => setFormData({ ...formData, use_sse: e.target.checked })}
+                  className="peer sr-only"
+                />
+                <div className="relative h-6 w-11 rounded-full bg-black/10 transition-colors peer-checked:bg-[#181818] after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-white after:bg-white after:transition-transform peer-checked:after:translate-x-full" />
               </label>
-              <p className="text-xs text-gray-500">
-                Enable SSE for streaming responses. Disable for servers that only support POST requests (e.g., GitHub MCP).
-              </p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer ml-4">
-              <input
-                type="checkbox"
-                checked={formData.use_sse}
-                onChange={(e) => setFormData({ ...formData, use_sse: e.target.checked })}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
-            </label>
             </div>
           )}
 
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3.5">
-            <h4 className="text-sm font-semibold text-red-900 mb-1">About MCP Servers</h4>
-            <p className="text-xs text-red-800 leading-relaxed">
+          <div className="rounded-[1.25rem] border border-black/10 bg-[rgba(99,223,190,0.16)] p-4">
+            <h4 className="mb-1 text-sm font-semibold text-[#171717]">About MCP Servers</h4>
+            <p className="text-xs leading-relaxed text-[#4f645c]">
               MCP (Model Context Protocol) servers provide additional tools and resources that your agents can use.
               They extend agent capabilities beyond built-in tools by connecting to external APIs, databases, or services.
             </p>
@@ -675,11 +684,11 @@ function MCPServerModal({
         </form>
 
         {/* Fixed Footer with Buttons */}
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+        <div className="flex justify-end gap-3 border-t border-black/10 bg-[#f7f2e7] px-8 py-5">
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 text-gray-700 hover:bg-gray-200 bg-gray-100 rounded-lg transition-colors font-medium text-sm"
+            className="rounded-[1.15rem] border border-black/10 bg-white px-5 py-3 text-sm font-medium text-[#5b564e] transition-colors hover:bg-[#fffdf8]"
           >
             Cancel
           </button>
@@ -691,7 +700,7 @@ function MCPServerModal({
               const form = e.currentTarget.closest('div')?.previousElementSibling as HTMLFormElement
               form?.requestSubmit()
             }}
-            className="px-6 py-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
+            className="rounded-[1.15rem] bg-[#181818] px-6 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-[#f7f2e7] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? 'Saving...' : server ? 'Update Server' : 'Create Server'}
           </button>

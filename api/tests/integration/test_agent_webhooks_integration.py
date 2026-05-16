@@ -57,42 +57,56 @@ async def test_agent(async_client: AsyncClient, auth_headers):
     """Create a test agent for webhook tests."""
     headers, tenant_id, account = auth_headers
 
-    agent_name = f"webhook-test-agent-{uuid.uuid4().hex[:8]}"
+    agent_name = f"Webhook Test Agent {uuid.uuid4().hex[:8]}"
     response = await async_client.post(
         "/api/v1/agents",
         json={
-            "name": f"Webhook Test Agent {uuid.uuid4().hex[:8]}",
-            "agent_name": agent_name,
-            "description": "Agent for webhook tests",
-            "system_prompt": "You are a test agent for webhooks.",
-            "model": "gpt-4o-mini",
+            "agent_type": "llm",
+            "config": {
+                "name": agent_name,
+                "description": "Agent for webhook tests",
+                "system_prompt": "You are a test agent for webhooks.",
+                "llm_config": {
+                    "provider": "openai",
+                    "model_name": "gpt-4o-mini",
+                    "api_key": "sk-test-key",
+                },
+                "tools": [],
+            },
         },
         headers=headers,
     )
     if response.status_code == status.HTTP_201_CREATED:
-        return response.json()["id"]
+        return response.json()["data"]["agent_id"]
     return None
 
 
 @pytest_asyncio.fixture
 async def test_agent_name(async_client: AsyncClient, auth_headers):
-    """Create a test agent and return its name for webhook tests."""
+    """Create a test agent and return its slug for webhook tests."""
     headers, tenant_id, account = auth_headers
 
-    agent_name = f"webhook-test-agent-{uuid.uuid4().hex[:8]}"
+    agent_name = f"Webhook Test Agent {uuid.uuid4().hex[:8]}"
     response = await async_client.post(
         "/api/v1/agents",
         json={
-            "name": f"Webhook Test Agent {uuid.uuid4().hex[:8]}",
-            "agent_name": agent_name,
-            "description": "Agent for webhook tests",
-            "system_prompt": "You are a test agent for webhooks.",
-            "model": "gpt-4o-mini",
+            "agent_type": "llm",
+            "config": {
+                "name": agent_name,
+                "description": "Agent for webhook tests",
+                "system_prompt": "You are a test agent for webhooks.",
+                "llm_config": {
+                    "provider": "openai",
+                    "model_name": "gpt-4o-mini",
+                    "api_key": "sk-test-key",
+                },
+                "tools": [],
+            },
         },
         headers=headers,
     )
     if response.status_code == status.HTTP_201_CREATED:
-        return agent_name
+        return response.json()["data"]["slug"]
     return None
 
 

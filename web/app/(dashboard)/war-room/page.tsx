@@ -21,6 +21,7 @@ import {
   Zap,
   Eye,
 } from 'lucide-react'
+import DashboardPageShell, { DashboardPagePanel } from '@/components/dashboard/DashboardPageShell'
 
 const STATUS_CONFIG: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
   pending: {
@@ -138,27 +139,31 @@ export default function WarRoomPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto">
+    <DashboardPageShell
+      title="AI War Room"
+      description="Multi-agent debates and discussions."
+      icon={Swords}
+      badge="Labs"
+      breadcrumbs={[
+        { label: 'Home', href: '/' },
+        { label: 'War Room' },
+      ]}
+      actions={
+        <button
+          onClick={() => router.push('/war-room/create')}
+          className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+        >
+          <Plus className="h-4 w-4" />
+          New Debate
+        </button>
+      }
+      stats={[
+        { label: 'Total', value: debates.length },
+        { label: 'Active', value: debates.filter((d) => d.status === 'active').length },
+      ]}
+    >
         {/* Header */}
         <div className="mb-6">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">AI War Room</h1>
-              <p className="text-gray-600 mt-1 text-sm hidden sm:block">
-                Multi-agent debates and discussions
-              </p>
-            </div>
-            <button
-              onClick={() => router.push('/war-room/create')}
-              className="inline-flex items-center gap-2 px-4 py-2 md:px-5 md:py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition-all shadow-sm hover:shadow-md text-sm font-medium flex-shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">New Debate</span>
-              <span className="sm:hidden">New</span>
-            </button>
-          </div>
-
           {/* Stats Bar */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-5">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
@@ -209,7 +214,7 @@ export default function WarRoomPage() {
           </div>
 
           {/* Search and Filter Bar */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+          <DashboardPagePanel className="p-3">
             <div className="flex flex-col md:flex-row gap-3">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -218,7 +223,7 @@ export default function WarRoomPage() {
                   placeholder="Search debates..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full rounded-[1rem] border border-black/10 bg-[#fcfaf5] py-3 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]"
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -226,7 +231,7 @@ export default function WarRoomPage() {
                 <select
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
-                  className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="rounded-[1rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]"
                 >
                   <option value="all">All Status</option>
                   {uniqueStatuses.map((status) => (
@@ -238,7 +243,7 @@ export default function WarRoomPage() {
                 <select
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="rounded-[1rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]"
                 >
                   <option value="all">All Types</option>
                   {uniqueTypes.map((type) => (
@@ -249,17 +254,17 @@ export default function WarRoomPage() {
                 </select>
               </div>
             </div>
-          </div>
+          </DashboardPagePanel>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="mb-6 bg-red-50 border-l-4 border-red-500 rounded-lg p-4">
+          <DashboardPagePanel className="mb-6 border-[#eed6dd] bg-[linear-gradient(180deg,_rgba(252,245,247,0.98),_rgba(249,236,240,0.96))] p-4">
             <div className="flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600" />
-              <p className="text-red-700">{error}</p>
+              <AlertCircle className="w-5 h-5 text-[#8a445c]" />
+              <p className="text-[#8a445c]">{error}</p>
             </div>
-          </div>
+          </DashboardPagePanel>
         )}
 
         {/* Debates Grid */}
@@ -381,15 +386,13 @@ export default function WarRoomPage() {
             })}
           </div>
         )}
-      </div>
-
       {/* Delete Confirmation Modal */}
       {deleteModal.show && deleteModal.debate && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border border-gray-200">
+          <div className="w-full max-w-md rounded-[1.9rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,245,239,0.96))] p-6 shadow-[0_32px_90px_-42px_rgba(73,45,23,0.35)]">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <AlertCircle className="w-6 h-6 text-red-600" />
+              <div className="rounded-lg bg-[#fbf1f4] p-2">
+                <AlertCircle className="w-6 h-6 text-[#8a445c]" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900">Delete Debate</h3>
             </div>
@@ -404,14 +407,14 @@ export default function WarRoomPage() {
               <button
                 onClick={() => setDeleteModal({ show: false, debate: null })}
                 disabled={deleting}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                className="rounded-[0.95rem] bg-[#f1eadc] px-4 py-2 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#e8ddc8] disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
                 disabled={deleting}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm hover:shadow-md"
+                className="flex items-center gap-2 rounded-[0.95rem] bg-[#171717] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {deleting ? (
                   <>
@@ -429,6 +432,6 @@ export default function WarRoomPage() {
           </div>
         </div>
       )}
-    </div>
+    </DashboardPageShell>
   )
 }

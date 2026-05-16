@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import PublicPageFrame from '@/components/public/PublicPageFrame'
 import {
   Zap,
   Bot,
@@ -19,7 +20,6 @@ import {
   BarChart3,
   Upload,
   Link2,
-  Settings,
   Sparkles,
   Send,
   CheckCircle2,
@@ -364,6 +364,54 @@ const stepIllustrations: { [key: string]: React.FC } = {
   '04': DeployIllustration,
 }
 
+const stepThemes = {
+  red: {
+    badge: 'bg-[#ffe8de] text-[#915137]',
+    iconWrap: 'bg-[#ffe8de]',
+    iconColor: 'text-[#cf673e]',
+    panel: 'bg-[linear-gradient(145deg,rgba(255,255,255,0.84),rgba(249,241,233,0.82))]',
+    art: 'bg-[linear-gradient(145deg,rgba(255,248,242,0.98),rgba(250,237,228,0.94))]',
+    bullet: 'bg-[#cf673e]',
+  },
+  orange: {
+    badge: 'bg-[#fff0d8] text-[#8c5d1d]',
+    iconWrap: 'bg-[#fff0d8]',
+    iconColor: 'text-[#d58a27]',
+    panel: 'bg-[linear-gradient(145deg,rgba(255,255,255,0.84),rgba(250,243,228,0.82))]',
+    art: 'bg-[linear-gradient(145deg,rgba(255,251,242,0.98),rgba(248,239,220,0.94))]',
+    bullet: 'bg-[#d58a27]',
+  },
+  blue: {
+    badge: 'bg-[#e4f2ef] text-[#2d6c63]',
+    iconWrap: 'bg-[#e4f2ef]',
+    iconColor: 'text-[#2d8b69]',
+    panel: 'bg-[linear-gradient(145deg,rgba(255,255,255,0.84),rgba(234,245,241,0.82))]',
+    art: 'bg-[linear-gradient(145deg,rgba(246,252,250,0.98),rgba(231,245,240,0.94))]',
+    bullet: 'bg-[#2d8b69]',
+  },
+  green: {
+    badge: 'bg-[#eaf3de] text-[#567436]',
+    iconWrap: 'bg-[#eaf3de]',
+    iconColor: 'text-[#6f9251]',
+    panel: 'bg-[linear-gradient(145deg,rgba(255,255,255,0.84),rgba(238,245,230,0.82))]',
+    art: 'bg-[linear-gradient(145deg,rgba(250,253,245,0.98),rgba(236,246,228,0.94))]',
+    bullet: 'bg-[#6f9251]',
+  },
+} as const
+
+const featureAccentClasses = [
+  { wrap: 'bg-[#ffe8de]', icon: 'text-[#cf673e]' },
+  { wrap: 'bg-[#e4f2ef]', icon: 'text-[#2d8b69]' },
+  { wrap: 'bg-[#fff0d8]', icon: 'text-[#d58a27]' },
+]
+
+const useCaseAccentClasses = [
+  'border-[#cf673e]/20 bg-[linear-gradient(180deg,rgba(46,31,25,0.96),rgba(24,20,18,0.92))] shadow-[0_20px_50px_rgba(0,0,0,0.22)]',
+  'border-[#2d8b69]/20 bg-[linear-gradient(180deg,rgba(24,36,33,0.96),rgba(18,22,21,0.92))] shadow-[0_20px_50px_rgba(0,0,0,0.22)]',
+  'border-[#d58a27]/20 bg-[linear-gradient(180deg,rgba(44,35,23,0.96),rgba(23,20,18,0.92))] shadow-[0_20px_50px_rgba(0,0,0,0.22)]',
+  'border-[#6f9251]/20 bg-[linear-gradient(180deg,rgba(31,38,27,0.96),rgba(19,22,18,0.92))] shadow-[0_20px_50px_rgba(0,0,0,0.22)]',
+]
+
 export default function HowItWorksPage() {
   const stepsRef = useRef<HTMLDivElement>(null)
   const featuresRef = useRef<HTMLDivElement>(null)
@@ -373,12 +421,13 @@ export default function HowItWorksPage() {
     if (stepsRef.current) {
       gsap.fromTo(
         stepsRef.current.querySelectorAll('.step-card'),
-        { opacity: 0, x: -50 },
+        { opacity: 0, y: 40, scale: 0.97 },
         {
           opacity: 1,
-          x: 0,
+          y: 0,
+          scale: 1,
           duration: 0.8,
-          stagger: 0.2,
+          stagger: 0.16,
           ease: 'power3.out',
           scrollTrigger: {
             trigger: stepsRef.current,
@@ -392,10 +441,11 @@ export default function HowItWorksPage() {
     if (featuresRef.current) {
       gsap.fromTo(
         featuresRef.current.querySelectorAll('.feature-card'),
-        { opacity: 0, y: 30 },
+        { opacity: 0, y: 30, scale: 0.96 },
         {
           opacity: 1,
           y: 0,
+          scale: 1,
           duration: 0.6,
           stagger: 0.1,
           ease: 'power3.out',
@@ -413,78 +463,84 @@ export default function HowItWorksPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2 sm:gap-3">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-red-500 rounded-xl flex items-center justify-center">
-                <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-              </div>
-              <span className="text-xl sm:text-2xl font-bold text-gray-900">Synkora</span>
-            </Link>
-            <div className="flex items-center gap-2 sm:gap-4">
-              <Link href="/" className="hidden sm:block text-gray-600 hover:text-gray-900 font-medium">
-                Home
-              </Link>
-              <Link href="/pricing" className="hidden sm:block text-gray-600 hover:text-gray-900 font-medium">
-                Pricing
-              </Link>
+    <PublicPageFrame mainClassName="">
+      <section className="relative overflow-hidden bg-[#f7f2e7] px-4 pb-16 pt-28 sm:px-6 sm:pb-20 sm:pt-32">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute left-[8%] top-[8%] h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.94),transparent_72%)]" />
+          <div className="absolute right-[6%] top-[8%] h-[28rem] w-[28rem] rounded-full bg-[radial-gradient(circle,rgba(240,232,216,0.92),transparent_72%)]" />
+          <div className="absolute left-[18%] top-[34%] h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(125,229,193,0.16),transparent_72%)]" />
+          <div className="absolute right-[18%] bottom-[10%] h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(255,143,178,0.08),transparent_72%)]" />
+        </div>
+
+        <div className="relative mx-auto max-w-6xl">
+          <div className="mx-auto max-w-4xl text-center">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/65 px-4 py-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#4b463e] shadow-[0_12px_28px_rgba(0,0,0,0.04)] backdrop-blur">
+              <Play className="h-4 w-4" />
+              How It Works
+            </div>
+            <h1 className="text-4xl font-medium tracking-[-0.06em] text-[#171717] sm:text-6xl">
+              Build LLM Applications
+              <span className="editorial-highlight ml-3 inline-block">in Minutes</span>
+            </h1>
+            <p className="mx-auto mt-6 max-w-3xl text-base leading-8 text-[#5a544a] sm:text-xl">
+              From agent definition to production deployment - with API access, RAG, tool integrations, and multi-channel delivery.
+            </p>
+            <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
               <Link
                 href="/signup"
-                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors text-sm sm:text-base"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#191919] px-8 py-4 text-sm font-semibold uppercase tracking-[0.16em] text-[#f7f2e7] shadow-[0_18px_40px_rgba(23,23,23,0.18)] transition-transform hover:-translate-y-0.5 sm:w-auto"
               >
-                Get Started
+                Start Building
+                <ArrowRight className="h-5 w-5" />
+              </Link>
+              <Link
+                href="/pricing"
+                className="inline-flex w-full items-center justify-center rounded-full border border-black/10 bg-white/68 px-8 py-4 text-sm font-semibold uppercase tracking-[0.16em] text-[#1a1a1a] shadow-[0_12px_28px_rgba(0,0,0,0.04)] transition-colors hover:bg-white sm:w-auto"
+              >
+                View Pricing
               </Link>
             </div>
           </div>
-        </div>
-      </nav>
 
-      {/* Hero */}
-      <section className="pt-28 sm:pt-32 pb-16 sm:pb-20 px-4 sm:px-6 bg-gradient-to-b from-red-50 to-white">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm font-semibold mb-6">
-            <Play className="w-4 h-4" />
-            How It Works
-          </div>
-          <h1 className="text-3xl sm:text-5xl font-bold text-gray-900 mb-6">
-            Build LLM Applications
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-rose-600"> in Minutes</span>
-          </h1>
-          <p className="text-base sm:text-xl text-gray-600 mb-8 sm:mb-10 max-w-2xl mx-auto">
-            From agent definition to production deployment — with API access, RAG, tool integrations, and multi-channel delivery.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-            <Link
-              href="/signup"
-              className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-red-500/30 w-full sm:w-auto justify-center"
-            >
-              Start Building
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-            <Link
-              href="/pricing"
-              className="px-6 sm:px-8 py-3 sm:py-4 border-2 border-gray-200 hover:border-gray-300 text-gray-700 font-semibold rounded-xl transition-all w-full sm:w-auto text-center"
-            >
-              View Pricing
-            </Link>
+          <div className="mt-14 grid gap-4 sm:grid-cols-3">
+            {[
+              { label: 'Create, connect, deploy', value: '4-step flow' },
+              { label: 'Tools, data, and channels', value: 'Production stack' },
+              { label: 'UI-first with API control', value: 'Built for teams' },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="rounded-[1.7rem] border border-black/8 bg-white/62 p-5 text-left shadow-[0_18px_40px_rgba(0,0,0,0.05)] backdrop-blur"
+              >
+                <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#7a736a]">
+                  {item.label}
+                </div>
+                <div className="text-2xl font-semibold tracking-[-0.04em] text-[#171717]">
+                  {item.value}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Steps Section */}
-      <section className="py-16 sm:py-24 px-4 sm:px-6" ref={stepsRef}>
+      <section className="bg-[#f4eee1] px-4 py-16 sm:px-6 sm:py-24" ref={stepsRef}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-10 sm:mb-16">
-            <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-4">Four Simple Steps</h2>
-            <p className="text-base sm:text-xl text-gray-600">From zero to deployed agent in record time</p>
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/60 px-4 py-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#4b463e]">
+              <Sparkles className="h-4 w-4" />
+              Workflow
+            </div>
+            <h2 className="text-3xl sm:text-5xl font-medium tracking-[-0.05em] text-[#171717] mb-4">
+              Four Simple Steps
+            </h2>
+            <p className="text-base sm:text-xl text-[#5d564c]">From zero to deployed agent in record time</p>
           </div>
 
           <div className="space-y-6 sm:space-y-8">
             {steps.map((step, index) => {
               const IllustrationComponent = stepIllustrations[step.number]
+              const theme = stepThemes[step.color as keyof typeof stepThemes]
               return (
                 <div
                   key={step.number}
@@ -493,37 +549,27 @@ export default function HowItWorksPage() {
                   }`}
                 >
                   {/* Content */}
-                  <div className="flex-1 bg-white rounded-2xl p-5 sm:p-8 border border-gray-100 shadow-lg hover:shadow-xl transition-shadow">
+                  <div className={`flex-1 rounded-[2rem] border border-black/8 p-5 shadow-[0_22px_52px_rgba(0,0,0,0.06)] backdrop-blur sm:p-8 ${theme.panel}`}>
                     <div className="flex items-start gap-4 sm:gap-6">
                       <div
-                        className={`w-12 h-12 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center flex-shrink-0 ${
-                          step.color === 'red' ? 'bg-red-100' :
-                          step.color === 'orange' ? 'bg-orange-100' :
-                          step.color === 'blue' ? 'bg-blue-100' : 'bg-green-100'
-                        }`}
+                        className={`w-12 h-12 sm:w-16 sm:h-16 rounded-[1.25rem] flex items-center justify-center flex-shrink-0 ${theme.iconWrap}`}
                       >
                         <step.icon
-                          className={`w-6 h-6 sm:w-8 sm:h-8 ${
-                            step.color === 'red' ? 'text-red-600' :
-                            step.color === 'orange' ? 'text-orange-600' :
-                            step.color === 'blue' ? 'text-blue-600' : 'text-green-600'
-                          }`}
+                          className={`w-6 h-6 sm:w-8 sm:h-8 ${theme.iconColor}`}
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 sm:gap-3 mb-3">
-                          <span className="text-3xl sm:text-5xl font-bold text-gray-200">{step.number}</span>
-                          <h3 className="text-lg sm:text-2xl font-bold text-gray-900">{step.title}</h3>
+                        <div className="mb-3 flex flex-wrap items-center gap-2 sm:gap-3">
+                          <span className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${theme.badge}`}>
+                            Step {step.number}
+                          </span>
+                          <h3 className="text-lg sm:text-2xl font-semibold tracking-[-0.04em] text-[#171717]">{step.title}</h3>
                         </div>
-                        <p className="text-gray-600 mb-4 sm:mb-6 text-sm sm:text-lg">{step.description}</p>
+                        <p className="mb-4 text-sm text-[#5f594f] sm:mb-6 sm:text-lg">{step.description}</p>
                         <ul className="space-y-2">
                           {step.features.map((feature, idx) => (
-                            <li key={idx} className="flex items-center gap-2 text-gray-700 text-sm sm:text-base">
-                              <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                                step.color === 'red' ? 'bg-red-500' :
-                                step.color === 'orange' ? 'bg-orange-500' :
-                                step.color === 'blue' ? 'bg-blue-500' : 'bg-green-500'
-                              }`} />
+                            <li key={idx} className="flex items-center gap-2 text-sm text-[#39352f] sm:text-base">
+                              <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${theme.bullet}`} />
                               {feature}
                             </li>
                           ))}
@@ -533,12 +579,8 @@ export default function HowItWorksPage() {
                   </div>
 
                   {/* Illustration */}
-                  <div className={`flex-1 rounded-2xl min-h-[280px] sm:min-h-[350px] relative overflow-hidden ${
-                    step.color === 'red' ? 'bg-gradient-to-br from-red-50 via-pink-50 to-rose-50' :
-                    step.color === 'orange' ? 'bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50' :
-                    step.color === 'blue' ? 'bg-gradient-to-br from-blue-50 via-indigo-50 to-violet-50' :
-                    'bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50'
-                  }`}>
+                  <div className={`flex-1 rounded-[2rem] min-h-[280px] sm:min-h-[350px] relative overflow-hidden border border-black/8 shadow-[0_22px_52px_rgba(0,0,0,0.05)] ${theme.art}`}>
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.72),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.18),rgba(255,255,255,0))]" />
                     {IllustrationComponent && <IllustrationComponent />}
                   </div>
                 </div>
@@ -548,37 +590,48 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
-      {/* Features Grid */}
-      <section className="py-16 sm:py-24 px-4 sm:px-6 bg-gray-50" ref={featuresRef}>
+      <section className="py-16 sm:py-24 px-4 sm:px-6 bg-[#f7f2e7]" ref={featuresRef}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-10 sm:mb-16">
-            <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-4">Powerful Features</h2>
-            <p className="text-base sm:text-xl text-gray-600">Everything you need to build production-ready AI agents</p>
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/60 px-4 py-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#4b463e]">
+              <Zap className="h-4 w-4" />
+              Capabilities
+            </div>
+            <h2 className="text-3xl sm:text-5xl font-medium tracking-[-0.05em] text-[#171717] mb-4">Powerful Features</h2>
+            <p className="text-base sm:text-xl text-[#5d564c]">Everything you need to build production-ready AI agents</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {features.map((feature, idx) => (
               <div
                 key={idx}
-                className="feature-card bg-white rounded-xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+                className="feature-card rounded-[1.8rem] border border-black/8 bg-white/72 p-6 shadow-[0_18px_40px_rgba(0,0,0,0.05)] backdrop-blur transition-transform hover:-translate-y-1"
               >
-                <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mb-4">
-                  <feature.icon className="w-6 h-6 text-red-600" />
+                <div className={`w-12 h-12 rounded-[1rem] flex items-center justify-center mb-4 ${featureAccentClasses[idx % featureAccentClasses.length].wrap}`}>
+                  <feature.icon className={`w-6 h-6 ${featureAccentClasses[idx % featureAccentClasses.length].icon}`} />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">{feature.title}</h3>
-                <p className="text-gray-600">{feature.description}</p>
+                <h3 className="text-lg font-semibold tracking-[-0.03em] text-[#171717] mb-2">{feature.title}</h3>
+                <p className="text-[#5f594f]">{feature.description}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Use Cases */}
-      <section className="py-16 sm:py-24 px-4 sm:px-6">
+      <section className="relative overflow-hidden bg-[#171717] px-4 py-16 sm:px-6 sm:py-24">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute left-[10%] top-[10%] h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(125,229,193,0.08),transparent_72%)]" />
+          <div className="absolute right-[12%] bottom-[14%] h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(255,143,178,0.08),transparent_72%)]" />
+          <div className="absolute left-1/2 top-[22%] h-[420px] w-[420px] -translate-x-1/2 rounded-full border border-white/[0.04]" />
+        </div>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-10 sm:mb-16">
-            <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-4">Built for Every Use Case</h2>
-            <p className="text-base sm:text-xl text-gray-600">See what you can build with Synkora</p>
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#d1c7bb]">
+              <MessageCircle className="h-4 w-4 text-[#7de5c1]" />
+              Use Cases
+            </div>
+            <h2 className="text-3xl sm:text-5xl font-medium tracking-[-0.05em] text-white mb-4">Built for Every Use Case</h2>
+            <p className="text-base sm:text-xl text-[#c6bfb3]">See what you can build with Synkora</p>
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -590,57 +643,45 @@ export default function HowItWorksPage() {
             ].map((useCase, idx) => (
               <div
                 key={idx}
-                className="text-center p-6 bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-100"
+                className={`relative overflow-hidden rounded-[1.7rem] border p-6 text-center backdrop-blur transition-transform hover:-translate-y-1 ${useCaseAccentClasses[idx]}`}
               >
-                <h3 className="font-semibold text-gray-900 mb-2">{useCase.title}</h3>
-                <p className="text-gray-600 text-sm">{useCase.desc}</p>
+                <div className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/22 to-transparent" />
+                <div className="mx-auto mb-4 h-2 w-14 rounded-full bg-white/18" />
+                <h3 className="font-semibold text-white mb-2 tracking-[-0.03em]">{useCase.title}</h3>
+                <p className="text-[#d0c7bb] text-sm leading-6">{useCase.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-16 sm:py-24 px-4 sm:px-6 bg-gradient-to-br from-red-500 to-rose-600">
+      <section className="bg-[#f7f2e7] px-4 py-16 sm:px-6 sm:py-24">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-2xl sm:text-4xl font-bold text-white mb-4 sm:mb-6">
+          <div className="relative overflow-hidden rounded-[2.7rem] border border-black/10 bg-[#171717] p-10 shadow-[0_34px_90px_rgba(0,0,0,0.2)] md:p-14">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.08),transparent_24%),radial-gradient(circle_at_82%_18%,rgba(125,229,193,0.16),transparent_22%),radial-gradient(circle_at_18%_80%,rgba(255,143,178,0.12),transparent_20%)]" />
+            <div className="absolute inset-[10px] rounded-[2.2rem] border border-white/8" />
+            <div className="relative">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#d7d0c5]">
+                <Send className="h-4 w-4 text-[#7de5c1]" />
+                Start shipping
+              </div>
+              <h2 className="text-2xl sm:text-4xl font-medium tracking-[-0.05em] text-white mb-4 sm:mb-6">
             Ready to Build Your First Agent?
-          </h2>
-          <p className="text-base sm:text-xl text-white/90 mb-8 sm:mb-10">
+              </h2>
+              <p className="text-base sm:text-xl text-white/90 mb-8 sm:mb-10">
             Join thousands of teams already using Synkora to automate their workflows.
-          </p>
-          <Link
-            href="/signup"
-            className="inline-flex items-center gap-2 px-8 sm:px-10 py-4 sm:py-5 bg-white hover:bg-gray-50 text-red-600 text-base sm:text-lg font-semibold rounded-xl transition-all shadow-xl"
-          >
-            Get Started Free
-            <ArrowRight className="w-5 h-5" />
-          </Link>
+              </p>
+              <Link
+                href="/signup"
+                className="inline-flex items-center gap-2 rounded-full bg-[#7de5c1] px-8 py-4 text-base font-semibold text-[#101915] transition-transform hover:-translate-y-0.5"
+              >
+                Get Started Free
+                <ArrowRight className="w-5 h-5" />
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="py-8 px-6 border-t border-gray-200 bg-white">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
-              <Zap className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-gray-600">© 2026 Synkora. All rights reserved.</span>
-          </div>
-          <div className="flex items-center gap-6">
-            <Link href="/terms" className="text-gray-600 hover:text-gray-900 text-sm">
-              Terms
-            </Link>
-            <Link href="/privacy" className="text-gray-600 hover:text-gray-900 text-sm">
-              Privacy
-            </Link>
-            <Link href="/" className="text-gray-600 hover:text-gray-900 text-sm">
-              Home
-            </Link>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </PublicPageFrame>
   )
 }

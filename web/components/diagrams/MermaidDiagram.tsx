@@ -4,9 +4,17 @@ import { useEffect, useRef, useState, useId } from 'react'
 import { Copy, Download, Maximize2, Minimize2, Check } from 'lucide-react'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import DOMPurify from 'dompurify'
 
 interface MermaidDiagramProps {
   code: string
+}
+
+function sanitizeSvg(svg: string): string {
+  return DOMPurify.sanitize(svg, {
+    USE_PROFILES: { svg: true, svgFilters: true },
+    FORBID_ATTR: ['xlink:href'],
+  })
 }
 
 export function MermaidDiagram({ code }: MermaidDiagramProps) {
@@ -27,14 +35,14 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
         mermaid.initialize({
           startOnLoad: false,
           theme: 'default',
-          securityLevel: 'loose',
+          securityLevel: 'strict',
           fontFamily: 'system-ui, -apple-system, sans-serif',
         })
 
         const id = `mermaid${uniqueId}`
         const { svg } = await mermaid.render(id, code.trim())
         if (!cancelled) {
-          setSvgContent(svg)
+          setSvgContent(sanitizeSvg(svg))
           setError('')
         }
       } catch (err) {

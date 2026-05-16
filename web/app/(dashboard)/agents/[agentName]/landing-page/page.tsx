@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { useParams } from 'next/navigation'
 import toast from 'react-hot-toast'
-import { ArrowLeft, Globe, Eye, Plus, Trash2, Save, Loader2 } from 'lucide-react'
+import { Globe, Eye, Plus, Trash2, Save, Loader2 } from 'lucide-react'
 import { apiClient } from '@/lib/api/client'
+import AgentPageShell, { AgentPagePanel, AgentPageTabs } from '@/components/agents/AgentPageShell'
 
 interface GalleryImage {
   url: string
@@ -45,7 +45,6 @@ type Section = 'hero' | 'description' | 'gallery' | 'examples' | 'seo'
 
 export default function LandingPageEditorPage() {
   const params = useParams()
-  const router = useRouter()
   const agentName = params.agentName as string
 
   const [activeSection, setActiveSection] = useState<Section>('hero')
@@ -138,40 +137,46 @@ export default function LandingPageEditorPage() {
     { id: 'seo', label: 'SEO' },
   ]
 
+  const fieldClass =
+    'w-full rounded-[1.15rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]'
+  const textAreaClass = `${fieldClass} resize-none`
+  const monoAreaClass = `${fieldClass} min-h-[16rem] resize-y font-mono`
+  const subtleAddButtonClass =
+    'inline-flex items-center gap-2 rounded-[1rem] border border-black/10 bg-[#f1eadc] px-3.5 py-2 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#e8ddc8]'
+  const deleteButtonClass =
+    'rounded-full p-2 text-[#8b5a74] transition-colors hover:bg-[#f6edf1] hover:text-[#6f435b]'
+  const sectionHeadingClass = 'text-lg font-semibold tracking-[-0.02em] text-gray-950'
+  const sectionIntroClass = 'mt-1 text-sm leading-6 text-gray-600'
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#171717]" />
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      {/* Header */}
-      <div className="mb-8 flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <Link
-            href={`/agents/${agentName}/edit`}
-            className="mb-2 inline-flex items-center text-sm text-gray-600 hover:text-gray-900"
-          >
-            <ArrowLeft className="mr-1 h-4 w-4" />
-            Back to Edit
-          </Link>
-          <h1 className="text-2xl font-bold text-gray-900">Landing Page</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            {isPublished && slug
-              ? <span>Published at <a href={`/a/${slug}`} target="_blank" className="text-primary-600 hover:underline">/a/{slug}</a></span>
-              : 'Not published yet'
-            }
-          </p>
-        </div>
-        <div className="flex gap-3">
+    <AgentPageShell
+      agentName={agentName}
+      title="Landing Page"
+      description={
+        isPublished && slug
+          ? <span>Published at <a href={`/a/${slug}`} target="_blank" className="text-[#171717] underline">{`/a/${slug}`}</a></span>
+          : 'Not published yet'
+      }
+      icon={Globe}
+      backHref={`/agents/${agentName}/edit`}
+      backLabel="Back to Edit"
+      badge="Public Profile"
+      maxWidthClassName="max-w-[90rem]"
+      actions={
+        <div className="flex flex-wrap gap-3">
           {isPublished && slug && (
             <a
               href={`/a/${slug}`}
               target="_blank"
-              className="inline-flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:border-gray-300"
+              className="inline-flex items-center gap-2 rounded-[1rem] border border-black/10 bg-white/80 px-4 py-3 text-sm font-semibold text-[#171717] transition-colors hover:bg-white"
             >
               <Eye className="h-4 w-4" />
               Preview
@@ -180,7 +185,7 @@ export default function LandingPageEditorPage() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
+            className="inline-flex items-center gap-2 rounded-[1rem] border border-black/10 bg-[#f1eadc] px-4 py-3 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#e8ddc8]"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Save draft
@@ -188,29 +193,22 @@ export default function LandingPageEditorPage() {
           <button
             onClick={handlePublish}
             disabled={publishing}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors"
+            className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
           >
             {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
             {isPublished ? 'Republish' : 'Publish'}
           </button>
         </div>
-      </div>
+      }
+    >
 
       {/* Section tabs */}
-      <div className="flex gap-1 mb-8 bg-gray-100 rounded-xl p-1">
-        {sections.map(s => (
-          <button
-            key={s.id}
-            onClick={() => setActiveSection(s.id)}
-            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-              activeSection === s.id
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            {s.label}
-          </button>
-        ))}
+      <div className="mb-8">
+        <AgentPageTabs
+          activeId={activeSection}
+          onChange={(id) => setActiveSection(id as Section)}
+          items={sections.map((section) => ({ id: section.id, label: section.label }))}
+        />
       </div>
 
       {/* Section content */}
@@ -219,126 +217,134 @@ export default function LandingPageEditorPage() {
         {/* Hero section */}
         {activeSection === 'hero' && (
           <div className="space-y-4">
-            <div className="rounded-lg border border-gray-200 bg-white p-6">
-              <h2 className="font-semibold text-gray-900 mb-4">Hero</h2>
+            <AgentPagePanel className="p-6 sm:p-7">
+              <div className="mb-6">
+                <h2 className={sectionHeadingClass}>Hero</h2>
+                <p className={sectionIntroClass}>Set the first impression, creator details, and call to action for the public profile.</p>
+              </div>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Slug (URL path)</label>
+                  <label className="mb-1.5 block text-sm font-semibold text-gray-700">Slug (URL path)</label>
                   <input
                     type="text"
                     value={profile.slug || ''}
                     onChange={e => updateProfile({ slug: e.target.value })}
                     placeholder="my-awesome-agent"
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                    className={fieldClass}
                   />
-                  <p className="text-xs text-gray-400 mt-1">Your page will be at /a/{profile.slug || 'your-slug'}</p>
+                  <p className="mt-1.5 text-xs text-gray-500">Your page will be at /a/{profile.slug || 'your-slug'}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tagline</label>
+                  <label className="mb-1.5 block text-sm font-semibold text-gray-700">Tagline</label>
                   <input
                     type="text"
                     value={profile.tagline || ''}
                     onChange={e => updateProfile({ tagline: e.target.value })}
                     placeholder="One-line hook for your agent"
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                    className={fieldClass}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Hero Image URL</label>
+                  <label className="mb-1.5 block text-sm font-semibold text-gray-700">Hero Image URL</label>
                   <input
                     type="url"
                     value={profile.hero_image_url || ''}
                     onChange={e => updateProfile({ hero_image_url: e.target.value })}
                     placeholder="https://..."
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                    className={fieldClass}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Preview Video URL</label>
+                  <label className="mb-1.5 block text-sm font-semibold text-gray-700">Preview Video URL</label>
                   <input
                     type="url"
                     value={profile.preview_video_url || ''}
                     onChange={e => updateProfile({ preview_video_url: e.target.value })}
                     placeholder="YouTube/Vimeo embed URL"
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                    className={fieldClass}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">CTA Button Label</label>
+                    <label className="mb-1.5 block text-sm font-semibold text-gray-700">CTA Button Label</label>
                     <input
                       type="text"
                       value={profile.cta_label || ''}
                       onChange={e => updateProfile({ cta_label: e.target.value })}
                       placeholder="Try it free"
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                      className={fieldClass}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Accent Color</label>
+                    <label className="mb-1.5 block text-sm font-semibold text-gray-700">Accent Color</label>
                     <input
                       type="color"
                       value={profile.accent_color || '#ff444f'}
                       onChange={e => updateProfile({ accent_color: e.target.value })}
-                      className="w-full h-10 border border-gray-300 rounded-md px-1 py-1 cursor-pointer"
+                      className="h-[50px] w-full cursor-pointer rounded-[1.15rem] border border-black/10 bg-[#fcfaf5] px-2 py-2"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Creator Display Name</label>
+                  <label className="mb-1.5 block text-sm font-semibold text-gray-700">Creator Display Name</label>
                   <input
                     type="text"
                     value={profile.creator_display_name || ''}
                     onChange={e => updateProfile({ creator_display_name: e.target.value })}
                     placeholder="Your name"
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                    className={fieldClass}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Creator Bio</label>
+                  <label className="mb-1.5 block text-sm font-semibold text-gray-700">Creator Bio</label>
                   <textarea
                     value={profile.creator_bio || ''}
                     onChange={e => updateProfile({ creator_bio: e.target.value })}
                     placeholder="Brief bio shown at the bottom of your landing page"
                     rows={2}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 resize-none"
+                    className={textAreaClass}
                   />
                 </div>
               </div>
-            </div>
+            </AgentPagePanel>
           </div>
         )}
 
         {/* Description section */}
         {activeSection === 'description' && (
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <h2 className="font-semibold text-gray-900 mb-4">Description</h2>
-            <p className="text-xs text-gray-400 mb-2">Supports markdown formatting</p>
+          <AgentPagePanel className="p-6 sm:p-7">
+            <div className="mb-6">
+              <h2 className={sectionHeadingClass}>Description</h2>
+              <p className={sectionIntroClass}>Write the long-form public profile copy. Markdown formatting is supported.</p>
+            </div>
             <textarea
               value={profile.long_description || ''}
               onChange={e => updateProfile({ long_description: e.target.value })}
               placeholder="Describe your agent in detail. What does it do? Who is it for? What can users expect?"
               rows={12}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 resize-y font-mono"
+              className={monoAreaClass}
             />
-          </div>
+          </AgentPagePanel>
         )}
 
         {/* Gallery section */}
         {activeSection === 'gallery' && (
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-gray-900">Gallery Images</h2>
+          <AgentPagePanel className="p-6 sm:p-7">
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <div>
+                <h2 className={sectionHeadingClass}>Gallery Images</h2>
+                <p className={sectionIntroClass}>Add screenshots or visuals that support the public story of the agent.</p>
+              </div>
               <button
                 onClick={addGalleryImage}
-                className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded-lg text-sm font-medium"
+                className={subtleAddButtonClass}
               >
                 <Plus className="h-4 w-4" /> Add image
               </button>
             </div>
             <div className="space-y-3">
               {(profile.gallery_images || []).map((img, i) => (
-                <div key={i} className="flex gap-3 items-start p-3 bg-gray-50 rounded-lg">
+                <div key={i} className="flex items-start gap-3 rounded-[1.35rem] border border-black/10 bg-[#fcfaf5] p-4">
                   <div className="flex-1 space-y-2">
                     <input
                       type="url"
@@ -349,7 +355,7 @@ export default function LandingPageEditorPage() {
                         updateProfile({ gallery_images: imgs })
                       }}
                       placeholder="Image URL"
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
+                      className={fieldClass}
                     />
                     <input
                       type="text"
@@ -360,37 +366,42 @@ export default function LandingPageEditorPage() {
                         updateProfile({ gallery_images: imgs })
                       }}
                       placeholder="Caption (optional)"
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
+                      className={fieldClass}
                     />
                   </div>
-                  <button onClick={() => removeGalleryImage(i)} className="text-red-400 hover:text-red-600 mt-1">
+                  <button onClick={() => removeGalleryImage(i)} className={`${deleteButtonClass} mt-1`}>
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
               ))}
               {!(profile.gallery_images?.length) && (
-                <p className="text-center py-8 text-gray-400 text-sm">No images yet. Add your first gallery image.</p>
+                <div className="rounded-[1.5rem] border border-dashed border-black/10 bg-[#fcfaf5] py-10 text-center text-sm text-gray-500">
+                  No images yet. Add your first gallery image.
+                </div>
               )}
             </div>
-          </div>
+          </AgentPagePanel>
         )}
 
         {/* Examples section */}
         {activeSection === 'examples' && (
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-gray-900">Example Conversations</h2>
+          <AgentPagePanel className="p-6 sm:p-7">
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <div>
+                <h2 className={sectionHeadingClass}>Example Conversations</h2>
+                <p className={sectionIntroClass}>Keep examples structured so visitors can quickly understand how the agent responds.</p>
+              </div>
               <button
                 onClick={addExample}
-                className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded-lg text-sm font-medium"
+                className={subtleAddButtonClass}
               >
                 <Plus className="h-4 w-4" /> Add example
               </button>
             </div>
             <div className="space-y-4">
               {(profile.example_conversations || []).map((ex, i) => (
-                <div key={i} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
+                <div key={i} className="rounded-[1.5rem] border border-black/10 bg-[#fcfaf5] p-4">
+                  <div className="mb-3 flex items-center justify-between gap-3">
                     <input
                       type="text"
                       value={ex.title}
@@ -400,9 +411,9 @@ export default function LandingPageEditorPage() {
                         updateProfile({ example_conversations: exs })
                       }}
                       placeholder="Conversation title"
-                      className="flex-1 border-0 border-b border-gray-200 pb-1 text-sm font-medium focus:outline-none focus:border-emerald-500"
+                      className="flex-1 border-0 border-b border-black/10 bg-transparent pb-2 text-sm font-semibold text-gray-900 placeholder-gray-400 focus:border-[#79dfbc] focus:outline-none"
                     />
-                    <button onClick={() => removeExample(i)} className="text-red-400 hover:text-red-600 ml-3">
+                    <button onClick={() => removeExample(i)} className={deleteButtonClass}>
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
@@ -415,7 +426,7 @@ export default function LandingPageEditorPage() {
                           exs[i].messages[j] = { ...exs[i].messages[j], role: e.target.value as 'user' | 'assistant' }
                           updateProfile({ example_conversations: exs })
                         }}
-                        className="w-24 border border-gray-300 rounded px-2 py-1.5 text-xs"
+                        className="w-28 rounded-[1rem] border border-black/10 bg-white px-3 py-2 text-xs font-semibold text-gray-700 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]"
                       >
                         <option value="user">User</option>
                         <option value="assistant">Assistant</option>
@@ -429,58 +440,63 @@ export default function LandingPageEditorPage() {
                           updateProfile({ example_conversations: exs })
                         }}
                         placeholder="Message content"
-                        className="flex-1 border border-gray-300 rounded px-2 py-1.5 text-sm focus:border-primary-500 focus:outline-none"
+                        className={`${fieldClass} py-2.5`}
                       />
                     </div>
                   ))}
                 </div>
               ))}
               {!(profile.example_conversations?.length) && (
-                <p className="text-center py-8 text-gray-400 text-sm">No examples yet.</p>
+                <div className="rounded-[1.5rem] border border-dashed border-black/10 bg-[#fcfaf5] py-10 text-center text-sm text-gray-500">
+                  No examples yet.
+                </div>
               )}
             </div>
-          </div>
+          </AgentPagePanel>
         )}
 
         {/* SEO section */}
         {activeSection === 'seo' && (
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <h2 className="font-semibold text-gray-900 mb-4">SEO & Social</h2>
+          <AgentPagePanel className="p-6 sm:p-7">
+            <div className="mb-6">
+              <h2 className={sectionHeadingClass}>SEO & Social</h2>
+              <p className={sectionIntroClass}>Fine-tune how the public page appears in search engines and previews.</p>
+            </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Meta Title</label>
+                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Meta Title</label>
                 <input
                   type="text"
                   value={profile.seo_title || ''}
                   onChange={e => updateProfile({ seo_title: e.target.value })}
                   placeholder="Page title for search engines"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
+                  className={fieldClass}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Meta Description</label>
+                <label className="mb-1.5 block text-sm font-semibold text-gray-700">Meta Description</label>
                 <textarea
                   value={profile.seo_description || ''}
                   onChange={e => updateProfile({ seo_description: e.target.value })}
                   placeholder="Description for search engines (120-160 chars)"
                   rows={3}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none resize-none"
+                  className={textAreaClass}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">OG Image URL</label>
+                <label className="mb-1.5 block text-sm font-semibold text-gray-700">OG Image URL</label>
                 <input
                   type="url"
                   value={profile.og_image_url || ''}
                   onChange={e => updateProfile({ og_image_url: e.target.value })}
                   placeholder="Image shown when shared on social media"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
+                  className={fieldClass}
                 />
               </div>
             </div>
-          </div>
+          </AgentPagePanel>
         )}
       </div>
-    </div>
+    </AgentPageShell>
   )
 }

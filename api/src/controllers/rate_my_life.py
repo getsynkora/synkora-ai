@@ -320,10 +320,10 @@ async def _ensure_life_audit_agents(
     result = await db.execute(
         select(Agent).filter(
             Agent.tenant_id == tenant_id,
-            Agent.agent_name.in_(slugs),
+            Agent.slug.in_(slugs),
         )
     )
-    existing = {a.agent_name: a for a in result.scalars().all()}
+    existing = {a.slug: a for a in result.scalars().all()}
 
     if len(existing) == len(slugs):
         return existing
@@ -347,6 +347,7 @@ async def _ensure_life_audit_agents(
             id=uuid.uuid4(),
             tenant_id=tenant_id,
             agent_name=defn["slug"],
+            slug=defn["slug"],
             agent_type="LLM",
             description=defn["description"],
             system_prompt=defn["system_prompt"],

@@ -75,13 +75,13 @@ describe("APIClient (lib/api/http)", () => {
 
     it("sets Content-Type to application/json", async () => {
       await import("../api/http");
-      const createCall = mockedAxios.create.mock.calls[0][0] as any;
+      const createCall = vi.mocked(axios.create).mock.calls[0][0] as any;
       expect(createCall.headers?.["Content-Type"]).toBe("application/json");
     });
 
     it("enables withCredentials for cookie-based auth", async () => {
       await import("../api/http");
-      const createCall = mockedAxios.create.mock.calls[0][0] as any;
+      const createCall = vi.mocked(axios.create).mock.calls[0][0] as any;
       expect(createCall.withCredentials).toBe(true);
     });
 

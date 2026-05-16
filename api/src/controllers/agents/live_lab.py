@@ -23,7 +23,7 @@ router = APIRouter()
 
 @router.get("/live-lab/executions")
 async def list_executions(
-    status: str = Query("all", regex="^(all|active|recent)$"),
+    status: str = Query("all", pattern="^(all|active|recent)$"),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     tenant_id: uuid.UUID = Depends(get_current_tenant_id),

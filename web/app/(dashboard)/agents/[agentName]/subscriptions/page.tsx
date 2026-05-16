@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 import { ArrowLeft, Bell, BellOff, Trash2, Users, Copy, CheckCircle } from 'lucide-react'
 import { apiClient } from '@/lib/api/client'
 import { toggleSubscriptions, getSubscribers, deleteSubscriber } from '@/lib/api/subscriptions'
+import AgentPageShell, { AgentPagePanel } from '@/components/agents/AgentPageShell'
 
 interface Subscriber {
   id: string
@@ -88,32 +89,21 @@ export default function AgentSubscriptionsPage() {
   const activeCount = subscribers.filter(s => s.is_active).length
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
-      <div className="max-w-3xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <Link
-            href={`/agents/${encodeURIComponent(agentName)}/view`}
-            className="inline-flex items-center gap-2 text-red-600 hover:text-red-700 font-medium mb-3 transition-colors text-sm"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Agent
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-red-100 rounded-lg">
-              <Bell className="w-6 h-6 text-red-600" />
-            </div>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Email Subscriptions</h1>
-              <p className="text-gray-500 text-sm mt-0.5">
-                Manage who receives reports when <span className="font-medium text-gray-700">{agentName}</span> runs on schedule
-              </p>
-            </div>
-          </div>
-        </div>
+    <AgentPageShell
+      agentName={agentName}
+      title="Email Subscriptions"
+      description={<>Manage who receives reports when <span className="font-semibold text-gray-900">{agentName}</span> runs on schedule.</>}
+      icon={Bell}
+      badge="Audience Delivery"
+      maxWidthClassName="max-w-[90rem]"
+      stats={[
+        { label: 'Active', value: activeCount },
+        { label: 'Status', value: allowSubscriptions ? 'Enabled' : 'Paused' },
+      ]}
+    >
 
         {/* Toggle Card */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-4">
+        <AgentPagePanel className="p-5 mb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {allowSubscriptions
@@ -144,11 +134,11 @@ export default function AgentSubscriptionsPage() {
               />
             </button>
           </div>
-        </div>
+        </AgentPagePanel>
 
         {/* Subscribe Link */}
         {allowSubscriptions && agentId && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mb-4">
+          <AgentPagePanel className="p-5 mb-4">
             <p className="text-sm font-semibold text-gray-700 mb-2">Public subscribe link</p>
             <p className="text-xs text-gray-500 mb-3">Share this link — visitors enter their email to subscribe to scheduled reports.</p>
             <div className="flex items-center gap-2">
@@ -157,17 +147,17 @@ export default function AgentSubscriptionsPage() {
               </code>
               <button
                 onClick={handleCopyLink}
-                className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
+                className="flex items-center gap-1.5 rounded-[1rem] bg-[#171717] px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
               >
                 {copied ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                 {copied ? 'Copied' : 'Copy'}
               </button>
             </div>
-          </div>
+          </AgentPagePanel>
         )}
 
         {/* Subscribers List */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <AgentPagePanel className="overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-gray-500" />
@@ -212,8 +202,7 @@ export default function AgentSubscriptionsPage() {
               ))}
             </ul>
           )}
-        </div>
-      </div>
-    </div>
+        </AgentPagePanel>
+    </AgentPageShell>
   )
 }

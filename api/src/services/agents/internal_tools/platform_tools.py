@@ -19,10 +19,6 @@ logger = logging.getLogger(__name__)
 
 # All tool categories available on the platform with OAuth requirements
 PLATFORM_TOOL_CATALOG = {
-    "web_search": {
-        "description": "Search the web and fetch/scrape URL content (lightweight HTTP fetch)",
-        "requires_oauth": [],
-    },
     "browser_tools": {
         "description": (
             "Full Playwright browser automation: navigate pages, take screenshots, click buttons, "
@@ -41,6 +37,10 @@ PLATFORM_TOOL_CATALOG = {
     },
     "email_tools": {
         "description": "Send emails via SMTP (no OAuth needed — uses platform SMTP config)",
+        "requires_oauth": [],
+    },
+    "push_notification_tools": {
+        "description": "Send FCM push notifications to mobile users who have the synkora_push Flutter package installed. Use for proactive alerts, task completion notifications, and reports. Requires FCM server key configured in widget settings.",
         "requires_oauth": [],
     },
     "newsletter_tools": {
@@ -501,7 +501,6 @@ async def platform_create_agent(
 # Maps platform tool category names → capability IDs (used by enable_capabilities_bulk)
 TOOL_CATEGORY_TO_CAPABILITY_ID: dict[str, str] = {
     "browser_tools": "browser-web",
-    "web_search": "browser-web",
     "scheduler_tools": "scheduling",
     "email_tools": "email",
     "gmail_tools": "email",

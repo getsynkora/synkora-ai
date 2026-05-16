@@ -17,7 +17,7 @@ from src.middleware.auth_middleware import get_current_tenant_id
 from src.models.agent import Agent
 from src.models.agent_sub_agent import AgentSubAgent
 
-router = APIRouter(prefix="/agents/{agent_name}/sub-agents", tags=["Sub-Agents"])
+router = APIRouter(prefix="/agents/{agent_slug}/sub-agents", tags=["Sub-Agents"])
 
 
 # Schemas
@@ -56,7 +56,7 @@ class SubAgentResponse(BaseModel):
 
 @router.get("")
 async def list_sub_agents(
-    agent_name: str,
+    agent_slug: str,
     active_only: bool = True,
     tenant_id: UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
@@ -65,7 +65,7 @@ async def list_sub_agents(
     List all sub-agents for a parent agent.
 
     Args:
-        agent_name: Parent agent name
+        agent_slug: Parent agent slug
         active_only: Only return active relationships (default: True)
         tenant_id: Current tenant ID
         db: Database session
@@ -74,11 +74,11 @@ async def list_sub_agents(
         List of sub-agent relationships
     """
     # Get parent agent
-    result = await db.execute(select(Agent).filter(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+    result = await db.execute(select(Agent).filter(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
     agent = result.scalar_one_or_none()
 
     if not agent:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_name}' not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_slug}' not found")
 
     # Query sub-agent relationships with eager loading to prevent N+1
     query = (
@@ -117,7 +117,7 @@ async def list_sub_agents(
         "success": True,
         "message": f"Retrieved {len(sub_agents_data)} sub-agents",
         "data": {
-            "parent_agent": agent_name,
+            "parent_agent": agent_slug,
             "parent_agent_id": str(agent.id),
             "allow_transfer": agent.allow_transfer,
             "transfer_scope": agent.transfer_scope,
@@ -128,7 +128,7 @@ async def list_sub_agents(
 
 @router.post("")
 async def add_sub_agent(
-    agent_name: str,
+    agent_slug: str,
     sub_agent_data: SubAgentCreate,
     tenant_id: UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
@@ -137,7 +137,7 @@ async def add_sub_agent(
     Add a sub-agent to a parent agent.
 
     Args:
-        agent_name: Parent agent name
+        agent_slug: Parent agent slug
         sub_agent_data: Sub-agent relationship data
         tenant_id: Current tenant ID
         db: Database session
@@ -146,11 +146,11 @@ async def add_sub_agent(
         Created sub-agent relationship
     """
     # Get parent agent
-    result = await db.execute(select(Agent).filter(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+    result = await db.execute(select(Agent).filter(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
     parent_agent = result.scalar_one_or_none()
 
     if not parent_agent:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Parent agent '{agent_name}' not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Parent agent '{agent_slug}' not found")
 
     # Get sub-agent
     result = await db.execute(
@@ -178,14 +178,14 @@ async def add_sub_agent(
     if existing:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Sub-agent '{sub_agent.agent_name}' is already linked to '{agent_name}'",
+            detail=f"Sub-agent '{sub_agent.agent_name}' is already linked to '{agent_slug}'",
         )
 
     # Check for circular dependencies
     if sub_agent.parent_agent_id == parent_agent.id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Circular dependency: '{sub_agent.agent_name}' is already a parent of '{agent_name}'",
+            detail=f"Circular dependency: '{sub_agent.agent_name}' is already a parent of '{agent_slug}'",
         )
 
     # Create relationship
@@ -202,7 +202,7 @@ async def add_sub_agent(
 
     return {
         "success": True,
-        "message": f"Sub-agent '{sub_agent.agent_name}' added to '{agent_name}'",
+        "message": f"Sub-agent '{sub_agent.agent_name}' added to '{agent_slug}'",
         "data": {
             "id": str(relationship.id),
             "parent_agent_id": str(relationship.parent_agent_id),
@@ -217,7 +217,7 @@ async def add_sub_agent(
 
 @router.patch("/{sub_agent_relationship_id}")
 async def update_sub_agent(
-    agent_name: str,
+    agent_slug: str,
     sub_agent_relationship_id: UUID,
     update_data: SubAgentUpdate,
     tenant_id: UUID = Depends(get_current_tenant_id),
@@ -227,7 +227,7 @@ async def update_sub_agent(
     Update a sub-agent relationship.
 
     Args:
-        agent_name: Parent agent name
+        agent_slug: Parent agent slug
         sub_agent_relationship_id: ID of the relationship to update
         update_data: Updated relationship data
         tenant_id: Current tenant ID
@@ -237,11 +237,11 @@ async def update_sub_agent(
         Updated sub-agent relationship
     """
     # Get parent agent
-    result = await db.execute(select(Agent).filter(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+    result = await db.execute(select(Agent).filter(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
     parent_agent = result.scalar_one_or_none()
 
     if not parent_agent:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Parent agent '{agent_name}' not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Parent agent '{agent_slug}' not found")
 
     # Get relationship
     result = await db.execute(
@@ -288,7 +288,7 @@ async def update_sub_agent(
 
 @router.delete("/{sub_agent_relationship_id}")
 async def remove_sub_agent(
-    agent_name: str,
+    agent_slug: str,
     sub_agent_relationship_id: UUID,
     tenant_id: UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
@@ -297,7 +297,7 @@ async def remove_sub_agent(
     Remove a sub-agent from a parent agent.
 
     Args:
-        agent_name: Parent agent name
+        agent_slug: Parent agent slug
         sub_agent_relationship_id: ID of the relationship to remove
         tenant_id: Current tenant ID
         db: Database session
@@ -306,11 +306,11 @@ async def remove_sub_agent(
         Success message
     """
     # Get parent agent
-    result = await db.execute(select(Agent).filter(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+    result = await db.execute(select(Agent).filter(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
     parent_agent = result.scalar_one_or_none()
 
     if not parent_agent:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Parent agent '{agent_name}' not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Parent agent '{agent_slug}' not found")
 
     # Get relationship
     result = await db.execute(
@@ -334,14 +334,14 @@ async def remove_sub_agent(
 
     return {
         "success": True,
-        "message": f"Sub-agent '{sub_agent_name}' removed from '{agent_name}'",
-        "data": {"parent_agent": agent_name, "removed_sub_agent": sub_agent_name},
+        "message": f"Sub-agent '{sub_agent_name}' removed from '{agent_slug}'",
+        "data": {"parent_agent": agent_slug, "removed_sub_agent": sub_agent_name},
     }
 
 
 @router.get("/available")
 async def list_available_agents(
-    agent_name: str, tenant_id: UUID = Depends(get_current_tenant_id), db: AsyncSession = Depends(get_async_db)
+    agent_slug: str, tenant_id: UUID = Depends(get_current_tenant_id), db: AsyncSession = Depends(get_async_db)
 ):
     """
     List agents that can be added as sub-agents.
@@ -352,7 +352,7 @@ async def list_available_agents(
     - Agents that would create circular dependencies
 
     Args:
-        agent_name: Parent agent name
+        agent_slug: Parent agent slug
         tenant_id: Current tenant ID
         db: Database session
 
@@ -360,11 +360,11 @@ async def list_available_agents(
         List of available agents
     """
     # Get parent agent
-    result = await db.execute(select(Agent).filter(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+    result = await db.execute(select(Agent).filter(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
     parent_agent = result.scalar_one_or_none()
 
     if not parent_agent:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Parent agent '{agent_name}' not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Parent agent '{agent_slug}' not found")
 
     # Get already linked sub-agent IDs
     result = await db.execute(
@@ -397,5 +397,5 @@ async def list_available_agents(
     return {
         "success": True,
         "message": f"Retrieved {len(agents_data)} available agents",
-        "data": {"parent_agent": agent_name, "available_agents": agents_data},
+        "data": {"parent_agent": agent_slug, "available_agents": agents_data},
     }

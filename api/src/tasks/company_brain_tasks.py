@@ -54,6 +54,67 @@ def kb_consume_stream_task(self, kb_id: int, tenant_id: str, source_type: str) -
         raise self.retry(exc=exc)
 
 
+@celery_app.task(
+    name="company_brain_consume_active_streams_task",
+    bind=True,
+    max_retries=3,
+    default_retry_delay=30,
+    queue="company_brain",
+)
+def company_brain_consume_active_streams_task(self) -> dict[str, Any]:
+    """
+    Consume one batch from every active Company Brain stream.
+
+    kb_consume_stream_task needs runtime identifiers, so this dispatcher scans
+    active data sources and drains one bounded batch per source. It is safe to
+    run frequently because StreamConsumer.consume uses a short blocking read and
+    returns quickly when a stream has no messages.
+    """
+    import asyncio
+
+    from src.models.data_source import DataSource, DataSourceStatus
+
+    db = SessionLocal()
+    try:
+        sources = (
+            db.query(DataSource.id, DataSource.tenant_id, DataSource.knowledge_base_id, DataSource.type)
+            .filter(
+                DataSource.status == DataSourceStatus.ACTIVE,
+                DataSource.sync_enabled.is_(True),
+                DataSource.knowledge_base_id.isnot(None),
+            )
+            .all()
+        )
+    finally:
+        db.close()
+
+    async def _run() -> dict[str, Any]:
+        from src.services.company_brain.ingestion.stream_consumer import StreamConsumer
+
+        consumer = StreamConsumer()
+        totals = {"streams": 0, "read": 0, "indexed": 0, "skipped": 0, "failed": 0}
+
+        for source in sources:
+            source_type = getattr(source.type, "value", str(source.type)).lower()
+            stats = await consumer.consume(
+                kb_id=int(source.knowledge_base_id),
+                tenant_id=str(source.tenant_id),
+                source_type=source_type,
+                block_ms=5,
+            )
+            totals["streams"] += 1
+            for key in ("read", "indexed", "skipped", "failed"):
+                totals[key] += int(stats.get(key, 0))
+
+        return totals
+
+    try:
+        return asyncio.get_event_loop().run_until_complete(_run())
+    except Exception as exc:
+        logger.error("company_brain_consume_active_streams_task failed: %s", exc)
+        raise self.retry(exc=exc)
+
+
 # ---------------------------------------------------------------------------
 # Direct batch processing (celery_only queue backend)
 # ---------------------------------------------------------------------------

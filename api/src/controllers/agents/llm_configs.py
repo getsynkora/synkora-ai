@@ -116,15 +116,11 @@ async def get_agent_by_name_or_id(
             agent = result.scalar_one_or_none()
     except ValueError:
         # If not a valid UUID, treat as agent name
-        result = await db.execute(
-            select(Agent).filter(Agent.agent_name == agent_identifier, Agent.tenant_id == tenant_id)
-        )
+        result = await db.execute(select(Agent).filter(Agent.slug == agent_identifier, Agent.tenant_id == tenant_id))
         agent = result.scalar_one_or_none()
         # If not found and allow_public, check for public agent
         if not agent and allow_public:
-            result = await db.execute(
-                select(Agent).filter(Agent.agent_name == agent_identifier, Agent.is_public.is_(True))
-            )
+            result = await db.execute(select(Agent).filter(Agent.slug == agent_identifier, Agent.is_public.is_(True)))
             agent = result.scalar_one_or_none()
 
     if not agent:
@@ -133,16 +129,16 @@ async def get_agent_by_name_or_id(
     return agent
 
 
-@router.post("/{agent_name}/llm-configs", response_model=AgentLLMConfigResponse)
+@router.post("/{agent_slug}/llm-configs", response_model=AgentLLMConfigResponse)
 async def create_llm_config(
-    agent_name: str,
+    agent_slug: str,
     config_data: AgentLLMConfigCreate,
     db: AsyncSession = Depends(get_async_db),
     tenant_id: UUID = Depends(get_current_tenant_id),
 ):
     """Create a new LLM configuration for an agent."""
     # Get agent by name or ID and verify access (don't allow modifying public agents you don't own)
-    agent = await get_agent_by_name_or_id(agent_name, tenant_id, db, allow_public=False)
+    agent = await get_agent_by_name_or_id(agent_slug, tenant_id, db, allow_public=False)
 
     try:
         # Default enabled to True if not provided
@@ -172,7 +168,7 @@ async def create_llm_config(
         await db.refresh(config)
 
         # Invalidate cache after creating LLM config
-        invalidate_agent_llm_cache(agent.agent_name, str(tenant_id))
+        invalidate_agent_llm_cache(agent.slug, str(tenant_id))
 
         return AgentLLMConfigResponse(
             id=config.id,
@@ -333,9 +329,9 @@ def list_provider_models(provider_id: str):
     ]
 
 
-@router.get("/{agent_name}/llm-configs", response_model=list[AgentLLMConfigResponse])
+@router.get("/{agent_slug}/llm-configs", response_model=list[AgentLLMConfigResponse])
 async def list_llm_configs(
-    agent_name: str,
+    agent_slug: str,
     enabled_only: bool = False,
     db: AsyncSession = Depends(get_async_db),
     tenant_id: UUID = Depends(get_current_tenant_id),
@@ -345,7 +341,7 @@ async def list_llm_configs(
     For public agents, returns configs using the agent owner's tenant_id.
     """
     # Get agent by name or ID and verify access (allow public agents)
-    agent = await get_agent_by_name_or_id(agent_name, tenant_id, db, allow_public=True)
+    agent = await get_agent_by_name_or_id(agent_slug, tenant_id, db, allow_public=True)
 
     # Use the agent's tenant_id to fetch configs (important for public agents)
     configs = await LLMConfigService.get_agent_configs(
@@ -377,9 +373,9 @@ async def list_llm_configs(
     ]
 
 
-@router.get("/{agent_name}/llm-configs/{config_id}", response_model=AgentLLMConfigResponse)
+@router.get("/{agent_slug}/llm-configs/{config_id}", response_model=AgentLLMConfigResponse)
 async def get_llm_config(
-    agent_name: str,
+    agent_slug: str,
     config_id: UUID,
     db: AsyncSession = Depends(get_async_db),
     tenant_id: UUID = Depends(get_current_tenant_id),
@@ -389,7 +385,7 @@ async def get_llm_config(
     For public agents, returns config using the agent owner's tenant_id.
     """
     # Get agent by name or ID and verify access (allow public agents)
-    agent = await get_agent_by_name_or_id(agent_name, tenant_id, db, allow_public=True)
+    agent = await get_agent_by_name_or_id(agent_slug, tenant_id, db, allow_public=True)
 
     # Use the agent's tenant_id to fetch config (important for public agents)
     config = await LLMConfigService.get_config(session=db, config_id=config_id, tenant_id=agent.tenant_id)
@@ -419,9 +415,9 @@ async def get_llm_config(
     )
 
 
-@router.patch("/{agent_name}/llm-configs/{config_id}", response_model=AgentLLMConfigResponse)
+@router.patch("/{agent_slug}/llm-configs/{config_id}", response_model=AgentLLMConfigResponse)
 async def update_llm_config(
-    agent_name: str,
+    agent_slug: str,
     config_id: UUID,
     config_data: AgentLLMConfigUpdate,
     db: AsyncSession = Depends(get_async_db),
@@ -429,7 +425,7 @@ async def update_llm_config(
 ):
     """Update an LLM configuration."""
     # Get agent by name or ID and verify access (don't allow modifying public agents you don't own)
-    agent = await get_agent_by_name_or_id(agent_name, tenant_id, db, allow_public=False)
+    agent = await get_agent_by_name_or_id(agent_slug, tenant_id, db, allow_public=False)
 
     # Verify config belongs to this agent
     existing_config = await LLMConfigService.get_config(session=db, config_id=config_id, tenant_id=tenant_id)
@@ -449,7 +445,7 @@ async def update_llm_config(
         await db.refresh(config)
 
         # Invalidate cache after updating LLM config
-        invalidate_agent_llm_cache(agent.agent_name, str(tenant_id))
+        invalidate_agent_llm_cache(agent.slug, str(tenant_id))
 
         return AgentLLMConfigResponse(
             id=config.id,
@@ -477,16 +473,16 @@ async def update_llm_config(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to update LLM configuration")
 
 
-@router.delete("/{agent_name}/llm-configs/{config_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{agent_slug}/llm-configs/{config_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_llm_config(
-    agent_name: str,
+    agent_slug: str,
     config_id: UUID,
     db: AsyncSession = Depends(get_async_db),
     tenant_id: UUID = Depends(get_current_tenant_id),
 ):
     """Delete an LLM configuration."""
     # Get agent by name or ID and verify access (don't allow modifying public agents you don't own)
-    agent = await get_agent_by_name_or_id(agent_name, tenant_id, db, allow_public=False)
+    agent = await get_agent_by_name_or_id(agent_slug, tenant_id, db, allow_public=False)
 
     # Verify config belongs to this agent
     existing_config = await LLMConfigService.get_config(session=db, config_id=config_id, tenant_id=tenant_id)
@@ -500,7 +496,7 @@ async def delete_llm_config(
         await db.commit()
 
         # Invalidate cache after deleting LLM config
-        invalidate_agent_llm_cache(agent.agent_name, str(tenant_id))
+        invalidate_agent_llm_cache(agent.slug, str(tenant_id))
     except ValueError as e:
         await db.rollback()
         logger.warning(f"Failed to delete LLM config (ValueError): {e}")
@@ -513,16 +509,16 @@ async def delete_llm_config(
         )
 
 
-@router.post("/{agent_name}/llm-configs/{config_id}/set-default", response_model=AgentLLMConfigResponse)
+@router.post("/{agent_slug}/llm-configs/{config_id}/set-default", response_model=AgentLLMConfigResponse)
 async def set_default_config(
-    agent_name: str,
+    agent_slug: str,
     config_id: UUID,
     db: AsyncSession = Depends(get_async_db),
     tenant_id: UUID = Depends(get_current_tenant_id),
 ):
     """Set an LLM configuration as the default."""
     # Get agent by name or ID and verify access (don't allow modifying public agents you don't own)
-    agent = await get_agent_by_name_or_id(agent_name, tenant_id, db, allow_public=False)
+    agent = await get_agent_by_name_or_id(agent_slug, tenant_id, db, allow_public=False)
 
     # Verify config belongs to this agent
     existing_config = await LLMConfigService.get_config(session=db, config_id=config_id, tenant_id=tenant_id)
@@ -537,7 +533,7 @@ async def set_default_config(
         await db.refresh(config)
 
         # Invalidate cache after setting default LLM config
-        invalidate_agent_llm_cache(agent.agent_name, str(tenant_id))
+        invalidate_agent_llm_cache(agent.slug, str(tenant_id))
 
         return AgentLLMConfigResponse(
             id=config.id,
@@ -565,16 +561,16 @@ async def set_default_config(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to set default LLM configuration")
 
 
-@router.post("/{agent_name}/llm-configs/reorder", response_model=list[AgentLLMConfigResponse])
+@router.post("/{agent_slug}/llm-configs/reorder", response_model=list[AgentLLMConfigResponse])
 async def reorder_configs(
-    agent_name: str,
+    agent_slug: str,
     reorder_data: AgentLLMConfigReorder,
     db: AsyncSession = Depends(get_async_db),
     tenant_id: UUID = Depends(get_current_tenant_id),
 ):
     """Reorder LLM configurations."""
     # Get agent by name or ID and verify access (don't allow modifying public agents you don't own)
-    agent = await get_agent_by_name_or_id(agent_name, tenant_id, db, allow_public=False)
+    agent = await get_agent_by_name_or_id(agent_slug, tenant_id, db, allow_public=False)
 
     try:
         configs = await LLMConfigService.reorder_configs(

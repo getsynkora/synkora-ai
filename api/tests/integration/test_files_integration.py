@@ -254,7 +254,7 @@ class TestFileUploadValidation:
         )
 
         # Should return 422 for missing required file
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     @pytest.mark.asyncio
     async def test_upload_with_special_characters_in_filename(self, async_client: AsyncClient, auth_headers):

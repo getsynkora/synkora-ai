@@ -25,6 +25,12 @@ class CreateAgentRequest(StrictModel):
 
     config: AgentConfig
     agent_type: str = Field(..., description="Agent type: llm, research, code, or claude_code")
+    slug: str | None = Field(
+        None,
+        description="Globally unique slug for URL routing (lowercase letters, digits, hyphens; 3-100 chars). "
+        "Auto-generated from name if not provided.",
+        pattern=r"^[a-z0-9][a-z0-9-]{1,98}[a-z0-9]$",
+    )
     api_key: str | None = Field(None, description="Google API key")
     is_public: bool = Field(default=False, description="Whether agent is public in marketplace")
     category: str | None = Field(None, description="Agent category for marketplace")
@@ -36,7 +42,7 @@ class CreateAgentRequest(StrictModel):
 class UpdateAgentRequest(StrictModel):
     """Request model for updating an agent."""
 
-    name: str | None = Field(None, description="New agent name (slug, used in URLs)")
+    name: str | None = Field(None, description="New agent display name")
     description: str | None = Field(None, description="Agent description")
     avatar: str | None = Field(None, description="Agent avatar URL")
     system_prompt: str | None = Field(None, description="System prompt")
@@ -90,7 +96,7 @@ class UpdateAgentRequest(StrictModel):
 class ExecuteAgentRequest(BaseModel):
     """Request model for executing an agent."""
 
-    agent_name: str = Field(..., description="Name of the agent to execute")
+    agent_slug: str = Field(..., description="Slug of the agent to execute")
     input_data: dict[str, Any] = Field(..., description="Input data for the agent")
 
 
@@ -104,7 +110,7 @@ class ExecuteWorkflowRequest(BaseModel):
 class ChatRequest(StrictModel):
     """Request model for chat with streaming."""
 
-    agent_name: str = Field(..., description="Name of the agent")
+    agent_slug: str = Field(..., description="Globally unique slug of the agent")
     message: str = Field(..., max_length=32000, description="User message")
     conversation_history: list[dict[str, str]] | None = Field(None, description="Conversation history")
     conversation_id: str | None = Field(None, description="Conversation ID for history")

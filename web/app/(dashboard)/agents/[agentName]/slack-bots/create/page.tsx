@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { extractErrorMessage } from '@/lib/api/error'
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, AlertCircle, ExternalLink } from "lucide-react";
+import { AlertCircle, ExternalLink, Slack } from "lucide-react";
 import { apiClient } from "@/lib/api/client";
+import AgentPageShell, { AgentPagePanel } from '@/components/agents/AgentPageShell'
 
 export default function CreateSlackBotPage() {
   const params = useParams();
@@ -69,36 +70,41 @@ export default function CreateSlackBotPage() {
     });
   };
 
+  const fieldClass =
+    "w-full rounded-[1.15rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]";
+  const radioCardClass = (active: boolean) =>
+    `flex cursor-pointer flex-col rounded-[1.25rem] border px-4 py-3 text-left transition-all ${
+      active
+        ? "border-[#171717] bg-white shadow-[0_18px_40px_rgba(0,0,0,0.08)]"
+        : "border-black/10 bg-[#fcfaf5] hover:border-black/20 hover:bg-white"
+    }`;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
-      <div className="max-w-3xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <button
-            onClick={() => router.back()}
-            className="flex items-center gap-2 text-red-600 hover:text-red-700 mb-4 text-sm font-medium"
-          >
-            <ArrowLeft size={16} />
-            Back to Slack Bots
-          </button>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Create Slack Bot</h1>
-          <p className="text-gray-600 mt-1 text-sm">
-            Connect your agent <span className="font-semibold">{agentName}</span> to a Slack workspace
-          </p>
-        </div>
+    <AgentPageShell
+      agentName={agentName}
+      title="Create Slack Bot"
+      description={<>Connect your agent <span className="font-semibold text-gray-900">{agentName}</span> to a Slack workspace.</>}
+      icon={Slack}
+      backHref={`/agents/${agentName}/slack-bots`}
+      backLabel="Back to Slack Bots"
+      badge="Slack Setup"
+      maxWidthClassName="max-w-[90rem]"
+    >
 
         {/* Setup Instructions */}
-        <div className="mb-5 p-4 bg-red-50 border border-red-200 rounded-lg">
+        <AgentPagePanel className="mb-5 p-5">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[1rem] border border-black/10 bg-[#f1eadc]">
+              <AlertCircle className="h-4 w-4 text-[#171717]" />
+            </div>
             <div className="flex-1">
-              <h3 className="font-medium text-red-900 mb-2 text-sm">
+              <h3 className="mb-2 text-sm font-semibold text-gray-950">
                 Before you begin
               </h3>
-              <div className="text-xs text-red-800 space-y-2">
+              <div className="space-y-2 text-xs leading-6 text-gray-600">
                 <p>To create a Slack bot, you need to:</p>
                 <ol className="list-decimal list-inside space-y-1 ml-2">
-                  <li>Create a Slack app at <a href="https://api.slack.com/apps" target="_blank" rel="noopener noreferrer" className="underline hover:text-red-700">api.slack.com/apps</a></li>
+                  <li>Create a Slack app at <a href="https://api.slack.com/apps" target="_blank" rel="noopener noreferrer" className="font-semibold text-[#171717] underline">api.slack.com/apps</a></li>
                   <li>
                     {formData.connection_mode === "socket"
                       ? "Enable Socket Mode in your app settings"
@@ -106,11 +112,11 @@ export default function CreateSlackBotPage() {
                   </li>
                   <li>Add the following bot token scopes:
                     <ul className="list-disc list-inside ml-4 mt-1">
-                      <li><code className="bg-red-100 px-1 rounded">app_mentions:read</code></li>
-                      <li><code className="bg-red-100 px-1 rounded">chat:write</code></li>
-                      <li><code className="bg-red-100 px-1 rounded">im:history</code></li>
-                      <li><code className="bg-red-100 px-1 rounded">im:read</code></li>
-                      <li><code className="bg-red-100 px-1 rounded">im:write</code></li>
+                      <li><code className="rounded bg-[#f6edf1] px-1.5 py-0.5 text-[#6f435b]">app_mentions:read</code></li>
+                      <li><code className="rounded bg-[#f6edf1] px-1.5 py-0.5 text-[#6f435b]">chat:write</code></li>
+                      <li><code className="rounded bg-[#f6edf1] px-1.5 py-0.5 text-[#6f435b]">im:history</code></li>
+                      <li><code className="rounded bg-[#f6edf1] px-1.5 py-0.5 text-[#6f435b]">im:read</code></li>
+                      <li><code className="rounded bg-[#f6edf1] px-1.5 py-0.5 text-[#6f435b]">im:write</code></li>
                     </ul>
                   </li>
                   <li>Install the app to your workspace</li>
@@ -124,7 +130,7 @@ export default function CreateSlackBotPage() {
                   href="https://api.slack.com/apps"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 mt-3 text-xs font-medium text-red-600 hover:text-red-700 transition-colors"
+                  className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#171717] transition-colors hover:text-black"
                 >
                   Open Slack API Dashboard
                   <ExternalLink className="w-3 h-3" />
@@ -132,26 +138,27 @@ export default function CreateSlackBotPage() {
               </div>
             </div>
           </div>
-        </div>
+        </AgentPagePanel>
 
         {/* Error Message */}
         {error && (
-          <div className="mb-5 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-            <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+          <div className="mb-5 flex items-start gap-3 rounded-[1.25rem] border border-[#ead8e1] bg-[#f8ecef] px-4 py-4">
+            <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#8b5a74]" />
             <div>
-              <h3 className="font-medium text-red-900 text-sm">Error</h3>
-              <p className="text-red-700 text-xs mt-1">{error}</p>
+              <h3 className="text-sm font-semibold text-[#6f435b]">Error</h3>
+              <p className="mt-1 text-xs text-[#8b5a74]">{error}</p>
             </div>
           </div>
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <AgentPagePanel className="overflow-hidden">
+        <form onSubmit={handleSubmit}>
           <div className="p-6 space-y-5">
             {/* Bot Name */}
             <div>
-              <label htmlFor="bot_name" className="block text-xs font-medium text-gray-700 mb-1">
-                Bot Name <span className="text-red-500">*</span>
+              <label htmlFor="bot_name" className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[#7c5d45]">
+                Bot Name <span className="text-[#8b5a74]">*</span>
               </label>
               <input
                 type="text"
@@ -160,7 +167,7 @@ export default function CreateSlackBotPage() {
                 value={formData.bot_name}
                 onChange={handleChange}
                 required
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className={fieldClass}
                 placeholder="My Agent Bot"
               />
               <p className="text-xs text-gray-500 mt-1">
@@ -170,31 +177,33 @@ export default function CreateSlackBotPage() {
 
             {/* Connection Mode */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-2">
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[#7c5d45]">
                 Connection Mode
               </label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
+              <div className="grid gap-3 md:grid-cols-2">
+                <label className={radioCardClass(formData.connection_mode === "socket")}>
                   <input
                     type="radio"
                     name="connection_mode"
                     value="socket"
                     checked={formData.connection_mode === "socket"}
                     onChange={handleChange}
-                    className="w-4 h-4 text-red-600 focus:ring-red-500"
+                    className="sr-only"
                   />
-                  <span className="text-sm text-gray-700">Socket Mode (Recommended)</span>
+                  <span className="text-sm font-semibold text-gray-900">Socket Mode</span>
+                  <span className="mt-1 text-xs text-gray-600">Recommended. Uses WebSocket connections and does not require a public URL.</span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className={radioCardClass(formData.connection_mode === "event")}>
                   <input
                     type="radio"
                     name="connection_mode"
                     value="event"
                     checked={formData.connection_mode === "event"}
                     onChange={handleChange}
-                    className="w-4 h-4 text-red-600 focus:ring-red-500"
+                    className="sr-only"
                   />
-                  <span className="text-sm text-gray-700">Event Mode (HTTP Webhooks)</span>
+                  <span className="text-sm font-semibold text-gray-900">Event Mode</span>
+                  <span className="mt-1 text-xs text-gray-600">Uses HTTP webhooks and requires a reachable public callback URL.</span>
                 </label>
               </div>
               <p className="text-xs text-gray-500 mt-1">
@@ -206,8 +215,8 @@ export default function CreateSlackBotPage() {
 
             {/* Slack App ID */}
             <div>
-              <label htmlFor="slack_app_id" className="block text-xs font-medium text-gray-700 mb-1">
-                Slack App ID <span className="text-red-500">*</span>
+              <label htmlFor="slack_app_id" className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[#7c5d45]">
+                Slack App ID <span className="text-[#8b5a74]">*</span>
               </label>
               <input
                 type="text"
@@ -216,7 +225,7 @@ export default function CreateSlackBotPage() {
                 value={formData.slack_app_id}
                 onChange={handleChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent font-mono text-sm"
+                className={`${fieldClass} font-mono`}
                 placeholder="A1234567890"
               />
               <p className="text-xs text-gray-500 mt-1">
@@ -226,8 +235,8 @@ export default function CreateSlackBotPage() {
 
             {/* Bot Token */}
             <div>
-              <label htmlFor="slack_bot_token" className="block text-xs font-medium text-gray-700 mb-1">
-                Bot User OAuth Token <span className="text-red-500">*</span>
+              <label htmlFor="slack_bot_token" className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[#7c5d45]">
+                Bot User OAuth Token <span className="text-[#8b5a74]">*</span>
               </label>
               <input
                 type="password"
@@ -236,7 +245,7 @@ export default function CreateSlackBotPage() {
                 value={formData.slack_bot_token}
                 onChange={handleChange}
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent font-mono text-sm"
+                className={`${fieldClass} font-mono`}
                 placeholder="xoxb-..."
               />
               <p className="text-xs text-gray-500 mt-1">
@@ -247,8 +256,8 @@ export default function CreateSlackBotPage() {
             {/* Socket Mode: App-Level Token */}
             {formData.connection_mode === "socket" && (
               <div>
-                <label htmlFor="slack_app_token" className="block text-xs font-medium text-gray-700 mb-1">
-                  App-Level Token <span className="text-red-500">*</span>
+                <label htmlFor="slack_app_token" className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[#7c5d45]">
+                  App-Level Token <span className="text-[#8b5a74]">*</span>
                 </label>
                 <input
                   type="password"
@@ -257,7 +266,7 @@ export default function CreateSlackBotPage() {
                   value={formData.slack_app_token}
                   onChange={handleChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent font-mono text-sm"
+                  className={`${fieldClass} font-mono`}
                   placeholder="xapp-..."
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -269,8 +278,8 @@ export default function CreateSlackBotPage() {
             {/* Event Mode: Signing Secret */}
             {formData.connection_mode === "event" && (
               <div>
-                <label htmlFor="signing_secret" className="block text-xs font-medium text-gray-700 mb-1">
-                  Signing Secret <span className="text-red-500">*</span>
+                <label htmlFor="signing_secret" className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[#7c5d45]">
+                  Signing Secret <span className="text-[#8b5a74]">*</span>
                 </label>
                 <input
                   type="password"
@@ -279,7 +288,7 @@ export default function CreateSlackBotPage() {
                   value={formData.signing_secret}
                   onChange={handleChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent font-mono text-sm"
+                  className={`${fieldClass} font-mono`}
                   placeholder="Enter your signing secret"
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -290,14 +299,14 @@ export default function CreateSlackBotPage() {
 
             {/* Event Mode Notice */}
             {formData.connection_mode === "event" && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="rounded-[1.2rem] border border-[#d7e6ea] bg-[#edf4f6] p-4">
                 <div className="flex items-start gap-3">
-                  <AlertCircle className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#486c77]" />
                   <div className="flex-1">
-                    <h4 className="font-medium text-blue-900 mb-1 text-sm">
+                    <h4 className="mb-1 text-sm font-semibold text-[#2f4e57]">
                       Webhook URL Required
                     </h4>
-                    <p className="text-xs text-blue-800">
+                    <p className="text-xs text-[#486c77]">
                       After creating this bot, you'll receive a webhook URL. Add this URL to your Slack app's Event Subscriptions settings to receive events.
                     </p>
                   </div>
@@ -306,14 +315,14 @@ export default function CreateSlackBotPage() {
             )}
 
             {/* Auto-detection notice */}
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+            <div className="rounded-[1.2rem] border border-[#cfe6d9] bg-[#e8f4ee] p-4">
               <div className="flex items-start gap-3">
                 <AlertCircle className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <h4 className="font-medium text-emerald-900 mb-1 text-sm">
+                  <h4 className="mb-1 text-sm font-semibold text-[#215c46]">
                     Workspace Auto-Detection
                   </h4>
-                  <p className="text-xs text-emerald-800">
+                  <p className="text-xs text-[#2d8b69]">
                     The workspace ID and name will be automatically detected when the bot connects to Slack for the first time.
                   </p>
                 </div>
@@ -322,11 +331,11 @@ export default function CreateSlackBotPage() {
           </div>
 
           {/* Form Actions */}
-          <div className="border-t border-gray-200 px-6 py-4 bg-red-50 flex justify-end gap-3">
+          <div className="flex justify-end gap-3 border-t border-black/10 bg-[#fcfaf5] px-6 py-4">
             <button
               type="button"
               onClick={() => router.back()}
-              className="px-4 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-white hover:border-red-300 transition-colors"
+              className="rounded-[1rem] border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-[#fcfaf5]"
               disabled={loading}
             >
               Cancel
@@ -334,13 +343,13 @@ export default function CreateSlackBotPage() {
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-2 text-sm bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-sm"
+              className="rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
               {loading ? "Creating..." : "Create Bot"}
             </button>
           </div>
         </form>
-      </div>
-    </div>
+        </AgentPagePanel>
+    </AgentPageShell>
   );
 }

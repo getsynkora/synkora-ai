@@ -155,14 +155,14 @@ export default function SAMLConfigPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="dashboard-settings-page flex h-64 items-center justify-center">
         <LoadingSpinner size="lg" />
       </div>
     )
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
+    <div className="dashboard-settings-page max-w-4xl mx-auto p-6">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between">

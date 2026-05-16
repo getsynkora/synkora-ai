@@ -1,17 +1,20 @@
 'use client'
 
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { useAgentPricing } from '@/hooks/useBilling'
 import {
   AgentPricingForm,
   AgentRevenueCard,
 } from '@/components/billing'
-import { Loader2, ArrowLeft, DollarSign, TrendingUp } from 'lucide-react'
+import { Loader2, ArrowLeft, DollarSign, TrendingUp, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 
 export default function AgentPricingPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const agentId = params.agentId as string
+  const agentSlug = searchParams.get('from')
+  const backHref = agentSlug ? `/agents/${agentSlug}/edit?tab=landing-page` : '/billing'
 
   const {
     pricing,
@@ -34,12 +37,33 @@ export default function AgentPricingPage() {
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-8">
+        {/* Breadcrumb */}
+        <nav className="mb-4 flex items-center gap-1.5 text-sm text-gray-500">
+          {agentSlug ? (
+            <>
+              <Link href="/agents" className="hover:text-gray-900">Agents</Link>
+              <ChevronRight className="h-3.5 w-3.5" />
+              <Link href={`/agents/${agentSlug}/edit?tab=landing-page`} className="hover:text-gray-900">
+                {agentSlug}
+              </Link>
+              <ChevronRight className="h-3.5 w-3.5" />
+              <span className="text-gray-900 font-medium">Monetization</span>
+            </>
+          ) : (
+            <>
+              <Link href="/billing" className="hover:text-gray-900">Billing</Link>
+              <ChevronRight className="h-3.5 w-3.5" />
+              <span className="text-gray-900 font-medium">Monetization</span>
+            </>
+          )}
+        </nav>
+
         <Link
-          href="/billing"
+          href={backHref}
           className="mb-4 inline-flex items-center text-sm text-gray-600 hover:text-gray-900"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Billing
+          {agentSlug ? 'Back to Agent' : 'Back to Billing'}
         </Link>
         <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Agent Monetization</h1>
         <p className="mt-2 text-gray-600">
@@ -61,7 +85,7 @@ export default function AgentPricingPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Earnings</p>
                 <p className="mt-2 text-xl sm:text-3xl font-bold text-gray-900">
-                  ${(earnings.total_earnings || 0).toFixed(2)}
+                  ${Number(earnings.total_earnings ?? 0).toFixed(2)}
                 </p>
               </div>
               <div className="rounded-full bg-primary-100 p-3">
@@ -167,10 +191,10 @@ export default function AgentPricingPage() {
                       {item.credits_used}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                      ${item.revenue_amount.toFixed(2)}
+                      ${Number(item.revenue_amount ?? 0).toFixed(2)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-primary-600">
-                      ${item.creator_earnings.toFixed(2)}
+                      ${Number(item.creator_earnings ?? 0).toFixed(2)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm">
                       <span

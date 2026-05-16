@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Zap, ArrowRight, Users, Code, BarChart3, HeadphonesIcon, PenTool, Database, Briefcase, Shield } from 'lucide-react'
+import PublicPageFrame from '@/components/public/PublicPageFrame'
 
 export const metadata = {
   title: 'Use Cases – Synkora LLM Platform',
@@ -128,29 +129,7 @@ const colorClasses = {
 
 export default function UseCasesPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-red-50">
-      {/* Navigation */}
-      <nav className="py-4 px-4 sm:px-6 border-b border-gray-100 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-9 h-9 bg-red-500 rounded-lg flex items-center justify-center">
-              <Zap className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-xl font-bold text-gray-900">Synkora</span>
-          </Link>
-          <div className="flex items-center gap-2 sm:gap-4">
-            <Link href="/pricing" className="hidden sm:block text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
-              Pricing
-            </Link>
-            <Link
-              href="/signup"
-              className="px-4 py-2 text-sm font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-            >
-              Get Started
-            </Link>
-          </div>
-        </div>
-      </nav>
+    <PublicPageFrame mainClassName="pt-28">
 
       {/* Hero Section */}
       <section className="py-12 sm:py-20 px-4 sm:px-6">
@@ -161,7 +140,7 @@ export default function UseCasesPage() {
           </div>
           <h1 className="text-3xl sm:text-5xl font-bold text-gray-900 mb-6">
             Build AI Agents for
-            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-rose-600">
+            <span className="editorial-highlight mt-3 block w-fit mx-auto">
               Every Role in Your Company
             </span>
           </h1>
@@ -320,20 +299,6 @@ export default function UseCasesPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-8 px-6 border-t border-gray-200 bg-white">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-gray-500 text-sm">
-            © {new Date().getFullYear()} Synkora. All rights reserved.
-          </p>
-          <div className="flex items-center gap-6">
-            <Link href="/terms" className="text-gray-500 hover:text-gray-700 text-sm">Terms</Link>
-            <Link href="/privacy" className="text-gray-500 hover:text-gray-700 text-sm">Privacy</Link>
-            <Link href="/security" className="text-gray-500 hover:text-gray-700 text-sm">Security</Link>
-            <Link href="/contact" className="text-gray-500 hover:text-gray-700 text-sm">Contact</Link>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </PublicPageFrame>
   )
 }

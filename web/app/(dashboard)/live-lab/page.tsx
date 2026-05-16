@@ -12,6 +12,7 @@ import {
   XCircle,
   Wrench,
 } from 'lucide-react'
+import DashboardPageShell, { DashboardPagePanel } from '@/components/dashboard/DashboardPageShell'
 
 export default function LiveLabPage() {
   const {
@@ -58,100 +59,61 @@ export default function LiveLabPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Live Lab</h1>
-              <p className="text-gray-600 mt-1 text-sm hidden sm:block">
-                Real-time agent execution monitoring
-              </p>
-            </div>
-
-            {activeExecutions.length > 0 && (
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-full flex-shrink-0">
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                <span className="text-sm font-medium text-green-600">
-                  {activeExecutions.length} running
-                </span>
-              </div>
-            )}
+    <DashboardPageShell
+      title="Live Lab"
+      description="Real-time agent execution monitoring."
+      icon={Activity}
+      badge="Labs"
+      breadcrumbs={[
+        { label: 'Home', href: '/' },
+        { label: 'Live Lab' },
+      ]}
+      stats={[
+        { label: 'Active', value: activeExecutions.length },
+        { label: 'Recent', value: recentExecutions.length },
+      ]}
+      actions={
+        activeExecutions.length > 0 ? (
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#d8e5d9] bg-[#ebf5ee] px-4 py-2 text-sm font-semibold text-[#24543b]">
+            <span className="h-2 w-2 rounded-full bg-[#2b7a52] animate-pulse" />
+            {activeExecutions.length} running
           </div>
-
-          {/* Stats Bar */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="p-1.5 bg-emerald-100 rounded-lg">
-                  <Activity className="w-4 h-4 text-emerald-600" />
-                </div>
-                <p className="text-xs font-medium text-gray-600">Active Now</p>
+        ) : null
+      }
+    >
+      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-5 md:gap-4">
+        {[
+          { label: 'Active Now', value: activeExecutions.length, icon: Activity, tone: 'bg-[#ebf5ee] text-[#24543b]' },
+          { label: 'Recent', value: recentExecutions.length, icon: Clock, tone: 'bg-[#f3ecde] text-[#7c5d45]' },
+          { label: 'Successful', value: successCount, icon: CheckCircle, tone: 'bg-[#ebf5ee] text-[#24543b]' },
+          { label: 'Errors', value: errorCount, icon: XCircle, tone: 'bg-[#f8ecef] text-[#8a445c]' },
+          { label: 'Tools Used', value: totalToolsUsed, icon: Wrench, tone: 'bg-[#eef4fb] text-[#345c8a]' },
+        ].map((stat) => (
+          <DashboardPagePanel key={stat.label} className="p-4">
+            <div className="mb-2 flex items-center gap-2">
+              <div className={`rounded-[0.95rem] p-2 ${stat.tone}`}>
+                <stat.icon className="h-4 w-4" />
               </div>
-              <p className="text-2xl font-bold text-gray-900">{activeExecutions.length}</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#9a7a5e]">{stat.label}</p>
             </div>
-
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="p-1.5 bg-red-100 rounded-lg">
-                  <Clock className="w-4 h-4 text-red-600" />
-                </div>
-                <p className="text-xs font-medium text-gray-600">Recent</p>
-              </div>
-              <p className="text-2xl font-bold text-gray-900">{recentExecutions.length}</p>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="p-1.5 bg-green-100 rounded-lg">
-                  <CheckCircle className="w-4 h-4 text-green-600" />
-                </div>
-                <p className="text-xs font-medium text-gray-600">Successful</p>
-              </div>
-              <p className="text-2xl font-bold text-gray-900">{successCount}</p>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="p-1.5 bg-red-100 rounded-lg">
-                  <XCircle className="w-4 h-4 text-red-600" />
-                </div>
-                <p className="text-xs font-medium text-gray-600">Errors</p>
-              </div>
-              <p className="text-2xl font-bold text-gray-900">{errorCount}</p>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="p-1.5 bg-red-100 rounded-lg">
-                  <Wrench className="w-4 h-4 text-red-600" />
-                </div>
-                <p className="text-xs font-medium text-gray-600">Tools Used</p>
-              </div>
-              <p className="text-2xl font-bold text-gray-900">{totalToolsUsed}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Active Executions */}
-        <section className="mb-6">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            <h2 className="text-base font-semibold text-gray-900">Active Executions</h2>
-            <span className="text-xs text-gray-500 ml-1">
-              {activeExecutions.length} running
-            </span>
-          </div>
-          <ActiveExecutionsList executions={activeExecutions} />
-        </section>
-
-        {/* Recent Executions */}
-        <section>
-          <h2 className="text-base font-semibold text-gray-900 mb-3">Recent Executions</h2>
-          <RecentExecutionsList executions={recentExecutions} />
-        </section>
+            <p className="text-2xl font-semibold tracking-[-0.04em] text-gray-950">{stat.value}</p>
+          </DashboardPagePanel>
+        ))}
       </div>
-    </div>
+
+      <section className="mb-6">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-[#2b7a52] animate-pulse" />
+          <h2 className="text-base font-semibold text-gray-900">Active Executions</h2>
+          <span className="ml-1 text-xs text-gray-500">{activeExecutions.length} running</span>
+        </div>
+        <ActiveExecutionsList executions={activeExecutions} />
+      </section>
+
+      <section>
+        <h2 className="mb-3 text-base font-semibold text-gray-900">Recent Executions</h2>
+        <RecentExecutionsList executions={recentExecutions} />
+      </section>
+    </DashboardPageShell>
   )
 }

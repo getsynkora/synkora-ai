@@ -106,7 +106,7 @@ export function ChatMessages({
       ref={containerRef}
       onScroll={handleScroll}
       className={cn(
-        'flex-1 overflow-y-auto overflow-x-hidden px-4 sm:px-6 lg:px-10 py-6',
+        'flex-1 overflow-y-auto overflow-x-hidden px-3 py-3 sm:px-4 sm:py-4 lg:px-5',
         className
       )}
     >
@@ -117,7 +117,7 @@ export function ChatMessages({
           chatConfig={chatConfig}
         />
       ) : (
-        <div className="max-w-4xl mx-auto space-y-5">
+        <div className="mx-auto max-w-[68rem] space-y-5">
           {messages.map((message, index) => {
             const isLastMessage = index === messages.length - 1
             const isStreamingMessage = isStreaming && isLastMessage
@@ -182,53 +182,53 @@ function EmptyState({ suggestionPrompts = [], onSuggestionClick, chatConfig }: E
   }
 
   return (
-    <div className="flex flex-col items-center justify-center h-full text-center px-6">
+    <div className="flex h-full flex-col items-center justify-center px-3 py-4 text-center sm:px-4 sm:py-6">
       {/* Hero Icon */}
       <div
-        className="w-20 h-20 rounded-3xl flex items-center justify-center mb-8"
+        className="mb-3 flex h-12 w-12 items-center justify-center rounded-[1.1rem] border border-white/60 shadow-[0_16px_30px_-24px_rgba(31,22,15,0.2)]"
         style={{
-          background: `linear-gradient(135deg, ${primaryColor}20, ${primaryColor}10)`
+          background: `linear-gradient(180deg, ${primaryColor}18, rgba(255,255,255,0.78))`
         }}
       >
         <Sparkles
-          size={40}
+          size={20}
           style={{ color: primaryColor }}
         />
       </div>
 
       {/* Bold Heading */}
-      <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4 tracking-tight">
+      <h1 className="mb-1.5 text-[1.7rem] font-semibold tracking-[-0.05em] text-gray-900 md:text-[2.1rem]">
         How can I help you today?
       </h1>
-      <p className="text-lg text-gray-500 max-w-xl mb-12 leading-relaxed">
+      <p className="mb-4 max-w-[36rem] text-[0.92rem] leading-6 text-gray-500 md:text-[1rem] md:leading-7">
         {welcomeMessage}
       </p>
 
       {/* Suggestion Cards */}
       {hasConfiguredPrompts ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-3xl">
+        <div className="grid w-full max-w-[42rem] grid-cols-1 gap-2.5 md:grid-cols-2">
           {suggestionPrompts.map((prompt, index) => (
             <button
               key={index}
               onClick={() => onSuggestionClick?.(prompt.prompt)}
-              className="group flex items-start gap-4 p-6 text-left bg-gray-50/80 hover:bg-gray-100 rounded-2xl transition-all duration-200 border border-gray-100 hover:border-gray-200 hover:shadow-sm"
+              className="group flex items-start gap-2.5 rounded-[1.1rem] border border-black/10 bg-[linear-gradient(180deg,_rgba(255,255,255,0.78),_rgba(250,245,238,0.96))] p-3 text-left shadow-[0_18px_34px_-32px_rgba(31,22,15,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:border-black/15 hover:shadow-[0_22px_40px_-28px_rgba(31,22,15,0.26)]"
             >
               <div
-                className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[0.85rem] border border-white/70"
                 style={{
-                  background: `linear-gradient(135deg, ${primaryColor}15, ${primaryColor}25)`
+                  background: `linear-gradient(135deg, ${primaryColor}18, ${primaryColor}08)`
                 }}
               >
                 <div style={{ color: primaryColor }}>
                   {getIconComponent(prompt.icon)}
                 </div>
               </div>
-              <div className="flex-1 min-w-0 pt-0.5">
-                <div className="text-base font-semibold text-gray-900 mb-1">
+              <div className="min-w-0 flex-1 pt-0.5">
+                <div className="mb-0.5 text-[0.98rem] font-semibold tracking-[-0.03em] text-gray-900 sm:text-[1.02rem]">
                   {prompt.title}
                 </div>
                 {prompt.description && (
-                  <div className="text-sm text-gray-500 leading-relaxed">
+                  <div className="text-[0.86rem] leading-5 text-gray-500">
                     {prompt.description}
                   </div>
                 )}
@@ -237,7 +237,7 @@ function EmptyState({ suggestionPrompts = [], onSuggestionClick, chatConfig }: E
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-3xl">
+        <div className="grid w-full max-w-[42rem] grid-cols-1 gap-2.5 md:grid-cols-2">
           <SuggestionCard
             icon="💡"
             title="Get Ideas"
@@ -279,13 +279,15 @@ function SuggestionCard({ icon, title, description, onSuggestionClick }: Suggest
   return (
     <button
       onClick={() => onSuggestionClick?.(title)}
-      className="group flex items-start gap-4 p-6 text-left bg-gray-50/80 hover:bg-gray-100 rounded-2xl transition-all duration-200 border border-gray-100 hover:border-gray-200 hover:shadow-sm"
+      className="group flex items-start gap-2.5 rounded-[1.1rem] border border-black/10 bg-[linear-gradient(180deg,_rgba(255,255,255,0.78),_rgba(250,245,238,0.96))] p-3 text-left shadow-[0_18px_34px_-32px_rgba(31,22,15,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:border-black/15 hover:shadow-[0_22px_40px_-28px_rgba(31,22,15,0.26)]"
     >
-      <span className="text-3xl">{icon}</span>
-      <div className="flex-1 min-w-0 pt-0.5">
-        <div className="text-base font-semibold text-gray-900 mb-1">{title}</div>
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[0.85rem] border border-white/70 bg-[linear-gradient(180deg,_rgba(255,255,255,0.78),_rgba(246,239,230,0.92))] text-[1.2rem]">
+        <span>{icon}</span>
+      </div>
+      <div className="min-w-0 flex-1 pt-0.5">
+        <div className="mb-0.5 text-[0.98rem] font-semibold tracking-[-0.03em] text-gray-900">{title}</div>
         {description && (
-          <div className="text-sm text-gray-500 leading-relaxed">{description}</div>
+          <div className="text-[0.86rem] leading-5 text-gray-500">{description}</div>
         )}
       </div>
     </button>

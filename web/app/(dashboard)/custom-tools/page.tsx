@@ -107,7 +107,7 @@ export default function CustomToolsPage() {
   )
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
+    <div className="dashboard-resource-page min-h-screen p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header - More Compact */}
         <div className="mb-6">
@@ -361,6 +361,12 @@ function CustomToolModal({
   )
   const [saving, setSaving] = useState(false)
   const [importing, setImporting] = useState(false)
+  const formId = 'custom-tool-modal-form'
+  const fieldClass = 'w-full rounded-[1.15rem] border border-gray-200 bg-gray-50 px-4 py-4 text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500'
+  const textareaClass = `${fieldClass} resize-y`
+  const codeClass = 'w-full rounded-[1.15rem] border border-gray-200 bg-gray-50 px-4 py-4 font-mono text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500'
+  const labelClass = 'mb-2 block text-sm font-semibold text-gray-700'
+  const helpClass = 'mt-2 text-xs leading-relaxed text-gray-500'
 
   const handleImportFromUrl = async () => {
     if (!schemaUrl) {
@@ -434,75 +440,83 @@ function CustomToolModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-red-50 to-red-100">
-          <h2 className="text-xl font-bold text-gray-900">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-4xl overflow-hidden rounded-[2rem] border border-black/10 bg-[#fcfaf5] shadow-[0_32px_90px_rgba(0,0,0,0.18)]">
+        <div className="border-b border-black/10 bg-white px-8 py-6">
+          <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/55 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#6e675d]">
+            <Wrench className="h-3.5 w-3.5 text-[#2d8b69]" />
+            Custom Tool
+          </div>
+          <h2 className="mt-4 text-3xl font-semibold tracking-tight text-gray-900">
             {tool ? 'Edit Custom Tool' : 'Import Custom Tool'}
           </h2>
-          <p className="text-sm text-gray-600 mt-0.5">
+          <p className="mt-2 text-base text-gray-600">
             Configure your OpenAPI-based tool
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto max-h-[calc(90vh-140px)]">
+        <form
+          id={formId}
+          onSubmit={handleSubmit}
+          className="max-h-[calc(90vh-210px)] space-y-6 overflow-y-auto px-8 py-7"
+        >
           {!tool && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className={labelClass}>
                 Import Method
               </label>
-              <div className="flex gap-4">
+              <div className="grid gap-3 md:grid-cols-2">
                 <button
                   type="button"
                   onClick={() => setImportMethod('url')}
-                  className={`flex-1 px-4 py-3 rounded-lg border-2 transition-colors ${
+                  className={`rounded-[1.5rem] border px-5 py-4 text-left transition-all ${
                     importMethod === 'url'
-                      ? 'border-red-600 bg-red-50 text-red-900'
-                      : 'border-gray-300 hover:border-gray-400'
+                      ? 'border-black/10 bg-white text-gray-900 shadow-[0_16px_36px_rgba(0,0,0,0.08)]'
+                      : 'border-black/10 bg-[#f4efe4] text-[#5b564e] hover:bg-white'
                   }`}
                 >
-                  <div className="font-medium">Import from URL</div>
-                  <div className="text-sm text-gray-600">Fetch OpenAPI schema from a URL</div>
+                  <div className="text-sm font-semibold text-current">Import from URL</div>
+                  <div className="mt-1 text-sm leading-relaxed text-[#5b564e]">Fetch the OpenAPI schema from a hosted endpoint.</div>
                 </button>
                 <button
                   type="button"
                   onClick={() => setImportMethod('paste')}
-                  className={`flex-1 px-4 py-3 rounded-lg border-2 transition-colors ${
+                  className={`rounded-[1.5rem] border px-5 py-4 text-left transition-all ${
                     importMethod === 'paste'
-                      ? 'border-red-600 bg-red-50 text-red-900'
-                      : 'border-gray-300 hover:border-gray-400'
+                      ? 'border-black/10 bg-white text-gray-900 shadow-[0_16px_36px_rgba(0,0,0,0.08)]'
+                      : 'border-black/10 bg-[#f4efe4] text-[#5b564e] hover:bg-white'
                   }`}
                 >
-                  <div className="font-medium">Paste Schema</div>
-                  <div className="text-sm text-gray-600">Manually paste OpenAPI JSON</div>
+                  <div className="text-sm font-semibold text-current">Paste Schema</div>
+                  <div className="mt-1 text-sm leading-relaxed text-[#5b564e]">Manually provide the OpenAPI JSON and configuration.</div>
                 </button>
               </div>
             </div>
           )}
 
           {!tool && importMethod === 'url' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="rounded-[1.6rem] border border-black/10 bg-white p-5 shadow-[0_20px_50px_rgba(0,0,0,0.05)]">
+              <label className={labelClass}>
                 OpenAPI Schema URL *
               </label>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-3 md:flex-row">
                 <input
                   type="url"
                   value={schemaUrl}
                   onChange={(e) => setSchemaUrl(e.target.value)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className={`flex-1 ${fieldClass}`}
                   placeholder="https://api.example.com/openapi.json"
                 />
                 <button
                   type="button"
                   onClick={handleImportFromUrl}
                   disabled={importing}
-                  className="px-6 py-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition-all shadow-sm hover:shadow-md disabled:opacity-50"
+                  className="rounded-[1.2rem] bg-[#171717] px-6 py-4 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {importing ? 'Importing...' : 'Import'}
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className={helpClass}>
                 The URL should return a valid OpenAPI 3.0+ specification
               </p>
             </div>
@@ -510,30 +524,30 @@ function CustomToolModal({
 
           {(tool || importMethod === 'paste') && (
             <>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-5 md:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={labelClass}>
                     Tool Name *
                   </label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className={fieldClass}
                     placeholder="My API Tool"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={labelClass}>
                     Server URL *
                   </label>
                   <input
                     type="url"
                     value={formData.server_url}
                     onChange={(e) => setFormData({ ...formData, server_url: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className={fieldClass}
                     placeholder="https://api.example.com"
                     required
                   />
@@ -541,13 +555,13 @@ function CustomToolModal({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClass}>
                   Description *
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className={textareaClass}
                   rows={3}
                   placeholder="Describe what this tool does..."
                   required
@@ -555,28 +569,28 @@ function CustomToolModal({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClass}>
                   OpenAPI Schema (JSON) *
                 </label>
                 <textarea
                   value={schemaJson}
                   onChange={(e) => setSchemaJson(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent font-mono text-sm"
+                  className={codeClass}
                   rows={10}
                   placeholder='{"openapi": "3.0.0", ...}'
                   required
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-5 md:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={labelClass}>
                     Authentication Type
                   </label>
                   <select
                     value={formData.auth_type}
                     onChange={(e) => setFormData({ ...formData, auth_type: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className={fieldClass}
                   >
                     <option value="none">None</option>
                     <option value="bearer">Bearer Token</option>
@@ -586,14 +600,14 @@ function CustomToolModal({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={labelClass}>
                     Icon URL (Optional)
                   </label>
                   <input
                     type="url"
                     value={formData.icon}
                     onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className={fieldClass}
                     placeholder="https://example.com/icon.png"
                   />
                 </div>
@@ -601,17 +615,17 @@ function CustomToolModal({
 
               {formData.auth_type !== 'none' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={labelClass}>
                     Auth Config (JSON)
                   </label>
                   <textarea
                     value={authConfigJson}
                     onChange={(e) => setAuthConfigJson(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent font-mono text-sm"
+                    className={codeClass}
                     rows={4}
                     placeholder={`{\n  "token": "your_token_here"\n}`}
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className={helpClass}>
                     {formData.auth_type === 'bearer' && 'Example: {"token": "your_bearer_token"}'}
                     {formData.auth_type === 'basic' && 'Example: {"username": "user", "password": "pass"}'}
                     {formData.auth_type === 'custom' && 'Example: {"X-API-Key": "your_key"}'}
@@ -620,21 +634,21 @@ function CustomToolModal({
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={labelClass}>
                   Tags (comma-separated)
                 </label>
                 <input
                   type="text"
                   value={formData.tags}
                   onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className={fieldClass}
                   placeholder="api, rest, external"
                 />
               </div>
 
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3.5">
-                <h4 className="text-sm font-semibold text-red-900 mb-1">About Custom Tools</h4>
-                <p className="text-xs text-red-800 leading-relaxed">
+              <div className="rounded-[1.5rem] border border-black/10 bg-[#f7f2e7] p-4">
+                <h4 className="text-sm font-semibold text-gray-900">About Custom Tools</h4>
+                <p className="mt-2 text-xs leading-relaxed text-[#5b564e]">
                   Custom tools allow you to import OpenAPI-based APIs and use their operations with your agents.
                   Each tool can have multiple operations that can be individually enabled for different agents.
                 </p>
@@ -643,24 +657,19 @@ function CustomToolModal({
           )}
         </form>
 
-        {/* Fixed Footer with Buttons */}
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+        <div className="flex justify-end gap-3 border-t border-black/10 bg-white px-8 py-5">
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 text-gray-700 hover:bg-gray-200 bg-gray-100 rounded-lg transition-colors font-medium text-sm"
+            className="rounded-[1.2rem] border border-black/10 bg-[#f4efe4] px-5 py-3 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#ebe2cf]"
           >
             Cancel
           </button>
           <button
             type="submit"
+            form={formId}
             disabled={saving}
-            onClick={(e) => {
-              e.preventDefault()
-              const form = e.currentTarget.closest('div')?.previousElementSibling as HTMLFormElement
-              form?.requestSubmit()
-            }}
-            className="px-6 py-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
+            className="rounded-[1.2rem] bg-[#171717] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving ? 'Saving...' : tool ? 'Update Tool' : 'Create Tool'}
           </button>

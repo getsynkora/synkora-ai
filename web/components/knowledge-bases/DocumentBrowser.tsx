@@ -183,7 +183,7 @@ export default function DocumentBrowser({
   if (loading && documents.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#2d8b69]" />
       </div>
     )
   }
@@ -202,7 +202,7 @@ export default function DocumentBrowser({
               setPage(1)
             }}
             placeholder="Search documents..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full rounded-[1rem] border border-black/10 bg-white px-4 py-3 pl-10 text-sm text-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
           />
         </div>
         
@@ -212,7 +212,7 @@ export default function DocumentBrowser({
             setSourceTypeFilter(e.target.value)
             setPage(1)
           }}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="rounded-[1rem] border border-black/10 bg-white px-4 py-3 text-sm text-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
         >
           <option value="">All Sources</option>
           <option value="manual">Manual Upload</option>
@@ -227,7 +227,7 @@ export default function DocumentBrowser({
             setHasImagesFilter(e.target.value === '' ? undefined : e.target.value === 'true')
             setPage(1)
           }}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="rounded-[1rem] border border-black/10 bg-white px-4 py-3 text-sm text-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
         >
           <option value="">All Documents</option>
           <option value="true">With Images</option>
@@ -237,13 +237,13 @@ export default function DocumentBrowser({
 
       {/* Bulk Actions */}
       {selectedDocs.size > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
-          <span className="text-sm font-medium text-blue-900">
+        <div className="flex items-center justify-between rounded-[1.25rem] border border-black/10 bg-[#f7f2e7] p-4">
+          <span className="text-sm font-medium text-gray-900">
             {selectedDocs.size} document(s) selected
           </span>
           <button
             onClick={handleBulkDelete}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+            className="flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-black"
           >
             <Trash2 className="w-4 h-4" />
             Delete Selected
@@ -253,16 +253,16 @@ export default function DocumentBrowser({
 
       {/* Documents Table */}
       {documents.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-          <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+        <div className="rounded-[1.6rem] border border-black/10 bg-[#fcfaf5] py-12 text-center">
+          <FileText className="mx-auto mb-4 h-16 w-16 text-[#8a8378]" />
           <h3 className="text-lg font-semibold text-gray-900 mb-2">No documents found</h3>
           <p className="text-gray-600">Upload documents to get started</p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="overflow-hidden rounded-[1.6rem] border border-black/10 bg-white/80">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="border-b border-black/10 bg-[#fcfaf5]">
                 <tr>
                   <th className="px-4 py-3 text-left">
                     <input
@@ -292,9 +292,9 @@ export default function DocumentBrowser({
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-black/10">
                 {documents.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-gray-50">
+                  <tr key={doc.id} className="hover:bg-[#fcfaf5]">
                     <td className="px-4 py-4">
                       <input
                         type="checkbox"
@@ -305,7 +305,7 @@ export default function DocumentBrowser({
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-3">
-                        <FileText className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                        <FileText className="h-5 w-5 flex-shrink-0 text-[#2d8b69]" />
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-gray-900 truncate">
                             {doc.title}
@@ -320,7 +320,7 @@ export default function DocumentBrowser({
                       </div>
                     </td>
                     <td className="px-4 py-4">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <span className="inline-flex items-center rounded-full bg-[#f7f2e7] px-2.5 py-1 text-xs font-medium text-[#6e675d]">
                         {doc.source_type}
                       </span>
                     </td>
@@ -346,21 +346,21 @@ export default function DocumentBrowser({
                       <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() => setViewingDoc(doc)}
-                          className="p-2 text-gray-400 hover:text-green-600 transition-colors"
+                          className="rounded-full p-2 text-gray-400 transition-colors hover:bg-[#eef7f1] hover:text-[#2d8b69]"
                           title="View"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDownload(doc)}
-                          className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                          className="rounded-full p-2 text-gray-400 transition-colors hover:bg-[#f7f2e7] hover:text-[#171717]"
                           title="Download"
                         >
                           <Download className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(doc.id)}
-                          className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                          className="rounded-full p-2 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
                           title="Delete"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -375,7 +375,7 @@ export default function DocumentBrowser({
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+            <div className="flex items-center justify-between border-t border-black/10 px-4 py-3">
               <div className="text-sm text-gray-700">
                 Showing <span className="font-medium">{(page - 1) * pageSize + 1}</span> to{' '}
                 <span className="font-medium">{Math.min(page * pageSize, total)}</span> of{' '}
@@ -385,7 +385,7 @@ export default function DocumentBrowser({
                 <button
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded-[0.9rem] border border-black/10 bg-white p-2 transition-colors hover:bg-[#f7f2e7] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
@@ -395,7 +395,7 @@ export default function DocumentBrowser({
                 <button
                   onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
-                  className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded-[0.9rem] border border-black/10 bg-white p-2 transition-colors hover:bg-[#f7f2e7] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <ChevronRight className="w-5 h-5" />
                 </button>

@@ -62,37 +62,60 @@ export function SetupScreen({ onConfigured }: Props) {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500" />
+        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[#171717]" />
       </div>
     )
   }
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Header */}
-      <div className="flex items-center gap-4 pb-6 border-b border-gray-100">
-        <div className="w-12 h-12 rounded-xl bg-primary-50 flex items-center justify-center flex-shrink-0">
-          <Wrench className="h-5 w-5 text-primary-500" />
-        </div>
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900">
-            {existingConfig ? 'Update LLM Configuration' : 'Configure LLM Provider'}
-          </h3>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {existingConfig
-              ? 'Update the provider or API key used by the Platform Engineer.'
-              : 'Choose a provider and enter your API key to get started. Your key is encrypted at rest.'}
-          </p>
+      <div className="relative overflow-hidden rounded-[2.2rem] border border-[#e0d2c0] bg-[linear-gradient(180deg,_rgba(251,246,238,0.98),_rgba(244,237,227,0.95))] p-6 shadow-[0_28px_70px_-46px_rgba(88,63,39,0.32)] md:p-8">
+        <div className="pointer-events-none absolute inset-0 opacity-[0.17] [background-image:repeating-linear-gradient(90deg,transparent_0,transparent_12%,rgba(72,51,34,0.08)_12.2%,transparent_12.5%)]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-[radial-gradient(circle_at_50%_0%,rgba(30,24,20,0.15),transparent_72%)] opacity-70" />
+
+        <div className="relative flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-[1.15rem] bg-[#171717] text-white shadow-[0_24px_48px_-28px_rgba(0,0,0,0.48)]">
+              <Wrench className="h-5 w-5" />
+            </div>
+            <div className="max-w-2xl">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-[#8b8174]">
+                Platform Engineer Setup
+              </p>
+              <h3 className="mt-3 text-[clamp(2rem,4vw,3.25rem)] font-light leading-[0.94] tracking-[-0.065em] text-gray-950">
+                {existingConfig ? (
+                  <>
+                    <span className="block">Update LLM</span>
+                    <span className="editorial-highlight mt-2 inline-block">Configuration</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="block">Configure LLM</span>
+                    <span className="editorial-highlight mt-2 inline-block">Provider</span>
+                  </>
+                )}
+              </h3>
+              <p className="mt-4 max-w-xl text-sm leading-6 text-gray-600">
+                {existingConfig
+                  ? 'Update the provider or API key used by the Platform Engineer.'
+                  : 'Choose a provider and enter your API key to get started. Your key is encrypted at rest.'}
+              </p>
+            </div>
+          </div>
+          <div className="rounded-full border border-black/10 bg-white/72 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#5c544a] shadow-[0_18px_36px_-28px_rgba(28,20,12,0.46)]">
+            Secure configuration
+          </div>
         </div>
       </div>
 
-      {/* Form */}
-      <LLMConfigForm
-        config={existingConfig}
-        onSubmit={handleSubmit}
-        onCancel={onConfigured}
-        isSubmitting={isSubmitting}
-      />
+      <div className="rounded-[2rem] border border-[#e3d7c7] bg-[linear-gradient(180deg,_rgba(255,255,255,0.82),_rgba(250,245,238,0.92))] p-5 shadow-[0_22px_52px_-40px_rgba(30,22,14,0.46)] backdrop-blur-sm md:p-7">
+        <LLMConfigForm
+          config={existingConfig}
+          onSubmit={handleSubmit}
+          onCancel={onConfigured}
+          isSubmitting={isSubmitting}
+        />
+      </div>
     </div>
   )
 }

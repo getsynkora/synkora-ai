@@ -551,7 +551,7 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
                     <p className="text-gray-500 text-sm mt-3">{t.desc}</p>
                     <div className="mt-6">
                       <a
-                        href={`/agents/${encodeURIComponent(agent_name)}/chat`}
+                        href={`/agents/${slug}/chat`}
                         className="block w-full py-2.5 text-center text-sm font-semibold rounded-xl transition-all hover:opacity-90"
                         style={t.popular ? { background: accent, color: '#fff' } : { background: '#f3f4f6', color: '#374151' }}
                       >

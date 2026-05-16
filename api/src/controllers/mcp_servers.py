@@ -165,7 +165,7 @@ async def update_mcp_server(
             raise HTTPException(status_code=404, detail="MCP server not found")
 
         # Get update data
-        update_data = request.dict(exclude_unset=True)
+        update_data = request.model_dump(exclude_unset=True)
 
         # Validate transport type if being updated
         if "transport_type" in update_data:

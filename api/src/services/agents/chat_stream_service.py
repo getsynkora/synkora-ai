@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from src.core.database import get_async_session_factory
 from src.helpers.chat_helpers import (
     calculate_time_metrics,
     estimate_tokens,
@@ -87,7 +88,7 @@ class ChatStreamService:
         conversation_id: str | None,
         attachments: list[dict[str, Any]] | None,
         llm_config_id: str | None,
-        db: AsyncSession,
+        db: AsyncSession | None = None,
         user_id: str | None = None,
         trigger_source: str = "chat",
         trigger_detail: str | None = None,
@@ -109,6 +110,20 @@ class ChatStreamService:
         retrieved_sources: list[dict[str, Any]] = []
         state = StreamState(assistant_chunks=[], chart_data=[])
         conversation_uuid = validate_conversation_id(conversation_id)
+        managed_db_session = db is None
+        session_factory = get_async_session_factory() if managed_db_session else None
+        if managed_db_session:
+            db = session_factory()
+        _execution_id = None
+
+        async def _track(event_data: dict) -> None:
+            if _execution_id:
+                try:
+                    from src.services.agents.execution_registry import execution_registry
+
+                    await execution_registry.append_event(_execution_id, event_data)
+                except Exception:
+                    pass
 
         try:
             # SECURITY: Verify conversation access before saving messages
@@ -217,9 +232,28 @@ class ChatStreamService:
                 f"time={load_result.loading_time:.3f}s, is_workflow={is_workflow_agent}"
             )
 
+            # Agent trace: fire user_message event
+            if conversation_uuid and db_agent and tenant_id:
+                try:
+                    from src.services.agents.agent_trace_service import fire_user_message
+
+                    _conv_name = getattr(conversation, "name", agent_name) if "conversation" in dir() else agent_name
+                    _conv_status = getattr(conversation, "status", "ACTIVE") if "conversation" in dir() else "ACTIVE"
+                    fire_user_message(
+                        tenant_id=tenant_id,
+                        agent_id=db_agent.id,
+                        conversation_id=conversation_uuid,
+                        message_id=None,
+                        content=message,
+                        conversation_name=str(_conv_name),
+                        conversation_status=str(_conv_status),
+                        sequence=1,
+                    )
+                except Exception:
+                    pass  # never block chat
+
             # Register execution for Live Lab observability (done early so _track is
             # available to all code paths including workflow and claude_code branches)
-            _execution_id = None
             if tenant_id and db_agent:
                 try:
                     from src.services.agents.execution_registry import execution_registry
@@ -235,19 +269,6 @@ class ChatStreamService:
                     )
                 except Exception as reg_err:
                     logger.debug(f"Failed to register execution: {reg_err}")
-
-            # Helper to store important events for Live Lab replay.
-            # Defined here (before workflow/claude_code branches) so it can be
-            # passed as a parameter to _stream_workflow_agent and
-            # _stream_claude_code_agent which are separate class methods.
-            async def _track(event_data: dict) -> None:
-                if _execution_id:
-                    try:
-                        from src.services.agents.execution_registry import execution_registry
-
-                        await execution_registry.append_event(_execution_id, event_data)
-                    except Exception:
-                        pass
 
             if is_workflow_agent:
                 async for event in self._stream_workflow_agent(
@@ -396,6 +417,10 @@ class ChatStreamService:
 
             trace_id = self._create_trace(agent, agent_name, message, final_tool_names)
 
+            if managed_db_session and db is not None:
+                await db.close()
+                db = None
+
             # --- Fallback chain -----------------------------------------------
             # Two triggers for switching to a fallback LLM config:
             #   1. Pre-flight: primary provider's circuit breaker is already OPEN.
@@ -422,12 +447,21 @@ class ChatStreamService:
                         f"failed, switching to fallback config '{_candidate_config_id}' "
                         f"for agent '{agent_name}' (attempt {_attempt + 1}/{len(_all_config_ids)})"
                     )
-                    fallback_result = await self.agent_loader.load_agent(
-                        agent_name=agent_name,
-                        db=db,
-                        llm_config_id=_candidate_config_id,
-                        tenant_id=str(tenant_id) if tenant_id else "",
-                    )
+                    if managed_db_session:
+                        async with session_factory() as fallback_db:
+                            fallback_result = await self.agent_loader.load_agent(
+                                agent_name=agent_name,
+                                db=fallback_db,
+                                llm_config_id=_candidate_config_id,
+                                tenant_id=str(tenant_id) if tenant_id else "",
+                            )
+                    else:
+                        fallback_result = await self.agent_loader.load_agent(
+                            agent_name=agent_name,
+                            db=db,
+                            llm_config_id=_candidate_config_id,
+                            tenant_id=str(tenant_id) if tenant_id else "",
+                        )
                     if fallback_result.error or not fallback_result.agent:
                         logger.warning(f"[fallback] Fallback load failed: {fallback_result.error}")
                         continue
@@ -463,7 +497,7 @@ class ChatStreamService:
                             user_message_id=user_message_saved.id if user_message_saved else None,
                             start_time=start_time,
                             state=state,
-                            db=db,
+                            db=None if managed_db_session else db,
                             user_id=user_id,
                             shared_state=shared_state,
                             caller_tenant_id=tenant_id,
@@ -556,30 +590,58 @@ class ChatStreamService:
                 if state.fleet_card_data:
                     logger.info(f"💾 Saving {len(state.fleet_card_data)} fleet cards to database metadata")
 
-                assistant_message = await self.chat_service.save_assistant_message(
-                    conversation_id=conversation_uuid,
-                    content=assistant_content,
-                    sources=retrieved_sources,
-                    charts=state.chart_data,
-                    diagrams=state.diagram_data,
-                    infographics=state.infographic_data,
-                    generated_images=state.generated_images_data,
-                    fleet_cards=state.fleet_card_data,
-                    timing=timing_metrics,
-                    usage={
-                        "input_tokens": total_input_tokens,
-                        "output_tokens": state.total_output_tokens,
-                        "total_tokens": total_input_tokens + state.total_output_tokens,
-                    },
-                    db=db,
-                )
+                post_db = session_factory() if managed_db_session else db
+                try:
+                    assistant_message = await self.chat_service.save_assistant_message(
+                        conversation_id=conversation_uuid,
+                        content=assistant_content,
+                        sources=retrieved_sources,
+                        charts=state.chart_data,
+                        diagrams=state.diagram_data,
+                        infographics=state.infographic_data,
+                        generated_images=state.generated_images_data,
+                        fleet_cards=state.fleet_card_data,
+                        timing=timing_metrics,
+                        usage={
+                            "input_tokens": total_input_tokens,
+                            "output_tokens": state.total_output_tokens,
+                            "total_tokens": total_input_tokens + state.total_output_tokens,
+                        },
+                        db=post_db,
+                    )
+                finally:
+                    if managed_db_session and post_db is not None:
+                        await post_db.close()
+
+                try:
+                    from src.services.agents.agent_trace_service import fire_assistant_message
+
+                    fire_assistant_message(
+                        tenant_id=tenant_id or db_agent.tenant_id,
+                        agent_id=db_agent.id,
+                        conversation_id=conversation_uuid,
+                        message_id=assistant_message.id if assistant_message else None,
+                        content_preview=assistant_content[:500],
+                        total_input_tokens=total_input_tokens,
+                        total_output_tokens=state.total_output_tokens,
+                        total_cost_usd=0.0,
+                        total_latency_ms=int(timing_metrics.get("total_time", 0) * 1000),
+                        sequence=0,
+                    )
+                except Exception:
+                    pass  # never block chat
 
                 if assistant_message:
-                    await self.chat_service.update_agent_stats(
-                        agent=db_agent,
-                        success=True,
-                        db=db,
-                    )
+                    stats_db = session_factory() if managed_db_session else db
+                    try:
+                        await self.chat_service.update_agent_stats(
+                            agent=db_agent,
+                            success=True,
+                            db=stats_db,
+                        )
+                    finally:
+                        if managed_db_session and stats_db is not None:
+                            await stats_db.close()
                     self.chat_service.queue_credit_deduction(
                         tenant_id=tenant_id or db_agent.tenant_id,
                         agent_id=db_agent.id,
@@ -589,6 +651,23 @@ class ChatStreamService:
                         model=agent.llm_client.config.model_name,
                         content=assistant_content,
                     )
+
+                    try:
+                        from src.services.agent_output_service import AgentOutputService
+
+                        output_db = session_factory() if managed_db_session else db
+                        try:
+                            await AgentOutputService(output_db).send_outputs(
+                                agent_id=db_agent.id,
+                                agent_response=assistant_content,
+                                context={"agent_name": agent_name, "trigger_type": "chat"},
+                                trigger_type="chat",
+                            )
+                        finally:
+                            if managed_db_session and output_db is not None:
+                                await output_db.close()
+                    except Exception as _out_err:
+                        logger.warning(f"Chat output delivery error: {_out_err}")
 
         except Exception as e:
             if is_expected_llm_error(e):
@@ -615,19 +694,27 @@ class ChatStreamService:
                 except Exception:
                     pass
 
-            if user_message_saved:
-                await self.chat_service.mark_message_failed(
-                    message=user_message_saved,
-                    error=str(e),
-                    db=db,
-                )
+            failure_db = session_factory() if managed_db_session else db
+            try:
+                if user_message_saved and failure_db is not None:
+                    await self.chat_service.mark_message_failed(
+                        message=user_message_saved,
+                        error=str(e),
+                        db=failure_db,
+                    )
 
-            if db_agent:
-                await self.chat_service.update_agent_stats(
-                    agent=db_agent,
-                    success=False,
-                    db=db,
-                )
+                if db_agent and failure_db is not None:
+                    await self.chat_service.update_agent_stats(
+                        agent=db_agent,
+                        success=False,
+                        db=failure_db,
+                    )
+            finally:
+                if managed_db_session and failure_db is not None:
+                    await failure_db.close()
+        finally:
+            if managed_db_session and db is not None:
+                await db.close()
 
     async def _stream_workflow_agent(
         self,
@@ -636,7 +723,7 @@ class ChatStreamService:
         conversation_id: str | None,
         conversation_uuid,
         db_agent,
-        db: AsyncSession,
+        db: AsyncSession | None,
         state: StreamState,
         track=None,
     ) -> AsyncGenerator[str, None]:
@@ -900,11 +987,42 @@ class ChatStreamService:
                     usage=workflow_usage,
                     db=db,
                 )
+
+                try:
+                    from src.services.agents.agent_trace_service import fire_assistant_message
+
+                    fire_assistant_message(
+                        tenant_id=tenant_id or db_agent.tenant_id,
+                        agent_id=db_agent.id,
+                        conversation_id=conversation_uuid,
+                        message_id=None,
+                        content_preview=assistant_content[:500],
+                        total_input_tokens=workflow_usage.get("input_tokens", 0),
+                        total_output_tokens=workflow_usage.get("output_tokens", 0),
+                        total_cost_usd=0.0,
+                        total_latency_ms=int(workflow_timing.get("total_time", 0) * 1000),
+                        sequence=0,
+                    )
+                except Exception:
+                    pass  # never block chat
+
                 await self.chat_service.update_agent_stats(
                     agent=db_agent,
                     success=True,
                     db=db,
                 )
+
+                try:
+                    from src.services.agent_output_service import AgentOutputService
+
+                    await AgentOutputService(db).send_outputs(
+                        agent_id=db_agent.id,
+                        agent_response=assistant_content,
+                        context={"agent_name": db_agent.agent_name, "trigger_type": "chat"},
+                        trigger_type="chat",
+                    )
+                except Exception as _out_err:
+                    logger.warning(f"Workflow chat output delivery error: {_out_err}")
 
         except Exception as workflow_error:
             if is_expected_llm_error(workflow_error):
@@ -933,7 +1051,7 @@ class ChatStreamService:
         conversation_uuid,
         db_agent,
         agent,
-        db: AsyncSession,
+        db: AsyncSession | None,
         state: StreamState,
         user_id: str | None = None,
         track=None,
@@ -1101,11 +1219,42 @@ class ChatStreamService:
                     },
                     db=db,
                 )
+
+                try:
+                    from src.services.agents.agent_trace_service import fire_assistant_message
+
+                    fire_assistant_message(
+                        tenant_id=tenant_id or db_agent.tenant_id,
+                        agent_id=db_agent.id,
+                        conversation_id=conversation_uuid,
+                        message_id=None,
+                        content_preview=assistant_content[:500],
+                        total_input_tokens=0,
+                        total_output_tokens=state.total_output_tokens,
+                        total_cost_usd=0.0,
+                        total_latency_ms=int(timing_metrics.get("total_time", 0) * 1000),
+                        sequence=0,
+                    )
+                except Exception:
+                    pass  # never block chat
+
                 await self.chat_service.update_agent_stats(
                     agent=db_agent,
                     success=True,
                     db=db,
                 )
+
+                try:
+                    from src.services.agent_output_service import AgentOutputService
+
+                    await AgentOutputService(db).send_outputs(
+                        agent_id=db_agent.id,
+                        agent_response=assistant_content,
+                        context={"agent_name": db_agent.agent_name, "trigger_type": "chat"},
+                        trigger_type="chat",
+                    )
+                except Exception as _out_err:
+                    logger.warning(f"Claude agent chat output delivery error: {_out_err}")
 
         except ImportError as e:
             logger.warning(f"Claude Agent SDK not installed: {e}")
@@ -1218,11 +1367,15 @@ class ChatStreamService:
 
     async def _load_agent_resources(self, db_agent, db: AsyncSession) -> tuple[list[Any], list[Any], list[str]]:
         """
-        Load agent resources (knowledge bases and tools) in parallel.
+        Load agent resources (knowledge bases, tools, MCP tools, custom tools).
 
-        IMPORTANT: Each parallel operation uses its own database session to avoid
-        connection conflicts. SQLAlchemy async sessions have a single underlying
-        connection and cannot handle concurrent operations on the same session.
+        KB and tool queries are simple SELECTs with no side effects — they run
+        sequentially on the caller's session to avoid acquiring extra pool
+        connections on every request.
+
+        MCP and custom-tool loading register tools into the global tool_registry
+        as a side effect, so they still open dedicated sessions and run in parallel
+        with each other (but after the cheap sequential queries above).
         """
         import asyncio
 
@@ -1230,31 +1383,37 @@ class ChatStreamService:
         from src.models.agent_knowledge_base import AgentKnowledgeBase
         from src.models.agent_tool import AgentTool
 
+        load_start = time.time()
+
+        # ── Fast sequential queries on the existing session (no extra connections) ──
+        try:
+            kb_result = await db.execute(
+                select(AgentKnowledgeBase)
+                .options(selectinload(AgentKnowledgeBase.knowledge_base))
+                .filter(
+                    AgentKnowledgeBase.agent_id == db_agent.id,
+                    AgentKnowledgeBase.is_active,
+                )
+            )
+            agent_kbs = list(kb_result.scalars().all())
+        except Exception as e:
+            logger.error(f"Error loading knowledge bases: {e}")
+            agent_kbs = []
+
+        try:
+            tool_result = await db.execute(
+                select(AgentTool).filter(
+                    AgentTool.agent_id == db_agent.id,
+                    AgentTool.enabled,
+                )
+            )
+            agent_tools = list(tool_result.scalars().all())
+        except Exception as e:
+            logger.error(f"Error loading agent tools: {e}")
+            agent_tools = []
+
+        # ── Parallel loading for side-effecting registrations (own sessions) ──
         session_factory = get_async_session_factory()
-
-        async def load_knowledge_bases():
-            """Load knowledge bases using its own session."""
-            async with session_factory() as session:
-                result = await session.execute(
-                    select(AgentKnowledgeBase)
-                    .options(selectinload(AgentKnowledgeBase.knowledge_base))
-                    .filter(
-                        AgentKnowledgeBase.agent_id == db_agent.id,
-                        AgentKnowledgeBase.is_active,
-                    )
-                )
-                return list(result.scalars().all())
-
-        async def load_agent_tools():
-            """Load agent tools using its own session."""
-            async with session_factory() as session:
-                result = await session.execute(
-                    select(AgentTool).filter(
-                        AgentTool.agent_id == db_agent.id,
-                        AgentTool.enabled,
-                    )
-                )
-                return list(result.scalars().all())
 
         async def load_mcp_tools():
             """Load MCP tools using its own session. Returns registered tool names."""
@@ -1273,29 +1432,20 @@ class ChatStreamService:
                 )
             return True
 
-        parallel_start = time.time()
-        results = await asyncio.gather(
-            load_knowledge_bases(),
-            load_agent_tools(),
+        mcp_result, _ = await asyncio.gather(
             load_mcp_tools(),
             load_custom_tools(),
             return_exceptions=True,
         )
-        parallel_loading_time = time.time() - parallel_start
-        logger.info(f"⚡ Parallel loading completed in {parallel_loading_time:.3f}s")
 
-        agent_kbs, agent_tools, mcp_tool_names, _ = results
-        if isinstance(agent_kbs, Exception):
-            logger.error(f"Error loading knowledge bases: {agent_kbs}")
-            agent_kbs = []
-        if isinstance(agent_tools, Exception):
-            logger.error(f"Error loading agent tools: {agent_tools}")
-            agent_tools = []
-        if isinstance(mcp_tool_names, Exception):
-            logger.error(f"Error loading MCP tools: {mcp_tool_names}")
-            mcp_tool_names = []
+        mcp_tool_names: list[str] = []
+        if isinstance(mcp_result, Exception):
+            logger.error(f"Error loading MCP tools: {mcp_result}")
+        elif mcp_result:
+            mcp_tool_names = mcp_result
 
-        return agent_kbs, agent_tools, mcp_tool_names or []
+        logger.info(f"⚡ Resource loading completed in {time.time() - load_start:.3f}s")
+        return agent_kbs, agent_tools, mcp_tool_names
 
     async def _retrieve_rag_context(
         self,
@@ -1467,11 +1617,25 @@ class ChatStreamService:
         # Get model from LLM client config for accurate token counting
         model = llm_client.config.model_name if llm_client else "gpt-4"
 
+        context_config_settings = perf_config.get("context_management", {}) if isinstance(perf_config, dict) else {}
+        context_files_mode = context_config_settings.get("context_files_mode", "auto")
+        # Keep small/medium context files unchanged. Auto-compaction should only
+        # engage once attached context becomes large enough to materially impact
+        # prompt size.
+        context_files_full_threshold = context_config_settings.get("context_files_full_threshold_chars", 10000)
+        context_files_preview_chars = context_config_settings.get("context_files_preview_chars", 600)
+        context_files_preview_files = context_config_settings.get("context_files_preview_files", 4)
+
         enhanced_system_prompt = await prompt_builder.build_enhanced_prompt(
             agent=db_agent,
             include_context_files=True,
             max_context_length=10000,
             override_system_prompt=override_system_prompt,
+            context_mode=context_files_mode,
+            context_query=message,
+            full_context_threshold=context_files_full_threshold,
+            preview_chars=context_files_preview_chars,
+            max_preview_files=context_files_preview_files,
         )
         if enhanced_system_prompt:
             prompt_parts.append(enhanced_system_prompt)
@@ -1484,7 +1648,6 @@ class ChatStreamService:
             )
 
         if conversation_history:
-            context_config_settings = perf_config.get("context_management", {}) if isinstance(perf_config, dict) else {}
             context_config = ContextConfig(
                 strategy=ContextStrategy.COMBINED,
                 max_tokens=context_config_settings.get("max_tokens", 180000),
@@ -1659,13 +1822,14 @@ class ChatStreamService:
             return []
 
         # Apply context-aware filtering based on message content
-        # Note: max_tools is dynamically adjusted by filter based on task complexity
-        # Using permissive settings to avoid filtering out important tools
+        # Note: max_tools is dynamically adjusted by filter based on task complexity.
+        # Keep a short default shortlist and rely on discovery tools for long-tail
+        # capabilities instead of resending every schema every turn.
         filter_config = ToolFilterConfig(
             min_tools=10,
-            max_tools=50,  # Base limit, will be increased for complex tasks (up to 100)
-            fallback_to_all=True,  # Send all tools if intent unclear
-            min_score_threshold=0.1,  # Very low - prioritize rather than exclude
+            max_tools=20,
+            fallback_to_all=False,
+            min_score_threshold=1.0,
         )
 
         filtered_tools = filter_tool_names_by_message(
@@ -1721,7 +1885,7 @@ class ChatStreamService:
         user_message_id,
         start_time: float,
         state: StreamState,
-        db: AsyncSession,
+        db: AsyncSession | None,
         user_id: str | None = None,
         shared_state: dict[str, Any] | None = None,
         caller_tenant_id: Any | None = None,
@@ -1747,23 +1911,36 @@ class ChatStreamService:
         # Resolve compute session once per conversation (DB lookup, cached on context)
         from src.services.compute.resolver import build_compute_session_for_agent
 
-        _compute_session = await build_compute_session_for_agent(
-            db_agent.id,
-            db,
-            tenant_id=effective_tenant_id,
-            conversation_id=conversation_uuid,
-        )
+        if db is None:
+            session_factory = get_async_session_factory()
+            async with session_factory() as compute_db:
+                _compute_session = await build_compute_session_for_agent(
+                    db_agent.id,
+                    compute_db,
+                    tenant_id=effective_tenant_id,
+                    conversation_id=conversation_uuid,
+                )
+        else:
+            session_factory = None
+            _compute_session = await build_compute_session_for_agent(
+                db_agent.id,
+                db,
+                tenant_id=effective_tenant_id,
+                conversation_id=conversation_uuid,
+            )
 
         runtime_context = RuntimeContext(
             tenant_id=effective_tenant_id,
             agent_id=db_agent.id,
             db_session=db,
+            db_session_factory=session_factory,
             llm_client=agent.llm_client,
             conversation_id=conversation_uuid,
             message_id=user_message_id,
             user_id=user_uuid,
             shared_state=shared_state,
             compute_session=_compute_session,
+            email_template_id=getattr(db_agent, "email_template_id", None),
         )
 
         # Populate assigned tools so discovery only exposes agent's own tools
@@ -1836,6 +2013,8 @@ class ChatStreamService:
             f"📝 Using max_tokens={configured_max_tokens}, temperature={configured_temperature} from LLM config"
         )
 
+        # Activate RuntimeContext so llm_client and function_calling hooks can read it
+        runtime_context.__enter__()
         try:
             _stream_gen = function_handler.generate_with_functions_stream(
                 prompt=prompt,
@@ -1962,6 +2141,11 @@ class ChatStreamService:
                     yield await generate_chunk_event(trailing)
 
         finally:
+            # Deactivate RuntimeContext (clears ContextVar, closes authenticated clients)
+            try:
+                runtime_context.__exit__(None, None, None)
+            except Exception:
+                pass
             # Release compute session (stops ephemeral container, closes SSH, etc.)
             if _compute_session is not None:
                 try:

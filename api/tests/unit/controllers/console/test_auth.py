@@ -118,7 +118,7 @@ class TestLogin:
 
         response = test_client.post("/login", json={"email": "invalid-email", "password": "SecureTestPass123!"})
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_login_short_password(self, client):
         """Test login with password too short."""
@@ -126,7 +126,7 @@ class TestLogin:
 
         response = test_client.post("/login", json={"email": "test@example.com", "password": "short"})
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 class TestRegister:

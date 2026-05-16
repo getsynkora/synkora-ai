@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Zap, Shield, Lock, Key, Eye, Server, CheckCircle, AlertTriangle, Mail } from 'lucide-react'
+import PublicPageFrame from '@/components/public/PublicPageFrame'
 
 export const metadata = {
   title: 'Security – Synkora',
@@ -8,26 +9,7 @@ export const metadata = {
 
 export default function SecurityPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-pink-50">
-      {/* Navigation */}
-      <nav className="py-4 px-6 border-b border-gray-100 bg-white/80 backdrop-blur-sm">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-9 h-9 bg-red-500 rounded-lg flex items-center justify-center">
-              <Zap className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-xl font-bold text-gray-900">Synkora</span>
-          </Link>
-          <Link
-            href="/signin"
-            className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            Sign In
-          </Link>
-        </div>
-      </nav>
-
-      {/* Hero Section */}
+    <PublicPageFrame mainClassName="pt-28">
       <section className="py-16 px-6">
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-semibold mb-6">
@@ -270,20 +252,6 @@ export default function SecurityPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-8 px-6 border-t border-gray-200 bg-white">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-gray-500 text-sm">
-            © {new Date().getFullYear()} Synkora. All rights reserved.
-          </p>
-          <div className="flex items-center gap-6">
-            <Link href="/terms" className="text-gray-500 hover:text-gray-700 text-sm">Terms</Link>
-            <Link href="/privacy" className="text-gray-500 hover:text-gray-700 text-sm">Privacy</Link>
-            <Link href="/about" className="text-gray-500 hover:text-gray-700 text-sm">About</Link>
-            <Link href="/contact" className="text-gray-500 hover:text-gray-700 text-sm">Contact</Link>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </PublicPageFrame>
   )
 }

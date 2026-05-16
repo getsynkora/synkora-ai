@@ -1,20 +1,20 @@
 'use client'
 
 import { useEffect, useRef, useCallback } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { useLiveLabStore } from '@/lib/store/liveLabStore'
 import { getExecution, getExecutionStreamUrl } from '@/lib/api/live-lab'
 import type { ExecutionEvent } from '@/lib/api/live-lab'
 import { secureStorage } from '@/lib/auth/secure-storage'
-import { ArrowLeft } from 'lucide-react'
+import { Activity, AlertTriangle } from 'lucide-react'
 import { MetricsBar } from '@/components/live-lab/MetricsBar'
 import { ActivityFeed } from '@/components/live-lab/ActivityFeed'
 import { LiveWorkspace } from '@/components/live-lab/LiveWorkspace'
 import { ExecutionPlan } from '@/components/live-lab/ExecutionPlan'
+import DashboardPageShell, { DashboardPagePanel } from '@/components/dashboard/DashboardPageShell'
 
 export default function ExecutionDetailPage() {
   const params = useParams()
-  const router = useRouter()
   const executionId = params.executionId as string
 
   const {
@@ -109,72 +109,98 @@ export default function ExecutionDetailPage() {
 
   if (!currentExecution) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-gray-200 border-t-red-600 rounded-full animate-spin" />
+      <div className="dashboard-resource-page flex min-h-screen items-center justify-center">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-[#171717]" />
       </div>
     )
   }
 
   const isLive = currentExecution.status === 'running'
+  const shortExecutionId = currentExecution.id.slice(0, 8)
+  const statusLabel =
+    currentExecution.status === 'running'
+      ? 'Live'
+      : currentExecution.status === 'complete'
+        ? 'Completed'
+        : currentExecution.status === 'error'
+          ? 'Error'
+          : 'Cancelled'
 
   return (
-    <div className="h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 flex flex-col overflow-hidden">
-      {/* Back button */}
-      <div className="flex items-center gap-3 px-4 md:px-6 py-3">
-        <button
-          onClick={() => router.push('/live-lab')}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span className="font-medium text-sm">Back to Live Lab</span>
-        </button>
-      </div>
+    <DashboardPageShell
+      title={currentExecution.agentName}
+      description={
+        currentExecution.messagePreview ? (
+          <>
+            <span className="font-medium text-gray-900">&ldquo;{currentExecution.messagePreview}&rdquo;</span>
+            <span className="text-gray-500"> Live execution workspace, event timeline, and tool trace for this run.</span>
+          </>
+        ) : (
+          'Live execution workspace, event timeline, and tool trace for this run.'
+        )
+      }
+      icon={Activity}
+      badge="Live Lab Session"
+      maxWidthClassName="max-w-[1500px]"
+      breadcrumbs={[
+        { label: 'Home', href: '/' },
+        { label: 'Live Lab', href: '/live-lab' },
+        { label: currentExecution.agentName },
+      ]}
+      stats={[
+        { label: 'Status', value: statusLabel },
+        { label: 'Trigger', value: currentExecution.triggerSource },
+        { label: 'Session', value: shortExecutionId },
+      ]}
+    >
+      <DashboardPagePanel className="mb-6 overflow-hidden">
+        <MetricsBar
+          startedAt={currentExecution.metrics.startedAt}
+          completedAt={currentExecution.metrics.completedAt || undefined}
+          status={currentExecution.status}
+          tokens={currentExecution.metrics.tokens}
+          toolCount={currentExecution.metrics.toolCount}
+          cost={currentExecution.metrics.cost}
+          triggerSource={currentExecution.triggerSource}
+          triggerDetail={currentExecution.triggerDetail || undefined}
+          agentName={currentExecution.agentName}
+          messagePreview={currentExecution.messagePreview}
+        />
+      </DashboardPagePanel>
 
-      {/* Metrics Bar */}
-      <MetricsBar
-        startedAt={currentExecution.metrics.startedAt}
-        completedAt={currentExecution.metrics.completedAt || undefined}
-        status={currentExecution.status}
-        tokens={currentExecution.metrics.tokens}
-        toolCount={currentExecution.metrics.toolCount}
-        cost={currentExecution.metrics.cost}
-        triggerSource={currentExecution.triggerSource}
-        triggerDetail={currentExecution.triggerDetail || undefined}
-        agentName={currentExecution.agentName}
-        messagePreview={currentExecution.messagePreview}
-      />
+      <DashboardPagePanel className="overflow-hidden p-3">
+        <div className="grid min-h-[72vh] gap-3 xl:grid-cols-[280px_minmax(0,1fr)_260px]">
+          <div className="hidden min-h-[24rem] overflow-hidden rounded-[1.6rem] border border-[#eadfce] bg-[linear-gradient(180deg,_rgba(249,244,236,0.98),_rgba(255,255,255,0.92))] md:flex">
+            <ActivityFeed events={currentExecution.events} isLive={isLive} />
+          </div>
 
-      {/* Three-panel layout */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left: Activity Feed */}
-        <div className="w-72 flex-shrink-0 border-r border-gray-200 bg-white hidden md:flex">
-          <ActivityFeed events={currentExecution.events} isLive={isLive} />
+          <div className="min-h-[32rem] overflow-hidden rounded-[1.75rem] border border-[#eadfce] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(248,242,233,0.96))] shadow-[0_22px_55px_-44px_rgba(76,52,31,0.4)]">
+            <LiveWorkspace content={currentExecution.workspaceContent} isStreaming={isLive} />
+          </div>
+
+          <div className="hidden min-h-[24rem] overflow-hidden rounded-[1.6rem] border border-[#eadfce] bg-[linear-gradient(180deg,_rgba(255,255,255,0.96),_rgba(246,239,230,0.92))] xl:flex">
+            <ExecutionPlan
+              events={currentExecution.events}
+              activeTools={currentExecution.activeTools}
+              isLive={isLive}
+            />
+          </div>
         </div>
+      </DashboardPagePanel>
 
-        {/* Center: Live Workspace */}
-        <div className="flex-1 bg-gray-50 flex">
-          <LiveWorkspace content={currentExecution.workspaceContent} isStreaming={isLive} />
-        </div>
-
-        {/* Right: Execution Plan */}
-        <div className="w-64 flex-shrink-0 border-l border-gray-200 bg-white hidden lg:flex">
-          <ExecutionPlan
-            events={currentExecution.events}
-            activeTools={currentExecution.activeTools}
-            isLive={isLive}
-          />
-        </div>
-      </div>
-
-      {/* Error banner */}
-      {currentExecution.status === 'error' && currentExecution.error && (
-        <div className="px-4 py-2 bg-red-50 border-t border-red-200 flex items-center gap-2">
-          <svg className="w-4 h-4 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <span className="text-xs text-red-600">{currentExecution.error}</span>
-        </div>
-      )}
-    </div>
+      {currentExecution.status === 'error' && currentExecution.error ? (
+        <DashboardPagePanel className="mt-6 border-[#efd8dd] bg-[linear-gradient(180deg,_rgba(253,245,246,0.98),_rgba(250,238,240,0.94))] p-4">
+          <div className="flex items-start gap-3">
+            <div className="rounded-[1rem] bg-[#f7dfe5] p-2 text-[#a04560]">
+              <AlertTriangle className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-[#6d2439]">Execution error</p>
+              <p className="mt-1 text-sm leading-6 text-[#8a445c]">{currentExecution.error}</p>
+            </div>
+          </div>
+        </DashboardPagePanel>
+      ) : null}
+    </DashboardPageShell>
   )
 }

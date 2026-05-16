@@ -13,6 +13,9 @@ import {
   Calendar,
   Mail,
   MessageSquare,
+  Home,
+  ChevronRight,
+  CheckCircle,
 } from 'lucide-react'
 import { apiClient } from '@/lib/api/client'
 import { getAgents } from '@/lib/api/agents'
@@ -62,6 +65,19 @@ const intervalPresets = [
   { label: 'Every day', value: 86400 },
   { label: 'Every week', value: 604800 },
 ]
+
+const getTaskTypeLabel = (type: string) => {
+  switch (type) {
+    case 'database_query':
+      return 'Database Query'
+    case 'chart_generation':
+      return 'Chart Generation'
+    case 'agent_task':
+      return 'Agent Task'
+    default:
+      return 'Scheduled Task'
+  }
+}
 
 export default function CreateScheduledTaskPage() {
   const router = useRouter()
@@ -173,6 +189,14 @@ export default function CreateScheduledTaskPage() {
     return `${seconds} second${seconds > 1 ? 's' : ''}`
   }
 
+  const inputClass = 'w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-3.5 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#2d8b69]'
+  const textareaClass = `${inputClass} resize-none`
+  const selectClass = `${inputClass} appearance-none`
+  const labelClass = 'mb-1.5 block text-sm font-semibold text-gray-700'
+  const helpTextClass = 'mt-2 text-xs leading-relaxed text-gray-500'
+  const sectionClass = 'rounded-[1.9rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,245,239,0.96))] p-5 shadow-[0_24px_60px_-46px_rgba(73,45,23,0.3)] md:p-6'
+  const subCardClass = 'rounded-[1.35rem] border border-black/10 bg-white/70 p-4'
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -226,35 +250,78 @@ export default function CreateScheduledTaskPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <Link
-            href="/scheduled-tasks"
-            className="inline-flex items-center gap-2 text-red-600 hover:text-red-700 font-medium mb-3 transition-colors text-sm"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Scheduled Tasks
+    <div className="dashboard-resource-page min-h-screen p-4 md:p-6">
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-4 flex items-center gap-1.5 text-sm">
+          <Link href="/" className="flex items-center gap-1 text-gray-500 transition-colors hover:text-[#171717]">
+            <Home className="h-3.5 w-3.5" />
+            Home
           </Link>
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-red-100 rounded-lg">
-              <Clock className="w-6 h-6 text-red-600" />
-            </div>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Create Scheduled Task</h1>
-              <p className="text-gray-600 mt-1 text-sm">Schedule automated tasks to run at regular intervals</p>
+          <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
+          <Link href="/scheduled-tasks" className="text-gray-500 transition-colors hover:text-[#171717]">
+            Scheduled Tasks
+          </Link>
+          <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
+          <span className="font-medium text-gray-900">Create</span>
+        </div>
+
+        <div className="mb-6 overflow-hidden rounded-[2rem] border border-[#eadfce] bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.96),_rgba(247,240,231,0.94)_50%,_rgba(237,230,220,0.92)_100%)] shadow-[0_28px_80px_-42px_rgba(88,63,39,0.32)]">
+          <div className="flex flex-col gap-6 p-6 md:p-8">
+            <Link
+              href="/scheduled-tasks"
+              className="inline-flex w-fit items-center gap-2 rounded-full border border-[#dbcdb9] bg-white/80 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-[#cdb79d] hover:text-gray-900"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Scheduled Tasks
+            </Link>
+
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-3xl space-y-3">
+                <div className="inline-flex items-center gap-2 rounded-full border border-[#dfd1be] bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#7c5d45]">
+                  <Clock className="h-3.5 w-3.5" />
+                  Scheduled Automation
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="rounded-[1.2rem] bg-[#f3ecde] p-3.5 shadow-[0_16px_30px_-24px_rgba(74,49,22,0.3)]">
+                    <Clock className="h-6 w-6 text-[#171717]" />
+                  </div>
+                  <div>
+                    <h1 className="text-3xl font-semibold tracking-[-0.04em] text-gray-950 md:text-[2.6rem]">
+                      Create Scheduled Task
+                    </h1>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
+                      Schedule automated tasks to run at regular intervals.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-[1.5rem] border border-white/70 bg-white/75 px-4 py-3 shadow-[0_20px_45px_-38px_rgba(77,51,28,0.4)] backdrop-blur">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7a5e]">Task Type</p>
+                  <p className="mt-2 text-lg font-semibold text-gray-900">{getTaskTypeLabel(formData.task_type)}</p>
+                </div>
+                <div className="rounded-[1.5rem] border border-white/70 bg-white/75 px-4 py-3 shadow-[0_20px_45px_-38px_rgba(77,51,28,0.4)] backdrop-blur">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7a5e]">Cadence</p>
+                  <p className="mt-2 text-lg font-semibold text-gray-900">{formatInterval(formData.interval_seconds)}</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Basic Information */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-            <h2 className="text-base font-semibold text-gray-900 mb-3">Basic Information</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className={sectionClass}>
+            <div className="mb-5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7a5e]">Section 1</p>
+              <h2 className="mt-2 text-lg font-semibold text-gray-950">Basic Information</h2>
+              <p className="mt-1 text-sm text-gray-500">Define the task name, purpose, and what kind of work it runs.</p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="md:col-span-2">
+                <label className={labelClass}>
                   Task Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -262,13 +329,13 @@ export default function CreateScheduledTaskPage() {
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
                   placeholder="Daily Sales Report"
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className={inputClass}
                   required
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <div className="md:col-span-2">
+                <label className={labelClass}>
                   Description
                 </label>
                 <textarea
@@ -276,69 +343,88 @@ export default function CreateScheduledTaskPage() {
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   placeholder="Generate daily sales report and send to team"
                   rows={3}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className={textareaClass}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className={labelClass}>
                   Task Type
                 </label>
                 <select
                   value={formData.task_type}
                   onChange={(e) => handleInputChange('task_type', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className={selectClass}
                 >
                   <option value="database_query">Database Query</option>
                   <option value="chart_generation">Chart Generation</option>
                   <option value="agent_task">Agent Task</option>
                 </select>
               </div>
+
+              <div className={`${subCardClass} flex items-start gap-3`}>
+                <div className="rounded-[1rem] bg-[#f3ecde] p-2.5">
+                  <CheckCircle className="h-4 w-4 text-[#171717]" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">Current setup</p>
+                  <p className="mt-1 text-sm text-gray-500">
+                    This task will start as <span className="font-medium text-gray-900">{formData.is_active ? 'active' : 'inactive'}</span> and run as a{' '}
+                    <span className="font-medium text-gray-900">{getTaskTypeLabel(formData.task_type)}</span>.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Schedule Configuration */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-            <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              Schedule Interval
-            </h2>
-            <div className="space-y-4">
+          <div className={sectionClass}>
+            <div className="mb-5 flex items-center gap-3">
+              <div className="rounded-[1rem] bg-[#f3ecde] p-3">
+                <Calendar className="h-5 w-5 text-[#171717]" />
+              </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <h2 className="text-lg font-semibold text-gray-950">Schedule Interval</h2>
+                <p className="text-sm text-gray-500">Choose how often this task should run.</p>
+              </div>
+            </div>
+
+            <div className="space-y-5">
+              <div>
+                <label className={labelClass}>
                   Run Every <span className="text-red-500">*</span>
                 </label>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                   <input
                     type="number"
                     value={formData.interval_seconds}
                     onChange={(e) => handleInputChange('interval_seconds', parseInt(e.target.value) || 60)}
                     min="60"
-                    className="w-32 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-3.5 text-sm text-gray-900 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#2d8b69] sm:w-40"
                     required
                   />
-                  <span className="text-sm text-gray-600">seconds</span>
-                  <span className="text-sm text-gray-500">
-                    ({formatInterval(formData.interval_seconds)})
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
+                    <span>seconds</span>
+                    <span className="rounded-full bg-[#f7f2e7] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#6e675d]">
+                      {formatInterval(formData.interval_seconds)}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {/* Quick Select Presets */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className={labelClass}>
                   Quick Select
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
                   {intervalPresets.map((preset) => (
                     <button
                       key={preset.value}
                       type="button"
                       onClick={() => handleInputChange('interval_seconds', preset.value)}
-                      className={`px-3 py-2 text-sm rounded-lg transition-colors ${
+                      className={`rounded-[1rem] border px-3 py-2.5 text-sm font-medium transition-all ${
                         formData.interval_seconds === preset.value
-                          ? 'bg-red-100 text-red-700 border-2 border-red-300'
-                          : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
+                          ? 'border-[#d8ccb8] bg-[#f3ecde] text-[#171717] shadow-[0_12px_28px_rgba(0,0,0,0.04)]'
+                          : 'border-black/10 bg-white/75 text-gray-700 hover:bg-[#fcfaf5]'
                       }`}
                     >
                       {preset.label}
@@ -349,25 +435,30 @@ export default function CreateScheduledTaskPage() {
             </div>
           </div>
 
-          {/* Database & Query Configuration - Only show for database tasks */}
           {(formData.task_type === 'database_query' || formData.task_type === 'chart_generation') && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-              <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <Database className="w-4 h-4" />
-                Database & Query
-              </h2>
-              <div className="space-y-4">
+            <div className={sectionClass}>
+              <div className="mb-5 flex items-center gap-3">
+                <div className="rounded-[1rem] bg-[#f3ecde] p-3">
+                  <Database className="h-5 w-5 text-[#171717]" />
+                </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <h2 className="text-lg font-semibold text-gray-950">Database & Query</h2>
+                  <p className="text-sm text-gray-500">Choose a data source and optionally provide a query.</p>
+                </div>
+              </div>
+
+              <div className="space-y-5">
+                <div>
+                  <label className={labelClass}>
                     Database Connection
                   </label>
                   {loadingConnections ? (
-                    <div className="flex items-center gap-2 text-gray-500 text-sm">
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                    <div className="flex items-center gap-2 rounded-[1.2rem] border border-black/10 bg-white/75 px-4 py-3 text-sm text-gray-500">
+                      <Loader2 className="h-4 w-4 animate-spin" />
                       Loading connections...
                     </div>
                   ) : connections.length === 0 ? (
-                    <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="rounded-[1.2rem] border border-yellow-200 bg-yellow-50/80 p-4">
                       <p className="text-sm text-yellow-800">
                         No database connections found.{' '}
                         <Link href="/database-connections/create" className="font-medium underline">
@@ -379,7 +470,7 @@ export default function CreateScheduledTaskPage() {
                     <select
                       value={formData.database_connection_id}
                       onChange={(e) => handleInputChange('database_connection_id', e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                      className={selectClass}
                     >
                       <option value="">Select a connection (optional)</option>
                       {connections.map((conn) => (
@@ -392,7 +483,7 @@ export default function CreateScheduledTaskPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label className={labelClass}>
                     SQL Query
                   </label>
                   <textarea
@@ -400,9 +491,9 @@ export default function CreateScheduledTaskPage() {
                     onChange={(e) => handleInputChange('query', e.target.value)}
                     placeholder="SELECT * FROM sales WHERE date = CURRENT_DATE"
                     rows={6}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent font-mono text-sm"
+                    className={`${textareaClass} font-mono`}
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className={helpTextClass}>
                     Leave empty to use agent&apos;s default query generation
                   </p>
                 </div>
@@ -410,32 +501,37 @@ export default function CreateScheduledTaskPage() {
             </div>
           )}
 
-          {/* Agent Task Configuration */}
           {formData.task_type === 'agent_task' && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-              <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <MessageSquare className="w-4 h-4" />
-                Agent Task
-              </h2>
-              <div className="space-y-4">
+            <div className={sectionClass}>
+              <div className="mb-5 flex items-center gap-3">
+                <div className="rounded-[1rem] bg-[#f3ecde] p-3">
+                  <MessageSquare className="h-5 w-5 text-[#171717]" />
+                </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <h2 className="text-lg font-semibold text-gray-950">Agent Task</h2>
+                  <p className="text-sm text-gray-500">Pick the agent and define what it should do on each run.</p>
+                </div>
+              </div>
+
+              <div className="space-y-5">
+                <div>
+                  <label className={labelClass}>
                     Agent <span className="text-red-500">*</span>
                   </label>
                   {loadingAgents ? (
-                    <div className="flex items-center gap-2 text-gray-500 text-sm">
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                    <div className="flex items-center gap-2 rounded-[1.2rem] border border-black/10 bg-white/75 px-4 py-3 text-sm text-gray-500">
+                      <Loader2 className="h-4 w-4 animate-spin" />
                       Loading agents...
                     </div>
                   ) : agents.length === 0 ? (
-                    <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="rounded-[1.2rem] border border-yellow-200 bg-yellow-50/80 p-4">
                       <p className="text-sm text-yellow-800">No agents found. Create an agent first.</p>
                     </div>
                   ) : (
                     <select
                       value={formData.agent_id}
                       onChange={(e) => handleInputChange('agent_id', e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                      className={selectClass}
                       required
                     >
                       <option value="">Select an agent</option>
@@ -449,7 +545,7 @@ export default function CreateScheduledTaskPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <label className={labelClass}>
                     Prompt <span className="text-red-500">*</span>
                   </label>
                   <textarea
@@ -457,7 +553,7 @@ export default function CreateScheduledTaskPage() {
                     onChange={(e) => handleInputChange('agent_prompt', e.target.value)}
                     placeholder="What should the agent do when this task runs?"
                     rows={4}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className={textareaClass}
                     required
                   />
                 </div>
@@ -465,29 +561,32 @@ export default function CreateScheduledTaskPage() {
             </div>
           )}
 
-          {/* Notification Configuration */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-            <h2 className="text-base font-semibold text-gray-900 mb-3">Notifications</h2>
+          <div className={sectionClass}>
+            <div className="mb-5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7a5e]">Section 4</p>
+              <h2 className="mt-2 text-lg font-semibold text-gray-950">Notifications</h2>
+              <p className="mt-1 text-sm text-gray-500">Decide who gets notified and when.</p>
+            </div>
+
             <div className="space-y-5">
-              {/* Email Notifications */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
+              <div className={subCardClass}>
+                <div className="mb-3 flex items-center gap-3">
                   <input
                     type="checkbox"
                     checked={formData.notification_config.email_enabled}
                     onChange={(e) => handleNotificationChange('email_enabled', e.target.checked)}
-                    className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                    className="h-4 w-4 rounded border-gray-300 text-[#171717] focus:ring-[#2d8b69]"
                   />
-                  <Mail className="w-4 h-4 text-gray-600" />
-                  <label className="text-sm font-medium text-gray-700">
+                  <Mail className="h-4 w-4 text-gray-600" />
+                  <label className="text-sm font-semibold text-gray-700">
                     Email Notifications
                   </label>
                 </div>
 
                 {formData.notification_config.email_enabled && (
-                  <div className="ml-6 space-y-3">
+                  <div className="space-y-3 border-t border-black/10 pt-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      <label className={labelClass}>
                         Recipients
                       </label>
                       <div className="flex gap-2">
@@ -497,28 +596,28 @@ export default function CreateScheduledTaskPage() {
                           onChange={(e) => setEmailInput(e.target.value)}
                           onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addEmailRecipient())}
                           placeholder="email@example.com"
-                          className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                          className={inputClass}
                         />
                         <button
                           type="button"
                           onClick={addEmailRecipient}
-                          className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-lg transition-all shadow-sm"
+                          className="rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
                         >
                           Add
                         </button>
                       </div>
                       {formData.notification_config.email_recipients.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2">
+                        <div className="mt-3 flex flex-wrap gap-2">
                           {formData.notification_config.email_recipients.map((email) => (
                             <span
                               key={email}
-                              className="inline-flex items-center gap-1 px-3 py-1 bg-red-50 text-red-700 rounded-full text-sm"
+                              className="inline-flex items-center gap-1 rounded-full bg-[#f7f2e7] px-3 py-1 text-sm text-[#6e675d]"
                             >
                               {email}
                               <button
                                 type="button"
                                 onClick={() => removeEmailRecipient(email)}
-                                className="hover:text-red-900"
+                                className="font-semibold text-[#171717] transition-colors hover:text-black"
                               >
                                 x
                               </button>
@@ -531,24 +630,23 @@ export default function CreateScheduledTaskPage() {
                 )}
               </div>
 
-              {/* Slack Notifications */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
+              <div className={subCardClass}>
+                <div className="mb-3 flex items-center gap-3">
                   <input
                     type="checkbox"
                     checked={formData.notification_config.slack_enabled}
                     onChange={(e) => handleNotificationChange('slack_enabled', e.target.checked)}
-                    className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                    className="h-4 w-4 rounded border-gray-300 text-[#171717] focus:ring-[#2d8b69]"
                   />
-                  <MessageSquare className="w-4 h-4 text-gray-600" />
-                  <label className="text-sm font-medium text-gray-700">
+                  <MessageSquare className="h-4 w-4 text-gray-600" />
+                  <label className="text-sm font-semibold text-gray-700">
                     Slack Notifications
                   </label>
                 </div>
 
                 {formData.notification_config.slack_enabled && (
-                  <div className="ml-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  <div className="border-t border-black/10 pt-4">
+                    <label className={labelClass}>
                       Webhook URL
                     </label>
                     <input
@@ -556,33 +654,32 @@ export default function CreateScheduledTaskPage() {
                       value={formData.notification_config.slack_webhook_url}
                       onChange={(e) => handleNotificationChange('slack_webhook_url', e.target.value)}
                       placeholder="https://hooks.slack.com/services/..."
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                      className={inputClass}
                     />
                   </div>
                 )}
               </div>
 
-              {/* Notification Conditions */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className={subCardClass}>
+                <label className="mb-3 block text-sm font-semibold text-gray-700">
                   Notify When
                 </label>
                 <div className="space-y-2">
-                  <label className="flex items-center gap-2">
+                  <label className="flex items-center gap-3 rounded-[1rem] border border-black/10 bg-white/70 px-3 py-3">
                     <input
                       type="checkbox"
                       checked={formData.notification_config.notify_on_success}
                       onChange={(e) => handleNotificationChange('notify_on_success', e.target.checked)}
-                      className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                      className="h-4 w-4 rounded border-gray-300 text-[#171717] focus:ring-[#2d8b69]"
                     />
                     <span className="text-sm text-gray-700">Task succeeds</span>
                   </label>
-                  <label className="flex items-center gap-2">
+                  <label className="flex items-center gap-3 rounded-[1rem] border border-black/10 bg-white/70 px-3 py-3">
                     <input
                       type="checkbox"
                       checked={formData.notification_config.notify_on_failure}
                       onChange={(e) => handleNotificationChange('notify_on_failure', e.target.checked)}
-                      className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                      className="h-4 w-4 rounded border-gray-300 text-[#171717] focus:ring-[#2d8b69]"
                     />
                     <span className="text-sm text-gray-700">Task fails</span>
                   </label>
@@ -591,14 +688,19 @@ export default function CreateScheduledTaskPage() {
             </div>
           </div>
 
-          {/* Task Status */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-            <label className="flex items-center gap-2">
+          <div className={sectionClass}>
+            <div className="mb-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7a5e]">Section 5</p>
+              <h2 className="mt-2 text-lg font-semibold text-gray-950">Task Status</h2>
+              <p className="mt-1 text-sm text-gray-500">Choose whether the task should start running immediately after creation.</p>
+            </div>
+
+            <label className="flex items-center gap-3 rounded-[1.25rem] border border-black/10 bg-white/75 px-4 py-4">
               <input
                 type="checkbox"
                 checked={formData.is_active}
                 onChange={(e) => handleInputChange('is_active', e.target.checked)}
-                className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                className="h-4 w-4 rounded border-gray-300 text-[#171717] focus:ring-[#2d8b69]"
               />
               <span className="text-sm font-medium text-gray-700">
                 Activate task immediately after creation
@@ -606,18 +708,17 @@ export default function CreateScheduledTaskPage() {
             </label>
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-5">
+          <div className="flex flex-col-reverse gap-3 pt-1 sm:flex-row sm:items-center sm:justify-end">
             <Link
               href="/scheduled-tasks"
-              className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              className="inline-flex items-center justify-center rounded-[1rem] border border-black/10 bg-[#f1eadc] px-5 py-3 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#e8ddc8]"
             >
               Cancel
             </Link>
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-lg transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center justify-center gap-2 rounded-[1rem] bg-[#171717] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
             >
               {saving ? (
                 <>

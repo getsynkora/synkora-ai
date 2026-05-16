@@ -9,7 +9,9 @@ SECURITY: All URLs are validated via SSRF check before making requests.
 
 import json
 import logging
+import socket
 from typing import Any, Literal
+from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 
@@ -17,6 +19,37 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_TIMEOUT = 60
 MAX_RESPONSE_CHARS = 20000
+
+
+def _same_origin_as_app_base(url: str, app_base: str) -> bool:
+    """Return True only for an exact scheme/host/port match with APP_BASE_URL."""
+    try:
+        parsed_url = urlsplit(url)
+        parsed_base = urlsplit(app_base)
+        if parsed_url.username or parsed_url.password:
+            return False
+        return (
+            parsed_url.scheme == parsed_base.scheme
+            and parsed_url.hostname == parsed_base.hostname
+            and (parsed_url.port or _default_port(parsed_url.scheme))
+            == (parsed_base.port or _default_port(parsed_base.scheme))
+        )
+    except Exception:
+        return False
+
+
+def _default_port(scheme: str) -> int | None:
+    return 443 if scheme == "https" else 80 if scheme == "http" else None
+
+
+def _rewrite_app_base_to_internal(endpoint_url: str, app_base: str) -> str:
+    """Rewrite only exact APP_BASE_URL origin requests to the internal API origin."""
+    if not app_base or not _same_origin_as_app_base(endpoint_url, app_base):
+        return endpoint_url
+
+    parsed = urlsplit(endpoint_url)
+    internal = urlsplit("http://synkora-api:5001")
+    return urlunsplit((internal.scheme, internal.netloc, parsed.path, parsed.query, parsed.fragment))
 
 
 def _is_url_safe(url: str) -> bool:
@@ -34,15 +67,14 @@ def _is_url_safe(url: str) -> bool:
         from src.config import settings
 
         app_base = (settings.app_base_url or "").rstrip("/")
-        if app_base and url.startswith(app_base):
+        if app_base and _same_origin_as_app_base(url, app_base):
             return True
-
-        import socket
-        from urllib.parse import urlparse
 
         from src.services.agents.internal_tools.web_tools import _is_ip_blocked
 
-        parsed = urlparse(url)
+        parsed = urlsplit(url)
+        if parsed.username or parsed.password:
+            return False
         if parsed.scheme not in ("http", "https"):
             return False
 
@@ -52,10 +84,12 @@ def _is_url_safe(url: str) -> bool:
 
         # Resolve hostname to IP for SSRF check
         try:
-            ip_str = socket.gethostbyname(hostname)
-            if _is_ip_blocked(ip_str):
-                logger.warning(f"[SSRF] Blocked remote agent URL: {url} resolved to {ip_str}")
-                return False
+            resolved = socket.getaddrinfo(hostname, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
+            for _family, _, _, _, sockaddr in resolved:
+                ip_str = sockaddr[0]
+                if _is_ip_blocked(ip_str):
+                    logger.warning(f"[SSRF] Blocked remote agent URL: {url} resolved to {ip_str}")
+                    return False
         except socket.gaierror:
             return False
 
@@ -111,8 +145,7 @@ async def call_remote_agent(
     from src.config import settings
 
     app_base = (settings.app_base_url or "").rstrip("/")
-    if app_base and endpoint_url.startswith(app_base):
-        endpoint_url = endpoint_url.replace(app_base, "http://synkora-api:5001", 1)
+    endpoint_url = _rewrite_app_base_to_internal(endpoint_url, app_base)
 
     try:
         if protocol == "mcp":

@@ -11,9 +11,8 @@ import pytest
 import pytest_asyncio
 from fastapi import status
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---------------------------------------------------------------------------
 # Shared auth fixture
@@ -83,8 +82,9 @@ async def test_agent(async_client: AsyncClient, auth_headers):
     body = resp.json()
     # Agent create response may be wrapped in {"data": {...}} or direct
     agent_data = body.get("data") or body
-    agent_name = agent_data.get("agent_name") or agent_data.get("name") or agent_name
-    return agent_name, headers
+    # Routes use slug (not agent_name) after the refactor
+    agent_slug = agent_data.get("slug") or agent_data.get("agent_name") or agent_name
+    return agent_slug, headers
 
 
 # ---------------------------------------------------------------------------
@@ -156,7 +156,7 @@ class TestAgentPublicProfile:
         agent_name, headers = test_agent
 
         # Agent must be set to public first (required by publish endpoint)
-        agent_result = await async_db_session.execute(select(Agent).where(Agent.agent_name == agent_name))
+        agent_result = await async_db_session.execute(select(Agent).where(Agent.slug == agent_name))
         agent = agent_result.scalar_one_or_none()
         if agent:
             agent.is_public = True
@@ -363,7 +363,7 @@ class TestDiscountCodes:
         assert resp2.status_code in [
             status.HTTP_400_BAD_REQUEST,
             status.HTTP_409_CONFLICT,
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
         ]
 
     @pytest.mark.asyncio

@@ -17,6 +17,11 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+# Prefix present in all summarised tool results.
+# Used by the dedup-cache eviction check in function_calling.py so that
+# a summarised entry is evicted (triggering a fresh tool call next time).
+RESULT_PRUNED_MARKER = "[pruned: "
+
 
 @dataclass
 class PruningSettings:
@@ -28,7 +33,8 @@ class PruningSettings:
     head_chars: int = 1500  # Keep first N chars when trimming
     tail_chars: int = 1500  # Keep last N chars when trimming
     max_total_tool_chars: int = 400000  # Max total chars for all tool results combined
-    prune_error_results: bool = False  # Don't prune error results (useful for debugging)
+    prune_error_results: bool = True  # Replace old error results with compact summaries
+    use_meaningful_summaries: bool = True  # Replace pruned results with informative 1-liners
 
 
 @dataclass
@@ -198,6 +204,107 @@ def _looks_like_base64(s: str) -> bool:
     return True
 
 
+def _get_tool_name_for_result(msg: dict, messages: list[dict], index: int) -> str:
+    """
+    Resolve the tool name for a tool-result message.
+
+    First checks the message's own ``name`` field (set by some providers),
+    then walks backwards through the conversation to find the assistant
+    tool_call whose ID matches ``msg["tool_call_id"]``.
+    """
+    tool_name = msg.get("name", "")
+    if tool_name:
+        return tool_name
+
+    tool_call_id = msg.get("tool_call_id")
+    if tool_call_id:
+        for prev_msg in reversed(messages[:index]):
+            if prev_msg.get("role") == "assistant" and prev_msg.get("tool_calls"):
+                for tc in prev_msg["tool_calls"]:
+                    if tc.get("id") == tool_call_id:
+                        name = tc.get("function", {}).get("name", "")
+                        if name:
+                            return name
+
+    return "tool"
+
+
+def _extract_result_summary(tool_name: str, content: Any) -> str:
+    """
+    Build a compact, informative 1-line summary of a tool result.
+
+    Extracts the most meaningful fact (row count, error message, item count,
+    created ID, etc.) so the LLM retains enough context for follow-up
+    questions without keeping the full payload.
+
+    All summaries are prefixed with RESULT_PRUNED_MARKER so the dedup-cache
+    eviction logic in function_calling.py can detect them.
+    """
+    # Parse JSON string content
+    data = content
+    if isinstance(content, str):
+        try:
+            data = json.loads(content)
+        except (json.JSONDecodeError, TypeError):
+            preview = content[:120].replace("\n", " ").strip()
+            return f"{RESULT_PRUNED_MARKER}{tool_name}: {preview}]"
+
+    # List at top level
+    if isinstance(data, list):
+        return f"{RESULT_PRUNED_MARKER}{tool_name}: returned {len(data)} items]"
+
+    if not isinstance(data, dict):
+        return f"{RESULT_PRUNED_MARKER}{tool_name}: completed]"
+
+    # --- Error cases ---
+    if data.get("error"):
+        error_msg = str(data["error"])[:120].replace("\n", " ").strip()
+        return f"{RESULT_PRUNED_MARKER}{tool_name} failed: {error_msg}]"
+
+    if data.get("success") is False:
+        return f"{RESULT_PRUNED_MARKER}{tool_name}: failed]"
+
+    # --- Success cases: extract most informative fact ---
+    if "row_count" in data:
+        return f"{RESULT_PRUNED_MARKER}{tool_name}: returned {data['row_count']} rows]"
+
+    if "rows" in data and isinstance(data["rows"], list):
+        return f"{RESULT_PRUNED_MARKER}{tool_name}: returned {len(data['rows'])} rows]"
+
+    if "messages" in data and isinstance(data["messages"], list):
+        return f"{RESULT_PRUNED_MARKER}{tool_name}: returned {len(data['messages'])} messages]"
+
+    if "files" in data and isinstance(data["files"], list):
+        return f"{RESULT_PRUNED_MARKER}{tool_name}: listed {len(data['files'])} files]"
+
+    if "items" in data and isinstance(data["items"], list):
+        return f"{RESULT_PRUNED_MARKER}{tool_name}: returned {len(data['items'])} items]"
+
+    if "number" in data:
+        return f"{RESULT_PRUNED_MARKER}{tool_name}: #{data['number']}]"
+
+    if "id" in data:
+        return f"{RESULT_PRUNED_MARKER}{tool_name}: id={data['id']}]"
+
+    if "url" in data:
+        url_preview = str(data["url"])[:80]
+        return f"{RESULT_PRUNED_MARKER}{tool_name}: url={url_preview}]"
+
+    if "content" in data and isinstance(data["content"], str):
+        preview = data["content"][:80].replace("\n", " ").strip()
+        return f"{RESULT_PRUNED_MARKER}{tool_name}: content='{preview}']"
+
+    if data.get("success") is True:
+        return f"{RESULT_PRUNED_MARKER}{tool_name}: succeeded]"
+
+    if data.get("ok") is True:
+        return f"{RESULT_PRUNED_MARKER}{tool_name}: ok]"
+
+    # Generic fallback: list top-level keys
+    top_keys = list(data.keys())[:5]
+    return f"{RESULT_PRUNED_MARKER}{tool_name}: completed — keys={top_keys}]"
+
+
 def prune_tool_results(
     messages: list[dict[str, Any]], settings: PruningSettings | None = None
 ) -> tuple[list[dict[str, Any]], PruningStats]:
@@ -286,27 +393,52 @@ def prune_tool_results(
         content = msg.get("content", "")
         content_str = _get_content_as_string(content)
         original_length = len(content_str)
+        is_error = _is_error_result(content)
 
-        # Don't prune error results if configured
-        if settings.prune_error_results is False and _is_error_result(content):
+        # Old error results: always replace with a compact summary so they stop
+        # accumulating tokens across every subsequent turn.
+        if is_error and settings.prune_error_results:
+            tool_name = _get_tool_name_for_result(msg, messages, i)
+            summary = _extract_result_summary(tool_name, content)
+            pruned_messages.append({**msg, "content": summary})
+            total_tool_chars += len(summary)
+            stats.tool_results_pruned += 1
+            logger.debug(
+                f"Context pruning: Replaced error result ({original_length:,} chars) with summary for {tool_name}"
+            )
+            continue
+
+        # Non-error results: keep errors with old flag behaviour intact
+        if is_error and not settings.prune_error_results:
             pruned_messages.append(msg)
             total_tool_chars += original_length
             continue
 
         # Check if we need to prune based on size
         if original_length > settings.max_result_chars:
-            # Trim to head + tail
-            trimmed_content = _trim_content(content_str, settings)
-            pruned_msg = {**msg, "content": trimmed_content}
-            pruned_messages.append(pruned_msg)
-            total_tool_chars += len(trimmed_content)
-            stats.tool_results_pruned += 1
+            if settings.use_meaningful_summaries:
+                # Replace with informative 1-liner instead of head+tail trim
+                tool_name = _get_tool_name_for_result(msg, messages, i)
+                try:
+                    summary = _extract_result_summary(tool_name, content)
+                except Exception:
+                    summary = _create_summary_placeholder(tool_name, original_length)
+                pruned_msg = {**msg, "content": summary}
+                total_tool_chars += len(summary)
+            else:
+                # Legacy behaviour: keep head + tail
+                trimmed_content = _trim_content(content_str, settings)
+                pruned_msg = {**msg, "content": trimmed_content}
+                total_tool_chars += len(trimmed_content)
 
+            pruned_messages.append(pruned_msg)
+            stats.tool_results_pruned += 1
             logger.debug(
-                f"Context pruning: Trimmed tool result from {original_length:,} to {len(trimmed_content):,} chars"
+                f"Context pruning: Pruned tool result from {original_length:,} chars "
+                f"({'summary' if settings.use_meaningful_summaries else 'trim'})"
             )
         else:
-            # Keep smaller results
+            # Small results: keep as-is
             pruned_messages.append(msg)
             total_tool_chars += original_length
 
@@ -356,28 +488,16 @@ def _aggressive_prune(
             pruned_messages.append(msg)
             continue
 
-        # Replace with placeholder
+        # Replace with compact summary
         content = msg.get("content", "")
         original_length = _get_content_length(content)
+        tool_name = _get_tool_name_for_result(msg, messages, i)
 
-        # Extract the actual tool name: first check msg["name"], then scan back
-        # to find the assistant tool_call that triggered this result
-        tool_name = msg.get("name", "")
-        if not tool_name:
-            tool_call_id = msg.get("tool_call_id")
-            if tool_call_id:
-                for prev_msg in reversed(messages[:i]):
-                    if prev_msg.get("role") == "assistant" and prev_msg.get("tool_calls"):
-                        for tc in prev_msg["tool_calls"]:
-                            if tc.get("id") == tool_call_id:
-                                tool_name = tc.get("function", {}).get("name", "")
-                                break
-                    if tool_name:
-                        break
-        if not tool_name:
-            tool_name = "tool"
+        try:
+            placeholder = _extract_result_summary(tool_name, content)
+        except Exception:
+            placeholder = _create_summary_placeholder(tool_name, original_length)
 
-        placeholder = _create_summary_placeholder(tool_name, original_length)
         pruned_msg = {**msg, "content": placeholder}
         pruned_messages.append(pruned_msg)
         stats.tool_results_pruned += 1

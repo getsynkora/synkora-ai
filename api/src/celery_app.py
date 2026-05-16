@@ -117,6 +117,15 @@ celery_app.conf.update(
         "billing.flush_usage_analytics": {"queue": "billing"},
         "billing.deduct_credits_async": {"queue": "billing"},
         "billing.reconcile_credits_daily": {"queue": "billing"},
+        # Company Brain ingestion/sync tasks
+        "company_brain_consume_active_streams_task": {"queue": "company_brain"},
+        "kb_consume_stream_task": {"queue": "company_brain"},
+        "kb_process_batch_task": {"queue": "company_brain"},
+        "company_brain_incremental_sync_task": {"queue": "company_brain"},
+        "company_brain_full_sync_task": {"queue": "company_brain"},
+        "company_brain_sync_all_task": {"queue": "company_brain"},
+        "company_brain_tier_migration_task": {"queue": "company_brain"},
+        "kb_extract_entities_task": {"queue": "company_brain"},
     },
     beat_schedule={
         # Check for due scheduled tasks every minute
@@ -171,6 +180,21 @@ celery_app.conf.update(
         "cleanup-audit-logs": {
             "task": "tasks.cleanup_audit_logs",
             "schedule": crontab(hour=1, minute=0),
+        },
+        # Drain Redis Streams for Company Brain ingestion.
+        "company-brain-consume-active-streams": {
+            "task": "company_brain_consume_active_streams_task",
+            "schedule": 30.0,
+        },
+        # Fan out incremental syncs for active Company Brain data sources.
+        "company-brain-incremental-sync": {
+            "task": "company_brain_sync_all_task",
+            "schedule": getattr(settings, "company_brain_incremental_sync_minutes", 15) * 60.0,
+        },
+        # Promote aged Company Brain documents through hot/warm/archive tiers.
+        "company-brain-tier-migration": {
+            "task": "company_brain_tier_migration_task",
+            "schedule": crontab(hour=2, minute=30),
         },
         # Disable dormant (inactive) accounts every Sunday at 2 AM UTC
         "disable-dormant-accounts-weekly": {

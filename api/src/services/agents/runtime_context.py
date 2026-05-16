@@ -7,8 +7,10 @@ Credentials are resolved on-demand by the CredentialResolver.
 
 import logging
 import uuid
+from collections.abc import AsyncGenerator, Callable
+from contextlib import asynccontextmanager
 from contextvars import ContextVar
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -44,7 +46,8 @@ class RuntimeContext:
 
     tenant_id: uuid.UUID
     agent_id: uuid.UUID
-    db_session: AsyncSession
+    db_session: AsyncSession | None
+    db_session_factory: Callable[[], Any] | None = None
     llm_client: Any | None = None
     conversation_id: uuid.UUID | None = None
     message_id: uuid.UUID | None = None
@@ -53,6 +56,10 @@ class RuntimeContext:
     all_available_tools: list[dict[str, Any]] | None = None  # Agent's assigned tools only
     allowed_database_connections: list[str] | None = None  # Allowed DB connection IDs (None = all)
     compute_session: Any | None = None  # ComputeSession | None — remote compute backend
+    email_template_id: uuid.UUID | None = None  # Assigned email template for this agent
+    # Agent trace: monotonic counters for ES event ordering within a turn
+    event_sequence: int = field(default=0)  # Increments per event; threaded through all hooks
+    llm_call_index: int = field(default=0)  # Resets to 0 each user turn; increments per LLM call
 
     def __post_init__(self):
         """Initialize shared_state if not provided."""
@@ -143,13 +150,61 @@ class RuntimeContext:
             tenant_id=self.tenant_id,
             agent_id=child_agent_id,
             db_session=self.db_session,
+            db_session_factory=self.db_session_factory,
             llm_client=self.llm_client,
             conversation_id=self.conversation_id,
             message_id=self.message_id,
             user_id=self.user_id,
             shared_state=self.shared_state,  # Share the same state dict!
             compute_session=self.compute_session,  # Propagate compute to sub-agents
+            event_sequence=self.event_sequence,
         )
+
+    def with_db_session(self, db_session: AsyncSession) -> "RuntimeContext":
+        """
+        Return a sibling context that shares execution state but uses a concrete
+        short-lived DB session.
+        """
+        clone = RuntimeContext(
+            tenant_id=self.tenant_id,
+            agent_id=self.agent_id,
+            db_session=db_session,
+            db_session_factory=self.db_session_factory,
+            llm_client=self.llm_client,
+            conversation_id=self.conversation_id,
+            message_id=self.message_id,
+            user_id=self.user_id,
+            shared_state=self.shared_state,
+            all_available_tools=self.all_available_tools,
+            allowed_database_connections=self.allowed_database_connections,
+            compute_session=self.compute_session,
+            email_template_id=self.email_template_id,
+            event_sequence=self.event_sequence,
+            llm_call_index=self.llm_call_index,
+        )
+        return clone
+
+    @asynccontextmanager
+    async def scoped_db_context(self) -> AsyncGenerator["RuntimeContext", None]:
+        """
+        Yield a context with a usable DB session.
+
+        HTTP chat streaming can keep db_session unset to avoid holding a pooled
+        DB connection while waiting on external LLM calls. Tool execution then
+        opens a short session only around the tool call.
+        """
+        if self.db_session is not None:
+            yield self
+            return
+
+        factory = self.db_session_factory
+        if factory is None:
+            from src.core.database import get_async_session_factory
+
+            factory = get_async_session_factory()
+
+        async with factory() as session:
+            yield self.with_db_session(session)
 
 
 def get_runtime_context() -> RuntimeContext | None:

@@ -39,9 +39,9 @@ MAX_UPLOAD_SIZE_BYTES = 50 * 1024 * 1024
 ALLOWED_EXTENSIONS = {".txt", ".md", ".pdf", ".docx", ".csv", ".json", ".xml", ".html", ".htm"}
 
 
-@agents_context_files_router.post("/{agent_name}/context-files/upload", response_model=AgentResponse)
+@agents_context_files_router.post("/{agent_slug}/context-files/upload", response_model=AgentResponse)
 async def upload_context_file(
-    agent_name: str,
+    agent_slug: str,
     file: UploadFile = File(...),
     tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
@@ -112,11 +112,11 @@ async def upload_context_file(
         await file.seek(0)
 
         # Get agent from database
-        result = await db.execute(select(Agent).filter(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+        result = await db.execute(select(Agent).filter(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
         agent = result.scalar_one_or_none()
 
         if not agent:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_name}' not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_slug}' not found")
 
         # Initialize processor
         processor = AgentContextFileProcessor(db)
@@ -147,9 +147,9 @@ async def upload_context_file(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to upload file")
 
 
-@agents_context_files_router.get("/{agent_name}/context-files", response_model=AgentResponse)
+@agents_context_files_router.get("/{agent_slug}/context-files", response_model=AgentResponse)
 async def list_context_files(
-    agent_name: str, tenant_id: uuid.UUID = Depends(get_current_tenant_id), db: AsyncSession = Depends(get_async_db)
+    agent_slug: str, tenant_id: uuid.UUID = Depends(get_current_tenant_id), db: AsyncSession = Depends(get_async_db)
 ):
     """
     List all context files for an agent.
@@ -169,14 +169,12 @@ async def list_context_files(
         # SECURITY: Single OR query to prevent timing attacks
         # Checks: (agent belongs to tenant) OR (agent is public)
         result = await db.execute(
-            select(Agent).filter(
-                Agent.agent_name == agent_name, or_(Agent.tenant_id == tenant_id, Agent.is_public.is_(True))
-            )
+            select(Agent).filter(Agent.slug == agent_slug, or_(Agent.tenant_id == tenant_id, Agent.is_public.is_(True)))
         )
         agent = result.scalar_one_or_none()
 
         if not agent:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_name}' not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_slug}' not found")
 
         # Get context files
         result = await db.execute(

@@ -136,7 +136,7 @@ class TestUpdateMyProfile:
 
         response = test_client.put("/profile/me", json={"email": "invalid-email"})
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_update_profile_error(self, client):
         """Test updating profile with error."""
@@ -190,7 +190,7 @@ class TestUploadAvatar:
         response = test_client.post("/profile/me/avatar", files=files)
 
         # 413 Request Entity Too Large is the correct HTTP status for oversized files
-        assert response.status_code in [status.HTTP_400_BAD_REQUEST, status.HTTP_413_REQUEST_ENTITY_TOO_LARGE]
+        assert response.status_code in [status.HTTP_400_BAD_REQUEST, status.HTTP_413_CONTENT_TOO_LARGE]
 
 
 class TestDeleteAvatar:
@@ -242,7 +242,7 @@ class TestChangePassword:
 
         response = test_client.post("/profile/me/password", json={"current_password": "old", "new_password": "new"})
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 class TestEnableTwoFactor:

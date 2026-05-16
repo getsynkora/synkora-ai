@@ -38,6 +38,25 @@ def _get_redis_rate_limiter():
         raise RuntimeError("Rate limiting service temporarily unavailable. Please try again later.")
 
 
+async def _get_async_redis_rate_limiter():
+    """
+    Get async Redis client for rate limiting.
+
+    SECURITY: Redis is required for rate limiting - no fallback.
+    Raises exception if Redis is unavailable.
+    """
+    try:
+        from src.config.redis import get_redis_async
+
+        redis = get_redis_async()
+        if redis is None:
+            raise RuntimeError("Redis connection returned None")
+        return redis
+    except Exception as e:
+        logger.warning(f"SECURITY: Redis unavailable for widget rate limiting: {e}")
+        raise RuntimeError("Rate limiting service temporarily unavailable. Please try again later.")
+
+
 class WidgetAuthMiddleware:
     """Middleware for widget authentication and rate limiting."""
 
@@ -176,6 +195,37 @@ class WidgetAuthMiddleware:
         return True
 
     @staticmethod
+    async def check_rate_limit_async(widget: AgentWidget) -> bool:
+        """
+        Async variant of check_rate_limit for request handlers.
+
+        Keeps the same sliding-window semantics without blocking the FastAPI
+        event loop on Redis network I/O.
+        """
+        widget_id = str(widget.id)
+        rate_limit_key = f"widget:rate_limit:{widget_id}"
+        current_time = time.time()
+
+        redis_client = await _get_async_redis_rate_limiter()
+
+        hour_ago = current_time - 3600
+        pipe = redis_client.pipeline()
+        pipe.zremrangebyscore(rate_limit_key, 0, hour_ago)
+        pipe.zcard(rate_limit_key)
+        results = await pipe.execute()
+        current_count = int(results[1] or 0)
+
+        if current_count >= widget.rate_limit:
+            return False
+
+        pipe = redis_client.pipeline()
+        pipe.zadd(rate_limit_key, {str(current_time): current_time})
+        pipe.expire(rate_limit_key, 3660)
+        await pipe.execute()
+
+        return True
+
+    @staticmethod
     async def authenticate_widget_request(request: Request) -> AgentWidget:
         """
         Authenticate widget request.
@@ -212,7 +262,7 @@ class WidgetAuthMiddleware:
                     )
 
                 # Check rate limit
-                if not WidgetAuthMiddleware.check_rate_limit(widget):
+                if not await WidgetAuthMiddleware.check_rate_limit_async(widget):
                     raise HTTPException(
                         status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Rate limit exceeded for this widget"
                     )

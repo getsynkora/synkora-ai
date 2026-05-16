@@ -3,18 +3,32 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Image from 'next/image'
-import { ArrowLeft, ThumbsUp, ThumbsDown, MessageSquare, Eye, Star, Zap, Brain, Bell, Loader2, CheckCircle } from 'lucide-react'
+import {
+  ThumbsUp,
+  ThumbsDown,
+  MessageSquare,
+  Eye,
+  Star,
+  Zap,
+  Brain,
+  Bell,
+  Loader2,
+  CheckCircle,
+  Sparkles,
+} from 'lucide-react'
 import toast from 'react-hot-toast'
 import { apiClient } from '@/lib/api/client'
 import { getLLMConfigs } from '@/lib/api/agent-llm-configs'
 import { subscribeToAgent } from '@/lib/api/subscriptions'
 import type { AgentLLMConfig } from '@/types/agent-llm-config'
+import DashboardPageShell, { DashboardPagePanel } from '@/components/dashboard/DashboardPageShell'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
 
 interface PublicAgent {
   id: string
   agent_name: string
+  slug: string
   description: string
   avatar?: string
   category: string
@@ -39,19 +53,74 @@ const getInitials = (name: string) =>
     .toUpperCase()
     .slice(0, 2)
 
-// Generate gradient based on category - Red theme
-const getCategoryGradient = (category: string) => {
-  const gradients: Record<string, string> = {
-    'Productivity': 'from-red-600 to-red-700',
-    'Support': 'from-red-500 to-red-600',
-    'Engineering': 'from-red-700 to-orange-600',
-    'Sales': 'from-red-600 to-orange-600',
-    'Marketing': 'from-red-500 to-pink-600',
-    'Research': 'from-red-700 to-red-800',
-    'Analytics': 'from-red-600 to-red-700',
-    'Content': 'from-red-600 to-orange-600',
+const getCategoryTone = (category: string) => {
+  const tones: Record<
+    string,
+    {
+      avatar: string
+      badge: string
+      icon: string
+      soft: string
+    }
+  > = {
+    Productivity: {
+      avatar: 'bg-[linear-gradient(135deg,_#171717,_#434343)] text-[#f8f4ec]',
+      badge: 'border-[#d8e5d9] bg-[#eef7f1] text-[#24543b]',
+      icon: 'text-[#24543b]',
+      soft: 'bg-[#eef7f1]',
+    },
+    Support: {
+      avatar: 'bg-[linear-gradient(135deg,_#1f513d,_#2d8b69)] text-white',
+      badge: 'border-[#d8e5d9] bg-[#eef7f1] text-[#24543b]',
+      icon: 'text-[#24543b]',
+      soft: 'bg-[#eef7f1]',
+    },
+    Engineering: {
+      avatar: 'bg-[linear-gradient(135deg,_#2b3348,_#4d638d)] text-white',
+      badge: 'border-[#d7e1ef] bg-[#eef4fb] text-[#345c8a]',
+      icon: 'text-[#345c8a]',
+      soft: 'bg-[#eef4fb]',
+    },
+    Sales: {
+      avatar: 'bg-[linear-gradient(135deg,_#6a4020,_#b36a3b)] text-white',
+      badge: 'border-[#f0d8bf] bg-[#fff5e7] text-[#9d6a1d]',
+      icon: 'text-[#9d6a1d]',
+      soft: 'bg-[#fff5e7]',
+    },
+    Marketing: {
+      avatar: 'bg-[linear-gradient(135deg,_#7b3553,_#bf5f87)] text-white',
+      badge: 'border-[#efd8dd] bg-[#fdf3f5] text-[#8a445c]',
+      icon: 'text-[#8a445c]',
+      soft: 'bg-[#fdf3f5]',
+    },
+    Research: {
+      avatar: 'bg-[linear-gradient(135deg,_#2e2f22,_#6f714f)] text-white',
+      badge: 'border-[#e6dfc6] bg-[#f7f4e8] text-[#6b6643]',
+      icon: 'text-[#6b6643]',
+      soft: 'bg-[#f7f4e8]',
+    },
+    Analytics: {
+      avatar: 'bg-[linear-gradient(135deg,_#1e4050,_#3d738b)] text-white',
+      badge: 'border-[#d7e1ef] bg-[#eef4fb] text-[#345c8a]',
+      icon: 'text-[#345c8a]',
+      soft: 'bg-[#eef4fb]',
+    },
+    Content: {
+      avatar: 'bg-[linear-gradient(135deg,_#5e3d27,_#aa7a52)] text-white',
+      badge: 'border-[#e6dccf] bg-[#f8f3eb] text-[#7c5d45]',
+      icon: 'text-[#7c5d45]',
+      soft: 'bg-[#f8f3eb]',
+    },
   }
-  return gradients[category] || 'from-red-600 to-red-700'
+
+  return (
+    tones[category] || {
+      avatar: 'bg-[linear-gradient(135deg,_#171717,_#444444)] text-[#f8f4ec]',
+      badge: 'border-[#e6dccf] bg-[#f8f3eb] text-[#7c5d45]',
+      icon: 'text-[#7c5d45]',
+      soft: 'bg-[#f8f3eb]',
+    }
+  )
 }
 
 export default function AgentDetailPage() {
@@ -88,18 +157,17 @@ export default function AgentDetailPage() {
 
   const fetchAgentDetails = async () => {
     if (!userId) return
-    
+
     setLoading(true)
     try {
       const response = await fetch(`${API_URL}/api/v1/agents/public/${agentId}?user_id=${encodeURIComponent(userId)}`)
       const data = await response.json()
       if (data.success) {
         setAgent(data.data)
-        
-        // Fetch the default LLM config from the database
+
         try {
           const llmConfigs = await getLLMConfigs(data.data.id)
-          const defaultConfig = llmConfigs.find(config => config.is_default)
+          const defaultConfig = llmConfigs.find((config) => config.is_default)
           setDefaultLLMConfig(defaultConfig || null)
         } catch (error) {
           console.error('Failed to fetch LLM configs:', error)
@@ -164,10 +232,10 @@ export default function AgentDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 flex items-center justify-center">
+      <div className="dashboard-resource-page flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-14 w-14 border-4 border-red-600 border-t-transparent"></div>
-          <p className="mt-4 text-gray-600 font-medium">Loading agent details...</p>
+          <div className="inline-block h-14 w-14 animate-spin rounded-full border-4 border-[#171717] border-t-transparent"></div>
+          <p className="mt-4 text-sm font-medium text-gray-600">Loading agent details...</p>
         </div>
       </div>
     )
@@ -177,323 +245,348 @@ export default function AgentDetailPage() {
     return null
   }
 
+  const categoryTone = getCategoryTone(agent.category)
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40">
-      {/* Header - Clean White Design */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          {/* Back Button */}
-          <button
-            onClick={() => router.push('/browse')}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
-          >
-            <ArrowLeft size={18} />
-            <span className="text-sm font-medium">Back to Browse</span>
-          </button>
-
-          {/* Agent Header - More Compact */}
-          <div className="flex items-start gap-5">
-            <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center text-white font-bold text-xl overflow-hidden relative shadow-md">
-              {agent.avatar ? (
-                agent.avatar.startsWith('http://') || agent.avatar.startsWith('https://') ? (
-                  // Use regular img tag for external URLs (presigned URLs with query parameters)
-                  <img
-                    src={agent.avatar}
-                    alt={agent.agent_name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  // Use Next.js Image for relative/local URLs
-                  <Image
-                    src={agent.avatar}
-                    alt={agent.agent_name}
-                    fill
-                    className="object-cover"
-                  />
-                )
-              ) : (
-                getInitials(agent.agent_name)
-              )}
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">{agent.agent_name}</h1>
-                <span className="px-3 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full border border-gray-200">
-                  {agent.category}
-                </span>
-              </div>
-              <p className="text-base text-gray-600 mb-3 max-w-3xl leading-relaxed">
-                {agent.description || 'A powerful AI agent ready to assist you with various tasks.'}
-              </p>
-              
-              {/* Stats - More Compact */}
-              <div className="flex items-center gap-4 text-gray-600 text-sm">
-                <div className="flex items-center gap-1.5">
-                  <Eye size={16} />
-                  <span className="font-medium">{agent.usage_count} uses</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <ThumbsUp size={16} />
-                  <span className="font-medium">{agent.likes_count} likes</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Star size={16} className="fill-gray-600" />
-                  <span className="font-medium">{getRatingPercentage()}% positive</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-2">
+    <>
+      <DashboardPageShell
+        title={agent.agent_name}
+        description={agent.description || 'A powerful AI agent ready to assist you with various tasks.'}
+        icon={Sparkles}
+        badge="Agent Discovery"
+        maxWidthClassName="max-w-7xl"
+        breadcrumbs={[
+          { label: 'Home', href: '/' },
+          { label: 'Browse', href: '/browse' },
+          { label: agent.agent_name },
+        ]}
+        stats={[
+          { label: 'Uses', value: agent.usage_count.toLocaleString() },
+          { label: 'Positive', value: `${getRatingPercentage()}%` },
+          { label: 'Category', value: agent.category },
+        ]}
+        actions={
+          <>
+            <button
+              onClick={() => router.push(`/agents/${agent.slug}/chat`)}
+              className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+            >
+              <MessageSquare className="h-4 w-4" />
+              Start Chat
+            </button>
+            {agent.allow_subscriptions ? (
               <button
-                onClick={() => router.push(`/agents/${agent.agent_name}/chat`)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition-all shadow-sm hover:shadow-md font-semibold text-sm"
+                onClick={() => setShowSubscribeForm(true)}
+                className="inline-flex items-center gap-2 rounded-[1rem] border border-[#e5d9ca] bg-white/85 px-4 py-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-white hover:text-[#171717]"
               >
-                <MessageSquare size={18} />
-                <span>Start Chat</span>
+                <Bell className="h-4 w-4" />
+                Subscribe
               </button>
-              {agent.allow_subscriptions && (
-                <button
-                  onClick={() => setShowSubscribeForm(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:border-red-300 hover:bg-red-50 text-gray-700 hover:text-red-600 rounded-lg transition-all font-semibold text-sm"
-                >
-                  <Bell size={16} />
-                  Subscribe
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+            ) : null}
+          </>
+        }
+      >
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_330px]">
+          <div className="space-y-6">
+            <DashboardPagePanel className="p-5 md:p-6">
+              <div className="flex flex-col gap-5 md:flex-row">
+                <div className={`relative flex h-28 w-28 flex-shrink-0 items-center justify-center overflow-hidden rounded-[1.9rem] text-2xl font-semibold shadow-[0_24px_45px_-30px_rgba(0,0,0,0.35)] ${categoryTone.avatar}`}>
+                  {agent.avatar ? (
+                    agent.avatar.startsWith('http://') || agent.avatar.startsWith('https://') ? (
+                      <img
+                        src={agent.avatar}
+                        alt={agent.agent_name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <Image
+                        src={agent.avatar}
+                        alt={agent.agent_name}
+                        fill
+                        className="object-cover"
+                      />
+                    )
+                  ) : (
+                    getInitials(agent.agent_name)
+                  )}
+                </div>
 
-      {/* Content - More Compact */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-5">
-            {/* Tags */}
-            {agent.tags && agent.tags.length > 0 && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                <h2 className="font-semibold text-gray-900 text-base mb-3">Tags</h2>
-                <div className="flex flex-wrap gap-2">
-                  {agent.tags.map((tag, idx) => (
-                    <span
-                      key={idx}
-                      className="px-4 py-2 bg-gradient-to-r from-gray-100 to-gray-50 text-gray-700 text-sm font-medium rounded-full border border-gray-200"
-                    >
-                      #{tag}
+                <div className="min-w-0 flex-1">
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <span className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] ${categoryTone.badge}`}>
+                      {agent.category}
                     </span>
-                  ))}
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#e6dccf] bg-white/80 px-3 py-1 text-xs font-medium text-gray-600">
+                      <Eye className="h-3.5 w-3.5" />
+                      {agent.usage_count} uses
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#e6dccf] bg-white/80 px-3 py-1 text-xs font-medium text-gray-600">
+                      <ThumbsUp className="h-3.5 w-3.5" />
+                      {agent.likes_count} likes
+                    </span>
+                  </div>
+
+                  <p className="text-sm leading-7 text-gray-600">
+                    {agent.description || 'A powerful AI agent ready to assist you with various tasks.'}
+                  </p>
+
+                  {agent.tags && agent.tags.length > 0 ? (
+                    <div className="mt-5 flex flex-wrap gap-2">
+                      {agent.tags.map((tag, idx) => (
+                        <span
+                          key={idx}
+                          className="rounded-full border border-[#e6dccf] bg-[#fcfaf5] px-3 py-1.5 text-xs font-semibold text-[#7c5d45]"
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               </div>
-            )}
+            </DashboardPagePanel>
 
-            {/* Tools & Capabilities */}
-            {agent.description && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                <h2 className="font-semibold text-gray-900 text-base mb-3 flex items-center gap-2">
-                  <Zap size={18} className="text-red-600" />
-                  Tools & Capabilities
-                </h2>
-                <p className="text-sm text-gray-700 leading-relaxed">
-                  {agent.description}
-                </p>
-              </div>
-            )}
-
+            {agent.description ? (
+              <DashboardPagePanel className="p-5 md:p-6">
+                <div className="mb-4 flex items-center gap-3">
+                  <div className={`rounded-[1rem] p-2.5 ${categoryTone.soft}`}>
+                    <Zap className={`h-4 w-4 ${categoryTone.icon}`} />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold tracking-[-0.03em] text-gray-950">Tools & Capabilities</h2>
+                    <p className="text-sm text-gray-500">What this agent is designed to help with.</p>
+                  </div>
+                </div>
+                <p className="text-sm leading-7 text-gray-700">{agent.description}</p>
+              </DashboardPagePanel>
+            ) : null}
           </div>
 
-          {/* Sidebar - More Compact */}
-          <div className="space-y-4">
-            {/* Model Info */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <h2 className="font-semibold text-gray-900 text-sm mb-3 flex items-center gap-2">
-                <Brain size={16} className="text-red-600" />
-                Model Configuration
-              </h2>
-              <div className="space-y-2.5">
+          <div className="space-y-5">
+            <DashboardPagePanel className="p-5">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="rounded-[1rem] bg-[#eef4fb] p-2.5">
+                  <Brain className="h-4 w-4 text-[#345c8a]" />
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-gray-950">Model Configuration</h2>
+                  <p className="text-xs text-gray-500">Current default runtime settings.</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
                 {defaultLLMConfig ? (
                   <>
-                    <div>
-                      <div className="text-xs text-gray-600 mb-0.5">Provider</div>
-                      <div className="font-semibold text-gray-900 text-sm capitalize">{defaultLLMConfig.provider}</div>
+                    <div className="rounded-[1rem] border border-[#e6dccf] bg-[#fcfaf5] px-4 py-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9a7a5e]">Provider</p>
+                      <p className="mt-1 text-sm font-semibold capitalize text-gray-900">{defaultLLMConfig.provider}</p>
                     </div>
-                    <div>
-                      <div className="text-xs text-gray-600 mb-0.5">Model</div>
-                      <div className="font-semibold text-gray-900 text-sm">{defaultLLMConfig.model_name}</div>
+                    <div className="rounded-[1rem] border border-[#e6dccf] bg-[#fcfaf5] px-4 py-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9a7a5e]">Model</p>
+                      <p className="mt-1 text-sm font-semibold text-gray-900">{defaultLLMConfig.model_name}</p>
                     </div>
-                    <div>
-                      <div className="text-xs text-gray-600 mb-0.5">Temperature</div>
-                      <div className="font-semibold text-gray-900 text-sm">{defaultLLMConfig.temperature}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-gray-600 mb-0.5">Max Tokens</div>
-                      <div className="font-semibold text-gray-900 text-sm">{defaultLLMConfig.max_tokens || 'Auto'}</div>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                      <div className="rounded-[1rem] border border-[#e6dccf] bg-[#fcfaf5] px-4 py-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9a7a5e]">Temperature</p>
+                        <p className="mt-1 text-sm font-semibold text-gray-900">{defaultLLMConfig.temperature}</p>
+                      </div>
+                      <div className="rounded-[1rem] border border-[#e6dccf] bg-[#fcfaf5] px-4 py-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9a7a5e]">Max Tokens</p>
+                        <p className="mt-1 text-sm font-semibold text-gray-900">{defaultLLMConfig.max_tokens || 'Auto'}</p>
+                      </div>
                     </div>
                   </>
                 ) : (
-                  <div className="text-xs text-gray-500 italic">No LLM configuration available</div>
-                )}
-                <div className="pt-2 border-t border-gray-200">
-                  <div className="text-xs text-gray-600 mb-0.5">Created</div>
-                  <div className="font-semibold text-gray-900 text-sm">
-                    {new Date(agent.created_at).toLocaleDateString()}
+                  <div className="rounded-[1rem] border border-dashed border-[#ddcfbc] bg-[#fcfaf5] px-4 py-4 text-sm text-[#8c6b4d]">
+                    No LLM configuration available.
                   </div>
+                )}
+
+                <div className="rounded-[1rem] border border-[#e6dccf] bg-[#f8f3eb] px-4 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9a7a5e]">Created</p>
+                  <p className="mt-1 text-sm font-semibold text-gray-900">
+                    {new Date(agent.created_at).toLocaleDateString()}
+                  </p>
                 </div>
               </div>
-            </div>
+            </DashboardPagePanel>
 
-            {/* Rating */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <h2 className="font-semibold text-gray-900 text-sm mb-3">Rate This Agent</h2>
-              <div className="flex gap-2">
+            <DashboardPagePanel className="p-5">
+              <h2 className="text-base font-semibold text-gray-950">Rate This Agent</h2>
+              <p className="mt-1 text-xs text-gray-500">Share quick feedback with one tap.</p>
+              <div className="mt-4 grid grid-cols-2 gap-3">
                 <button
                   onClick={() => handleRating('like')}
-                  className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg transition-all font-semibold text-sm ${
+                  className={`inline-flex items-center justify-center gap-2 rounded-[1rem] px-4 py-3 text-sm font-semibold transition-colors ${
                     agent.user_rating === 'like'
-                      ? 'bg-emerald-100 text-emerald-700 border-2 border-emerald-300'
-                      : 'bg-gray-100 text-gray-700 hover:bg-emerald-50 hover:text-emerald-600 border border-gray-200'
+                      ? 'border border-[#cfe5d7] bg-[#edf7f1] text-[#24543b]'
+                      : 'border border-[#e6dccf] bg-white/85 text-gray-700 hover:bg-[#eef7f1] hover:text-[#24543b]'
                   }`}
                 >
-                  <ThumbsUp size={16} />
-                  <span>Like</span>
+                  <ThumbsUp className="h-4 w-4" />
+                  Like
                 </button>
                 <button
                   onClick={() => handleRating('dislike')}
-                  className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg transition-all font-semibold text-sm ${
+                  className={`inline-flex items-center justify-center gap-2 rounded-[1rem] px-4 py-3 text-sm font-semibold transition-colors ${
                     agent.user_rating === 'dislike'
-                      ? 'bg-red-100 text-red-700 border-2 border-red-300'
-                      : 'bg-gray-100 text-gray-700 hover:bg-red-50 hover:text-red-600 border border-gray-200'
+                      ? 'border border-[#efd8dd] bg-[#fdf3f5] text-[#8a445c]'
+                      : 'border border-[#e6dccf] bg-white/85 text-gray-700 hover:bg-[#fdf3f5] hover:text-[#8a445c]'
                   }`}
                 >
-                  <ThumbsDown size={16} />
-                  <span>Dislike</span>
+                  <ThumbsDown className="h-4 w-4" />
+                  Dislike
                 </button>
               </div>
-            </div>
+            </DashboardPagePanel>
 
-            {/* Stats Card */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-              <h2 className="font-semibold text-gray-900 text-sm mb-3">Statistics</h2>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 text-xs">Total Uses</span>
-                  <span className="font-bold text-gray-900 text-sm">{agent.usage_count}</span>
+            <DashboardPagePanel className="p-5">
+              <h2 className="text-base font-semibold text-gray-950">Statistics</h2>
+              <div className="mt-4 space-y-3">
+                <div className="flex items-center justify-between rounded-[1rem] border border-[#e6dccf] bg-[#fcfaf5] px-4 py-3">
+                  <span className="text-sm text-gray-600">Total Uses</span>
+                  <span className="text-sm font-semibold text-gray-950">{agent.usage_count}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 text-xs">Likes</span>
-                  <span className="font-bold text-emerald-600 text-sm">{agent.likes_count}</span>
+                <div className="flex items-center justify-between rounded-[1rem] border border-[#e6dccf] bg-[#eef7f1] px-4 py-3">
+                  <span className="text-sm text-[#24543b]">Likes</span>
+                  <span className="text-sm font-semibold text-[#24543b]">{agent.likes_count}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600 text-xs">Dislikes</span>
-                  <span className="font-bold text-red-600 text-sm">{agent.dislikes_count}</span>
+                <div className="flex items-center justify-between rounded-[1rem] border border-[#e6dccf] bg-[#fdf3f5] px-4 py-3">
+                  <span className="text-sm text-[#8a445c]">Dislikes</span>
+                  <span className="text-sm font-semibold text-[#8a445c]">{agent.dislikes_count}</span>
                 </div>
-                <div className="pt-3 border-t border-gray-200">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-600 text-xs">Rating</span>
-                    <span className="font-bold text-red-600 text-sm">{getRatingPercentage()}%</span>
+                <div className="rounded-[1rem] border border-[#e6dccf] bg-[#f8f3eb] px-4 py-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-700">
+                      <Star className="h-4 w-4 text-[#9d6a1d]" />
+                      Rating
+                    </span>
+                    <span className="text-sm font-semibold text-gray-950">{getRatingPercentage()}%</span>
                   </div>
-                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="h-2 overflow-hidden rounded-full bg-[#e8dece]">
                     <div
-                      className="h-full bg-gradient-to-r from-red-500 to-red-600"
+                      className="h-full rounded-full bg-[linear-gradient(90deg,_#171717,_#2d8b69)]"
                       style={{ width: `${getRatingPercentage()}%` }}
-                    ></div>
+                    />
                   </div>
                 </div>
               </div>
-            </div>
+            </DashboardPagePanel>
           </div>
         </div>
-      </div>
+      </DashboardPageShell>
 
-      {/* Subscribe Modal */}
-      {showSubscribeForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+      {showSubscribeForm ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-[2rem] border border-[#e6dccf] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,245,239,0.96))] p-6 shadow-[0_32px_90px_-45px_rgba(0,0,0,0.45)]">
             {subscribeStatus === 'success' ? (
-              <div className="text-center py-4">
-                <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle size={28} className="text-green-600" />
+              <div className="py-4 text-center">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#edf7f1]">
+                  <CheckCircle className="h-7 w-7 text-[#2b7a52]" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-1">You&apos;re subscribed!</h3>
-                <p className="text-gray-500 text-sm mb-5">You&apos;ll receive reports from <span className="font-medium text-gray-700">{agent.agent_name}</span> in your inbox.</p>
+                <h3 className="text-lg font-semibold text-gray-950">You&apos;re subscribed!</h3>
+                <p className="mt-2 text-sm leading-6 text-gray-600">
+                  You&apos;ll receive reports from <span className="font-semibold text-gray-900">{agent.agent_name}</span> in your inbox.
+                </p>
                 <button
-                  onClick={() => { setShowSubscribeForm(false); setSubscribeStatus('idle'); setSubscribeEmail('') }}
-                  className="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-sm transition-colors"
+                  onClick={() => {
+                    setShowSubscribeForm(false)
+                    setSubscribeStatus('idle')
+                    setSubscribeEmail('')
+                  }}
+                  className="mt-5 inline-flex rounded-[1rem] border border-[#e6dccf] bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-[#fcfaf5]"
                 >
                   Close
                 </button>
               </div>
             ) : subscribeStatus === 'already_subscribed' ? (
-              <div className="text-center py-4">
-                <div className="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Bell size={28} className="text-amber-600" />
+              <div className="py-4 text-center">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#fff5e7]">
+                  <Bell className="h-7 w-7 text-[#9d6a1d]" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-1">Already subscribed</h3>
-                <p className="text-gray-500 text-sm mb-5"><span className="font-medium text-gray-700">{subscribeEmail}</span> is already subscribed to this agent&apos;s reports.</p>
+                <h3 className="text-lg font-semibold text-gray-950">Already subscribed</h3>
+                <p className="mt-2 text-sm leading-6 text-gray-600">
+                  <span className="font-semibold text-gray-900">{subscribeEmail}</span> is already subscribed to this agent&apos;s reports.
+                </p>
                 <button
-                  onClick={() => { setShowSubscribeForm(false); setSubscribeStatus('idle'); setSubscribeEmail('') }}
-                  className="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-sm transition-colors"
+                  onClick={() => {
+                    setShowSubscribeForm(false)
+                    setSubscribeStatus('idle')
+                    setSubscribeEmail('')
+                  }}
+                  className="mt-5 inline-flex rounded-[1rem] border border-[#e6dccf] bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-[#fcfaf5]"
                 >
                   Close
                 </button>
               </div>
             ) : (
               <>
-                <div className="flex items-center justify-between mb-5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                      <Bell size={20} className="text-red-600" />
+                <div className="mb-5 flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-[1rem] bg-[#fff5e7] p-3">
+                      <Bell className="h-5 w-5 text-[#9d6a1d]" />
                     </div>
                     <div>
-                      <h3 className="text-base font-bold text-gray-900">Subscribe to reports</h3>
-                      <p className="text-xs text-gray-500">{agent.agent_name}</p>
+                      <h3 className="text-lg font-semibold text-gray-950">Subscribe to reports</h3>
+                      <p className="mt-1 text-sm text-gray-500">{agent.agent_name}</p>
                     </div>
                   </div>
                   <button
-                    onClick={() => { setShowSubscribeForm(false); setSubscribeEmail('') }}
-                    className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+                    onClick={() => {
+                      setShowSubscribeForm(false)
+                      setSubscribeEmail('')
+                    }}
+                    className="text-2xl leading-none text-gray-400 transition-colors hover:text-gray-700"
                   >
                     ×
                   </button>
                 </div>
-                <p className="text-sm text-gray-600 mb-4">
+
+                <p className="mb-4 text-sm leading-6 text-gray-600">
                   Get this agent&apos;s scheduled reports delivered to your inbox automatically.
                 </p>
-                <form onSubmit={handleSubscribe} className="space-y-3">
+
+                <form onSubmit={handleSubscribe} className="space-y-4">
                   <input
                     type="email"
                     required
                     autoFocus
                     value={subscribeEmail}
-                    onChange={e => setSubscribeEmail(e.target.value)}
+                    onChange={(e) => setSubscribeEmail(e.target.value)}
                     placeholder="your@email.com"
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className="w-full rounded-[1.15rem] border border-black/10 bg-[#fcfaf5] px-4 py-3.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-[#79dfbc] focus:ring-4 focus:ring-[#79dfbc]/20"
                   />
-                  <div className="flex gap-2">
+
+                  <div className="flex gap-3">
                     <button
                       type="button"
-                      onClick={() => { setShowSubscribeForm(false); setSubscribeEmail('') }}
-                      className="flex-1 py-2.5 border border-gray-200 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+                      onClick={() => {
+                        setShowSubscribeForm(false)
+                        setSubscribeEmail('')
+                      }}
+                      className="flex-1 rounded-[1rem] border border-[#e6dccf] bg-white px-4 py-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-[#fcfaf5]"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={subscribeStatus === 'loading'}
-                      className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg text-sm font-medium transition-all disabled:opacity-60"
+                      className="flex flex-1 items-center justify-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-60"
                     >
-                      {subscribeStatus === 'loading' ? <Loader2 size={14} className="animate-spin" /> : <Bell size={14} />}
+                      {subscribeStatus === 'loading' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />}
                       {subscribeStatus === 'loading' ? 'Subscribing...' : 'Subscribe'}
                     </button>
                   </div>
-                  <p className="text-center text-xs text-gray-400">You can unsubscribe anytime via the link in emails.</p>
+
+                  <p className="text-center text-xs text-gray-400">
+                    You can unsubscribe anytime via the link in emails.
+                  </p>
                 </form>
               </>
             )}
           </div>
         </div>
-      )}
-    </div>
+      ) : null}
+    </>
   )
 }

@@ -16,19 +16,22 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # ── 1. Security gate ───────────────────────────────────────────────────────
   secret-scan:
-   name: Secret Scan
-   runs-on: ubuntu-latest
-   steps:
-     - name: Checkout code
-       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
-       with:
-         fetch-depth: 0
-     - name: Run Gitleaks
-       run: |
-         curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz" \
-           | tar -xz -C /usr/local/bin gitleaks
-         gitleaks detect --source . --config .gitleaks.toml --redact -v
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Run Gitleaks
+        run: |
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz" \
+            | tar -xz -C /usr/local/bin gitleaks
+          gitleaks detect --source . --config .gitleaks.toml --redact -v
+
+  # ── 2. Create GitHub Release (runs in parallel with changes detection) ─────
   release:
     name: Create GitHub Release
     needs: secret-scan
@@ -37,10 +40,9 @@ jobs:
       contents: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
         with:
           fetch-depth: 0
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -49,36 +51,93 @@ jobs:
           generate_release_notes: true
           make_latest: true
 
-  build-and-push:
-    name: Build & Push Docker Images
+  # ── 3. Detect which services changed since the previous release tag ────────
+  changes:
+    name: Detect Changed Services
+    needs: secret-scan
     runs-on: ubuntu-latest
-    needs: release
     outputs:
-      image-tag: ${{ steps.meta.outputs.tag }}
+      api:     ${{ steps.diff.outputs.api }}
+      web:     ${{ steps.diff.outputs.web }}
+      ml:      ${{ steps.diff.outputs.ml }}
+      scraper: ${{ steps.diff.outputs.scraper }}
+      sandbox: ${{ steps.diff.outputs.sandbox }}
+      k8s:     ${{ steps.diff.outputs.k8s }}
+      any:     ${{ steps.diff.outputs.any }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Diff against previous release tag
+        id: diff
+        run: |
+          # Find the previous semver tag (the one before the current tag)
+          git fetch --tags --force
+          PREV=$(git tag --sort=-version:refname \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+            | sed -n '2p' || true)
+
+          if [ -z "$PREV" ]; then
+            echo "No previous tag found — marking all services changed (first release)."
+            echo "api=true"     >> "$GITHUB_OUTPUT"
+            echo "web=true"     >> "$GITHUB_OUTPUT"
+            echo "ml=true"      >> "$GITHUB_OUTPUT"
+            echo "scraper=true" >> "$GITHUB_OUTPUT"
+            echo "sandbox=true" >> "$GITHUB_OUTPUT"
+            echo "k8s=true"     >> "$GITHUB_OUTPUT"
+            echo "any=true"     >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Comparing $PREV → ${{ github.ref_name }}"
+          CHANGED=$(git diff --name-only "${PREV}".."${{ github.ref_name }}")
+          echo "Changed files:"
+          echo "$CHANGED"
+
+          api=$(echo "$CHANGED"     | grep -q '^api/'              && echo true || echo false)
+          web=$(echo "$CHANGED"     | grep -q '^web/'              && echo true || echo false)
+          ml=$(echo "$CHANGED"      | grep -q '^services/ml/'      && echo true || echo false)
+          scraper=$(echo "$CHANGED" | grep -q '^services/scraper/' && echo true || echo false)
+          sandbox=$(echo "$CHANGED" | grep -q '^services/sandbox/' && echo true || echo false)
+          k8s=$(echo "$CHANGED"     | grep -q '^k8s/'              && echo true || echo false)
+
+          echo "api=$api"         >> "$GITHUB_OUTPUT"
+          echo "web=$web"         >> "$GITHUB_OUTPUT"
+          echo "ml=$ml"           >> "$GITHUB_OUTPUT"
+          echo "scraper=$scraper" >> "$GITHUB_OUTPUT"
+          echo "sandbox=$sandbox" >> "$GITHUB_OUTPUT"
+          echo "k8s=$k8s"         >> "$GITHUB_OUTPUT"
+
+          if [ "$api" = "true" ] || [ "$web" = "true" ] || [ "$ml" = "true" ] || \
+             [ "$scraper" = "true" ] || [ "$sandbox" = "true" ] || [ "$k8s" = "true" ]; then
+            echo "any=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "any=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # ── 4a. Build API image ────────────────────────────────────────────────────
+  build-api:
+    name: Build & Push API Image
+    needs: [release, changes]
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
     steps:
       - name: Free disk space
         run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /opt/hostedtoolcache
-          sudo rm -rf /usr/local/share/boost
-          sudo rm -rf /usr/share/swift
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache /usr/local/share/boost /usr/share/swift
           sudo docker system prune -af --volumes
           df -h
 
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
-      - name: Set image tag
-        id: meta
-        run: echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
-
       - name: Validate required variables
         run: |
           if [ -z "${{ vars.AWS_ACCOUNT_ID }}" ]; then
             echo "ERROR: AWS_ACCOUNT_ID repository variable is not set."
-            echo "Go to Settings → Secrets and variables → Actions → Variables and add AWS_ACCOUNT_ID."
             exit 1
           fi
 
@@ -91,7 +150,8 @@ jobs:
 
       - name: Login to Amazon ECR
         run: |
-          aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} \
+            | docker login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2  # v3.10.0
@@ -128,82 +188,44 @@ jobs:
             --format table \
             "${{ env.ECR_REGISTRY }}/synkora-api:${{ github.ref_name }}"
 
-      - name: Clean up after API build
+  # ── 4b. Build Frontend image ───────────────────────────────────────────────
+  build-web:
+    name: Build & Push Frontend Image
+    needs: [release, changes]
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Free disk space
         run: |
-          docker builder prune -f
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache /usr/local/share/boost /usr/share/swift
+          sudo docker system prune -af --volumes
           df -h
-      
-      # TODO: re-enable once GCP account is created
-      # - name: Authenticate to Google Cloud
-      #   uses: google-github-actions/auth@v2
-      #   with:
-      #     credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
-      #
-      # - name: Login to Google Artifact Registry
-      #   run: |
-      #     gcloud auth configure-docker ${{ vars.GCP_REGION || 'us-central1' }}-docker.pkg.dev --quiet
-      #
-      # - name: Push API image to Google Artifact Registry
-      #   run: |
-      #     GAR_IMAGE="${{ vars.GCP_REGION || 'us-central1' }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/synkora/api"
-      #     docker tag ${{ env.ECR_REGISTRY }}/synkora-api:${{ github.ref_name }} ${GAR_IMAGE}:${{ github.ref_name }}
-      #     docker tag ${{ env.ECR_REGISTRY }}/synkora-api:${{ github.ref_name }} ${GAR_IMAGE}:latest
-      #     docker push ${GAR_IMAGE}:${{ github.ref_name }}
-      #     docker push ${GAR_IMAGE}:latest
 
-      - name: Build and push ML service image
-        uses: docker/build-push-action@v5
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502  # v4.0.2
         with:
-          context: ./services/ml
-          file: ./services/ml/Dockerfile
-          push: true
-          platforms: linux/amd64
-          tags: |
-            ${{ env.ECR_REGISTRY }}/synkora-ml:${{ github.ref_name }}
-            ${{ env.ECR_REGISTRY }}/synkora-ml:latest
-          cache-from: type=gha,scope=ml
-          cache-to: type=gha,mode=max,scope=ml
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Clean up after ML build
+      - name: Login to Amazon ECR
         run: |
-          docker builder prune -f
-          df -h
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} \
+            | docker login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}
 
-      - name: Build and push scraper service image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./services/scraper
-          file: ./services/scraper/Dockerfile
-          push: true
-          platforms: linux/amd64
-          tags: |
-            ${{ env.ECR_REGISTRY }}/synkora-scraper:${{ github.ref_name }}
-            ${{ env.ECR_REGISTRY }}/synkora-scraper:latest
-          cache-from: type=gha,scope=scraper
-          cache-to: type=gha,mode=max,scope=scraper
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2  # v3.10.0
 
-      - name: Clean up after scraper build
+      - name: Prepare frontend env
         run: |
-          docker builder prune -f
-          df -h
-
-      - name: Build and push sandbox service image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./services/sandbox
-          file: ./services/sandbox/Dockerfile
-          push: true
-          platforms: linux/amd64
-          tags: |
-            ${{ env.ECR_REGISTRY }}/synkora-sandbox:${{ github.ref_name }}
-            ${{ env.ECR_REGISTRY }}/synkora-sandbox:latest
-          cache-from: type=gha,scope=sandbox
-          cache-to: type=gha,mode=max,scope=sandbox
-
-      - name: Clean up after sandbox build
-        run: |
-          docker builder prune -f
-          df -h
+          cd web
+          if [ -f env.production ]; then
+            cp env.production .env
+          fi
 
       - name: Build and push Frontend image
         uses: docker/build-push-action@67a2d409c0a876cbe6b11854e3e25193efe4e62d  # v5.4.0
@@ -224,10 +246,154 @@ jobs:
           cache-from: type=gha,scope=web
           cache-to: type=gha,mode=max,scope=web
 
+  # ── 4c. Build ML service image ─────────────────────────────────────────────
+  build-ml:
+    name: Build & Push ML Image
+    needs: [release, changes]
+    if: needs.changes.outputs.ml == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache /usr/local/share/boost /usr/share/swift
+          sudo docker system prune -af --volumes
+          df -h
+
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502  # v4.0.2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} \
+            | docker login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2  # v3.10.0
+
+      - name: Build and push ML image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/ml
+          file: ./services/ml/Dockerfile
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ${{ env.ECR_REGISTRY }}/synkora-ml:${{ github.ref_name }}
+            ${{ env.ECR_REGISTRY }}/synkora-ml:latest
+          cache-from: type=gha,scope=ml
+          cache-to: type=gha,mode=max,scope=ml
+
+  # ── 4d. Build Scraper service image ───────────────────────────────────────
+  build-scraper:
+    name: Build & Push Scraper Image
+    needs: [release, changes]
+    if: needs.changes.outputs.scraper == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache /usr/local/share/boost /usr/share/swift
+          sudo docker system prune -af --volumes
+          df -h
+
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502  # v4.0.2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} \
+            | docker login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2  # v3.10.0
+
+      - name: Build and push Scraper image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/scraper
+          file: ./services/scraper/Dockerfile
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ${{ env.ECR_REGISTRY }}/synkora-scraper:${{ github.ref_name }}
+            ${{ env.ECR_REGISTRY }}/synkora-scraper:latest
+          cache-from: type=gha,scope=scraper
+          cache-to: type=gha,mode=max,scope=scraper
+
+  # ── 4e. Build Sandbox service image ───────────────────────────────────────
+  build-sandbox:
+    name: Build & Push Sandbox Image
+    needs: [release, changes]
+    if: needs.changes.outputs.sandbox == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache /usr/local/share/boost /usr/share/swift
+          sudo docker system prune -af --volumes
+          df -h
+
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502  # v4.0.2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} \
+            | docker login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2  # v3.10.0
+
+      - name: Build and push Sandbox image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/sandbox
+          file: ./services/sandbox/Dockerfile
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ${{ env.ECR_REGISTRY }}/synkora-sandbox:${{ github.ref_name }}
+            ${{ env.ECR_REGISTRY }}/synkora-sandbox:latest
+          cache-from: type=gha,scope=sandbox
+          cache-to: type=gha,mode=max,scope=sandbox
+
+  # ── 5. Deploy ──────────────────────────────────────────────────────────────
+  # Runs when any service or k8s manifest changed.
+  # Skipped build jobs (services that didn't change) do not block this job —
+  # only actual failures do.
   deploy:
     name: Deploy to DOKS
     runs-on: ubuntu-latest
-    needs: build-and-push
+    needs: [changes, build-api, build-web, build-ml, build-scraper, build-sandbox]
+    if: >-
+      always() &&
+      !contains(needs.*.result, 'failure') &&
+      !contains(needs.*.result, 'cancelled') &&
+      needs.changes.outputs.any == 'true'
     steps:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
@@ -238,8 +404,7 @@ jobs:
           token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
 
       - name: Configure kubectl for DOKS
-        run: |
-          doctl kubernetes cluster kubeconfig save ${{ secrets.DOKS_CLUSTER_NAME }}
+        run: doctl kubernetes cluster kubeconfig save ${{ secrets.DOKS_CLUSTER_NAME }}
 
       - name: Ensure namespace exists
         run: kubectl apply -f k8s/base/namespace.yaml
@@ -248,19 +413,15 @@ jobs:
         run: |
           helm repo add kedacore https://kedacore.github.io/charts
           helm repo update
-          # Roll back any stuck pending operation before upgrading
-          KEDA_STATUS=$(helm status keda -n keda --output json 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['info']['status'])" 2>/dev/null || echo "not-installed")
+          KEDA_STATUS=$(helm status keda -n keda --output json 2>/dev/null \
+            | python3 -c "import sys,json; print(json.load(sys.stdin)['info']['status'])" 2>/dev/null \
+            || echo "not-installed")
           if [[ "$KEDA_STATUS" == "pending-install" || "$KEDA_STATUS" == "pending-upgrade" || "$KEDA_STATUS" == "pending-rollback" ]]; then
             echo "Clearing stuck Helm release (status: $KEDA_STATUS)..."
             helm rollback keda -n keda 2>/dev/null || helm uninstall keda -n keda 2>/dev/null || true
           fi
           helm upgrade --install keda kedacore/keda \
-            --namespace keda \
-            --create-namespace \
-            --atomic \
-            --timeout 3m
-          # Wait for KEDA's aggregated API server to be ready before applying manifests,
-          # otherwise kubectl discovery hits EOF on keda.sh API group
+            --namespace keda --create-namespace --atomic --timeout 3m
           kubectl rollout status deployment/keda-operator -n keda --timeout=120s
           kubectl rollout status deployment/keda-operator-metrics-apiserver -n keda --timeout=120s
 
@@ -333,101 +494,95 @@ jobs:
             --from-literal=CLOUD_RUN_INVOCATION_SECRET="${{ secrets.K8S_CLOUD_RUN_INVOCATION_SECRET }}" \
             --from-literal=AUDIT_CHAIN_SECRET="${{ secrets.K8S_AUDIT_CHAIN_SECRET }}" \
             --dry-run=client -o yaml | kubectl apply -f -
-     
-      # TODO: re-enable once GCP account is created
-      # - name: Authenticate to Google Cloud
-      #   uses: google-github-actions/auth@v2
-      #   with:
-      #     credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
-      #
-      # - name: Update Cloud Run Job with new image
-      #   run: |
-      #     GAR_IMAGE="${{ vars.GCP_REGION || 'us-central1' }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/synkora/api:${{ github.ref_name }}"
-      #     gcloud run jobs update ${{ secrets.K8S_CLOUD_RUN_JOB_NAME }} \
-      #       --image="${GAR_IMAGE}" \
-      #       --region="${{ vars.GCP_REGION || 'us-central1' }}" \
-      #       --project="${{ secrets.GCP_PROJECT_ID }}"
 
-
+      # Apply all manifests — always runs so k8s-only changes (resource limits,
+      # config, ingress rules, etc.) are picked up. IMAGE_PLACEHOLDER is replaced
+      # with the new tag when a service was rebuilt, or with the currently running
+      # tag when only k8s manifests changed.
       - name: Apply deployment manifests
         run: |
-          IMAGE_TAG="${{ github.ref_name }}"
-          # Replace placeholders with values from GitHub Actions variables
-          find k8s/application -name "*.yml" -o -name "*.yaml" | xargs sed -i \
-            "s|IMAGE_PLACEHOLDER|${{ env.ECR_REGISTRY }}/synkora-api:${IMAGE_TAG}|g"
-          find k8s/application -name "*.yml" -o -name "*.yaml" | xargs sed -i \
+          NEW_TAG="${{ github.ref_name }}"
+
+          # Determine the API image tag to substitute into manifests.
+          # If the API image was just built, use the new tag.
+          # Otherwise, read the currently running tag from the cluster so we
+          # don't accidentally roll the API pods with a stale placeholder.
+          if [ "${{ needs.changes.outputs.api }}" = "true" ]; then
+            API_IMAGE_TAG="${NEW_TAG}"
+          else
+            CURRENT=$(kubectl get deployment/synkora-api -n ${{ env.NAMESPACE }} \
+              -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null || echo "")
+            API_IMAGE_TAG="${CURRENT:-${{ env.ECR_REGISTRY }}/synkora-api:latest}"
+            # Normalise to a full image reference if it's just a tag
+            if [[ "$API_IMAGE_TAG" != *"/"* ]]; then
+              API_IMAGE_TAG="${{ env.ECR_REGISTRY }}/synkora-api:${API_IMAGE_TAG}"
+            fi
+          fi
+
+          # Work on a temp copy of the manifests to avoid dirtying the workspace
+          MANIFESTS_TMP=$(mktemp -d)
+          cp -r k8s/application/. "$MANIFESTS_TMP/"
+
+          find "$MANIFESTS_TMP" -name "*.yml" -o -name "*.yaml" | xargs sed -i \
+            "s|IMAGE_PLACEHOLDER|${API_IMAGE_TAG}|g"
+          find "$MANIFESTS_TMP" -name "*.yml" -o -name "*.yaml" | xargs sed -i \
             "s|DB_PORT_PLACEHOLDER|${{ vars.K8S_DB_PORT }}|g"
 
-          # Server-side apply: sends a single PATCH per resource (no GET first), halving
-          # API calls and avoiding the DO control-plane rate limit that causes EOF failures.
           kubectl apply --server-side --force-conflicts \
-            -f k8s/application/synkora-config.yml \
-            -f k8s/application/synkora-api-serviceaccount.yml \
-            -f k8s/application/api-service.yml \
-            -f k8s/application/synkora-ingress.yml \
-            -f k8s/application/synkora-frontend-service.yml \
-            -f k8s/application/synkora-frontend-ingress.yml \
-            -f k8s/application/ml-service-deployment.yaml \
-            -f k8s/application/scraper-service-deployment.yaml \
-            -f k8s/application/sandbox-service-deployment.yaml \
-            -f k8s/application/api-deployment.yml \
-            -f k8s/application/api-hpa.yml \
-            -f k8s/application/celery-worker-deployment.yml \
-            -f k8s/application/celery-worker-agents-deployment.yml \
-            -f k8s/application/celery-worker-agents-keda.yml \
-            -f k8s/application/celery-worker-billing-deployment.yml \
-            -f k8s/application/celery-worker-notifications-deployment.yml \
-            -f k8s/application/celery-beat-deployment.yml \
-            -f k8s/application/bot-worker-deployment.yaml \
-            -f k8s/application/synkora-frontend-deployment.yml \
-            -f k8s/application/flower-deployment.yml \
-            -f k8s/application/flower-ingress.yml
+            -f "$MANIFESTS_TMP/synkora-config.yml" \
+            -f "$MANIFESTS_TMP/synkora-api-serviceaccount.yml" \
+            -f "$MANIFESTS_TMP/api-service.yml" \
+            -f "$MANIFESTS_TMP/synkora-ingress.yml" \
+            -f "$MANIFESTS_TMP/synkora-frontend-service.yml" \
+            -f "$MANIFESTS_TMP/synkora-frontend-ingress.yml" \
+            -f "$MANIFESTS_TMP/ml-service-deployment.yaml" \
+            -f "$MANIFESTS_TMP/scraper-service-deployment.yaml" \
+            -f "$MANIFESTS_TMP/sandbox-service-deployment.yaml" \
+            -f "$MANIFESTS_TMP/api-deployment.yml" \
+            -f "$MANIFESTS_TMP/api-hpa.yml" \
+            -f "$MANIFESTS_TMP/celery-worker-deployment.yml" \
+            -f "$MANIFESTS_TMP/celery-worker-agents-deployment.yml" \
+            -f "$MANIFESTS_TMP/celery-worker-agents-keda.yml" \
+            -f "$MANIFESTS_TMP/celery-worker-billing-deployment.yml" \
+            -f "$MANIFESTS_TMP/celery-worker-notifications-deployment.yml" \
+            -f "$MANIFESTS_TMP/celery-beat-deployment.yml" \
+            -f "$MANIFESTS_TMP/bot-worker-deployment.yaml" \
+            -f "$MANIFESTS_TMP/synkora-frontend-deployment.yml" \
+            -f "$MANIFESTS_TMP/flower-deployment.yml" \
+            -f "$MANIFESTS_TMP/flower-ingress.yml"
 
+      # Migrations only need to run when the API (and therefore its models) changed
       - name: Run database migrations
+        if: needs.changes.outputs.api == 'true'
         run: |
           IMAGE_TAG="${{ github.ref_name }}"
           POD_NAME="alembic-migrate-$(echo ${IMAGE_TAG} | tr '.' '-')"
           kubectl delete pod "${POD_NAME}" -n ${{ env.NAMESPACE }} --ignore-not-found=true
 
-          # Migrations connect directly to AWS RDS PostgreSQL.
-          # DB_HOST is in synkora-secrets; DB_PORT comes from synkora-config (ConfigMap).
           kubectl run "${POD_NAME}" \
             --image=${{ env.ECR_REGISTRY }}/synkora-api:${IMAGE_TAG} \
             --restart=Never \
             --namespace=${{ env.NAMESPACE }} \
             --overrides='{"spec":{"imagePullSecrets":[{"name":"ecr-registry-secret"}],"containers":[{"name":"migrate","image":"${{ env.ECR_REGISTRY }}/synkora-api:'"${IMAGE_TAG}"'","command":["alembic","upgrade","head"],"envFrom":[{"configMapRef":{"name":"synkora-config"}},{"secretRef":{"name":"synkora-secrets"}}]}]}}'
 
-          echo "Waiting for migration pod to start running (image pull + init)..."
-          # Wait up to 3 minutes for the pod to actually start running
+          echo "Waiting for migration pod to start..."
           kubectl wait pod/"${POD_NAME}" \
-            --for=condition=Initialized \
-            --timeout=180s \
-            -n ${{ env.NAMESPACE }} || {
-              echo "--- Pod describe (for debugging) ---"
+            --for=condition=Initialized --timeout=180s -n ${{ env.NAMESPACE }} || {
               kubectl describe pod "${POD_NAME}" -n ${{ env.NAMESPACE }} || true
               kubectl delete pod "${POD_NAME}" -n ${{ env.NAMESPACE }} --ignore-not-found=true
-              echo "Migration pod failed to start. Check image pull and secret config above."
               exit 1
             }
 
           echo "Waiting for migration to complete (up to 5 minutes)..."
           kubectl wait pod/"${POD_NAME}" \
-            --for=jsonpath='{.status.phase}'=Succeeded \
-            --timeout=300s \
-            -n ${{ env.NAMESPACE }} || {
-              # Pod didn't succeed — print logs and describe before failing
-              echo "--- Migration logs ---"
+            --for=jsonpath='{.status.phase}'=Succeeded --timeout=300s -n ${{ env.NAMESPACE }} || {
               kubectl logs "${POD_NAME}" -n ${{ env.NAMESPACE }} || true
-              echo "--- Pod describe ---"
               kubectl describe pod "${POD_NAME}" -n ${{ env.NAMESPACE }} || true
               kubectl delete pod "${POD_NAME}" -n ${{ env.NAMESPACE }} --ignore-not-found=true
-              echo "Migration timed out or failed."
               exit 1
             }
 
-          echo "--- Migration logs ---"
           kubectl logs "${POD_NAME}" -n ${{ env.NAMESPACE }} || true
-
           EXIT_CODE=$(kubectl get pod "${POD_NAME}" -n ${{ env.NAMESPACE }} \
             -o jsonpath='{.status.containerStatuses[0].state.terminated.exitCode}')
           kubectl delete pod "${POD_NAME}" -n ${{ env.NAMESPACE }} --ignore-not-found=true
@@ -438,129 +593,114 @@ jobs:
           fi
           echo "Migration completed successfully."
 
-      - name: Deploy ML, scraper and sandbox services
-        run: |
-          IMAGE_TAG="${{ github.ref_name }}"
-          kubectl set image deployment/synkora-ml ml=${{ env.ECR_REGISTRY }}/synkora-ml:${IMAGE_TAG} -n ${{ env.NAMESPACE }}
-          kubectl set image deployment/synkora-scraper scraper=${{ env.ECR_REGISTRY }}/synkora-scraper:${IMAGE_TAG} -n ${{ env.NAMESPACE }}
-          kubectl set image deployment/synkora-sandbox sandbox=${{ env.ECR_REGISTRY }}/synkora-sandbox:${IMAGE_TAG} -n ${{ env.NAMESPACE }}
+      # ── Image updates: only for services that were actually rebuilt ──────
 
-      - name: Wait for ML, scraper and sandbox rollouts
+      - name: Update API workload images
+        if: needs.changes.outputs.api == 'true'
+        run: |
+          TAG="${{ github.ref_name }}"
+          kubectl set image deployment/synkora-api                    api=${{ env.ECR_REGISTRY }}/synkora-api:${TAG}                    -n ${{ env.NAMESPACE }}
+          kubectl set image deployment/synkora-celery-worker          celery-worker=${{ env.ECR_REGISTRY }}/synkora-api:${TAG}          -n ${{ env.NAMESPACE }}
+          kubectl set image deployment/synkora-celery-worker-agents   celery-worker-agents=${{ env.ECR_REGISTRY }}/synkora-api:${TAG}   -n ${{ env.NAMESPACE }}
+          kubectl set image deployment/synkora-celery-worker-billing  celery-worker-billing=${{ env.ECR_REGISTRY }}/synkora-api:${TAG}  -n ${{ env.NAMESPACE }}
+          kubectl set image deployment/synkora-celery-worker-notifications celery-worker-notifications=${{ env.ECR_REGISTRY }}/synkora-api:${TAG} -n ${{ env.NAMESPACE }}
+          kubectl set image deployment/synkora-celery-beat            celery-beat=${{ env.ECR_REGISTRY }}/synkora-api:${TAG}            -n ${{ env.NAMESPACE }}
+          kubectl set image deployment/synkora-bot-worker             bot-worker=${{ env.ECR_REGISTRY }}/synkora-api:${TAG}             -n ${{ env.NAMESPACE }}
+          kubectl set image deployment/synkora-flower                 flower=${{ env.ECR_REGISTRY }}/synkora-api:${TAG}                 -n ${{ env.NAMESPACE }}
+
+      - name: Update Frontend image
+        if: needs.changes.outputs.web == 'true'
+        run: |
+          kubectl set image deployment/synkora-frontend \
+            frontend=${{ env.ECR_REGISTRY }}/synkora-frontend:${{ github.ref_name }} \
+            -n ${{ env.NAMESPACE }}
+
+      - name: Update ML service image
+        if: needs.changes.outputs.ml == 'true'
+        run: |
+          kubectl set image deployment/synkora-ml \
+            ml=${{ env.ECR_REGISTRY }}/synkora-ml:${{ github.ref_name }} \
+            -n ${{ env.NAMESPACE }}
+
+      - name: Update Scraper service image
+        if: needs.changes.outputs.scraper == 'true'
+        run: |
+          kubectl set image deployment/synkora-scraper \
+            scraper=${{ env.ECR_REGISTRY }}/synkora-scraper:${{ github.ref_name }} \
+            -n ${{ env.NAMESPACE }}
+
+      - name: Update Sandbox service image
+        if: needs.changes.outputs.sandbox == 'true'
+        run: |
+          kubectl set image deployment/synkora-sandbox \
+            sandbox=${{ env.ECR_REGISTRY }}/synkora-sandbox:${{ github.ref_name }} \
+            -n ${{ env.NAMESPACE }}
+
+      # ── Rollout waits: only for what was updated ─────────────────────────
+
+      - name: Wait for API rollout
+        if: needs.changes.outputs.api == 'true'
+        run: |
+          for dep in synkora-api synkora-celery-worker synkora-celery-worker-agents \
+                     synkora-celery-worker-billing synkora-celery-worker-notifications \
+                     synkora-celery-beat synkora-bot-worker; do
+            if ! kubectl rollout status deployment/${dep} -n ${{ env.NAMESPACE }} --timeout=600s; then
+              echo "${dep} rollout failed, rolling back..."
+              kubectl rollout undo deployment/${dep} -n ${{ env.NAMESPACE }}
+              exit 1
+            fi
+          done
+
+      - name: Wait for Frontend rollout
+        if: needs.changes.outputs.web == 'true'
+        run: |
+          if ! kubectl rollout status deployment/synkora-frontend -n ${{ env.NAMESPACE }} --timeout=600s; then
+            echo "Frontend rollout failed, rolling back..."
+            kubectl rollout undo deployment/synkora-frontend -n ${{ env.NAMESPACE }}
+            exit 1
+          fi
+
+      - name: Wait for ML rollout
+        if: needs.changes.outputs.ml == 'true'
         run: |
           if ! kubectl rollout status deployment/synkora-ml -n ${{ env.NAMESPACE }} --timeout=600s; then
-            echo "ML service deployment failed, rolling back..."
+            echo "ML service rollout failed, rolling back..."
             kubectl rollout undo deployment/synkora-ml -n ${{ env.NAMESPACE }}
             exit 1
           fi
+
+      - name: Wait for Scraper rollout
+        if: needs.changes.outputs.scraper == 'true'
+        run: |
           if ! kubectl rollout status deployment/synkora-scraper -n ${{ env.NAMESPACE }} --timeout=600s; then
-            echo "Scraper service deployment failed, rolling back..."
+            echo "Scraper rollout failed, rolling back..."
             kubectl rollout undo deployment/synkora-scraper -n ${{ env.NAMESPACE }}
             exit 1
           fi
+
+      - name: Wait for Sandbox rollout
+        if: needs.changes.outputs.sandbox == 'true'
+        run: |
           if ! kubectl rollout status deployment/synkora-sandbox -n ${{ env.NAMESPACE }} --timeout=600s; then
-            echo "Sandbox service deployment failed, rolling back..."
+            echo "Sandbox rollout failed, rolling back..."
             kubectl rollout undo deployment/synkora-sandbox -n ${{ env.NAMESPACE }}
             exit 1
           fi
 
-      - name: Deploy API
-        run: |
-          IMAGE_TAG="${{ github.ref_name }}"
-          kubectl set image deployment/synkora-api api=${{ env.ECR_REGISTRY }}/synkora-api:${IMAGE_TAG} -n ${{ env.NAMESPACE }}
-          kubectl set image deployment/synkora-celery-worker celery-worker=${{ env.ECR_REGISTRY }}/synkora-api:${IMAGE_TAG} -n ${{ env.NAMESPACE }}
-          kubectl set image deployment/synkora-celery-worker-agents celery-worker-agents=${{ env.ECR_REGISTRY }}/synkora-api:${IMAGE_TAG} -n ${{ env.NAMESPACE }}
-          kubectl set image deployment/synkora-celery-worker-billing celery-worker-billing=${{ env.ECR_REGISTRY }}/synkora-api:${IMAGE_TAG} -n ${{ env.NAMESPACE }}
-          kubectl set image deployment/synkora-celery-worker-notifications celery-worker-notifications=${{ env.ECR_REGISTRY }}/synkora-api:${IMAGE_TAG} -n ${{ env.NAMESPACE }}
-          kubectl set image deployment/synkora-celery-beat celery-beat=${{ env.ECR_REGISTRY }}/synkora-api:${IMAGE_TAG} -n ${{ env.NAMESPACE }}
-          kubectl set image deployment/synkora-bot-worker bot-worker=${{ env.ECR_REGISTRY }}/synkora-api:${IMAGE_TAG} -n ${{ env.NAMESPACE }}
-          kubectl set image deployment/synkora-flower flower=${{ env.ECR_REGISTRY }}/synkora-api:${IMAGE_TAG} -n ${{ env.NAMESPACE }}
-
-      - name: Deploy Frontend
-        run: |
-          IMAGE_TAG="${{ github.ref_name }}"
-          kubectl set image deployment/synkora-frontend frontend=${{ env.ECR_REGISTRY }}/synkora-frontend:${IMAGE_TAG} -n ${{ env.NAMESPACE }}
-
-      - name: Wait for API rollout
-        run: |
-          if ! kubectl rollout status deployment/synkora-api -n ${{ env.NAMESPACE }} --timeout=600s; then
-            echo "API deployment failed, rolling back..."
-            kubectl rollout undo deployment/synkora-api -n ${{ env.NAMESPACE }}
-            exit 1
-          fi
-
-      - name: Wait for Celery worker rollout
-        run: |
-          if ! kubectl rollout status deployment/synkora-celery-worker -n ${{ env.NAMESPACE }} --timeout=600s; then
-            echo "Celery worker deployment failed, rolling back..."
-            kubectl rollout undo deployment/synkora-celery-worker -n ${{ env.NAMESPACE }}
-            exit 1
-          fi
-
-      - name: Wait for Celery agents worker rollout
-        run: |
-          if ! kubectl rollout status deployment/synkora-celery-worker-agents -n ${{ env.NAMESPACE }} --timeout=600s; then
-            echo "Celery agents worker deployment failed, rolling back..."
-            kubectl rollout undo deployment/synkora-celery-worker-agents -n ${{ env.NAMESPACE }}
-            exit 1
-          fi
-
-      - name: Wait for Celery billing worker rollout
-        run: |
-          if ! kubectl rollout status deployment/synkora-celery-worker-billing -n ${{ env.NAMESPACE }} --timeout=600s; then
-            echo "Celery billing worker deployment failed, rolling back..."
-            kubectl rollout undo deployment/synkora-celery-worker-billing -n ${{ env.NAMESPACE }}
-            exit 1
-          fi
-
-      - name: Wait for Celery notifications worker rollout
-        run: |
-          if ! kubectl rollout status deployment/synkora-celery-worker-notifications -n ${{ env.NAMESPACE }} --timeout=600s; then
-            echo "Celery notifications worker deployment failed, rolling back..."
-            kubectl rollout undo deployment/synkora-celery-worker-notifications -n ${{ env.NAMESPACE }}
-            exit 1
-          fi
-
-      - name: Wait for Celery beat rollout
-        run: |
-          if ! kubectl rollout status deployment/synkora-celery-beat -n ${{ env.NAMESPACE }} --timeout=600s; then
-            echo "Celery beat deployment failed, rolling back..."
-            kubectl rollout undo deployment/synkora-celery-beat -n ${{ env.NAMESPACE }}
-            exit 1
-          fi
-
-      - name: Wait for Bot worker rollout
-        run: |
-          if ! kubectl rollout status deployment/synkora-bot-worker -n ${{ env.NAMESPACE }} --timeout=600s; then
-            echo "Bot worker deployment failed, rolling back..."
-            kubectl rollout undo deployment/synkora-bot-worker -n ${{ env.NAMESPACE }}
-            exit 1
-          fi
-
-      - name: Wait for Frontend rollout
-        run: |
-          if ! kubectl rollout status deployment/synkora-frontend -n ${{ env.NAMESPACE }} --timeout=600s; then
-            echo "Frontend deployment failed, rolling back..."
-            kubectl rollout undo deployment/synkora-frontend -n ${{ env.NAMESPACE }}
-            exit 1
-          fi
-
+      # Health check is only meaningful when the API was redeployed
       - name: Health check
+        if: needs.changes.outputs.api == 'true'
         run: |
           echo "Waiting 30s for services to stabilize..."
           sleep 30
-          echo "Checking API health endpoint..."
-          # Use kubectl port-forward to check health internally
           kubectl run health-check --rm -i --restart=Never --image=curlimages/curl:latest -n ${{ env.NAMESPACE }} -- \
             curl -sf --max-time 10 "http://synkora-api.${{ env.NAMESPACE }}.svc.cluster.local:5001/api/health" || {
-            echo "Health check failed! Rolling back all deployments..."
-            kubectl rollout undo deployment/synkora-api -n ${{ env.NAMESPACE }}
-            kubectl rollout undo deployment/synkora-celery-worker -n ${{ env.NAMESPACE }}
-            kubectl rollout undo deployment/synkora-celery-worker-agents -n ${{ env.NAMESPACE }}
-            kubectl rollout undo deployment/synkora-celery-worker-billing -n ${{ env.NAMESPACE }}
-            kubectl rollout undo deployment/synkora-celery-worker-notifications -n ${{ env.NAMESPACE }}
-            kubectl rollout undo deployment/synkora-celery-beat -n ${{ env.NAMESPACE }}
-            kubectl rollout undo deployment/synkora-bot-worker -n ${{ env.NAMESPACE }}
-            kubectl rollout undo deployment/synkora-frontend -n ${{ env.NAMESPACE }}
+            echo "Health check failed! Rolling back API workloads..."
+            for dep in synkora-api synkora-celery-worker synkora-celery-worker-agents \
+                       synkora-celery-worker-billing synkora-celery-worker-notifications \
+                       synkora-celery-beat synkora-bot-worker synkora-flower; do
+              kubectl rollout undo deployment/${dep} -n ${{ env.NAMESPACE }} || true
+            done
             exit 1
           }
           echo "Health check passed!"
@@ -568,10 +708,14 @@ jobs:
       - name: Deployment summary
         if: success()
         run: |
-          echo "=== Deployment Summary ==="
-          echo "Image tag: ${{ github.ref_name }}"
-          echo "Namespace: ${{ env.NAMESPACE }}"
-          echo ""
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tag:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **API:**     ${{ needs.changes.outputs.api }}"     >> $GITHUB_STEP_SUMMARY
+          echo "- **Web:**     ${{ needs.changes.outputs.web }}"     >> $GITHUB_STEP_SUMMARY
+          echo "- **ML:**      ${{ needs.changes.outputs.ml }}"      >> $GITHUB_STEP_SUMMARY
+          echo "- **Scraper:** ${{ needs.changes.outputs.scraper }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Sandbox:** ${{ needs.changes.outputs.sandbox }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           kubectl get deployments -n ${{ env.NAMESPACE }}
-          echo ""
+          echo "" >> $GITHUB_STEP_SUMMARY
           kubectl get pods -n ${{ env.NAMESPACE }}

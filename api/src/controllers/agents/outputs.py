@@ -130,8 +130,8 @@ async def list_output_configs(
         result = await db.execute(select(Agent).filter(Agent.id == agent_uuid, Agent.tenant_id == tenant_id))
         agent = result.scalar_one_or_none()
     except ValueError:
-        # Not a UUID, treat as agent name
-        result = await db.execute(select(Agent).filter(Agent.agent_name == agent_id, Agent.tenant_id == tenant_id))
+        # Not a UUID, treat as agent slug
+        result = await db.execute(select(Agent).filter(Agent.slug == agent_id, Agent.tenant_id == tenant_id))
         agent = result.scalar_one_or_none()
 
     if not agent:
@@ -174,8 +174,8 @@ async def create_output_config(
         result = await db.execute(select(Agent).filter(Agent.id == agent_uuid, Agent.tenant_id == tenant_id))
         agent = result.scalar_one_or_none()
     except ValueError:
-        # Not a UUID, treat as agent name
-        result = await db.execute(select(Agent).filter(Agent.agent_name == agent_id, Agent.tenant_id == tenant_id))
+        # Not a UUID, treat as agent slug
+        result = await db.execute(select(Agent).filter(Agent.slug == agent_id, Agent.tenant_id == tenant_id))
         agent = result.scalar_one_or_none()
 
     if not agent:
