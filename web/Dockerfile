@@ -6,7 +6,7 @@ LABEL maintainer="synkora@example.com"
 RUN apk add --no-cache tzdata
 RUN corepack enable
 ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
+ENV PATH="$PNPM_HOME/bin:$PNPM_HOME:$PATH"
 
 # Accept build arguments for environment variables
 ARG NEXT_PUBLIC_API_URL
