@@ -38,7 +38,7 @@ def upgrade() -> None:
             sa.Column("tenant_id", pg.UUID(as_uuid=True), sa.ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False),
             sa.Column("name", sa.String(100), nullable=False),
             sa.Column("description", sa.String(500), nullable=True),
-            sa.Column("template_type", sa.Enum("BUILTIN", "CUSTOM_HTML", "SENDGRID", "MAILCHIMP", "BREVO", name="emailtemplatetype", create_type=False), nullable=False, server_default="BUILTIN"),
+            sa.Column("template_type", pg.ENUM("BUILTIN", "CUSTOM_HTML", "SENDGRID", "MAILCHIMP", "BREVO", name="emailtemplatetype", create_type=False), nullable=False, server_default="BUILTIN"),
             sa.Column("builtin_name", sa.String(50), nullable=True),
             sa.Column("html_content", sa.Text, nullable=True),
             sa.Column("external_provider", sa.String(50), nullable=True),
