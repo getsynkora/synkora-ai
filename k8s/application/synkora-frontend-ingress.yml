@@ -18,11 +18,21 @@ spec:
   ingressClassName: nginx
   tls:
   - hosts:
-    # REQUIRED: replace with your deployment domain before applying.
     - synkora.ai
+    - app.synkora.ai
     secretName: synkora-frontend-tls
   rules:
   - host: synkora.ai
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: synkora-frontend
+            port:
+              number: 3000
+  - host: app.synkora.ai
     http:
       paths:
       - path: /
