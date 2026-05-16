@@ -20,10 +20,15 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        'slack_bots',
-        sa.Column('created_by', UUID(as_uuid=True), sa.ForeignKey('accounts.id', ondelete='SET NULL'), nullable=True),
-    )
+    bind = op.get_bind()
+    existing = bind.execute(
+        sa.text("SELECT column_name FROM information_schema.columns WHERE table_name='slack_bots' AND column_name='created_by'")
+    ).fetchone()
+    if not existing:
+        op.add_column(
+            'slack_bots',
+            sa.Column('created_by', UUID(as_uuid=True), sa.ForeignKey('accounts.id', ondelete='SET NULL'), nullable=True),
+        )
 
 
 def downgrade() -> None:
