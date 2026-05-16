@@ -41,7 +41,7 @@ spec:
           readOnlyRootFilesystem: false  # Next.js needs write access to .next/cache
           capabilities:
             drop: ["ALL"]
-        image: IMAGE_PLACEHOLDER
+        image: FRONTEND_IMAGE_PLACEHOLDER
         imagePullPolicy: Always
         ports:
         - containerPort: 3000
