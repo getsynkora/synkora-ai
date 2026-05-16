@@ -533,9 +533,9 @@ jobs:
           fi
 
           find "$MANIFESTS_TMP" -name "*.yml" -o -name "*.yaml" | xargs sed -i \
-            "s|IMAGE_PLACEHOLDER|${API_IMAGE_TAG}|g"
-          find "$MANIFESTS_TMP" -name "*.yml" -o -name "*.yaml" | xargs sed -i \
             "s|FRONTEND_IMAGE_PLACEHOLDER|${FRONTEND_IMAGE_TAG}|g"
+          find "$MANIFESTS_TMP" -name "*.yml" -o -name "*.yaml" | xargs sed -i \
+            "s|IMAGE_PLACEHOLDER|${API_IMAGE_TAG}|g"
           find "$MANIFESTS_TMP" -name "*.yml" -o -name "*.yaml" | xargs sed -i \
             "s|DB_PORT_PLACEHOLDER|${{ vars.K8S_DB_PORT }}|g"
 
