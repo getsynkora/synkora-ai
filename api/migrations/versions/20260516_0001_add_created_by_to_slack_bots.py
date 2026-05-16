@@ -32,4 +32,5 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_column('slack_bots', 'created_by')
+    # column is owned by 20260408_0001 — no-op here
+    pass
