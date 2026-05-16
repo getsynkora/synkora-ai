@@ -66,7 +66,6 @@ WORKDIR /app/web
 # Copy built application
 COPY --from=builder /app/web/.next/standalone ./
 COPY --from=builder /app/web/.next/static ./.next/static
-# Copy public directory (required by Next.js standalone — not included automatically)
 COPY --from=builder /app/web/public ./public
 
 # Copy entrypoint script
