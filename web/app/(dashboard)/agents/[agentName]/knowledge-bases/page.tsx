@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import { BookOpen, Plus } from 'lucide-react'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import ErrorAlert from '@/components/common/ErrorAlert'
 import EmptyState from '@/components/common/EmptyState'
 import { apiClient } from '@/lib/api/client'
+import AgentPageShell from '@/components/agents/AgentPageShell'
 
 interface Agent {
   id: number
@@ -156,6 +158,10 @@ export default function AgentKnowledgeBasesPage() {
     return availableKBs.filter(kb => !attachedIds.includes(kb.id))
   }
 
+  const modalInputClass =
+    'w-full rounded-[1.15rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]'
+  const selectedKb = selectedKbId ? getUnattachedKBs().find((kb) => kb.id === selectedKbId) : null
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -165,47 +171,25 @@ export default function AgentKnowledgeBasesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-6">
-        {/* Breadcrumb */}
-        <nav className="flex items-center gap-1.5 text-sm mb-4">
-          <Link href="/agents" className="text-gray-500 hover:text-gray-700">
-            Agents
-          </Link>
-          <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-          <Link href={`/agents/${agentName}/view`} className="text-gray-500 hover:text-gray-700">
-            {decodeURIComponent(agentName)}
-          </Link>
-          <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-          <span className="text-gray-900 font-medium">Knowledge Bases</span>
-        </nav>
-
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Knowledge Bases</h1>
-            <p className="text-gray-600 mt-1 text-sm">
-              Configure which knowledge bases {agent?.name || agentName} can access
-            </p>
-          </div>
-          
-          <button
-            onClick={() => setShowAttachModal(true)}
-            disabled={getUnattachedKBs().length === 0}
-            className="px-3 py-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-medium shadow-sm"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Attach Knowledge Base
-          </button>
-        </div>
-      </div>
+    <AgentPageShell
+      agentName={agentName}
+      title="Knowledge Bases"
+      description={<>Configure which knowledge bases <span className="font-semibold text-gray-900">{agent?.name || agentName}</span> can access.</>}
+      icon={BookOpen}
+      backHref={`/agents/${agentName}/view`}
+      backLabel="Back to Agent"
+      badge="Knowledge Access"
+      actions={
+        <button
+          onClick={() => setShowAttachModal(true)}
+          disabled={getUnattachedKBs().length === 0}
+          className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Plus className="w-4 h-4" />
+          Attach Knowledge Base
+        </button>
+      }
+    >
 
       {error && (
         <div className="mb-6">
@@ -316,16 +300,22 @@ export default function AgentKnowledgeBasesPage() {
 
       {/* Attach Modal */}
       {showAttachModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200">
-            <div className="flex justify-between items-center mb-5">
-              <h2 className="text-xl font-bold text-gray-900">Attach Knowledge Base</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(17,17,17,0.48)] p-4 backdrop-blur-[6px]">
+          <div className="w-full max-w-3xl overflow-hidden rounded-[1.9rem] border border-black/10 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.96),_rgba(247,240,231,0.96)_55%,_rgba(239,232,223,0.96)_100%)] shadow-[0_36px_110px_rgba(0,0,0,0.24)]">
+            <div className="flex items-start justify-between border-b border-black/10 bg-white/55 px-8 py-6">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7c5d45]">Knowledge Access</p>
+                <h2 className="mt-2 text-[2rem] font-semibold tracking-[-0.04em] text-gray-950">Attach Knowledge Base</h2>
+                <p className="mt-2 text-sm leading-6 text-gray-600">
+                  Choose an existing knowledge base and tune how this agent should retrieve content from it.
+                </p>
+              </div>
               <button
                 onClick={() => {
                   setShowAttachModal(false)
                   setSelectedKbId(null)
                 }}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="rounded-full p-2 text-gray-400 transition-colors hover:bg-white hover:text-gray-700"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -333,114 +323,172 @@ export default function AgentKnowledgeBasesPage() {
               </button>
             </div>
 
-            {/* Select Knowledge Base */}
-            <div className="mb-5">
-              <label className="block text-xs font-medium text-gray-700 mb-2">
-                Select Knowledge Base
-              </label>
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {getUnattachedKBs().map((kb) => (
-                  <button
-                    key={kb.id}
-                    onClick={() => setSelectedKbId(kb.id)}
-                    className={`w-full text-left p-3.5 rounded-lg border-2 transition-all ${
-                      selectedKbId === kb.id
-                        ? 'border-red-500 bg-red-50'
-                        : 'border-gray-200 hover:border-red-200'
-                    }`}
-                  >
-                    <h3 className="text-sm font-semibold text-gray-900">{kb.name}</h3>
-                    <p className="text-xs text-gray-600 mt-1">{kb.description}</p>
-                    <div className="flex gap-2 mt-2">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${getProviderBadgeColor(kb.vector_db_provider)}`}>
-                        {kb.vector_db_provider}
-                      </span>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700">
-                        {kb.total_documents} docs
-                      </span>
-                    </div>
-                  </button>
-                ))}
+            <div className="max-h-[calc(90vh-13rem)] overflow-y-auto px-8 py-6">
+              {/* Select Knowledge Base */}
+              <div className="mb-6">
+                <div className="mb-3 flex items-end justify-between gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-[#7c5d45]">
+                      Select Knowledge Base
+                    </label>
+                    <p className="mt-1 text-sm text-gray-600">Pick one unattached knowledge base for this agent.</p>
+                  </div>
+                  <span className="rounded-full border border-black/10 bg-white/75 px-3 py-1 text-xs font-semibold text-gray-600">
+                    {getUnattachedKBs().length} available
+                  </span>
+                </div>
+
+                <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                  {getUnattachedKBs().map((kb) => (
+                    <button
+                      key={kb.id}
+                      onClick={() => setSelectedKbId(kb.id)}
+                      className={`w-full rounded-[1.35rem] border p-4 text-left transition-all ${
+                        selectedKbId === kb.id
+                          ? 'border-[#171717] bg-white shadow-[0_20px_48px_rgba(0,0,0,0.08)]'
+                          : 'border-black/10 bg-[#fcfaf5] hover:border-black/20 hover:bg-white'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="truncate text-[1.05rem] font-semibold tracking-[-0.02em] text-gray-950">{kb.name}</h3>
+                            {selectedKbId === kb.id && (
+                              <span className="rounded-full bg-[#171717] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white">
+                                Selected
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-1 text-sm leading-6 text-gray-600">
+                            {kb.description || 'No description available.'}
+                          </p>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${getProviderBadgeColor(kb.vector_db_provider)}`}>
+                              {kb.vector_db_provider}
+                            </span>
+                            <span className="inline-flex items-center rounded-full bg-[#edf4f6] px-2.5 py-1 text-xs font-semibold text-[#486c77]">
+                              {kb.total_documents} docs
+                            </span>
+                            <span className="inline-flex items-center rounded-full bg-[#f1eadc] px-2.5 py-1 text-xs font-semibold text-[#7c5d45]">
+                              {kb.total_chunks} chunks
+                            </span>
+                          </div>
+                        </div>
+                        <div className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border ${
+                          selectedKbId === kb.id
+                            ? 'border-[#171717] bg-[#171717] text-white'
+                            : 'border-black/15 bg-white text-transparent'
+                        }`}>
+                          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
+
+              {/* Retrieval Configuration */}
+              {selectedKbId && (
+                <div className="rounded-[1.6rem] border border-black/10 bg-white/78 p-5 shadow-[0_18px_40px_rgba(0,0,0,0.04)]">
+                  <div className="mb-4 flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-semibold tracking-[-0.02em] text-gray-950">Retrieval Configuration</h3>
+                      <p className="mt-1 text-sm leading-6 text-gray-600">
+                        {selectedKb ? <>Tune how <span className="font-semibold text-gray-900">{selectedKb.name}</span> should be queried for this agent.</> : 'Tune retrieval behavior for the selected knowledge base.'}
+                      </p>
+                    </div>
+                    <div className="rounded-[1.1rem] bg-[#f1eadc] px-3 py-2 text-right">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7c5d45]">Current preset</p>
+                      <p className="mt-1 text-sm font-semibold text-gray-900">
+                        Top {attachConfig.top_k} · {attachConfig.score_threshold}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[#7c5d45]">
+                        Top K Results
+                      </label>
+                      <input
+                        type="number"
+                        value={attachConfig.top_k}
+                        onChange={(e) => setAttachConfig({ ...attachConfig, top_k: parseInt(e.target.value) })}
+                        className={modalInputClass}
+                        min="1"
+                        max="20"
+                      />
+                      <p className="mt-1.5 text-xs text-gray-500">
+                        Number of relevant chunks to retrieve, from 1 to 20.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[#7c5d45]">
+                        Score Threshold
+                      </label>
+                      <input
+                        type="number"
+                        value={attachConfig.score_threshold}
+                        onChange={(e) => setAttachConfig({ ...attachConfig, score_threshold: parseFloat(e.target.value) })}
+                        className={modalInputClass}
+                        min="0"
+                        max="1"
+                        step="0.1"
+                      />
+                      <p className="mt-1.5 text-xs text-gray-500">
+                        Minimum similarity score between 0.0 and 1.0.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 rounded-[1.2rem] border border-black/10 bg-[#fcfaf5] px-4 py-3">
+                    <label className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={attachConfig.include_metadata}
+                        onChange={(e) => setAttachConfig({ ...attachConfig, include_metadata: e.target.checked })}
+                        className="h-4 w-4 rounded border-gray-300 text-[#171717] focus:ring-[#79dfbc]"
+                      />
+                      <div>
+                        <span className="block text-sm font-semibold text-gray-900">Include metadata in results</span>
+                        <span className="text-xs text-gray-500">Return additional source context alongside retrieved content.</span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Retrieval Configuration */}
-            {selectedKbId && (
-              <div className="space-y-4 mb-5">
-                <h3 className="text-base font-semibold text-gray-900">Retrieval Configuration</h3>
-                
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                    Top K Results
-                  </label>
-                  <input
-                    type="number"
-                    value={attachConfig.top_k}
-                    onChange={(e) => setAttachConfig({ ...attachConfig, top_k: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                    min="1"
-                    max="20"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Number of relevant chunks to retrieve (1-20)
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                    Score Threshold
-                  </label>
-                  <input
-                    type="number"
-                    value={attachConfig.score_threshold}
-                    onChange={(e) => setAttachConfig({ ...attachConfig, score_threshold: parseFloat(e.target.value) })}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                    min="0"
-                    max="1"
-                    step="0.1"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Minimum similarity score (0.0-1.0)
-                  </p>
-                </div>
-
-                <div>
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={attachConfig.include_metadata}
-                      onChange={(e) => setAttachConfig({ ...attachConfig, include_metadata: e.target.checked })}
-                      className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
-                    />
-                    <span className="text-xs text-gray-700">Include metadata in results</span>
-                  </label>
-                </div>
-              </div>
-            )}
-
             {/* Actions */}
-            <div className="flex gap-3">
-              <button
-                onClick={handleAttach}
-                disabled={!selectedKbId}
-                className="flex-1 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium shadow-sm"
-              >
-                Attach Knowledge Base
-              </button>
-              <button
-                onClick={() => {
-                  setShowAttachModal(false)
-                  setSelectedKbId(null)
-                }}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
-              >
-                Cancel
-              </button>
+            <div className="flex items-center justify-between gap-3 border-t border-black/10 bg-white/60 px-8 py-5">
+              <p className="text-xs text-gray-500">
+                {selectedKb ? `Ready to attach ${selectedKb.name}.` : 'Select a knowledge base to continue.'}
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowAttachModal(false)
+                    setSelectedKbId(null)
+                  }}
+                  className="rounded-[1rem] border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-[#fcfaf5]"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAttach}
+                  disabled={!selectedKbId}
+                  className="rounded-[1rem] bg-[#171717] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:bg-gray-400"
+                >
+                  Attach Knowledge Base
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
-      </div>
-    </div>
+    </AgentPageShell>
   )
 }

@@ -40,6 +40,7 @@ def mock_tool_registry():
     registry = Mock()
     registry.load_agent_mcp_tools = AsyncMock()
     registry.load_agent_custom_tools = AsyncMock()
+    registry.list_tools = Mock(return_value=[])
     return registry
 
 
@@ -236,11 +237,17 @@ class TestSanitizeForJson:
 class TestSelectTools:
     """Tests for _select_tools method."""
 
-    def test_select_tools_from_config(self, mock_agent_loader, mock_chat_service):
+    def test_select_tools_from_config(self, mock_agent_loader, mock_chat_service, mock_tool_registry):
         """Test selecting tools from agent config."""
         from src.services.agents.chat_stream_service import ChatStreamService
 
-        service = ChatStreamService(mock_agent_loader, mock_chat_service)
+        mock_tool_registry.list_tools.return_value = [
+            {"name": "tool1", "description": "Tool one", "parameters": {}},
+            {"name": "tool2", "description": "Tool two", "parameters": {}},
+            {"name": "internal_search_available_tools", "description": "Search tools", "parameters": {}},
+            {"name": "internal_list_tool_categories", "description": "List tool categories", "parameters": {}},
+        ]
+        service = ChatStreamService(mock_agent_loader, mock_chat_service, tool_registry=mock_tool_registry)
 
         agent = Mock()
         tool1 = Mock()
@@ -254,11 +261,17 @@ class TestSelectTools:
         assert "tool1" in result
         assert "tool2" in result
 
-    def test_select_tools_from_db(self, mock_agent_loader, mock_chat_service):
+    def test_select_tools_from_db(self, mock_agent_loader, mock_chat_service, mock_tool_registry):
         """Test selecting tools from database."""
         from src.services.agents.chat_stream_service import ChatStreamService
 
-        service = ChatStreamService(mock_agent_loader, mock_chat_service)
+        mock_tool_registry.list_tools.return_value = [
+            {"name": "db_tool1", "description": "Database tool one", "parameters": {}},
+            {"name": "db_tool2", "description": "Database tool two", "parameters": {}},
+            {"name": "internal_search_available_tools", "description": "Search tools", "parameters": {}},
+            {"name": "internal_list_tool_categories", "description": "List tool categories", "parameters": {}},
+        ]
+        service = ChatStreamService(mock_agent_loader, mock_chat_service, tool_registry=mock_tool_registry)
 
         agent = Mock()
         agent.config.tools = []
@@ -273,11 +286,17 @@ class TestSelectTools:
         assert "db_tool1" in result
         assert "db_tool2" in result
 
-    def test_select_tools_combined(self, mock_agent_loader, mock_chat_service):
+    def test_select_tools_combined(self, mock_agent_loader, mock_chat_service, mock_tool_registry):
         """Test combining tools from config and database."""
         from src.services.agents.chat_stream_service import ChatStreamService
 
-        service = ChatStreamService(mock_agent_loader, mock_chat_service)
+        mock_tool_registry.list_tools.return_value = [
+            {"name": "config_tool", "description": "Configuration tool", "parameters": {}},
+            {"name": "db_tool", "description": "Database tool", "parameters": {}},
+            {"name": "internal_search_available_tools", "description": "Search tools", "parameters": {}},
+            {"name": "internal_list_tool_categories", "description": "List tool categories", "parameters": {}},
+        ]
+        service = ChatStreamService(mock_agent_loader, mock_chat_service, tool_registry=mock_tool_registry)
 
         agent = Mock()
         config_tool = Mock()
@@ -292,12 +311,17 @@ class TestSelectTools:
         assert "config_tool" in result
         assert "db_tool" in result
 
-    def test_select_tools_deduplication(self, mock_agent_loader, mock_chat_service):
+    def test_select_tools_deduplication(self, mock_agent_loader, mock_chat_service, mock_tool_registry):
         """Test deduplication of tool names."""
         from src.services.agents.chat_stream_service import ChatStreamService
         from src.services.agents.tool_filter import ALWAYS_INCLUDE_TOOLS
 
-        service = ChatStreamService(mock_agent_loader, mock_chat_service)
+        mock_tool_registry.list_tools.return_value = [
+            {"name": "same_tool", "description": "Deduplicated tool", "parameters": {}},
+            {"name": "internal_search_available_tools", "description": "Search tools", "parameters": {}},
+            {"name": "internal_list_tool_categories", "description": "List tool categories", "parameters": {}},
+        ]
+        service = ChatStreamService(mock_agent_loader, mock_chat_service, tool_registry=mock_tool_registry)
 
         agent = Mock()
         config_tool = Mock()
@@ -316,12 +340,16 @@ class TestSelectTools:
         for tool in ALWAYS_INCLUDE_TOOLS:
             assert tool in result
 
-    def test_select_tools_no_tools(self, mock_agent_loader, mock_chat_service):
+    def test_select_tools_no_tools(self, mock_agent_loader, mock_chat_service, mock_tool_registry):
         """Test selecting when no tools available - still includes discovery tools."""
         from src.services.agents.chat_stream_service import ChatStreamService
         from src.services.agents.tool_filter import ALWAYS_INCLUDE_TOOLS
 
-        service = ChatStreamService(mock_agent_loader, mock_chat_service)
+        mock_tool_registry.list_tools.return_value = [
+            {"name": "internal_search_available_tools", "description": "Search tools", "parameters": {}},
+            {"name": "internal_list_tool_categories", "description": "List tool categories", "parameters": {}},
+        ]
+        service = ChatStreamService(mock_agent_loader, mock_chat_service, tool_registry=mock_tool_registry)
 
         agent = Mock()
         agent.config.tools = []

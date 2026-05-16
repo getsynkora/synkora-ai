@@ -140,7 +140,7 @@ class AgentLoaderService:
         router classifies the query and selects the most cost-effective LLM config.
 
         Args:
-            agent_name: Name of the agent
+            agent_name: Slug of the agent (globally unique)
             db: Database session
             llm_config_id: Explicit LLM config ID override (bypasses routing)
             query: User message (used by router for intent/complexity classification)
@@ -150,6 +150,7 @@ class AgentLoaderService:
         Returns:
             AgentLoadResult with loaded agent, routing decision, and fallback IDs
         """
+        agent_slug = agent_name  # parameter kept as agent_name for call-site compat
         start_time = time.time()
 
         # Fast path: agent is already warm in the in-process registry AND in Redis.
@@ -159,14 +160,14 @@ class AgentLoaderService:
         #   - llm_config_id is set (needs fresh DB config)
         #   - query is set (routing may select a different config)
         if not llm_config_id and not query:
-            in_memory_agent = self.agent_manager.registry.get(agent_name, tenant_id)
+            in_memory_agent = self.agent_manager.registry.get(agent_slug, tenant_id)
             if in_memory_agent and in_memory_agent.llm_client:
-                cached_data = await self.cache.get_agent_config(agent_name, tenant_id=tenant_id)
+                cached_data = await self.cache.get_agent_config(agent_slug, tenant_id=tenant_id)
                 if cached_data:
                     db_agent = self._reconstruct_agent(cached_data)
                     is_workflow = bool(db_agent.workflow_type)
                     logger.info(
-                        f"⚡ Fast path HIT for agent '{agent_name}' "
+                        f"⚡ Fast path HIT for agent '{agent_slug}' "
                         f"(registry+redis, no DB) ({time.time() - start_time:.4f}s)"
                     )
                     return AgentLoadResult(
@@ -178,32 +179,32 @@ class AgentLoaderService:
                     )
 
         # Slow path: Redis → DB lookup
-        cached_data = await self.cache.get_agent_config(agent_name, tenant_id=tenant_id)
+        cached_data = await self.cache.get_agent_config(agent_slug, tenant_id=tenant_id)
 
         if cached_data:
             db_agent = await self._load_from_cache(cached_data, db)
             cache_hit = True
-            logger.info(f"Cache HIT for agent '{agent_name}' ({time.time() - start_time:.3f}s)")
+            logger.info(f"Cache HIT for agent '{agent_slug}' ({time.time() - start_time:.3f}s)")
         else:
-            db_agent = await self._load_from_database(agent_name, db, tenant_id=tenant_id)
+            db_agent = await self._load_from_database(agent_slug, db, tenant_id=tenant_id)
             cache_hit = False
 
             if db_agent:
                 await self._cache_agent(db_agent, db, requesting_tenant_id=tenant_id)
                 logger.info(
-                    f"Cache MISS for agent '{agent_name}', cached for next time ({time.time() - start_time:.3f}s)"
+                    f"Cache MISS for agent '{agent_slug}', cached for next time ({time.time() - start_time:.3f}s)"
                 )
 
         if not db_agent:
             return AgentLoadResult(
-                error=f"Agent {agent_name} not found in database", loading_time=time.time() - start_time
+                error=f"Agent {agent_slug} not found in database", loading_time=time.time() - start_time
             )
 
         # Check if workflow agent
         is_workflow = bool(db_agent.workflow_type)
 
         if is_workflow:
-            logger.info(f"Detected workflow agent: {agent_name}, type: {db_agent.workflow_type}")
+            logger.info(f"Detected workflow agent: {agent_slug}, type: {db_agent.workflow_type}")
             return AgentLoadResult(
                 db_agent=db_agent, cache_hit=cache_hit, loading_time=time.time() - start_time, is_workflow=True
             )
@@ -225,7 +226,7 @@ class AgentLoaderService:
 
         # Load regular agent into memory
         agent = await self._load_agent_to_memory(
-            agent_name=agent_name,
+            agent_name=agent_slug,
             db_agent=db_agent,
             cached_data=cached_data,
             llm_config_id=effective_config_id,
@@ -254,16 +255,19 @@ class AgentLoaderService:
         """
         return self._reconstruct_agent(cached_data)
 
-    async def _load_from_database(self, agent_name: str, db: AsyncSession, tenant_id: str = "") -> Agent | None:
-        """Load agent from database, scoped to tenant to prevent cross-tenant leakage.
+    async def _load_from_database(self, agent_slug: str, db: AsyncSession, tenant_id: str = "") -> Agent | None:
+        """Load agent from database by slug, scoped to tenant to prevent cross-tenant leakage.
 
         Platform-shared agents (tenant_id = zero UUID) are accessible to all tenants.
+        The platform fallback uses agent_name lookup (platform_engineer_agent is the only
+        platform agent and does not use slug-based routing).
         """
         from uuid import UUID
 
         _PLATFORM_TENANT_ID = UUID("00000000-0000-0000-0000-000000000000")
 
-        filters = [Agent.agent_name == agent_name]
+        filters = [Agent.slug == agent_slug]
+        tid = None
         if tenant_id:
             try:
                 tid = UUID(tenant_id)
@@ -276,10 +280,10 @@ class AgentLoaderService:
         agent = result.scalar_one_or_none()
 
         # Fall back to the platform-shared agent (zero UUID tenant) when not found under current tenant.
-        # This handles built-in agents like platform_engineer_agent that are shared across all tenants.
+        # Platform agents are looked up by agent_name since they are seeded without slugs.
         if agent is None and tenant_id and tid != _PLATFORM_TENANT_ID:
             result = await db.execute(
-                select(Agent).filter(Agent.agent_name == agent_name, Agent.tenant_id == _PLATFORM_TENANT_ID)
+                select(Agent).filter(Agent.agent_name == agent_slug, Agent.tenant_id == _PLATFORM_TENANT_ID)
             )
             agent = result.scalar_one_or_none()
 
@@ -329,6 +333,7 @@ class AgentLoaderService:
         agent_dict = {
             "id": str(db_agent.id),
             "agent_name": db_agent.agent_name,
+            "slug": db_agent.slug,
             "agent_type": db_agent.agent_type,
             "description": db_agent.description,
             "avatar": db_agent.avatar,
@@ -348,9 +353,11 @@ class AgentLoaderService:
             "updated_at": db_agent.updated_at.isoformat() if db_agent.updated_at else None,
         }
 
+        # Use slug as cache key when available; fall back to agent_name for platform agents
+        cache_slug = db_agent.slug or db_agent.agent_name
         cache_tenant_id = str(db_agent.tenant_id)
         await self.cache.set_agent_config(
-            agent_name=db_agent.agent_name,
+            slug=cache_slug,
             tenant_id=cache_tenant_id,
             config=agent_dict,
         )
@@ -364,7 +371,7 @@ class AgentLoaderService:
             and requesting_tenant_id != _PLATFORM_TENANT_ID
         ):
             await self.cache.set_agent_config(
-                agent_name=db_agent.agent_name,
+                slug=cache_slug,
                 tenant_id=requesting_tenant_id,
                 config=agent_dict,
             )
@@ -415,7 +422,7 @@ class AgentLoaderService:
             tools = [ToolConfig(**tool) for tool in db_agent.tools_config["tools"]]
 
         config = AgentConfig(
-            name=db_agent.agent_name,
+            name=agent_name,  # slug — consistent with registry lookup key
             description=db_agent.description or "",
             system_prompt=db_agent.system_prompt or "",
             llm_config=llm_config,
@@ -536,7 +543,8 @@ class AgentLoaderService:
         from src.models.agent_llm_config import AgentLLMConfig
 
         # Key consistent with AgentCacheService._build_key so invalidation works
-        cache_key = self.cache._build_key("llm_configs", db_agent.agent_name)
+        # Use slug when available; fall back to agent_name for platform agents without slugs
+        cache_key = self.cache._build_key("llm_configs", db_agent.slug or db_agent.agent_name)
 
         # ── Redis fast path ──────────────────────────────────────────────────
         redis = self.cache._get_redis()

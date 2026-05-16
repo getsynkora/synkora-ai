@@ -1,14 +1,17 @@
+const path = require('path')
 const { withSentryConfig } = require('@sentry/nextjs')
+const withBundleAnalyzer =
+  process.env.ANALYZE === 'true'
+    ? require('@next/bundle-analyzer')({ enabled: true })
+    : (config) => config
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
+  outputFileTracingRoot: path.join(__dirname, '..'),
   // Never expose source maps to the browser in production (regardless of Sentry config)
   productionBrowserSourceMaps: false,
-
-  // Turbopack config (Next.js 16+ uses Turbopack by default)
-  turbopack: {},
 
   // Transpile ESM-only packages
   transpilePackages: ['remark-gfm', 'chart.js', 'react-chartjs-2', 'mermaid'],
@@ -37,7 +40,7 @@ const nextConfig = {
     unoptimized: process.env.NODE_ENV === 'development',
   },
 
-  // Webpack configuration
+  // Keep Webpack enabled in scripts until these client-side fallbacks are no longer needed.
   webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
@@ -198,8 +201,10 @@ const nextConfig = {
   },
 }
 
+const analyzedConfig = withBundleAnalyzer(nextConfig)
+
 module.exports = process.env.NEXT_PUBLIC_SENTRY_DSN
-  ? withSentryConfig(nextConfig, {
+  ? withSentryConfig(analyzedConfig, {
       org: process.env.SENTRY_ORG || '',
       project: process.env.SENTRY_PROJECT || '',
       silent: true,
@@ -207,4 +212,4 @@ module.exports = process.env.NEXT_PUBLIC_SENTRY_DSN
       hideSourceMaps: true,
       disableLogger: true,
     })
-  : nextConfig
+  : analyzedConfig

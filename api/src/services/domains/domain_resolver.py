@@ -51,29 +51,29 @@ class DomainResolver:
             logger.error(f"Error resolving domain {domain}: {str(e)}")
             return None
 
-    async def resolve_agent_by_name(self, agent_name: str) -> Agent | None:
+    async def resolve_agent_by_slug(self, agent_slug: str) -> Agent | None:
         """
-        Resolve agent by agent_name directly (for URL-based routing)
+        Resolve agent by slug directly (for URL-based routing)
 
         Args:
-            agent_name: The agent_name to resolve (e.g., 'Product Owner Agent')
+            agent_slug: The slug to resolve (e.g., 'product-owner-agent')
 
         Returns:
             Agent object if found, None otherwise
         """
         try:
-            stmt = select(Agent).where(Agent.agent_name == agent_name, Agent.status == "ACTIVE")
+            stmt = select(Agent).where(Agent.slug == agent_slug, Agent.status == "ACTIVE")
 
             result = await self.db.execute(stmt)
             agent = result.scalar_one_or_none()
 
             if agent:
-                logger.info(f"Resolved agent_name {agent_name} to agent {agent.agent_name}")
+                logger.info(f"Resolved slug {agent_slug} to agent {agent.slug}")
 
             return agent
 
         except Exception as e:
-            logger.error(f"Error resolving agent_name {agent_name}: {str(e)}")
+            logger.error(f"Error resolving slug {agent_slug}: {str(e)}")
             return None
 
     async def _resolve_custom_domain(self, domain: str) -> Agent | None:

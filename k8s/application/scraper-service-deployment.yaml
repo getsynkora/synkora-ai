@@ -28,6 +28,25 @@ spec:
       - name: scraper
         image: IMAGE_PLACEHOLDER
         imagePullPolicy: Always
+        env:
+        - name: APP_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: synkora-config
+              key: APP_ENV
+        - name: SCRAPER_MAX_CONCURRENT_REQUESTS
+          value: "8"
+        - name: SCRAPER_MAX_SESSIONS
+          value: "20"
+        - name: SCRAPER_MAX_PAGES_PER_SESSION
+          value: "8"
+        - name: SCRAPER_SESSION_IDLE_TTL_SECONDS
+          value: "1800"
+        - name: SCRAPER_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: synkora-secrets
+              key: SCRAPER_API_KEY
         ports:
         - containerPort: 5003
           name: http

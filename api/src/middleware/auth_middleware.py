@@ -168,13 +168,16 @@ async def get_current_account(
 
 def get_current_tenant_id(
     payload: dict = Depends(_decode_token),
+    _current_account: Account = Depends(get_current_account),
 ) -> uuid.UUID:
     """
     Get the current tenant ID from JWT token.
 
     This is a FastAPI dependency for extracting tenant context.
-    Uses the cached _decode_token dependency — no extra JWT decode if
-    get_current_account is also a dependency on the same route.
+    SECURITY: Also depends on get_current_account so tenant-scoped routes enforce
+    token revocation, token-version checks, and active account status. FastAPI
+    caches dependencies per request, so routes that already request
+    get_current_account do not perform duplicate JWT/Redis/DB work.
 
     Usage:
         @router.get("/tenant-resource")

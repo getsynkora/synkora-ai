@@ -81,7 +81,7 @@ class TestAuthRegistration:
                 "tenant_name": "Test Org",
             },
         )
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     @pytest.mark.asyncio
     async def test_register_short_password(self, async_client: AsyncClient):
@@ -95,7 +95,7 @@ class TestAuthRegistration:
                 "tenant_name": "Test Org",
             },
         )
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 class TestAuthLogin:

@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import toast from 'react-hot-toast'
 import { getLifeAudit, getLifeAuditStreamUrl } from '@/lib/api/rate-my-life'
 import { getDebate } from '@/lib/api/war-room'
 import type { DebateEvent } from '@/lib/api/war-room'
@@ -11,6 +12,8 @@ import { LifeDebateArena } from '@/components/rate-my-life/LifeDebateArena'
 import { LifeScorecard } from '@/components/rate-my-life/LifeScorecard'
 import type { LifeAuditResult } from '@/lib/api/rate-my-life'
 import { cn } from '@/lib/utils/cn'
+import { Sparkles, Scale, Share2, Activity } from 'lucide-react'
+import DashboardPageShell, { DashboardPagePanel, DashboardPageTabs } from '@/components/dashboard/DashboardPageShell'
 
 type ViewMode = 'debate' | 'scorecard'
 
@@ -108,9 +111,9 @@ export default function LifeAuditResultPage() {
 
   if (!currentDebate) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 flex items-center justify-center">
+      <div className="dashboard-resource-page flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 border-2 border-gray-200 border-t-red-500 rounded-full animate-spin mx-auto mb-3" />
+          <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-[#171717]" />
           <p className="text-sm text-gray-500">Loading your life audit...</p>
         </div>
       </div>
@@ -121,97 +124,72 @@ export default function LifeAuditResultPage() {
   const isCompleted = currentDebate.status === 'completed'
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="mx-4 mt-4 bg-white/80 backdrop-blur-sm rounded-lg shadow-sm border border-gray-200 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 min-w-0">
+    <DashboardPageShell
+      title="Rate My Life"
+      description="Watch specialist AI agents debate your answers in real time, then review the final scorecard and verdict."
+      icon={Sparkles}
+      badge="Labs"
+      maxWidthClassName="max-w-6xl"
+      breadcrumbs={[
+        { label: 'Home', href: '/' },
+        { label: 'Rate My Life', href: '/rate-my-life' },
+        { label: auditId },
+      ]}
+      stats={[
+        { label: 'Status', value: isLive ? 'Live debate' : isCompleted ? 'Completed' : 'Starting' },
+        { label: 'Agents', value: currentDebate.participants.length },
+        { label: 'Round', value: `${currentDebate.current_round}/${currentDebate.rounds}` },
+      ]}
+      actions={
+        <div className="flex flex-wrap items-center gap-3">
+          {isCompleted && auditResult ? (
+            <DashboardPageTabs
+              activeId={viewMode}
+              onChange={(id) => setViewMode(id as ViewMode)}
+              items={[
+                { id: 'scorecard', label: 'Scorecard', icon: <Scale className="h-4 w-4" /> },
+                { id: 'debate', label: 'Debate', icon: <Activity className="h-4 w-4" /> },
+              ]}
+              className="inline-flex"
+            />
+          ) : null}
+
+          {currentDebate.share_token && isCompleted ? (
             <button
-              onClick={() => router.push('/rate-my-life')}
-              className="text-gray-500 hover:text-gray-700 flex-shrink-0"
+              onClick={() => {
+                const url = `${window.location.origin}/war-room/${currentDebate.share_token}/live`
+                navigator.clipboard.writeText(url)
+                toast.success('Share link copied')
+              }}
+              className="inline-flex items-center gap-2 rounded-[1rem] border border-black/10 bg-white/85 px-4 py-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-white hover:text-[#171717]"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
+              <Share2 className="h-4 w-4" />
+              Share
             </button>
-            <div className="min-w-0">
-              <h2 className="text-sm font-semibold text-gray-900">Rate My Life</h2>
-              <div className="flex items-center gap-3 mt-0.5">
-                <span className={cn(
-                  'text-xs font-medium flex items-center gap-1.5',
-                  isLive ? 'text-green-600' : isCompleted ? 'text-blue-600' : 'text-gray-500'
-                )}>
-                  {isLive && <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />}
-                  {isLive ? 'Agents debating...' : isCompleted ? 'Completed' : 'Starting...'}
-                </span>
-                <span className="text-[11px] text-gray-500">
-                  {currentDebate.participants.length} agents | Round {currentDebate.current_round}/{currentDebate.rounds}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {/* View toggle */}
-            {isCompleted && auditResult && (
-              <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
-                <button
-                  onClick={() => setViewMode('scorecard')}
-                  className={cn(
-                    'px-3 py-1.5 text-xs font-medium rounded-md transition-all',
-                    viewMode === 'scorecard' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                  )}
-                >
-                  Scorecard
-                </button>
-                <button
-                  onClick={() => setViewMode('debate')}
-                  className={cn(
-                    'px-3 py-1.5 text-xs font-medium rounded-md transition-all',
-                    viewMode === 'debate' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                  )}
-                >
-                  Debate
-                </button>
-              </div>
-            )}
-
-            {/* Share */}
-            {currentDebate.share_token && isCompleted && (
-              <button
-                onClick={() => {
-                  const url = `${window.location.origin}/war-room/${currentDebate.share_token}/live`
-                  navigator.clipboard.writeText(url)
-                }}
-                className="px-3 py-1.5 text-xs text-gray-600 border border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors font-medium"
-              >
-                Share
-              </button>
-            )}
-          </div>
+          ) : null}
         </div>
-
-        {/* Participant pills -- only show when not live (arena has its own status bar) */}
-        {!isLive && (
-          <div className="flex items-center gap-2 mt-3 overflow-x-auto pb-1">
+      }
+    >
+      {!isLive ? (
+        <DashboardPagePanel className="mb-6 p-4">
+          <div className="flex flex-wrap items-center gap-2">
             {currentDebate.participants.map((p) => (
               <span
                 key={p.id}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium text-gray-700 border flex-shrink-0"
+                className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium text-gray-700"
                 style={{ backgroundColor: `${p.color}10`, borderColor: `${p.color}30` }}
               >
-                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: p.color }} />
                 {p.agent_name}
               </span>
             ))}
           </div>
-        )}
-      </div>
+        </DashboardPagePanel>
+      ) : null}
 
-      {/* Content */}
       {viewMode === 'scorecard' && auditResult ? (
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className="overflow-y-auto">
+          <div className="mx-auto max-w-4xl py-1">
             <LifeScorecard
               scores={auditResult.scores}
               highlights={auditResult.agent_highlights}
@@ -221,16 +199,18 @@ export default function LifeAuditResultPage() {
           </div>
         </div>
       ) : (
-        <LifeDebateArena
-          messages={currentDebate.messages}
-          participants={currentDebate.participants}
-          streamingParticipantId={streamingParticipantId}
-          streamingContent={streamingContent}
-          verdict={currentDebate.verdict}
-          currentRound={currentDebate.current_round}
-          totalRounds={currentDebate.rounds}
-        />
+        <DashboardPagePanel className="overflow-hidden">
+          <LifeDebateArena
+            messages={currentDebate.messages}
+            participants={currentDebate.participants}
+            streamingParticipantId={streamingParticipantId}
+            streamingContent={streamingContent}
+            verdict={currentDebate.verdict}
+            currentRound={currentDebate.current_round}
+            totalRounds={currentDebate.rounds}
+          />
+        </DashboardPagePanel>
       )}
-    </div>
+    </DashboardPageShell>
   )
 }

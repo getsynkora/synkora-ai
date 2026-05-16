@@ -52,8 +52,8 @@ export interface ChatConfigResponse {
   chat_page_config: ChatPageConfig | null;
 }
 
-export async function getChatConfig(agentName: string): Promise<ChatConfigResponse> {
-  const response = await apiClient.request('GET', `/api/v1/agents/${agentName}/chat-config`);
+export async function getChatConfig(agentId: string): Promise<ChatConfigResponse> {
+  const response = await apiClient.request('GET', `/api/v1/agents/${agentId}/chat-config`);
   return response;
 }
 

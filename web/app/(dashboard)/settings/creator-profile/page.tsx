@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { Loader2, User, CreditCard, TrendingUp, ExternalLink, CheckCircle } from 'lucide-react'
 import { apiClient } from '@/lib/api/client'
+import DashboardPageShell, { DashboardPagePanel, DashboardPageTabs } from '@/components/dashboard/DashboardPageShell'
 
 type Tab = 'profile' | 'payouts' | 'earnings'
 
@@ -93,204 +94,209 @@ export default function CreatorProfilePage() {
     { id: 'earnings', label: 'Earnings', icon: TrendingUp },
   ]
 
+  const fieldClass =
+    'w-full rounded-[1.1rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]'
+  const sectionTitleClass = 'text-lg font-semibold tracking-[-0.02em] text-gray-950'
+
   return (
-    <div className="container mx-auto px-4 py-8 max-w-3xl">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Creator Studio</h1>
-        <p className="text-sm text-gray-500 mt-1">Manage your creator profile, payouts, and earnings</p>
-      </div>
+    <DashboardPageShell
+      title="Creator Studio"
+      description="Manage your creator profile, payouts, and earnings."
+      icon={User}
+      badge="Settings"
+      backHref="/settings/profile"
+      backLabel="Back to Settings"
+      maxWidthClassName="max-w-5xl"
+      breadcrumbs={[
+        { label: 'Home', href: '/' },
+        { label: 'Settings', href: '/settings/profile' },
+        { label: 'Creator Studio' },
+      ]}
+      actions={
+        tab === 'profile' ? (
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Save profile
+          </button>
+        ) : null
+      }
+    >
+      <div className="space-y-6">
+        <DashboardPageTabs
+          activeId={tab}
+          onChange={(value) => setTab(value as Tab)}
+          items={tabs.map((t) => ({
+            id: t.id,
+            label: t.label,
+            icon: <t.icon className="h-4 w-4" />,
+          }))}
+        />
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-8 border-b border-gray-200">
-        {tabs.map(t => {
-          const Icon = t.icon
-          return (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
-                tab === t.id
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              {t.label}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Profile tab */}
-      {tab === 'profile' && (
-        <div className="space-y-6">
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <h2 className="font-semibold text-gray-900 mb-4">Public Profile</h2>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                  <input
-                    type="text"
-                    value={profile.username || ''}
-                    onChange={e => updateProfile({ username: e.target.value })}
-                    placeholder="your-username"
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">/creators/{profile.username || 'username'}</p>
+        {tab === 'profile' && (
+          <div className="space-y-6">
+            <DashboardPagePanel className="p-6 sm:p-7">
+              <h2 className={sectionTitleClass}>Public Profile</h2>
+              <div className="mt-5 space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-semibold text-gray-700">Username</label>
+                    <input
+                      type="text"
+                      value={profile.username || ''}
+                      onChange={e => updateProfile({ username: e.target.value })}
+                      placeholder="your-username"
+                      className={fieldClass}
+                    />
+                    <p className="mt-1.5 text-xs text-gray-400">/creators/{profile.username || 'username'}</p>
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-semibold text-gray-700">Display Name</label>
+                    <input
+                      type="text"
+                      value={profile.display_name || ''}
+                      onChange={e => updateProfile({ display_name: e.target.value })}
+                      placeholder="Your Name"
+                      className={fieldClass}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
-                  <input
-                    type="text"
-                    value={profile.display_name || ''}
-                    onChange={e => updateProfile({ display_name: e.target.value })}
-                    placeholder="Your Name"
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
-                <textarea
-                  value={profile.bio || ''}
-                  onChange={e => updateProfile({ bio: e.target.value })}
-                  placeholder="Tell people about yourself and the agents you build"
-                  rows={3}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none resize-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Avatar URL</label>
-                <input
-                  type="url"
-                  value={profile.avatar_url || ''}
-                  onChange={e => updateProfile({ avatar_url: e.target.value })}
-                  placeholder="https://..."
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Banner Image URL</label>
-                <input
-                  type="url"
-                  value={profile.banner_image_url || ''}
-                  onChange={e => updateProfile({ banner_image_url: e.target.value })}
-                  placeholder="https://..."
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
-                />
-              </div>
-            </div>
-          </div>
 
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <h2 className="font-semibold text-gray-900 mb-4">Social Links</h2>
-            <div className="space-y-3">
-              {(['website_url', 'twitter_url', 'linkedin_url', 'github_url'] as const).map(field => (
-                <div key={field}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {field === 'website_url' ? 'Website' : field === 'twitter_url' ? 'Twitter' : field === 'linkedin_url' ? 'LinkedIn' : 'GitHub'}
-                  </label>
-                  <input
-                    type="url"
-                    value={profile[field] || ''}
-                    onChange={e => updateProfile({ [field]: e.target.value })}
-                    placeholder="https://..."
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold text-gray-700">Bio</label>
+                  <textarea
+                    value={profile.bio || ''}
+                    onChange={e => updateProfile({ bio: e.target.value })}
+                    placeholder="Tell people about yourself and the agents you build"
+                    rows={4}
+                    className={`${fieldClass} resize-none`}
                   />
                 </div>
-              ))}
-            </div>
-          </div>
 
-          <div className="flex justify-end">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium transition-colors"
-            >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Save profile
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Payouts tab */}
-      {tab === 'payouts' && (
-        <div className="space-y-6">
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <h2 className="font-semibold text-gray-900 mb-2">Stripe Connect</h2>
-            <p className="text-sm text-gray-500 mb-6">
-              Connect your Stripe account to receive payouts for agent subscriptions. Payouts are processed on the 1st of each month.
-            </p>
-            {profile.stripe_onboarding_complete ? (
-              <div className="flex items-center gap-3 p-4 bg-primary-50 rounded-lg border border-primary-200">
-                <CheckCircle className="h-5 w-5 text-primary-600 flex-shrink-0" />
-                <div>
-                  <div className="font-medium text-primary-800 text-sm">Stripe account connected</div>
-                  <div className="text-xs text-primary-600 mt-0.5">Account ID: {profile.stripe_account_id}</div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-semibold text-gray-700">Avatar URL</label>
+                    <input
+                      type="url"
+                      value={profile.avatar_url || ''}
+                      onChange={e => updateProfile({ avatar_url: e.target.value })}
+                      placeholder="https://..."
+                      className={fieldClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-semibold text-gray-700">Banner Image URL</label>
+                    <input
+                      type="url"
+                      value={profile.banner_image_url || ''}
+                      onChange={e => updateProfile({ banner_image_url: e.target.value })}
+                      placeholder="https://..."
+                      className={fieldClass}
+                    />
+                  </div>
                 </div>
               </div>
-            ) : (
-              <button
-                onClick={handleStripeOnboard}
-                className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#635bff] hover:bg-[#5a52ee] text-white rounded-lg text-sm font-medium transition-colors"
-              >
-                <ExternalLink className="h-4 w-4" />
-                Connect with Stripe
-              </button>
-            )}
-          </div>
+            </DashboardPagePanel>
 
-          {payouts.length > 0 && (
-            <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="font-semibold text-gray-900">Payout History</h2>
-              </div>
-              <div className="divide-y divide-gray-100">
-                {payouts.map((p: any) => (
-                  <div key={p.id} className="px-6 py-4 flex items-center justify-between">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{p.creator_credits} credits</div>
-                      <div className="text-xs text-gray-400">{new Date(p.created_at).toLocaleDateString()}</div>
-                    </div>
-                    <span className="px-2 py-1 bg-primary-50 text-primary-700 rounded text-xs font-medium">
-                      Paid
-                    </span>
+            <DashboardPagePanel className="p-6 sm:p-7">
+              <h2 className={sectionTitleClass}>Social Links</h2>
+              <div className="mt-5 grid gap-4 md:grid-cols-2">
+                {(['website_url', 'twitter_url', 'linkedin_url', 'github_url'] as const).map((field) => (
+                  <div key={field}>
+                    <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+                      {field === 'website_url' ? 'Website' : field === 'twitter_url' ? 'Twitter' : field === 'linkedin_url' ? 'LinkedIn' : 'GitHub'}
+                    </label>
+                    <input
+                      type="url"
+                      value={profile[field] || ''}
+                      onChange={e => updateProfile({ [field]: e.target.value })}
+                      placeholder="https://..."
+                      className={fieldClass}
+                    />
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-        </div>
-      )}
+            </DashboardPagePanel>
+          </div>
+        )}
 
-      {/* Earnings tab */}
-      {tab === 'earnings' && (
-        <div>
-          {earnings ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              {[
-                { label: 'Total Earned', value: earnings.total_credits || 0, unit: 'credits' },
-                { label: 'This Month', value: earnings.current_month_credits || 0, unit: 'credits' },
-                { label: 'Pending Payout', value: earnings.pending_credits || 0, unit: 'credits' },
-              ].map(stat => (
-                <div key={stat.label} className="rounded-lg border border-gray-200 bg-white p-6">
-                  <div className="text-sm text-gray-500 mb-1">{stat.label}</div>
-                  <div className="text-2xl font-bold text-gray-900">{stat.value.toLocaleString()}</div>
-                  <div className="text-xs text-gray-400">{stat.unit}</div>
+        {tab === 'payouts' && (
+          <div className="space-y-6">
+            <DashboardPagePanel className="p-6 sm:p-7">
+              <h2 className={sectionTitleClass}>Stripe Connect</h2>
+              <p className="mt-2 text-sm leading-6 text-gray-600">
+                Connect your Stripe account to receive payouts for agent subscriptions. Payouts are processed on the 1st of each month.
+              </p>
+              {profile.stripe_onboarding_complete ? (
+                <div className="mt-5 flex items-center gap-3 rounded-[1.2rem] border border-[#d8e5d9] bg-[#ebf5ee] p-4">
+                  <CheckCircle className="h-5 w-5 flex-shrink-0 text-[#24543b]" />
+                  <div>
+                    <div className="text-sm font-semibold text-[#24543b]">Stripe account connected</div>
+                    <div className="mt-0.5 text-xs text-[#4c6d58]">Account ID: {profile.stripe_account_id}</div>
+                  </div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-16 text-gray-400">
-              <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-20" />
-              <p>No earnings data yet</p>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+              ) : (
+                <button
+                  onClick={handleStripeOnboard}
+                  className="mt-5 inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Connect with Stripe
+                </button>
+              )}
+            </DashboardPagePanel>
+
+            {payouts.length > 0 ? (
+              <DashboardPagePanel className="overflow-hidden">
+                <div className="border-b border-[#ece2d6] px-6 py-4">
+                  <h2 className={sectionTitleClass}>Payout History</h2>
+                </div>
+                <div className="divide-y divide-[#f0e7dc]">
+                  {payouts.map((p: any) => (
+                    <div key={p.id} className="flex items-center justify-between gap-4 px-6 py-4">
+                      <div>
+                        <div className="text-sm font-semibold text-gray-900">{p.creator_credits} credits</div>
+                        <div className="text-xs text-gray-400">{new Date(p.created_at).toLocaleDateString()}</div>
+                      </div>
+                      <span className="rounded-full bg-[#f3ecde] px-3 py-1 text-xs font-semibold text-[#171717]">Paid</span>
+                    </div>
+                  ))}
+                </div>
+              </DashboardPagePanel>
+            ) : null}
+          </div>
+        )}
+
+        {tab === 'earnings' && (
+          <div>
+            {earnings ? (
+              <div className="grid gap-4 md:grid-cols-3">
+                {[
+                  { label: 'Total Earned', value: earnings.total_credits || 0, unit: 'credits' },
+                  { label: 'This Month', value: earnings.current_month_credits || 0, unit: 'credits' },
+                  { label: 'Pending Payout', value: earnings.pending_credits || 0, unit: 'credits' },
+                ].map((stat) => (
+                  <DashboardPagePanel key={stat.label} className="p-6">
+                    <div className="text-sm text-gray-500">{stat.label}</div>
+                    <div className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-gray-950">
+                      {stat.value.toLocaleString()}
+                    </div>
+                    <div className="mt-1 text-xs uppercase tracking-[0.18em] text-[#9a7a5e]">{stat.unit}</div>
+                  </DashboardPagePanel>
+                ))}
+              </div>
+            ) : (
+              <DashboardPagePanel className="p-12 text-center">
+                <TrendingUp className="mx-auto mb-4 h-12 w-12 text-gray-300" />
+                <p className="text-sm text-gray-500">No earnings data yet.</p>
+              </DashboardPagePanel>
+            )}
+          </div>
+        )}
+      </div>
+    </DashboardPageShell>
   )
 }

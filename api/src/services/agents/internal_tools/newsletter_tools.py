@@ -68,12 +68,53 @@ async def internal_render_newsletter(
     file_id: str = uuid.uuid4().hex[:8]
 
     # ------------------------------------------------------------------
-    # 1. Resolve custom template from S3 if not a built-in name
+    # 0. If caller used the default template, check agent's assigned template
+    # ------------------------------------------------------------------
+    if template == "editorial":
+        try:
+            from src.services.email.email_template_apply_service import (
+                get_newsletter_template_name,
+                resolve_agent_email_template,
+            )
+
+            runtime_context = (config or {}).get("_runtime_context")
+            if runtime_context:
+                agent_id = getattr(runtime_context, "agent_id", None)
+                db = getattr(runtime_context, "db_session", None)
+                if agent_id and db:
+                    assigned = await resolve_agent_email_template(agent_id, db)
+                    resolved = get_newsletter_template_name(assigned)
+                    if resolved and resolved != "__custom__":
+                        template = resolved
+                    elif resolved == "__custom__" and assigned and assigned.get("html_content"):
+                        # Will be handled below as custom_template_html
+                        template = "__custom__"
+        except Exception as _e:
+            logger.debug(f"Could not resolve agent email template: {_e}")
+
+    # ------------------------------------------------------------------
+    # 1. Resolve custom template from S3 or DB if not a built-in name
     # ------------------------------------------------------------------
     _builtin_names = {"editorial", "minimal"}
     custom_template_html: str | None = None
 
-    if template not in _builtin_names:
+    if template == "__custom__":
+        # Use CUSTOM_HTML content from agent's assigned template
+        try:
+            from src.services.email.email_template_apply_service import resolve_agent_email_template
+
+            runtime_context = (config or {}).get("_runtime_context")
+            if runtime_context:
+                agent_id = getattr(runtime_context, "agent_id", None)
+                db = getattr(runtime_context, "db_session", None)
+                if agent_id and db:
+                    assigned = await resolve_agent_email_template(agent_id, db)
+                    custom_template_html = (assigned or {}).get("html_content")
+            template = "editorial"  # fall back to editorial layout for rendering
+        except Exception as _e:
+            logger.warning(f"Could not load custom template HTML: {_e}")
+            template = "editorial"
+    elif template not in _builtin_names:
         try:
             from src.services.storage.s3_storage import get_s3_storage
 

@@ -35,15 +35,16 @@ import * as scheduledTasks from './scheduled-tasks'
 import * as projects from './projects'
 import * as roles from './roles'
 import * as chatConfig from './chat-config'
+import * as agentLens from './agent-lens'
 
 // Backwards-compatible wrappers for chat config (original signatures differ from typed module)
-async function _getChatConfig(agentName: string): Promise<any> {
-  const response = await _apiClient.request('GET', `/api/v1/agents/${agentName}/chat-config`)
+async function _getChatConfig(agentId: string): Promise<any> {
+  const response = await _apiClient.request('GET', `/api/v1/agents/${agentId}/chat-config`)
   return response?.data || response
 }
 
-async function _updateChatConfig(agentName: string, configData: any): Promise<any> {
-  const response = await _apiClient.request('PUT', `/api/v1/agents/${agentName}/chat-config`, configData)
+async function _updateChatConfig(agentId: string, configData: any): Promise<any> {
+  const response = await _apiClient.request('PUT', `/api/v1/agents/${agentId}/chat-config`, configData)
   return response?.data || response
 }
 
@@ -266,6 +267,16 @@ interface ExtendedAPIClient extends APIClient {
   createHumanContact: typeof roles.createHumanContact
   updateHumanContact: typeof roles.updateHumanContact
   deleteHumanContact: typeof roles.deleteHumanContact
+
+  // Agent Lens
+  getLensOverview: typeof agentLens.getLensOverview
+  getLensTokenDistribution: typeof agentLens.getLensTokenDistribution
+  getLensSessions: typeof agentLens.getLensSessions
+  getLensSessionDetail: typeof agentLens.getLensSessionDetail
+  getLensAlerts: typeof agentLens.getLensAlerts
+  createLensAlert: typeof agentLens.createLensAlert
+  updateLensAlert: typeof agentLens.updateLensAlert
+  deleteLensAlert: typeof agentLens.deleteLensAlert
 }
 
 // Compose the extended apiClient with all domain methods
@@ -487,6 +498,16 @@ export const apiClient: ExtendedAPIClient = Object.assign(_apiClient, {
   createHumanContact: roles.createHumanContact,
   updateHumanContact: roles.updateHumanContact,
   deleteHumanContact: roles.deleteHumanContact,
+
+  // Agent Lens
+  getLensOverview: agentLens.getLensOverview,
+  getLensTokenDistribution: agentLens.getLensTokenDistribution,
+  getLensSessions: agentLens.getLensSessions,
+  getLensSessionDetail: agentLens.getLensSessionDetail,
+  getLensAlerts: agentLens.getLensAlerts,
+  createLensAlert: agentLens.createLensAlert,
+  updateLensAlert: agentLens.updateLensAlert,
+  deleteLensAlert: agentLens.deleteLensAlert,
 }) as ExtendedAPIClient
 
 // Export the APIClient class for typing purposes
@@ -510,3 +531,4 @@ export * from './scheduled-tasks'
 export * from './projects'
 export * from './roles'
 export * from './chat-config'
+export * from './agent-lens'

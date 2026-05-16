@@ -12,8 +12,9 @@ from uuid import UUID
 from celery import shared_task
 from celery.exceptions import MaxRetriesExceededError
 
-from src.core.database import get_db
+from src.core.database import create_celery_async_session, get_db
 from src.models.credit_transaction import ActionType
+from src.services.billing.agent_pricing_service import AgentPricingService
 from src.services.billing.credit_service import CreditService
 
 logger = logging.getLogger(__name__)
@@ -67,8 +68,6 @@ def deduct_credits_async(self, tenant_id: str, user_id: str | None, agent_id: st
     import asyncio
 
     async def _deduct_credits():
-        from src.core.database import create_celery_async_session
-
         # Convert string UUIDs back to UUID objects
         tenant_uuid = UUID(tenant_id)
         agent_uuid = UUID(agent_id)
@@ -116,6 +115,17 @@ def deduct_credits_async(self, tenant_id: str, user_id: str | None, agent_id: st
                         f"tenant={tenant_id}, action={action_type}, "
                         f"amount={abs(transaction.amount)}"
                     )
+
+                    # Record creator revenue for paid agents (fire-and-forget, never blocks billing)
+                    try:
+                        await AgentPricingService.record_agent_usage(
+                            agent_id=agent_uuid,
+                            transaction_id=transaction.id,
+                            credits_used=abs(transaction.amount),
+                            db=db,
+                        )
+                    except Exception as rev_err:
+                        logger.warning(f"Agent revenue recording failed (non-fatal): {rev_err}")
                 else:
                     logger.info(
                         f"ℹ️ Credit deduction skipped (already processed): tenant={tenant_id}, action={action_type}"

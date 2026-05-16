@@ -58,11 +58,12 @@ def client(mock_domain_service, mock_dns_service, mock_db_session):
     return TestClient(app), tenant_id, mock_db_session, {"domain": mock_domain_service, "dns": mock_dns_service}
 
 
-def _create_mock_agent(agent_id, agent_name, tenant_id):
+def _create_mock_agent(agent_id, agent_slug, tenant_id):
     """Helper to create mock agent."""
     mock_agent = MagicMock()
     mock_agent.id = agent_id
-    mock_agent.agent_name = agent_name
+    mock_agent.slug = agent_slug
+    mock_agent.agent_name = agent_slug
     mock_agent.tenant_id = tenant_id
     mock_agent.agent_type = "assistant"
     mock_agent.description = "Test agent"
@@ -453,18 +454,18 @@ class TestPublicDomainResolution:
         data = response.json()
         assert data["agent_id"] == str(agent_id)
 
-    def test_resolve_domain_by_agent_name(self, client, mock_domain_resolver):
-        """Test resolving domain by agent name."""
+    def test_resolve_domain_by_agent_slug(self, client, mock_domain_resolver):
+        """Test resolving domain by agent slug."""
         test_client, tenant_id, mock_db, mocks = client
 
         agent_id = uuid.uuid4()
         mock_agent = _create_mock_agent(agent_id, "test-agent", tenant_id)
 
         resolver_instance = mock_domain_resolver.return_value
-        resolver_instance.resolve_agent_by_name.return_value = mock_agent
+        resolver_instance.resolve_agent_by_slug.return_value = mock_agent
         resolver_instance.get_chat_config.return_value = {"theme": "light"}
 
-        response = test_client.get("/api/domains/resolve?agent_name=test-agent")
+        response = test_client.get("/api/domains/resolve?agent_slug=test-agent")
 
         assert response.status_code == status.HTTP_200_OK
 

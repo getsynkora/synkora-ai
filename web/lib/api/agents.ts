@@ -1,10 +1,11 @@
 import { apiClient } from './http'
 
 // Agent CRUD
-export async function getAgents(page?: number, pageSize?: number): Promise<any> {
+export async function getAgents(page?: number, pageSize?: number, search?: string): Promise<any> {
   const params: any = {}
   if (page !== undefined) params.page = page
   if (pageSize !== undefined) params.page_size = pageSize
+  if (search) params.search = search
 
   const { data } = await apiClient.axios.get('/api/v1/agents/', { params })
   return data.data || data

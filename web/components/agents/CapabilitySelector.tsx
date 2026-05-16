@@ -505,47 +505,138 @@ export function CapabilityToggles({
     )
   }
 
+  const enabledCapabilityCount = capabilities.filter((capability) => isCapabilityEnabled(capability)).length
+  const partialCapabilityCount = capabilities.filter((capability) => isCapabilityPartiallyEnabled(capability)).length
+  const totalEnabledTools = capabilities.reduce((sum, capability) => {
+    if (!capability.tools) return sum
+    return sum + capability.tools.filter(tool => enabledToolNames.includes(tool)).length
+  }, 0)
+
   return (
-    <div className="mb-6 p-4 bg-gradient-to-r from-primary-50 to-pink-50 rounded-lg border border-primary-100">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
-          <Zap className="w-4 h-4 text-primary-600" />
-          Quick Capability Toggles
-        </h3>
+    <div className="mb-6 overflow-hidden rounded-[1.8rem] border border-black/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(249,245,239,0.94))] shadow-[0_22px_55px_-42px_rgba(73,45,23,0.28)]">
+      <div className="border-b border-black/10 bg-[#fcfaf5]/90 px-5 py-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#dfd1be] bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#7c5d45]">
+              <Zap className="h-3.5 w-3.5 text-[#2d8b69]" />
+              Quick Capability Toggles
+            </div>
+            <p className="mt-3 text-sm leading-6 text-gray-600">
+              Turn related tool groups on or off without editing each integration individually.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 sm:max-w-md">
+            <div className="rounded-[1.1rem] border border-black/10 bg-white/85 px-3 py-2.5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7c5d45]">Enabled</p>
+              <p className="mt-1 text-lg font-semibold text-gray-950">{enabledCapabilityCount}</p>
+            </div>
+            <div className="rounded-[1.1rem] border border-[#ecd9af] bg-[#f8f0dd] px-3 py-2.5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#9a6700]">Partial</p>
+              <p className="mt-1 text-lg font-semibold text-[#6a4b12]">{partialCapabilityCount}</p>
+            </div>
+            <div className="rounded-[1.1rem] border border-[#cfe6d9] bg-[#e8f4ee] px-3 py-2.5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2d8b69]">Tools On</p>
+              <p className="mt-1 text-lg font-semibold text-[#215c46]">{totalEnabledTools}</p>
+            </div>
+          </div>
+        </div>
       </div>
-      <div className="flex flex-wrap gap-2">
+
+      <div className="p-5">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {capabilities.map((capability) => {
           const isEnabled = isCapabilityEnabled(capability)
           const isPartial = isCapabilityPartiallyEnabled(capability)
           const isToggling = togglingCapability === capability.id
+          const totalTools = capability.tool_count || capability.toolCount || capability.tools?.length || 0
+          const enabledTools = capability.tools?.filter(tool => enabledToolNames.includes(tool)).length || 0
 
           return (
             <button
               key={capability.id}
               onClick={() => handleToggle(capability)}
               disabled={isToggling}
-              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm transition-all ${
+              className={`rounded-[1.35rem] border p-4 text-left transition-all ${
                 isEnabled
-                  ? 'bg-green-100 border-green-300 text-green-800'
+                  ? 'border-[#cfe6d9] bg-[#e8f4ee]'
                   : isPartial
-                    ? 'bg-amber-50 border-amber-200 text-amber-700'
-                    : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
-              } ${isToggling ? 'opacity-50 cursor-wait' : ''}`}
-              title={`${capability.tool_count || capability.toolCount || capability.tools?.length || 0} tools`}
+                    ? 'border-[#ecd9af] bg-[#f8f0dd]'
+                    : 'border-black/10 bg-white/85 hover:border-black/20 hover:bg-white'
+              } ${isToggling ? 'cursor-wait opacity-50' : ''}`}
+              title={`${totalTools} tools`}
             >
-              <span>{capability.icon}</span>
-              <span>{capability.name}</span>
-              {isEnabled && <Check className="w-3 h-3" />}
-              {isPartial && !isEnabled && (
-                <span className="text-xs">partial</span>
-              )}
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[1rem] border text-lg ${
+                        isEnabled
+                          ? 'border-[#b7dcc6] bg-white/70'
+                          : isPartial
+                            ? 'border-[#e5c983] bg-white/60'
+                            : 'border-black/10 bg-[#f3ecde]'
+                      }`}
+                    >
+                      <span>{capability.icon}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-gray-950">{capability.name}</p>
+                      <p
+                        className={`mt-0.5 text-xs font-semibold uppercase tracking-[0.16em] ${
+                          isEnabled
+                            ? 'text-[#2d8b69]'
+                            : isPartial
+                              ? 'text-[#9a6700]'
+                              : 'text-[#7c5d45]'
+                        }`}
+                      >
+                        {isEnabled ? 'Enabled' : isPartial ? 'Partially Enabled' : 'Disabled'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="mt-3 line-clamp-2 text-sm leading-6 text-gray-600">
+                    {capability.description}
+                  </p>
+
+                  <div className="mt-3 flex items-center justify-between gap-3 text-xs">
+                    <div className="flex flex-wrap gap-2">
+                      <span className="rounded-full bg-white/80 px-2.5 py-1 font-semibold text-gray-700">
+                        {totalTools} tools
+                      </span>
+                      {enabledTools > 0 && (
+                        <span
+                          className={`rounded-full px-2.5 py-1 font-semibold ${
+                            isEnabled
+                              ? 'bg-white/80 text-[#2d8b69]'
+                              : 'bg-white/70 text-[#9a6700]'
+                          }`}
+                        >
+                          {enabledTools} on
+                        </span>
+                      )}
+                    </div>
+
+                    <div
+                      className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border ${
+                        isEnabled
+                          ? 'border-[#2d8b69] bg-[#2d8b69] text-white'
+                          : isPartial
+                            ? 'border-[#c69025] bg-[#f8f0dd] text-[#9a6700]'
+                            : 'border-black/15 bg-white text-transparent'
+                      }`}
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </button>
           )
         })}
+        </div>
       </div>
-      <p className="mt-2 text-xs text-gray-500">
-        Toggle capabilities to quickly enable/disable groups of related tools
-      </p>
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { ArrowLeft, Box, CheckCircle, Info, Loader2, TestTube, XCircle } from 'lucide-react'
 import { apiClient } from '@/lib/api/client'
+import DashboardPageShell, { DashboardPagePanel } from '@/components/dashboard/DashboardPageShell'
 
 interface SandboxStatus {
   sandbox_service_url: string | null
@@ -41,74 +42,78 @@ export default function ComputeSettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-50/60 via-white to-indigo-50/40 p-4 md:p-6">
-      <div className="max-w-2xl mx-auto">
-        <div className="mb-6">
+    <DashboardPageShell
+      title="Compute"
+      description="Sandbox service for agent code execution."
+      icon={Box}
+      badge="Settings"
+      backHref="/settings/profile"
+      backLabel="Back to Settings"
+      maxWidthClassName="max-w-3xl"
+      breadcrumbs={[
+        { label: 'Home', href: '/' },
+        { label: 'Settings', href: '/settings/profile' },
+        { label: 'Compute' },
+      ]}
+      actions={
+        !loading ? (
           <button
-            onClick={() => router.push('/settings')}
-            className="inline-flex items-center gap-2 text-violet-600 hover:text-violet-700 font-medium mb-3 transition-colors text-sm"
+            onClick={handleTest}
+            disabled={testing || !status?.sandbox_available}
+            className="inline-flex items-center gap-2 rounded-[1rem] border border-[#d8e5d9] bg-[linear-gradient(180deg,_rgba(244,249,245,0.98),_rgba(235,245,238,0.95))] px-4 py-3 text-sm font-semibold text-[#24543b] transition-all hover:border-[#b9d2be] hover:text-[#1d4631] disabled:opacity-50"
           >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Settings
+            {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <TestTube className="h-4 w-4" />}
+            Test Sandbox
           </button>
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-violet-100 rounded-lg">
-              <Box className="w-6 h-6 text-violet-600" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Compute</h1>
-              <p className="text-gray-500 mt-0.5 text-sm">Sandbox service for agent code execution</p>
-            </div>
-          </div>
+        ) : null
+      }
+    >
+      {loading ? (
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="h-8 w-8 animate-spin text-[#171717]" />
         </div>
-
-        {loading ? (
-          <div className="flex items-center justify-center py-24">
-            <Loader2 className="w-8 h-8 text-violet-500 animate-spin" />
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-              <h2 className="text-sm font-semibold text-gray-700 mb-3">synkora-sandbox</h2>
-              <div className="flex items-start gap-3">
-                {status?.sandbox_available ? (
-                  <CheckCircle className="w-5 h-5 text-emerald-500 mt-0.5 shrink-0" />
-                ) : (
-                  <XCircle className="w-5 h-5 text-red-400 mt-0.5 shrink-0" />
-                )}
-                <div className="text-sm text-gray-700 space-y-1">
-                  <p className={status?.sandbox_available ? 'text-emerald-700 font-medium' : 'text-red-600 font-medium'}>
-                    {status?.sandbox_available ? 'Service is running' : 'Service unavailable'}
-                  </p>
-                  {status?.sandbox_service_url && (
-                    <p className="text-xs text-gray-400 font-mono">{status.sandbox_service_url}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="mt-4 bg-gray-50 rounded-lg px-4 py-3 flex items-start gap-2">
-                <Info className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-                <p className="text-xs text-gray-500 leading-relaxed">
-                  Each agent gets an isolated workspace directory. Workspaces are ephemeral —
-                  they are created at conversation start and deleted when the conversation ends.
-                  No configuration required.
-                </p>
-              </div>
+      ) : (
+        <DashboardPagePanel className="space-y-5 p-6 md:p-7">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold tracking-[-0.02em] text-gray-950">synkora-sandbox</h2>
+              <p className="mt-1 text-sm text-gray-500">Execution environment for isolated agent workspaces.</p>
             </div>
-
-            <div className="flex justify-end">
-              <button
-                onClick={handleTest}
-                disabled={testing || !status?.sandbox_available}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-violet-700 bg-violet-50 border border-violet-200 rounded-lg hover:bg-violet-100 transition-all disabled:opacity-50"
-              >
-                {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <TestTube className="w-4 h-4" />}
-                Test Sandbox
-              </button>
+            <div
+              className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${
+                status?.sandbox_available
+                  ? 'bg-[#ebf5ee] text-[#24543b]'
+                  : 'bg-[#f8ecef] text-[#8a445c]'
+              }`}
+            >
+              {status?.sandbox_available ? (
+                <CheckCircle className="h-3.5 w-3.5" />
+              ) : (
+                <XCircle className="h-3.5 w-3.5" />
+              )}
+              {status?.sandbox_available ? 'Service is running' : 'Service unavailable'}
             </div>
           </div>
-        )}
-      </div>
-    </div>
+
+          {status?.sandbox_service_url ? (
+            <div className="rounded-[1.2rem] border border-black/5 bg-white/80 px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7a5e]">Service URL</p>
+              <p className="mt-2 break-all font-mono text-xs text-gray-600">{status.sandbox_service_url}</p>
+            </div>
+          ) : null}
+
+          <div className="rounded-[1.25rem] border border-[#e5d9ca] bg-[#fcfaf5] px-4 py-4">
+            <div className="flex items-start gap-3">
+              <div className="rounded-full bg-[#f1eadc] p-2">
+                <Info className="h-4 w-4 text-[#7c5d45]" />
+              </div>
+              <p className="text-sm leading-6 text-gray-600">
+                Each agent gets an isolated workspace directory. Workspaces are ephemeral and are created at conversation start, then removed when the conversation ends. No additional configuration is required.
+              </p>
+            </div>
+          </div>
+        </DashboardPagePanel>
+      )}
+    </DashboardPageShell>
   )
 }

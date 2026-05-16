@@ -64,7 +64,7 @@ class StreamConsumer:
         except Exception:
             pass  # BUSYGROUP error means it already exists
 
-    async def consume(self, kb_id: int, tenant_id: str, source_type: str) -> dict[str, int]:
+    async def consume(self, kb_id: int, tenant_id: str, source_type: str, block_ms: int = 500) -> dict[str, int]:
         """
         Read and process one batch from the stream.
 
@@ -81,7 +81,7 @@ class StreamConsumer:
             consumername=self._consumer_name,
             streams={key: ">"},
             count=batch_size,
-            block=500,
+            block=block_ms,
         )
         if not messages:
             return {"read": 0, "indexed": 0, "skipped": 0, "failed": 0}

@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { Zap, Check, X, Minus } from 'lucide-react'
+import { Check, X, Minus } from 'lucide-react'
+import PublicPageFrame from '@/components/public/PublicPageFrame'
 
 export const metadata = {
   title: 'Synkora vs Flowise',
@@ -40,22 +41,8 @@ const breadcrumbLd = {
 
 export default function FlowiseComparisonPage() {
   return (
-    <div className="min-h-screen bg-white">
+    <PublicPageFrame mainClassName="pt-28">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
-      <nav className="border-b border-gray-100 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-9 h-9 bg-red-500 rounded-lg flex items-center justify-center">
-              <Zap className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-xl font-bold text-gray-900">Synkora</span>
-          </Link>
-          <Link href="/signup" className="px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors">
-            Try Free
-          </Link>
-        </div>
-      </nav>
-
       <div className="max-w-5xl mx-auto px-6 py-16">
         <div className="mb-6 text-sm text-gray-500">
           <Link href="/" className="hover:text-gray-700">Home</Link>
@@ -145,17 +132,6 @@ export default function FlowiseComparisonPage() {
           </div>
         </div>
       </div>
-
-      <footer className="border-t border-gray-100 py-8 px-6 mt-16">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <span className="text-sm text-gray-500">© 2026 Synkora. MIT License.</span>
-          <div className="flex gap-6">
-            <Link href="/alternatives" className="text-sm text-gray-500 hover:text-gray-700">All Comparisons</Link>
-            <Link href="/terms" className="text-sm text-gray-500 hover:text-gray-700">Terms</Link>
-            <Link href="/privacy" className="text-sm text-gray-500 hover:text-gray-700">Privacy</Link>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </PublicPageFrame>
   )
 }

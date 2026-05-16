@@ -53,7 +53,8 @@ class TestMultiProviderLLMClient:
 
             client = MultiProviderLLMClient(mock_config)
             assert client.provider == "litellm"  # Provider is normalized to lowercase
-            assert litellm.api_base == "http://localhost:11434"
+            # api_base is stored on the client config and passed per-call, not set globally
+            assert client._client is litellm
 
     def test_init_unsupported(self, mock_config):
         mock_config.provider = "unknown"

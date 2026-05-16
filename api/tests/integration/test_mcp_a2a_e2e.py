@@ -15,10 +15,8 @@ import os
 import time
 import uuid
 
-
 import httpx
 import pytest
-
 
 pytestmark = pytest.mark.e2e
 

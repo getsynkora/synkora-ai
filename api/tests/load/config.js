@@ -4,16 +4,18 @@
  * Environment variables:
  * - BASE_URL: API base URL (default: http://localhost:5001)
  * - AUTH_TOKEN: JWT auth token for authenticated endpoints
- * - AGENT_NAME: Agent name to test (default: test-agent)
+ * - AGENT_SLUG: Agent slug to test (default: test-agent)
+ * - WIDGET_API_KEY: Widget API key for widget chat tests
  * - KB_ID: Knowledge base ID for search tests
  */
 
 export const config = {
     baseUrl: __ENV.BASE_URL || 'http://localhost:5001',
     authToken: __ENV.AUTH_TOKEN || '',
-    agentName: __ENV.AGENT_NAME || 'test-agent',
+    agentSlug: __ENV.AGENT_SLUG || __ENV.AGENT_NAME || 'test-agent',
     kbId: __ENV.KB_ID || '',
     agentId: __ENV.AGENT_ID || '',
+    widgetApiKey: __ENV.WIDGET_API_KEY || '',
 };
 
 export const headers = {

@@ -31,6 +31,43 @@ from src.services.observability.langfuse_service import LangfuseService
 logger = logging.getLogger(__name__)
 
 
+def _compact_schema(schema: dict) -> dict:
+    """
+    Strip ``description`` fields from a JSON parameter schema recursively.
+
+    Preserves everything the LLM needs to call a tool correctly:
+    - property names and types
+    - enum values (critical for correct values)
+    - required arrays
+    - default values
+    - nested object and array item schemas
+
+    Removes only verbose English prose in ``description`` fields, which
+    add significant token cost without improving call accuracy for modern
+    LLMs that can infer meaning from names and types.
+
+    The tool-level ``description`` (passed separately as a sibling key)
+    is NOT touched — only parameter-level descriptions are stripped.
+    """
+    if not isinstance(schema, dict):
+        return schema
+
+    result: dict = {}
+    for key, value in schema.items():
+        if key == "description":
+            continue  # strip parameter descriptions
+        elif key == "properties" and isinstance(value, dict):
+            result["properties"] = {prop_name: _compact_schema(prop_def) for prop_name, prop_def in value.items()}
+        elif key == "items":
+            result["items"] = _compact_schema(value) if isinstance(value, dict) else value
+        elif key in ("anyOf", "oneOf", "allOf") and isinstance(value, list):
+            result[key] = [_compact_schema(v) if isinstance(v, dict) else v for v in value]
+        else:
+            result[key] = value
+
+    return result
+
+
 def _scrub_for_observability(data: dict) -> dict:
     """Remove message content from observability payloads to avoid PII in traces."""
     import copy
@@ -137,7 +174,9 @@ class FunctionCallingHandler:
         google_tools = []
         for tool in self.available_tools:
             function_declaration = types.FunctionDeclaration(
-                name=tool["name"], description=tool["description"], parameters=tool["parameters"]
+                name=tool["name"],
+                description=tool["description"],
+                parameters=_compact_schema(tool["parameters"]),
             )
             google_tools.append(types.Tool(function_declarations=[function_declaration]))
 
@@ -151,7 +190,7 @@ class FunctionCallingHandler:
                 "function": {
                     "name": tool["name"],
                     "description": tool["description"],
-                    "parameters": tool["parameters"],
+                    "parameters": _compact_schema(tool["parameters"]),
                 },
             }
             for tool in self.available_tools
@@ -164,7 +203,7 @@ class FunctionCallingHandler:
                 "type": "custom",
                 "name": tool["name"],
                 "description": tool["description"],
-                "input_schema": tool["parameters"],
+                "input_schema": _compact_schema(tool["parameters"]),
             }
             for tool in self.available_tools
         ]
@@ -397,13 +436,17 @@ class FunctionCallingHandler:
                 # gets fresh full content (which will land at the end of history and be
                 # protected from pruning as one of the last keep_last_results entries).
                 if pruning_stats.tool_results_pruned > 0:
+                    from src.services.agents.context_pruning import RESULT_PRUNED_MARKER as _SUMMARY_MARKER
+
                     _TRIM_MARKER = "[... "
                     _PLACEHOLDER_MARKER = "[Previous "
                     for _msg in conversation_history:
                         if _msg.get("role") == "tool":
                             _content = _msg.get("content", "")
                             if isinstance(_content, str) and (
-                                _TRIM_MARKER in _content or _PLACEHOLDER_MARKER in _content
+                                _TRIM_MARKER in _content
+                                or _PLACEHOLDER_MARKER in _content
+                                or _SUMMARY_MARKER in _content
                             ):
                                 _tc_id = _msg.get("tool_call_id", "")
                                 _ck = _call_id_to_cache_key.get(_tc_id)
@@ -412,7 +455,85 @@ class FunctionCallingHandler:
                                     logger.debug(f"Dedup cache evicted pruned entry: {_ck[:80]}")
 
             # Generate response with tools (non-streaming for function detection)
+            _llm_iter_start = time.time()
             response = await self._generate_with_tools(conversation_history, temperature, max_tokens)
+            _llm_iter_latency_ms = int((time.time() - _llm_iter_start) * 1000)
+
+            # Fire LLM call trace event (fire-and-forget, zero latency)
+            if self.runtime_context is not None:
+                try:
+                    from src.services.agents.agent_trace_service import fire_llm_call
+
+                    self.runtime_context.llm_call_index += 1
+                    self.runtime_context.event_sequence += 1
+                    _usage = getattr(response, "usage", None)
+                    # LiteLLM normalises to prompt_tokens/completion_tokens but some
+                    # providers (Anthropic native) still return input_tokens/output_tokens.
+                    # Fall back to the Anthropic names so tokens are never silently 0.
+                    _in_tok = int(getattr(_usage, "prompt_tokens", None) or getattr(_usage, "input_tokens", None) or 0)
+                    _out_tok = int(
+                        getattr(_usage, "completion_tokens", None) or getattr(_usage, "output_tokens", None) or 0
+                    )
+                    _resp_text = ""
+                    if hasattr(response, "choices") and response.choices:
+                        _msg = response.choices[0].message
+                        _resp_text = (getattr(_msg, "content", "") or "")[:500]
+                    from src.services.billing.llm_cost_service import calculate_cost as _calc_cost
+
+                    _model_name = str(getattr(response, "model", "") or "")
+                    _cost = _calc_cost(_model_name, _in_tok, _out_tok) or 0.0
+
+                    # Capture LLM inputs for inspection in Agent Lens
+                    _sys_parts = [m.get("content", "") for m in conversation_history if m.get("role") == "system"]
+                    _sys_prompt_trace = ("\n\n".join(s for s in _sys_parts if s))[:2000] or None
+                    _non_sys = [m for m in conversation_history if m.get("role") != "system"]
+                    _msgs_preview = []
+                    for _m in _non_sys[-20:]:
+                        _c = _m.get("content")
+                        if isinstance(_c, str):
+                            _c = _c[:500]
+                        elif isinstance(_c, list):
+                            _c = [
+                                {
+                                    "type": _x.get("type", ""),
+                                    "text": (_x.get("text", "")[:200] if _x.get("type") == "text" else "[non-text]"),
+                                }
+                                for _x in _c
+                            ]
+                        _msgs_preview.append({"role": _m.get("role"), "content": _c})
+                    _messages_json = json.dumps(_msgs_preview, default=str)[:16000] if _msgs_preview else None
+                    _tool_defs = []
+                    for _t in self.available_tools or []:
+                        _fn = _t.get("function", _t) if isinstance(_t, dict) else {}
+                        _tool_defs.append(
+                            {
+                                "name": _fn.get("name", ""),
+                                "description": (_fn.get("description", "") or "")[:200],
+                                "parameters": _fn.get("parameters"),
+                            }
+                        )
+                    _tools_json = json.dumps(_tool_defs, default=str) if _tool_defs else None
+
+                    fire_llm_call(
+                        tenant_id=self.runtime_context.tenant_id,
+                        agent_id=self.runtime_context.agent_id,
+                        conversation_id=self.runtime_context.conversation_id,
+                        model=_model_name,
+                        call_index=self.runtime_context.llm_call_index,
+                        input_tokens=_in_tok,
+                        output_tokens=_out_tok,
+                        cost_usd=_cost,
+                        latency_ms=_llm_iter_latency_ms,
+                        response_preview=_resp_text,
+                        status="success",
+                        error=None,
+                        sequence=self.runtime_context.event_sequence,
+                        system_prompt=_sys_prompt_trace,
+                        messages_json=_messages_json,
+                        tools_json=_tools_json,
+                    )
+                except Exception as _llm_trace_err:
+                    logger.warning("fire_llm_call failed (non-critical): %s", _llm_trace_err)
 
             # Check for function calls
             function_calls = self._extract_function_calls(response)
@@ -1292,11 +1413,12 @@ class FunctionCallingHandler:
 
                 # Execute with appropriate context
                 if self.runtime_context:
-                    result = await tool_registry.execute_tool(
-                        func_name,
-                        func_args,
-                        runtime_context=self.runtime_context,
-                    )
+                    async with self.runtime_context.scoped_db_context() as tool_runtime_context:
+                        result = await tool_registry.execute_tool(
+                            func_name,
+                            func_args,
+                            runtime_context=tool_runtime_context,
+                        )
                 else:
                     # Legacy path
                     tool_config = self.tool_configs.get(func_name, {})
@@ -1361,6 +1483,24 @@ class FunctionCallingHandler:
                     # Trace success
                     self._trace_tool_execution(func_name, func_args, result, "success", duration_ms, should_trace)
 
+                    if self.runtime_context is not None:
+                        from src.services.agents.agent_trace_service import fire_tool_call
+
+                        self.runtime_context.event_sequence += 1
+                        fire_tool_call(
+                            tenant_id=self.runtime_context.tenant_id,
+                            agent_id=self.runtime_context.agent_id,
+                            conversation_id=self.runtime_context.conversation_id,
+                            tool_name=func_name,
+                            success=True,
+                            duration_ms=duration_ms,
+                            retry_count=attempt,
+                            args=func_args,
+                            result=result,
+                            error_message=None,
+                            sequence=self.runtime_context.event_sequence,
+                        )
+
                     return ToolExecutionResult(
                         name=func_name,
                         result=result,
@@ -1386,6 +1526,24 @@ class FunctionCallingHandler:
         self._trace_tool_execution(
             func_name, func_args, last_result, "error", duration_ms, should_trace, error=last_error
         )
+
+        if self.runtime_context is not None:
+            from src.services.agents.agent_trace_service import fire_tool_call
+
+            self.runtime_context.event_sequence += 1
+            fire_tool_call(
+                tenant_id=self.runtime_context.tenant_id,
+                agent_id=self.runtime_context.agent_id,
+                conversation_id=self.runtime_context.conversation_id,
+                tool_name=func_name,
+                success=False,
+                duration_ms=duration_ms,
+                retry_count=max_retries,
+                args=func_args,
+                result=last_result,
+                error_message=last_error,
+                sequence=self.runtime_context.event_sequence,
+            )
 
         return ToolExecutionResult(
             name=func_name,

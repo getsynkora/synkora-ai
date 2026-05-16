@@ -32,9 +32,9 @@ class AddSkillRequest(BaseModel):
     skill_category: str
 
 
-@agents_skills_router.post("/{agent_name}/skills/add", response_model=AgentResponse)
+@agents_skills_router.post("/{agent_slug}/skills/add", response_model=AgentResponse)
 async def add_predefined_skill(
-    agent_name: str,
+    agent_slug: str,
     request: AddSkillRequest,
     tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
@@ -61,11 +61,11 @@ async def add_predefined_skill(
         from src.services.agents.context_file_processor import AgentContextFileProcessor
 
         # Get agent from database
-        result = await db.execute(select(Agent).filter(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+        result = await db.execute(select(Agent).filter(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
         agent = result.scalar_one_or_none()
 
         if not agent:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_name}' not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_slug}' not found")
 
         skill_id = request.skill_id
         skill_category = request.skill_category

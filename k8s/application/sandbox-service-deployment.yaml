@@ -32,6 +32,15 @@ spec:
           name: http
           protocol: TCP
         env:
+        - name: APP_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: synkora-config
+              key: APP_ENV
+        - name: SANDBOX_MAX_CONCURRENT_EXEC
+          value: "4"
+        - name: SANDBOX_MAX_EXEC_TIMEOUT
+          value: "300"
         - name: SANDBOX_API_KEY
           valueFrom:
             secretKeyRef:

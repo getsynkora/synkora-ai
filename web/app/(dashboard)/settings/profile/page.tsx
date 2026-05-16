@@ -83,14 +83,14 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="dashboard-settings-page flex min-h-screen items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40">
+    <div className="dashboard-settings-page min-h-screen">
       <div className="max-w-5xl mx-auto px-4 md:px-6 py-4 md:py-6">
         {/* Header */}
         <div className="mb-6">

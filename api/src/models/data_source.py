@@ -97,10 +97,32 @@ class DataSource(BaseModel, TimestampMixin):
     total_documents: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    # Company Brain domain assignment (nullable — sources without a domain are undomained)
+    brain_domain_id: Mapped[str | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("brain_domains.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        comment="Optional Company Brain domain this source belongs to",
+    )
+
+    # Custom connector config for CUSTOM type sources (connector_class + init kwargs)
+    custom_connector_config: Mapped[dict] = mapped_column(
+        JSON,
+        nullable=False,
+        default=dict,
+        comment="Used when type=CUSTOM: {connector_class: 'mymodule.MyConnector', ...kwargs}",
+    )
+
     # Relationships
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="data_sources")
     knowledge_base: Mapped[Optional["KnowledgeBase"]] = relationship("KnowledgeBase", back_populates="data_sources")
     oauth_app: Mapped[Optional["OAuthApp"]] = relationship("OAuthApp")
+    brain_domain: Mapped[Optional["BrainDomain"]] = relationship(
+        "BrainDomain",
+        back_populates="data_sources",
+        foreign_keys=[brain_domain_id],
+    )
     documents: Mapped[list["Document"]] = relationship(
         "Document", back_populates="data_source", cascade="all, delete-orphan"
     )

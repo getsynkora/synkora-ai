@@ -4,16 +4,67 @@ Browser Session Manager for persistent browser automation.
 
 import asyncio
 import base64
+import ipaddress
 import logging
+import os
 import re
+import socket
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
+from urllib.parse import urlparse
 from weakref import WeakValueDictionary
 
 from playwright.async_api import Browser, BrowserContext, Page, Playwright, async_playwright
 
 logger = logging.getLogger(__name__)
+
+MAX_SESSIONS = int(os.getenv("SCRAPER_MAX_SESSIONS", "20"))
+MAX_PAGES_PER_SESSION = int(os.getenv("SCRAPER_MAX_PAGES_PER_SESSION", "8"))
+SESSION_IDLE_TTL_SECONDS = int(os.getenv("SCRAPER_SESSION_IDLE_TTL_SECONDS", "1800"))
+
+BLOCKED_IP_RANGES = [
+    ipaddress.ip_network("127.0.0.0/8"),
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("169.254.0.0/16"),
+    ipaddress.ip_network("100.64.0.0/10"),
+    ipaddress.ip_network("198.18.0.0/15"),
+    ipaddress.ip_network("0.0.0.0/8"),
+    ipaddress.ip_network("224.0.0.0/4"),
+    ipaddress.ip_network("240.0.0.0/4"),
+    ipaddress.ip_network("::1/128"),
+    ipaddress.ip_network("fc00::/7"),
+    ipaddress.ip_network("fe80::/10"),
+    ipaddress.ip_network("ff00::/8"),
+]
+
+
+def _is_internal_ip(hostname: str) -> bool:
+    try:
+        try:
+            addresses = [ipaddress.ip_address(hostname)]
+        except ValueError:
+            infos = socket.getaddrinfo(hostname, None, type=socket.SOCK_STREAM)
+            addresses = list({ipaddress.ip_address(info[4][0]) for info in infos})
+        if not addresses:
+            return True
+        return any(any(ip in net for net in BLOCKED_IP_RANGES) for ip in addresses)
+    except Exception:
+        return True
+
+
+def _is_url_allowed(url: str) -> bool:
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme in ("about", "data", "blob"):
+            return True
+        if parsed.scheme not in ("http", "https"):
+            return False
+        return bool(parsed.hostname) and not _is_internal_ip(parsed.hostname)
+    except Exception:
+        return False
 
 
 @dataclass
@@ -152,6 +203,9 @@ class BrowserSession:
         """Get existing session or create new one"""
         async with cls._lock:
             if session_id not in cls._instances:
+                await cls._cleanup_idle_locked()
+                if len(cls._instances) >= MAX_SESSIONS:
+                    raise RuntimeError(f"Browser session capacity reached ({MAX_SESSIONS})")
                 session = cls(session_id)
                 await session._initialize()
                 cls._instances[session_id] = session
@@ -159,6 +213,24 @@ class BrowserSession:
             else:
                 cls._instances[session_id].last_activity = datetime.now()
             return cls._instances[session_id]
+
+    @classmethod
+    async def _cleanup_idle_locked(cls):
+        """Close idle sessions. Caller must hold cls._lock."""
+        if SESSION_IDLE_TTL_SECONDS <= 0:
+            return
+        now = datetime.now()
+        idle_session_ids = [
+            sid
+            for sid, session in cls._instances.items()
+            if (now - session.last_activity).total_seconds() > SESSION_IDLE_TTL_SECONDS
+        ]
+        for sid in idle_session_ids:
+            try:
+                await cls._instances[sid]._cleanup()
+            finally:
+                cls._instances.pop(sid, None)
+                logger.info(f"Closed idle browser session: {sid}")
 
     @classmethod
     async def close_session(cls, session_id: str):
@@ -196,7 +268,14 @@ class BrowserSession:
             viewport={"width": 1280, "height": 720},
             user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         )
+        await self.context.route("**/*", self._guard_route)
         self.context.on("page", self._on_context_page)
+
+    async def _guard_route(self, route):
+        if _is_url_allowed(route.request.url):
+            await route.continue_()
+        else:
+            await route.abort()
 
     async def _cleanup(self):
         """Cleanup browser resources"""
@@ -214,6 +293,8 @@ class BrowserSession:
         """Create a new page/tab"""
         if not self.context:
             raise RuntimeError("Browser session not initialized")
+        if len(self.pages) >= MAX_PAGES_PER_SESSION:
+            raise RuntimeError(f"Browser page capacity reached for session ({MAX_PAGES_PER_SESSION})")
 
         page = await self.context.new_page()
         page_id = page_id or f"page_{len(self.pages) + 1}"

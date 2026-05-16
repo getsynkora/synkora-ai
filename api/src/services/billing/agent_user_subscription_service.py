@@ -6,12 +6,15 @@ import secrets
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
+import stripe
 from sqlalchemy import and_, select
 from sqlalchemy import update as sql_update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.agent_pricing import AgentPricing
 from src.models.agent_user_subscription import AgentUserSubscription, SubscriptionAccessStatus
+from src.services.billing.credit_service import CreditService
+from src.services.billing.discount_code_service import DiscountCodeService
 
 logger = logging.getLogger(__name__)
 
@@ -79,9 +82,6 @@ class AgentUserSubscriptionService:
         discount_code: str | None = None,
     ) -> AgentUserSubscription:
         """Subscribe an account user using credits."""
-        from src.services.billing.credit_service import CreditService
-        from src.services.billing.discount_code_service import DiscountCodeService
-
         pricing_result = await db.execute(select(AgentPricing).where(AgentPricing.id == pricing_id))
         pricing = pricing_result.scalar_one_or_none()
         if pricing is None:
@@ -107,10 +107,13 @@ class AgentUserSubscriptionService:
                 amount_credits = await DiscountCodeService.apply_and_consume(discount.id, base_credits, db)
 
         # Deduct credits
+        from src.models.credit_transaction import TransactionType
+
         credit_service = CreditService(db)
         await credit_service.deduct_credits(
             tenant_id=subscriber_tenant_id,
             amount=amount_credits,
+            transaction_type=TransactionType.USAGE,
             description=f"Agent access subscription ({tier})",
         )
 
@@ -159,8 +162,6 @@ class AgentUserSubscriptionService:
         db: AsyncSession,
     ) -> str:
         """Create a Stripe Checkout Session for guest subscription. Returns checkout URL."""
-        import stripe
-
         pricing_result = await db.execute(select(AgentPricing).where(AgentPricing.id == pricing_id))
         pricing = pricing_result.scalar_one_or_none()
         if pricing is None:
@@ -198,6 +199,7 @@ class AgentUserSubscriptionService:
             success_url=success_url,
             cancel_url=cancel_url,
             metadata={
+                "type": "agent_access",
                 "agent_id": str(agent_id),
                 "pricing_id": str(pricing_id),
                 "tier": tier,
@@ -210,8 +212,6 @@ class AgentUserSubscriptionService:
     @staticmethod
     async def fulfill_guest_subscription(stripe_session_id: str, db: AsyncSession) -> tuple[str, str]:
         """Called after Stripe webhook checkout.session.completed. Returns (guest_token, guest_email)."""
-        import stripe
-
         session = stripe.checkout.Session.retrieve(stripe_session_id)
         metadata = session["metadata"]
 

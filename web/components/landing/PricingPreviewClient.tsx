@@ -53,24 +53,24 @@ export default function PricingPreviewClient() {
   }, [])
 
   return (
-    <section className="py-14 sm:py-20 px-4 sm:px-6 bg-gray-50">
+    <section className="bg-[#f7f2e7] px-4 py-14 sm:px-6 sm:py-20">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">Simple, Transparent Pricing</h2>
-          <p className="text-xl text-gray-600">Start free. Self-host forever for free. Scale on cloud as you grow.</p>
+          <h2 className="mb-4 text-4xl font-medium tracking-[-0.05em] text-[#171717]">Simple, Transparent Pricing</h2>
+          <p className="text-xl leading-relaxed text-[#575149]">Start free. Self-host forever for free. Scale on cloud as you grow.</p>
         </div>
 
         {loading ? (
           <div className="grid md:grid-cols-3 gap-6 mb-10">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm animate-pulse">
-                <div className="h-6 bg-gray-200 rounded w-24 mb-2" />
-                <div className="h-4 bg-gray-100 rounded w-32 mb-4" />
-                <div className="h-8 bg-gray-200 rounded w-20 mb-4" />
+              <div key={i} className="animate-pulse rounded-[2rem] border border-black/10 bg-white/60 p-6 shadow-[0_18px_40px_rgba(0,0,0,0.05)]">
+                <div className="mb-2 h-6 w-24 rounded bg-black/10" />
+                <div className="mb-4 h-4 w-32 rounded bg-black/5" />
+                <div className="mb-4 h-8 w-20 rounded bg-black/10" />
                 <div className="space-y-2">
-                  <div className="h-4 bg-gray-100 rounded w-full" />
-                  <div className="h-4 bg-gray-100 rounded w-3/4" />
-                  <div className="h-4 bg-gray-100 rounded w-5/6" />
+                  <div className="h-4 w-full rounded bg-black/5" />
+                  <div className="h-4 w-3/4 rounded bg-black/5" />
+                  <div className="h-4 w-5/6 rounded bg-black/5" />
                 </div>
               </div>
             ))}
@@ -87,22 +87,22 @@ export default function PricingPreviewClient() {
               else if (plan.max_team_members > 1) features.push(`${plan.max_team_members} team members`)
 
               return (
-                <div key={plan.id} className={`relative bg-white rounded-2xl p-6 ${isPopular ? 'ring-2 ring-red-500 shadow-xl' : 'border border-gray-200 shadow-sm'}`}>
+                <div key={plan.id} className={`relative rounded-[2rem] bg-white/60 p-6 shadow-[0_18px_40px_rgba(0,0,0,0.05)] ${isPopular ? 'ring-2 ring-[#79dfbc] shadow-[0_24px_60px_rgba(0,0,0,0.08)]' : 'border border-black/10'}`}>
                   {isPopular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-red-500 text-white text-xs font-semibold rounded-full">
+                    <div className="absolute left-1/2 -top-3 -translate-x-1/2 rounded-full bg-[#191919] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#f7f2e7]">
                       Popular
                     </div>
                   )}
-                  <h3 className="text-xl font-bold text-gray-900 mb-1">{plan.name}</h3>
-                  <p className="text-sm text-gray-500 mb-4">{plan.description || 'Choose this plan'}</p>
+                  <h3 className="mb-1 text-xl font-semibold tracking-[-0.03em] text-[#171717]">{plan.name}</h3>
+                  <p className="mb-4 text-sm text-[#6d675f]">{plan.description || 'Choose this plan'}</p>
                   <div className="mb-4">
-                    <span className="text-3xl font-bold text-gray-900">${plan.price_monthly || 0}</span>
-                    <span className="text-gray-500">/month</span>
+                    <span className="text-3xl font-semibold text-[#171717]">${plan.price_monthly || 0}</span>
+                    <span className="text-[#6d675f]">/month</span>
                   </div>
                   <ul className="space-y-2 mb-6">
                     {features.slice(0, 3).map((feature, i) => (
-                      <li key={i} className="flex items-center gap-2 text-sm text-gray-600">
-                        <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <li key={i} className="flex items-center gap-2 text-sm text-[#575149]">
+                        <svg className="h-4 w-4 text-[#2d8b69]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                         {feature}
@@ -116,22 +116,22 @@ export default function PricingPreviewClient() {
         ) : (
           <div className="grid md:grid-cols-3 gap-6 mb-10">
             {staticPlans.map((plan, i) => (
-              <div key={i} className={`relative bg-white rounded-2xl p-6 ${plan.popular ? 'ring-2 ring-red-500 shadow-xl' : 'border border-gray-200 shadow-sm'}`}>
+              <div key={i} className={`relative rounded-[2rem] bg-white/60 p-6 shadow-[0_18px_40px_rgba(0,0,0,0.05)] ${plan.popular ? 'ring-2 ring-[#79dfbc] shadow-[0_24px_60px_rgba(0,0,0,0.08)]' : 'border border-black/10'}`}>
                 {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-red-500 text-white text-xs font-semibold rounded-full">
+                  <div className="absolute left-1/2 -top-3 -translate-x-1/2 rounded-full bg-[#191919] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#f7f2e7]">
                     Popular
                   </div>
                 )}
-                <h3 className="text-xl font-bold text-gray-900 mb-1">{plan.name}</h3>
-                <p className="text-sm text-gray-500 mb-4">{plan.desc}</p>
+                <h3 className="mb-1 text-xl font-semibold tracking-[-0.03em] text-[#171717]">{plan.name}</h3>
+                <p className="mb-4 text-sm text-[#6d675f]">{plan.desc}</p>
                 <div className="mb-4">
-                  <span className="text-3xl font-bold text-gray-900">{plan.price}</span>
-                  {plan.price !== 'Free' && <span className="text-gray-500">/month</span>}
+                  <span className="text-3xl font-semibold text-[#171717]">{plan.price}</span>
+                  {plan.price !== 'Free' && <span className="text-[#6d675f]">/month</span>}
                 </div>
                 <ul className="space-y-2">
                   {plan.features.map((f, j) => (
-                    <li key={j} className="flex items-center gap-2 text-sm text-gray-600">
-                      <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <li key={j} className="flex items-center gap-2 text-sm text-[#575149]">
+                      <svg className="h-4 w-4 text-[#2d8b69]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                       {f}
@@ -144,9 +144,9 @@ export default function PricingPreviewClient() {
         )}
 
         <div className="text-center">
-          <Link href="/pricing" className="inline-flex items-center gap-2 text-red-600 hover:text-red-700 font-semibold">
+          <Link href="/pricing" className="inline-flex items-center gap-2 font-semibold text-[#1f1d19] hover:text-black">
             View all pricing details
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </div>

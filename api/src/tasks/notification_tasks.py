@@ -455,3 +455,84 @@ def send_task_notification(self, execution_id: int) -> dict[str, Any]:
 
     finally:
         db.close()
+
+
+@celery_app.task(name="send_fcm_push_task", bind=True, max_retries=2, default_retry_delay=30)
+def send_fcm_push_task(
+    self,
+    widget_id: str,
+    conversation_id: str,
+    agent_name: str,
+    reply_preview: str,
+) -> dict[str, Any]:
+    """
+    Send FCM push notification to all subscribed devices for a conversation.
+    Silently skips if no FCM key is configured or no subscriptions exist.
+    """
+    import re
+    import uuid as uuid_mod
+
+    db = SessionLocal()
+    try:
+        from src.models.agent_widget import AgentWidget
+        from src.models.widget_push_subscription import WidgetPushSubscription
+
+        widget_uuid = uuid_mod.UUID(widget_id)
+        conv_uuid = uuid_mod.UUID(conversation_id)
+
+        widget = db.query(AgentWidget).filter(AgentWidget.id == widget_uuid).first()
+        if not widget or not widget.fcm_server_key:
+            return {"skipped": True, "reason": "no_fcm_key"}
+
+        from src.services.agents.security import decrypt_value
+
+        try:
+            fcm_key = decrypt_value(widget.fcm_server_key)
+        except Exception as e:
+            logger.warning(f"FCM key decryption failed for widget {widget_id}: {e}")
+            return {"skipped": True, "reason": "decrypt_error"}
+
+        subs = (
+            db.query(WidgetPushSubscription)
+            .filter(
+                WidgetPushSubscription.widget_id == widget_uuid,
+                WidgetPushSubscription.conversation_id == conv_uuid,
+            )
+            .all()
+        )
+
+        if not subs:
+            return {"skipped": True, "reason": "no_subscriptions"}
+
+        clean_preview = re.sub(r"[#*_`\[\]()]", "", reply_preview).strip()[:100]
+
+        import firebase_admin
+        from firebase_admin import credentials, messaging
+
+        app_name = f"widget_{widget_id}"
+        try:
+            app = firebase_admin.get_app(app_name)
+        except ValueError:
+            cred = credentials.Certificate(fcm_key if isinstance(fcm_key, dict) else {"private_key": fcm_key})
+            app = firebase_admin.initialize_app(cred, name=app_name)
+
+        tokens = [s.fcm_token for s in subs]
+        notification = messaging.Notification(title=agent_name, body=clean_preview or "Your answer is ready.")
+        data = {"widget_id": widget_id, "conversation_id": conversation_id, "type": "agent_reply"}
+
+        batch = messaging.MulticastMessage(notification=notification, data=data, tokens=tokens)
+        response = messaging.send_each_for_multicast(batch, app=app)
+
+        logger.info(
+            f"FCM push: {response.success_count} sent, {response.failure_count} failed for conv {conversation_id}"
+        )
+        return {"success_count": response.success_count, "failure_count": response.failure_count}
+
+    except Exception as exc:
+        logger.warning(f"FCM push task failed (non-critical): {exc}")
+        try:
+            raise self.retry(exc=exc)
+        except Exception:
+            return {"error": str(exc)}
+    finally:
+        db.close()

@@ -44,6 +44,7 @@ def sample_agent(mock_tenant_id):
     agent.id = uuid4()
     agent.tenant_id = mock_tenant_id
     agent.agent_name = "test-agent"
+    agent.slug = "test-agent"
     agent.agent_type = "llm"
     agent.description = "Test agent description"
     agent.avatar = "s3://bucket/avatar.png"
@@ -541,7 +542,7 @@ class TestGetAgent:
             with patch("src.controllers.agents.index.convert_s3_uri_to_presigned_url") as mock_convert:
                 mock_convert.return_value = "https://presigned-url.com/avatar.png"
 
-                result = await get_agent(agent_name="test-agent", tenant_id=mock_tenant_id, db=mock_db)
+                result = await get_agent(agent_slug="test-agent", tenant_id=mock_tenant_id, db=mock_db)
 
                 assert result.success is True
                 assert result.data["agent_name"] == "test-agent"
@@ -555,7 +556,7 @@ class TestGetAgent:
         setup_db_execute_mock(mock_db, None)
 
         with pytest.raises(HTTPException) as exc_info:
-            await get_agent(agent_name="nonexistent", tenant_id=mock_tenant_id, db=mock_db)
+            await get_agent(agent_slug="nonexistent", tenant_id=mock_tenant_id, db=mock_db)
 
         assert exc_info.value.status_code == 404
 
@@ -573,7 +574,7 @@ class TestGetAgent:
             mock_manager.get_agent_stats.return_value = {"executions": 50}
 
             with patch("src.controllers.agents.index.convert_s3_uri_to_presigned_url"):
-                result = await get_agent(agent_name="test-agent", tenant_id=mock_tenant_id, db=mock_db)
+                result = await get_agent(agent_slug="test-agent", tenant_id=mock_tenant_id, db=mock_db)
 
                 assert "stats" in result.data
 
@@ -593,7 +594,7 @@ class TestGetAgentStats:
         sample_agent.success_rate = 0.95
 
         with patch("src.controllers.agents.index.convert_s3_uri_to_presigned_url"):
-            result = await get_agent_stats(agent_name="test-agent", tenant_id=mock_tenant_id, db=mock_db)
+            result = await get_agent_stats(agent_slug="test-agent", tenant_id=mock_tenant_id, db=mock_db)
 
             assert result.success is True
             assert result.data["execution_count"] == 100
@@ -608,7 +609,7 @@ class TestGetAgentStats:
         setup_db_execute_mock(mock_db, None)
 
         with pytest.raises(HTTPException) as exc_info:
-            await get_agent_stats(agent_name="nonexistent", tenant_id=mock_tenant_id, db=mock_db)
+            await get_agent_stats(agent_slug="nonexistent", tenant_id=mock_tenant_id, db=mock_db)
 
         assert exc_info.value.status_code == 404
 
@@ -698,7 +699,7 @@ class TestUpdateAgent:
             mock_cache_instance.invalidate_agents_list = AsyncMock()
             mock_cache.return_value = mock_cache_instance
 
-            result = await update_agent(agent_name="test-agent", request=request, tenant_id=mock_tenant_id, db=mock_db)
+            result = await update_agent(agent_slug="test-agent", request=request, tenant_id=mock_tenant_id, db=mock_db)
 
             assert result.success is True
             assert "updated successfully" in result.message
@@ -716,7 +717,7 @@ class TestUpdateAgent:
         request.description = "Updated"
 
         with pytest.raises(HTTPException) as exc_info:
-            await update_agent(agent_name="nonexistent", request=request, tenant_id=mock_tenant_id, db=mock_db)
+            await update_agent(agent_slug="nonexistent", request=request, tenant_id=mock_tenant_id, db=mock_db)
 
         assert exc_info.value.status_code == 404
 
@@ -735,7 +736,7 @@ class TestDeleteAgent:
         with patch("src.controllers.agents.index.agent_manager") as mock_manager:
             mock_manager.delete_agent = AsyncMock()
 
-            result = await delete_agent(agent_name="test-agent", tenant_id=mock_tenant_id, db=mock_db)
+            result = await delete_agent(agent_slug="test-agent", tenant_id=mock_tenant_id, db=mock_db)
 
             assert result.success is True
             mock_db.delete.assert_called_once()
@@ -753,7 +754,7 @@ class TestDeleteAgent:
             mock_manager.delete_agent = AsyncMock(side_effect=KeyError("Not found"))
 
             with pytest.raises(HTTPException) as exc_info:
-                await delete_agent(agent_name="nonexistent", tenant_id=mock_tenant_id, db=mock_db)
+                await delete_agent(agent_slug="nonexistent", tenant_id=mock_tenant_id, db=mock_db)
 
             assert exc_info.value.status_code == 404
 
@@ -772,7 +773,7 @@ class TestResetAgent:
         # Mock db.execute to return the sample agent
         setup_db_execute_mock(mock_db, sample_agent)
 
-        result = await reset_agent(agent_name="test-agent", tenant_id=mock_tenant_id, db=mock_db)
+        result = await reset_agent(agent_slug="test-agent", tenant_id=mock_tenant_id, db=mock_db)
 
         assert result.success is True
         mock_manager.reset_agent.assert_called_once_with("test-agent", str(mock_tenant_id))
@@ -787,7 +788,7 @@ class TestResetAgent:
         setup_db_execute_mock(mock_db, None)
 
         with pytest.raises(HTTPException) as exc_info:
-            await reset_agent(agent_name="nonexistent", tenant_id=mock_tenant_id, db=mock_db)
+            await reset_agent(agent_slug="nonexistent", tenant_id=mock_tenant_id, db=mock_db)
 
         assert exc_info.value.status_code == 404
 
@@ -927,7 +928,7 @@ class TestCloneAgent:
             # Just mock the db operations and let the controller create real Agent instances
             with patch("src.services.agents.security.encrypt_value", return_value="encrypted"):
                 result = await clone_agent(
-                    agent_name="test-agent", request=request, tenant_id=mock_tenant_id, db=mock_db
+                    agent_slug="test-agent", request=request, tenant_id=mock_tenant_id, db=mock_db
                 )
 
                 assert result.success is True
@@ -964,7 +965,7 @@ class TestCloneAgent:
             from src.controllers.agents.index import clone_agent
 
             with pytest.raises(HTTPException) as exc_info:
-                await clone_agent(agent_name="nonexistent", request=request, tenant_id=mock_tenant_id, db=mock_db)
+                await clone_agent(agent_slug="nonexistent", request=request, tenant_id=mock_tenant_id, db=mock_db)
 
             assert exc_info.value.status_code == 404
         finally:
@@ -1013,7 +1014,7 @@ class TestCloneAgent:
             from src.controllers.agents.index import clone_agent
 
             with pytest.raises(HTTPException) as exc_info:
-                await clone_agent(agent_name="test-agent", request=request, tenant_id=mock_tenant_id, db=mock_db)
+                await clone_agent(agent_slug="test-agent", request=request, tenant_id=mock_tenant_id, db=mock_db)
 
             assert exc_info.value.status_code == 409
         finally:

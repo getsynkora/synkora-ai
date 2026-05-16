@@ -1,0 +1,192 @@
+# Single-node Elasticsearch for Agent Lens (agent session tracing).
+#
+# Uses a StatefulSet for stable pod identity and persistent storage.
+# Security is enabled (xpack.security) — password is injected from synkora-secrets.
+#
+# Apply order:
+#   1. kubectl apply -f elasticsearch-deployment.yml
+#   2. Wait for pod Ready:  kubectl rollout status statefulset/synkora-elasticsearch -n synkora-production
+#   3. kubectl apply -f synkora-config.yml   (adds ELASTICSEARCH_URL etc.)
+#   4. Roll api + workers to pick up new env vars
+
+---
+# Headless service — required by StatefulSet for stable DNS (synkora-elasticsearch-0.elasticsearch)
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-headless
+  namespace: synkora-production
+  labels:
+    app: synkora
+    component: elasticsearch
+spec:
+  clusterIP: None
+  selector:
+    app: synkora
+    component: elasticsearch
+  ports:
+    - name: http
+      port: 9200
+      targetPort: 9200
+    - name: transport
+      port: 9300
+      targetPort: 9300
+
+---
+# ClusterIP service — the address the API uses: http://elasticsearch:9200
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: synkora-production
+  labels:
+    app: synkora
+    component: elasticsearch
+spec:
+  type: ClusterIP
+  selector:
+    app: synkora
+    component: elasticsearch
+  ports:
+    - name: http
+      port: 9200
+      targetPort: 9200
+      protocol: TCP
+    - name: transport
+      port: 9300
+      targetPort: 9300
+      protocol: TCP
+
+---
+# Elasticsearch StatefulSet (single-node)
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: synkora-elasticsearch
+  namespace: synkora-production
+  labels:
+    app: synkora
+    component: elasticsearch
+    version: "8.15.5"
+spec:
+  serviceName: elasticsearch-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app: synkora
+      component: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: synkora
+        component: elasticsearch
+        version: "8.15.5"
+    spec:
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      # Elasticsearch requires vm.max_map_count >= 262144 on the host.
+      # This privileged init container sets it per-node before ES starts.
+      initContainers:
+        - name: sysctl
+          image: busybox:1.36
+          command: ["sysctl", "-w", "vm.max_map_count=262144"]
+          securityContext:
+            privileged: true
+            runAsNonRoot: false
+            runAsUser: 0
+      containers:
+        - name: elasticsearch
+          image: docker.elastic.co/elasticsearch/elasticsearch:8.15.5
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - NET_BIND_SERVICE
+          ports:
+            - name: http
+              containerPort: 9200
+              protocol: TCP
+            - name: transport
+              containerPort: 9300
+              protocol: TCP
+          env:
+            - name: discovery.type
+              value: single-node
+            # JVM heap: half of container memory request (2Gi request → 1g heap)
+            - name: ES_JAVA_OPTS
+              value: "-Xms1g -Xmx1g"
+            # Security
+            - name: xpack.security.enabled
+              value: "true"
+            - name: xpack.security.http.ssl.enabled
+              value: "false"
+            - name: ELASTIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: synkora-secrets
+                  key: ELASTICSEARCH_PASSWORD
+            # Performance tuning
+            - name: bootstrap.memory_lock
+              value: "false"
+            - name: indices.query.bool.max_clause_count
+              value: "10000"
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "500m"
+            limits:
+              memory: "4Gi"
+              cpu: "2000m"
+          volumeMounts:
+            - name: elasticsearch-data
+              mountPath: /usr/share/elasticsearch/data
+          # TCP probe is reliable at startup (no auth needed)
+          livenessProbe:
+            tcpSocket:
+              port: 9200
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 5
+          # Exec probe validates cluster health using the actual password
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - |
+                  curl -sf -u "elastic:${ELASTIC_PASSWORD}" \
+                    http://localhost:9200/_cluster/health \
+                  | grep -qE '"status":"(green|yellow)"'
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 3
+          startupProbe:
+            tcpSocket:
+              port: 9200
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            # Allow up to 3 minutes for first startup
+            failureThreshold: 18
+  # PVC is created and bound to the StatefulSet pod — survives pod restarts
+  volumeClaimTemplates:
+    - metadata:
+        name: elasticsearch-data
+        labels:
+          app: synkora
+          component: elasticsearch
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 30Gi

@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Plus, X, Users, Zap, Globe, ExternalLink, Info, GitPullRequest, FileCode, ChevronDown, ChevronUp, AlertTriangle, Loader2, Link } from 'lucide-react'
+import { Plus, X, Users, Zap, Globe, ExternalLink, Info, GitPullRequest, FileCode, ChevronDown, ChevronUp, AlertTriangle, Loader2, Link, Swords } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { createDebate, updateDebate, getDebate, getDebateTemplates, fetchPRInfo } from '@/lib/api/war-room'
 import { apiClient } from '@/lib/api/client'
 import type { DebateTemplate, DebateContext, PRInfo } from '@/lib/api/war-room'
+import DashboardPageShell, { DashboardPagePanel } from '@/components/dashboard/DashboardPageShell'
 
 interface AgentOption {
   id: string
@@ -17,6 +18,15 @@ interface ParticipantRow {
   agent_id: string
   role: string
 }
+
+const warmFieldClass =
+  'w-full rounded-[1.1rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]'
+const warmCardClass = (active: boolean) =>
+  `rounded-[1.25rem] border p-4 text-left transition-all ${
+    active
+      ? 'border-[#d7b8a3] bg-[linear-gradient(180deg,_rgba(252,245,238,0.98),_rgba(247,239,231,0.98))] shadow-[0_18px_40px_-28px_rgba(135,85,42,0.35)]'
+      : 'border-black/10 bg-white/80 hover:border-[#dccab6] hover:bg-[#fcfaf5]'
+  }`
 
 export default function CreateDebatePage() {
   const router = useRouter()
@@ -228,28 +238,32 @@ export default function CreateDebatePage() {
 
   if (loadingData) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600" />
+      <div className="dashboard-resource-page flex h-screen items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-[#171717]" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Back button */}
-        <button
-          onClick={() => router.push('/war-room')}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors mb-4"
-        >
-          <ArrowLeft size={18} />
-          <span className="text-sm font-medium">Back to War Room</span>
-        </button>
+    <DashboardPageShell
+      title={isEditMode ? 'Edit Debate' : 'Create Debate'}
+      description={isEditMode
+        ? 'Update the debate topic, participants, and context before starting the session.'
+        : 'Set up a multi-agent debate with participants, context, and sharing options.'}
+      icon={Swords}
+      badge="War Room"
+      maxWidthClassName="max-w-5xl"
+      breadcrumbs={[
+        { label: 'Home', href: '/' },
+        { label: 'War Room', href: '/war-room' },
+        { label: isEditMode ? 'Edit Debate' : 'Create Debate' },
+      ]}
+    >
         {/* Templates (hidden in edit mode) */}
         {!isEditMode && templates.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
+          <DashboardPagePanel className="mb-8 p-6">
             <div className="mb-4">
-              <p className="text-xs font-semibold text-red-600 uppercase tracking-wide">Quick Start</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#9a7a5e]">Quick Start</p>
               <h2 className="text-lg font-bold text-gray-900">Choose a Template</h2>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -257,30 +271,28 @@ export default function CreateDebatePage() {
                 <button
                   key={t.id}
                   onClick={() => applyTemplate(t)}
-                  className="relative p-4 rounded-lg border-2 border-gray-200 hover:border-red-300 hover:shadow-md bg-white transition-all text-left"
+                  className={warmCardClass(false)}
                 >
-                  <Zap className="w-5 h-5 mb-2 text-gray-400" />
+                  <Zap className="mb-2 h-5 w-5 text-[#171717]" />
                   <div className="font-bold text-sm text-gray-900">{t.name}</div>
                   <div className="text-xs text-gray-500 mt-0.5">{t.description}</div>
                 </button>
               ))}
             </div>
-          </div>
+          </DashboardPagePanel>
         )}
 
-        <form onSubmit={handleSubmit}>
+        <form id="war-room-debate-form" onSubmit={handleSubmit}>
           {/* Main Form Card */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <div className="p-4 md:p-8">
+          <DashboardPagePanel className="overflow-hidden">
+            <div className="p-5 md:p-8">
               {/* Section Header */}
               <div className="mb-8">
-                <h1 className="text-3xl font-extrabold text-gray-900 mb-3">
-                  {isEditMode ? 'Edit Debate' : 'Create a Debate'}
-                </h1>
-                <p className="text-lg text-gray-600">
-                  {isEditMode
-                    ? 'Update the debate topic, participants, and settings before starting.'
-                    : 'Set up a multi-agent debate where AI agents argue different perspectives on a topic.'}
+                <h2 className="text-2xl font-semibold tracking-[-0.04em] text-gray-950">
+                  Debate Setup
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-gray-600">
+                  Choose the debate topic, context, participants, and verdict options.
                 </p>
               </div>
 
@@ -300,7 +312,7 @@ export default function CreateDebatePage() {
                     onChange={(e) => setTopic(e.target.value.slice(0, 200))}
                     placeholder="e.g., Should we adopt microservices or stay with a monolith?"
                     rows={3}
-                    className="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all bg-white text-base resize-none placeholder-gray-400"
+                    className={`${warmFieldClass} resize-none text-base`}
                     required
                   />
                   <p className="mt-2 text-sm text-gray-500 flex items-center gap-2">
@@ -318,13 +330,9 @@ export default function CreateDebatePage() {
                     <button
                       type="button"
                       onClick={() => { setContextType('none'); setPrInfo(null); setPrError(null) }}
-                      className={`p-3 rounded-lg border-2 text-left transition-all ${
-                        contextType === 'none'
-                          ? 'border-red-500 bg-red-50 shadow-lg shadow-red-500/20'
-                          : 'border-gray-200 hover:border-red-300 bg-white'
-                      }`}
+                      className={warmCardClass(contextType === 'none')}
                     >
-                      <div className={`font-bold text-sm ${contextType === 'none' ? 'text-red-900' : 'text-gray-900'}`}>
+                      <div className={`font-bold text-sm ${contextType === 'none' ? 'text-[#8b5a2b]' : 'text-gray-900'}`}>
                         No Context
                       </div>
                       <div className="text-xs text-gray-500">Topic only</div>
@@ -332,14 +340,10 @@ export default function CreateDebatePage() {
                     <button
                       type="button"
                       onClick={() => setContextType('github_pr')}
-                      className={`p-3 rounded-lg border-2 text-left transition-all ${
-                        contextType === 'github_pr'
-                          ? 'border-red-500 bg-red-50 shadow-lg shadow-red-500/20'
-                          : 'border-gray-200 hover:border-red-300 bg-white'
-                      }`}
+                      className={warmCardClass(contextType === 'github_pr')}
                     >
-                      <GitPullRequest className={`w-5 h-5 mb-1 ${contextType === 'github_pr' ? 'text-red-600' : 'text-gray-400'}`} />
-                      <div className={`font-bold text-sm ${contextType === 'github_pr' ? 'text-red-900' : 'text-gray-900'}`}>
+                      <GitPullRequest className={`w-5 h-5 mb-1 ${contextType === 'github_pr' ? 'text-[#b84a3a]' : 'text-gray-400'}`} />
+                      <div className={`font-bold text-sm ${contextType === 'github_pr' ? 'text-[#8b5a2b]' : 'text-gray-900'}`}>
                         GitHub PR
                       </div>
                       <div className="text-xs text-gray-500">Review a pull request</div>
@@ -347,14 +351,10 @@ export default function CreateDebatePage() {
                     <button
                       type="button"
                       onClick={() => setContextType('text')}
-                      className={`p-3 rounded-lg border-2 text-left transition-all ${
-                        contextType === 'text'
-                          ? 'border-red-500 bg-red-50 shadow-lg shadow-red-500/20'
-                          : 'border-gray-200 hover:border-red-300 bg-white'
-                      }`}
+                      className={warmCardClass(contextType === 'text')}
                     >
-                      <FileCode className={`w-5 h-5 mb-1 ${contextType === 'text' ? 'text-red-600' : 'text-gray-400'}`} />
-                      <div className={`font-bold text-sm ${contextType === 'text' ? 'text-red-900' : 'text-gray-900'}`}>
+                      <FileCode className={`w-5 h-5 mb-1 ${contextType === 'text' ? 'text-[#b84a3a]' : 'text-gray-400'}`} />
+                      <div className={`font-bold text-sm ${contextType === 'text' ? 'text-[#8b5a2b]' : 'text-gray-900'}`}>
                         Custom Text
                       </div>
                       <div className="text-xs text-gray-500">Paste any context</div>
@@ -373,14 +373,14 @@ export default function CreateDebatePage() {
                             onChange={(e) => setPrUrl(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleFetchPR())}
                             placeholder="https://github.com/owner/repo/pull/123"
-                            className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all"
+                            className={`${warmFieldClass} pl-10 pr-4`}
                           />
                         </div>
                         <button
                           type="button"
                           onClick={handleFetchPR}
                           disabled={prLoading || !prUrl.trim()}
-                          className="px-5 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white text-sm font-medium rounded-xl hover:from-red-600 hover:to-red-700 transition-all disabled:opacity-50 flex items-center gap-2"
+                          className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
                         >
                           {prLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <GitPullRequest className="w-4 h-4" />}
                           Fetch
@@ -395,7 +395,7 @@ export default function CreateDebatePage() {
                       )}
 
                       {prInfo && (
-                        <div className="border-2 border-green-200 bg-green-50/50 rounded-xl p-4 space-y-3">
+                        <div className="space-y-3 rounded-[1.2rem] border border-[#d9e7db] bg-[linear-gradient(180deg,_rgba(241,248,243,0.96),_rgba(234,244,237,0.96))] p-4">
                           <div className="flex items-start justify-between">
                             <div>
                               <div className="flex items-center gap-2 mb-1">
@@ -414,7 +414,7 @@ export default function CreateDebatePage() {
                               href={prInfo.html_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs text-red-600 hover:text-red-700 font-medium"
+                              className="text-xs font-semibold text-[#b84a3a] hover:text-[#9e3e31]"
                             >
                               View on GitHub
                             </a>
@@ -478,7 +478,7 @@ export default function CreateDebatePage() {
                       onChange={(e) => setTextContext(e.target.value)}
                       placeholder="Paste any context here — code snippets, documents, requirements, etc."
                       rows={6}
-                      className="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all bg-white text-sm resize-none placeholder-gray-400 font-mono"
+                      className={`${warmFieldClass} resize-none font-mono`}
                     />
                   )}
                 </div>
@@ -493,14 +493,10 @@ export default function CreateDebatePage() {
                     <button
                       type="button"
                       onClick={() => setDebateType('structured')}
-                      className={`relative p-4 rounded-2xl border-2 transition-all text-left ${
-                        debateType === 'structured'
-                          ? 'border-red-500 bg-red-50 shadow-lg shadow-red-500/20'
-                          : 'border-gray-200 hover:border-red-300 hover:shadow-md bg-white'
-                      }`}
+                      className={warmCardClass(debateType === 'structured')}
                     >
-                      <Users className={`w-6 h-6 mb-2 ${debateType === 'structured' ? 'text-red-600' : 'text-gray-400'}`} />
-                      <div className={`font-bold text-sm ${debateType === 'structured' ? 'text-red-900' : 'text-gray-900'}`}>
+                      <Users className={`w-6 h-6 mb-2 ${debateType === 'structured' ? 'text-[#b84a3a]' : 'text-gray-400'}`} />
+                      <div className={`font-bold text-sm ${debateType === 'structured' ? 'text-[#8b5a2b]' : 'text-gray-900'}`}>
                         Structured
                       </div>
                       <div className="text-xs text-gray-500">Fixed rounds, each agent speaks in order</div>
@@ -508,14 +504,10 @@ export default function CreateDebatePage() {
                     <button
                       type="button"
                       onClick={() => setDebateType('freeform')}
-                      className={`relative p-4 rounded-2xl border-2 transition-all text-left ${
-                        debateType === 'freeform'
-                          ? 'border-red-500 bg-red-50 shadow-lg shadow-red-500/20'
-                          : 'border-gray-200 hover:border-red-300 hover:shadow-md bg-white'
-                      }`}
+                      className={warmCardClass(debateType === 'freeform')}
                     >
-                      <Zap className={`w-6 h-6 mb-2 ${debateType === 'freeform' ? 'text-red-600' : 'text-gray-400'}`} />
-                      <div className={`font-bold text-sm ${debateType === 'freeform' ? 'text-red-900' : 'text-gray-900'}`}>
+                      <Zap className={`w-6 h-6 mb-2 ${debateType === 'freeform' ? 'text-[#b84a3a]' : 'text-gray-400'}`} />
+                      <div className={`font-bold text-sm ${debateType === 'freeform' ? 'text-[#8b5a2b]' : 'text-gray-900'}`}>
                         Freeform
                       </div>
                       <div className="text-xs text-gray-500">Open discussion, agents respond freely</div>
@@ -537,7 +529,7 @@ export default function CreateDebatePage() {
                     onChange={(e) => setRounds(parseInt(e.target.value))}
                     min={1}
                     max={10}
-                    className="w-full h-2 bg-gray-200 rounded-full appearance-none cursor-pointer accent-red-500"
+                    className="h-2 w-full cursor-pointer appearance-none rounded-full bg-gray-200 accent-[#2d8b69]"
                   />
                   <div className="flex justify-between text-xs text-gray-400 mt-1">
                     <span>1</span>
@@ -556,7 +548,7 @@ export default function CreateDebatePage() {
                       <button
                         type="button"
                         onClick={addParticipant}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
+                        className="flex items-center gap-1.5 rounded-[0.9rem] px-3 py-1.5 text-sm font-semibold text-[#b84a3a] transition-colors hover:bg-[#f8ece8]"
                       >
                         <Plus size={16} />
                         Add Participant
@@ -565,14 +557,14 @@ export default function CreateDebatePage() {
                   </div>
                   <div className="space-y-3">
                     {participants.map((p, i) => (
-                      <div key={i} className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                      <div key={i} className="flex items-center gap-3 rounded-[1.15rem] border border-black/10 bg-[#fcfaf5] p-4">
+                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#171717] text-xs font-bold text-white">
                           {i + 1}
                         </div>
                         <select
                           value={p.agent_id}
                           onChange={(e) => updateParticipant(i, 'agent_id', e.target.value)}
-                          className="flex-1 px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-sm text-gray-900 font-medium focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all"
+                          className={`flex-1 ${warmFieldClass}`}
                           required
                         >
                           <option value="">Select agent...</option>
@@ -585,13 +577,13 @@ export default function CreateDebatePage() {
                           value={p.role}
                           onChange={(e) => updateParticipant(i, 'role', e.target.value)}
                           placeholder="Role (e.g., Advocate, Critic)"
-                          className="w-48 px-4 py-3 bg-white border-2 border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 font-medium focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all"
+                          className={`w-48 ${warmFieldClass}`}
                         />
                         {participants.length > 2 && (
                           <button
                             type="button"
                             onClick={() => removeParticipant(i)}
-                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-[#f8ece8] hover:text-[#b84a3a]"
                           >
                             <X size={18} />
                           </button>
@@ -609,7 +601,7 @@ export default function CreateDebatePage() {
                   <select
                     value={synthesizerAgentId}
                     onChange={(e) => setSynthesizerAgentId(e.target.value)}
-                    className="w-full px-5 py-4 bg-white border-2 border-gray-200 rounded-xl text-base text-gray-900 font-medium focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all"
+                    className={`${warmFieldClass} text-base`}
                   >
                     <option value="">No synthesizer (optional)</option>
                     {agents.map((a) => (
@@ -631,14 +623,10 @@ export default function CreateDebatePage() {
                     <button
                       type="button"
                       onClick={() => setIsPublic(!isPublic)}
-                      className={`relative p-4 rounded-2xl border-2 transition-all text-left ${
-                        isPublic
-                          ? 'border-red-500 bg-red-50 shadow-lg shadow-red-500/20'
-                          : 'border-gray-200 hover:border-red-300 hover:shadow-md bg-white'
-                      }`}
+                      className={warmCardClass(isPublic)}
                     >
-                      <Globe className={`w-6 h-6 mb-2 ${isPublic ? 'text-red-600' : 'text-gray-400'}`} />
-                      <div className={`font-bold text-sm ${isPublic ? 'text-red-900' : 'text-gray-900'}`}>
+                      <Globe className={`w-6 h-6 mb-2 ${isPublic ? 'text-[#b84a3a]' : 'text-gray-400'}`} />
+                      <div className={`font-bold text-sm ${isPublic ? 'text-[#8b5a2b]' : 'text-gray-900'}`}>
                         Public Debate
                       </div>
                       <div className="text-xs text-gray-500">Generate a shareable link anyone can watch</div>
@@ -646,14 +634,10 @@ export default function CreateDebatePage() {
                     <button
                       type="button"
                       onClick={() => setAllowExternal(!allowExternal)}
-                      className={`relative p-4 rounded-2xl border-2 transition-all text-left ${
-                        allowExternal
-                          ? 'border-red-500 bg-red-50 shadow-lg shadow-red-500/20'
-                          : 'border-gray-200 hover:border-red-300 hover:shadow-md bg-white'
-                      }`}
+                      className={warmCardClass(allowExternal)}
                     >
-                      <ExternalLink className={`w-6 h-6 mb-2 ${allowExternal ? 'text-red-600' : 'text-gray-400'}`} />
-                      <div className={`font-bold text-sm ${allowExternal ? 'text-red-900' : 'text-gray-900'}`}>
+                      <ExternalLink className={`w-6 h-6 mb-2 ${allowExternal ? 'text-[#b84a3a]' : 'text-gray-400'}`} />
+                      <div className={`font-bold text-sm ${allowExternal ? 'text-[#8b5a2b]' : 'text-gray-900'}`}>
                         External Agents
                       </div>
                       <div className="text-xs text-gray-500">Allow any external agent to join via API</div>
@@ -664,20 +648,20 @@ export default function CreateDebatePage() {
             </div>
 
             {/* Footer */}
-            <div className="border-t border-gray-200 px-8 py-4 bg-gray-50 flex items-center justify-between">
+            <div className="flex items-center justify-between border-t border-[#eadfce] bg-[linear-gradient(180deg,_rgba(248,243,236,0.98),_rgba(243,237,229,0.96))] px-8 py-4">
               <div />
               <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => router.push('/war-room')}
-                  className="px-5 py-2.5 text-gray-600 hover:text-gray-900 font-medium transition-colors"
+                  className="rounded-[1rem] border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-[#fcfaf5]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading || !topic.trim() || participants.some((p) => !p.agent_id)}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {loading ? (
                     <>
@@ -690,9 +674,8 @@ export default function CreateDebatePage() {
                 </button>
               </div>
             </div>
-          </div>
+          </DashboardPagePanel>
         </form>
-      </div>
-    </div>
+    </DashboardPageShell>
   )
 }

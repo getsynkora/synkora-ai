@@ -183,7 +183,7 @@ class TestScheduledTasksCRUDIntegration:
             headers=headers,
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_create_task_invalid_interval(self, client: TestClient, auth_headers):
         """Test that creating task with invalid interval fails."""
@@ -201,7 +201,7 @@ class TestScheduledTasksCRUDIntegration:
             headers=headers,
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_get_nonexistent_task(self, client: TestClient, auth_headers):
         """Test getting a nonexistent task returns 404."""

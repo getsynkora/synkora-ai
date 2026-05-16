@@ -75,11 +75,11 @@ def _version_to_detail(v: AgentVersion) -> AgentVersionDetail:
     )
 
 
-async def _get_agent_or_404(agent_name: str, tenant_id: uuid.UUID, db: AsyncSession) -> Agent:
-    result = await db.execute(select(Agent).filter(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+async def _get_agent_or_404(agent_slug: str, tenant_id: uuid.UUID, db: AsyncSession) -> Agent:
+    result = await db.execute(select(Agent).filter(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
     agent = result.scalar_one_or_none()
     if not agent:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_name}' not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_slug}' not found")
     return agent
 
 
@@ -95,7 +95,7 @@ async def _get_version_or_404(agent: Agent, version_number: int, db: AsyncSessio
     if not version:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Version {version_number} not found for agent '{agent.agent_name}'",
+            detail=f"Version {version_number} not found for agent '{agent.slug}'",
         )
     return version
 
@@ -105,9 +105,9 @@ async def _get_version_or_404(agent: Agent, version_number: int, db: AsyncSessio
 # ---------------------------------------------------------------------------
 
 
-@versions_router.get("/{agent_name}/versions", response_model=list[AgentVersionSummary])
+@versions_router.get("/{agent_slug}/versions", response_model=list[AgentVersionSummary])
 async def get_agent_versions(
-    agent_name: str,
+    agent_slug: str,
     limit: int = Query(default=50, ge=1, le=200),
     tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
@@ -117,14 +117,14 @@ async def get_agent_versions(
 
     Returns summary rows (no snapshot payload) for efficient pagination.
     """
-    agent = await _get_agent_or_404(agent_name, tenant_id, db)
+    agent = await _get_agent_or_404(agent_slug, tenant_id, db)
     versions = await list_versions(db, agent_id=agent.id, tenant_id=tenant_id, limit=limit)
     return [_version_to_summary(v) for v in versions]
 
 
-@versions_router.get("/{agent_name}/versions/{version_number}", response_model=AgentVersionDetail)
+@versions_router.get("/{agent_slug}/versions/{version_number}", response_model=AgentVersionDetail)
 async def get_agent_version(
-    agent_name: str,
+    agent_slug: str,
     version_number: int,
     tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
@@ -132,14 +132,14 @@ async def get_agent_version(
     """
     Retrieve a specific version snapshot by version number.
     """
-    agent = await _get_agent_or_404(agent_name, tenant_id, db)
+    agent = await _get_agent_or_404(agent_slug, tenant_id, db)
     version = await _get_version_or_404(agent, version_number, db)
     return _version_to_detail(version)
 
 
-@versions_router.post("/{agent_name}/versions/{version_number}/restore")
+@versions_router.post("/{agent_slug}/versions/{version_number}/restore")
 async def restore_agent_version(
-    agent_name: str,
+    agent_slug: str,
     version_number: int,
     tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     current_account=Depends(get_current_account),
@@ -151,7 +151,7 @@ async def restore_agent_version(
     Creates a new version entry recording the restore operation; does not
     overwrite any existing version record.
     """
-    agent = await _get_agent_or_404(agent_name, tenant_id, db)
+    agent = await _get_agent_or_404(agent_slug, tenant_id, db)
     version = await _get_version_or_404(agent, version_number, db)
 
     try:
@@ -162,12 +162,12 @@ async def restore_agent_version(
 
         # Invalidate caches so the next request picks up the restored config
         cache = get_agent_cache()
-        await cache.invalidate_agent(agent_name=agent_name, agent_id=str(agent.id), tenant_id=str(tenant_id))
+        await cache.invalidate_agent(slug=agent.slug, agent_id=str(agent.id), tenant_id=str(tenant_id))
         await cache.invalidate_agents_list(str(tenant_id))
 
         return {
             "success": True,
-            "message": f"Agent '{agent_name}' restored to version {version_number}",
+            "message": f"Agent '{agent_slug}' restored to version {version_number}",
             "data": {
                 "new_version_number": new_version.version_number,
                 "restored_from": version_number,

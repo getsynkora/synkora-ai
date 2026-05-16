@@ -1,0 +1,21 @@
+name: synkora_push
+description: FCM push notification add-on for the Synkora Chat Flutter SDK. Sends push notifications when an AI agent replies.
+version: 1.0.0
+homepage: https://github.com/synkora/synkora-flutter
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+  flutter: ">=3.19.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  synkora_chat: ^1.0.0
+  firebase_core: ^3.6.0
+  firebase_messaging: ^15.1.0
+  dio: ^5.7.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0

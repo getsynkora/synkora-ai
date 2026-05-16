@@ -5,11 +5,13 @@ Tests token extraction, account retrieval, and role checking.
 """
 
 import uuid
+from inspect import signature
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import jwt
 import pytest
 from fastapi import HTTPException
+from fastapi.params import Depends as DependsParam
 
 from src.middleware.auth_middleware import (
     _decode_token,
@@ -255,6 +257,12 @@ class TestGetCurrentTenantId:
         tenant_id = uuid.uuid4()
         result = get_current_tenant_id(payload={"sub": "account", "tenant_id": str(tenant_id)})
         assert result == tenant_id
+
+    def test_tenant_id_dependency_requires_current_account(self):
+        """Tenant-only routes must still enforce revocation and account status."""
+        param = signature(get_current_tenant_id).parameters["_current_account"]
+        assert isinstance(param.default, DependsParam)
+        assert param.default.dependency is get_current_account
 
 
 class TestGetCurrentRole:

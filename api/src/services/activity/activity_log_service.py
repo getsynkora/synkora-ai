@@ -5,6 +5,9 @@ import os
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
+# Strong refs prevent GC before SIEM forwarding tasks complete.
+_siem_bg_tasks: set[asyncio.Task] = set()
+
 from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -126,7 +129,9 @@ class ActivityLogService:
                 "ip": log_entry.ip_address,
                 "metadata": log_entry.activity_metadata or {},
             }
-            asyncio.create_task(get_siem_service().stream_event(siem_event))
+            task = asyncio.create_task(get_siem_service().stream_event(siem_event))
+            _siem_bg_tasks.add(task)
+            task.add_done_callback(_siem_bg_tasks.discard)
         except Exception:
             pass  # SIEM forwarding failure must never affect the audit write
 

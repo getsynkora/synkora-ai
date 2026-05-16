@@ -247,7 +247,7 @@ export default function ProjectsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40">
+      <div className="dashboard-resource-page flex h-screen items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading projects...</p>
@@ -257,7 +257,7 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
+    <div className="dashboard-resource-page min-h-screen p-4 md:p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -480,8 +480,8 @@ export default function ProjectsPage() {
       {/* Create/Edit Modal */}
       {(showCreateModal || showEditModal) && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[1.9rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,245,239,0.96))] shadow-[0_32px_90px_-42px_rgba(73,45,23,0.35)]">
+            <div className="sticky top-0 flex items-center justify-between border-b border-[#ece2d6] bg-[rgba(252,249,244,0.94)] px-6 py-4 backdrop-blur">
               <h3 className="text-lg font-semibold text-gray-900">
                 {showEditModal ? 'Edit Project' : 'Create Project'}
               </h3>
@@ -490,7 +490,7 @@ export default function ProjectsPage() {
                   setShowCreateModal(false)
                   setShowEditModal(null)
                 }}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="rounded-[0.9rem] p-2 transition-colors hover:bg-[#f3ecde]"
               >
                 <X className="w-5 h-5 text-gray-500" />
               </button>
@@ -504,7 +504,7 @@ export default function ProjectsPage() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g., Mobile App Redesign"
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full rounded-[1rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]"
                 />
               </div>
 
@@ -515,7 +515,7 @@ export default function ProjectsPage() {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Describe the project..."
                   rows={3}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full rounded-[1rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]"
                 />
               </div>
 
@@ -524,7 +524,7 @@ export default function ProjectsPage() {
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full rounded-[1rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]"
                 >
                   {STATUS_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -539,7 +539,7 @@ export default function ProjectsPage() {
                 <select
                   value={formData.project_management}
                   onChange={(e) => setFormData({ ...formData, project_management: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full rounded-[1rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]"
                 >
                   <option value="">None</option>
                   <option value="jira">Jira</option>
@@ -550,21 +550,21 @@ export default function ProjectsPage() {
               </div>
             </div>
 
-            <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex gap-3 justify-end">
+            <div className="sticky bottom-0 flex justify-end gap-3 border-t border-[#ece2d6] bg-[rgba(252,249,244,0.96)] px-6 py-4 backdrop-blur">
               <button
                 onClick={() => {
                   setShowCreateModal(false)
                   setShowEditModal(null)
                 }}
                 disabled={saving}
-                className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                className="rounded-[0.95rem] bg-[#f1eadc] px-4 py-2.5 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#e8ddc8] disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="flex items-center gap-2 rounded-[0.95rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
               >
                 {saving ? (
                   <>
@@ -583,14 +583,14 @@ export default function ProjectsPage() {
       {/* Agent Management Modal */}
       {showAgentModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
+          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-[1.9rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,245,239,0.96))] shadow-[0_32px_90px_-42px_rgba(73,45,23,0.35)]">
+            <div className="sticky top-0 flex items-center justify-between border-b border-[#ece2d6] bg-[rgba(252,249,244,0.94)] px-6 py-4 backdrop-blur">
               <h3 className="text-lg font-semibold text-gray-900">
                 Manage Agents - {showAgentModal.name}
               </h3>
               <button
                 onClick={() => setShowAgentModal(null)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="rounded-[0.9rem] p-2 transition-colors hover:bg-[#f3ecde]"
               >
                 <X className="w-5 h-5 text-gray-500" />
               </button>
@@ -602,17 +602,17 @@ export default function ProjectsPage() {
                 {showAgentModal.agents?.length > 0 ? (
                   <div className="space-y-2">
                     {showAgentModal.agents.map((agent) => (
-                      <div key={agent.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div key={agent.id} className="flex items-center justify-between rounded-[1rem] border border-black/5 bg-[#fcfaf5] p-3">
                         <div className="flex items-center gap-3">
                           <Bot className="w-5 h-5 text-gray-400" />
                           <span className="text-sm font-medium text-gray-900">{agent.agent_name}</span>
                         </div>
                         <button
                           onClick={() => removeAgentFromProject(showAgentModal.id, agent.id)}
-                          className="text-red-600 hover:text-red-700 text-sm"
-                        >
-                          Remove
-                        </button>
+                        className="text-sm font-semibold text-[#8a445c] hover:text-[#6f3548]"
+                      >
+                        Remove
+                      </button>
                       </div>
                     ))}
                   </div>
@@ -634,7 +634,7 @@ export default function ProjectsPage() {
                         key={agent.id || agent.agent_name}
                         onClick={() => addAgentToProject(agent.id)}
                         disabled={!agent.id}
-                        className="w-full flex items-center gap-3 p-3 text-left bg-white border border-gray-200 rounded-lg hover:border-red-300 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full rounded-[1rem] border border-black/10 bg-white/85 p-3 text-left transition-colors hover:bg-[#f7f2e7] disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <Bot className="w-5 h-5 text-gray-400" />
                         <span className="text-sm font-medium text-gray-900">{agent.agent_name}</span>
@@ -650,10 +650,10 @@ export default function ProjectsPage() {
       {/* Delete Modal */}
       {deleteModal.show && deleteModal.project && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+          <div className="w-full max-w-md rounded-[1.9rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,245,239,0.96))] p-6 shadow-[0_32px_90px_-42px_rgba(73,45,23,0.35)]">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2.5 bg-red-100 rounded-xl">
-                <Trash2 className="w-6 h-6 text-red-600" />
+              <div className="rounded-xl bg-[#fbf1f4] p-2.5">
+                <Trash2 className="w-6 h-6 text-[#8a445c]" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900">Delete Project</h3>
             </div>
@@ -667,14 +667,14 @@ export default function ProjectsPage() {
               <button
                 onClick={closeDeleteModal}
                 disabled={deleting}
-                className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                className="rounded-[0.95rem] bg-[#f1eadc] px-4 py-2.5 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#e8ddc8] disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
                 disabled={deleting}
-                className="px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="flex items-center gap-2 rounded-[0.95rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
               >
                 {deleting ? (
                   <>

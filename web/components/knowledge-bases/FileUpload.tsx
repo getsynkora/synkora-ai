@@ -152,13 +152,13 @@ export default function FileUpload({ onUploadComplete, onUpload }: FileUploadPro
   }
 
   const getFileIcon = () => {
-    return <FileText className="w-5 h-5 text-blue-600" />
+    return <FileText className="w-5 h-5 text-[#2d8b69]" />
   }
 
   const getStatusIcon = (status: FileWithProgress['status']) => {
     switch (status) {
       case 'uploading':
-        return <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+        return <Loader2 className="w-5 h-5 text-[#2d8b69] animate-spin" />
       case 'success':
         return <CheckCircle className="w-5 h-5 text-green-600" />
       case 'error':
@@ -173,16 +173,16 @@ export default function FileUpload({ onUploadComplete, onUpload }: FileUploadPro
       {/* Dropzone */}
       <div
         {...getRootProps()}
-        className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+        className={`cursor-pointer rounded-[1.5rem] border-2 border-dashed p-8 text-center transition-colors ${
           isDragActive
-            ? 'border-blue-500 bg-blue-50'
-            : 'border-gray-300 hover:border-gray-400 bg-gray-50'
+            ? 'border-[#2d8b69] bg-[#eef7f1]'
+            : 'border-black/10 bg-white hover:border-black/20 hover:bg-[#f7f2e7]'
         } ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <input {...getInputProps()} />
-        <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+        <Upload className="mx-auto mb-4 h-12 w-12 text-[#8a8378]" />
         {isDragActive ? (
-          <p className="text-lg font-medium text-blue-600">Drop files here...</p>
+          <p className="text-lg font-medium text-[#2d8b69]">Drop files here...</p>
         ) : (
           <>
             <p className="text-lg font-medium text-gray-900 mb-2">
@@ -208,7 +208,7 @@ export default function FileUpload({ onUploadComplete, onUpload }: FileUploadPro
             {!uploading && (
               <button
                 onClick={() => setFiles([])}
-                className="text-sm text-gray-500 hover:text-gray-700"
+                className="text-sm text-gray-500 transition-colors hover:text-[#171717]"
               >
                 Clear all
               </button>
@@ -219,7 +219,7 @@ export default function FileUpload({ onUploadComplete, onUpload }: FileUploadPro
             {files.map((fileWithProgress, index) => (
               <div
                 key={index}
-                className="bg-white border border-gray-200 rounded-lg p-4"
+                className="rounded-[1.15rem] border border-black/10 bg-white/90 p-4"
               >
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 mt-0.5">
@@ -242,7 +242,7 @@ export default function FileUpload({ onUploadComplete, onUpload }: FileUploadPro
                         {!uploading && fileWithProgress.status === 'pending' && (
                           <button
                             onClick={() => removeFile(index)}
-                            className="text-gray-400 hover:text-gray-600"
+                            className="text-gray-400 transition-colors hover:text-[#171717]"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -253,9 +253,9 @@ export default function FileUpload({ onUploadComplete, onUpload }: FileUploadPro
                     {/* Progress Bar */}
                     {fileWithProgress.status === 'uploading' && (
                       <div className="mt-2">
-                        <div className="w-full bg-gray-200 rounded-full h-1.5">
+                        <div className="h-1.5 w-full rounded-full bg-gray-200">
                           <div
-                            className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+                            className="h-1.5 rounded-full bg-[#2d8b69] transition-all duration-300"
                             style={{ width: `${fileWithProgress.progress}%` }}
                           />
                         </div>
@@ -288,7 +288,7 @@ export default function FileUpload({ onUploadComplete, onUpload }: FileUploadPro
           <button
             onClick={handleUpload}
             disabled={uploading || files.length === 0 || files.some(f => f.status === 'success')}
-            className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
+            className="flex w-full items-center justify-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
           >
             {uploading ? (
               <>

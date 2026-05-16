@@ -199,7 +199,7 @@ class TestDatabaseConnectionsCRUDIntegration:
         )
 
         # 400 for business logic, 422 for pydantic validation
-        assert response.status_code in [status.HTTP_400_BAD_REQUEST, status.HTTP_422_UNPROCESSABLE_ENTITY]
+        assert response.status_code in [status.HTTP_400_BAD_REQUEST, status.HTTP_422_UNPROCESSABLE_CONTENT]
 
     def test_create_sqlite_without_path_fails(self, client: TestClient, db_session: Session, auth_headers):
         """Test that creating SQLite connection without database_path fails."""
@@ -220,7 +220,7 @@ class TestDatabaseConnectionsCRUDIntegration:
         )
 
         # 400 for business logic, 422 for pydantic validation
-        assert response.status_code in [status.HTTP_400_BAD_REQUEST, status.HTTP_422_UNPROCESSABLE_ENTITY]
+        assert response.status_code in [status.HTTP_400_BAD_REQUEST, status.HTTP_422_UNPROCESSABLE_CONTENT]
 
     def test_create_http_without_host_fails(self, client: TestClient, db_session: Session, auth_headers):
         """Test that creating non-SQLite connection without host fails."""
@@ -244,7 +244,7 @@ class TestDatabaseConnectionsCRUDIntegration:
         )
 
         # 400 for business logic, 422 for pydantic validation
-        assert response.status_code in [status.HTTP_400_BAD_REQUEST, status.HTTP_422_UNPROCESSABLE_ENTITY]
+        assert response.status_code in [status.HTTP_400_BAD_REQUEST, status.HTTP_422_UNPROCESSABLE_CONTENT]
 
     def test_get_nonexistent_connection(self, client: TestClient, db_session: Session, auth_headers):
         """Test getting a nonexistent connection returns 404."""
@@ -639,7 +639,7 @@ class TestDatabaseConnectionsValidation:
             headers=headers,
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_invalid_port_too_high_fails(self, client: TestClient, db_session: Session, auth_headers):
         """Test that port > 65535 fails validation."""
@@ -663,7 +663,7 @@ class TestDatabaseConnectionsValidation:
             headers=headers,
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_empty_name_fails(self, client: TestClient, db_session: Session, auth_headers):
         """Test that empty name fails validation."""
@@ -683,7 +683,7 @@ class TestDatabaseConnectionsValidation:
             headers=headers,
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_invalid_status_update_fails(self, client: TestClient, db_session: Session, auth_headers):
         """Test that invalid status value fails validation."""
@@ -713,4 +713,4 @@ class TestDatabaseConnectionsValidation:
             headers=headers,
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT

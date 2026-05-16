@@ -229,7 +229,7 @@ class TestDocumentStreamingValidation:
         # Accept various error codes
         assert response.status_code in [
             status.HTTP_404_NOT_FOUND,
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             status.HTTP_500_INTERNAL_SERVER_ERROR,
         ]
 

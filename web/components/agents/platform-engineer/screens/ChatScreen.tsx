@@ -69,7 +69,7 @@ export function ChatScreen({ agentName = 'platform_engineer_agent' }: Props) {
           ...(token && { Authorization: `Bearer ${token}` }),
         },
         body: JSON.stringify({
-          agent_name: agentName,
+          agent_slug: agentName,
           message: content,
           conversation_id: conversationId,
           conversation_history: messages.slice(-10).map((m) => ({

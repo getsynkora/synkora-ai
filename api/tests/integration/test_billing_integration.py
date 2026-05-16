@@ -242,7 +242,7 @@ class TestUsageAnalyticsIntegration:
         # Days must be between 1 and 365
         response = await async_client.get("/api/v1/billing/usage/trends?days=0", headers=headers)
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     @pytest.mark.asyncio
     async def test_get_usage_by_agent(self, async_client: AsyncClient, auth_headers):

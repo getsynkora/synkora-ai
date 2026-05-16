@@ -6,6 +6,7 @@ import { Power, PowerOff, Settings, Trash2, ExternalLink, MessageCircle, Users, 
 import { useWhatsAppBots, useTeamsBots } from "@/hooks/useMessagingBots";
 import type { WhatsAppBot, TeamsBot } from "@/types/messaging-bots";
 import { apiClient } from "@/lib/api/client";
+import AgentPageShell from '@/components/agents/AgentPageShell'
 
 export default function MessagingBotsPage() {
   const params = useParams();
@@ -96,7 +97,7 @@ export default function MessagingBotsPage() {
   if (loading || whatsappLoading || teamsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[#171717]"></div>
       </div>
     );
   }
@@ -105,60 +106,41 @@ export default function MessagingBotsPage() {
   const activeBots = whatsappBots.filter((b: WhatsAppBot) => b.is_active).length + teamsBots.filter((b: TeamsBot) => b.is_active).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-1.5 text-sm mb-4">
+    <AgentPageShell
+      agentName={agentName}
+      title="Messaging Bots"
+      description="Connect your agent to WhatsApp and Microsoft Teams."
+      icon={MessageCircle}
+      badge="Messaging Channels"
+      actions={
+        <>
           <button
-            onClick={() => router.push("/agents")}
-            className="text-gray-500 hover:text-primary-600 transition-colors"
+            onClick={() => router.push(`/agents/${agentName}/messaging-bots/whatsapp/create`)}
+            className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
           >
-            Agents
+            <MessageCircle size={18} />
+            Add WhatsApp Bot
           </button>
-          <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
           <button
-            onClick={() => router.push(`/agents/${encodeURIComponent(agentName)}/view`)}
-            className="text-gray-500 hover:text-primary-600 transition-colors"
+            onClick={() => router.push(`/agents/${agentName}/messaging-bots/teams/create`)}
+            className="inline-flex items-center gap-2 rounded-[1rem] border border-black/10 bg-white/80 px-4 py-3 text-sm font-semibold text-[#171717] transition-colors hover:bg-white"
           >
-            {agentName}
+            <Users size={18} />
+            Add Teams Bot
           </button>
-          <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
-          <span className="text-gray-900 font-medium">Messaging Bots</span>
-        </div>
-
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Messaging Bots</h1>
-            <p className="text-gray-600 mt-1">Connect your agent to WhatsApp and Microsoft Teams</p>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => router.push(`/agents/${agentName}/messaging-bots/whatsapp/create`)}
-              className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-lg hover:from-red-600 hover:to-red-700 transition-all font-medium shadow-sm"
-            >
-              <MessageCircle size={18} />
-              Add WhatsApp Bot
-            </button>
-            <button
-              onClick={() => router.push(`/agents/${agentName}/messaging-bots/teams/create`)}
-              className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-lg hover:from-red-600 hover:to-red-700 transition-all font-medium shadow-sm"
-            >
-              <Users size={18} />
-              Add Teams Bot
-            </button>
-          </div>
-        </div>
+        </>
+      }
+    >
 
         {/* Setup Guide */}
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-5">
+        <div className="mb-5 rounded-[1.45rem] border border-black/10 bg-[#fcfaf5] p-4">
           <div className="flex items-start">
-            <div className="flex-shrink-0">
-              <ExternalLink className="h-4 w-4 text-red-600" />
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[0.95rem] bg-[#f1eadc]">
+              <ExternalLink className="h-4 w-4 text-[#171717]" />
             </div>
             <div className="ml-3 flex-1">
-              <h3 className="text-xs font-medium text-red-900">Need help setting up messaging bots?</h3>
-              <p className="mt-1 text-xs text-red-800">
+              <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7c5d45]">Need help setting up messaging bots?</h3>
+              <p className="mt-1 text-xs leading-6 text-gray-600">
                 Follow our guides to configure WhatsApp Business API or Microsoft Teams Bot Framework.
               </p>
               <div className="mt-2 flex gap-4">
@@ -166,7 +148,7 @@ export default function MessagingBotsPage() {
                   href="https://developers.facebook.com/docs/whatsapp/cloud-api"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center text-xs font-medium text-red-600 hover:text-red-700"
+                  className="inline-flex items-center text-xs font-semibold text-[#171717] hover:text-black"
                 >
                   WhatsApp Setup Guide
                   <ExternalLink className="ml-1 h-3 w-3" />
@@ -175,7 +157,7 @@ export default function MessagingBotsPage() {
                   href="https://dev.botframework.com/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center text-xs font-medium text-red-600 hover:text-red-700"
+                  className="inline-flex items-center text-xs font-semibold text-[#171717] hover:text-black"
                 >
                   Teams Bot Framework
                   <ExternalLink className="ml-1 h-3 w-3" />
@@ -187,48 +169,50 @@ export default function MessagingBotsPage() {
 
         {/* Error Messages */}
         {(error || whatsappError || teamsError) && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-5">
-            <p className="text-xs text-red-800">{error || whatsappError || teamsError}</p>
+          <div className="mb-5 rounded-[1.2rem] border border-[#ead8e1] bg-[#f8ecef] p-3">
+            <p className="text-xs text-[#8b5a74]">{error || whatsappError || teamsError}</p>
           </div>
         )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+          <div className="rounded-[1.35rem] border border-black/10 bg-white/85 p-4 shadow-[0_18px_40px_rgba(0,0,0,0.04)]">
             <div className="text-gray-600 text-xs">Total Bots</div>
             <div className="text-2xl font-bold text-gray-900 mt-1">{totalBots}</div>
           </div>
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+          <div className="rounded-[1.35rem] border border-[#cfe6d9] bg-[#e8f4ee] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.03)]">
             <div className="text-gray-600 text-xs">Active Bots</div>
-            <div className="text-2xl font-bold text-emerald-600 mt-1">{activeBots}</div>
+            <div className="mt-1 text-2xl font-bold text-[#2d8b69]">{activeBots}</div>
           </div>
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+          <div className="rounded-[1.35rem] border border-[#ead8e1] bg-[#f6edf1] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.03)]">
             <div className="text-gray-600 text-xs">WhatsApp</div>
-            <div className="text-2xl font-bold text-red-600 mt-1">{whatsappBots.length}</div>
+            <div className="mt-1 text-2xl font-bold text-[#8b5a74]">{whatsappBots.length}</div>
           </div>
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+          <div className="rounded-[1.35rem] border border-[#d7e6ea] bg-[#edf4f6] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.03)]">
             <div className="text-gray-600 text-xs">Teams</div>
-            <div className="text-2xl font-bold text-red-600 mt-1">{teamsBots.length}</div>
+            <div className="mt-1 text-2xl font-bold text-[#486c77]">{teamsBots.length}</div>
           </div>
         </div>
 
         {/* No Bots State */}
         {totalBots === 0 ? (
-          <div className="text-center py-10 bg-white rounded-xl shadow-sm border border-gray-200">
-            <MessageCircle className="mx-auto h-10 w-10 text-red-400" />
-            <h3 className="mt-3 text-base font-medium text-gray-900">No messaging bots</h3>
+          <div className="rounded-[1.75rem] border border-dashed border-black/10 bg-white/85 py-10 text-center shadow-[0_18px_40px_rgba(0,0,0,0.04)]">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[1.2rem] bg-[#f1eadc]">
+              <MessageCircle className="h-7 w-7 text-[#171717]" />
+            </div>
+            <h3 className="mt-3 text-base font-semibold text-gray-950">No messaging bots</h3>
             <p className="mt-1 text-sm text-gray-500">Get started by creating your first WhatsApp or Teams bot.</p>
             <div className="mt-5 flex gap-2 justify-center">
               <button
                 onClick={() => router.push(`/agents/${agentName}/messaging-bots/whatsapp/create`)}
-                className="inline-flex items-center px-4 py-2 rounded-lg shadow-sm font-medium text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transition-all"
+                className="inline-flex items-center rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
               >
                 <MessageCircle className="h-4 w-4 mr-2" />
                 Add WhatsApp Bot
               </button>
               <button
                 onClick={() => router.push(`/agents/${agentName}/messaging-bots/teams/create`)}
-                className="inline-flex items-center px-4 py-2 rounded-lg shadow-sm font-medium text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transition-all"
+                className="inline-flex items-center rounded-[1rem] border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#fcfaf5]"
               >
                 <Users className="h-4 w-4 mr-2" />
                 Add Teams Bot
@@ -239,19 +223,19 @@ export default function MessagingBotsPage() {
           <div className="space-y-5">
             {/* WhatsApp Bots */}
             {whatsappBots.length > 0 && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="px-5 py-3 border-b border-gray-200 bg-red-50">
+              <div className="overflow-hidden rounded-[1.75rem] border border-black/10 bg-white/85 shadow-[0_18px_40px_rgba(0,0,0,0.04)]">
+                <div className="border-b border-black/10 bg-[#f6edf1] px-5 py-4">
                   <div className="flex items-center gap-2">
-                    <MessageCircle className="text-red-600" size={20} />
+                    <MessageCircle className="text-[#8b5a74]" size={20} />
                     <h2 className="text-base font-semibold text-gray-900">WhatsApp Bots</h2>
-                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    <span className="rounded-full bg-white px-2 py-0.5 text-xs font-medium text-[#8b5a74]">
                       {whatsappBots.length}
                     </span>
                   </div>
                 </div>
-                <div className="divide-y divide-gray-200">
+                <div className="divide-y divide-black/10">
                   {whatsappBots.map((bot: WhatsAppBot) => (
-                    <div key={bot.bot_id} className="p-5 hover:bg-red-50 transition-colors">
+                    <div key={bot.bot_id} className="p-5 transition-colors hover:bg-[#fcfaf5]">
                       <div className="flex items-center justify-between">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center space-x-2">
@@ -283,7 +267,7 @@ export default function MessagingBotsPage() {
                             <button
                               onClick={() => handleToggleActive("whatsapp", bot)}
                               disabled={actionLoading === bot.bot_id}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                              className="rounded-lg p-2 text-[#8b5a74] transition-colors hover:bg-[#f8ecef] disabled:opacity-50"
                               title="Deactivate"
                             >
                               <PowerOff size={16} />
@@ -292,7 +276,7 @@ export default function MessagingBotsPage() {
                             <button
                               onClick={() => handleToggleActive("whatsapp", bot)}
                               disabled={actionLoading === bot.bot_id}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                              className="rounded-lg p-2 text-emerald-600 transition-colors hover:bg-emerald-50 disabled:opacity-50"
                               title="Activate"
                             >
                               <Power size={16} />
@@ -302,7 +286,7 @@ export default function MessagingBotsPage() {
                             onClick={() =>
                               router.push(`/agents/${agentName}/messaging-bots/whatsapp/${bot.bot_id}/edit`)
                             }
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            className="rounded-lg p-2 text-gray-600 transition-colors hover:bg-[#fcfaf5]"
                             title="Edit"
                           >
                             <Settings size={16} />
@@ -310,7 +294,7 @@ export default function MessagingBotsPage() {
                           <button
                             onClick={() => handleDelete("whatsapp", bot)}
                             disabled={actionLoading === bot.bot_id}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                            className="rounded-lg p-2 text-[#8b5a74] transition-colors hover:bg-[#f8ecef] disabled:opacity-50"
                             title="Delete"
                           >
                             <Trash2 size={16} />
@@ -325,19 +309,19 @@ export default function MessagingBotsPage() {
 
             {/* Teams Bots */}
             {teamsBots.length > 0 && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="px-5 py-3 border-b border-gray-200 bg-red-50">
+              <div className="overflow-hidden rounded-[1.75rem] border border-black/10 bg-white/85 shadow-[0_18px_40px_rgba(0,0,0,0.04)]">
+                <div className="border-b border-black/10 bg-[#edf4f6] px-5 py-4">
                   <div className="flex items-center gap-2">
-                    <Users className="text-red-600" size={20} />
+                    <Users className="text-[#486c77]" size={20} />
                     <h2 className="text-base font-semibold text-gray-900">Microsoft Teams Bots</h2>
-                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    <span className="rounded-full bg-white px-2 py-0.5 text-xs font-medium text-[#486c77]">
                       {teamsBots.length}
                     </span>
                   </div>
                 </div>
-                <div className="divide-y divide-gray-200">
+                <div className="divide-y divide-black/10">
                   {teamsBots.map((bot: TeamsBot) => (
-                    <div key={bot.bot_id} className="p-5 hover:bg-red-50 transition-colors">
+                    <div key={bot.bot_id} className="p-5 transition-colors hover:bg-[#fcfaf5]">
                       <div className="flex items-center justify-between">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center space-x-2">
@@ -369,7 +353,7 @@ export default function MessagingBotsPage() {
                             <button
                               onClick={() => handleToggleActive("teams", bot)}
                               disabled={actionLoading === bot.bot_id}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                              className="rounded-lg p-2 text-[#8b5a74] transition-colors hover:bg-[#f8ecef] disabled:opacity-50"
                               title="Deactivate"
                             >
                               <PowerOff size={16} />
@@ -378,7 +362,7 @@ export default function MessagingBotsPage() {
                             <button
                               onClick={() => handleToggleActive("teams", bot)}
                               disabled={actionLoading === bot.bot_id}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                              className="rounded-lg p-2 text-emerald-600 transition-colors hover:bg-emerald-50 disabled:opacity-50"
                               title="Activate"
                             >
                               <Power size={16} />
@@ -388,7 +372,7 @@ export default function MessagingBotsPage() {
                             onClick={() =>
                               router.push(`/agents/${agentName}/messaging-bots/teams/${bot.bot_id}/edit`)
                             }
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            className="rounded-lg p-2 text-gray-600 transition-colors hover:bg-[#fcfaf5]"
                             title="Edit"
                           >
                             <Settings size={16} />
@@ -396,7 +380,7 @@ export default function MessagingBotsPage() {
                           <button
                             onClick={() => handleDelete("teams", bot)}
                             disabled={actionLoading === bot.bot_id}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                            className="rounded-lg p-2 text-[#8b5a74] transition-colors hover:bg-[#f8ecef] disabled:opacity-50"
                             title="Delete"
                           >
                             <Trash2 size={16} />
@@ -410,7 +394,6 @@ export default function MessagingBotsPage() {
             )}
           </div>
         )}
-      </div>
-    </div>
+    </AgentPageShell>
   );
 }

@@ -148,19 +148,19 @@ export default function DocumentViewer({
     // PDF Preview using iframe
     if (isPDF(docDetails.mime_type) && fileUrl) {
       return (
-        <div className="flex flex-col h-full">
-          <div className="flex-1 bg-gray-100">
+        <div className="flex h-full min-h-0 flex-col">
+          <div className="min-h-0 flex-1 overflow-hidden rounded-[1.5rem] border border-black/10 bg-[#f1eadc]">
             <iframe
               src={fileUrl}
               className="w-full h-full border-0"
               title={docDetails.title}
             />
           </div>
-          <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-600 text-center">
+          <div className="px-4 py-3 text-center text-sm text-gray-600">
             PDF viewer. For better experience,{' '}
             <button
               onClick={handleViewInNewTab}
-              className="text-blue-600 hover:text-blue-700 underline"
+              className="font-semibold text-[#2d8b69] transition-colors hover:text-[#20664d]"
             >
               open in a new tab
             </button>
@@ -175,19 +175,19 @@ export default function DocumentViewer({
       const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`
       
       return (
-        <div className="flex flex-col h-full">
-          <div className="flex-1 bg-gray-100">
+        <div className="flex h-full min-h-0 flex-col">
+          <div className="min-h-0 flex-1 overflow-hidden rounded-[1.5rem] border border-black/10 bg-[#f1eadc]">
             <iframe
               src={viewerUrl}
               className="w-full h-full border-0"
               title={docDetails.title}
             />
           </div>
-          <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 text-sm text-gray-600 text-center">
+          <div className="px-4 py-3 text-center text-sm text-gray-600">
             If the document doesn't display, try{' '}
             <button
               onClick={handleViewInNewTab}
-              className="text-blue-600 hover:text-blue-700 underline"
+              className="font-semibold text-[#2d8b69] transition-colors hover:text-[#20664d]"
             >
               opening it in a new tab
             </button>
@@ -197,16 +197,16 @@ export default function DocumentViewer({
     }
 
     return (
-      <div className="prose max-w-none p-6">
+      <div className="h-full overflow-auto p-6">
         {docDetails.content ? (
-          <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-            <pre className="whitespace-pre-wrap font-sans text-sm text-gray-800 leading-relaxed">
+          <div className="rounded-[1.5rem] border border-black/10 bg-[#fcfaf5] p-6">
+            <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-[#2b2723]">
               {docDetails.content}
             </pre>
           </div>
         ) : (
-          <div className="text-center py-12">
-            <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <div className="py-12 text-center">
+            <FileText className="mx-auto mb-4 h-12 w-12 text-[#8a8378]" />
             <p className="text-gray-600">No preview available for this document</p>
             <p className="text-sm text-gray-500 mt-2">
               Try downloading the file or viewing it in a new tab
@@ -214,7 +214,7 @@ export default function DocumentViewer({
             {fileUrl && (
               <button
                 onClick={handleViewInNewTab}
-                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+                className="mt-4 inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
               >
                 <ExternalLink className="w-4 h-4" />
                 Open in New Tab
@@ -228,10 +228,10 @@ export default function DocumentViewer({
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-xl p-8">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+        <div className="rounded-[1.8rem] border border-black/10 bg-[#fcfaf5] p-8 shadow-[0_30px_80px_rgba(0,0,0,0.18)]">
           <div className="text-center">
-            <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+            <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-[#2d8b69]" />
             <p className="text-gray-600">Loading document...</p>
           </div>
         </div>
@@ -241,8 +241,8 @@ export default function DocumentViewer({
 
   if (error) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-xl p-8 max-w-md">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+        <div className="max-w-md rounded-[1.8rem] border border-black/10 bg-[#fcfaf5] p-8 shadow-[0_30px_80px_rgba(0,0,0,0.18)]">
           <div className="text-center">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -252,13 +252,13 @@ export default function DocumentViewer({
             <div className="flex gap-2 justify-center">
               <button
                 onClick={loadDocument}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
               >
                 Try Again
               </button>
               <button
                 onClick={onClose}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                className="rounded-[1rem] border border-black/10 bg-[#f1eadc] px-4 py-2.5 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#e8ddc8]"
               >
                 Close
               </button>
@@ -274,22 +274,33 @@ export default function DocumentViewer({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+      <div className="flex h-[90vh] min-h-0 w-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-black/10 bg-[#fcfaf5] shadow-[0_32px_90px_rgba(0,0,0,0.18)]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <div className="border-b border-black/10 bg-white px-6 py-5">
+          <div className="flex items-center justify-between gap-4">
           <div className="flex-1 min-w-0">
+            <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/55 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#6e675d]">
+              <FileText className="h-3.5 w-3.5 text-[#2d8b69]" />
+              Document Viewer
+            </div>
             <h2 className="text-lg font-semibold text-gray-900 truncate">
               {docDetails.title}
             </h2>
-            <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-gray-500">
+              <span className="inline-flex items-center rounded-full bg-[#f7f2e7] px-2.5 py-1 text-xs font-medium text-[#6e675d]">
                 {docDetails.source_type}
               </span>
-              <span>{formatFileSize(docDetails.file_size)}</span>
-              <span>{docDetails.chunk_count} chunks</span>
+              <span className="inline-flex items-center rounded-full bg-[#eef7f1] px-2.5 py-1 text-xs font-medium text-[#2d8b69]">
+                {formatFileSize(docDetails.file_size)}
+              </span>
+              <span className="inline-flex items-center rounded-full bg-[#f4efe4] px-2.5 py-1 text-xs font-medium text-[#5b564e]">
+                {docDetails.chunk_count} chunks
+              </span>
               {docDetails.has_images && (
-                <span>{docDetails.image_count} images</span>
+                <span className="inline-flex items-center rounded-full bg-[#f1eadc] px-2.5 py-1 text-xs font-medium text-[#6e675d]">
+                  {docDetails.image_count} images
+                </span>
               )}
             </div>
           </div>
@@ -297,7 +308,7 @@ export default function DocumentViewer({
             {(docDetails.s3_url || docDetails.source_url) && (
               <button
                 onClick={handleViewInNewTab}
-                className="px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors inline-flex items-center gap-2"
+                className="inline-flex items-center gap-2 rounded-[1rem] border border-black/10 bg-[#f1eadc] px-3 py-2 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#e8ddc8]"
                 title="View in new tab"
               >
                 <ExternalLink className="w-4 h-4" />
@@ -306,68 +317,71 @@ export default function DocumentViewer({
             )}
             <button
               onClick={onDownload}
-              className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              className="rounded-full p-2 text-gray-600 transition-colors hover:bg-[#f7f2e7] hover:text-[#171717]"
               title="Download"
             >
               <Download className="w-5 h-5" />
             </button>
             <button
               onClick={onClose}
-              className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              className="rounded-full p-2 text-gray-600 transition-colors hover:bg-red-50 hover:text-red-600"
               title="Close"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
+          </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-200 px-6">
+        <div className="border-b border-black/10 px-6 py-3">
+          <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setActiveTab('preview')}
-            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+            className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition-colors ${
               activeTab === 'preview'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'bg-[#171717] text-white'
+                : 'text-gray-500 hover:bg-[#f7f2e7] hover:text-[#171717]'
             }`}
           >
             Preview
           </button>
           <button
             onClick={() => setActiveTab('chunks')}
-            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+            className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] transition-colors ${
               activeTab === 'chunks'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'bg-[#171717] text-white'
+                : 'text-gray-500 hover:bg-[#f7f2e7] hover:text-[#171717]'
             }`}
           >
             Chunks ({docDetails.segments.length})
           </button>
+          </div>
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-hidden bg-[#fcfaf5]">
           {activeTab === 'preview' ? (
             renderPreview()
           ) : (
             <div className="h-full overflow-auto p-6">
               <div className="space-y-4">
                 {/* Chunk Controls */}
-                <div className="flex items-center justify-between pb-4 border-b border-gray-200">
+                <div className="flex items-center justify-between border-b border-black/10 pb-4">
                   <h3 className="text-sm font-medium text-gray-700">
                     {docDetails.segments.length} chunk{docDetails.segments.length !== 1 ? 's' : ''}
                   </h3>
                   <div className="flex gap-2">
                     <button
                       onClick={expandAllChunks}
-                      className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                      className="text-xs font-semibold text-[#2d8b69] transition-colors hover:text-[#20664d]"
                     >
                       Expand All
                     </button>
                     <span className="text-gray-300">|</span>
                     <button
                       onClick={collapseAllChunks}
-                      className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                      className="text-xs font-semibold text-[#2d8b69] transition-colors hover:text-[#20664d]"
                     >
                       Collapse All
                     </button>
@@ -376,8 +390,8 @@ export default function DocumentViewer({
 
                 {/* Chunks List */}
                 {docDetails.segments.length === 0 ? (
-                  <div className="text-center py-12">
-                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <div className="py-12 text-center">
+                    <FileText className="mx-auto mb-4 h-12 w-12 text-[#8a8378]" />
                     <p className="text-gray-600">No chunks available</p>
                   </div>
                 ) : (
@@ -387,14 +401,14 @@ export default function DocumentViewer({
                       return (
                         <div
                           key={segment.id}
-                          className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:border-gray-300 transition-colors"
+                          className="overflow-hidden rounded-[1.3rem] border border-black/10 bg-white/85 transition-colors hover:bg-white"
                         >
                           <button
                             onClick={() => toggleChunk(segment.id)}
-                            className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                            className="flex w-full items-center justify-between px-4 py-3 transition-colors hover:bg-[#fcfaf5]"
                           >
                             <div className="flex items-center gap-3 text-left">
-                              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">
+                              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#eef7f1] text-xs font-semibold text-[#2d8b69]">
                                 {segment.position}
                               </span>
                               <div>
@@ -414,11 +428,11 @@ export default function DocumentViewer({
                           </button>
                           
                           {isExpanded && (
-                            <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
-                              <pre className="whitespace-pre-wrap font-sans text-sm text-gray-700 leading-relaxed">
+                            <div className="border-t border-black/10 bg-[#fcfaf5] px-4 py-3">
+                              <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-[#2b2723]">
                                 {segment.content}
                               </pre>
-                              <div className="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-500">
+                              <div className="mt-3 border-t border-black/10 pt-3 text-xs text-gray-500">
                                 Created: {formatDate(segment.created_at)}
                               </div>
                             </div>
@@ -434,26 +448,26 @@ export default function DocumentViewer({
         </div>
 
         {/* Footer with Metadata */}
-        <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <p className="text-gray-500">Created</p>
-              <p className="font-medium text-gray-900">{formatDate(docDetails.created_at)}</p>
+        <div className="border-t border-black/10 bg-white px-6 py-4">
+          <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+            <div className="rounded-[1rem] border border-black/10 bg-[#fcfaf5] px-3 py-3">
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-gray-500">Created</p>
+              <p className="mt-1 font-medium text-gray-900">{formatDate(docDetails.created_at)}</p>
             </div>
-            <div>
-              <p className="text-gray-500">Updated</p>
-              <p className="font-medium text-gray-900">{formatDate(docDetails.updated_at)}</p>
+            <div className="rounded-[1rem] border border-black/10 bg-[#eef7f1] px-3 py-3">
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-gray-500">Updated</p>
+              <p className="mt-1 font-medium text-gray-900">{formatDate(docDetails.updated_at)}</p>
             </div>
             {docDetails.data_source && (
-              <div>
-                <p className="text-gray-500">Data Source</p>
-                <p className="font-medium text-gray-900">{docDetails.data_source.name}</p>
+              <div className="rounded-[1rem] border border-black/10 bg-[#f7f2e7] px-3 py-3">
+                <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-gray-500">Data Source</p>
+                <p className="mt-1 font-medium text-gray-900">{docDetails.data_source.name}</p>
               </div>
             )}
             {docDetails.mime_type && (
-              <div>
-                <p className="text-gray-500">Type</p>
-                <p className="font-medium text-gray-900">{docDetails.mime_type}</p>
+              <div className="rounded-[1rem] border border-black/10 bg-[#f4efe4] px-3 py-3">
+                <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-gray-500">Type</p>
+                <p className="mt-1 font-medium text-gray-900">{docDetails.mime_type}</p>
               </div>
             )}
           </div>

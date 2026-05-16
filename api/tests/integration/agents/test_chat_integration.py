@@ -62,6 +62,7 @@ class TestChatIntegration:
         # Create agent
         agent = Agent(
             agent_name=agent_name,
+            slug=agent_name,
             tenant_id=uuid.UUID(tenant_id),
             description="Integration Test Agent",
             system_prompt="You are a helpful assistant.",
@@ -100,13 +101,15 @@ class TestChatIntegration:
             patch("src.services.billing.ChatBillingService") as mock_billing_cls,
         ):
             # Mock scanner to return safe
-            mock_scanner.scan_comprehensive.return_value = {
-                "is_safe": True,
-                "risk_score": 0.0,
-                "threat_level": "SAFE",
-                "detections": [],
-                "layers_triggered": 0,
-            }
+            mock_scanner.scan_comprehensive_async = AsyncMock(
+                return_value={
+                    "is_safe": True,
+                    "risk_score": 0.0,
+                    "threat_level": "SAFE",
+                    "detections": [],
+                    "layers_triggered": 0,
+                }
+            )
 
             # Mock billing service to return valid
             mock_billing_instance = MagicMock()
@@ -126,7 +129,7 @@ class TestChatIntegration:
             response = await async_client.post(
                 "/api/v1/agents/chat/stream",
                 json={
-                    "agent_name": agent_name,
+                    "agent_slug": agent_name,
                     "message": "Hello",
                     "conversation_history": [],
                     "conversation_id": None,

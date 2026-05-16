@@ -26,6 +26,7 @@ data:
   RATE_LIMIT_ENABLED: "true"
   RATE_LIMIT_PER_MINUTE: "60"
   RATE_LIMIT_PER_HOUR: "1000"
+  CONVERSATION_LANE_LOCK_TTL_SECONDS: "900"
 
   LOG_LEVEL: "INFO"
   LOG_FORMAT: "json"
@@ -90,3 +91,10 @@ data:
   MESSAGE_RETENTION_DAYS: "365"
   # Files can have a shorter retention window
   FILE_RETENTION_DAYS: "90"
+  # Elasticsearch — Agent Lens (agent session tracing)
+  ELASTICSEARCH_URL: "http://elasticsearch:9200"
+  AGENT_TRACE_ENABLED: "true"
+  AGENT_TRACE_INDEX: "agent-session-events"
+  # Days to keep session events — align with MESSAGE_RETENTION_DAYS or set lower for cost
+  AGENT_TRACE_RETENTION_DAYS: "7"
+

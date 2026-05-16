@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import PublicPageFrame from '@/components/public/PublicPageFrame'
 
 export const metadata = {
   title: 'Privacy Policy – Synkora',
@@ -7,7 +8,7 @@ export const metadata = {
 
 export default function PrivacyPolicyPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-pink-50 py-12 px-4">
+    <PublicPageFrame mainClassName="pt-28 pb-12 px-4">
       <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl border border-gray-100 p-8 md:p-12">
         {/* Header */}
         <div className="mb-8">
@@ -215,6 +216,6 @@ export default function PrivacyPolicyPage() {
           </section>
         </div>
       </div>
-    </div>
+    </PublicPageFrame>
   )
 }

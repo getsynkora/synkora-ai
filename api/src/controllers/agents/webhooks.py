@@ -128,9 +128,9 @@ class WebhookEventResponse(BaseModel):
 
 
 # Endpoints
-@router.post("/{agent_name}/webhooks", response_model=WebhookResponse)
+@router.post("/{agent_slug}/webhooks", response_model=WebhookResponse)
 async def create_webhook(
-    agent_name: str,
+    agent_slug: str,
     webhook_data: WebhookCreate,
     db: AsyncSession = Depends(get_async_db),
     account=Depends(get_current_account),
@@ -138,7 +138,7 @@ async def create_webhook(
 ):
     """Create a new webhook for an agent."""
     # Get agent
-    result = await db.execute(select(Agent).filter(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+    result = await db.execute(select(Agent).filter(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
     agent = result.scalar_one_or_none()
 
     if not agent:
@@ -176,7 +176,7 @@ async def create_webhook(
     await db.commit()
     await db.refresh(webhook)
 
-    logger.info(f"Created webhook {webhook.id} for agent {agent.agent_name}")
+    logger.info(f"Created webhook {webhook.id} for agent {agent.slug}")
 
     # Return response with plain secret (one-time only)
     response = WebhookResponse.model_validate(webhook)
@@ -186,15 +186,15 @@ async def create_webhook(
     return response
 
 
-@router.get("/{agent_name}/webhooks", response_model=list[WebhookResponse])
+@router.get("/{agent_slug}/webhooks", response_model=list[WebhookResponse])
 async def list_webhooks(
-    agent_name: str,
+    agent_slug: str,
     db: AsyncSession = Depends(get_async_db),
     account=Depends(get_current_account),
     tenant_id: int = Depends(get_current_tenant_id),
 ):
     """List all webhooks for an agent."""
-    result = await db.execute(select(Agent).filter(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+    result = await db.execute(select(Agent).filter(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
     agent = result.scalar_one_or_none()
 
     if not agent:
@@ -206,16 +206,16 @@ async def list_webhooks(
     return [WebhookResponse.model_validate(w) for w in webhooks]
 
 
-@router.get("/{agent_name}/webhooks/{webhook_id}", response_model=WebhookResponse)
+@router.get("/{agent_slug}/webhooks/{webhook_id}", response_model=WebhookResponse)
 async def get_webhook(
-    agent_name: str,
+    agent_slug: str,
     webhook_id: UUID,
     db: AsyncSession = Depends(get_async_db),
     account=Depends(get_current_account),
     tenant_id: int = Depends(get_current_tenant_id),
 ):
     """Get webhook details."""
-    result = await db.execute(select(Agent).filter(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+    result = await db.execute(select(Agent).filter(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
     agent = result.scalar_one_or_none()
 
     if not agent:
@@ -232,9 +232,9 @@ async def get_webhook(
     return WebhookResponse.model_validate(webhook)
 
 
-@router.patch("/{agent_name}/webhooks/{webhook_id}", response_model=WebhookResponse)
+@router.patch("/{agent_slug}/webhooks/{webhook_id}", response_model=WebhookResponse)
 async def update_webhook(
-    agent_name: str,
+    agent_slug: str,
     webhook_id: UUID,
     webhook_data: WebhookUpdate,
     db: AsyncSession = Depends(get_async_db),
@@ -242,7 +242,7 @@ async def update_webhook(
     tenant_id: int = Depends(get_current_tenant_id),
 ):
     """Update webhook configuration."""
-    result = await db.execute(select(Agent).filter(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+    result = await db.execute(select(Agent).filter(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
     agent = result.scalar_one_or_none()
 
     if not agent:
@@ -269,16 +269,16 @@ async def update_webhook(
     return WebhookResponse.model_validate(webhook)
 
 
-@router.delete("/{agent_name}/webhooks/{webhook_id}")
+@router.delete("/{agent_slug}/webhooks/{webhook_id}")
 async def delete_webhook(
-    agent_name: str,
+    agent_slug: str,
     webhook_id: UUID,
     db: AsyncSession = Depends(get_async_db),
     account=Depends(get_current_account),
     tenant_id: int = Depends(get_current_tenant_id),
 ):
     """Delete a webhook."""
-    result = await db.execute(select(Agent).filter(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+    result = await db.execute(select(Agent).filter(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
     agent = result.scalar_one_or_none()
 
     if not agent:
@@ -355,9 +355,9 @@ async def receive_webhook(webhook_token: str, request: Request, db: AsyncSession
     return result
 
 
-@router.get("/{agent_name}/webhooks/{webhook_id}/events", response_model=list[WebhookEventResponse])
+@router.get("/{agent_slug}/webhooks/{webhook_id}/events", response_model=list[WebhookEventResponse])
 async def list_webhook_events(
-    agent_name: str,
+    agent_slug: str,
     webhook_id: UUID,
     limit: int = 50,
     offset: int = 0,
@@ -367,7 +367,7 @@ async def list_webhook_events(
     tenant_id: int = Depends(get_current_tenant_id),
 ):
     """List webhook events."""
-    result = await db.execute(select(Agent).filter(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+    result = await db.execute(select(Agent).filter(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
     agent = result.scalar_one_or_none()
 
     if not agent:
@@ -393,9 +393,9 @@ async def list_webhook_events(
     return [WebhookEventResponse.model_validate(e) for e in events]
 
 
-@router.delete("/{agent_name}/webhooks/{webhook_id}/events/{event_id}")
+@router.delete("/{agent_slug}/webhooks/{webhook_id}/events/{event_id}")
 async def delete_webhook_event(
-    agent_name: str,
+    agent_slug: str,
     webhook_id: UUID,
     event_id: UUID,
     db: AsyncSession = Depends(get_async_db),
@@ -403,7 +403,7 @@ async def delete_webhook_event(
     tenant_id: int = Depends(get_current_tenant_id),
 ):
     """Delete a single webhook event record."""
-    result = await db.execute(select(Agent).filter(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+    result = await db.execute(select(Agent).filter(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
     agent = result.scalar_one_or_none()
 
     if not agent:
@@ -432,16 +432,16 @@ async def delete_webhook_event(
     return {"message": "Event deleted"}
 
 
-@router.get("/{agent_name}/webhooks/{webhook_id}/stats")
+@router.get("/{agent_slug}/webhooks/{webhook_id}/stats")
 async def get_webhook_stats(
-    agent_name: str,
+    agent_slug: str,
     webhook_id: UUID,
     db: AsyncSession = Depends(get_async_db),
     account=Depends(get_current_account),
     tenant_id: int = Depends(get_current_tenant_id),
 ):
     """Get webhook statistics."""
-    result = await db.execute(select(Agent).filter(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+    result = await db.execute(select(Agent).filter(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
     agent = result.scalar_one_or_none()
 
     if not agent:

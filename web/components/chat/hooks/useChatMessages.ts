@@ -49,6 +49,31 @@ export function useChatMessages({ agentName }: UseChatMessagesProps): UseChatMes
   // Debounce timer ref for localStorage saves — avoids 50+ synchronous writes
   // during a single streaming response
   const saveHistoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pendingAssistantContentRef = useRef('')
+  const streamFlushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const flushPendingAssistantContent = useCallback(() => {
+    const pendingContent = pendingAssistantContentRef.current
+    if (!pendingContent) return
+
+    pendingAssistantContentRef.current = ''
+    if (streamFlushTimerRef.current) {
+      clearTimeout(streamFlushTimerRef.current)
+      streamFlushTimerRef.current = null
+    }
+
+    setMessages((prev: Message[]) => {
+      const newMessages = [...prev]
+      const lastIndex = newMessages.length - 1
+      if (lastIndex >= 0 && newMessages[lastIndex].role === 'assistant') {
+        newMessages[lastIndex] = {
+          ...newMessages[lastIndex],
+          content: newMessages[lastIndex].content + pendingContent
+        }
+      }
+      return newMessages
+    })
+  }, [])
 
   const loadChatHistory = useCallback(() => {
     try {
@@ -98,6 +123,15 @@ export function useChatMessages({ agentName }: UseChatMessagesProps): UseChatMes
     }
   }, [messages, saveChatHistory])
 
+  useEffect(() => {
+    return () => {
+      if (streamFlushTimerRef.current) {
+        clearTimeout(streamFlushTimerRef.current)
+        streamFlushTimerRef.current = null
+      }
+    }
+  }, [])
+
   const clearMessages = useCallback(() => {
     setMessages([])
     try {
@@ -142,22 +176,31 @@ export function useChatMessages({ agentName }: UseChatMessagesProps): UseChatMes
     }
 
     setMessages((prev: Message[]) => [...prev, assistantMessage])
+    pendingAssistantContentRef.current = ''
+    if (streamFlushTimerRef.current) {
+      clearTimeout(streamFlushTimerRef.current)
+      streamFlushTimerRef.current = null
+    }
 
     try {
+      // Only send conversation_history when no server-side conversation ID is tracked.
+      // When a conversation_id is present the backend loads history from DB/cache and
+      // ignores the frontend-provided array entirely — sending it wastes bandwidth.
+      // Strip attachments from history entries: only role+content is used by the LLM.
+      const conversationHistory = messages
+        .slice(-20)
+        .map((msg: Message) => ({ role: msg.role, content: msg.content }))
+
       const response = await fetch(`${API_URL}/api/v1/agents/chat/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          agent_name: agentName,
+          agent_slug: agentName,
           message: content,
           attachments,
-          conversation_history: messages.map((msg: Message) => ({
-            role: msg.role,
-            content: msg.content,
-            attachments: msg.attachments
-          }))
+          conversation_history: conversationHistory,
         }),
       })
 
@@ -243,17 +286,10 @@ export function useChatMessages({ agentName }: UseChatMessagesProps): UseChatMes
               }
             } else if (data.type === 'chunk') {
               setThinkingStatus('') // Clear thinking status once we start getting content
-              setMessages((prev: Message[]) => {
-                const newMessages = [...prev]
-                const lastIndex = newMessages.length - 1
-                if (lastIndex >= 0 && newMessages[lastIndex].role === 'assistant') {
-                  newMessages[lastIndex] = {
-                    ...newMessages[lastIndex],
-                    content: newMessages[lastIndex].content + data.content
-                  }
-                }
-                return newMessages
-              })
+              pendingAssistantContentRef.current += data.content || ''
+              if (!streamFlushTimerRef.current) {
+                streamFlushTimerRef.current = setTimeout(flushPendingAssistantContent, 50)
+              }
             } else if (data.type === 'done') {
               // Handle completion with sources and metadata
               if (elapsedInterval) {
@@ -261,13 +297,19 @@ export function useChatMessages({ agentName }: UseChatMessagesProps): UseChatMes
                 elapsedInterval = null
               }
               setThinkingStatus('')
+              const pendingContent = pendingAssistantContentRef.current
+              pendingAssistantContentRef.current = ''
+              if (streamFlushTimerRef.current) {
+                clearTimeout(streamFlushTimerRef.current)
+                streamFlushTimerRef.current = null
+              }
               setMessages((prev: Message[]) => {
                 const newMessages = [...prev]
                 const lastIndex = newMessages.length - 1
                 if (lastIndex >= 0 && newMessages[lastIndex].role === 'assistant') {
                   // CRITICAL FIX: Only use data.content if no chunks were streamed
                   // For multi-agent workflows, chunks are already streamed, so don't overwrite
-                  const currentContent = newMessages[lastIndex].content
+                  const currentContent = newMessages[lastIndex].content + pendingContent
                   const finalContent = currentContent || data.content || ''
 
                   // Extract metadata from done event
@@ -509,7 +551,7 @@ export function useChatMessages({ agentName }: UseChatMessagesProps): UseChatMes
       setToolStatus(null)
       setRecentTools([])
     }
-  }, [agentName, messages, isStreaming])
+  }, [agentName, messages, isStreaming, flushPendingAssistantContent])
 
   return {
     messages,

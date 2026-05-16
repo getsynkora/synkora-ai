@@ -345,7 +345,7 @@ class TestExportReport:
             "/api/v1/data-analysis/export-report", json={"data": [{"id": 1}], "format": "invalid"}
         )
 
-        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     def test_export_failure(self, client):
         """Test export failure."""

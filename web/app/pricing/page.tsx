@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { Check, Zap, Building2, Sparkles, ArrowRight, Loader2 } from 'lucide-react'
+import PublicPageFrame from '@/components/public/PublicPageFrame'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
 
@@ -23,21 +24,42 @@ interface SubscriptionPlan {
   display_order?: number
 }
 
+const planAccentStyles = [
+  {
+    surface: 'bg-[linear-gradient(145deg,rgba(255,255,255,0.82),rgba(249,241,233,0.88))]',
+    iconWrap: 'bg-[#ffe8de]',
+    iconColor: 'text-[#cf673e]',
+    button: 'bg-white/78 hover:bg-white text-[#171717] border border-black/10',
+  },
+  {
+    surface: 'bg-[linear-gradient(145deg,rgba(255,255,255,0.82),rgba(234,245,241,0.88))]',
+    iconWrap: 'bg-[#e4f2ef]',
+    iconColor: 'text-[#2d8b69]',
+    button: 'bg-[#191919] hover:bg-black text-[#f7f2e7]',
+  },
+  {
+    surface: 'bg-[linear-gradient(145deg,rgba(255,255,255,0.82),rgba(250,243,228,0.88))]',
+    iconWrap: 'bg-[#fff0d8]',
+    iconColor: 'text-[#d58a27]',
+    button: 'bg-white/78 hover:bg-white text-[#171717] border border-black/10',
+  },
+]
+
 const getIconForPlan = (name: string, index: number) => {
   const nameLower = name.toLowerCase()
   if (nameLower.includes('free') || nameLower.includes('starter')) {
-    return <Sparkles className="w-5 h-5 text-gray-600" />
+    return <Sparkles className="w-5 h-5 text-[#cf673e]" />
   }
   if (nameLower.includes('pro') || nameLower.includes('professional')) {
-    return <Zap className="w-5 h-5 text-red-500" />
+    return <Zap className="w-5 h-5 text-[#2d8b69]" />
   }
   if (nameLower.includes('enterprise') || nameLower.includes('business')) {
-    return <Building2 className="w-5 h-5 text-purple-600" />
+    return <Building2 className="w-5 h-5 text-[#d58a27]" />
   }
   // Fallback based on index
-  if (index === 0) return <Sparkles className="w-5 h-5 text-gray-600" />
-  if (index === 1) return <Zap className="w-5 h-5 text-red-500" />
-  return <Building2 className="w-5 h-5 text-purple-600" />
+  if (index === 0) return <Sparkles className="w-5 h-5 text-[#cf673e]" />
+  if (index === 1) return <Zap className="w-5 h-5 text-[#2d8b69]" />
+  return <Building2 className="w-5 h-5 text-[#d58a27]" />
 }
 
 const formatFeatures = (plan: SubscriptionPlan): string[] => {
@@ -149,90 +171,62 @@ export default function PricingPage() {
   }, [loading, plans])
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2 sm:gap-3">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-red-500 rounded-xl flex items-center justify-center">
-                <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-              </div>
-              <span className="text-xl sm:text-2xl font-bold text-gray-900">Synkora</span>
-            </Link>
-            <div className="flex items-center gap-2 sm:gap-4">
-              <Link href="/" className="hidden sm:block text-gray-600 hover:text-gray-900 font-medium">
-                Home
-              </Link>
-              <Link href="/how-it-works" className="hidden sm:block text-gray-600 hover:text-gray-900 font-medium">
-                How It Works
-              </Link>
-              <Link href="/signin" className="hidden sm:block text-gray-600 hover:text-gray-900 font-medium">
-                Sign in
-              </Link>
-              <Link
-                href="/signup"
-                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors text-sm sm:text-base"
-              >
-                Get Started
-              </Link>
-            </div>
-          </div>
+    <PublicPageFrame mainClassName="">
+      <section className="relative overflow-hidden bg-[#f7f2e7] px-4 pb-12 pt-28 sm:px-6 sm:pb-16 sm:pt-32">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute left-[8%] top-[8%] h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.94),transparent_72%)]" />
+          <div className="absolute right-[6%] top-[10%] h-[28rem] w-[28rem] rounded-full bg-[radial-gradient(circle,rgba(240,232,216,0.92),transparent_72%)]" />
+          <div className="absolute left-[20%] top-[34%] h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(125,229,193,0.15),transparent_72%)]" />
         </div>
-      </nav>
 
-      {/* Hero */}
-      <section className="pt-28 sm:pt-32 pb-12 sm:pb-16 px-4 sm:px-6">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm font-semibold mb-6">
+        <div className="relative max-w-4xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/65 px-4 py-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#4b463e] shadow-[0_12px_28px_rgba(0,0,0,0.04)] backdrop-blur mb-6">
             <Sparkles className="w-4 h-4" />
             Simple, Transparent Pricing
           </div>
-          <h1 className="text-3xl sm:text-5xl font-bold text-gray-900 mb-4 sm:mb-6">
+          <h1 className="text-4xl sm:text-6xl font-medium tracking-[-0.06em] text-[#171717] mb-4 sm:mb-6">
             Choose the plan that fits your needs
           </h1>
-          <p className="text-base sm:text-xl text-gray-600 mb-8 sm:mb-10">
+          <p className="text-base sm:text-xl text-[#5a544a] mb-8 sm:mb-10 leading-8">
             Start free, scale as you grow. All plans include our core features.
           </p>
 
-          {/* Billing Toggle */}
-          <div className="flex items-center justify-center gap-4 mb-12">
-            <span className={`font-medium ${!isYearly ? 'text-gray-900' : 'text-gray-500'}`}>
+          <div className="inline-flex items-center justify-center gap-4 rounded-full border border-black/10 bg-white/70 px-4 py-3 shadow-[0_12px_28px_rgba(0,0,0,0.04)] backdrop-blur mb-12">
+            <span className={`text-sm font-semibold uppercase tracking-[0.16em] ${!isYearly ? 'text-[#171717]' : 'text-[#7a736a]'}`}>
               Monthly
             </span>
             <button
               onClick={() => setIsYearly(!isYearly)}
-              className={`relative w-14 h-7 rounded-full transition-colors ${
-                isYearly ? 'bg-red-500' : 'bg-gray-300'
+              className={`relative h-7 w-14 rounded-full transition-colors ${
+                isYearly ? 'bg-[#2d8b69]' : 'bg-[#d9cfbf]'
               }`}
             >
               <div
-                className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-transform ${
+                className={`absolute top-1 h-5 w-5 rounded-full bg-white transition-transform ${
                   isYearly ? 'translate-x-8' : 'translate-x-1'
                 }`}
               />
             </button>
-            <span className={`font-medium ${isYearly ? 'text-gray-900' : 'text-gray-500'}`}>
+            <span className={`text-sm font-semibold uppercase tracking-[0.16em] ${isYearly ? 'text-[#171717]' : 'text-[#7a736a]'}`}>
               Yearly
-              <span className="ml-2 text-sm text-green-600 font-semibold">Save 20%</span>
+              <span className="ml-2 text-[11px] text-[#2d8b69] font-semibold">Save 20%</span>
             </span>
           </div>
         </div>
       </section>
 
-      {/* Pricing Cards */}
-      <section className="pb-16 sm:pb-24 px-4 sm:px-6" ref={containerRef}>
+      <section className="bg-[#f4eee1] pb-16 px-4 sm:px-6 sm:pb-24" ref={containerRef}>
         <div className="max-w-6xl mx-auto">
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-8 h-8 text-red-500 animate-spin" />
+              <Loader2 className="w-8 h-8 text-[#2d8b69] animate-spin" />
             </div>
           ) : error ? (
             <div className="text-center py-20">
-              <p className="text-gray-500 mb-4">{error}</p>
+              <p className="text-[#5f594f] mb-4">{error}</p>
               <Link
                 href="/signup"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl transition-colors"
+                className="inline-flex items-center gap-2 rounded-full bg-[#191919] px-6 py-3 font-semibold text-[#f7f2e7] transition-colors hover:bg-black"
               >
                 Get Started Free
               </Link>
@@ -242,39 +236,42 @@ export default function PricingPage() {
               {plans.map((plan, index) => {
                 const features = formatFeatures(plan)
                 const isPopular = plan.is_popular || (plans.length >= 3 && index === 1)
+                const theme = planAccentStyles[index % planAccentStyles.length]
 
                 return (
                   <div
                     key={plan.id}
-                    className={`pricing-card relative bg-white rounded-2xl p-8 ${
+                    className={`pricing-card relative rounded-[2rem] p-8 shadow-[0_24px_56px_rgba(0,0,0,0.06)] backdrop-blur ${
                       isPopular
-                        ? 'ring-2 ring-red-500 shadow-xl shadow-red-500/10'
-                        : 'border border-gray-200 shadow-lg'
+                        ? 'border border-[#2d8b69]/25 ring-2 ring-[#79dfbc] bg-[linear-gradient(145deg,rgba(255,255,255,0.84),rgba(234,245,241,0.9))]'
+                        : `border border-black/8 ${theme.surface}`
                     }`}
                   >
                     {isPopular && (
-                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-red-500 text-white text-sm font-semibold rounded-full">
+                      <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-[#191919] px-4 py-1 text-sm font-semibold text-[#f7f2e7] shadow-[0_18px_36px_rgba(23,23,23,0.16)]">
                         Most Popular
                       </div>
                     )}
 
                     <div className="mb-6">
                       <div className="flex items-center gap-2 mb-2">
-                        {getIconForPlan(plan.name, index)}
-                        <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
+                        <div className={`flex h-10 w-10 items-center justify-center rounded-[1rem] ${theme.iconWrap}`}>
+                          {getIconForPlan(plan.name, index)}
+                        </div>
+                        <h3 className="text-xl font-semibold tracking-[-0.03em] text-[#171717]">{plan.name}</h3>
                       </div>
-                      <p className="text-gray-600 text-sm">{plan.description || 'Choose this plan to get started'}</p>
+                      <p className="text-[#5f594f] text-sm leading-6">{plan.description || 'Choose this plan to get started'}</p>
                     </div>
 
                     <div className="mb-6">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-bold text-gray-900">
+                        <span className="text-4xl font-semibold tracking-[-0.05em] text-[#171717]">
                           ${isYearly && plan.price_yearly ? Math.round(plan.price_yearly / 12) : plan.price_monthly || 0}
                         </span>
-                        <span className="text-gray-500">/month</span>
+                        <span className="text-[#7a736a]">/month</span>
                       </div>
                       {isYearly && plan.price_yearly && plan.price_yearly > 0 && (
-                        <p className="text-sm text-gray-500 mt-1">
+                        <p className="mt-1 text-sm text-[#7a736a]">
                           ${plan.price_yearly} billed annually
                         </p>
                       )}
@@ -282,10 +279,8 @@ export default function PricingPage() {
 
                     <Link
                       href="/signup"
-                      className={`block w-full py-3 text-center font-semibold rounded-xl transition-all mb-8 ${
-                        isPopular
-                          ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/30'
-                          : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
+                      className={`mb-8 block w-full rounded-full py-3 text-center font-semibold transition-all ${
+                        isPopular ? 'bg-[#191919] text-[#f7f2e7] hover:bg-black' : theme.button
                       }`}
                     >
                       {(plan.price_monthly || 0) === 0 ? 'Start Free' : 'Get Started'}
@@ -294,8 +289,8 @@ export default function PricingPage() {
                     <ul className="space-y-3">
                       {features.slice(0, 8).map((feature, idx) => (
                         <li key={idx} className="flex items-start gap-3">
-                          <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                          <span className="text-gray-700 text-sm">{feature}</span>
+                          <Check className="w-5 h-5 text-[#2d8b69] flex-shrink-0 mt-0.5" />
+                          <span className="text-[#39352f] text-sm leading-6">{feature}</span>
                         </li>
                       ))}
                     </ul>
@@ -307,10 +302,15 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section className="py-14 sm:py-20 px-4 sm:px-6 bg-gray-50">
+      <section className="bg-[#f7f2e7] px-4 py-14 sm:px-6 sm:py-20">
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-8 sm:mb-12">
+          <div className="mb-4 text-center">
+            <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/60 px-4 py-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#4b463e]">
+              <Sparkles className="w-4 h-4" />
+              Pricing FAQ
+            </div>
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-medium tracking-[-0.05em] text-[#171717] text-center mb-8 sm:mb-12">
             Frequently Asked Questions
           </h2>
 
@@ -341,58 +341,38 @@ export default function PricingPage() {
                 a: 'Yes, you use your own LLM API keys (OpenAI, Anthropic, Google, etc.). Our pricing only covers platform features - agents, knowledge bases, tools, and integrations. This gives you full control over your AI costs and model selection.'
               }
             ].map((faq, idx) => (
-              <div key={idx} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                <h3 className="font-semibold text-gray-900 mb-2">{faq.q}</h3>
-                <p className="text-gray-600">{faq.a}</p>
+              <div key={idx} className="rounded-[1.6rem] border border-black/8 bg-white/72 p-6 shadow-[0_18px_40px_rgba(0,0,0,0.05)] backdrop-blur">
+                <h3 className="font-semibold text-[#171717] mb-2 tracking-[-0.02em]">{faq.q}</h3>
+                <p className="text-[#5f594f] leading-7">{faq.a}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-14 sm:py-20 px-4 sm:px-6">
+      <section className="bg-[#f7f2e7] px-4 py-14 sm:px-6 sm:py-20">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="bg-gradient-to-br from-red-500 to-rose-600 rounded-3xl p-8 sm:p-12 shadow-2xl">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
+          <div className="relative overflow-hidden rounded-[2.7rem] border border-black/10 bg-[#171717] p-8 shadow-[0_34px_90px_rgba(0,0,0,0.2)] sm:p-12">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.08),transparent_24%),radial-gradient(circle_at_82%_18%,rgba(125,229,193,0.16),transparent_22%),radial-gradient(circle_at_18%_80%,rgba(255,143,178,0.12),transparent_20%)]" />
+            <div className="absolute inset-[10px] rounded-[2.2rem] border border-white/8" />
+            <div className="relative">
+            <h2 className="text-2xl sm:text-3xl font-medium tracking-[-0.05em] text-white mb-4">
               Ready to supercharge your workflows?
             </h2>
-            <p className="text-white/90 mb-6 sm:mb-8 text-base sm:text-lg">
+            <p className="text-white/90 mb-6 sm:mb-8 text-base sm:text-lg leading-8">
               Start building AI agents today. No credit card required.
             </p>
             <Link
               href="/signup"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-white hover:bg-gray-50 text-red-600 font-semibold rounded-xl transition-all shadow-lg"
+              className="inline-flex items-center gap-2 rounded-full bg-[#7de5c1] px-8 py-4 font-semibold text-[#101915] transition-transform hover:-translate-y-0.5"
             >
               Get Started Free
               <ArrowRight className="w-5 h-5" />
             </Link>
+            </div>
           </div>
         </div>
       </section>
-
-      {/* Simple Footer */}
-      <footer className="py-8 px-6 border-t border-gray-200">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
-              <Zap className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-gray-600">© 2026 Synkora. All rights reserved.</span>
-          </div>
-          <div className="flex items-center gap-6">
-            <Link href="/terms" className="text-gray-600 hover:text-gray-900 text-sm">
-              Terms
-            </Link>
-            <Link href="/privacy" className="text-gray-600 hover:text-gray-900 text-sm">
-              Privacy
-            </Link>
-            <Link href="/" className="text-gray-600 hover:text-gray-900 text-sm">
-              Home
-            </Link>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </PublicPageFrame>
   )
 }

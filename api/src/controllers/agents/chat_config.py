@@ -38,15 +38,14 @@ class ChatConfigUpdate(BaseModel):
     )
 
 
-@router.get("/agents/{agent_name}/chat-config")
-async def get_agent_chat_config(agent_name: str, db: AsyncSession = Depends(get_async_db)):
+@router.get("/agents/{agent_id}/chat-config")
+async def get_agent_chat_config(agent_id: uuid.UUID, db: AsyncSession = Depends(get_async_db)):
     """
     Get chat configuration for an agent
     This endpoint can be called without authentication for public access
     """
     try:
-        # Find agent by name
-        result = await db.execute(select(Agent).filter(Agent.agent_name == agent_name))
+        result = await db.execute(select(Agent).filter(Agent.id == agent_id))
         agent = result.scalar_one_or_none()
 
         if not agent:
@@ -77,9 +76,9 @@ async def get_agent_chat_config(agent_name: str, db: AsyncSession = Depends(get_
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.put("/agents/{agent_name}/chat-config")
+@router.put("/agents/{agent_id}/chat-config")
 async def update_agent_chat_config(
-    agent_name: str,
+    agent_id: uuid.UUID,
     config_data: ChatConfigUpdate,
     db: AsyncSession = Depends(get_async_db),
     tenant_id: uuid.UUID = Depends(get_current_tenant_id),
@@ -89,8 +88,8 @@ async def update_agent_chat_config(
     Requires authentication
     """
     try:
-        # Find agent by name and tenant
-        result = await db.execute(select(Agent).filter(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+        # Find agent by UUID, scoped to tenant for security
+        result = await db.execute(select(Agent).filter(Agent.id == agent_id, Agent.tenant_id == tenant_id))
         agent = result.scalar_one_or_none()
 
         if not agent:

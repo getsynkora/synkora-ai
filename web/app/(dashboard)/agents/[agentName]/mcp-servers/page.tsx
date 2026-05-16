@@ -3,11 +3,13 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
+import { Server, Plus } from 'lucide-react'
 import toast from 'react-hot-toast'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import ErrorAlert from '@/components/common/ErrorAlert'
 import EmptyState from '@/components/common/EmptyState'
 import { apiClient } from '@/lib/api/client'
+import AgentPageShell from '@/components/agents/AgentPageShell'
 
 interface Agent {
   id: string
@@ -48,6 +50,11 @@ interface MCPTool {
   description: string
   inputSchema: any
 }
+
+const warmModalFieldClass =
+  'w-full rounded-[1rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]'
+const warmModalLabelClass = 'mb-2 block text-sm font-semibold text-gray-800'
+const warmModalHelpClass = 'mt-1.5 text-xs leading-5 text-gray-500'
 
 export default function AgentMCPServersPage() {
   const params = useParams()
@@ -285,40 +292,25 @@ export default function AgentMCPServersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-6">
-        <Link
-          href={`/agents/${agentName}/view`}
-          className="text-red-600 hover:text-red-700 flex items-center gap-2 mb-4 text-sm font-medium"
+    <AgentPageShell
+      agentName={agentName}
+      title="MCP Servers"
+      description={<>Configure which MCP servers <span className="font-semibold text-gray-900">{agent?.name || agentName}</span> can access for extended tool capabilities.</>}
+      icon={Server}
+      backHref={`/agents/${agentName}/view`}
+      backLabel="Back to Agent"
+      badge="External Tooling"
+      actions={
+        <button
+          onClick={() => setShowAttachModal(true)}
+          disabled={getUnattachedServers().length === 0}
+          className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Back to Agent
-        </Link>
-        
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">MCP Servers</h1>
-            <p className="text-gray-600 mt-1 text-sm">
-              Configure which MCP servers <span className="font-semibold">{agent?.name || agentName}</span> can access for extended tool capabilities
-            </p>
-          </div>
-          
-          <button
-            onClick={() => setShowAttachModal(true)}
-            disabled={getUnattachedServers().length === 0}
-            className="px-3 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-xs font-medium shadow-sm"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Attach MCP Server
-          </button>
-        </div>
-      </div>
+          <Plus className="w-4 h-4" />
+          Attach MCP Server
+        </button>
+      }
+    >
 
       {error && (
         <div className="mb-6">
@@ -417,16 +409,23 @@ export default function AgentMCPServersPage() {
 
       {/* Attach Modal */}
       {showAttachModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-5">
-              <h2 className="text-xl font-bold text-gray-900">Attach MCP Server</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(28,22,16,0.28)] p-4 backdrop-blur-[8px]">
+          <div className="max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-[1.7rem] border border-[#ddd3c5] bg-[linear-gradient(180deg,_rgba(250,247,241,0.98),_rgba(241,236,229,0.98))] shadow-[0_36px_96px_-40px_rgba(17,14,10,0.45)]">
+            <div className="flex items-start justify-between border-b border-[#e7ded2] px-5 py-5 sm:px-6">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8d6c51]">
+                  External Tooling
+                </p>
+                <h2 className="mt-1 text-[1.9rem] font-semibold tracking-[-0.04em] text-gray-950">
+                  Attach MCP Server
+                </h2>
+              </div>
               <button
                 onClick={() => {
                   setShowAttachModal(false)
                   setSelectedServerId(null)
                 }}
-                className="text-gray-400 hover:text-gray-600"
+                className="rounded-full p-2 text-[#9a8f81] transition-colors hover:bg-white/80 hover:text-[#5f564c]"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -434,118 +433,137 @@ export default function AgentMCPServersPage() {
               </button>
             </div>
 
-            {/* Select MCP Server */}
-            <div className="mb-5">
-              <label className="block text-xs font-medium text-gray-700 mb-2">
-                Select MCP Server
-              </label>
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {getUnattachedServers().map((server) => (
-                  <button
-                    key={server.id}
-                    onClick={() => setSelectedServerId(String(server.id))}
-                    className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
-                      selectedServerId === String(server.id)
-                        ? 'border-red-500 bg-red-50'
-                        : 'border-gray-200 hover:border-red-200'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-sm text-gray-900">{server.name}</h3>
-                        <p className="text-xs text-gray-600 mt-1">{server.description}</p>
-                        <p className="text-xs text-gray-500 mt-1 font-mono">{server.url}</p>
+            <div className="space-y-5 px-5 py-5 sm:px-6">
+              {/* Select MCP Server */}
+              <div className="space-y-2.5">
+                <label className={warmModalLabelClass}>
+                  Select MCP Server
+                </label>
+                <div className="max-h-64 space-y-2.5 overflow-y-auto">
+                  {getUnattachedServers().map((server) => (
+                    <button
+                      key={server.id}
+                      onClick={() => setSelectedServerId(String(server.id))}
+                      className={`w-full rounded-[1.15rem] border text-left transition-all ${
+                        selectedServerId === String(server.id)
+                          ? 'border-[#d7b8a3] bg-[linear-gradient(180deg,_rgba(252,245,238,0.98),_rgba(247,239,231,0.98))] shadow-[0_14px_36px_-28px_rgba(135,85,42,0.35)]'
+                          : 'border-[#e6ddd1] bg-white/75 hover:border-[#dccab6] hover:bg-[#fcfaf5]'
+                      }`}
+                    >
+                      <div className="flex items-start gap-3 px-4 py-3.5">
+                        <div className="mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[1rem] bg-[#f1eadc]">
+                          <Server className="h-4.5 w-4.5 text-[#171717]" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <h3 className="truncate text-sm font-semibold text-gray-900">{server.name}</h3>
+                              <p className="mt-1 text-sm text-gray-600">{server.description}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${getAuthTypeBadgeColor(server.auth_type)}`}>
+                                {server.auth_type}
+                              </span>
+                              <span
+                                className={`h-2.5 w-2.5 rounded-full ${server.is_active ? 'bg-emerald-500' : 'bg-gray-300'}`}
+                                title={server.is_active ? 'Active' : 'Inactive'}
+                              />
+                            </div>
+                          </div>
+                          <p className="mt-2 truncate font-mono text-xs text-[#8b7760]">{server.url}</p>
+                        </div>
                       </div>
-                      <div className={`ml-2 w-2.5 h-2.5 rounded-full ${server.is_active ? 'bg-emerald-500' : 'bg-gray-300'}`} />
-                    </div>
-                    <div className="flex gap-2 mt-2">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${getAuthTypeBadgeColor(server.auth_type)}`}>
-                        {server.auth_type}
-                      </span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* MCP Configuration */}
-            {selectedServerId && (
-              <div className="space-y-3 mb-5">
-                <h3 className="text-base font-semibold text-gray-900">MCP Configuration</h3>
-                
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Timeout (seconds)
-                  </label>
-                  <input
-                    type="number"
-                    value={attachConfig.timeout}
-                    onChange={(e) => setAttachConfig({ ...attachConfig, timeout: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                    min="1"
-                    max="300"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Request timeout in seconds (1-300)
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Max Retries
-                  </label>
-                  <input
-                    type="number"
-                    value={attachConfig.max_retries}
-                    onChange={(e) => setAttachConfig({ ...attachConfig, max_retries: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                    min="0"
-                    max="10"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Maximum number of retry attempts (0-10)
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Enabled Tools (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Leave empty to enable all tools"
-                    value={attachConfig.enabled_tools.join(', ')}
-                    onChange={(e) => setAttachConfig({ 
-                      ...attachConfig, 
-                      enabled_tools: e.target.value ? e.target.value.split(',').map(t => t.trim()) : []
-                    })}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Comma-separated list of tool names. Leave empty to enable all tools.
-                  </p>
+                    </button>
+                  ))}
                 </div>
               </div>
-            )}
 
-            {/* Actions */}
-            <div className="flex gap-3">
-              <button
-                onClick={handleAttach}
-                disabled={!selectedServerId}
-                className="flex-1 px-5 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white text-sm rounded-lg hover:from-red-600 hover:to-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-sm"
-              >
-                Attach MCP Server
-              </button>
-              <button
-                onClick={() => {
-                  setShowAttachModal(false)
-                  setSelectedServerId(null)
-                }}
-                className="px-5 py-2.5 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-red-50 hover:border-red-300 transition-colors font-medium"
-              >
-                Cancel
-              </button>
+              {/* MCP Configuration */}
+              {selectedServerId && (
+                <div className="space-y-4 rounded-[1.3rem] border border-[#e4dbcf] bg-white/55 p-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900">MCP Configuration</h3>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Configure default behavior for this server when attached to the agent.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                      <label className={warmModalLabelClass}>
+                        Timeout (seconds)
+                      </label>
+                      <input
+                        type="number"
+                        value={attachConfig.timeout}
+                        onChange={(e) => setAttachConfig({ ...attachConfig, timeout: parseInt(e.target.value) })}
+                        className={warmModalFieldClass}
+                        min="1"
+                        max="300"
+                      />
+                      <p className={warmModalHelpClass}>
+                        Request timeout in seconds.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className={warmModalLabelClass}>
+                        Max Retries
+                      </label>
+                      <input
+                        type="number"
+                        value={attachConfig.max_retries}
+                        onChange={(e) => setAttachConfig({ ...attachConfig, max_retries: parseInt(e.target.value) })}
+                        className={warmModalFieldClass}
+                        min="0"
+                        max="10"
+                      />
+                      <p className={warmModalHelpClass}>
+                        Retry attempts before failing.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className={warmModalLabelClass}>
+                      Enabled Tools (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Leave empty to enable all tools"
+                      value={attachConfig.enabled_tools.join(', ')}
+                      onChange={(e) => setAttachConfig({
+                        ...attachConfig,
+                        enabled_tools: e.target.value ? e.target.value.split(',').map(t => t.trim()) : []
+                      })}
+                      className={warmModalFieldClass}
+                    />
+                    <p className={warmModalHelpClass}>
+                      Use a comma-separated list, or leave blank to allow all tools.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex flex-col-reverse gap-3 border-t border-[#e6ddd2] pt-4 sm:flex-row sm:items-center">
+                <button
+                  onClick={() => {
+                    setShowAttachModal(false)
+                    setSelectedServerId(null)
+                  }}
+                  className="inline-flex min-w-[8rem] items-center justify-center rounded-[1rem] border border-[#ddd7ce] bg-white px-4 py-2.5 text-sm font-semibold text-[#5f564c] transition-colors hover:bg-[#fcfaf5]"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAttach}
+                  disabled={!selectedServerId}
+                  className="inline-flex flex-1 items-center justify-center rounded-[1rem] bg-[#171717] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Attach MCP Server
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -817,7 +835,6 @@ export default function AgentMCPServersPage() {
           </div>
         </div>
       )}
-      </div>
-    </div>
+    </AgentPageShell>
   )
 }

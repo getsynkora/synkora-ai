@@ -185,7 +185,16 @@ async def create_agent(
             human_contact_id=uuid.UUID(request.human_contact_id) if request.human_contact_id else None,
         )
 
+        import re as _re
+
         db.add(db_agent)
+        # Set slug: use provided slug if valid, otherwise auto-generate from agent name
+        if request.slug:
+            db_agent.slug = request.slug
+        else:
+            _base_slug = _re.sub(r"[^a-z0-9-]", "-", request.config.name.lower())
+            _base_slug = _re.sub(r"-+", "-", _base_slug).strip("-") or "agent"
+            db_agent.slug = _base_slug
         await db.commit()
         await db.refresh(db_agent)
 
@@ -343,7 +352,7 @@ async def create_agent(
         return AgentResponse(
             success=True,
             message=f"Agent '{request.config.name}' created successfully",
-            data={"agent_id": str(db_agent.id), "agent_name": request.config.name},
+            data={"agent_id": str(db_agent.id), "agent_name": request.config.name, "slug": db_agent.slug},
         )
 
     except ValueError as e:
@@ -363,6 +372,14 @@ async def create_agent(
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Agent with name '{request.config.name}' already exists. Please choose a different name.",
+            )
+
+        # Handle duplicate slug error
+        elif isinstance(e, IntegrityError) and "uq_agent_slug" in str(e):
+            logger.warning(f"Duplicate agent slug attempted: {getattr(request, 'slug', None) or request.config.name}")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Agent slug is already in use. Please choose a different slug.",
             )
 
         # Handle other integrity errors
@@ -404,19 +421,19 @@ async def execute_agent(
         # SECURITY: Verify agent belongs to tenant OR is public before execution
         result = await db.execute(
             select(Agent).filter(
-                Agent.agent_name == request.agent_name, or_(Agent.tenant_id == tenant_id, Agent.is_public.is_(True))
+                Agent.slug == request.agent_slug, or_(Agent.tenant_id == tenant_id, Agent.is_public.is_(True))
             )
         )
         db_agent = result.scalar_one_or_none()
 
         if not db_agent:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{request.agent_name}' not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{request.agent_slug}' not found")
 
-        result = await agent_manager.execute_agent(request.agent_name, request.input_data, str(tenant_id))
+        result = await agent_manager.execute_agent(request.agent_slug, request.input_data, str(tenant_id))
 
         return AgentResponse(
             success=result.get("status") == "success",
-            message=f"Agent '{request.agent_name}' executed",
+            message=f"Agent '{request.agent_slug}' executed",
             data=result,
         )
 
@@ -454,15 +471,14 @@ async def execute_workflow(
 
         # SECURITY: Verify all agents in workflow belong to tenant OR are public
         agent_names = [step.agent_name for step in request.workflow_config.steps]
-        for agent_name in agent_names:
-            result = await db.execute(
-                select(Agent).filter(
-                    Agent.agent_name == agent_name, or_(Agent.tenant_id == tenant_id, Agent.is_public.is_(True))
-                )
+        result = await db.execute(
+            select(Agent).filter(
+                Agent.slug.in_(agent_names), or_(Agent.tenant_id == tenant_id, Agent.is_public.is_(True))
             )
-            db_agent = result.scalar_one_or_none()
-
-            if not db_agent:
+        )
+        found_slugs = {a.slug for a in result.scalars().all()}
+        for agent_name in agent_names:
+            if agent_name not in found_slugs:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_name}' not found in workflow"
                 )
@@ -489,6 +505,7 @@ async def execute_workflow(
 async def list_agents(
     page: int = 1,
     page_size: int = 10,
+    search: str | None = None,
     tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
@@ -515,32 +532,42 @@ async def list_agents(
         if page_size > 100:
             page_size = 100
 
-        # PERFORMANCE: Try to get from cache first
+        # PERFORMANCE: Only use the list cache when there is no search query
         cache = get_agent_cache()
         tenant_id_str = str(tenant_id)
-        cached_data = await cache.get_agents_list(tenant_id_str, page, page_size)
-        if cached_data:
-            return AgentResponse(
-                success=True,
-                message=cached_data.get("message", "Found agents (cached)"),
-                data=cached_data.get("data", {}),
+        if not search:
+            cached_data = await cache.get_agents_list(tenant_id_str, page, page_size)
+            if cached_data:
+                return AgentResponse(
+                    success=True,
+                    message=cached_data.get("message", "Found agents (cached)"),
+                    data=cached_data.get("data", {}),
+                )
+
+        # Build base filters (tenant + optional search)
+        base_filters = [Agent.tenant_id == tenant_id]
+        if search:
+            search_term = f"%{search}%"
+            from sqlalchemy import or_ as _or
+
+            base_filters.append(
+                _or(
+                    Agent.agent_name.ilike(search_term),
+                    Agent.description.ilike(search_term),
+                )
             )
 
         # Calculate offset
         offset = (page - 1) * page_size
 
         # Get total count
-        count_result = await db.execute(select(func.count()).select_from(Agent).filter(Agent.tenant_id == tenant_id))
+        count_result = await db.execute(select(func.count()).select_from(Agent).filter(*base_filters))
         total_count = count_result.scalar()
 
         # PERFORMANCE: Get paginated agents from database without restoring to memory
         # Agents are loaded on-demand when needed, not on list
         agents_result = await db.execute(
-            select(Agent)
-            .filter(Agent.tenant_id == tenant_id)
-            .order_by(Agent.created_at.desc())
-            .offset(offset)
-            .limit(page_size)
+            select(Agent).filter(*base_filters).order_by(Agent.created_at.desc()).offset(offset).limit(page_size)
         )
         db_agents = agents_result.scalars().all()
 
@@ -624,6 +651,7 @@ async def list_agents(
                 {
                     "id": agent_id_str,
                     "agent_name": db_agent.agent_name,
+                    "slug": db_agent.slug,
                     "public_slug": slug_map.get(db_agent.id),
                     "description": db_agent.description,
                     "agent_type": db_agent.agent_type,
@@ -657,13 +685,14 @@ async def list_agents(
             },
         }
 
-        # PERFORMANCE: Cache the response for 60 seconds
-        await cache.set_agents_list(
-            tenant_id_str,
-            {"message": response_message, "data": response_data},
-            page,
-            page_size,
-        )
+        # PERFORMANCE: Cache the response for 60 seconds (skip when search is active)
+        if not search:
+            await cache.set_agents_list(
+                tenant_id_str,
+                {"message": response_message, "data": response_data},
+                page,
+                page_size,
+            )
 
         return AgentResponse(
             success=True,
@@ -744,9 +773,9 @@ async def get_all_stats(
         )
 
 
-@agents_index_router.get("/{agent_name}", response_model=AgentResponse)
+@agents_index_router.get("/{agent_slug}", response_model=AgentResponse)
 async def get_agent(
-    agent_name: str,
+    agent_slug: str,
     tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
@@ -768,12 +797,12 @@ async def get_agent(
         result = await db.execute(
             select(Agent)
             .options(selectinload(Agent.role), selectinload(Agent.human_contact))
-            .filter(Agent.agent_name == agent_name, or_(Agent.tenant_id == tenant_id, Agent.is_public.is_(True)))
+            .filter(Agent.slug == agent_slug, or_(Agent.tenant_id == tenant_id, Agent.is_public.is_(True)))
         )
         db_agent = result.scalar_one_or_none()
 
         if not db_agent:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_name}' not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_slug}' not found")
 
         # SECURITY: determine ownership before exposing sensitive fields
         is_own_agent = str(db_agent.tenant_id) == str(tenant_id)
@@ -781,12 +810,12 @@ async def get_agent(
         # Return 404 (not 403) for agents belonging to a different tenant that are not public,
         # to avoid leaking the existence of private agents across tenants.
         if not is_own_agent and not db_agent.is_public:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_name}' not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_slug}' not found")
 
         # Get runtime stats if agent is in memory (tenant-scoped lookup)
         stats = {}
-        if is_own_agent and agent_manager.registry.contains(agent_name, str(tenant_id)):
-            stats = agent_manager.get_agent_stats(agent_name, str(tenant_id))
+        if is_own_agent and agent_manager.registry.contains(agent_slug, str(tenant_id)):
+            stats = agent_manager.get_agent_stats(agent_slug, str(tenant_id))
 
         # Convert S3 URI to presigned URL for avatar display
         avatar_url = convert_s3_uri_to_presigned_url(db_agent.avatar) if db_agent.avatar else None
@@ -830,10 +859,11 @@ async def get_agent(
 
         return AgentResponse(
             success=True,
-            message=f"Agent '{agent_name}' details",
+            message=f"Agent '{agent_slug}' details",
             data={
                 "id": str(db_agent.id),
                 "agent_name": db_agent.agent_name,
+                "slug": db_agent.slug,
                 "agent_type": db_agent.agent_type,
                 "description": db_agent.description,
                 "avatar": avatar_url,
@@ -880,9 +910,9 @@ async def get_agent(
         )
 
 
-@agents_index_router.get("/{agent_name}/stats", response_model=AgentResponse)
+@agents_index_router.get("/{agent_slug}/stats", response_model=AgentResponse)
 async def get_agent_stats(
-    agent_name: str,
+    agent_slug: str,
     tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
@@ -905,14 +935,12 @@ async def get_agent_stats(
         # SECURITY: Single query with OR to prevent timing attacks
         # Checks: (agent belongs to tenant) OR (agent is public)
         result = await db.execute(
-            select(Agent).filter(
-                Agent.agent_name == agent_name, or_(Agent.tenant_id == tenant_id, Agent.is_public.is_(True))
-            )
+            select(Agent).filter(Agent.slug == agent_slug, or_(Agent.tenant_id == tenant_id, Agent.is_public.is_(True)))
         )
         db_agent = result.scalar_one_or_none()
 
         if not db_agent:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_name}' not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_slug}' not found")
 
         # Convert S3 URI to presigned URL for avatar display
         avatar_url = convert_s3_uri_to_presigned_url(db_agent.avatar) if db_agent.avatar else None
@@ -968,7 +996,7 @@ async def get_agent_stats(
         if is_own_agent:
             stats["tenant_id"] = str(db_agent.tenant_id)
 
-        return AgentResponse(success=True, message=f"Stats for agent '{agent_name}'", data=stats)
+        return AgentResponse(success=True, message=f"Stats for agent '{agent_slug}'", data=stats)
 
     except HTTPException:
         raise
@@ -980,9 +1008,9 @@ async def get_agent_stats(
         )
 
 
-@agents_index_router.put("/{agent_name}", response_model=AgentResponse)
+@agents_index_router.put("/{agent_slug}", response_model=AgentResponse)
 async def update_agent(
-    agent_name: str,
+    agent_slug: str,
     request: UpdateAgentRequest,
     tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     current_account=Depends(get_current_account),
@@ -1002,15 +1030,15 @@ async def update_agent(
     """
     try:
         # Get agent from database
-        result = await db.execute(select(Agent).filter(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+        result = await db.execute(select(Agent).filter(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
         db_agent = result.scalar_one_or_none()
 
         if not db_agent:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_name}' not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_slug}' not found")
 
         # Update fields if provided
-        old_agent_name = agent_name  # remember original for cache invalidation
-        if request.name is not None and request.name != agent_name:
+        old_agent_name = db_agent.agent_name  # remember original for cache invalidation
+        if request.name is not None and request.name != db_agent.agent_name:
             new_name = request.name.strip()
             if not new_name:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Agent name cannot be empty")
@@ -1033,14 +1061,14 @@ async def update_agent(
             scan_result = advanced_prompt_scanner.scan_comprehensive(
                 text=request.system_prompt,
                 user_id=f"tenant_{tenant_id}",
-                context={"source": "system_prompt_update", "agent_name": agent_name},
+                context={"source": "system_prompt_update", "agent_name": agent_slug},
             )
 
             if not scan_result["is_safe"]:
                 detections = scan_result.get("detections", [])
                 threat_names = [d.get("pattern_id", "unknown") for d in detections]
                 logger.warning(
-                    f"System prompt injection detected for agent '{agent_name}' by tenant {tenant_id}: {threat_names}"
+                    f"System prompt injection detected for agent '{agent_slug}' by tenant {tenant_id}: {threat_names}"
                 )
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -1131,6 +1159,8 @@ async def update_agent(
                 )
             db_agent.transfer_scope = request.transfer_scope
 
+        # Slug is immutable once set — silently ignore any slug in the update payload.
+
         await db.commit()
         await db.refresh(db_agent)
 
@@ -1151,12 +1181,7 @@ async def update_agent(
 
         # Phase 4: Invalidate cache after update
         cache = get_agent_cache()
-        await cache.invalidate_agent(agent_name=old_agent_name, agent_id=str(db_agent.id), tenant_id=str(tenant_id))
-        if db_agent.agent_name != old_agent_name:
-            # Name changed — also invalidate the new name slot in case it was cached
-            await cache.invalidate_agent(
-                agent_name=db_agent.agent_name, agent_id=str(db_agent.id), tenant_id=str(tenant_id)
-            )
+        await cache.invalidate_agent(slug=db_agent.slug, agent_id=str(db_agent.id), tenant_id=str(tenant_id))
         await cache.invalidate_agents_list(str(tenant_id))  # PERFORMANCE: Also invalidate list cache
         logger.info(f"🗑️  Invalidated cache for agent '{old_agent_name}'")
 
@@ -1174,8 +1199,12 @@ async def update_agent(
 
         return AgentResponse(
             success=True,
-            message=f"Agent '{agent_name}' updated successfully",
-            data={"agent_name": db_agent.agent_name, "updated_at": db_agent.updated_at.isoformat()},
+            message=f"Agent '{agent_slug}' updated successfully",
+            data={
+                "agent_name": db_agent.agent_name,
+                "slug": db_agent.slug,
+                "updated_at": db_agent.updated_at.isoformat(),
+            },
         )
 
     except HTTPException:
@@ -1186,9 +1215,9 @@ async def update_agent(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update agent")
 
 
-@agents_index_router.delete("/{agent_name}", response_model=AgentResponse)
+@agents_index_router.delete("/{agent_slug}", response_model=AgentResponse)
 async def delete_agent(
-    agent_name: str,
+    agent_slug: str,
     tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     current_account=Depends(get_current_account),
     db: AsyncSession = Depends(get_async_db),
@@ -1208,17 +1237,18 @@ async def delete_agent(
         deleted_from_memory = False
         deleted_from_db = False
 
-        # Try to delete from memory (may not be loaded)
-        try:
-            await agent_manager.delete_agent(agent_name, str(tenant_id))
-            deleted_from_memory = True
-        except KeyError:
-            # Agent not in memory, continue to try deleting from database
-            pass
-
-        # Delete from database
-        result = await db.execute(select(Agent).filter(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+        # Try to find agent first to get its agent_name for memory operations
+        result = await db.execute(select(Agent).filter(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
         db_agent = result.scalar_one_or_none()
+
+        # Try to delete from memory (may not be loaded)
+        if db_agent:
+            try:
+                await agent_manager.delete_agent(db_agent.agent_name, str(tenant_id))
+                deleted_from_memory = True
+            except KeyError:
+                # Agent not in memory, continue to try deleting from database
+                pass
 
         if db_agent:
             await db.delete(db_agent)
@@ -1227,7 +1257,7 @@ async def delete_agent(
 
         # If agent wasn't found anywhere, return 404
         if not deleted_from_memory and not deleted_from_db:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_name}' not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_slug}' not found")
 
         # PERFORMANCE: Invalidate agents list cache for this tenant
         cache = get_agent_cache()
@@ -1244,12 +1274,12 @@ async def delete_agent(
                 action="agent.deleted",
                 resource_type="agent",
                 resource_id=db_agent.id if db_agent else None,
-                details={"agent_name": agent_name},
+                details={"agent_name": db_agent.agent_name if db_agent else agent_slug},
             )
         except Exception:
             pass
 
-        return AgentResponse(success=True, message=f"Agent '{agent_name}' deleted successfully")
+        return AgentResponse(success=True, message=f"Agent '{agent_slug}' deleted successfully")
 
     except HTTPException:
         raise
@@ -1259,9 +1289,9 @@ async def delete_agent(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to delete agent")
 
 
-@agents_index_router.post("/{agent_name}/reset", response_model=AgentResponse)
+@agents_index_router.post("/{agent_slug}/reset", response_model=AgentResponse)
 async def reset_agent(
-    agent_name: str,
+    agent_slug: str,
     tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
@@ -1278,20 +1308,20 @@ async def reset_agent(
     """
     try:
         # SECURITY: Verify agent belongs to tenant before resetting (no public agent reset)
-        result = await db.execute(select(Agent).filter(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+        result = await db.execute(select(Agent).filter(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
         db_agent = result.scalar_one_or_none()
 
         if not db_agent:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_name}' not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_slug}' not found")
 
         # Try to reset in memory (agent may not be loaded)
         try:
-            await agent_manager.reset_agent(agent_name, str(tenant_id))
+            await agent_manager.reset_agent(db_agent.agent_name, str(tenant_id))
         except KeyError:
             # Agent not in memory, but exists in DB - nothing to reset in memory
             pass
 
-        return AgentResponse(success=True, message=f"Agent '{agent_name}' reset successfully")
+        return AgentResponse(success=True, message=f"Agent '{agent_slug}' reset successfully")
 
     except HTTPException:
         raise
@@ -1340,9 +1370,9 @@ async def reset_all_agents(
         )
 
 
-@agents_index_router.post("/{agent_name}/clone", response_model=AgentResponse, status_code=status.HTTP_201_CREATED)
+@agents_index_router.post("/{agent_slug}/clone", response_model=AgentResponse, status_code=status.HTTP_201_CREATED)
 async def clone_agent(
-    agent_name: str,
+    agent_slug: str,
     request: CloneAgentRequest,
     tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
@@ -1373,11 +1403,11 @@ async def clone_agent(
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
 
         # Get source agent
-        result = await db.execute(select(Agent).filter(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+        result = await db.execute(select(Agent).filter(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
         source_agent = result.scalar_one_or_none()
 
         if not source_agent:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_name}' not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_slug}' not found")
 
         # Check if new name already exists
         existing_result = await db.execute(
@@ -1430,6 +1460,12 @@ async def clone_agent(
 
             if cloned_agent.llm_config:
                 cloned_agent.llm_config["api_key"] = encrypt_value(request.new_api_key)
+
+        import re as _re2
+
+        _clone_base_slug = _re2.sub(r"[^a-z0-9-]", "-", request.new_name.lower())
+        _clone_base_slug = _re2.sub(r"-+", "-", _clone_base_slug).strip("-") or "agent"
+        cloned_agent.slug = _clone_base_slug
 
         db.add(cloned_agent)
         await db.flush()  # Get ID for relationships
@@ -1520,7 +1556,7 @@ async def clone_agent(
         await db.refresh(cloned_agent)
 
         logger.info(
-            f"Cloned agent '{agent_name}' to '{request.new_name}' (tools={request.clone_tools}, kb={request.clone_knowledge_bases}, sub_agents={request.clone_sub_agents}, workflows={request.clone_workflows})"
+            f"Cloned agent '{agent_slug}' to '{request.new_name}' (tools={request.clone_tools}, kb={request.clone_knowledge_bases}, sub_agents={request.clone_sub_agents}, workflows={request.clone_workflows})"
         )
 
         # PERFORMANCE: Invalidate agents list cache for this tenant
@@ -1546,7 +1582,8 @@ async def clone_agent(
             data={
                 "agent_id": str(cloned_agent.id),
                 "agent_name": cloned_agent.agent_name,
-                "source_agent": agent_name,
+                "slug": cloned_agent.slug,
+                "source_agent": agent_slug,
                 "llm_configs": llm_config_info if llm_config_info else None,
                 "warnings": warnings if warnings else None,
                 "requires_configuration": not request.new_api_key,

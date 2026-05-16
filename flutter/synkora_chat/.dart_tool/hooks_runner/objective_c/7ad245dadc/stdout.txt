@@ -1,0 +1,64 @@
+Running `(cd /Users/raju/.pub-cache/hosted/pub.dev/objective_c-9.3.0/; TMPDIR=/var/folders/k7/0x78vysj2992fhq3kqx9ytdc0000gn/T/ PATH=/opt/homebrew/opt/ruby/bin:/opt/homebrew/lib/ruby/gems/4.0.0/bin:/opt/homebrew/opt/ruby/bin:/opt/homebrew/lib/ruby/gems/4.0.0/bin:/Users/raju/.antigravity/antigravity/bin:/Users/raju/bin:/Users/raju/.codeium/windsurf/bin:/Users/raju/.local/bin:/Users/raju/.bun/bin:/Users/raju/.nvm/versions/node/v20.17.0/bin:/Users/raju/anaconda3/bin:/Users/raju/anaconda3/condabin:/opt/homebrew/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/opt/pkg/env/active/bin:/opt/pmk/env/global/bin:/Library/Apple/usr/bin:/usr/local/MacGPG2/bin:/Applications/Privileges.app/Contents/Resources:/usr/local/go/bin:/opt/podman/bin:/Users/raju/.cargo/bin:/Applications/iTerm.app/Contents/Resources/utilities:/Users/raju/Sites/git/regentmarkets/backend-utils/bin:/Users/raju/.lmstudio/bin:/Users/raju/.maestro/bin:/Users/raju/.safe-chain/bin HOME=/Users/raju /opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart --packages=/Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/package_config.json /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/objective_c/7ad245dadc/hook.dill --config=/Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/objective_c/7ad245dadc/input.json )`.
+INFO: 2026-05-11 18:45:44.868025: Running `/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang --version`.
+
+INFO: 2026-05-11 18:45:45.003096: Running `/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang --version`.
+
+INFO: 2026-05-11 18:45:45.018460: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.4.sdk -target arm64-apple-darwin -mmacos-version-min=13 -c /Users/raju/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/objective_c.c -fpic -I src -o /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c.c.o
+
+art_api_dl.c.o
+
+INFO: 2026-05-11 18:45:45.018695: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.4.sdk -target arm64-apple-darwin -mmacos-version-min=13 -c /Users/raju/.pub-cache/hosted/pub.dev/objective_c-9.3.0/test/util.c -fpic -I src -o /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/test/util.c.o
+
+INFO: 2026-05-11 18:45:45.018904: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.4.sdk -target arm64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/raju/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/input_stream_adapter.m -fpic -I src -o /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/input_stream_adapter.m.o
+
+INFO: 2026-05-11 18:45:45.019288: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.4.sdk -target arm64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/raju/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/observer.m -fpic -I src -o /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/observer.m.o
+
+.m.o
+
+INFO: 2026-05-11 18:45:45.019411: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.4.sdk -target arm64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/raju/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/ns_number.m -fpic -I src -o /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/ns_number.m.o
+
+INFO: 2026-05-11 18:45:45.019592: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.4.sdk -target arm64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/raju/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/protocol.m -fpic -I src -o /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/protocol.m.o
+
+INFO: 2026-05-11 18:45:45.019726: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.4.sdk -target arm64-apple-darwin -mmacos-version-min=13 -x objective-c -fobjc-arc -c /Users/raju/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/objective_c_bindings_generated.m -fpic -I src -o /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c_bindings_generated.m.o
+
+INFO: 2026-05-11 18:45:45.168045: 
+INFO: 2026-05-11 18:45:45.168134: 
+INFO: 2026-05-11 18:45:45.168163: Generated /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/include/dart_api_dl.c.o
+INFO: 2026-05-11 18:45:45.168292: 
+INFO: 2026-05-11 18:45:45.168304: 
+INFO: 2026-05-11 18:45:45.168312: Generated /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c.c.o
+
+INFO: 2026-05-11 18:45:45.177423: 
+INFO: 2026-05-11 18:45:45.177468: 
+INFO: 2026-05-11 18:45:45.177507: Generated /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/test/util.c.o
+
+INFO: 2026-05-11 18:45:45.178320: 
+INFO: 2026-05-11 18:45:45.178350: 
+INFO: 2026-05-11 18:45:45.178360: Generated /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/observer.m.o
+
+INFO: 2026-05-11 18:45:45.183049: 
+INFO: 2026-05-11 18:45:45.183074: 
+INFO: 2026-05-11 18:45:45.183084: Generated /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/protocol.m.o
+
+INFO: 2026-05-11 18:45:45.471256: 
+INFO: 2026-05-11 18:45:45.471335: 
+INFO: 2026-05-11 18:45:45.471356: Generated /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/ns_number.m.o
+
+INFO: 2026-05-11 18:45:45.480488: 
+INFO: 2026-05-11 18:45:45.480519: 
+INFO: 2026-05-11 18:45:45.480531: Generated /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c.m.o
+
+INFO: 2026-05-11 18:45:45.481650: 
+INFO: 2026-05-11 18:45:45.481680: 
+INFO: 2026-05-11 18:45:45.481690: Generated /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/input_stream_adapter.m.o
+
+INFO: 2026-05-11 18:45:45.495911: 
+INFO: 2026-05-11 18:45:45.495941: 
+INFO: 2026-05-11 18:45:45.495950: Generated /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c_bindings_generated.m.o
+
+INFO: 2026-05-11 18:45:45.496268: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -shared -Wl,-encryptable -undefined dynamic_lookup -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.4.sdk -target arm64-apple-darwin -mmacos-version-min=13 /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/include/dart_api_dl.c.o /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c.c.o /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/test/util.c.o /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/input_stream_adapter.m.o /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c.m.o /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/observer.m.o /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/ns_number.m.o /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/protocol.m.o /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/obj/src/objective_c_bindings_generated.m.o -o /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/objective_c.dylib
+
+INFO: 2026-05-11 18:45:45.645773: 
+INFO: 2026-05-11 18:45:45.645826: 
+INFO: 2026-05-11 18:45:45.645838: Generated /Users/raju/Sites/ai-automation/synkora/flutter/synkora_chat/.dart_tool/hooks_runner/shared/objective_c/build/7ad245dadc/objective_c.dylib
+

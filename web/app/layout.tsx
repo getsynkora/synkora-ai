@@ -1,9 +1,18 @@
 import '../styles/globals.css'
-import { Inter } from 'next/font/google'
+import localFont from 'next/font/local'
 import { Toaster } from 'react-hot-toast'
 import { SecurityInit } from '../components/common/SecurityInit'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = localFont({
+  src: [
+    { path: '../public/fonts/inter-400.woff2', weight: '400', style: 'normal' },
+    { path: '../public/fonts/inter-500.woff2', weight: '500', style: 'normal' },
+    { path: '../public/fonts/inter-600.woff2', weight: '600', style: 'normal' },
+    { path: '../public/fonts/inter-700.woff2', weight: '700', style: 'normal' },
+  ],
+  display: 'swap',
+  fallback: ['system-ui', 'sans-serif'],
+})
 
 export const metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://synkora.ai'),

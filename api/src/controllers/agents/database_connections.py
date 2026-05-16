@@ -24,9 +24,9 @@ class AgentDatabaseConnectionsUpdate(BaseModel):
     connection_ids: list[str]
 
 
-@router.get("/{agent_name}/database-connections")
+@router.get("/{agent_slug}/database-connections")
 async def get_agent_database_connections(
-    agent_name: str,
+    agent_slug: str,
     db: AsyncSession = Depends(get_async_db),
     account: Account = Depends(get_current_account),
     tenant_id: UUID = Depends(get_current_tenant_id),
@@ -35,7 +35,7 @@ async def get_agent_database_connections(
     Get all tenant database connections with their attachment status for this agent.
     Returns all available connections and marks which ones are attached to the agent.
     """
-    agent = await db.scalar(select(Agent).where(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+    agent = await db.scalar(select(Agent).where(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
     if not agent:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
 
@@ -68,9 +68,9 @@ async def get_agent_database_connections(
     ]
 
 
-@router.put("/{agent_name}/database-connections")
+@router.put("/{agent_slug}/database-connections")
 async def update_agent_database_connections(
-    agent_name: str,
+    agent_slug: str,
     body: AgentDatabaseConnectionsUpdate,
     db: AsyncSession = Depends(get_async_db),
     account: Account = Depends(get_current_account),
@@ -80,7 +80,7 @@ async def update_agent_database_connections(
     Set which database connections are attached to this agent.
     Replaces the entire list of allowed connection IDs.
     """
-    agent = await db.scalar(select(Agent).where(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+    agent = await db.scalar(select(Agent).where(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
     if not agent:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
 
@@ -111,6 +111,6 @@ async def update_agent_database_connections(
     await db.commit()
 
     cache = get_agent_cache()
-    await cache.invalidate_agent(agent_name=agent_name, agent_id=str(agent.id), tenant_id=str(tenant_id))
+    await cache.invalidate_agent(slug=agent.slug, agent_id=str(agent.id), tenant_id=str(tenant_id))
 
     return {"connection_ids": body.connection_ids}

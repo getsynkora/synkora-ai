@@ -1,11 +1,14 @@
 'use client'
 
+import { Plus } from 'lucide-react'
+
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import ErrorAlert from '@/components/common/ErrorAlert'
 import { apiClient } from '@/lib/api/client'
+import DashboardPageShell from '@/components/dashboard/DashboardPageShell'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
 
@@ -625,24 +628,21 @@ export default function CreateOAuthAppPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header - More Compact */}
-        <div className="mb-6">
-          <Link
-            href="/oauth-apps"
-            className="text-[#ff444f] hover:text-red-700 flex items-center gap-2 mb-3 font-medium text-sm"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Connected Accounts
-          </Link>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Connect Account</h1>
-          <p className="text-gray-600 mt-1 text-sm">
-            Connect your GitHub, Slack, or other accounts to enable integrations
-          </p>
-        </div>
+    <DashboardPageShell
+      title="Connect Account"
+      description="Connect your GitHub, Slack, or other accounts to enable integrations."
+      icon={Plus}
+      badge="OAuth Apps"
+      backHref="/oauth-apps"
+      backLabel="Back to Connected Accounts"
+      maxWidthClassName="max-w-5xl"
+      breadcrumbs={[
+        { label: 'Home', href: '/' },
+        { label: 'OAuth Apps', href: '/oauth-apps' },
+        { label: 'Connect Account' },
+      ]}
+    >
+      <div className="[&_input]:rounded-[1rem] [&_input]:border [&_input]:border-black/10 [&_input]:bg-[#fcfaf5] [&_input]:px-4 [&_input]:py-3 [&_input]:text-sm [&_input]:text-gray-900 [&_input]:placeholder-gray-400 [&_input]:focus:border-transparent [&_input]:focus:outline-none [&_input]:focus:ring-2 [&_input]:focus:ring-[#79dfbc] [&_input[type='checkbox']]:!h-4 [&_input[type='checkbox']]:!w-4 [&_input[type='checkbox']]:!rounded [&_input[type='checkbox']]:!border-gray-300 [&_input[type='checkbox']]:!bg-white [&_input[type='checkbox']]:!p-0 [&_input[type='checkbox']]:focus:!ring-[#79dfbc] [&_input[type='radio']]:!h-4 [&_input[type='radio']]:!w-4 [&_input[type='radio']]:!border-gray-300 [&_input[type='radio']]:!bg-white [&_input[type='radio']]:focus:!ring-[#79dfbc] [&_select]:rounded-[1rem] [&_select]:border [&_select]:border-black/10 [&_select]:bg-[#fcfaf5] [&_select]:px-4 [&_select]:py-3 [&_select]:text-sm [&_select]:text-gray-900 [&_select]:focus:border-transparent [&_select]:focus:outline-none [&_select]:focus:ring-2 [&_select]:focus:ring-[#79dfbc] [&_textarea]:rounded-[1rem] [&_textarea]:border [&_textarea]:border-black/10 [&_textarea]:bg-[#fcfaf5] [&_textarea]:px-4 [&_textarea]:py-3 [&_textarea]:text-sm [&_textarea]:text-gray-900 [&_textarea]:placeholder-gray-400 [&_textarea]:focus:border-transparent [&_textarea]:focus:outline-none [&_textarea]:focus:ring-2 [&_textarea]:focus:ring-[#79dfbc] [&_label]:font-semibold [&_label]:text-gray-700 [&_.bg-white.rounded-lg.shadow-sm.border.border-gray-200.p-5]:rounded-[1.9rem] [&_.bg-white.rounded-lg.shadow-sm.border.border-gray-200.p-5]:border-[#e5d9ca] [&_.bg-white.rounded-lg.shadow-sm.border.border-gray-200.p-5]:bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,245,239,0.96))] [&_.bg-white.rounded-lg.shadow-sm.border.border-gray-200.p-5]:shadow-[0_24px_60px_-46px_rgba(73,45,23,0.3)]">
 
         {error && (
           <div className="mb-5">
@@ -1478,8 +1478,8 @@ export default function CreateOAuthAppPage() {
 
         {/* Success Modal */}
         {showSuccessModal && createdApp && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border border-gray-200">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-[1.9rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,245,239,0.96))] p-6 shadow-[0_32px_90px_-42px_rgba(73,45,23,0.35)]">
               <div className="text-center mb-5">
                 <div className="mx-auto w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center mb-3">
                   <svg className="w-7 h-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1531,6 +1531,6 @@ export default function CreateOAuthAppPage() {
           </div>
         )}
       </div>
-    </div>
+    </DashboardPageShell>
   )
 }

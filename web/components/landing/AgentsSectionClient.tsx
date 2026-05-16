@@ -47,8 +47,8 @@ const PreBuiltAgentCard = ({ agent }: { agent: PublicAgent }) => {
 
   return (
     <Link href={`/a/${agent.slug || slugify(agent.agent_name)}`}>
-      <div className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-300 flex flex-col">
-        <div className="relative bg-gradient-to-br from-red-100 via-pink-50 to-orange-50 pt-10 pb-12 flex items-center justify-center">
+      <div className="flex flex-col overflow-hidden rounded-[2rem] border border-black/10 bg-white/60 shadow-[0_18px_40px_rgba(0,0,0,0.05)] transition-shadow duration-300 hover:shadow-[0_24px_56px_rgba(0,0,0,0.08)]">
+        <div className="relative flex items-center justify-center border-b border-black/10 bg-[#efe7d8] pt-10 pb-12">
           {agent.avatar ? (
             <img
               src={agent.avatar}
@@ -56,45 +56,45 @@ const PreBuiltAgentCard = ({ agent }: { agent: PublicAgent }) => {
               className="w-24 h-24 rounded-2xl object-cover shadow-lg bg-white"
             />
           ) : (
-            <div className="w-24 h-24 rounded-2xl bg-white shadow-lg flex items-center justify-center">
-              <Sparkles className="w-12 h-12 text-red-500" />
+            <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-white shadow-lg">
+              <Sparkles className="h-12 w-12 text-[#2d8b69]" />
             </div>
           )}
         </div>
         <div className="p-6 flex-1 flex flex-col">
           <div className="flex items-start justify-between gap-3 mb-1">
-            <h3 className="text-lg font-bold text-gray-900 line-clamp-1">{agent.agent_name}</h3>
+            <h3 className="line-clamp-1 text-lg font-semibold tracking-[-0.03em] text-[#171717]">{agent.agent_name}</h3>
             {getRating() > 0 && (
-              <div className="flex items-center gap-1 text-amber-500 flex-shrink-0">
-                <Star className="w-4 h-4 fill-current" />
-                <span className="font-semibold text-sm">{getRating().toFixed(1)}</span>
+              <div className="flex shrink-0 items-center gap-1 text-[#b7832f]">
+                <Star className="h-4 w-4 fill-current" />
+                <span className="text-sm font-semibold">{getRating().toFixed(1)}</span>
               </div>
             )}
           </div>
-          <p className="text-sm text-gray-400 mb-3">{agent.category || 'AI Agent'}</p>
-          <p className="text-sm text-gray-600 leading-relaxed line-clamp-2 mb-4">
+          <p className="mb-3 text-sm uppercase tracking-[0.16em] text-[#7a736a]">{agent.category || 'AI Agent'}</p>
+          <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-[#575149]">
             {agent.description || 'No description provided'}
           </p>
-          <div className="border-t border-gray-100 my-4" />
+          <div className="my-4 border-t border-black/10" />
           <div className="flex items-center gap-6 mb-5">
             <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Uses</p>
-              <p className="text-xl font-bold text-gray-900">{formatNumber(agent.usage_count || 0)}</p>
+              <p className="mb-0.5 text-xs uppercase tracking-[0.16em] text-[#7a736a]">Uses</p>
+              <p className="text-xl font-semibold text-[#171717]">{formatNumber(agent.usage_count || 0)}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Likes</p>
-              <p className="text-xl font-bold text-gray-900">{agent.likes_count || 0}</p>
+              <p className="mb-0.5 text-xs uppercase tracking-[0.16em] text-[#7a736a]">Likes</p>
+              <p className="text-xl font-semibold text-[#171717]">{agent.likes_count || 0}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Rating</p>
-              <p className="text-xl font-bold text-gray-900">{getRating().toFixed(1)}</p>
+              <p className="mb-0.5 text-xs uppercase tracking-[0.16em] text-[#7a736a]">Rating</p>
+              <p className="text-xl font-semibold text-[#171717]">{getRating().toFixed(1)}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 mt-auto">
-            <span className="flex-1 px-5 py-2.5 border border-red-300 text-red-500 text-sm font-semibold rounded-xl hover:bg-red-50 hover:border-red-400 transition-colors text-center">
+            <span className="flex-1 rounded-full border border-black/15 px-5 py-2.5 text-center text-sm font-semibold uppercase tracking-[0.14em] text-[#171717] transition-colors hover:bg-white/80">
               Try Agent
             </span>
-            <span className="px-4 py-2.5 text-gray-400 text-sm font-medium hover:text-gray-600 transition-colors">
+            <span className="px-4 py-2.5 text-sm font-medium text-[#7a736a] transition-colors hover:text-[#171717]">
               View Details
             </span>
           </div>
@@ -105,34 +105,34 @@ const PreBuiltAgentCard = ({ agent }: { agent: PublicAgent }) => {
 }
 
 const AgentCardSkeleton = () => (
-  <div className="bg-white rounded-3xl overflow-hidden shadow-sm animate-pulse">
-    <div className="bg-gradient-to-br from-red-50 via-pink-50 to-orange-50 pt-10 pb-12 flex items-center justify-center">
-      <div className="w-24 h-24 bg-white rounded-2xl shadow-lg" />
+  <div className="animate-pulse overflow-hidden rounded-[2rem] border border-black/10 bg-white/60 shadow-[0_18px_40px_rgba(0,0,0,0.05)]">
+    <div className="flex items-center justify-center border-b border-black/10 bg-[#efe7d8] pt-10 pb-12">
+      <div className="h-24 w-24 rounded-2xl bg-white shadow-lg" />
     </div>
     <div className="p-6">
-      <div className="h-5 bg-gray-200 rounded w-32 mb-2" />
-      <div className="h-4 bg-gray-100 rounded w-24 mb-4" />
-      <div className="h-4 bg-gray-100 rounded w-full mb-2" />
-      <div className="h-4 bg-gray-100 rounded w-3/4 mb-4" />
-      <div className="border-t border-gray-100 pt-4 mb-4">
+      <div className="mb-2 h-5 w-32 rounded bg-black/10" />
+      <div className="mb-4 h-4 w-24 rounded bg-black/5" />
+      <div className="mb-2 h-4 w-full rounded bg-black/5" />
+      <div className="mb-4 h-4 w-3/4 rounded bg-black/5" />
+      <div className="mb-4 border-t border-black/10 pt-4">
         <div className="flex gap-6">
           <div>
-            <div className="h-3 bg-gray-100 rounded w-10 mb-1" />
-            <div className="h-6 bg-gray-200 rounded w-8" />
+            <div className="mb-1 h-3 w-10 rounded bg-black/5" />
+            <div className="h-6 w-8 rounded bg-black/10" />
           </div>
           <div>
-            <div className="h-3 bg-gray-100 rounded w-10 mb-1" />
-            <div className="h-6 bg-gray-200 rounded w-8" />
+            <div className="mb-1 h-3 w-10 rounded bg-black/5" />
+            <div className="h-6 w-8 rounded bg-black/10" />
           </div>
           <div>
-            <div className="h-3 bg-gray-100 rounded w-12 mb-1" />
-            <div className="h-6 bg-gray-200 rounded w-10" />
+            <div className="mb-1 h-3 w-12 rounded bg-black/5" />
+            <div className="h-6 w-10 rounded bg-black/10" />
           </div>
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <div className="flex-1 h-10 bg-gray-100 rounded-xl" />
-        <div className="h-10 bg-gray-50 rounded w-24" />
+        <div className="h-10 flex-1 rounded-full bg-black/5" />
+        <div className="h-10 w-24 rounded-full bg-black/5" />
       </div>
     </div>
   </div>
@@ -190,20 +190,20 @@ export default function AgentsSectionClient() {
   }, [publicAgents, loading])
 
   return (
-    <section ref={sectionRef} className="py-16 sm:py-24 px-4 sm:px-6 bg-gradient-to-b from-gray-50 via-white to-gray-50">
+    <section ref={sectionRef} className="bg-[#f4eee1] px-4 py-16 sm:px-6 sm:py-24">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm font-bold mb-6 uppercase tracking-wider">
-            <Sparkles className="w-4 h-4" />
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/60 px-4 py-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#4b463e]">
+            <Sparkles className="h-4 w-4" />
             Pre-built Agents
           </div>
-          <h2 className="text-3xl sm:text-5xl font-black text-gray-900 mb-5 tracking-tight">
+          <h2 className="mb-5 text-3xl font-medium tracking-[-0.05em] text-[#171717] sm:text-5xl">
             Powerful AI Agents
-            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-rose-600">
+            <span className="block text-[#2d8b69]">
               Ready to Deploy
             </span>
           </h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="mx-auto max-w-2xl text-xl leading-relaxed text-[#575149]">
             Start from a template or build from scratch. Every agent is fully customizable.
           </p>
         </div>
@@ -223,24 +223,24 @@ export default function AgentsSectionClient() {
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {staticAgents.map((agent, i) => (
-              <div key={i} className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow flex flex-col">
-                <div className="bg-gradient-to-br from-red-100 via-pink-50 to-orange-50 pt-10 pb-12 flex items-center justify-center">
-                  <div className="w-24 h-24 rounded-2xl bg-white shadow-lg flex items-center justify-center">
-                    <Sparkles className="w-12 h-12 text-red-500" />
+              <div key={i} className="flex flex-col overflow-hidden rounded-[2rem] border border-black/10 bg-white/60 shadow-[0_18px_40px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_24px_56px_rgba(0,0,0,0.08)]">
+                <div className="flex items-center justify-center border-b border-black/10 bg-[#efe7d8] pt-10 pb-12">
+                  <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-white shadow-lg">
+                    <Sparkles className="h-12 w-12 text-[#2d8b69]" />
                   </div>
                 </div>
                 <div className="p-6 flex-1 flex flex-col">
-                  <h3 className="text-lg font-bold text-gray-900 mb-1">{agent.name}</h3>
-                  <p className="text-sm text-gray-400 mb-3">{agent.category}</p>
-                  <p className="text-sm text-gray-600 leading-relaxed mb-4">{agent.description}</p>
-                  <div className="border-t border-gray-100 pt-4 mt-auto flex items-center gap-6">
+                  <h3 className="mb-1 text-lg font-semibold tracking-[-0.03em] text-[#171717]">{agent.name}</h3>
+                  <p className="mb-3 text-sm uppercase tracking-[0.16em] text-[#7a736a]">{agent.category}</p>
+                  <p className="mb-4 text-sm leading-relaxed text-[#575149]">{agent.description}</p>
+                  <div className="mt-auto flex items-center gap-6 border-t border-black/10 pt-4">
                     <div>
-                      <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Uses</p>
-                      <p className="text-xl font-bold text-gray-900">{formatNumber(agent.usage_count)}</p>
+                      <p className="mb-0.5 text-xs uppercase tracking-[0.16em] text-[#7a736a]">Uses</p>
+                      <p className="text-xl font-semibold text-[#171717]">{formatNumber(agent.usage_count)}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Likes</p>
-                      <p className="text-xl font-bold text-gray-900">{agent.likes_count}</p>
+                      <p className="mb-0.5 text-xs uppercase tracking-[0.16em] text-[#7a736a]">Likes</p>
+                      <p className="text-xl font-semibold text-[#171717]">{agent.likes_count}</p>
                     </div>
                   </div>
                 </div>
@@ -252,10 +252,10 @@ export default function AgentsSectionClient() {
         <div className="text-center mt-16">
           <Link
             href="https://app.synkora.ai/signup"
-            className="inline-flex items-center gap-3 px-10 py-5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white text-lg font-bold rounded-2xl transition-all shadow-xl hover:shadow-2xl hover:shadow-red-500/30 hover:scale-105 group"
+            className="group inline-flex items-center gap-3 rounded-full bg-[#191919] px-10 py-5 text-lg font-semibold text-[#f7f2e7] transition-transform hover:-translate-y-0.5"
           >
             <span>Start Building Free</span>
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
           </Link>
         </div>
       </div>

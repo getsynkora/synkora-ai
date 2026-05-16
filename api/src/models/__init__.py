@@ -11,6 +11,7 @@ from .agent_context_file import AgentContextFile
 from .agent_discount_code import AgentDiscountCode, DiscountType
 from .agent_domain import AgentDomain
 from .agent_knowledge_base import AgentKnowledgeBase
+from .agent_lens_alert import AgentLensAlert
 from .agent_llm_config import AgentLLMConfig
 from .agent_mcp_server import AgentMCPServer
 from .agent_output_config import (
@@ -37,6 +38,7 @@ from .app import App, AppMode, AppStatus
 from .app_review import AppReview, ReviewSentiment
 from .app_store_source import AppStoreSource, SourceStatus, StoreType, SyncFrequency
 from .base import BaseModel, SoftDeleteMixin, StatusMixin, TenantMixin, TimestampMixin
+from .brain_domain import BrainDomain
 from .chart import Chart
 from .conversation import Conversation, ConversationStatus
 from .conversation_share import ConversationShare
@@ -60,6 +62,7 @@ from .debate_session import DebateSession
 from .diagram import Diagram
 from .document import Document, DocumentStatus
 from .document_segment import DocumentSegment
+from .email_template import EmailTemplate, EmailTemplateType
 from .erasure_request import ErasureRequest
 from .followup import FollowupConfig, FollowupItem, FollowupPriority, FollowupStatus
 from .ghostwriter_draft import GhostwriterDraft
@@ -123,6 +126,7 @@ from .voice_api_key import VoiceApiKey
 from .voice_usage import VoiceUsage
 from .whatsapp_bot import WhatsAppBot
 from .widget_agent_route import WidgetAgentRoute
+from .widget_push_subscription import WidgetPushSubscription
 from .wiki_article import WikiArticle, WikiCompilationJob
 from .workflow_execution import (
     WorkflowExecution,
@@ -154,6 +158,7 @@ __all__ = [
     "ComputeStatus",
     "AgentApiKey",
     "AgentApiUsage",
+    "AgentLensAlert",
     "AgentContextFile",
     "AgentDomain",
     "AgentLLMConfig",
@@ -223,6 +228,8 @@ __all__ = [
     "DatabaseConnectionType",
     # Chart models
     "Chart",
+    # Company Brain models
+    "BrainDomain",
     # KB Brain models
     "KBSyncCursor",
     "KBEntity",

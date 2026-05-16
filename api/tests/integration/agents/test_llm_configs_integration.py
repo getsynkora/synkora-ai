@@ -57,6 +57,7 @@ class TestLLMConfigsIntegration:
         agent_name = f"LLMAgent_{uuid.uuid4().hex[:8]}"
         agent = Agent(
             agent_name=agent_name,
+            slug=agent_name,
             tenant_id=uuid.UUID(tenant_id),
             description="Agent for LLM Config Tests",
             system_prompt="You are a bot.",

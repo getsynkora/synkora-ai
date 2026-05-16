@@ -28,6 +28,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.config.redis import get_redis_async
 from src.controllers.agents.models import AgentResponse, ChatRequest
 from src.core.database import get_async_db, get_async_session_factory
 from src.helpers.chat_helpers import validate_conversation_id
@@ -170,7 +171,7 @@ async def chat_stream(
     client_ip = http_request.client.host if http_request.client else "unknown"
     user_agent = http_request.headers.get("User-Agent", "unknown")
 
-    scan_result = advanced_prompt_scanner.scan_comprehensive(
+    scan_result = await advanced_prompt_scanner.scan_comprehensive_async(
         text=request.message, user_id=f"tenant_{tenant_id}", ip_address=client_ip, context="agent_chat_stream"
     )
 
@@ -179,7 +180,7 @@ async def chat_stream(
         # Log security violation — expected user-input event, not a server error
         logger.warning(
             f"SECURITY: Prompt injection blocked in agent chat stream. "
-            f"Agent: {request.agent_name}, Tenant: {tenant_id}, "
+            f"Agent: {request.agent_slug}, Tenant: {tenant_id}, "
             f"Risk Score: {scan_result['risk_score']}, "
             f"Threat Level: {scan_result['threat_level']}, "
             f"IP: {client_ip}, User-Agent: {user_agent[:100]}"
@@ -210,12 +211,11 @@ async def chat_stream(
     try:
         import json as _json_mod
 
-        from src.config.redis import get_redis_async
         from src.services.human_approval_service import HumanApprovalService
 
         _redis = get_redis_async()
         _conv_id = request.conversation_id or ""
-        _hitl_key = f"hitl:chat:{request.agent_name}:{_conv_id}"
+        _hitl_key = f"hitl:chat:{request.agent_slug}:{_conv_id}"
         _approval_id_str = await _redis.get(_hitl_key)
         if _approval_id_str:
             _approval_svc = HumanApprovalService(db)
@@ -254,40 +254,43 @@ async def chat_stream(
     except Exception as _hitl_err:
         logger.warning(f"HITL chat intercept error: {_hitl_err}")
 
-    # BILLING: Validate billing requirements before processing chat
+    # Load agent once — reused by both billing and paywall checks below.
+    _preflight_agent = None
     try:
         from sqlalchemy import or_
 
-        from src.helpers.chat_helpers import validate_conversation_id
         from src.models.agent import Agent
-        from src.services.billing import ChatBillingService
 
-        # Get agent to determine model for credit cost calculation
-        agent_result = await db.execute(
+        _agent_result = await db.execute(
             select(Agent).filter(
-                Agent.agent_name == request.agent_name,
+                Agent.slug == request.agent_slug,
                 or_(Agent.tenant_id == tenant_id, Agent.is_public.is_(True)),
             )
         )
-        db_agent = agent_result.scalar_one_or_none()
+        _preflight_agent = _agent_result.scalar_one_or_none()
+    except Exception as _agent_load_err:
+        logger.warning(f"Preflight agent load failed, skipping billing/paywall: {_agent_load_err}")
 
-        if db_agent:
-            # Get model from agent's llm_configs relationship
+    # BILLING: Validate billing requirements before processing chat
+    try:
+        from src.helpers.chat_helpers import validate_conversation_id
+        from src.services.billing import ChatBillingService
+
+        if _preflight_agent:
+            # Get model from agent's llm_configs relationship (loaded via selectin)
             llm_config = None
             if request.llm_config_id:
-                # Find specific config by ID
                 try:
                     llm_config_uuid = uuid.UUID(request.llm_config_id)
                     llm_config = next(
-                        (c for c in db_agent.llm_configs if c.id == llm_config_uuid and c.enabled),
+                        (c for c in _preflight_agent.llm_configs if c.id == llm_config_uuid and c.enabled),
                         None,
                     )
                 except ValueError:
                     pass
             else:
-                # Find default config
                 llm_config = next(
-                    (c for c in db_agent.llm_configs if c.is_default and c.enabled),
+                    (c for c in _preflight_agent.llm_configs if c.is_default and c.enabled),
                     None,
                 )
 
@@ -301,12 +304,10 @@ async def chat_stream(
                     },
                 )
 
-            # Parse conversation_id if provided
             conversation_uuid = None
             if request.conversation_id:
                 conversation_uuid = validate_conversation_id(request.conversation_id)
 
-            # Validate all billing requirements
             billing_service = ChatBillingService(db)
             billing_result = await billing_service.validate_chat_request(
                 tenant_id=tenant_id,
@@ -331,59 +332,47 @@ async def chat_stream(
     except HTTPException:
         raise
     except Exception as e:
-        # Log but don't block chat if billing validation fails (fail open for non-critical errors)
         logger.warning(f"Billing validation failed, allowing chat to proceed: {e}")
 
     # AGENT PAYWALL: Check paid agent access (creator monetization, separate from platform billing)
     try:
         import json as _json_paywall
 
-        from sqlalchemy import or_
-
-        from src.config.redis import get_redis_async
-        from src.models.agent import Agent
         from src.models.agent_pricing import AgentPricing
         from src.services.billing.agent_user_subscription_service import AgentUserSubscriptionService
 
-        _agent_paywall_result = await db.execute(
-            select(Agent).filter(
-                Agent.agent_name == request.agent_name,
-                or_(Agent.tenant_id == tenant_id, Agent.is_public.is_(True)),
-            )
-        )
-        _agent_for_paywall = _agent_paywall_result.scalar_one_or_none()
-
-        if _agent_for_paywall:
+        if _preflight_agent:
             _pricing_result = await db.execute(
-                select(AgentPricing).filter(AgentPricing.agent_id == _agent_for_paywall.id)
+                select(AgentPricing).filter(AgentPricing.agent_id == _preflight_agent.id)
             )
             _pricing = _pricing_result.scalar_one_or_none()
 
             if _pricing and _pricing.is_paid:
-                # Creator monetization gate: check if this user has an active subscription
-                _guest_token = http_request.cookies.get("agent_access_token")
-                _has_access = await AgentUserSubscriptionService.check_access(
-                    agent_id=_agent_for_paywall.id,
-                    db=db,
-                    subscriber_tenant_id=tenant_id,
-                    guest_token=_guest_token,
-                )
+                # Creator always has access to their own agent
+                if tenant_id == _preflight_agent.tenant_id:
+                    _has_access = True
+                else:
+                    _guest_token = http_request.cookies.get("agent_access_token")
+                    _has_access = await AgentUserSubscriptionService.check_access(
+                        agent_id=_preflight_agent.id,
+                        db=db,
+                        subscriber_tenant_id=tenant_id,
+                        guest_token=_guest_token,
+                    )
 
                 if not _has_access:
-                    # Check trial message budget via Redis
                     _visitor_key = str(tenant_id) or _guest_token or client_ip
                     _redis_paywall = get_redis_async()
-                    _trial_key = f"trial:{_agent_for_paywall.id}:{_visitor_key}"
+                    _trial_key = f"trial:{_preflight_agent.id}:{_visitor_key}"
                     _trial_used = await _redis_paywall.incr(_trial_key)
                     await _redis_paywall.expire(_trial_key, 86400)
 
                     if _trial_used > (_pricing.trial_messages or 0):
-                        # Load public profile slug for frontend redirect
                         from src.models.agent_public_profile import AgentPublicProfile
 
                         _profile_result = await db.execute(
                             select(AgentPublicProfile).filter(
-                                AgentPublicProfile.agent_id == _agent_for_paywall.id,
+                                AgentPublicProfile.agent_id == _preflight_agent.id,
                                 AgentPublicProfile.is_published.is_(True),
                             )
                         )
@@ -391,7 +380,7 @@ async def chat_stream(
                         _slug = _profile.slug if _profile else None
 
                         _paywall_data = {
-                            "agent_id": str(_agent_for_paywall.id),
+                            "agent_id": str(_preflight_agent.id),
                             "pricing_id": str(_pricing.id),
                             "slug": _slug,
                             "trial_messages": _pricing.trial_messages or 0,
@@ -416,17 +405,24 @@ async def chat_stream(
     except Exception as _paywall_err:
         logger.warning(f"Agent paywall check failed, allowing chat to proceed: {_paywall_err}")
 
+    current_account_id = str(current_account.id)
+
+    # Release the request/auth/preflight DB session before the long SSE stream.
+    # The stream service opens short-lived sessions for pre/post DB work and
+    # per-tool DB access, so external LLM latency no longer pins this session.
+    await db.close()
+
     # SECURITY: Pass tenant_id to verify conversation ownership
     return StreamingResponse(
         chat_stream_service.stream_agent_response(
-            request.agent_name,
+            request.agent_slug,
             request.message,
             request.conversation_history,
             request.conversation_id,
             request.attachments,
             request.llm_config_id,
-            db,
-            user_id=str(current_account.id),
+            db=None,
+            user_id=current_account_id,
             tenant_id=tenant_id,
         ),
         media_type="text/event-stream",
@@ -449,7 +445,7 @@ async def chat_stream(
 
 
 async def _ws_chat_pipeline(
-    agent_name: str,
+    agent_slug: str,
     message: str,
     conversation_id: str | None,
     conversation_history: list[dict[str, str]],
@@ -472,10 +468,8 @@ async def _ws_chat_pipeline(
     """
     import json as _json
 
-    from src.config.redis import get_redis_async
-
     # ── Prompt injection scan ────────────────────────────────────────────────
-    scan_result = advanced_prompt_scanner.scan_comprehensive(
+    scan_result = await advanced_prompt_scanner.scan_comprehensive_async(
         text=message,
         user_id=f"tenant_{tenant_id}",
         ip_address="ws",
@@ -484,7 +478,7 @@ async def _ws_chat_pipeline(
     if not scan_result["is_safe"]:
         logger.warning(
             "SECURITY: Prompt injection blocked in WS chat. Agent: %s, Tenant: %s, Risk: %s",
-            agent_name,
+            agent_slug,
             tenant_id,
             scan_result["risk_score"],
         )
@@ -503,7 +497,7 @@ async def _ws_chat_pipeline(
         from src.services.human_approval_service import HumanApprovalService
 
         _redis = get_redis_async()
-        _hitl_key = f"hitl:chat:{agent_name}:{conversation_id or ''}"
+        _hitl_key = f"hitl:chat:{agent_slug}:{conversation_id or ''}"
         _approval_id_str = await _redis.get(_hitl_key)
         if _approval_id_str:
             _approval_svc = HumanApprovalService(db)
@@ -523,20 +517,28 @@ async def _ws_chat_pipeline(
     except Exception as _hitl_err:
         logger.warning("HITL WS intercept error: %s", _hitl_err)
 
-    # ── Billing validation ───────────────────────────────────────────────────
+    # ── Agent load (shared by billing + paywall) ─────────────────────────────
+    _ws_agent = None
     try:
         from sqlalchemy import or_
 
         from src.models.agent import Agent
-        from src.services.billing import ChatBillingService
 
-        agent_result = await db.execute(
+        _ws_agent_result = await db.execute(
             select(Agent).filter(
-                Agent.agent_name == agent_name,
+                Agent.slug == agent_slug,
                 or_(Agent.tenant_id == tenant_id, Agent.is_public.is_(True)),
             )
         )
-        db_agent = agent_result.scalar_one_or_none()
+        _ws_agent = _ws_agent_result.scalar_one_or_none()
+    except Exception as _ws_agent_err:
+        logger.warning("WS preflight agent load failed: %s", _ws_agent_err)
+
+    # ── Billing validation ───────────────────────────────────────────────────
+    try:
+        from src.services.billing import ChatBillingService
+
+        db_agent = _ws_agent
 
         if db_agent:
             llm_config = None
@@ -585,9 +587,65 @@ async def _ws_chat_pipeline(
         # Fail open for non-critical billing errors (same behaviour as SSE endpoint)
         logger.warning("WS billing validation error: %s", _billing_err)
 
+    # ── Agent paywall (creator monetisation, separate from platform billing) ──
+    try:
+        from src.models.agent_pricing import AgentPricing
+        from src.services.billing.agent_user_subscription_service import AgentUserSubscriptionService
+
+        if _ws_agent:
+            _ws_pricing_result = await db.execute(select(AgentPricing).filter(AgentPricing.agent_id == _ws_agent.id))
+            _ws_pricing = _ws_pricing_result.scalar_one_or_none()
+
+            if _ws_pricing and _ws_pricing.is_paid:
+                # Creator always has access to their own agent
+                if tenant_id == _ws_agent.tenant_id:
+                    _ws_has_access = True
+                else:
+                    _ws_has_access = await AgentUserSubscriptionService.check_access(
+                        agent_id=_ws_agent.id,
+                        db=db,
+                        subscriber_tenant_id=tenant_id,
+                        guest_token=None,  # WS auth is token-based; no cookie available
+                    )
+
+                if not _ws_has_access:
+                    _ws_redis = get_redis_async()
+                    _ws_trial_key = f"trial:{_ws_agent.id}:{tenant_id}"
+                    _ws_trial_used = await _ws_redis.incr(_ws_trial_key)
+                    await _ws_redis.expire(_ws_trial_key, 86400)
+
+                    if _ws_trial_used > (_ws_pricing.trial_messages or 0):
+                        from src.models.agent_public_profile import AgentPublicProfile
+
+                        _ws_profile_result = await db.execute(
+                            select(AgentPublicProfile).filter(
+                                AgentPublicProfile.agent_id == _ws_agent.id,
+                                AgentPublicProfile.is_published.is_(True),
+                            )
+                        )
+                        _ws_profile = _ws_profile_result.scalar_one_or_none()
+                        yield _json.dumps(
+                            {
+                                "type": "paywall",
+                                "data": {
+                                    "agent_id": str(_ws_agent.id),
+                                    "pricing_id": str(_ws_pricing.id),
+                                    "slug": _ws_profile.slug if _ws_profile else None,
+                                    "trial_messages": _ws_pricing.trial_messages or 0,
+                                    "session_credits": _ws_pricing.session_credits,
+                                    "daily_credits": _ws_pricing.daily_credits,
+                                    "weekly_credits": _ws_pricing.weekly_credits,
+                                    "monthly_credits": _ws_pricing.monthly_subscription_credits,
+                                },
+                            }
+                        )
+                        return
+    except Exception as _ws_paywall_err:
+        logger.warning("WS paywall check failed, allowing chat to proceed: %s", _ws_paywall_err)
+
     # ── Stream agent response ────────────────────────────────────────────────
     async for sse_frame in chat_stream_service.stream_agent_response(
-        agent_name=agent_name,
+        agent_name=agent_slug,
         message=message,
         conversation_history=conversation_history,
         conversation_id=conversation_id,
@@ -618,7 +676,7 @@ async def chat_websocket(websocket: WebSocket) -> None:
 
         client  →  {
                      "type": "chat",
-                     "agent_name": "my-agent",
+                     "agent_slug": "my-agent-slug",
                      "message": "Hello",
                      "conversation_id": "<uuid or null>",
                      "conversation_history": [...],
@@ -635,8 +693,6 @@ async def chat_websocket(websocket: WebSocket) -> None:
     A fresh database session is opened for every chat message so that
     a long-lived connection does not hold a pool slot idle between turns.
     """
-    from src.config.redis import get_redis_async
-
     await websocket.accept()
 
     # ── 1. Auth handshake (5 s window) ───────────────────────────────────────
@@ -708,11 +764,11 @@ async def chat_websocket(websocket: WebSocket) -> None:
         if frame.get("type") != "chat":
             continue
 
-        agent_name: str = frame.get("agent_name", "")
+        agent_slug: str = frame.get("agent_slug", "")
         message: str = frame.get("message", "")
 
-        if not agent_name or not message:
-            await websocket.send_json({"type": "error", "error": "agent_name and message are required"})
+        if not agent_slug or not message:
+            await websocket.send_json({"type": "error", "error": "agent_slug and message are required"})
             continue
 
         if len(message) > 32000:
@@ -728,7 +784,7 @@ async def chat_websocket(websocket: WebSocket) -> None:
         async with get_async_session_factory()() as msg_db:
             try:
                 async for json_str in _ws_chat_pipeline(
-                    agent_name=agent_name,
+                    agent_slug=agent_slug,
                     message=message,
                     conversation_id=conversation_id,
                     conversation_history=conversation_history,

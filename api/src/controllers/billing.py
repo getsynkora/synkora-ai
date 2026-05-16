@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.config.redis import get_redis_async
 from src.core.database import get_async_db
 from src.middleware.auth_middleware import get_current_tenant_id
+from src.models.agent_pricing import PricingModel
 from src.models.credit_topup import CreditTopup
 from src.models.tenant import Account, AccountRole, Tenant, TenantAccountJoin
 from src.services.billing import (
@@ -38,7 +39,7 @@ router = APIRouter(prefix="/api/v1/billing", tags=["billing"])
 
 class AgentPricingUpsertRequest(BaseModel):
     agent_id: UUID
-    pricing_model: str = "FREE"
+    pricing_model: PricingModel = PricingModel.FREE
     credits_per_use: int | None = None
     session_credits: int | None = None
     daily_credits: int | None = None

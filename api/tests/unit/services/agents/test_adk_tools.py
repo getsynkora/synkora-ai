@@ -324,9 +324,9 @@ class TestADKToolRegistryExecution:
             # First call: query AgentTool
             if call_count[0] == 1:
                 mock_result.scalars.return_value.all.return_value = [mock_agent_tool]
-            # Second call: query CustomTool
+            # Second call: batch query CustomTool by IDs
             else:
-                mock_result.scalar_one_or_none.return_value = mock_custom_tool
+                mock_result.scalars.return_value.all.return_value = [mock_custom_tool]
             return mock_result
 
         mock_db.execute = AsyncMock(side_effect=execute_side_effect)

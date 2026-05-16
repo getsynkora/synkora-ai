@@ -45,11 +45,12 @@ class TaskComplexity(Enum):
 
 
 # Dynamic tool limits based on task complexity
-# NOTE: Increased limits to avoid filtering out important tools
+# Keep these large enough for multi-step work, but low enough that tool schemas
+# do not dominate prompt cost on every turn.
 COMPLEXITY_TOOL_LIMITS = {
-    TaskComplexity.SIMPLE: 50,
-    TaskComplexity.MODERATE: 75,
-    TaskComplexity.COMPLEX: 100,
+    TaskComplexity.SIMPLE: 20,
+    TaskComplexity.MODERATE: 30,
+    TaskComplexity.COMPLEX: 45,
 }
 
 # Tools that should ALWAYS be included regardless of filtering
@@ -65,9 +66,9 @@ class ToolFilterConfig:
     """Configuration for tool filtering."""
 
     min_tools: int = 10  # Always include at least N tools
-    max_tools: int = 50  # Base cap (overridden by complexity for more tools)
-    fallback_to_all: bool = True  # If no matches, send all tools
-    min_score_threshold: float = 0.1  # Very low threshold - prioritize rather than exclude
+    max_tools: int = 20  # Base cap (overridden by complexity for more tools)
+    fallback_to_all: bool = False  # Prefer top-N shortlist plus discovery tools
+    min_score_threshold: float = 1.0  # Require at least one real lexical/semantic signal
 
     # Hybrid scoring weights (keyword vs embedding)
     # Set embedding_weight to 0 to disable embedding-based search
@@ -98,9 +99,9 @@ def _detect_task_complexity(message: str) -> TaskComplexity:
     Detect if message requires multiple tool categories (multi-step task).
 
     This determines how many tools should be included in the filtered set:
-    - SIMPLE: Single service, basic query → 50 tools max
-    - MODERATE: Two services or multi-step indicator → 75 tools max
-    - COMPLEX: Three+ services or complex workflow → 100 tools max
+    - SIMPLE: Single service, basic query → 20 tools max
+    - MODERATE: Two services or multi-step indicator → 30 tools max
+    - COMPLEX: Three+ services or complex workflow → 45 tools max
     """
     message_lower = message.lower()
 
@@ -176,11 +177,9 @@ def _score_tool(tool_name: str, tool_description: str, message_keywords: set[str
     """
     Score a tool based on relevance to the message.
 
-    Returns a score from 0.5 to 10.0 where higher = more relevant.
-    All tools get a base score of 0.5 to ensure they're never completely excluded.
+    Returns a score from 0.0 to 10.0 where higher = more relevant.
     """
-    # Base score ensures all tools have minimum relevance (never excluded, just lower priority)
-    score = 0.5
+    score = 0.0
 
     # 1. Check if tool name appears directly in message (highest weight)
     tool_words = tool_name.replace("internal_", "").replace("_", " ").lower()
@@ -310,15 +309,16 @@ def filter_tools_by_message(
     if not message or not available_tools:
         return available_tools
 
-    # If very few tools, no need to filter
-    if len(available_tools) <= config.min_tools:
-        logger.debug(f"Tool filter: Only {len(available_tools)} tools, skipping filter")
-        return available_tools
-
     # Step 1: Detect task complexity and set dynamic max_tools
     complexity = _detect_task_complexity(message)
     dynamic_max = COMPLEXITY_TOOL_LIMITS[complexity]
     effective_max_tools = max(config.max_tools, dynamic_max)
+
+    # If the available set already fits under the effective cap, filtering only
+    # adds regression risk without meaningfully reducing prompt cost.
+    if len(available_tools) <= effective_max_tools:
+        logger.debug(f"Tool filter: {len(available_tools)} tools fit under cap {effective_max_tools}, skipping filter")
+        return available_tools
 
     message_lower = _normalize_text(message)
     message_keywords = _extract_keywords_from_message(message)

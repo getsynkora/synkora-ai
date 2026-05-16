@@ -21,8 +21,10 @@ Auth: X-Sandbox-Key header must match SANDBOX_API_KEY env var (if set).
 """
 
 import asyncio
+import hmac
 import logging
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -37,28 +39,54 @@ app = FastAPI(title="synkora-sandbox", version="1.0.0")
 
 WORKSPACES_BASE = Path(os.getenv("WORKSPACES_BASE", "/workspaces"))
 SANDBOX_API_KEY = os.getenv("SANDBOX_API_KEY")
+APP_ENV = os.getenv("APP_ENV", "development").lower()
+SAFE_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
+MAX_CONCURRENT_EXEC = int(os.getenv("SANDBOX_MAX_CONCURRENT_EXEC", "4"))
+MAX_EXEC_TIMEOUT = int(os.getenv("SANDBOX_MAX_EXEC_TIMEOUT", "300"))
+_exec_semaphore = asyncio.Semaphore(max(1, MAX_CONCURRENT_EXEC))
+BASE_ENV_ALLOWLIST = {
+    "HOME",
+    "LANG",
+    "LC_ALL",
+    "PATH",
+    "PWD",
+    "TMPDIR",
+    "TZ",
+}
+
+if APP_ENV in {"production", "staging"} and not SANDBOX_API_KEY:
+    raise RuntimeError("SANDBOX_API_KEY must be set for sandbox service in staging/production")
 
 
 def _check_auth(key: str | None) -> None:
-    if SANDBOX_API_KEY and key != SANDBOX_API_KEY:
+    if SANDBOX_API_KEY and not hmac.compare_digest(key or "", SANDBOX_API_KEY):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid sandbox key")
 
 
 def _workspace(tenant_id: str, agent_id: str) -> Path:
-    return WORKSPACES_BASE / tenant_id / agent_id
+    if not SAFE_ID_RE.fullmatch(tenant_id):
+        raise HTTPException(status_code=400, detail="Invalid tenant_id")
+    if not SAFE_ID_RE.fullmatch(agent_id):
+        raise HTTPException(status_code=400, detail="Invalid agent_id")
+    return (WORKSPACES_BASE / tenant_id / agent_id).resolve()
 
 
 def _safe_path(workspace: Path, rel: str) -> Path:
     """Resolve path, ensuring it stays inside the workspace directory."""
-    if os.path.isabs(rel):
-        try:
-            rel = str(Path(rel).relative_to(workspace))
-        except ValueError:
-            rel = rel.lstrip("/")
-    target = (workspace / rel).resolve()
-    if not str(target).startswith(str(workspace.resolve())):
+    resolved_workspace = workspace.resolve()
+    target = Path(rel).resolve() if os.path.isabs(rel) else (resolved_workspace / rel).resolve()
+    try:
+        target.relative_to(resolved_workspace)
+    except ValueError:
         raise HTTPException(status_code=400, detail="Path escapes workspace")
     return target
+
+
+def _exec_env(extra_env: dict[str, str] | None) -> dict[str, str]:
+    env = {key: value for key, value in os.environ.items() if key in BASE_ENV_ALLOWLIST}
+    if extra_env:
+        env.update({str(key): str(value) for key, value in extra_env.items()})
+    return env
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -104,9 +132,22 @@ async def exec_command(
     workspace.mkdir(parents=True, exist_ok=True)
 
     cwd = str(_safe_path(workspace, req.cwd)) if req.cwd else str(workspace)
-    env = {**os.environ, **(req.env or {})}
+    env = _exec_env(req.env)
 
+    timeout = max(1, min(req.timeout, MAX_EXEC_TIMEOUT))
+
+    acquired = False
     try:
+        try:
+            await asyncio.wait_for(_exec_semaphore.acquire(), timeout=1.0)
+            acquired = True
+        except asyncio.TimeoutError:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Sandbox executor is at capacity",
+                headers={"Retry-After": "2"},
+            )
+
         proc = await asyncio.create_subprocess_exec(
             *req.command,
             stdout=subprocess.PIPE,
@@ -114,7 +155,7 @@ async def exec_command(
             cwd=cwd,
             env=env,
         )
-        raw, _ = await asyncio.wait_for(proc.communicate(), timeout=req.timeout)
+        raw, _ = await asyncio.wait_for(proc.communicate(), timeout=timeout)
         output = raw.decode("utf-8", errors="replace")
         if len(output) > 8000:
             output = output[:8000] + "\n[OUTPUT TRUNCATED]"
@@ -126,10 +167,18 @@ async def exec_command(
             "return_code": return_code,
         }
     except asyncio.TimeoutError:
-        return {"success": False, "output": "", "error": f"Command timed out after {req.timeout}s", "return_code": -1}
+        if "proc" in locals() and proc.returncode is None:
+            proc.kill()
+            await proc.wait()
+        return {"success": False, "output": "", "error": f"Command timed out after {timeout}s", "return_code": -1}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"exec error: {e}")
         return {"success": False, "output": "", "error": str(e), "return_code": -1}
+    finally:
+        if acquired:
+            _exec_semaphore.release()
 
 
 @app.get("/v1/files")

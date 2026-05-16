@@ -50,15 +50,19 @@ Endpoints:
 """
 
 import base64
+import asyncio
+import hmac
 import ipaddress
 import json
 import logging
+import os
 import re
 import socket
 from datetime import UTC, datetime
 from typing import Any, Literal
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from browser_session import BrowserSession
@@ -67,6 +71,45 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Synkora Scraper Service")
+SCRAPER_API_KEY = os.getenv("SCRAPER_API_KEY")
+APP_ENV = os.getenv("APP_ENV", "development").lower()
+SCRAPER_MAX_CONCURRENT_REQUESTS = int(os.getenv("SCRAPER_MAX_CONCURRENT_REQUESTS", "8"))
+_request_semaphore = asyncio.Semaphore(max(1, SCRAPER_MAX_CONCURRENT_REQUESTS))
+
+if APP_ENV in {"production", "staging"} and not SCRAPER_API_KEY:
+    raise RuntimeError("SCRAPER_API_KEY must be set for scraper service in staging/production")
+
+
+@app.middleware("http")
+async def require_scraper_key(request: Request, call_next):
+    if request.url.path == "/health" or not SCRAPER_API_KEY:
+        return await call_next(request)
+
+    supplied = request.headers.get("X-Scraper-Key", "")
+    if not hmac.compare_digest(supplied, SCRAPER_API_KEY):
+        return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"detail": "Invalid scraper key"})
+
+    return await call_next(request)
+
+
+@app.middleware("http")
+async def limit_scraper_concurrency(request: Request, call_next):
+    if request.url.path == "/health":
+        return await call_next(request)
+
+    try:
+        await asyncio.wait_for(_request_semaphore.acquire(), timeout=1.0)
+    except asyncio.TimeoutError:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"detail": "Scraper is at capacity"},
+            headers={"Retry-After": "2"},
+        )
+
+    try:
+        return await call_next(request)
+    finally:
+        _request_semaphore.release()
 
 
 # ===========================================================================
@@ -91,20 +134,27 @@ BLOCKED_IP_RANGES = [
     ipaddress.ip_network("192.168.0.0/16"),
     ipaddress.ip_network("169.254.0.0/16"),
     ipaddress.ip_network("100.64.0.0/10"),
+    ipaddress.ip_network("198.18.0.0/15"),
     ipaddress.ip_network("0.0.0.0/8"),
     ipaddress.ip_network("224.0.0.0/4"),
     ipaddress.ip_network("240.0.0.0/4"),
     ipaddress.ip_network("::1/128"),
     ipaddress.ip_network("fc00::/7"),
     ipaddress.ip_network("fe80::/10"),
+    ipaddress.ip_network("ff00::/8"),
 ]
 
 
 def _is_internal_ip(hostname: str) -> bool:
     try:
-        ip_str = socket.gethostbyname(hostname)
-        ip = ipaddress.ip_address(ip_str)
-        return any(ip in net for net in BLOCKED_IP_RANGES)
+        try:
+            addresses = [ipaddress.ip_address(hostname)]
+        except ValueError:
+            infos = socket.getaddrinfo(hostname, None, type=socket.SOCK_STREAM)
+            addresses = list({ipaddress.ip_address(info[4][0]) for info in infos})
+        if not addresses:
+            return True
+        return any(any(ip in net for net in BLOCKED_IP_RANGES) for ip in addresses)
     except Exception:
         return True
 
@@ -114,6 +164,8 @@ def _is_url_allowed(url: str) -> bool:
 
     try:
         parsed = urlparse(url)
+        if parsed.scheme in ("about", "data", "blob"):
+            return True
         if parsed.scheme not in ("http", "https"):
             return False
         hostname = parsed.hostname
@@ -122,6 +174,16 @@ def _is_url_allowed(url: str) -> bool:
         return not _is_internal_ip(hostname)
     except Exception:
         return False
+
+
+async def _guard_page_requests(page) -> None:
+    async def _route(route):
+        if _is_url_allowed(route.request.url):
+            await route.continue_()
+        else:
+            await route.abort()
+
+    await page.route("**/*", _route)
 
 
 def _get_locator_strategies(page, ref: str, state=None) -> list:
@@ -460,6 +522,7 @@ async def browser_simple_navigate(req: SimpleNavigateRequest):
             browser = await p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-setuid-sandbox"])
             try:
                 page = await browser.new_page()
+                await _guard_page_requests(page)
                 page.set_default_timeout(30000)
                 response = await page.goto(req.url, wait_until=req.wait_for, timeout=20000)
                 title = await page.title()
@@ -495,6 +558,7 @@ async def browser_extract_links(req: ExtractLinksRequest):
             browser = await p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-setuid-sandbox"])
             try:
                 page = await browser.new_page()
+                await _guard_page_requests(page)
                 await page.goto(req.url, wait_until="domcontentloaded", timeout=20000)
                 links = await page.evaluate("""
                     () => Array.from(document.querySelectorAll('a')).map(a => ({
@@ -519,6 +583,7 @@ async def browser_extract_structured_data(req: ExtractStructuredDataRequest):
             browser = await p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-setuid-sandbox"])
             try:
                 page = await browser.new_page()
+                await _guard_page_requests(page)
                 await page.goto(req.url, wait_until="domcontentloaded", timeout=20000)
                 elements = await page.query_selector_all(req.selector)
                 data = [{"text": (await e.inner_text()).strip(), "html": await e.inner_html()} for e in elements]
@@ -540,6 +605,7 @@ async def browser_check_element_exists(req: CheckElementExistsRequest):
             browser = await p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-setuid-sandbox"])
             try:
                 page = await browser.new_page()
+                await _guard_page_requests(page)
                 await page.goto(req.url, wait_until="domcontentloaded", timeout=20000)
                 element = await page.query_selector(req.selector)
                 exists = element is not None
@@ -568,10 +634,16 @@ class NavigateRequest(BaseModel):
 
 @app.post("/v1/browser/navigate")
 async def browser_navigate(req: NavigateRequest):
+    if not _is_url_allowed(req.url):
+        return {"success": False, "error": f"URL not allowed: {req.url}"}
     try:
         session, page = await _get_session_and_page(req.session_id, req.page_id)
         timeout = normalize_timeout(req.timeout_ms, 30000)
         response = await page.goto(req.url, wait_until=req.wait_until, timeout=timeout)
+        final_url = page.url
+        if not _is_url_allowed(final_url):
+            await page.goto("about:blank")
+            return {"success": False, "error": f"Final URL not allowed: {final_url}"}
         return {
             "success": True,
             "url": page.url,
@@ -1157,7 +1229,13 @@ async def browser_new_page(req: NewPageRequest):
         session = await BrowserSession.get_or_create(req.session_id)
         page_id, page = await session.new_page()
         if req.url:
+            if not _is_url_allowed(req.url):
+                return {"success": False, "error": f"URL not allowed: {req.url}"}
             await page.goto(req.url)
+            final_url = page.url
+            if not _is_url_allowed(final_url):
+                await page.goto("about:blank")
+                return {"success": False, "error": f"Final URL not allowed: {final_url}"}
         return {"success": True, "page_id": page_id, "url": page.url, "session_id": req.session_id}
     except Exception as e:
         return {"success": False, "error": str(e)}

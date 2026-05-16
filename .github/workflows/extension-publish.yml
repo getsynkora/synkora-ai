@@ -1,0 +1,97 @@
+name: Chrome Extension — Build & Publish
+
+on:
+  # Auto-publish on version tags: extension/v0.2.0
+  push:
+    tags:
+      - "extension/v*"
+  # Manual trigger with optional dry-run
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (build zip but skip Chrome Web Store upload)"
+        required: false
+        default: "true"
+        type: choice
+        options: ["true", "false"]
+
+concurrency:
+  group: extension-publish
+  cancel-in-progress: false
+
+jobs:
+  build-and-publish:
+    name: Build & Publish Extension
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        working-directory: extension
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        working-directory: extension
+        run: pnpm type-check
+
+      - name: Run tests
+        working-directory: extension
+        run: pnpm test
+
+      - name: Build extension zip (Chrome)
+        working-directory: extension
+        run: pnpm zip
+        # Outputs to extension/.output/synkora-agent-extension-<version>-chrome.zip
+
+      - name: Find zip file
+        id: zip
+        working-directory: extension
+        run: |
+          ZIP=$(ls .output/*chrome*.zip | head -1)
+          echo "path=$ZIP" >> "$GITHUB_OUTPUT"
+          echo "name=$(basename $ZIP)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload zip as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.zip.outputs.name }}
+          path: extension/${{ steps.zip.outputs.path }}
+          retention-days: 90
+
+      # ── Chrome Web Store upload ──────────────────────────────────────────
+      # Requires three secrets set in GitHub → Settings → Secrets:
+      #   CHROME_EXTENSION_ID       — from Chrome Web Store dashboard
+      #   CHROME_CLIENT_ID          — OAuth2 client ID (Google API Console)
+      #   CHROME_CLIENT_SECRET      — OAuth2 client secret
+      #   CHROME_REFRESH_TOKEN      — long-lived refresh token
+      #
+      # To generate the refresh token, run once locally:
+      #   npx chrome-webstore-upload-cli@latest init
+      - name: Publish to Chrome Web Store
+        if: ${{ github.event_name == 'push' || inputs.dry_run == 'false' }}
+        uses: mnao305/chrome-extension-upload@v5.0.0
+        with:
+          file-path: extension/${{ steps.zip.outputs.path }}
+          extension-id: ${{ secrets.CHROME_EXTENSION_ID }}
+          client-id: ${{ secrets.CHROME_CLIENT_ID }}
+          client-secret: ${{ secrets.CHROME_CLIENT_SECRET }}
+          refresh-token: ${{ secrets.CHROME_REFRESH_TOKEN }}
+          publish: true
+
+      - name: Summary
+        run: |
+          echo "## Chrome Extension Build" >> $GITHUB_STEP_SUMMARY
+          echo "- **Zip:** ${{ steps.zip.outputs.name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Published:** ${{ github.event_name == 'push' || inputs.dry_run == 'false' }}" >> $GITHUB_STEP_SUMMARY

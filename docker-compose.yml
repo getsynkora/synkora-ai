@@ -107,6 +107,7 @@ services:
   # Elasticsearch
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.15.5
+    platform: linux/arm64
     container_name: synkora-elasticsearch
     environment:
       - discovery.type=single-node
@@ -347,6 +348,8 @@ services:
       context: ./services/scraper
       dockerfile: Dockerfile
     container_name: synkora-scraper
+    environment:
+      - SCRAPER_API_KEY=${SCRAPER_API_KEY:-dev-scraper-key}
     networks:
       - synkora-network
 
@@ -358,7 +361,7 @@ services:
       dockerfile: Dockerfile
     container_name: synkora-sandbox
     environment:
-      - SANDBOX_API_KEY=${SANDBOX_API_KEY:-}
+      - SANDBOX_API_KEY=${SANDBOX_API_KEY:-dev-sandbox-key}
     networks:
       - synkora-network
 
@@ -425,8 +428,9 @@ services:
       - PYTHONUNBUFFERED=1
       - ML_SERVICE_URL=http://synkora-ml:5002
       - SCRAPER_SERVICE_URL=http://synkora-scraper:5003
+      - SCRAPER_API_KEY=${SCRAPER_API_KEY:-dev-scraper-key}
       - SANDBOX_SERVICE_URL=http://synkora-sandbox:5004
-      - SANDBOX_API_KEY=${SANDBOX_API_KEY:-}
+      - SANDBOX_API_KEY=${SANDBOX_API_KEY:-dev-sandbox-key}
       # Workspace Settings (uses /tmp which is already writable)
       - WORKSPACE_BASE_PATH=/tmp/synkora/workspaces
 
@@ -483,8 +487,9 @@ services:
       - CELERY_CONCURRENCY=${CELERY_CONCURRENCY:-4}
       - ML_SERVICE_URL=http://synkora-ml:5002
       - SCRAPER_SERVICE_URL=http://synkora-scraper:5003
+      - SCRAPER_API_KEY=${SCRAPER_API_KEY:-dev-scraper-key}
       - SANDBOX_SERVICE_URL=http://synkora-sandbox:5004
-      - SANDBOX_API_KEY=${SANDBOX_API_KEY:-}
+      - SANDBOX_API_KEY=${SANDBOX_API_KEY:-dev-sandbox-key}
       - WORKSPACE_BASE_PATH=/tmp/synkora/workspaces
 
       - WORKSPACE_TTL_HOURS=24
@@ -514,8 +519,9 @@ services:
       - PYTHONUNBUFFERED=1
       - ML_SERVICE_URL=http://synkora-ml:5002
       - SCRAPER_SERVICE_URL=http://synkora-scraper:5003
+      - SCRAPER_API_KEY=${SCRAPER_API_KEY:-dev-scraper-key}
       - SANDBOX_SERVICE_URL=http://synkora-sandbox:5004
-      - SANDBOX_API_KEY=${SANDBOX_API_KEY:-}
+      - SANDBOX_API_KEY=${SANDBOX_API_KEY:-dev-sandbox-key}
       - WORKSPACE_BASE_PATH=/tmp/synkora/workspaces
 
       - WORKSPACE_TTL_HOURS=24
@@ -545,8 +551,40 @@ services:
       - PYTHONUNBUFFERED=1
       - ML_SERVICE_URL=http://synkora-ml:5002
       - SCRAPER_SERVICE_URL=http://synkora-scraper:5003
+      - SCRAPER_API_KEY=${SCRAPER_API_KEY:-dev-scraper-key}
       - SANDBOX_SERVICE_URL=http://synkora-sandbox:5004
-      - SANDBOX_API_KEY=${SANDBOX_API_KEY:-}
+      - SANDBOX_API_KEY=${SANDBOX_API_KEY:-dev-sandbox-key}
+      - WORKSPACE_BASE_PATH=/tmp/synkora/workspaces
+
+      - WORKSPACE_TTL_HOURS=24
+      - WORKSPACE_MAX_SIZE_MB=2000
+    volumes:
+      - ./api:/app/api
+      - /app/api/.venv
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - synkora-network
+
+  # Company Brain queue — ingestion streams, sync fan-out, tier migration.
+  celery-worker-company-brain:
+    build:
+      context: ./api
+      dockerfile: Dockerfile.dev
+    container_name: synkora-celery-worker-company-brain
+    command: celery -A src.celery_app worker --loglevel=info --concurrency=${CELERY_COMPANY_BRAIN_CONCURRENCY:-2} -Q company_brain
+    env_file:
+      - ./api/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - ML_SERVICE_URL=http://synkora-ml:5002
+      - SCRAPER_SERVICE_URL=http://synkora-scraper:5003
+      - SCRAPER_API_KEY=${SCRAPER_API_KEY:-dev-scraper-key}
+      - SANDBOX_SERVICE_URL=http://synkora-sandbox:5004
+      - SANDBOX_API_KEY=${SANDBOX_API_KEY:-dev-sandbox-key}
       - WORKSPACE_BASE_PATH=/tmp/synkora/workspaces
 
       - WORKSPACE_TTL_HOURS=24
@@ -575,8 +613,9 @@ services:
       - PYTHONUNBUFFERED=1
       - ML_SERVICE_URL=http://synkora-ml:5002
       - SCRAPER_SERVICE_URL=http://synkora-scraper:5003
+      - SCRAPER_API_KEY=${SCRAPER_API_KEY:-dev-scraper-key}
       - SANDBOX_SERVICE_URL=http://synkora-sandbox:5004
-      - SANDBOX_API_KEY=${SANDBOX_API_KEY:-}
+      - SANDBOX_API_KEY=${SANDBOX_API_KEY:-dev-sandbox-key}
       - WORKSPACE_BASE_PATH=/tmp/synkora/workspaces
 
       - WORKSPACE_TTL_HOURS=24
@@ -605,8 +644,9 @@ services:
       - PYTHONUNBUFFERED=1
       - ML_SERVICE_URL=http://synkora-ml:5002
       - SCRAPER_SERVICE_URL=http://synkora-scraper:5003
+      - SCRAPER_API_KEY=${SCRAPER_API_KEY:-dev-scraper-key}
       - SANDBOX_SERVICE_URL=http://synkora-sandbox:5004
-      - SANDBOX_API_KEY=${SANDBOX_API_KEY:-}
+      - SANDBOX_API_KEY=${SANDBOX_API_KEY:-dev-sandbox-key}
       - WORKSPACE_BASE_PATH=/tmp/synkora/workspaces
 
       - WORKSPACE_TTL_HOURS=24
@@ -637,6 +677,7 @@ services:
       - PYTHONUNBUFFERED=1
       - ML_SERVICE_URL=http://synkora-ml:5002
       - SCRAPER_SERVICE_URL=http://synkora-scraper:5003
+      - SCRAPER_API_KEY=${SCRAPER_API_KEY:-dev-scraper-key}
       - BOT_WORKER_CAPACITY=1000
       - BOT_WORKER_HEALTH_PORT=8080
     volumes:

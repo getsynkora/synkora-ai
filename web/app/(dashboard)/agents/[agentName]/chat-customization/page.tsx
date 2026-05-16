@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { ArrowLeft, Palette, MessageSquare, Eye, Zap } from 'lucide-react'
 import { apiClient } from '@/lib/api/client'
+import AgentPageShell, { AgentPagePanel, AgentPageTabs } from '@/components/agents/AgentPageShell'
 
 type Tab = 'branding' | 'content' | 'advanced' | 'preview'
 
@@ -16,7 +17,8 @@ export default function ChatCustomizationPage() {
   const [activeTab, setActiveTab] = useState<Tab>('branding')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  
+  const [agentId, setAgentId] = useState<string | null>(null)
+
   // Form data
   const [formData, setFormData] = useState({
     chat_title: '',
@@ -36,7 +38,11 @@ export default function ChatCustomizationPage() {
   const fetchChatConfig = async () => {
     try {
       setLoading(true)
-      const config = await apiClient.getChatConfig(agentName)
+      // Fetch agent by slug to get the UUID required by the chat-config endpoint
+      const agentData = await apiClient.getAgent(agentName)
+      const id = agentData?.id || agentData?.data?.id
+      setAgentId(id)
+      const config = await apiClient.getChatConfig(id)
       
       if (config) {
         setFormData({
@@ -59,10 +65,11 @@ export default function ChatCustomizationPage() {
   }
 
   const handleSubmit = async () => {
+    if (!agentId) return
     setSaving(true)
 
     try {
-      await apiClient.updateChatConfig(agentName, formData)
+      await apiClient.updateChatConfig(agentId, formData)
       toast.success('Chat customization saved successfully!')
       router.push(`/agents/${agentName}/view`)
     } catch (error) {
@@ -92,47 +99,26 @@ export default function ChatCustomizationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
+    <AgentPageShell
+      agentName={agentName}
+      title="Chat Customization"
+      description="Customize the chat interface with your branding, tone, and messaging."
+      icon={Palette}
+      badge="Chat Experience"
+      maxWidthClassName="max-w-[90rem]"
+    >
         <div className="mb-6">
-          <button
-            onClick={() => router.push(`/agents/${agentName}/view`)}
-            className="flex items-center gap-2 text-red-600 hover:text-red-700 mb-4 text-sm font-medium"
-          >
-            <ArrowLeft size={16} />
-            Back to Agent Details
-          </button>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Chat Customization</h1>
-          <p className="text-gray-600 mt-1 text-sm">
-            Customize the chat interface with your branding and messaging
-          </p>
+          <AgentPageTabs
+            activeId={activeTab}
+            onChange={(id) => setActiveTab(id as Tab)}
+            items={tabs.map((tab) => {
+              const Icon = tab.icon
+              return { id: tab.id, label: tab.label, icon: <Icon size={18} /> }
+            })}
+          />
         </div>
 
-        {/* Tabs */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="border-b border-gray-200">
-            <nav className="flex">
-              {tabs.map((tab) => {
-                const Icon = tab.icon
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-2 px-5 py-3 font-medium text-sm transition-colors ${
-                      activeTab === tab.id
-                        ? 'border-b-2 border-red-600 text-red-600'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    <Icon size={18} />
-                    {tab.label}
-                  </button>
-                )
-              })}
-            </nav>
-          </div>
-
+        <AgentPagePanel className="overflow-hidden">
           {/* Tab Content */}
           <div className="p-6">
             {activeTab === 'branding' && (
@@ -164,22 +150,21 @@ export default function ChatCustomizationPage() {
               <button
                 onClick={handleSubmit}
                 disabled={saving}
-                className="px-5 py-2 text-sm bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-sm"
+                className="px-5 py-2 text-sm bg-[#171717] text-white rounded-[1rem] hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-sm"
               >
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
+        </AgentPagePanel>
+    </AgentPageShell>
   )
 }
 
 // Branding Tab Component
 function BrandingTab({ formData, setFormData }: any) {
   return (
-    <div className="space-y-5 max-w-3xl">
+    <div className="max-w-5xl space-y-5">
       <div>
         <h3 className="text-base font-semibold text-gray-900 mb-1">
           Brand Identity
@@ -308,7 +293,7 @@ function BrandingTab({ formData, setFormData }: any) {
 // Content Tab Component
 function ContentTab({ formData, setFormData }: any) {
   return (
-    <div className="space-y-5 max-w-3xl">
+    <div className="max-w-5xl space-y-5">
       <div>
         <h3 className="text-base font-semibold text-gray-900 mb-1">
           Chat Content
@@ -453,7 +438,7 @@ function PreviewTab({ formData }: any) {
 // Advanced Tab Component
 function AdvancedTab({ formData, setFormData }: any) {
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="max-w-5xl space-y-6">
       <div>
         <h3 className="text-base font-semibold text-gray-900 mb-1">Advanced Settings</h3>
         <p className="text-xs text-gray-600 mb-4">

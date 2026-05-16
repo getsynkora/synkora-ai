@@ -274,11 +274,11 @@ class TestToolFilterConfig:
     def test_default_values(self):
         config = ToolFilterConfig()
 
-        # Updated defaults for more permissive filtering (less restrictive)
+        # Defaults should favor a compact shortlist over sending the whole registry.
         assert config.min_tools == 10
-        assert config.max_tools == 50
-        assert config.fallback_to_all is True
-        assert config.min_score_threshold == 0.1
+        assert config.max_tools == 20
+        assert config.fallback_to_all is False
+        assert config.min_score_threshold == 1.0
         assert config.keyword_weight == 0.6
         assert config.embedding_weight == 0.4
         assert config.embedding_score_threshold == 0.2
@@ -323,6 +323,15 @@ class TestFilterToolsByMessage:
         result = filter_tools_by_message("any message", tools, config)
 
         # Should return all tools when fewer than min_tools
+        assert result == tools
+
+    def test_skips_filter_when_tool_count_already_within_effective_cap(self):
+        tools = [{"name": f"tool_{i}", "description": f"Tool {i}"} for i in range(25)]
+        config = ToolFilterConfig(max_tools=20, fallback_to_all=False)
+
+        result = filter_tools_by_message("send slack message and create jira ticket", tools, config)
+
+        # Moderate tasks allow up to 30 tools, so filtering should not remove any.
         assert result == tools
 
     def test_filters_slack_related(self, sample_tools):

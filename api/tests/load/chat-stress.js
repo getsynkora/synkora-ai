@@ -3,17 +3,17 @@
  *
  * Focused stress test for the chat streaming endpoint.
  * This is the most resource-intensive endpoint because each request:
- * - Holds a DB session for the entire stream duration
+ * - Opens short DB sessions before/after streaming and around DB-backed tools
  * - Opens an SSE connection (long-lived HTTP connection)
  * - Triggers LLM API calls (external dependency)
  * - May trigger RAG/vector DB queries
  * - Runs prompt injection scanning
  *
  * Usage:
- *   k6 run --env AUTH_TOKEN=<jwt> --env AGENT_NAME=<name> chat-stress.js
+ *   k6 run --env AUTH_TOKEN=<jwt> --env AGENT_SLUG=<slug> chat-stress.js
  *
  *   # With custom concurrency
- *   k6 run --env AUTH_TOKEN=<jwt> --env AGENT_NAME=<name> --env MAX_VUS=50 chat-stress.js
+ *   k6 run --env AUTH_TOKEN=<jwt> --env AGENT_SLUG=<slug> --env MAX_VUS=50 chat-stress.js
  */
 
 import http from 'k6/http';
@@ -64,7 +64,7 @@ export const options = {
 
 export default function () {
     const payload = JSON.stringify({
-        agent_name: config.agentName,
+        agent_slug: config.agentSlug,
         message: randomMessage(),
         conversation_history: [],
         conversation_id: null,
@@ -136,8 +136,8 @@ export function setup() {
         throw new Error('AUTH_TOKEN is required for chat stress test. Set via --env AUTH_TOKEN=<jwt>');
     }
 
-    if (!config.agentName) {
-        throw new Error('AGENT_NAME is required. Set via --env AGENT_NAME=<name>');
+    if (!config.agentSlug) {
+        throw new Error('AGENT_SLUG is required. Set via --env AGENT_SLUG=<slug>');
     }
 
     // Verify server and auth
@@ -157,7 +157,7 @@ export function setup() {
     }
 
     console.log(`Chat Stress Test starting against: ${config.baseUrl}`);
-    console.log(`Agent: ${config.agentName}`);
+    console.log(`Agent slug: ${config.agentSlug}`);
     console.log(`Max VUs: ${maxVUs}`);
     console.log(`DB pool size: 30 (pool) + 10 (overflow) = 40 max connections`);
     console.log(`Rate limit: 30 req/60s on /v1/chat/`);

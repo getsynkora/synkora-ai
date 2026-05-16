@@ -8,6 +8,7 @@ Provides fast retrieval of recent messages and conversation metadata.
 import json
 import logging
 from datetime import timedelta
+from inspect import isawaitable
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -40,12 +41,19 @@ class ConversationCacheService:
             return self.redis
 
         try:
-            from src.config.redis import get_redis
+            from src.config.redis import get_redis_async
 
-            return get_redis()
+            return get_redis_async()
         except Exception as e:
             logger.warning(f"Redis not available: {e}")
             return None
+
+    async def _redis_call(self, redis, method_name: str, *args):
+        """Call sync test clients and async production clients without blocking async code."""
+        result = getattr(redis, method_name)(*args)
+        if isawaitable(result):
+            return await result
+        return result
 
     def _build_key(self, prefix: str, conversation_id: str) -> str:
         """Build cache key with prefix."""
@@ -68,7 +76,7 @@ class ConversationCacheService:
 
         try:
             key = self._build_key(self.KEY_PREFIX_HISTORY, conversation_id)
-            cached_data = redis.get(key)
+            cached_data = await self._redis_call(redis, "get", key)
 
             if cached_data:
                 messages = json.loads(cached_data)
@@ -110,7 +118,7 @@ class ConversationCacheService:
             # Serialize messages (convert any non-serializable fields)
             serializable_messages = self._serialize_messages(cached_messages)
 
-            redis.setex(key, timedelta(seconds=ttl), json.dumps(serializable_messages))
+            await self._redis_call(redis, "setex", key, timedelta(seconds=ttl), json.dumps(serializable_messages))
 
             logger.info(
                 f"✅ Cached conversation history for '{conversation_id}' "
@@ -140,7 +148,7 @@ class ConversationCacheService:
             key = self._build_key(self.KEY_PREFIX_HISTORY, conversation_id)
 
             # Get existing messages
-            cached_data = redis.get(key)
+            cached_data = await self._redis_call(redis, "get", key)
             if cached_data:
                 messages = json.loads(cached_data)
             else:
@@ -155,7 +163,7 @@ class ConversationCacheService:
                 messages = messages[-self.MAX_CACHED_MESSAGES :]
 
             # Save back with refreshed TTL
-            redis.setex(key, timedelta(seconds=self.CACHE_TTL), json.dumps(messages))
+            await self._redis_call(redis, "setex", key, timedelta(seconds=self.CACHE_TTL), json.dumps(messages))
 
             logger.debug(f"Appended message to conversation '{conversation_id}' cache (total: {len(messages)})")
             return True
@@ -179,7 +187,7 @@ class ConversationCacheService:
 
         try:
             key = self._build_key(self.KEY_PREFIX_SUMMARY, conversation_id)
-            summary = redis.get(key)
+            summary = await self._redis_call(redis, "get", key)
 
             if summary:
                 logger.info(f"✅ Cache HIT: Conversation summary for '{conversation_id}'")
@@ -210,7 +218,7 @@ class ConversationCacheService:
             key = self._build_key(self.KEY_PREFIX_SUMMARY, conversation_id)
             ttl = ttl or self.SUMMARY_TTL  # Use longer TTL for summaries
 
-            redis.setex(key, timedelta(seconds=ttl), summary)
+            await self._redis_call(redis, "setex", key, timedelta(seconds=ttl), summary)
 
             logger.info(f"✅ Cached conversation summary for '{conversation_id}' ({len(summary)} chars, TTL: {ttl}s)")
             return True
@@ -234,7 +242,7 @@ class ConversationCacheService:
 
         try:
             key = self._build_key(self.KEY_PREFIX_META, conversation_id)
-            cached_data = redis.get(key)
+            cached_data = await self._redis_call(redis, "get", key)
 
             if cached_data:
                 return json.loads(cached_data)
@@ -272,7 +280,7 @@ class ConversationCacheService:
             key = self._build_key(self.KEY_PREFIX_META, conversation_id)
             ttl = ttl or self.CACHE_TTL
 
-            redis.setex(key, timedelta(seconds=ttl), json.dumps(metadata))
+            await self._redis_call(redis, "setex", key, timedelta(seconds=ttl), json.dumps(metadata))
 
             logger.debug(f"Cached conversation metadata for '{conversation_id}'")
             return True
@@ -325,7 +333,7 @@ class ConversationCacheService:
                 self._build_key(self.KEY_PREFIX_META, conversation_id),
             ]
 
-            redis.delete(*keys_to_delete)
+            await self._redis_call(redis, "delete", *keys_to_delete)
             logger.info(f"✅ Invalidated cache for conversation '{conversation_id}'")
         except Exception as e:
             logger.error(f"Error invalidating conversation cache: {e}")
@@ -343,7 +351,7 @@ class ConversationCacheService:
 
         try:
             key = self._build_key(self.KEY_PREFIX_HISTORY, conversation_id)
-            redis.delete(key)
+            await self._redis_call(redis, "delete", key)
             logger.debug(f"Invalidated history cache for conversation '{conversation_id}'")
         except Exception as e:
             logger.error(f"Error invalidating history cache: {e}")

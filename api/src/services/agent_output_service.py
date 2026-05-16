@@ -126,17 +126,25 @@ class EmailOutputProvider:
     """Sends outputs via email."""
 
     @staticmethod
-    async def send(oauth_app: OAuthApp | None, config: dict[str, Any], message: str) -> dict[str, Any]:
+    async def send(
+        oauth_app: OAuthApp | None,
+        config: dict[str, Any],
+        message: str,
+        db: AsyncSession | None = None,
+        tenant_id: UUID | None = None,
+    ) -> dict[str, Any]:
         """
-        Send email.
+        Send email using the configured email integration.
 
         Args:
-            oauth_app: OAuth app with email credentials (optional)
-            config: Email configuration {"recipients": [...], "subject": "..."}
-            message: Message body
+            oauth_app: Not used (email uses integration config)
+            config: Email configuration {"recipients": [...], "subject_template": "..."}
+            message: Message body (HTML or plain text)
+            db: Database session for loading integration config
+            tenant_id: Tenant ID for scoping integration config
 
         Returns:
-            Response from email service
+            Response dict
         """
         recipients = config.get("recipients", [])
         subject = config.get("subject_template", "Agent Response")
@@ -144,10 +152,29 @@ class EmailOutputProvider:
         if not recipients:
             raise ValueError("No recipients specified")
 
-        # Email sending requires SMTP configuration - placeholder for now
-        logger.info(f"Would send email to {recipients} with subject: {subject}")
+        if not db:
+            raise ValueError("Database session required for email delivery")
 
-        return {"success": True, "recipients": recipients, "message_id": f"email_{datetime.now(UTC).timestamp()}"}
+        from src.services.integrations.email_service import EmailService
+
+        email_service = EmailService(db)
+        results = []
+        for recipient in recipients:
+            result = await email_service.send_email(
+                to_email=recipient,
+                subject=subject,
+                html_content=f"<p>{message}</p>" if not message.strip().startswith("<") else message,
+                text_content=message,
+                tenant_id=tenant_id,
+            )
+            results.append(result)
+
+        return {
+            "success": True,
+            "recipients": recipients,
+            "results": results,
+            "message_id": f"email_{datetime.now(UTC).timestamp()}",
+        }
 
 
 class WebhookOutputProvider:
@@ -186,6 +213,71 @@ class WebhookOutputProvider:
             }
 
 
+class DiscordOutputProvider:
+    """Sends outputs to Discord channels via webhooks."""
+
+    @staticmethod
+    async def send(oauth_app: OAuthApp | None, config: dict[str, Any], message: str) -> dict[str, Any]:
+        """
+        Send message to Discord channel via webhook URL.
+
+        Args:
+            oauth_app: Not used
+            config: {"webhook_url": "https://discord.com/api/webhooks/..."}
+            message: Message to send
+        """
+        webhook_url = config.get("webhook_url")
+        if not webhook_url:
+            raise ValueError("No Discord webhook_url in config")
+
+        username = config.get("username", "Agent")
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                webhook_url,
+                json={"content": message[:2000], "username": username},  # Discord 2000 char limit
+                timeout=30.0,
+            )
+            response.raise_for_status()
+            return {"success": True, "status_code": response.status_code}
+
+
+class MSTeamsOutputProvider:
+    """Sends outputs to MS Teams channels via incoming webhooks."""
+
+    @staticmethod
+    async def send(oauth_app: OAuthApp | None, config: dict[str, Any], message: str) -> dict[str, Any]:
+        """
+        Send Adaptive Card message to MS Teams channel.
+
+        Args:
+            oauth_app: Not used
+            config: {"webhook_url": "https://...webhook.office.com/..."}
+            message: Message to send
+        """
+        webhook_url = config.get("webhook_url")
+        if not webhook_url:
+            raise ValueError("No MS Teams webhook_url in config")
+
+        payload = {
+            "type": "message",
+            "attachments": [
+                {
+                    "contentType": "application/vnd.microsoft.card.adaptive",
+                    "content": {
+                        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                        "type": "AdaptiveCard",
+                        "version": "1.2",
+                        "body": [{"type": "TextBlock", "text": message, "wrap": True}],
+                    },
+                }
+            ],
+        }
+        async with httpx.AsyncClient() as client:
+            response = await client.post(webhook_url, json=payload, timeout=30.0)
+            response.raise_for_status()
+            return {"success": True, "status_code": response.status_code}
+
+
 class AgentOutputService:
     """Main service for handling agent outputs."""
 
@@ -195,6 +287,8 @@ class AgentOutputService:
             OutputProvider.SLACK: SlackOutputProvider(),
             OutputProvider.EMAIL: EmailOutputProvider(),
             OutputProvider.WEBHOOK: WebhookOutputProvider(),
+            OutputProvider.DISCORD: DiscordOutputProvider(),
+            OutputProvider.MS_TEAMS: MSTeamsOutputProvider(),
         }
 
     async def get_enabled_outputs(self, agent_id: UUID, trigger_type: str = "webhook") -> list[AgentOutputConfig]:
@@ -310,6 +404,14 @@ class AgentOutputService:
 
             if output_config.provider == OutputProvider.SLACK:
                 result = await provider.send(oauth_app, output_config.config, formatted_output, slack_bot=slack_bot)
+            elif output_config.provider == OutputProvider.EMAIL:
+                result = await provider.send(
+                    oauth_app,
+                    output_config.config,
+                    formatted_output,
+                    db=self.db,
+                    tenant_id=output_config.tenant_id,
+                )
             else:
                 result = await provider.send(oauth_app, output_config.config, formatted_output)
 
@@ -374,6 +476,14 @@ class AgentOutputService:
             if output_config.provider == OutputProvider.SLACK:
                 result = await provider.send(
                     oauth_app, output_config.config, delivery.formatted_output, slack_bot=slack_bot
+                )
+            elif output_config.provider == OutputProvider.EMAIL:
+                result = await provider.send(
+                    oauth_app,
+                    output_config.config,
+                    delivery.formatted_output,
+                    db=self.db,
+                    tenant_id=output_config.tenant_id,
                 )
             else:
                 result = await provider.send(oauth_app, output_config.config, delivery.formatted_output)

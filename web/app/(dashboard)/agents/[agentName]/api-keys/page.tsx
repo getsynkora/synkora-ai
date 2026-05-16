@@ -1,20 +1,30 @@
-/**
- * Agent API Keys Management Page
- * Modern UI for managing API keys with green accent colors
- */
-
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { ChevronRight } from 'lucide-react';
+import { KeyRound } from 'lucide-react';
 import { useAgentApiKeys } from '@/hooks/useAgentApiKeys';
 import type { AgentApiKey, CreateApiKeyRequest } from '@/types/agent-api';
+import AgentPageShell, { AgentPagePanel, AgentPageTabs } from '@/components/agents/AgentPageShell';
+
+const warmInputClass =
+  'w-full rounded-[1.15rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]';
+const warmSecondaryButtonClass =
+  'rounded-[1rem] border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-[#fcfaf5]';
+const warmPrimaryButtonClass =
+  'rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50';
+const warmDangerButtonClass =
+  'rounded-[1rem] border border-[#ead8e1] bg-white px-4 py-2.5 text-sm font-semibold text-[#8b5a74] transition-colors hover:bg-[#f8ecef]';
+const modalFieldClass =
+  'w-full rounded-[1.1rem] border border-[#ddd3c6] bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-[#a3988a] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]';
+const modalEyebrowClass =
+  'block text-[11px] font-semibold uppercase tracking-[0.26em] text-[#8d6c51]';
+const modalSubLabelClass =
+  'block text-sm font-semibold text-[#4f463d]';
 
 export default function AgentApiKeysPage() {
   const params = useParams();
-  const router = useRouter();
   const agentName = params.agentName as string;
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
   
@@ -87,13 +97,13 @@ export default function AgentApiKeysPage() {
                 await loadApiKeys(agent.id);
               }
             }}
-            className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium"
+            className={warmDangerButtonClass}
           >
             Delete
           </button>
           <button
             onClick={() => toast.dismiss(t.id)}
-            className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm font-medium"
+            className={warmSecondaryButtonClass}
           >
             Cancel
           </button>
@@ -123,13 +133,13 @@ export default function AgentApiKeysPage() {
                 await loadApiKeys(agent.id);
               }
             }}
-            className="px-3 py-1.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm font-medium"
+            className={warmPrimaryButtonClass}
           >
             Regenerate
           </button>
           <button
             onClick={() => toast.dismiss(t.id)}
-            className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm font-medium"
+            className={warmSecondaryButtonClass}
           >
             Cancel
           </button>
@@ -149,7 +159,7 @@ export default function AgentApiKeysPage() {
   if (loadingAgent || (loading && apiKeys.length === 0)) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-red-200 border-t-red-600"></div>
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#e5d9ca] border-t-[#171717]"></div>
       </div>
     );
   }
@@ -157,78 +167,51 @@ export default function AgentApiKeysPage() {
   if (!agent) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-red-600 text-sm">Failed to load agent</div>
+        <div className="text-sm text-[#8b5a74]">Failed to load agent</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-1.5 text-sm mb-4">
-          <button
-            onClick={() => router.push('/agents')}
-            className="text-gray-500 hover:text-red-600 transition-colors"
-          >
-            Agents
-          </button>
-          <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
-          <button
-            onClick={() => router.push(`/agents/${encodeURIComponent(agentName)}/view`)}
-            className="text-gray-500 hover:text-red-600 transition-colors"
-          >
-            {agentName}
-          </button>
-          <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
-          <span className="text-gray-900 font-medium">API Keys</span>
-        </div>
-
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight mb-1">API Keys</h1>
-              <p className="text-sm text-gray-600">
-                Manage API keys for programmatic access to <span className="font-semibold text-red-600">{agentName}</span>
-              </p>
-            </div>
-            {!showCreateForm && (
-              <button
-                onClick={() => setShowCreateForm(true)}
-                className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all text-xs font-medium shadow-sm"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Create API Key
-              </button>
-            )}
-          </div>
-        </div>
+    <AgentPageShell
+      agentName={agentName}
+      title="API Keys"
+      description={<>Manage API keys for programmatic access to <span className="font-semibold text-gray-900">{agentName}</span>.</>}
+      icon={KeyRound}
+      badge="Developer Access"
+      actions={!showCreateForm ? (
+        <button
+          onClick={() => setShowCreateForm(true)}
+          className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Create API Key
+        </button>
+      ) : undefined}
+    >
 
         {/* New Key Display */}
         {newKeyResponse && (
-          <div className="mb-6 bg-gradient-to-r from-red-50 to-red-50 border-2 border-red-300 rounded-xl p-5 shadow-sm">
+          <AgentPagePanel className="mb-6 overflow-hidden p-5">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[1rem] bg-[#e8f4ee]">
+                <svg className="h-5 w-5 text-[#2d8b69]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
               <div className="flex-1">
-                <h3 className="text-base font-bold text-gray-900 mb-2">
-                  🎉 Save Your API Key
-                </h3>
-                <p className="text-xs text-gray-700 mb-3">
+                <h3 className="mb-2 text-base font-semibold text-gray-950">Save your API key</h3>
+                <p className="mb-3 text-xs text-gray-600">
                   Make sure to copy your API key now. You won't be able to see it again!
                 </p>
-                <div className="bg-white border-2 border-red-300 rounded-lg p-3 mb-3">
+                <div className="mb-3 rounded-[1.25rem] border border-black/10 bg-[#171717] p-3">
                   <div className="flex items-center justify-between gap-3">
-                    <code className="text-xs font-mono text-gray-900 flex-1 break-all">{newKeyResponse.key}</code>
+                    <code className="flex-1 break-all text-xs font-mono text-[#f7f2e7]">{newKeyResponse.key}</code>
                     <button
                       onClick={() => copyToClipboard(newKeyResponse.key)}
-                      className="flex-shrink-0 px-3 py-1.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg transition-all text-xs font-medium shadow-sm"
+                      className="flex-shrink-0 rounded-[0.9rem] bg-[#f7f2e7] px-3 py-1.5 text-xs font-semibold text-[#171717] transition-colors hover:bg-white"
                     >
                       Copy
                     </button>
@@ -236,25 +219,28 @@ export default function AgentApiKeysPage() {
                 </div>
                 <button
                   onClick={() => setNewKeyResponse(null)}
-                  className="text-gray-600 hover:text-gray-900 font-medium underline text-xs"
+                  className="text-xs font-semibold text-gray-600 underline underline-offset-4 transition-colors hover:text-gray-900"
                 >
                   I've saved my key ✓
                 </button>
               </div>
             </div>
-          </div>
+          </AgentPagePanel>
         )}
 
         {/* Create Form Modal */}
         {showCreateForm && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="sticky top-0 bg-red-50 border-b border-gray-200 px-6 py-4 rounded-t-xl">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(28,22,16,0.28)] p-4 backdrop-blur-[8px]">
+            <div className="max-h-[88vh] w-full max-w-4xl overflow-y-auto rounded-[1.6rem] border border-[#ddd3c5] bg-[linear-gradient(180deg,_rgba(250,247,241,0.98),_rgba(241,236,229,0.98))] shadow-[0_32px_90px_-34px_rgba(17,14,10,0.42)]">
+              <div className="sticky top-0 rounded-t-[1.6rem] border-b border-[#e7ded2] bg-[linear-gradient(180deg,_rgba(253,250,245,0.98),_rgba(246,241,234,0.98))] px-5 py-5 sm:px-6">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-gray-900">Create New API Key</h2>
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-[#8d6c51]">Developer Access</p>
+                    <h2 className="mt-1 text-[1.9rem] font-semibold tracking-[-0.04em] text-gray-950">Create New API Key</h2>
+                  </div>
                   <button
                     onClick={() => setShowCreateForm(false)}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                    className="rounded-full p-2 text-[#9a8f81] transition-colors hover:bg-white/80 hover:text-[#5f564c]"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -262,7 +248,7 @@ export default function AgentApiKeysPage() {
                   </button>
                 </div>
               </div>
-              <div className="p-6">
+              <div className="px-5 py-5 sm:px-6">
                 <ApiKeyForm
                   agentId={agent.id}
                   onSubmit={handleCreateApiKey}
@@ -276,63 +262,48 @@ export default function AgentApiKeysPage() {
 
         {/* Tabs */}
         <div className="mb-5">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-1 inline-flex">
-            <nav className="flex gap-1">
-              <button
-                onClick={() => setActiveTab('keys')}
-                className={`py-2 px-3 rounded-md font-medium text-xs transition-all ${
-                  activeTab === 'keys'
-                    ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-              >
-                🔑 API Keys
-              </button>
-              <button
-                onClick={() => setActiveTab('docs')}
-                className={`py-2 px-3 rounded-md font-medium text-xs transition-all ${
-                  activeTab === 'docs'
-                    ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-              >
-                📚 Documentation
-              </button>
-            </nav>
-          </div>
+          <AgentPageTabs
+            activeId={activeTab}
+            onChange={(id) => setActiveTab(id as 'keys' | 'docs')}
+            items={[
+              { id: 'keys', label: 'API Keys' },
+              { id: 'docs', label: 'Documentation' },
+            ]}
+            className="inline-flex"
+          />
         </div>
 
         {/* Tab Content */}
         {activeTab === 'keys' && (
           <div className="space-y-3">
             {apiKeys.length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-xl border-2 border-dashed border-red-300 shadow-sm">
-                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <AgentPagePanel className="border-dashed p-12 text-center">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-[1.4rem] bg-[#f1eadc]">
+                  <svg className="h-8 w-8 text-[#171717]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                   </svg>
                 </div>
-                <h3 className="text-base font-bold text-gray-900 mb-2">
+                <h3 className="mb-2 text-base font-semibold text-gray-950">
                   No API keys yet
                 </h3>
-                <p className="text-gray-600 mb-5 text-sm">
+                <p className="mb-5 text-sm text-gray-600">
                   Create your first API key to start using the API
                 </p>
                 <button
                   onClick={() => setShowCreateForm(true)}
-                  className="inline-flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all text-xs font-medium shadow-sm"
+                  className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
                   Create API Key
                 </button>
-              </div>
+              </AgentPagePanel>
             ) : (
               apiKeys.map((key) => (
                 <div
                   key={key.id}
-                  className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md hover:border-red-300 transition-all"
+                  className="rounded-[1.6rem] border border-black/10 bg-white/85 p-5 shadow-[0_18px_40px_rgba(0,0,0,0.04)] transition-all hover:-translate-y-0.5 hover:border-black/15 hover:shadow-[0_24px_56px_rgba(0,0,0,0.08)]"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -353,7 +324,7 @@ export default function AgentApiKeysPage() {
 
                       <div className="space-y-2 text-xs">
                         <div className="flex items-center gap-2 text-gray-600">
-                          <div className="w-7 h-7 bg-gray-100 rounded-md flex items-center justify-center">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-[0.9rem] bg-[#f1eadc]">
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                             </svg>
@@ -363,21 +334,21 @@ export default function AgentApiKeysPage() {
                           </code>
                         </div>
                         <div className="flex items-center gap-2 text-gray-600">
-                          <div className="w-7 h-7 bg-red-100 rounded-md flex items-center justify-center">
-                            <svg className="w-3.5 h-3.5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-[0.9rem] bg-[#edf4f6]">
+                            <svg className="h-3.5 w-3.5 text-[#486c77]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                             </svg>
                           </div>
                           <span className="font-medium">
-                            <span className="text-red-600 font-bold">{key.rate_limit_per_minute}</span>/min · 
-                            <span className="text-red-600 font-bold"> {key.rate_limit_per_hour}</span>/hr · 
-                            <span className="text-red-600 font-bold"> {key.rate_limit_per_day}</span>/day
+                            <span className="font-bold text-[#486c77]">{key.rate_limit_per_minute}</span>/min ·
+                            <span className="font-bold text-[#486c77]"> {key.rate_limit_per_hour}</span>/hr ·
+                            <span className="font-bold text-[#486c77]"> {key.rate_limit_per_day}</span>/day
                           </span>
                         </div>
                         {key.expires_at && (
                           <div className="flex items-center gap-2 text-gray-600">
-                            <div className="w-7 h-7 bg-red-100 rounded-md flex items-center justify-center">
-                              <svg className="w-3.5 h-3.5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-[0.9rem] bg-[#f6edf1]">
+                              <svg className="h-3.5 w-3.5 text-[#8b5a74]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
                             </div>
@@ -390,7 +361,7 @@ export default function AgentApiKeysPage() {
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => handleRegenerateKey(key.id)}
-                        className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all"
+                        className="rounded-full p-2 text-gray-500 transition-colors hover:bg-[#fcfaf5] hover:text-gray-900"
                         title="Regenerate key"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -399,7 +370,7 @@ export default function AgentApiKeysPage() {
                       </button>
                       <button
                         onClick={() => handleDeleteKey(key.id)}
-                        className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all"
+                        className="rounded-full p-2 text-[#8b5a74] transition-colors hover:bg-[#f8ecef] hover:text-[#6f435b]"
                         title="Delete key"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -415,14 +386,14 @@ export default function AgentApiKeysPage() {
         )}
 
         {activeTab === 'docs' && (
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm space-y-6">
-            <div className="flex items-center gap-3 pb-4 border-b border-gray-200">
-              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <AgentPagePanel className="space-y-6 p-6">
+            <div className="flex items-center gap-3 border-b border-black/10 pb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-[1rem] bg-[#f1eadc]">
+                <svg className="h-5 w-5 text-[#171717]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-gray-900">API Documentation</h3>
+              <h3 className="text-xl font-semibold text-gray-950">API Documentation</h3>
             </div>
 
             {/* Quick Start */}
@@ -430,7 +401,7 @@ export default function AgentApiKeysPage() {
               <h4 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
                 <span className="text-xl">🚀</span> Quick Start
               </h4>
-              <div className="bg-gradient-to-br from-red-50 to-red-50 p-5 rounded-lg space-y-4 border border-red-200">
+              <div className="space-y-4 rounded-[1.35rem] border border-black/10 bg-[#fcfaf5] p-5">
                 <div>
                   <p className="font-semibold text-gray-900 mb-1 text-sm">1. Get your API key</p>
                   <p className="text-gray-700 text-xs">
@@ -458,15 +429,15 @@ export default function AgentApiKeysPage() {
                 <span className="text-xl">🔌</span> Available Endpoints
               </h4>
               <div className="space-y-3">
-                <div className="border-2 border-red-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+                <div className="rounded-[1.25rem] border border-black/10 bg-[#fcfaf5] p-4 transition-shadow hover:shadow-sm">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-md font-bold text-xs">POST</span>
+                    <span className="rounded-md bg-[#171717] px-2 py-0.5 text-xs font-bold text-[#f7f2e7]">POST</span>
                     <code className="font-mono text-xs font-semibold text-gray-900">/api/v1/public/agents/:agent_id/chat/stream</code>
                   </div>
                   <p className="text-gray-700 mb-3 text-xs">
                     Stream responses from the agent in real-time using Server-Sent Events (SSE)
                   </p>
-                  <div className="bg-gray-50 p-3 rounded-lg">
+                  <div className="rounded-[1rem] bg-white p-3">
                     <p className="font-semibold text-gray-900 mb-2 text-xs">Request Body:</p>
                     <pre className="text-xs overflow-x-auto text-gray-800 mb-2">
 {`{
@@ -480,9 +451,9 @@ export default function AgentApiKeysPage() {
                   </div>
                 </div>
 
-                <div className="border-2 border-red-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+                <div className="rounded-[1.25rem] border border-black/10 bg-[#fcfaf5] p-4 transition-shadow hover:shadow-sm">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-md font-bold text-xs">GET</span>
+                    <span className="rounded-md bg-[#e8f4ee] px-2 py-0.5 text-xs font-bold text-[#2d8b69]">GET</span>
                     <code className="font-mono text-xs font-semibold text-gray-900">/api/v1/public/agents/:agent_id/conversations</code>
                   </div>
                   <p className="text-gray-700 text-xs">
@@ -490,9 +461,9 @@ export default function AgentApiKeysPage() {
                   </p>
                 </div>
 
-                <div className="border-2 border-red-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+                <div className="rounded-[1.25rem] border border-black/10 bg-[#fcfaf5] p-4 transition-shadow hover:shadow-sm">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-md font-bold text-xs">GET</span>
+                    <span className="rounded-md bg-[#e8f4ee] px-2 py-0.5 text-xs font-bold text-[#2d8b69]">GET</span>
                     <code className="font-mono text-xs font-semibold text-gray-900">/api/v1/public/agents/:agent_id/conversations/:conversation_id</code>
                   </div>
                   <p className="text-gray-700 text-xs">
@@ -500,9 +471,9 @@ export default function AgentApiKeysPage() {
                   </p>
                 </div>
 
-                <div className="border-2 border-red-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+                <div className="rounded-[1.25rem] border border-black/10 bg-[#fcfaf5] p-4 transition-shadow hover:shadow-sm">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-md font-bold text-xs">DELETE</span>
+                    <span className="rounded-md bg-[#f6edf1] px-2 py-0.5 text-xs font-bold text-[#8b5a74]">DELETE</span>
                     <code className="font-mono text-xs font-semibold text-gray-900">/api/v1/public/agents/:agent_id/conversations/:conversation_id</code>
                   </div>
                   <p className="text-gray-700 text-xs">
@@ -517,35 +488,34 @@ export default function AgentApiKeysPage() {
               <h4 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
                 <span className="text-xl">🔒</span> Security Best Practices
               </h4>
-              <div className="bg-gradient-to-br from-red-50 to-red-50 p-5 rounded-lg border border-red-200">
+              <div className="rounded-[1.35rem] border border-black/10 bg-[#fcfaf5] p-5">
                 <ul className="space-y-2 text-gray-800">
                   <li className="flex items-start gap-2 text-xs">
-                    <span className="text-red-600 font-bold">✓</span>
+                    <span className="font-bold text-[#2d8b69]">✓</span>
                     <span>Never commit API keys to version control</span>
                   </li>
                   <li className="flex items-start gap-2 text-xs">
-                    <span className="text-red-600 font-bold">✓</span>
+                    <span className="font-bold text-[#2d8b69]">✓</span>
                     <span>Use environment variables to store keys</span>
                   </li>
                   <li className="flex items-start gap-2 text-xs">
-                    <span className="text-red-600 font-bold">✓</span>
+                    <span className="font-bold text-[#2d8b69]">✓</span>
                     <span>Rotate keys regularly</span>
                   </li>
                   <li className="flex items-start gap-2 text-xs">
-                    <span className="text-red-600 font-bold">✓</span>
+                    <span className="font-bold text-[#2d8b69]">✓</span>
                     <span>Set IP whitelists when possible</span>
                   </li>
                   <li className="flex items-start gap-2 text-xs">
-                    <span className="text-red-600 font-bold">✓</span>
+                    <span className="font-bold text-[#2d8b69]">✓</span>
                     <span>Use the minimum required permissions</span>
                   </li>
                 </ul>
               </div>
             </div>
-          </div>
+          </AgentPagePanel>
         )}
-      </div>
-    </div>
+    </AgentPageShell>
   );
 }
 
@@ -578,28 +548,28 @@ function ApiKeyForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="block text-xs font-bold text-gray-900 mb-2">
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <div className="space-y-2.5">
+        <label className={modalEyebrowClass}>
           Key Name *
         </label>
         <input
           type="text"
           value={formData.key_name}
           onChange={(e) => setFormData({ ...formData, key_name: e.target.value })}
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all text-gray-900 font-medium"
+          className={modalFieldClass}
           placeholder="e.g., Production API Key"
           required
         />
       </div>
 
-      <div>
-        <label className="block text-xs font-bold text-gray-900 mb-2">
+      <div className="space-y-3.5 rounded-[1.25rem] border border-[#e4dbcf] bg-[rgba(255,255,255,0.55)] p-4">
+        <label className={modalEyebrowClass}>
           Rate Limits
         </label>
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <div className="space-y-2">
+            <label className={modalSubLabelClass}>
               Per Minute
             </label>
             <input
@@ -608,13 +578,13 @@ function ApiKeyForm({
               onChange={(e) =>
                 setFormData({ ...formData, rate_limit_per_minute: parseInt(e.target.value) })
               }
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all text-gray-900 font-semibold"
+              className={modalFieldClass}
               min="1"
               required
             />
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">
+          <div className="space-y-2">
+            <label className={modalSubLabelClass}>
               Per Hour
             </label>
             <input
@@ -623,13 +593,13 @@ function ApiKeyForm({
               onChange={(e) =>
                 setFormData({ ...formData, rate_limit_per_hour: parseInt(e.target.value) })
               }
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all text-gray-900 font-semibold"
+              className={modalFieldClass}
               min="1"
               required
             />
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">
+          <div className="space-y-2">
+            <label className={modalSubLabelClass}>
               Per Day
             </label>
             <input
@@ -638,7 +608,7 @@ function ApiKeyForm({
               onChange={(e) =>
                 setFormData({ ...formData, rate_limit_per_day: parseInt(e.target.value) })
               }
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all text-gray-900 font-semibold"
+              className={modalFieldClass}
               min="1"
               required
             />
@@ -646,18 +616,18 @@ function ApiKeyForm({
         </div>
       </div>
 
-      <div className="flex gap-3 pt-3">
+      <div className="flex flex-col-reverse gap-3 border-t border-[#e6ddd2] pt-4 sm:flex-row sm:items-center">
         <button
           type="button"
           onClick={onCancel}
-          className="px-5 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-white hover:border-red-300 transition-all font-medium text-sm"
+          className="inline-flex min-w-[8rem] items-center justify-center rounded-[1rem] border border-[#ddd7ce] bg-white px-4 py-2.5 text-sm font-semibold text-[#5f564c] transition-colors hover:bg-[#fcfaf5]"
           disabled={isLoading}
         >
           Cancel
         </button>
         <button
           type="submit"
-          className="flex-1 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm shadow-sm"
+          className="inline-flex flex-1 items-center justify-center rounded-[1rem] bg-[#171717] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
           disabled={isLoading}
         >
           {isLoading ? 'Creating...' : 'Create API Key'}

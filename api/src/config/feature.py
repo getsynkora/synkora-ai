@@ -346,6 +346,11 @@ class ComputeConfig(BaseSettings):
         description="Shared secret for sandbox service authentication",
     )
 
+    scraper_api_key: str | None = Field(
+        default=None,
+        description="Shared secret for scraper service authentication",
+    )
+
 
 class CompanyBrainConfig(BaseSettings):
     """
@@ -422,6 +427,11 @@ class CompanyBrainConfig(BaseSettings):
         default=32_000,
         description="Max tokens of retrieved context passed to the answer LLM",
     )
+    company_brain_rerank_cache_ttl: int = Field(
+        default=60,
+        description="TTL in seconds for the rerank result cache (0 = disabled). "
+        "At 60s, 100 concurrent agents share one retrieval per unique query.",
+    )
     company_brain_enable_pageindex: bool = Field(
         default=False,
         description="Route long-form document queries through PageIndex (higher quality, higher cost)",
@@ -435,6 +445,41 @@ class CompanyBrainConfig(BaseSettings):
     company_brain_full_sync_hours: int = Field(
         default=24,
         description="How often a full re-sync runs (hours)",
+    )
+
+
+class TracingConfig(BaseSettings):
+    """Agent session trace configuration (Elasticsearch-backed observability)."""
+
+    elasticsearch_url: str = Field(
+        default="http://elasticsearch:9200",
+        validation_alias="ELASTICSEARCH_URL",
+        description="Elasticsearch URL for agent session tracing",
+    )
+    elasticsearch_username: str = Field(
+        default="elastic",
+        validation_alias="ELASTICSEARCH_USERNAME",
+        description="Elasticsearch username",
+    )
+    elasticsearch_password: str = Field(
+        default="changeme",
+        validation_alias="ELASTICSEARCH_PASSWORD",
+        description="Elasticsearch password",
+    )
+    agent_trace_enabled: bool = Field(
+        default=True,
+        validation_alias="AGENT_TRACE_ENABLED",
+        description="Enable agent session tracing to Elasticsearch",
+    )
+    agent_trace_index: str = Field(
+        default="agent-session-events",
+        validation_alias="AGENT_TRACE_INDEX",
+        description="Elasticsearch index name for agent session events",
+    )
+    agent_trace_retention_days: int = Field(
+        default=7,
+        validation_alias="AGENT_TRACE_RETENTION_DAYS",
+        description="Days to retain agent session events in Elasticsearch",
     )
 
 

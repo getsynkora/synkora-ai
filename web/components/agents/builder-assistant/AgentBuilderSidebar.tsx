@@ -118,7 +118,7 @@ export function AgentBuilderSidebar({ onInsertContent, currentContext }: AgentBu
           ...(token && { 'Authorization': `Bearer ${token}` }),
         },
         body: JSON.stringify({
-          agent_name: 'agent_builder_assistant',
+          agent_slug: 'agent_builder_assistant',
           message: contextualMessage,
           conversation_id: conversationId,
           conversation_history: messages.slice(-10).map((msg) => ({

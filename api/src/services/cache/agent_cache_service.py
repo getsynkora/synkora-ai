@@ -60,17 +60,17 @@ class AgentCacheService:
         """Build cache key with prefix."""
         return f"agent_cache:{prefix}:{identifier}"
 
-    def _agent_config_key(self, agent_name: str, tenant_id: str = "") -> str:
+    def _agent_config_key(self, slug: str, tenant_id: str = "") -> str:
         """Build tenant-scoped cache key for agent config."""
-        identifier = f"{tenant_id}:{agent_name}" if tenant_id else agent_name
+        identifier = f"{tenant_id}:{slug}" if tenant_id else slug
         return self._build_key("config", identifier)
 
-    async def get_agent_config(self, agent_name: str, tenant_id: str = "") -> dict | None:
+    async def get_agent_config(self, slug: str, tenant_id: str = "") -> dict | None:
         """
         Get cached agent configuration.
 
         Args:
-            agent_name: Name of the agent
+            slug: Globally unique agent slug
             tenant_id: Tenant ID — must be provided to prevent cross-tenant cache hits
 
         Returns:
@@ -81,25 +81,25 @@ class AgentCacheService:
             return None
 
         try:
-            key = self._agent_config_key(agent_name, tenant_id)
+            key = self._agent_config_key(slug, tenant_id)
             cached_data = await redis.get(key)
 
             if cached_data:
-                logger.info(f"Cache HIT: Agent config for '{agent_name}' (tenant={tenant_id or 'unscoped'})")
+                logger.info(f"Cache HIT: Agent config for '{slug}' (tenant={tenant_id or 'unscoped'})")
                 return json.loads(cached_data)
 
-            logger.info(f"Cache MISS: Agent config for '{agent_name}' (tenant={tenant_id or 'unscoped'})")
+            logger.info(f"Cache MISS: Agent config for '{slug}' (tenant={tenant_id or 'unscoped'})")
             return None
         except Exception as e:
             logger.error(f"Error getting cached agent config: {e}")
             return None
 
-    async def set_agent_config(self, agent_name: str, config: dict, tenant_id: str = "", ttl: int = None) -> bool:
+    async def set_agent_config(self, slug: str, config: dict, tenant_id: str = "", ttl: int = None) -> bool:
         """
         Cache agent configuration.
 
         Args:
-            agent_name: Name of the agent
+            slug: Globally unique agent slug
             config: Agent configuration dict
             tenant_id: Tenant ID — must be provided to prevent cross-tenant cache pollution
             ttl: Time to live in seconds (default: 5 minutes)
@@ -112,12 +112,12 @@ class AgentCacheService:
             return False
 
         try:
-            key = self._agent_config_key(agent_name, tenant_id)
+            key = self._agent_config_key(slug, tenant_id)
             ttl = ttl or self.default_ttl
 
             await redis.setex(key, timedelta(seconds=ttl), json.dumps(config))
 
-            logger.info(f"Cached agent config for '{agent_name}' (tenant={tenant_id or 'unscoped'}, TTL: {ttl}s)")
+            logger.info(f"Cached agent config for '{slug}' (tenant={tenant_id or 'unscoped'}, TTL: {ttl}s)")
             return True
         except Exception as e:
             logger.error(f"Error caching agent config: {e}")
@@ -236,9 +236,9 @@ class AgentCacheService:
             return
 
         try:
-            # Delete all list cache keys for this tenant using pattern matching
+            # Delete all list cache keys for this tenant using SCAN (non-blocking, O(1) per call)
             pattern = self._build_key("list", f"{tenant_id}:*")
-            keys = await redis.keys(pattern)
+            keys = [key async for key in redis.scan_iter(pattern)]
 
             if keys:
                 await redis.delete(*keys)
@@ -346,7 +346,7 @@ class AgentCacheService:
 
     async def invalidate_agent(
         self,
-        agent_name: str = None,
+        slug: str = None,
         agent_id: str = None,
         tenant_id: str = "",
         broadcast: bool = True,
@@ -358,7 +358,7 @@ class AgentCacheService:
         to notify all other pods in K8s cluster to invalidate their local caches.
 
         Args:
-            agent_name: Agent name (for config cache)
+            slug: Agent slug (for config cache)
             agent_id: Agent ID (for tools, KBs cache)
             tenant_id: Tenant ID — required to correctly target the tenant-scoped config key
             broadcast: Whether to broadcast invalidation to other pods (default: True)
@@ -370,10 +370,10 @@ class AgentCacheService:
         try:
             keys_to_delete = []
 
-            if agent_name:
-                keys_to_delete.append(self._agent_config_key(agent_name, tenant_id))
-                # Also invalidate the routing LLM-configs cache (keyed by name)
-                keys_to_delete.append(self._build_key("llm_configs", agent_name))
+            if slug:
+                keys_to_delete.append(self._agent_config_key(slug, tenant_id))
+                # Also invalidate the routing LLM-configs cache (keyed by slug)
+                keys_to_delete.append(self._build_key("llm_configs", slug))
 
             if agent_id:
                 keys_to_delete.append(self._build_key("tools", agent_id))
@@ -382,16 +382,16 @@ class AgentCacheService:
 
             if keys_to_delete:
                 await redis.delete(*keys_to_delete)
-                logger.info(f"Invalidated cache for agent (name={agent_name}, id={agent_id})")
+                logger.info(f"Invalidated cache for agent (slug={slug}, id={agent_id})")
 
             # Broadcast invalidation to other pods via pub/sub
             if broadcast:
-                await self._publish_invalidation(agent_name, agent_id)
+                await self._publish_invalidation(slug, agent_id)
 
         except Exception as e:
             logger.error(f"Error invalidating agent cache: {e}")
 
-    async def _publish_invalidation(self, agent_name: str = None, agent_id: str = None):
+    async def _publish_invalidation(self, slug: str = None, agent_id: str = None):
         """
         Publish cache invalidation message via Redis pub/sub.
 
@@ -405,13 +405,13 @@ class AgentCacheService:
             message = json.dumps(
                 {
                     "type": "agent_cache_invalidation",
-                    "agent_name": agent_name,
+                    "agent_slug": slug,
                     "agent_id": agent_id,
                     "source_pod": self._pod_id,
                 }
             )
             await redis.publish(CACHE_INVALIDATION_CHANNEL, message)
-            logger.debug(f"Published cache invalidation: agent_name={agent_name}, agent_id={agent_id}")
+            logger.debug(f"Published cache invalidation: agent_slug={slug}, agent_id={agent_id}")
         except Exception as e:
             logger.warning(f"Failed to publish cache invalidation: {e}")
 
@@ -455,57 +455,90 @@ class AgentCacheService:
         logger.info("Stopped cache invalidation subscriber")
 
     async def _listen_for_invalidations(self):
-        """Listen for cache invalidation messages from other pods."""
+        """Listen for cache invalidation messages from other pods.
+
+        Uses get_message() polling instead of listen() so that idle-connection
+        timeouts (TCP keepalive drops, Redis server timeout, firewall rules) trigger
+        a reconnect rather than permanently killing the subscriber.
+        """
+        _RECONNECT_DELAY = 5  # seconds to wait before re-subscribing after an error
+
+        while True:
+            try:
+                # Poll every second; get_message returns None when there is nothing to read.
+                # ignore_subscribe_messages=True suppresses the confirmation messages that
+                # Redis sends when (re)subscribing so we only handle real payloads.
+                while True:
+                    message = await self._pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+                    if message and message["type"] == "message":
+                        try:
+                            data = json.loads(message["data"])
+
+                            # Skip messages we published ourselves
+                            if data.get("source_pod") == self._pod_id:
+                                continue
+
+                            invalidation_type = data.get("type", "agent_cache_invalidation")
+
+                            if invalidation_type == "agents_list_cache_invalidation":
+                                tenant_id = data.get("tenant_id")
+                                logger.info(
+                                    f"Received agents list cache invalidation from pod {data.get('source_pod')}: "
+                                    f"tenant_id={tenant_id}"
+                                )
+                                await self.invalidate_agents_list(
+                                    tenant_id=tenant_id,
+                                    broadcast=False,
+                                )
+                            else:
+                                agent_slug = data.get("agent_slug")
+                                agent_id = data.get("agent_id")
+                                logger.info(
+                                    f"Received cache invalidation from pod {data.get('source_pod')}: "
+                                    f"agent_slug={agent_slug}, agent_id={agent_id}"
+                                )
+                                await self.invalidate_agent(
+                                    slug=agent_slug,
+                                    agent_id=agent_id,
+                                    broadcast=False,
+                                )
+                        except json.JSONDecodeError:
+                            logger.warning(f"Invalid cache invalidation message: {message['data']}")
+
+                    # Yield to the event loop between polls to avoid busy-waiting
+                    await asyncio.sleep(0.01)
+
+            except asyncio.CancelledError:
+                logger.debug("Cache invalidation subscriber cancelled")
+                raise
+            except Exception as e:
+                # Connection dropped (TCP timeout, Redis restart, network blip, etc.).
+                # Log at WARNING — this is expected on idle connections — then reconnect.
+                logger.warning(f"Cache invalidation listener disconnected ({e}); reconnecting in {_RECONNECT_DELAY}s")
+                await asyncio.sleep(_RECONNECT_DELAY)
+                await self._reconnect_pubsub()
+
+    async def _reconnect_pubsub(self):
+        """Re-create the pubsub connection after a disconnect."""
         try:
-            while True:
-                message = await self._pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
-                if message and message["type"] == "message":
-                    try:
-                        data = json.loads(message["data"])
+            if self._pubsub:
+                try:
+                    await self._pubsub.unsubscribe()
+                    await self._pubsub.aclose()
+                except Exception:
+                    pass
+                self._pubsub = None
 
-                        # Skip our own messages
-                        if data.get("source_pod") == self._pod_id:
-                            continue
+            redis = self._get_redis()
+            if not redis:
+                logger.warning("Redis unavailable during pubsub reconnect; will retry on next error")
+                return
 
-                        invalidation_type = data.get("type", "agent_cache_invalidation")
-
-                        if invalidation_type == "agents_list_cache_invalidation":
-                            # Handle agents list cache invalidation
-                            tenant_id = data.get("tenant_id")
-                            logger.info(
-                                f"Received agents list cache invalidation from pod {data.get('source_pod')}: "
-                                f"tenant_id={tenant_id}"
-                            )
-                            await self.invalidate_agents_list(
-                                tenant_id=tenant_id,
-                                broadcast=False,  # Don't re-broadcast
-                            )
-                        else:
-                            # Handle agent cache invalidation
-                            agent_name = data.get("agent_name")
-                            agent_id = data.get("agent_id")
-
-                            logger.info(
-                                f"Received cache invalidation from pod {data.get('source_pod')}: "
-                                f"agent_name={agent_name}, agent_id={agent_id}"
-                            )
-
-                            await self.invalidate_agent(
-                                agent_name=agent_name,
-                                agent_id=agent_id,
-                                broadcast=False,  # Don't re-broadcast
-                            )
-                    except json.JSONDecodeError:
-                        logger.warning(f"Invalid cache invalidation message: {message['data']}")
-                else:
-                    # Yield control to event loop
-                    await asyncio.sleep(0.1)
-
-        except asyncio.CancelledError:
-            logger.debug("Cache invalidation subscriber cancelled")
-            raise
+            self._pubsub = redis.pubsub()
+            await self._pubsub.subscribe(CACHE_INVALIDATION_CHANNEL)
+            logger.info(f"Re-subscribed to cache invalidation channel on pod {self._pod_id}")
         except Exception as e:
-            logger.error(f"Error in cache invalidation listener: {e}")
+            logger.warning(f"Pubsub reconnect failed: {e}")
 
 
 # Global cache service instance

@@ -97,7 +97,7 @@ export default function CloneAgentPage() {
         
         // Redirect to the cloned agent after 2 seconds
         setTimeout(() => {
-          router.push(`/agents/${data.data.agent_name}/edit`)
+          router.push(`/agents/${data.data.slug}/edit`)
         }, 2000)
       } else {
         toast.error(data.message || 'Failed to clone agent')

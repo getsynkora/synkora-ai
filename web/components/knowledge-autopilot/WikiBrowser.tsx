@@ -8,12 +8,12 @@ import type { WikiArticle, AutopilotStatus, LLMConfigOption } from '@/lib/api/kn
 import { getWikiArticles, searchWiki, getAutopilotStatus, triggerCompilation, getLLMConfigsForCompilation } from '@/lib/api/knowledge-autopilot'
 
 const CATEGORY_CONFIG: Record<string, { label: string; icon: string; color: string; bg: string; border: string }> = {
-  projects: { label: 'Projects', icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' },
-  people: { label: 'People', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-200' },
-  decisions: { label: 'Decisions', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200' },
-  processes: { label: 'Processes', icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200' },
-  architecture: { label: 'Architecture', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10', color: 'text-cyan-600', bg: 'bg-cyan-50', border: 'border-cyan-200' },
-  general: { label: 'General', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', color: 'text-gray-500', bg: 'bg-gray-50', border: 'border-gray-200' },
+  projects: { label: 'Projects', icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z', color: 'text-[#6b5f46]', bg: 'bg-[#f3ecde]', border: 'border-[#e6dcc8]' },
+  people: { label: 'People', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z', color: 'text-[#8b5a74]', bg: 'bg-[#f6edf1]', border: 'border-[#ead8e1]' },
+  decisions: { label: 'Decisions', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', color: 'text-[#9a6700]', bg: 'bg-[#f8f0dd]', border: 'border-[#ecd9af]' },
+  processes: { label: 'Processes', icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15', color: 'text-[#2d8b69]', bg: 'bg-[#e8f4ee]', border: 'border-[#cfe6d9]' },
+  architecture: { label: 'Architecture', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10', color: 'text-[#486c77]', bg: 'bg-[#edf4f6]', border: 'border-[#d7e6ea]' },
+  general: { label: 'General', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', color: 'text-[#6e675d]', bg: 'bg-white', border: 'border-black/10' },
 }
 
 interface WikiBrowserProps {
@@ -137,136 +137,166 @@ export function WikiBrowser({ kbId, kbName }: WikiBrowserProps) {
   const healthPct = status ? ((1 - status.avg_staleness) * 100).toFixed(0) : '100'
   const healthColor =
     !status || status.avg_staleness < 0.3 ? 'text-emerald-500' :
-    status.avg_staleness < 0.6 ? 'text-amber-500' : 'text-primary-500'
+    status.avg_staleness < 0.6 ? 'text-amber-500' : 'text-red-500'
   const healthBarColor =
     !status || status.avg_staleness < 0.3 ? 'bg-emerald-500' :
-    status.avg_staleness < 0.6 ? 'bg-amber-500' : 'bg-primary-500'
+    status.avg_staleness < 0.6 ? 'bg-amber-500' : 'bg-red-500'
+  const searchFieldClass = 'w-full rounded-[1.15rem] border border-gray-200 bg-white px-11 py-3 text-sm font-medium text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500'
+  const selectFieldClass = 'w-full rounded-[1rem] border border-gray-200 bg-gray-50 px-3.5 py-3 text-sm font-medium text-gray-700 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50'
 
   return (
-    <div className="flex h-full">
-      {/* Left sidebar: categories */}
-      <div className="w-64 flex-shrink-0 border-r border-gray-200 bg-white overflow-y-auto hidden md:flex md:flex-col">
-        <div className="p-5 flex-1">
-          <h3 className="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.15em] mb-4">Categories</h3>
-          <button
-            onClick={() => { setSelectedCategory(null); setSearchResults(null) }}
-            className={cn(
-              'w-full text-left px-3 py-2.5 rounded-xl text-sm font-bold transition-all mb-1',
-              !selectedCategory ? 'bg-primary-50 text-primary-600 shadow-sm' : 'text-gray-600 hover:bg-gray-50',
-            )}
-          >
-            All Articles
-            <span className={cn('ml-1.5 text-xs font-medium', !selectedCategory ? 'text-primary-400' : 'text-gray-400')}>
-              {status?.total_articles || 0}
-            </span>
-          </button>
-          {Object.entries(CATEGORY_CONFIG).map(([key, config]) => {
-            const count = status?.category_counts?.[key] || 0
-            if (count === 0 && !categories[key]) return null
-            return (
-              <button
-                key={key}
-                onClick={() => { setSelectedCategory(key); setSearchResults(null) }}
-                className={cn(
-                  'w-full text-left px-3 py-2.5 rounded-xl text-sm font-semibold transition-all mb-1 flex items-center gap-2.5',
-                  selectedCategory === key ? 'bg-primary-50 text-primary-600 shadow-sm' : 'text-gray-600 hover:bg-gray-50',
-                )}
-              >
-                <svg className={cn('w-4 h-4 flex-shrink-0', selectedCategory === key ? 'text-primary-500' : config.color)} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={config.icon} />
-                </svg>
-                {config.label}
-                <span className={cn('ml-auto text-xs font-medium', selectedCategory === key ? 'text-primary-400' : 'text-gray-400')}>{count}</span>
-              </button>
-            )
-          })}
-        </div>
+    <div className="flex h-full bg-[#fcfaf5]">
+      <div className="hidden w-72 flex-shrink-0 overflow-hidden border-r border-black/10 bg-[#f7f2e7]/88 md:flex md:flex-col">
+        <div className="border-b border-black/10 p-5">
+          <div className="rounded-[1.5rem] border border-black/10 bg-white/78 p-4 shadow-[0_18px_40px_rgba(0,0,0,0.05)]">
+            <h3 className="mb-4 text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#8a8378]">Autopilot</h3>
 
-        {/* Autopilot status panel */}
-        <div className="p-5 border-t border-gray-100">
-          <h3 className="text-[10px] font-extrabold text-gray-400 uppercase tracking-[0.15em] mb-4">Autopilot</h3>
-
-          {status && (
-            <>
-              {/* Health bar */}
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-semibold text-gray-500">Knowledge Health</span>
-                  <span className={cn('text-xs font-extrabold', healthColor)}>{healthPct}%</span>
-                </div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className={cn('h-full rounded-full transition-all duration-700', healthBarColor)}
-                    style={{ width: `${healthPct}%` }}
-                  />
-                </div>
-              </div>
-
-              {status.last_compilation && (
-                <div className="text-xs text-gray-500 space-y-1.5 mb-4">
-                  <div className="flex justify-between">
-                    <span className="font-medium">Last compiled</span>
-                    <span className="text-gray-700 font-semibold">
-                      {status.last_compilation.completed_at
-                        ? new Date(status.last_compilation.completed_at).toLocaleDateString()
-                        : 'In progress'}
-                    </span>
+            {status && (
+              <>
+                <div className="mb-4 rounded-[1.1rem] border border-black/10 bg-[#fcfaf5] p-3.5">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-xs font-semibold text-gray-500">Knowledge Health</span>
+                    <span className={cn('text-xs font-extrabold', healthColor)}>{healthPct}%</span>
                   </div>
-                  {(status.last_compilation.articles_created > 0 || status.last_compilation.articles_updated > 0) && (
-                    <div className="flex justify-between">
-                      <span className="font-medium">Changes</span>
-                      <span className="text-gray-700 font-semibold">
-                        +{status.last_compilation.articles_created} / ~{status.last_compilation.articles_updated}
+                  <div className="h-2 overflow-hidden rounded-full bg-[#ece4d3]">
+                    <div
+                      className={cn('h-full rounded-full transition-all duration-700', healthBarColor)}
+                      style={{ width: `${healthPct}%` }}
+                    />
+                  </div>
+                </div>
+
+                {status.last_compilation && (
+                  <div className="mb-4 space-y-2 text-xs text-gray-500">
+                    <div className="flex justify-between gap-3">
+                      <span className="font-medium">Last compiled</span>
+                      <span className="font-semibold text-gray-700">
+                        {status.last_compilation.completed_at
+                          ? new Date(status.last_compilation.completed_at).toLocaleDateString()
+                          : 'In progress'}
                       </span>
                     </div>
-                  )}
-                </div>
-              )}
-            </>
-          )}
-
-          <div className="mb-3">
-            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-[0.12em] mb-1.5">
-              LLM Config
-            </label>
-            <select
-              value={selectedLlmConfigId}
-              onChange={(e) => setSelectedLlmConfigId(e.target.value)}
-              disabled={compiling}
-              className="w-full px-2.5 py-2 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent disabled:opacity-50"
-            >
-              <option value="">Auto (use agent default)</option>
-              {llmConfigs.map((cfg) => (
-                <option key={cfg.id} value={cfg.id}>
-                  {cfg.name} — {cfg.model_name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <button
-            onClick={handleCompile}
-            disabled={compiling}
-            className="w-full px-3 py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white text-sm font-bold rounded-xl hover:from-primary-600 hover:to-primary-700 transition-all shadow-sm shadow-primary-500/20 disabled:opacity-50"
-          >
-            {compiling ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Compiling...
-              </span>
-            ) : (
-              'Compile Now'
+                    {(status.last_compilation.articles_created > 0 || status.last_compilation.articles_updated > 0) && (
+                      <div className="flex justify-between gap-3">
+                        <span className="font-medium">Changes</span>
+                        <span className="font-semibold text-gray-700">
+                          +{status.last_compilation.articles_created} / ~{status.last_compilation.articles_updated}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
             )}
-          </button>
+
+            <div className="mb-3">
+              <label className="mb-1.5 block text-[11px] font-semibold text-gray-700">
+                LLM Config
+              </label>
+              <select
+                value={selectedLlmConfigId}
+                onChange={(e) => setSelectedLlmConfigId(e.target.value)}
+                disabled={compiling}
+                className={selectFieldClass}
+              >
+                <option value="">Auto (use agent default)</option>
+                {llmConfigs.map((cfg) => (
+                  <option key={cfg.id} value={cfg.id}>
+                    {cfg.name} — {cfg.model_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              onClick={handleCompile}
+              disabled={compiling}
+              className="flex w-full items-center justify-center gap-2 rounded-[1.05rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
+            >
+              {compiling ? (
+                <>
+                  <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                  Compiling...
+                </>
+              ) : (
+                'Compile Now'
+              )}
+            </button>
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto p-5">
+          <div className="rounded-[1.5rem] border border-black/10 bg-white/60 p-4 shadow-[0_18px_40px_rgba(0,0,0,0.04)]">
+            <h3 className="mb-4 text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#8a8378]">Categories</h3>
+            <div className="space-y-1.5">
+              <button
+                onClick={() => { setSelectedCategory(null); setSearchResults(null) }}
+                className={cn(
+                  'flex w-full items-center gap-2.5 rounded-[1rem] px-3.5 py-3 text-left text-sm font-semibold transition-all',
+                  !selectedCategory
+                    ? 'bg-[#171717] text-white shadow-[0_12px_28px_rgba(0,0,0,0.16)]'
+                    : 'text-[#5f5a52] hover:bg-white/75 hover:text-[#171717]'
+                )}
+              >
+                <span>All Articles</span>
+                <span
+                  className={cn(
+                    'ml-auto inline-flex min-w-7 items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                    !selectedCategory ? 'bg-white/12 text-white' : 'bg-[#f3ecde] text-[#6e675d]'
+                  )}
+                >
+                  {status?.total_articles || 0}
+                </span>
+              </button>
+
+              {Object.entries(CATEGORY_CONFIG).map(([key, config]) => {
+                const count = status?.category_counts?.[key] || 0
+                if (count === 0 && !categories[key]) return null
+                return (
+                  <button
+                    key={key}
+                    onClick={() => { setSelectedCategory(key); setSearchResults(null) }}
+                    className={cn(
+                      'flex w-full items-center gap-2.5 rounded-[1rem] px-3.5 py-3 text-left text-sm font-semibold transition-all',
+                      selectedCategory === key
+                        ? 'bg-[#171717] text-white shadow-[0_12px_28px_rgba(0,0,0,0.16)]'
+                        : 'text-[#5f5a52] hover:bg-white/75 hover:text-[#171717]'
+                    )}
+                  >
+                    <div className={cn(
+                      'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[0.85rem] border',
+                      selectedCategory === key ? 'border-white/10 bg-white/10' : `${config.bg} ${config.border}`
+                    )}>
+                      <svg
+                        className={cn('h-4 w-4', selectedCategory === key ? 'text-white' : config.color)}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={config.icon} />
+                      </svg>
+                    </div>
+                    <span>{config.label}</span>
+                    <span
+                      className={cn(
+                        'ml-auto inline-flex min-w-7 items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-semibold',
+                        selectedCategory === key ? 'bg-white/12 text-white' : 'bg-[#f3ecde] text-[#6e675d]'
+                      )}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Main content */}
-      <div className="flex-1 overflow-y-auto bg-gray-50/80">
-        {/* Search bar */}
-        <div className="sticky top-0 bg-white/95 backdrop-blur-sm px-5 py-3.5 border-b border-gray-200 z-10">
+      <div className="flex-1 overflow-y-auto bg-[#fcfaf5]">
+        <div className="sticky top-0 z-10 border-b border-black/10 bg-[#fcfaf5]/95 px-4 py-4 backdrop-blur-sm md:px-5">
           <div className="flex items-center gap-3">
-            <div className="flex-1 relative">
+            <div className="relative flex-1">
               <input
                 type="text"
                 value={searchQuery}
@@ -276,28 +306,42 @@ export function WikiBrowser({ kbId, kbName }: WikiBrowserProps) {
                 }}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 placeholder="Search wiki articles..."
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border-2 border-gray-200 rounded-xl text-sm font-medium text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 focus:bg-white transition-all"
+                className={searchFieldClass}
               />
-              <svg className="absolute left-3.5 top-3 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="absolute left-4 top-3.5 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
-            {/* Mobile compile button */}
             <button
               onClick={handleCompile}
               disabled={compiling}
-              className="md:hidden px-4 py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white text-xs font-bold rounded-xl disabled:opacity-50"
+              className="rounded-[1.05rem] bg-[#171717] px-4 py-3 text-xs font-semibold text-white transition-colors hover:bg-black disabled:opacity-50 md:hidden"
             >
               {compiling ? 'Compiling...' : 'Compile'}
             </button>
           </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-medium text-[#6e675d]">
+            <span className="inline-flex items-center rounded-full bg-[#f1eadc] px-2.5 py-1">
+              {displayArticles.length} article{displayArticles.length === 1 ? '' : 's'}
+            </span>
+            {selectedCategory && (
+              <span className="inline-flex items-center rounded-full bg-white px-2.5 py-1 shadow-[0_8px_18px_rgba(0,0,0,0.04)]">
+                {CATEGORY_CONFIG[selectedCategory]?.label || selectedCategory}
+              </span>
+            )}
+            {searchResults !== null && (
+              <span className="inline-flex items-center rounded-full bg-[#e8f4ee] px-2.5 py-1 text-[#2d8b69]">
+                Search results
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Status messages */}
         {compileMessage && (
-          <div className="mx-5 mt-4">
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-sm font-medium text-emerald-700 flex items-center gap-2">
-              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="mx-4 mt-4 md:mx-5">
+            <div className="flex items-center gap-2 rounded-[1.15rem] border border-emerald-200 bg-emerald-50/90 px-4 py-3 text-sm font-medium text-emerald-700">
+              <svg className="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               {compileMessage}
@@ -305,98 +349,114 @@ export function WikiBrowser({ kbId, kbName }: WikiBrowserProps) {
           </div>
         )}
         {(error || compileError) && (
-          <div className="mx-5 mt-4">
-            <div className="bg-primary-50 border border-primary-200 rounded-xl px-4 py-3 text-sm font-medium text-primary-700">
+          <div className="mx-4 mt-4 md:mx-5">
+            <div className="rounded-[1.15rem] border border-red-200 bg-red-50/90 px-4 py-3 text-sm font-medium text-red-700">
               {compileError || error}
             </div>
           </div>
         )}
 
-        {/* Articles grid */}
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-8 h-8 border-[3px] border-gray-200 border-b-primary-500 rounded-full animate-spin" />
-              <span className="text-xs font-semibold text-gray-400">Loading articles...</span>
+          <div className="flex items-center justify-center px-4 py-20">
+            <div className="rounded-[1.75rem] border border-black/10 bg-white/85 px-8 py-10 text-center shadow-[0_20px_48px_rgba(0,0,0,0.05)]">
+              <div className="mx-auto mb-4 h-8 w-8 rounded-full border-[3px] border-[#ece4d3] border-t-[#171717] animate-spin" />
+              <span className="text-sm font-semibold text-gray-700">Loading articles...</span>
             </div>
           </div>
         ) : displayArticles.length === 0 ? (
-          <div className="text-center py-20 px-4">
-            <div className="w-20 h-20 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100/50 flex items-center justify-center border border-primary-200/50">
-              <svg className="w-10 h-10 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
+          <div className="px-4 py-16 md:px-5 md:py-20">
+            <div className="mx-auto max-w-xl rounded-[2rem] border border-black/10 bg-white/85 px-6 py-10 text-center shadow-[0_24px_60px_rgba(0,0,0,0.06)]">
+              <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-[1.5rem] border border-black/10 bg-[#f3ecde]">
+                <svg className="h-10 w-10 text-[#6e675d]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+              </div>
+              <h3 className="mb-2 text-2xl font-extrabold tracking-tight text-gray-900">No wiki articles yet</h3>
+              <p className="mx-auto mb-8 max-w-md text-sm leading-relaxed text-gray-500">
+                Compile <span className="font-semibold text-gray-700">{kbName || 'this knowledge base'}</span> to turn your documents into AI-organized wiki articles.
+              </p>
+              <button
+                onClick={handleCompile}
+                disabled={compiling}
+                className="rounded-[1.1rem] bg-[#171717] px-8 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
+              >
+                {compiling ? (
+                  <span className="flex items-center gap-2">
+                    <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                    Compiling...
+                  </span>
+                ) : (
+                  'Generate Wiki'
+                )}
+              </button>
             </div>
-            <h3 className="text-xl font-extrabold tracking-tight text-gray-900 mb-2">No wiki articles yet</h3>
-            <p className="text-sm text-gray-500 mb-8 max-w-md mx-auto leading-relaxed">
-              Click &ldquo;Compile Now&rdquo; to auto-generate wiki articles from your knowledge base documents using AI.
-            </p>
-            <button
-              onClick={handleCompile}
-              disabled={compiling}
-              className="px-8 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white text-sm font-bold rounded-xl hover:from-primary-600 hover:to-primary-700 transition-all shadow-lg shadow-primary-500/25 disabled:opacity-50"
-            >
-              {compiling ? (
-                <span className="flex items-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Compiling...
-                </span>
-              ) : (
-                'Generate Wiki'
-              )}
-            </button>
           </div>
         ) : (
           <>
-          <style>{`
-            @keyframes wikiCardIn {
-              from { opacity: 0; transform: translateY(10px); }
-              to   { opacity: 1; transform: translateY(0); }
-            }
-          `}</style>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 p-5">
-            {displayArticles.map((article, index) => {
-              const catConfig = CATEGORY_CONFIG[article.category] || CATEGORY_CONFIG.general
-              return (
-                <button
-                  key={article.id}
-                  onClick={() => router.push(`/knowledge-bases/${kbId}/wiki/${article.slug}`)}
-                  style={{ animation: 'wikiCardIn 0.35s ease-out both', animationDelay: `${index * 45}ms` }}
-                  className="bg-white border border-gray-200 rounded-xl p-5 text-left hover:border-primary-300 hover:shadow-lg hover:shadow-primary-500/5 transition-all group"
-                >
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className={cn('w-6 h-6 rounded-lg flex items-center justify-center', catConfig.bg)}>
-                      <svg className={cn('w-3.5 h-3.5', catConfig.color)} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={catConfig.icon} />
-                      </svg>
+            <style>{`
+              @keyframes wikiCardIn {
+                from { opacity: 0; transform: translateY(10px); }
+                to   { opacity: 1; transform: translateY(0); }
+              }
+            `}</style>
+            <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 md:p-5 xl:grid-cols-3">
+              {displayArticles.map((article, index) => {
+                const catConfig = CATEGORY_CONFIG[article.category] || CATEGORY_CONFIG.general
+                return (
+                  <button
+                    key={article.id}
+                    onClick={() => router.push(`/knowledge-bases/${kbId}/wiki/${article.slug}`)}
+                    style={{ animation: 'wikiCardIn 0.35s ease-out both', animationDelay: `${index * 45}ms` }}
+                    className="group rounded-[1.6rem] border border-black/10 bg-white/88 p-5 text-left shadow-[0_18px_40px_rgba(0,0,0,0.04)] transition-all hover:-translate-y-0.5 hover:border-black/15 hover:shadow-[0_24px_56px_rgba(0,0,0,0.08)]"
+                  >
+                    <div className="mb-4 flex items-start gap-2">
+                      <div className={cn('flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[0.95rem] border', catConfig.bg, catConfig.border)}>
+                        <svg className={cn('h-4 w-4', catConfig.color)} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={catConfig.icon} />
+                        </svg>
+                      </div>
+                      <span className={cn('inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold', catConfig.bg, catConfig.color)}>
+                        {catConfig.label}
+                      </span>
+                      {article.staleness_score > 0.5 && (
+                        <span className="ml-auto inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
+                          Stale
+                        </span>
+                      )}
                     </div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{catConfig.label}</span>
-                    {article.staleness_score > 0.5 && (
-                      <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full ml-auto border border-amber-200">Stale</span>
+
+                    <h4 className="mb-2 line-clamp-2 text-base font-semibold tracking-tight text-gray-900 transition-colors group-hover:text-[#171717]">
+                      {article.title}
+                    </h4>
+
+                    {article.summary ? (
+                      <p className="line-clamp-3 text-sm leading-relaxed text-gray-500">
+                        {article.summary}
+                      </p>
+                    ) : (
+                      <p className="text-sm leading-relaxed text-gray-400">
+                        No summary available for this article yet.
+                      </p>
                     )}
-                  </div>
-                  <h4 className="text-sm font-bold text-gray-900 mb-1.5 line-clamp-2 group-hover:text-primary-600 transition-colors">{article.title}</h4>
-                  {article.summary && (
-                    <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{article.summary}</p>
-                  )}
-                  <div className="flex items-center gap-3 mt-4 pt-3 border-t border-gray-100 text-[10px] font-semibold text-gray-400">
-                    <span className="flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      {article.source_documents?.length || 0} sources
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                      </svg>
-                      {(article.forward_links?.length || 0) + (article.backlinks?.length || 0)} links
-                    </span>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
+
+                    <div className="mt-5 flex items-center gap-3 border-t border-black/10 pt-4 text-xs font-medium text-[#7b756c]">
+                      <span className="inline-flex items-center gap-1.5">
+                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        {article.source_documents?.length || 0} sources
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        </svg>
+                        {(article.forward_links?.length || 0) + (article.backlinks?.length || 0)} links
+                      </span>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
           </>
         )}
       </div>

@@ -31,9 +31,9 @@ class TestSystemPromptBuilder:
             mock_context.return_value = ""
 
             prompt = await builder.build_enhanced_prompt(mock_agent, include_context_files=False)
-            # Prompt builder now adds date context, so check contains instead of exact match
             assert "Original Prompt" in prompt
-            assert "Current date" in prompt  # Date context is added
+            assert "Current date:" in prompt
+            assert "Current date and time" not in prompt
 
             prompt = await builder.build_enhanced_prompt(mock_agent, include_context_files=True)
             assert "Original Prompt" in prompt
@@ -97,6 +97,26 @@ class TestSystemPromptBuilder:
             with patch("src.core.database.get_async_session_factory", self._make_mock_session([file1])):
                 context = await builder._build_context_section(mock_agent, max_context_length=5)
                 assert "Content truncated" in context
+
+    @pytest.mark.asyncio
+    async def test_build_context_section_auto_compacts_large_files(self, builder, mock_agent):
+        file1 = MagicMock(spec=AgentContextFile)
+        file1.filename = "policy.txt"
+        file1.extracted_text = ("Policy guidance for approvals and compliance. " * 200).strip()
+
+        with patch("src.services.cache.get_agent_cache", self._make_mock_cache()):
+            with patch("src.core.database.get_async_session_factory", self._make_mock_session([file1])):
+                context = await builder._build_context_section(
+                    mock_agent,
+                    context_mode="auto",
+                    context_query="compliance approvals",
+                    full_context_threshold=200,
+                    preview_chars=120,
+                )
+                assert "CONTEXT FILES (COMPACTED)" in context
+                assert "policy.txt" in context
+                assert "compacted for token efficiency" in context
+                assert len(context) < len(file1.extracted_text)
 
     @pytest.mark.asyncio
     async def test_get_context_summary(self, builder, mock_agent):

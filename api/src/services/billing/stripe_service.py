@@ -22,10 +22,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
+from src.config.redis import get_redis_async
 from src.models.credit_topup import CreditTopup, TopupStatus
 from src.models.credit_transaction import TransactionType
 from src.models.subscription_plan import SubscriptionPlan
 from src.models.tenant_subscription import SubscriptionStatus, TenantSubscription
+from src.services.billing.agent_user_subscription_service import AgentUserSubscriptionService
 from src.services.billing.credit_service import CreditService
 from src.services.billing.subscription_service import SubscriptionService
 from src.services.integrations.integration_config_service import IntegrationConfigService
@@ -734,6 +736,23 @@ class StripeService:
                     transaction_type=TransactionType.PURCHASE,
                     description=f"Credit top-up purchase: {credits_amount} credits",
                 )
+
+        elif event_type == "agent_access":
+            session_id = session.get("id")
+            try:
+                raw_token, guest_email = await AgentUserSubscriptionService.fulfill_guest_subscription(
+                    session_id, self.db
+                )
+                # Store token in Redis for frontend retrieval (one-time read, 10 min TTL)
+                try:
+                    redis = get_redis_async()
+                    await redis.setex(f"agent_token:{session_id}", 600, raw_token)
+                except Exception as redis_err:
+                    logger.warning(f"Failed to cache agent token in Redis: {redis_err}")
+                logger.info(f"Agent access granted for guest {guest_email}, session={session_id}")
+            except Exception as e:
+                logger.error(f"Failed to fulfill agent access for session {session_id}: {e}")
+                return False
 
         elif event_type in ["subscription", "subscription_upgrade"]:
             # Handle subscription creation/upgrade

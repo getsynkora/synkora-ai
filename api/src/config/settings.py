@@ -27,6 +27,7 @@ from .feature import (
     LLMConfig,
     MonitoringConfig,
     StripeConfig,
+    TracingConfig,
     VectorDBConfig,
     WorkspaceConfig,
 )
@@ -74,6 +75,12 @@ class AppConfig(BaseSettings):
         description="Public-facing base URL for A2A same-instance routing and SSRF bypass.",
     )
 
+    agent_lens_enabled: bool = Field(
+        default=True,
+        validation_alias="AGENT_LENS_ENABLED",
+        description="Enable Agent Lens observability (tool call logging). Set to false to disable without code changes.",
+    )
+
     @property
     def is_development(self) -> bool:
         """Check if running in development mode."""
@@ -109,6 +116,7 @@ class Settings(
     WorkspaceConfig,
     ComputeConfig,
     CompanyBrainConfig,
+    TracingConfig,
     # Cloud/serverless execution backends
     AWSConfig,
     GCPConfig,

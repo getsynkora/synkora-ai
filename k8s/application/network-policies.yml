@@ -50,3 +50,248 @@ spec:
     ports:
     - port: 443
     - port: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-scraper-ingress
+  namespace: synkora-production
+spec:
+  podSelector:
+    matchLabels:
+      app: synkora
+      component: scraper
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: synkora
+          component: api
+    - podSelector:
+        matchLabels:
+          app: synkora
+          component: celery-worker
+    - podSelector:
+        matchLabels:
+          app: synkora
+          component: celery-worker-agents
+    - podSelector:
+        matchLabels:
+          app: synkora
+          component: celery-worker-notifications
+    - podSelector:
+        matchLabels:
+          app: synkora
+          component: celery-worker-billing
+    - podSelector:
+        matchLabels:
+          app: synkora
+          component: celery-worker-company-brain
+    - podSelector:
+        matchLabels:
+          app: synkora
+          component: celery-beat
+    - podSelector:
+        matchLabels:
+          app: synkora
+          component: bot-worker
+    ports:
+    - port: 5003
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-sandbox-ingress
+  namespace: synkora-production
+spec:
+  podSelector:
+    matchLabels:
+      app: synkora
+      component: sandbox
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: synkora
+          component: api
+    - podSelector:
+        matchLabels:
+          app: synkora
+          component: celery-worker
+    - podSelector:
+        matchLabels:
+          app: synkora
+          component: celery-worker-agents
+    - podSelector:
+        matchLabels:
+          app: synkora
+          component: celery-worker-notifications
+    - podSelector:
+        matchLabels:
+          app: synkora
+          component: celery-worker-billing
+    - podSelector:
+        matchLabels:
+          app: synkora
+          component: celery-worker-company-brain
+    - podSelector:
+        matchLabels:
+          app: synkora
+          component: celery-beat
+    ports:
+    - port: 5004
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-workers-internal-tools-egress
+  namespace: synkora-production
+spec:
+  podSelector:
+    matchLabels:
+      app: synkora
+    matchExpressions:
+    - key: component
+      operator: In
+      values:
+      - api
+      - celery-worker
+      - celery-worker-agents
+      - celery-worker-notifications
+      - celery-worker-billing
+      - celery-worker-company-brain
+      - celery-beat
+      - bot-worker
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: synkora
+          component: scraper
+    ports:
+    - protocol: TCP
+      port: 5003
+  - to:
+    - podSelector:
+        matchLabels:
+          app: synkora
+          component: sandbox
+    ports:
+    - protocol: TCP
+      port: 5004
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-scraper-external-egress
+  namespace: synkora-production
+spec:
+  podSelector:
+    matchLabels:
+      app: synkora
+      component: scraper
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+        - 169.254.0.0/16
+        - 100.64.0.0/10
+        - 127.0.0.0/8
+    ports:
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 443
+  - to:
+    - ipBlock:
+        cidr: ::/0
+        except:
+        - ::1/128
+        - fc00::/7
+        - fe80::/10
+        - ff00::/8
+    ports:
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 443
+---
+# Allow all synkora app pods to reach Elasticsearch on port 9200
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-elasticsearch-ingress
+  namespace: synkora-production
+spec:
+  podSelector:
+    matchLabels:
+      app: synkora
+      component: elasticsearch
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: synkora
+    ports:
+    - port: 9200
+    - port: 9300
+---
+# Allow api + workers to send events to Elasticsearch (port 9200)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-elasticsearch-egress
+  namespace: synkora-production
+spec:
+  podSelector:
+    matchLabels:
+      app: synkora
+    matchExpressions:
+    - key: component
+      operator: In
+      values:
+      - api
+      - celery-worker
+      - celery-worker-agents
+      - celery-worker-notifications
+      - celery-worker-billing
+      - celery-worker-company-brain
+      - celery-beat
+      - bot-worker
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: synkora
+          component: elasticsearch
+    ports:
+    - protocol: TCP
+      port: 9200

@@ -2,12 +2,13 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Mail, CreditCard, Database, BarChart3, Activity, Lock } from 'lucide-react'
+import { Plus, Mail, CreditCard, Database, BarChart3, Activity, Lock, PlugZap } from 'lucide-react'
 import { useIntegrations } from '@/hooks/useIntegrations'
 import { usePermissions } from '@/hooks/usePermissions'
 import { IntegrationCard } from '@/components/integrations'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import ErrorAlert from '@/components/common/ErrorAlert'
+import DashboardPageShell, { DashboardPagePanel, DashboardPageTabs } from '@/components/dashboard/DashboardPageShell'
 
 const INTEGRATION_TYPES = [
   { value: 'email', label: 'Email', icon: Mail, description: 'Email service providers' },
@@ -88,117 +89,128 @@ export default function IntegrationsPage() {
   // Check read permission
   if (!canRead) {
     return (
-      <div className="p-6 max-w-7xl mx-auto">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
-          <Lock className="mx-auto h-12 w-12 text-yellow-600 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Access Denied
-          </h3>
-          <p className="text-gray-600">
+      <DashboardPageShell
+        title="Integrations"
+        description="Manage third-party service integrations."
+        icon={PlugZap}
+        badge="Settings"
+        backHref="/settings"
+        backLabel="Back to Settings"
+        breadcrumbs={[
+          { label: 'Home', href: '/' },
+          { label: 'Settings', href: '/settings/profile' },
+          { label: 'Integrations' },
+        ]}
+      >
+        <DashboardPagePanel className="p-10 text-center">
+          <Lock className="mx-auto mb-4 h-12 w-12 text-[#9a7a5e]" />
+          <h3 className="text-lg font-semibold text-gray-900">Access Denied</h3>
+          <p className="mt-2 text-sm text-gray-600">
             You do not have permission to view integration configurations.
           </p>
-        </div>
-      </div>
+        </DashboardPagePanel>
+      </DashboardPageShell>
     )
   }
 
   if (error) {
     return (
-      <div className="p-6">
+      <DashboardPageShell
+        title="Integrations"
+        description="Manage third-party service integrations."
+        icon={PlugZap}
+        badge="Settings"
+        backHref="/settings"
+        backLabel="Back to Settings"
+        breadcrumbs={[
+          { label: 'Home', href: '/' },
+          { label: 'Settings', href: '/settings/profile' },
+          { label: 'Integrations' },
+        ]}
+      >
         <ErrorAlert message={error} />
-      </div>
+      </DashboardPageShell>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Integrations</h1>
-              <p className="text-gray-600 mt-1 text-sm">
-                Manage third-party service integrations
-              </p>
-            </div>
-            {canCreate && (
-              <div className="relative group">
-                <button className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-lg hover:from-primary-600 hover:to-primary-700 transition-all text-xs font-medium shadow-sm">
-                  <Plus size={16} />
-                  Add Integration
-                </button>
-                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
-              {INTEGRATION_TYPES.map(type => {
+    <DashboardPageShell
+      title="Integrations"
+      description="Manage third-party service integrations."
+      icon={PlugZap}
+      badge="Settings"
+      backHref="/settings"
+      backLabel="Back to Settings"
+      breadcrumbs={[
+        { label: 'Home', href: '/' },
+        { label: 'Settings', href: '/settings/profile' },
+        { label: 'Integrations' },
+      ]}
+      actions={
+        canCreate ? (
+          <div className="relative group">
+            <button className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black">
+              <Plus size={16} />
+              Add Integration
+            </button>
+            <div className="absolute right-0 z-10 mt-2 hidden w-64 overflow-hidden rounded-[1.25rem] border border-[#e5d9ca] bg-white shadow-[0_24px_70px_-36px_rgba(73,45,23,0.3)] group-hover:block">
+              {INTEGRATION_TYPES.map((type) => {
                 const Icon = type.icon
                 return (
                   <button
                     key={type.value}
                     onClick={() => router.push(`/settings/integrations/${type.value}/create`)}
-                    className="w-full flex items-center gap-3 px-3.5 py-2.5 hover:bg-primary-50 transition-colors first:rounded-t-lg last:rounded-b-lg text-left"
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[#f7f2e7]"
                   >
-                    <Icon size={16} className="text-primary-600" />
+                    <div className="rounded-[0.95rem] bg-[#f3ecde] p-2.5">
+                      <Icon size={16} className="text-[#171717]" />
+                    </div>
                     <div>
-                      <div className="text-sm font-medium text-gray-900">{type.label}</div>
+                      <div className="text-sm font-semibold text-gray-900">{type.label}</div>
                       <div className="text-xs text-gray-500">{type.description}</div>
                     </div>
                   </button>
                 )
               })}
-              </div>
             </div>
-          )}
-        </div>
-
-        {/* Integration Type Filters */}
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setSelectedType('all')}
-            className={`px-3 py-1.5 rounded-lg transition-all text-xs font-medium ${
-              selectedType === 'all'
-                ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-sm'
-                : 'bg-white text-gray-700 hover:bg-primary-50 border border-gray-200'
-            }`}
-          >
-            All
-          </button>
-          {INTEGRATION_TYPES.map(type => {
-            const Icon = type.icon
-            return (
-              <button
-                key={type.value}
-                onClick={() => setSelectedType(type.value)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all text-xs font-medium ${
-                  selectedType === type.value
-                    ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-sm'
-                    : 'bg-white text-gray-700 hover:bg-primary-50 border border-gray-200'
-                }`}
-              >
-                <Icon size={14} />
-                {type.label}
-              </button>
-            )
-          })}
-        </div>
-      </div>
+          </div>
+        ) : null
+      }
+      stats={[
+        { label: 'Visible', value: visibleConfigs.length },
+        { label: 'Active', value: visibleConfigs.filter((config) => config.is_active).length },
+      ]}
+    >
+      <div className="space-y-5">
+        <DashboardPageTabs
+          activeId={selectedType}
+          onChange={setSelectedType}
+          items={[
+            { id: 'all', label: 'All' },
+            ...INTEGRATION_TYPES.map((type) => ({
+              id: type.value,
+              label: type.label,
+              icon: <type.icon size={14} />,
+            })),
+          ]}
+        />
 
         {filteredConfigs.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-lg border border-gray-200 shadow-sm">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary-50 mb-4">
-              <Plus size={28} className="text-primary-500" />
+          <DashboardPagePanel className="p-12 text-center">
+            <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-[#f3ecde]">
+              <Plus size={28} className="text-[#171717]" />
             </div>
-            <h3 className="text-base font-semibold text-gray-900 mb-2">
-              No integrations found
-            </h3>
-            <p className="text-sm text-gray-600 mb-4">
+            <h3 className="text-base font-semibold text-gray-900">No integrations found</h3>
+            <p className="mt-2 text-sm text-gray-600">
               {selectedType === 'all'
-                ? 'Get started by adding your first integration using the "Add Integration" button above'
-                : `No ${selectedType} integrations configured. Use the "Add Integration" button above to add one.`}
+                ? 'Get started by adding your first integration using the action above.'
+                : `No ${selectedType} integrations configured yet.`}
             </p>
-          </div>
+          </DashboardPagePanel>
         ) : (
           <div className="space-y-3">
-            {filteredConfigs.map(config => (
-              <div key={config.id} className="bg-white rounded-lg border border-gray-200 shadow-sm hover:border-primary-300 transition-all">
+            {filteredConfigs.map((config) => (
+              <DashboardPagePanel key={config.id} className="overflow-hidden">
                 <IntegrationCard
                   config={config}
                   onTest={handleTest}
@@ -206,11 +218,11 @@ export default function IntegrationsPage() {
                   onDelete={canDelete ? handleDelete : undefined}
                   isPlatformOwner={isPlatformOwner}
                 />
-              </div>
+              </DashboardPagePanel>
             ))}
           </div>
         )}
       </div>
-    </div>
+    </DashboardPageShell>
   )
 }

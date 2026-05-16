@@ -9,14 +9,19 @@ import httpx
 logger = logging.getLogger(__name__)
 
 SCRAPER_SERVICE_URL = os.getenv("SCRAPER_SERVICE_URL", "http://synkora-scraper:5003")
+SCRAPER_API_KEY = os.getenv("SCRAPER_API_KEY")
 
 
 class ScraperServiceClient:
     """Thin async client wrapping the scraper microservice HTTP API."""
 
-    def __init__(self, base_url: str = SCRAPER_SERVICE_URL):
+    def __init__(self, base_url: str = SCRAPER_SERVICE_URL, api_key: str | None = SCRAPER_API_KEY):
         self._base_url = base_url
+        self._api_key = api_key
         self._client: httpx.AsyncClient | None = None
+
+    def _headers(self) -> dict[str, str]:
+        return {"X-Scraper-Key": self._api_key} if self._api_key else {}
 
     def _get_client(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:
@@ -39,7 +44,12 @@ class ScraperServiceClient:
         count: int = 200,
     ) -> list[dict[str, Any]]:
         payload = {"app_id": app_id, "country": country, "lang": lang, "count": count}
-        r = await self._get_client().post("/v1/scrape/google-play", json=payload, timeout=180.0)
+        r = await self._get_client().post(
+            "/v1/scrape/google-play",
+            json=payload,
+            headers=self._headers(),
+            timeout=180.0,
+        )
         r.raise_for_status()
         return r.json()["reviews"]
 
@@ -50,7 +60,12 @@ class ScraperServiceClient:
         count: int = 200,
     ) -> list[dict[str, Any]]:
         payload = {"app_id": app_id, "country": country, "count": count}
-        r = await self._get_client().post("/v1/scrape/apple", json=payload, timeout=180.0)
+        r = await self._get_client().post(
+            "/v1/scrape/apple",
+            json=payload,
+            headers=self._headers(),
+            timeout=180.0,
+        )
         r.raise_for_status()
         return r.json()["reviews"]
 
@@ -60,7 +75,7 @@ class ScraperServiceClient:
 
     async def _browser(self, path: str, payload: dict[str, Any], timeout: float = 60.0) -> dict[str, Any]:
         try:
-            r = await self._get_client().post(path, json=payload, timeout=timeout)
+            r = await self._get_client().post(path, json=payload, headers=self._headers(), timeout=timeout)
             r.raise_for_status()
             return r.json()
         except Exception as e:

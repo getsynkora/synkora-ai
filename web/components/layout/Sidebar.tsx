@@ -182,6 +182,15 @@ const navigation: NavEntry[] = [
     )
   },
   {
+    name: 'Email Templates',
+    href: '/email-templates',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+    )
+  },
+  {
     name: 'Billing',
     href: '/billing',
     icon: (
@@ -369,18 +378,30 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         href={item.href}
         prefetch={false}
         className={cn(
-          'flex items-center gap-3 rounded-lg transition-all',
-          isChild ? 'px-3 py-2' : 'px-3 py-3',
+          'relative flex items-center gap-3 overflow-hidden rounded-[1.2rem] transition-all',
+          isChild ? 'px-3 py-2.5' : showLabels ? 'px-4 py-3.5' : 'mx-auto w-16 justify-center px-0 py-4',
           isActive
-            ? 'bg-gradient-to-r from-primary-500/10 to-primary-600/10 text-primary-400 border-l-2 border-primary-500'
-            : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+            ? 'border border-white/10 bg-white/[0.12] text-[#f7f2e7] shadow-[0_14px_30px_rgba(0,0,0,0.22)]'
+            : 'text-[#b7afa2] hover:bg-white/[0.06] hover:text-[#f7f2e7]'
         )}
       >
-        <div className="flex-shrink-0">
+        {isActive && (
+          <span className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-[#7de5c1]" aria-hidden="true" />
+        )}
+        <div className={cn(
+          'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full transition-colors',
+          isActive ? 'bg-white/[0.1] text-[#f7f2e7]' : 'text-current'
+        )}>
           {item.icon}
         </div>
         {showLabels && (
-          <span className={cn('font-medium whitespace-nowrap', isChild ? 'text-xs' : 'text-sm')}>{item.name}</span>
+          <span className={cn(
+            'whitespace-nowrap',
+            isChild ? 'text-xs' : 'text-sm',
+            isActive ? 'font-semibold text-[#fffaf0]' : 'font-medium'
+          )}>
+            {item.name}
+          </span>
         )}
       </Link>
     )
@@ -395,18 +416,30 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         <button
           onClick={() => showLabels && toggleGroup(group.name)}
           className={cn(
-            'w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all',
+            'relative w-full flex items-center gap-3 overflow-hidden px-3 py-3 rounded-[1.2rem] transition-all',
+            showLabels ? 'px-4 py-3.5' : 'mx-auto w-16 justify-center px-0 py-4',
             hasActiveChild
-              ? 'text-primary-400'
-              : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+              ? 'border border-white/10 bg-white/[0.1] text-[#f7f2e7]'
+              : 'text-[#b7afa2] hover:bg-white/[0.06] hover:text-[#f7f2e7]'
           )}
         >
-          <div className="flex-shrink-0">
+          {hasActiveChild && (
+            <span className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-[#7de5c1]" aria-hidden="true" />
+          )}
+          <div className={cn(
+            'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full transition-colors',
+            hasActiveChild ? 'bg-white/[0.1] text-[#f7f2e7]' : 'text-current'
+          )}>
             {group.icon}
           </div>
           {showLabels && (
             <>
-              <span className="text-sm font-medium whitespace-nowrap flex-1 text-left">{group.name}</span>
+              <span className={cn(
+                'flex-1 whitespace-nowrap text-left text-sm',
+                hasActiveChild ? 'font-semibold text-[#fffaf0]' : 'font-medium'
+              )}>
+                {group.name}
+              </span>
               <svg
                 className={cn(
                   'w-4 h-4 transition-transform duration-200 flex-shrink-0',
@@ -422,7 +455,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           )}
         </button>
         {showLabels && isOpen && (
-          <div className="ml-4 pl-3 border-l border-gray-700/50 space-y-0.5 mt-0.5 mb-1">
+          <div className="ml-5 mt-1 mb-2 space-y-1 border-l border-white/10 pl-3.5">
             {group.children.map(child => renderNavItem(child, true))}
           </div>
         )}
@@ -444,14 +477,14 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       {/* Sidebar panel */}
       <div
         className={cn(
-          'bg-gray-900 h-screen flex flex-col py-6 transition-all duration-300 flex-shrink-0',
+          'h-screen flex flex-col border-r border-white/8 bg-[#111111] py-6 shadow-[0_24px_60px_rgba(0,0,0,0.28)] transition-all duration-300 flex-shrink-0',
           // Mobile: fixed overlay; desktop: static in flex flow
           'fixed inset-y-0 left-0 z-50 md:relative md:inset-y-auto md:left-auto md:z-auto',
           // Mobile slide animation; desktop always visible
           mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
           // Width: mobile always w-64; desktop responsive
           'w-64',
-          isExpanded || isPinned ? 'md:w-64' : 'md:w-20',
+          isExpanded || isPinned ? 'md:w-64' : 'md:w-24',
         )}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -460,24 +493,20 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         <div className="mb-8 px-5">
           <div className={cn('flex items-center', showLabels ? 'justify-between' : 'justify-center')}>
             <div className="flex items-center gap-3">
-              {/* Logo */}
-              <div className="relative w-10 h-10 flex-shrink-0">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary-400 to-primary-600 rounded-lg rotate-45"></div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <svg className="w-6 h-6 text-white relative z-10" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#f7f2e7] text-[#111111] shadow-[0_8px_24px_rgba(0,0,0,0.24)]">
+                <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
               </div>
               {showLabels && (
                 <div className="flex flex-col">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg font-bold text-white whitespace-nowrap">
-                      synkora <span className="text-primary-400">ai</span>
+                  <div className="flex items-center gap-3">
+                    <span className="whitespace-nowrap text-[1.35rem] font-semibold uppercase tracking-[0.18em] text-[#f7f2e7]">
+                      SYNKORA
                     </span>
-                    <span className="px-1.5 py-0.5 bg-primary-900 text-primary-300 text-[9px] font-bold rounded uppercase tracking-wider border border-primary-700">Beta</span>
+                    <span className="rounded-full border border-white/10 bg-white/[0.08] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-[#d2cabf]">Beta</span>
                   </div>
-                  <span className="text-[10px] text-gray-400 -mt-1">Enterprise Platform</span>
+                  <span className="mt-1 text-[10px] uppercase tracking-[0.22em] text-[#857d70]">Enterprise platform</span>
                 </div>
               )}
             </div>
@@ -485,15 +514,15 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
             {showLabels && !mobileOpen && (
               <button
                 onClick={togglePin}
-                className="flex items-center gap-2 p-1 rounded-lg hover:bg-gray-800 transition-colors"
+                className="flex items-center gap-2 rounded-lg p-1 transition-colors hover:bg-white/8"
                 title={isPinned ? 'Unlock sidebar' : 'Lock sidebar'}
               >
                 <div className={cn(
                   'relative w-10 h-5 rounded-full transition-colors',
-                  isPinned ? 'bg-gradient-to-r from-primary-500 to-primary-600' : 'bg-gray-600'
+                  isPinned ? 'bg-[#f7f2e7]' : 'bg-white/18'
                 )}>
                   <div className={cn(
-                    'absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform',
+                    'absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-[#111111] transition-transform',
                     isPinned ? 'translate-x-5' : 'translate-x-0'
                   )} />
                 </div>
@@ -503,7 +532,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
             {mobileOpen && (
               <button
                 onClick={onMobileClose}
-                className="p-1.5 rounded-lg hover:bg-gray-800 transition-colors text-gray-400 hover:text-gray-200"
+                className="rounded-lg p-1.5 text-[#b7afa2] transition-colors hover:bg-white/8 hover:text-[#f7f2e7]"
                 aria-label="Close menu"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -515,16 +544,19 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 flex flex-col space-y-1 px-3 overflow-y-auto">
+        <nav className={cn(
+          'flex-1 flex flex-col overflow-y-auto',
+          showLabels ? 'space-y-2.5 px-4' : 'space-y-2 px-3'
+        )}>
           {navigation.map((entry) =>
             isGroup(entry) ? renderNavGroup(entry) : renderNavItem(entry)
           )}
 
           {/* Settings Section */}
-          <div className="pt-4 mt-4 border-t border-gray-700">
+          <div className="mt-4 border-t border-white/10 pt-4">
             {showLabels && (
-              <div className="px-3 mb-2">
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <div className="px-4 mb-3">
+                <span className="text-xs font-semibold uppercase tracking-wider text-[#857d70]">
                   Settings
                 </span>
               </div>
@@ -543,17 +575,29 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                   href={item.href}
                   prefetch={false}
                   className={cn(
-                    'flex items-center gap-3 px-3 py-3 rounded-lg transition-all',
+                    'relative flex items-center gap-3 overflow-hidden px-3 py-3 rounded-[1.2rem] transition-all',
+                    showLabels ? 'px-4 py-3.5' : 'mx-auto w-16 justify-center px-0 py-4',
                     isActive
-                      ? 'bg-gradient-to-r from-primary-500/10 to-primary-600/10 text-primary-400 border-l-2 border-primary-500'
-                      : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+                      ? 'border border-white/10 bg-white/[0.12] text-[#f7f2e7] shadow-[0_14px_30px_rgba(0,0,0,0.22)]'
+                      : 'text-[#b7afa2] hover:bg-white/[0.06] hover:text-[#f7f2e7]'
                   )}
                 >
-                  <div className="flex-shrink-0">
+                  {isActive && (
+                    <span className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-[#7de5c1]" aria-hidden="true" />
+                  )}
+                  <div className={cn(
+                    'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full transition-colors',
+                    isActive ? 'bg-white/[0.1] text-[#f7f2e7]' : 'text-current'
+                  )}>
                     {item.icon}
                   </div>
                   {showLabels && (
-                    <span className="text-sm font-medium whitespace-nowrap">{item.name}</span>
+                    <span className={cn(
+                      'whitespace-nowrap text-sm',
+                      isActive ? 'font-semibold text-[#fffaf0]' : 'font-medium'
+                    )}>
+                      {item.name}
+                    </span>
                   )}
                 </Link>
               )
@@ -562,16 +606,18 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         </nav>
 
         {/* User Section */}
-        <div className={cn('mt-auto px-3', showLabels ? 'flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-colors' : 'flex justify-center')}>
-          <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+        <div className={cn('mt-auto', showLabels ? 'px-4' : 'px-3')}>
+          <div className={cn(showLabels ? 'flex items-center gap-3 rounded-[1.2rem] border border-white/10 bg-white/[0.06] p-4 transition-colors hover:bg-white/[0.1]' : 'flex justify-center')}>
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[#f7f2e7] text-sm font-semibold text-[#111111]">
             {user?.name?.charAt(0).toUpperCase() || 'U'}
           </div>
           {showLabels && (
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">{user?.name || 'User'}</p>
-              <p className="text-xs text-gray-400 truncate">{user?.email || ''}</p>
+              <p className="truncate text-sm font-medium text-[#f7f2e7]">{user?.name || 'User'}</p>
+              <p className="truncate text-xs text-[#8b8377]">{user?.email || ''}</p>
             </div>
           )}
+        </div>
         </div>
       </div>
     </>

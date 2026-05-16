@@ -41,9 +41,9 @@ export default function DashboardLayout({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50/60 via-white to-rose-50/40">
+      <div className="dashboard-app min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-[#171717]"></div>
           <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
@@ -55,7 +55,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 overflow-hidden">
+    <div className="dashboard-app flex h-screen overflow-hidden">
       <Sidebar
         mobileOpen={mobileMenuOpen}
         onMobileClose={() => setMobileMenuOpen(false)}

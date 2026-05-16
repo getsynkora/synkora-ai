@@ -167,6 +167,8 @@ class MultiProviderLLMClient:
             self._initialize_openrouter()
         elif self.provider == "minimax":
             self._initialize_minimax()
+        elif self.provider == "groq":
+            self._initialize_groq()
         elif self.provider == "litellm":
             self._initialize_litellm()
         else:
@@ -242,22 +244,35 @@ class MultiProviderLLMClient:
         except ImportError:
             raise ImportError("openai package not installed. Install with: pip install openai")
 
+    def _initialize_groq(self):
+        """Initialize Groq client (uses OpenAI-compatible API)."""
+        try:
+            from openai import AsyncOpenAI
+
+            base_url = self.config.api_base or "https://api.groq.com/openai/v1"
+            self._client = AsyncOpenAI(
+                api_key=self.config.api_key,
+                base_url=base_url,
+            )
+            logger.info(f"Initialized Groq client with model: {self.config.model_name}")
+        except ImportError:
+            raise ImportError("openai package not installed. Install with: pip install openai")
+
     def _initialize_litellm(self):
         """Initialize LiteLLM client."""
         try:
             import litellm
 
-            # LiteLLM doesn't need a client object, it's a function-based API
+            # LiteLLM doesn't need a client object, it's a function-based API.
+            # api_base is passed per-call (see completion_params["api_base"]) to avoid
+            # mutating the process-wide litellm.api_base which would corrupt concurrent
+            # agents using different base URLs.
             self._client = litellm
 
-            # Set base URL if provided
-            if self.config.api_base:
-                litellm.api_base = self.config.api_base
-                logger.info(
-                    f"Initialized litellm with model: {self.config.model_name}, base URL: {self.config.api_base}"
-                )
-            else:
-                logger.info(f"Initialized litellm with model: {self.config.model_name}")
+            logger.info(
+                f"Initialized litellm with model: {self.config.model_name}"
+                + (f", base URL: {self.config.api_base}" if self.config.api_base else "")
+            )
         except ImportError:
             raise ImportError("litellm package not installed. Install with: pip install litellm")
 
@@ -576,7 +591,7 @@ class MultiProviderLLMClient:
                     return await self._generate_mock(prompt, temp, max_tok, **kwargs)
                 elif self.provider in ["google", "gemini"]:
                     return await self._generate_google(prompt, temp, max_tok, **kwargs)
-                elif self.provider in ["openai", "openrouter", "minimax"]:
+                elif self.provider in ["openai", "openrouter", "minimax", "groq"]:
                     return await self._generate_openai(prompt, temp, max_tok, **kwargs)
                 elif self.provider in ["anthropic", "claude"]:
                     return await self._generate_anthropic(prompt, temp, max_tok, **kwargs)
@@ -585,9 +600,17 @@ class MultiProviderLLMClient:
                 else:
                     raise ValueError(f"Unsupported provider: {self.provider}")
 
+            _llm_call_start = time.time()
             response = await circuit_breaker.call_async(_do_generate)
+            _llm_call_latency_ms = int((time.time() - _llm_call_start) * 1000)
 
-            # Fire token usage recording (non-blocking)
+            # Capture actual API-reported token counts BEFORE _read_and_fire_usage()
+            # clears the ContextVar.  We use these below in fire_llm_call so the lens
+            # shows real numbers instead of TokenCounter estimates (which return 0 for
+            # models tiktoken doesn't know, e.g. claude-sonnet-4-6).
+            _api_usage = _llm_usage_ctx.get() or {}
+
+            # Fire token usage recording (non-blocking) — this clears _llm_usage_ctx
             self._read_and_fire_usage()
 
             # Store in response cache if opt-in
@@ -636,6 +659,44 @@ class MultiProviderLLMClient:
                 )
                 logger.info(f"✅ Langfuse generation {generation_id} updated successfully")
 
+            # Fire LLM call trace event (fire-and-forget, zero latency impact)
+            try:
+                from src.services.agents.agent_trace_service import fire_llm_call
+                from src.services.agents.runtime_context import get_runtime_context
+                from src.services.billing.llm_cost_service import calculate_cost as _calc_cost
+
+                _rt = get_runtime_context()
+                if _rt is not None:
+                    _rt.llm_call_index += 1
+                    _rt.event_sequence += 1
+                    # Prefer real API-reported counts captured above; fall back to
+                    # TokenCounter only if the provider didn't return usage data.
+                    _in_tokens = int(_api_usage.get("input_tokens") or 0)
+                    _out_tokens = int(_api_usage.get("output_tokens") or 0)
+                    if _in_tokens == 0 and _out_tokens == 0:
+                        from src.services.agents.token_counter import TokenCounter
+
+                        _in_tokens = TokenCounter.count_tokens(prompt, self.config.model_name)
+                        _out_tokens = TokenCounter.count_tokens(response or "", self.config.model_name)
+                    fire_llm_call(
+                        tenant_id=_rt.tenant_id,
+                        agent_id=_rt.agent_id,
+                        conversation_id=_rt.conversation_id,
+                        model=self.config.model_name,
+                        call_index=_rt.llm_call_index,
+                        input_tokens=int(_in_tokens),
+                        output_tokens=int(_out_tokens),
+                        cost_usd=_calc_cost(self.config.model_name, int(_in_tokens), int(_out_tokens)) or 0.0,
+                        latency_ms=_llm_call_latency_ms,
+                        response_preview=(response or "")[:3000],
+                        status="success",
+                        error=None,
+                        sequence=_rt.event_sequence,
+                        system_prompt=(prompt or "")[:2000] if prompt else None,
+                    )
+            except Exception:
+                pass  # never block LLM response
+
             return response
 
         except CircuitBreakerOpen as e:
@@ -658,6 +719,32 @@ class MultiProviderLLMClient:
                         "latency_ms": int((time.time() - start_time) * 1000),
                     },
                 )
+            # Fire failed LLM call trace event
+            try:
+                from src.services.agents.agent_trace_service import fire_llm_call
+                from src.services.agents.runtime_context import get_runtime_context
+
+                _rt = get_runtime_context()
+                if _rt is not None:
+                    _rt.llm_call_index += 1
+                    _rt.event_sequence += 1
+                    fire_llm_call(
+                        tenant_id=_rt.tenant_id,
+                        agent_id=_rt.agent_id,
+                        conversation_id=_rt.conversation_id,
+                        model=self.config.model_name,
+                        call_index=_rt.llm_call_index,
+                        input_tokens=0,
+                        output_tokens=0,
+                        cost_usd=0.0,
+                        latency_ms=int((time.time() - start_time) * 1000),
+                        response_preview=None,
+                        status="error",
+                        error=str(e)[:500],
+                        sequence=_rt.event_sequence,
+                    )
+            except Exception:
+                pass
             # Re-raise as LLMProviderError for known recoverable provider failures
             # so callers with a fallback chain can try the next config.
             if _is_provider_error(e):
@@ -876,7 +963,7 @@ class MultiProviderLLMClient:
             elif self.provider in ["google", "gemini"]:
                 async for chunk in self._generate_google_stream(prompt, temp, max_tok, **kwargs):
                     yield chunk
-            elif self.provider in ["openai", "openrouter", "minimax"]:
+            elif self.provider in ["openai", "openrouter", "minimax", "groq"]:
                 async for chunk in self._generate_openai_stream(prompt, temp, max_tok, **kwargs):
                     yield chunk
             elif self.provider in ["anthropic", "claude"]:

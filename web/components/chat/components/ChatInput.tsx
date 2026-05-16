@@ -212,7 +212,7 @@ export function ChatInput({
     <div className={cn('bg-white', className)}>
       {/* Formatting Toolbar */}
       {showToolbar && (
-        <div className="px-4 sm:px-6 lg:px-10 pb-2">
+        <div className="px-3 sm:px-4 lg:px-5 pb-2">
           <div className="flex items-center gap-0.5 p-1 bg-gray-50 rounded-lg w-fit">
             <button
               onClick={() => insertFormatting('bold')}
@@ -255,7 +255,7 @@ export function ChatInput({
 
       {/* Upload Error */}
       {uploadError && (
-        <div className="px-4 sm:px-6 lg:px-10 pb-2">
+        <div className="px-3 sm:px-4 lg:px-5 pb-2">
           <div>
             <div className="flex items-center gap-2 px-3 py-2 bg-red-50 rounded-lg text-red-700 text-sm">
               <X size={14} />
@@ -273,7 +273,7 @@ export function ChatInput({
 
       {/* Upload Progress */}
       {uploadProgress.length > 0 && (
-        <div className="px-4 sm:px-6 lg:px-10 pb-2">
+        <div className="px-3 sm:px-4 lg:px-5 pb-2">
           <div className="space-y-1.5">
             {uploadProgress.map((progress) => (
               <div key={progress.fileId} className="flex items-center gap-2 text-sm">
@@ -334,9 +334,9 @@ export function ChatInput({
       )}
 
       {/* Input Area */}
-      <div className="px-4 sm:px-6 lg:px-10 py-3">
+      <div className="px-3 py-2.5 sm:px-4 sm:py-2.5 lg:px-5">
         <div>
-          <div className="flex items-end gap-2 p-2 bg-gray-50 rounded-xl border border-gray-200 focus-within:border-gray-300 focus-within:bg-white transition-all">
+          <div className="flex items-end gap-1 rounded-[1rem] border border-[#d9cfbf] bg-[linear-gradient(180deg,_rgba(248,243,235,0.94),_rgba(244,238,229,0.92))] p-2 shadow-[0_16px_30px_-30px_rgba(31,22,15,0.26)] transition-all focus-within:border-black/15 focus-within:bg-[linear-gradient(180deg,_rgba(255,255,255,0.94),_rgba(248,243,235,0.98))]">
             {/* Action Buttons - Left */}
             <div className="flex items-center">
               <input
@@ -348,11 +348,11 @@ export function ChatInput({
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
+                className="rounded-[0.8rem] p-1.5 text-gray-400 transition-colors hover:bg-white/70 hover:text-gray-600"
                 title="Attach file"
                 disabled={isDisabled}
               >
-                <Paperclip size={18} />
+                <Paperclip size={16} />
               </button>
             </div>
 
@@ -366,8 +366,8 @@ export function ChatInput({
                 placeholder={effectivePlaceholder}
                 disabled={isDisabled}
                 rows={1}
-                className="w-full resize-none border-0 focus:outline-none focus:ring-0 text-[15px] text-gray-900 placeholder-gray-400 bg-transparent py-1"
-                style={{ maxHeight: '120px' }}
+                className="min-h-[32px] w-full resize-none border-0 bg-transparent py-1 text-[14px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0"
+                style={{ maxHeight: '124px' }}
               />
             </div>
 
@@ -375,17 +375,17 @@ export function ChatInput({
             <div className="flex items-center gap-0.5">
               <button
                 onClick={() => setShowVoiceInput(true)}
-                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
+                className="rounded-[0.8rem] p-1.5 text-gray-400 transition-colors hover:bg-white/70 hover:text-gray-600"
                 title="Voice input"
                 disabled={isDisabled}
               >
-                <Mic size={18} />
+                <Mic size={16} />
               </button>
               <button
                 onClick={handleSend}
                 disabled={isDisabled || !canSend}
                 className={cn(
-                  'p-2 rounded-lg transition-all',
+                  'rounded-[0.85rem] p-1.5 transition-all',
                   isDisabled || !canSend
                     ? 'text-gray-300 cursor-not-allowed'
                     : 'text-white'
@@ -398,9 +398,9 @@ export function ChatInput({
                 title="Send message (Enter)"
               >
                 {isUploading ? (
-                  <Loader2 size={18} className="animate-spin" />
+                  <Loader2 size={17} className="animate-spin" />
                 ) : (
-                  <Send size={18} />
+                  <Send size={16} />
                 )}
               </button>
             </div>

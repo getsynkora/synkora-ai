@@ -24,6 +24,7 @@ import {
   deleteLoadTest,
   type LoadTest,
 } from '@/lib/api/load-testing'
+import DashboardPageShell, { DashboardPagePanel } from '@/components/dashboard/DashboardPageShell'
 
 export default function LoadTestingPage() {
   const [loadTests, setLoadTests] = useState<LoadTest[]>([])
@@ -134,136 +135,104 @@ export default function LoadTestingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Load Testing</h1>
-              <p className="text-gray-600 mt-1">
-                Test your AI agents at scale with K6-powered load tests
-              </p>
-            </div>
-            <div className="flex gap-3 flex-wrap">
-              <Link
-                href="/load-testing/proxy"
-                className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 rounded-xl transition-all shadow-sm font-medium"
-              >
-                <Server className="w-5 h-5" />
-                Proxy Config
-              </Link>
-              <Link
-                href="/load-testing/create"
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-xl transition-all shadow-sm hover:shadow-md font-medium"
-              >
-                <Plus className="w-5 h-5" />
-                Create Test
-              </Link>
-            </div>
-          </div>
-
-          {/* Stats Bar */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-primary-100 rounded-xl">
-                  <Activity className="w-5 h-5 text-primary-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Total Tests</p>
-                  <p className="text-2xl font-bold text-gray-900">{loadTests.length}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-green-100 rounded-xl">
-                  <Zap className="w-5 h-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Running</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {loadTests.filter(t => t.status === 'running').length}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-blue-100 rounded-xl">
-                  <CheckCircle className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Ready</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {loadTests.filter(t => t.status === 'ready').length}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-gray-100 rounded-xl">
-                  <Edit className="w-5 h-5 text-gray-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Draft</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {loadTests.filter(t => t.status === 'draft').length}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Search and Filter */}
-          {loadTests.length > 0 && (
-            <div className="flex gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search load tests..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent shadow-sm"
-                />
-              </div>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent shadow-sm"
-              >
-                <option value="">All Status</option>
-                <option value="draft">Draft</option>
-                <option value="ready">Ready</option>
-                <option value="running">Running</option>
-              </select>
-            </div>
-          )}
+    <DashboardPageShell
+      title="Load Testing"
+      description="Test your AI agents at scale with K6-powered load tests."
+      icon={Activity}
+      badge="Labs"
+      maxWidthClassName="max-w-6xl"
+      breadcrumbs={[
+        { label: 'Home', href: '/' },
+        { label: 'Load Testing' },
+      ]}
+      actions={
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href="/load-testing/proxy"
+            className="inline-flex items-center gap-2 rounded-[1rem] border border-black/10 bg-white/85 px-4 py-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-white hover:text-[#171717]"
+          >
+            <Server className="h-4 w-4" />
+            Proxy Config
+          </Link>
+          <Link
+            href="/load-testing/create"
+            className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+          >
+            <Plus className="h-4 w-4" />
+            Create Test
+          </Link>
         </div>
+      }
+      stats={[
+        { label: 'Total', value: loadTests.length },
+        { label: 'Running', value: loadTests.filter(t => t.status === 'running').length },
+      ]}
+    >
+      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+        {[
+          { label: 'Total Tests', value: loadTests.length, icon: Activity, tone: 'bg-[#eef4fb] text-[#345c8a]' },
+          { label: 'Running', value: loadTests.filter(t => t.status === 'running').length, icon: Zap, tone: 'bg-[#ebf5ee] text-[#24543b]' },
+          { label: 'Ready', value: loadTests.filter(t => t.status === 'ready').length, icon: CheckCircle, tone: 'bg-[#ebf5ee] text-[#24543b]' },
+          { label: 'Draft', value: loadTests.filter(t => t.status === 'draft').length, icon: Edit, tone: 'bg-[#f3ecde] text-[#7c5d45]' },
+        ].map((stat) => (
+          <DashboardPagePanel key={stat.label} className="p-5">
+            <div className="flex items-center gap-3">
+              <div className={`rounded-[1rem] p-2.5 ${stat.tone}`}>
+                <stat.icon className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">{stat.label}</p>
+                <p className="text-2xl font-semibold tracking-[-0.04em] text-gray-950">{stat.value}</p>
+              </div>
+            </div>
+          </DashboardPagePanel>
+        ))}
+      </div>
+
+      {loadTests.length > 0 ? (
+        <DashboardPagePanel className="mb-6 p-4">
+          <div className="flex flex-col gap-4 md:flex-row">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search load tests..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full rounded-[1rem] border border-black/10 bg-[#fcfaf5] py-3 pl-11 pr-4 text-sm text-gray-900 placeholder-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]"
+              />
+            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="rounded-[1rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]"
+            >
+              <option value="">All Status</option>
+              <option value="draft">Draft</option>
+              <option value="ready">Ready</option>
+              <option value="running">Running</option>
+            </select>
+          </div>
+        </DashboardPagePanel>
+      ) : null}
 
         {/* Error Message */}
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4">
+          <DashboardPagePanel className="mb-6 border-[#eed6dd] bg-[linear-gradient(180deg,_rgba(252,245,247,0.98),_rgba(249,236,240,0.96))] p-4">
             <div className="flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600" />
-              <p className="text-red-700">{error}</p>
+              <AlertCircle className="w-5 h-5 text-[#8a445c]" />
+              <p className="text-[#8a445c]">{error}</p>
             </div>
-          </div>
+          </DashboardPagePanel>
         )}
 
         {/* Load Tests Grid */}
         {filteredTests.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+          <DashboardPagePanel className="p-12 text-center">
             <div className="w-32 h-32 mx-auto mb-6 relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary-100 to-primary-50 rounded-2xl transform rotate-6"></div>
-              <div className="absolute inset-0 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center">
-                <BarChart3 className="w-12 h-12 text-primary-500" />
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[#f3ecde] to-[#fbf7ef] transform rotate-6"></div>
+              <div className="absolute inset-0 flex items-center justify-center rounded-2xl border border-gray-100 bg-white shadow-sm">
+                <BarChart3 className="w-12 h-12 text-[#171717]" />
               </div>
             </div>
 
@@ -278,25 +247,24 @@ export default function LoadTestingPage() {
             {loadTests.length === 0 && (
               <Link
                 href="/load-testing/create"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-xl transition-all shadow-sm hover:shadow-md font-medium"
+                className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-6 py-3 font-semibold text-white transition-colors hover:bg-black"
               >
                 <Plus className="w-5 h-5" />
                 Create Load Test
               </Link>
             )}
-          </div>
+          </DashboardPagePanel>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {filteredTests.map((test) => (
-              <div
+              <DashboardPagePanel
                 key={test.id}
-                className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all hover:border-primary-200 group"
+                className="group p-5 transition-all hover:-translate-y-0.5 hover:border-[#d4baa1]"
               >
-                <div className="p-5">
                   {/* Header */}
                   <div className="flex items-start gap-3 mb-4">
-                    <div className="p-2.5 bg-primary-100 rounded-xl group-hover:bg-primary-200 transition-colors">
-                      <Activity className="w-5 h-5 text-primary-600" />
+                    <div className="rounded-xl bg-[#f3ecde] p-2.5 transition-colors group-hover:bg-[#eadcc7]">
+                      <Activity className="w-5 h-5 text-[#171717]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-lg font-semibold text-gray-900 truncate">
@@ -355,7 +323,7 @@ export default function LoadTestingPage() {
                   <div className="flex gap-2">
                     <Link
                       href={`/load-testing/${test.id}`}
-                      className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors"
+                      className="flex-1 inline-flex items-center justify-center gap-2 rounded-[0.95rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
                     >
                       <Eye className="w-4 h-4" />
                       View
@@ -363,7 +331,7 @@ export default function LoadTestingPage() {
                     {test.status === 'ready' && (
                       <Link
                         href={`/load-testing/${test.id}/runs`}
-                        className="inline-flex items-center justify-center px-3 py-2.5 text-sm font-medium text-green-700 bg-green-100 rounded-lg hover:bg-green-200 transition-colors"
+                        className="inline-flex items-center justify-center rounded-[0.95rem] bg-[#ebf5ee] px-3 py-2.5 text-sm font-semibold text-[#24543b] transition-colors hover:bg-[#dfeee3]"
                       >
                         <Play className="w-4 h-4" />
                       </Link>
@@ -371,25 +339,23 @@ export default function LoadTestingPage() {
                     <button
                       onClick={() => openDeleteModal(test)}
                       disabled={test.status === 'running'}
-                      className="inline-flex items-center justify-center px-3 py-2.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="inline-flex items-center justify-center rounded-[0.95rem] bg-[#fbf1f4] px-3 py-2.5 text-sm font-semibold text-[#8a445c] transition-colors hover:bg-[#f7e6ec] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
-                </div>
-              </div>
+              </DashboardPagePanel>
             ))}
           </div>
         )}
-      </div>
 
       {/* Delete Modal */}
       {deleteModal.show && deleteModal.test && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+          <div className="w-full max-w-md rounded-[1.9rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,245,239,0.96))] p-6 shadow-[0_32px_90px_-42px_rgba(73,45,23,0.35)]">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2.5 bg-red-100 rounded-xl">
-                <Trash2 className="w-6 h-6 text-red-600" />
+              <div className="rounded-xl bg-[#fbf1f4] p-2.5">
+                <Trash2 className="w-6 h-6 text-[#8a445c]" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900">Delete Load Test</h3>
             </div>
@@ -403,14 +369,14 @@ export default function LoadTestingPage() {
               <button
                 onClick={closeDeleteModal}
                 disabled={deleting}
-                className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                className="rounded-[0.95rem] bg-[#f1eadc] px-4 py-2.5 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#e8ddc8] disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
                 disabled={deleting}
-                className="px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="flex items-center gap-2 rounded-[0.95rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {deleting ? (
                   <>
@@ -428,6 +394,6 @@ export default function LoadTestingPage() {
           </div>
         </div>
       )}
-    </div>
+    </DashboardPageShell>
   )
 }

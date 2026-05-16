@@ -89,10 +89,11 @@ class TestAgentsCRUDIntegration:
         create_data = create_response.json()
         assert create_data["success"] is True
         assert create_data["data"]["agent_name"] == agent_name
-        create_data["data"]["agent_id"]
+        agent_slug = create_data["data"]["slug"]
+        assert agent_slug  # slug must be present in create response
 
         # 2. Get Agent
-        get_response = await async_client.get(f"/api/v1/agents/{agent_name}", headers=headers)
+        get_response = await async_client.get(f"/api/v1/agents/{agent_slug}", headers=headers)
         assert get_response.status_code == status.HTTP_200_OK
         get_data = get_response.json()
         assert get_data["success"] is True
@@ -104,11 +105,11 @@ class TestAgentsCRUDIntegration:
         assert list_response.status_code == status.HTTP_200_OK
         list_data = list_response.json()
         assert list_data["success"] is True
-        assert agent_name in list_data["data"]["agents"]
+        assert any(a.get("slug") == agent_slug for a in list_data["data"].get("agents_list", []))
 
         # 4. Update Agent
         update_response = await async_client.put(
-            f"/api/v1/agents/{agent_name}",
+            f"/api/v1/agents/{agent_slug}",
             json={
                 "description": "Updated description",
                 "system_prompt": "You are an updated helpful assistant.",
@@ -120,19 +121,19 @@ class TestAgentsCRUDIntegration:
         assert update_data["success"] is True
 
         # Verify update
-        verify_response = await async_client.get(f"/api/v1/agents/{agent_name}", headers=headers)
+        verify_response = await async_client.get(f"/api/v1/agents/{agent_slug}", headers=headers)
         verify_data = verify_response.json()
         assert verify_data["data"]["description"] == "Updated description"
         assert verify_data["data"]["system_prompt"] == "You are an updated helpful assistant."
 
         # 5. Delete Agent
-        delete_response = await async_client.delete(f"/api/v1/agents/{agent_name}", headers=headers)
+        delete_response = await async_client.delete(f"/api/v1/agents/{agent_slug}", headers=headers)
         assert delete_response.status_code == status.HTTP_200_OK
         delete_data = delete_response.json()
         assert delete_data["success"] is True
 
         # Verify deletion - agent should not be accessible
-        verify_deleted = await async_client.get(f"/api/v1/agents/{agent_name}", headers=headers)
+        verify_deleted = await async_client.get(f"/api/v1/agents/{agent_slug}", headers=headers)
         assert verify_deleted.status_code == status.HTTP_404_NOT_FOUND
 
     @pytest.mark.asyncio
@@ -317,10 +318,11 @@ class TestAgentsCRUDIntegration:
             headers=headers,
         )
         assert create_response.status_code == status.HTTP_201_CREATED
+        original_slug = create_response.json()["data"]["slug"]
 
         # Clone the agent
         clone_response = await async_client.post(
-            f"/api/v1/agents/{original_agent_name}/clone",
+            f"/api/v1/agents/{original_slug}/clone",
             json={
                 "new_name": cloned_agent_name,
                 "clone_tools": True,
@@ -334,9 +336,10 @@ class TestAgentsCRUDIntegration:
         clone_data = clone_response.json()
         assert clone_data["success"] is True
         assert clone_data["data"]["agent_name"] == cloned_agent_name
+        cloned_slug = clone_data["data"]["slug"]
 
         # Verify cloned agent exists
-        get_response = await async_client.get(f"/api/v1/agents/{cloned_agent_name}", headers=headers)
+        get_response = await async_client.get(f"/api/v1/agents/{cloned_slug}", headers=headers)
         assert get_response.status_code == status.HTTP_200_OK
         cloned_data = get_response.json()
         assert cloned_data["data"]["description"] == "Original agent to clone"
@@ -348,7 +351,7 @@ class TestAgentsCRUDIntegration:
         agent_name = f"StatsAgent_{uuid.uuid4().hex[:8]}"
 
         # Create agent
-        await async_client.post(
+        create_resp = await async_client.post(
             "/api/v1/agents/",
             json={
                 "agent_type": "llm",
@@ -367,9 +370,10 @@ class TestAgentsCRUDIntegration:
             },
             headers=headers,
         )
+        agent_slug = create_resp.json()["data"]["slug"]
 
         # Get agent stats
-        stats_response = await async_client.get(f"/api/v1/agents/{agent_name}/stats", headers=headers)
+        stats_response = await async_client.get(f"/api/v1/agents/{agent_slug}/stats", headers=headers)
         assert stats_response.status_code == status.HTTP_200_OK
         stats_data = stats_response.json()
         assert stats_data["success"] is True
@@ -404,9 +408,10 @@ class TestAgentsCRUDIntegration:
             headers=headers,
         )
         assert create_resp.status_code == status.HTTP_201_CREATED
+        agent_slug = create_resp.json()["data"]["slug"]
 
         # Reset agent
-        reset_response = await async_client.post(f"/api/v1/agents/{agent_name}/reset", headers=headers)
+        reset_response = await async_client.post(f"/api/v1/agents/{agent_slug}/reset", headers=headers)
         assert reset_response.status_code == status.HTTP_200_OK
         reset_data = reset_response.json()
         assert reset_data["success"] is True
@@ -418,7 +423,7 @@ class TestAgentsCRUDIntegration:
         agent_name = f"PublicAgent_{uuid.uuid4().hex[:8]}"
 
         # Create agent
-        await async_client.post(
+        create_resp = await async_client.post(
             "/api/v1/agents/",
             json={
                 "agent_type": "llm",
@@ -437,17 +442,18 @@ class TestAgentsCRUDIntegration:
             },
             headers=headers,
         )
+        agent_slug = create_resp.json()["data"]["slug"]
 
         # Update to public
         update_response = await async_client.put(
-            f"/api/v1/agents/{agent_name}",
+            f"/api/v1/agents/{agent_slug}",
             json={"is_public": True, "category": "general", "tags": ["test", "public"]},
             headers=headers,
         )
         assert update_response.status_code == status.HTTP_200_OK
 
         # Verify update
-        get_response = await async_client.get(f"/api/v1/agents/{agent_name}", headers=headers)
+        get_response = await async_client.get(f"/api/v1/agents/{agent_slug}", headers=headers)
         get_data = get_response.json()
         assert get_data["data"]["is_public"] is True
         assert get_data["data"]["category"] == "general"

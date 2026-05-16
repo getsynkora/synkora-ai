@@ -1,0 +1,78 @@
+name: Flutter Package — Test & Publish
+
+on:
+  # Auto-publish on version tags: flutter/v1.0.0
+  push:
+    tags:
+      - "flutter/v*"
+  # Manual trigger with optional dry-run
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (validate but skip pub.dev publish)"
+        required: false
+        default: "true"
+        type: choice
+        options: ["true", "false"]
+
+concurrency:
+  group: flutter-publish
+  cancel-in-progress: false
+
+jobs:
+  test-and-publish:
+    name: Test & Publish Flutter Package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@e938fdf56512cc96ef2f93b5c07b5571f23ce0ad  # v2.18.0
+        with:
+          flutter-version: "3.22.x"
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        working-directory: flutter/synkora_chat
+        run: flutter pub get
+
+      - name: Verify formatting
+        working-directory: flutter/synkora_chat
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze
+        working-directory: flutter/synkora_chat
+        run: flutter analyze --fatal-infos
+
+      - name: Run tests
+        working-directory: flutter/synkora_chat
+        run: flutter test
+
+      - name: Dry-run publish (always)
+        working-directory: flutter/synkora_chat
+        run: dart pub publish --dry-run
+
+      # ── pub.dev publish ──────────────────────────────────────────────────────
+      # Requires PUB_CREDENTIALS secret set in GitHub → Settings → Secrets.
+      #
+      # To generate credentials, run once locally:
+      #   dart pub login
+      # then copy ~/.config/dart/pub-credentials.json into the secret.
+      - name: Publish to pub.dev
+        if: ${{ github.event_name == 'push' || inputs.dry_run == 'false' }}
+        working-directory: flutter/synkora_chat
+        env:
+          PUB_CREDENTIALS: ${{ secrets.PUB_CREDENTIALS }}
+        run: |
+          mkdir -p "$HOME/.config/dart"
+          echo "$PUB_CREDENTIALS" > "$HOME/.config/dart/pub-credentials.json"
+          dart pub publish --force
+
+      - name: Summary
+        run: |
+          echo "## Flutter Package Build" >> $GITHUB_STEP_SUMMARY
+          echo "- **Package:** synkora_chat" >> $GITHUB_STEP_SUMMARY
+          echo "- **Published:** ${{ github.event_name == 'push' || inputs.dry_run == 'false' }}" >> $GITHUB_STEP_SUMMARY

@@ -888,3 +888,193 @@ async def resend_verification(data: ResendVerificationRequest, db: AsyncSession 
         "success": True,
         "message": "If the email exists, a verification link has been sent.",
     }
+
+
+# ── Chrome Extension PKCE Auth ────────────────────────────────────────────────
+
+
+class ExtensionAuthorizeRequest(BaseModel):
+    """Query parameters for the extension PKCE authorize endpoint."""
+
+    code_challenge: str = Field(min_length=43, max_length=128)
+    code_challenge_method: str = Field(default="S256")
+    state: str = Field(min_length=16, max_length=256)
+    redirect_uri: str
+
+
+class ExtensionTokenRequest(BaseModel):
+    """Request body for the extension PKCE token exchange endpoint."""
+
+    code: str
+    code_verifier: str = Field(min_length=43, max_length=128)
+    redirect_uri: str
+
+
+_EXTENSION_CODE_TTL = 600  # 10 minutes
+
+
+def _validate_redirect_uri(redirect_uri: str) -> None:
+    """Allow chrome-extension:// and chromiumapp.org (launchWebAuthFlow) redirect URIs."""
+    from urllib.parse import urlparse
+
+    if redirect_uri.startswith("chrome-extension://"):
+        return
+    parsed = urlparse(redirect_uri)
+    if parsed.scheme == "https" and parsed.hostname and parsed.hostname.endswith(".chromiumapp.org"):
+        return
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="redirect_uri must use chrome-extension:// or chromiumapp.org scheme",
+    )
+
+
+@router.get("/extension/authorize")
+async def extension_authorize(
+    code_challenge: str,
+    state: str,
+    redirect_uri: str,
+    code_challenge_method: str = "S256",
+    account: Account = Depends(get_current_account),
+    db: AsyncSession = Depends(get_async_db),
+) -> dict:
+    """
+    PKCE authorization endpoint for the Chrome extension.
+
+    Requires an active session (Bearer token from the dashboard).
+    Generates a short-lived auth code, stores challenge in Redis,
+    and returns the code + state so the extension can complete the exchange.
+
+    Security:
+    - redirect_uri must be chrome-extension://
+    - code_challenge_method must be S256
+    - Auth code stored in Redis with 10-minute TTL
+    - Code is single-use (deleted on exchange)
+    """
+    import hashlib
+    import secrets
+
+    _validate_redirect_uri(redirect_uri)
+
+    if code_challenge_method != "S256":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only S256 code_challenge_method is supported",
+        )
+
+    if len(code_challenge) < 43 or len(code_challenge) > 128:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid code_challenge length",
+        )
+
+    from src.config.redis import get_redis_async
+
+    redis_client = get_redis_async()
+    if not redis_client:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authorization service temporarily unavailable",
+        )
+
+    import json
+
+    auth_code = secrets.token_urlsafe(48)
+    await redis_client.setex(
+        f"ext_auth_code:{auth_code}",
+        _EXTENSION_CODE_TTL,
+        json.dumps(
+            {
+                "account_id": str(account.id),
+                "code_challenge": code_challenge,
+                "redirect_uri": redirect_uri,
+            }
+        ),
+    )
+
+    logger.info("Extension auth code issued for account %s", account.id)
+    return {"code": auth_code, "state": state}
+
+
+@router.post("/extension/token")
+async def extension_token(
+    data: ExtensionTokenRequest,
+    db: AsyncSession = Depends(get_async_db),
+) -> dict:
+    """
+    PKCE token exchange endpoint for the Chrome extension.
+
+    Validates the auth code and code_verifier, issues JWT access + refresh tokens.
+
+    Security:
+    - Auth code is single-use (deleted from Redis immediately)
+    - PKCE verification: sha256(code_verifier) must match stored code_challenge
+    - redirect_uri must exactly match what was used in /authorize
+    """
+    import base64
+    import hashlib
+    import json
+
+    from src.config.redis import get_redis_async
+
+    _validate_redirect_uri(data.redirect_uri)
+
+    redis_client = get_redis_async()
+    if not redis_client:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authorization service temporarily unavailable",
+        )
+
+    # Fetch and immediately delete the auth code (single-use)
+    code_key = f"ext_auth_code:{data.code}"
+    raw = await redis_client.getdel(code_key)
+    if not raw:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired authorization code",
+        )
+
+    stored = json.loads(raw)
+
+    # Validate redirect_uri matches
+    if stored["redirect_uri"] != data.redirect_uri:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="redirect_uri mismatch",
+        )
+
+    # PKCE verification: sha256(code_verifier) must equal stored code_challenge
+    digest = hashlib.sha256(data.code_verifier.encode()).digest()
+    computed_challenge = base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
+    if computed_challenge != stored["code_challenge"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="PKCE verification failed",
+        )
+
+    # Load account
+    from uuid import UUID
+
+    result = await db.execute(select(Account).filter(Account.id == UUID(stored["account_id"])))
+    account = result.scalar_one_or_none()
+    if not account:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Account not found",
+        )
+
+    # Resolve tenant — same pattern as the login endpoint
+    import uuid as _uuid
+
+    tenants = await AuthService.get_account_tenants(db, account.id)
+    tenant_id = _uuid.UUID(tenants[0]["tenant_id"]) if tenants else None
+
+    session_data = await SessionService.create_session(db, account, tenant_id)
+
+    logger.info("Extension tokens issued for account %s (tenant %s)", account.id, tenant_id)
+    return {
+        "access_token": session_data["access_token"],
+        "refresh_token": session_data["refresh_token"],
+        "token_type": "Bearer",
+        "expires_in": session_data["expires_in"],
+    }

@@ -43,7 +43,7 @@ function makeSseResponse(lines: string[]) {
 const API_URL = "http://localhost:5001";
 
 const basePayload: ChatPayload = {
-  agent_name: "test-agent",
+  agent_slug: "test-agent",
   message: "Hello",
 };
 
@@ -103,14 +103,14 @@ describe("useChatTransport — SSE mode (default)", () => {
 
     const { result } = renderHook(() => useChatTransport("sse", API_URL));
 
-    const payload: ChatPayload = { agent_name: "bot", message: "test", conversation_id: "c-1" };
+    const payload: ChatPayload = { agent_slug: "bot", message: "test", conversation_id: "c-1" };
     const iterable = result.current.sendMessage(payload);
     // Consume without asserting events
     for await (const _ of iterable) { /* drain */ }
 
     const fetchCall = mockFetch.mock.calls[0][1] as RequestInit;
     const body = JSON.parse(fetchCall.body as string);
-    expect(body).toMatchObject({ agent_name: "bot", message: "test", conversation_id: "c-1" });
+    expect(body).toMatchObject({ agent_slug: "bot", message: "test", conversation_id: "c-1" });
   });
 
   it("yields parsed ChatEvent objects from SSE lines", async () => {
@@ -132,6 +132,28 @@ describe("useChatTransport — SSE mode (default)", () => {
     expect(events).toHaveLength(2);
     expect(events[0]).toEqual(chunk);
     expect(events[1]).toEqual(done);
+  });
+
+  it("yields terminal SSE error events instead of throwing", async () => {
+    const errorEvent = {
+      type: "error",
+      error: "API key is invalid or expired. Please check your LLM configuration.",
+    };
+    const sseLines = [
+      `data: ${JSON.stringify({ type: "start", agent: "bot" })}`,
+      `data: ${JSON.stringify(errorEvent)}`,
+      `data: ${JSON.stringify({ type: "chunk", content: "should not render" })}`,
+    ];
+    mockFetch.mockReturnValue(makeSseResponse(sseLines));
+
+    const { result } = renderHook(() => useChatTransport("sse", API_URL));
+
+    const events: any[] = [];
+    for await (const event of result.current.sendMessage(basePayload)) {
+      events.push(event);
+    }
+
+    expect(events).toEqual([{ type: "start", agent: "bot" }, errorEvent]);
   });
 
   it("throws when the server returns HTTP 402", async () => {
@@ -271,6 +293,39 @@ describe("useChatTransport — WebSocket mode", () => {
     expect(authFrame).toEqual({ type: "auth", token: "test-token" });
   });
 
+  it("yields terminal WebSocket error events instead of rejecting the stream", async () => {
+    const { result } = renderHook(() =>
+      useChatTransport("websocket", API_URL)
+    );
+
+    await waitFor(() => wsInstances.length > 0);
+    const ws = wsInstances[0];
+    ws.onmessage?.({ data: JSON.stringify({ type: "auth_ok" }) });
+
+    const events: any[] = [];
+    const collect = async () => {
+      for await (const event of result.current.sendMessage(basePayload)) {
+        events.push(event);
+      }
+    };
+    const promise = collect();
+
+    ws.onmessage?.({
+      data: JSON.stringify({
+        type: "error",
+        error: "API key is invalid or expired. Please check your LLM configuration.",
+      }),
+    });
+
+    await expect(promise).resolves.toBeUndefined();
+    expect(events).toEqual([
+      {
+        type: "error",
+        error: "API key is invalid or expired. Please check your LLM configuration.",
+      },
+    ]);
+  });
+
   it("closes the WebSocket on unmount", async () => {
     const { unmount } = renderHook(() =>
       useChatTransport("websocket", API_URL)
@@ -282,7 +337,7 @@ describe("useChatTransport — WebSocket mode", () => {
     expect(wsInstances[0].readyState).toBe(MockWebSocket.CLOSED);
   });
 
-  it("returns an error iterable when the WebSocket is not yet authenticated", () => {
+  it("returns an error iterable when the WebSocket is not yet authenticated", async () => {
     const { result } = renderHook(() =>
       useChatTransport("websocket", API_URL)
     );
@@ -295,7 +350,7 @@ describe("useChatTransport — WebSocket mode", () => {
       for await (const _ of iterable) { /* drain */ }
     };
 
-    expect(collect()).rejects.toThrow("WebSocket is not connected");
+    await expect(collect()).rejects.toThrow("WebSocket is not connected");
   });
 
   it("does not open a WebSocket connection when transport is 'sse'", () => {

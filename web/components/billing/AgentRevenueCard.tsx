@@ -41,9 +41,9 @@ export default function AgentRevenueCard({
     )
   }
 
-  const totalRevenue = revenue.reduce((sum, r) => sum + r.revenue_amount, 0)
+  const totalRevenue = revenue.reduce((sum, r) => sum + Number(r.revenue_amount ?? 0), 0)
   const totalCreatorShare = revenue.reduce(
-    (sum, r) => sum + r.creator_earnings,
+    (sum, r) => sum + Number(r.creator_earnings ?? 0),
     0
   )
 
@@ -92,10 +92,10 @@ export default function AgentRevenueCard({
             </div>
             <div className="text-right">
               <p className="text-lg font-semibold text-gray-900">
-                ${item.revenue_amount.toFixed(2)}
+                ${Number(item.revenue_amount ?? 0).toFixed(2)}
               </p>
               <p className="text-sm text-primary-600">
-                Your share: ${item.creator_earnings.toFixed(2)}
+                Your share: ${Number(item.creator_earnings ?? 0).toFixed(2)}
               </p>
               <p className="text-xs text-gray-500">
                 {item.credits_used} credits used

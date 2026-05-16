@@ -36,10 +36,10 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
   const loading = subscriptionLoading || balanceLoading
 
   return (
-    <header className="h-16 bg-transparent flex items-center justify-between px-4 md:px-6">
+    <header className="dashboard-app sticky top-0 z-30 flex h-16 items-center justify-between border-b border-black/10 bg-[rgba(247,242,231,0.82)] px-4 backdrop-blur-xl md:px-6">
       {/* Hamburger — mobile only */}
       <button
-        className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600"
+        className="rounded-xl border border-black/10 bg-white/60 p-2 text-gray-600 transition-colors hover:bg-white md:hidden"
         onClick={onMobileMenuToggle}
         aria-label="Open menu"
       >
@@ -50,8 +50,8 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
 
       <div className="flex items-center gap-2 md:gap-4 ml-auto">
         {/* Credits Badge */}
-        <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-lg cursor-pointer hover:from-red-100 hover:to-pink-100 transition-colors" onClick={() => router.push('/billing')}>
-          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${hasSubscription ? 'bg-primary-500' : 'bg-gray-400'}`}></div>
+        <div className="flex cursor-pointer items-center gap-1.5 rounded-full border border-black/10 bg-white/70 px-3 py-2 transition-colors hover:bg-white" onClick={() => router.push('/billing')}>
+          <div className={`h-2 w-2 flex-shrink-0 rounded-full ${hasSubscription ? 'bg-[#2d8b69]' : 'bg-gray-400'}`}></div>
           <span className="hidden sm:inline text-sm text-gray-600">{subscriptionName}</span>
           {loading ? (
             <span className="text-sm font-semibold text-gray-900 min-w-[50px] inline-block">&nbsp;</span>
@@ -66,7 +66,7 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
         {!hasSubscription && (
           <button
             onClick={handleUpgradeClick}
-            className="hidden sm:inline-flex px-4 py-2 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white text-sm font-medium rounded-lg transition-all shadow-md hover:shadow-lg"
+            className="hidden rounded-full bg-[#181818] px-4 py-2 text-sm font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 sm:inline-flex"
           >
             Upgrade
           </button>
@@ -74,8 +74,8 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
 
         {/* User Menu */}
         <div className="relative group">
-          <button className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+          <button className="flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3 py-2 transition-colors hover:bg-white">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#181818] text-sm font-semibold text-white">
               {user?.name?.charAt(0).toUpperCase() || 'U'}
             </div>
             <span className="text-sm font-medium text-gray-700">{user?.name || 'User'}</span>
@@ -85,11 +85,11 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
           </button>
 
           {/* Dropdown Menu */}
-          <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+          <div className="dashboard-surface absolute right-0 mt-2 invisible w-48 rounded-2xl opacity-0 transition-all group-hover:visible group-hover:opacity-100">
             <div className="py-1">
               <button
                 onClick={handleSignOut}
-                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                className="w-full rounded-2xl px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-black/5"
               >
                 Sign out
               </button>

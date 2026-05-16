@@ -36,15 +36,15 @@ class ValidateDiscountRequest(BaseModel):
     agent_pricing_id: UUID
 
 
-@router.get("/{agent_name}/discount-codes")
+@router.get("/{agent_slug}/discount-codes")
 async def list_discount_codes(
-    agent_name: str,
+    agent_slug: str,
     db: AsyncSession = Depends(get_async_db),
     account=Depends(get_current_account),
     tenant_id: UUID = Depends(get_current_tenant_id),
 ):
     """List discount codes for an agent."""
-    agent_result = await db.execute(select(Agent).where(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+    agent_result = await db.execute(select(Agent).where(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
     agent = agent_result.scalar_one_or_none()
     if agent is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
@@ -59,9 +59,9 @@ async def list_discount_codes(
     return {"codes": [c.__dict__ for c in codes]}
 
 
-@router.post("/{agent_name}/discount-codes")
+@router.post("/{agent_slug}/discount-codes")
 async def create_discount_code(
-    agent_name: str,
+    agent_slug: str,
     body: CreateDiscountCodeRequest,
     db: AsyncSession = Depends(get_async_db),
     account=Depends(get_current_account),
@@ -70,7 +70,7 @@ async def create_discount_code(
     """Create a discount code for an agent."""
     from datetime import UTC, datetime
 
-    agent_result = await db.execute(select(Agent).where(Agent.agent_name == agent_name, Agent.tenant_id == tenant_id))
+    agent_result = await db.execute(select(Agent).where(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
     agent = agent_result.scalar_one_or_none()
     if agent is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
@@ -105,9 +105,9 @@ async def create_discount_code(
     return {"code": code.__dict__}
 
 
-@router.delete("/{agent_name}/discount-codes/{code_id}")
+@router.delete("/{agent_slug}/discount-codes/{code_id}")
 async def delete_discount_code(
-    agent_name: str,
+    agent_slug: str,
     code_id: UUID,
     db: AsyncSession = Depends(get_async_db),
     account=Depends(get_current_account),
