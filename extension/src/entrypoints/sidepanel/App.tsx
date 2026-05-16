@@ -78,13 +78,7 @@ export default function App() {
       const tab = tabs[0];
       if (tab?.url) {
         setPageUrl(tab.url);
-        // Check if content script is available
-        try {
-          await chrome.tabs.sendMessage(tab.id!, { type: 'GET_PAGE_CONTEXT', mode: 'viewport' });
-          setContextAvailable(true);
-        } catch {
-          setContextAvailable(false);
-        }
+        setContextAvailable(tab.url.startsWith('http'));
       }
 
       setInitializing(false);

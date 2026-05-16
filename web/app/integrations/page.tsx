@@ -20,8 +20,9 @@ import {
 } from 'lucide-react'
 import PublicPageFrame from '@/components/public/PublicPageFrame'
 
-const CHROME_EXTENSION_URL = process.env.NEXT_PUBLIC_CHROME_EXTENSION_URL || 'https://chrome.google.com/webstore'
-const FLUTTER_PUB_URL = process.env.NEXT_PUBLIC_FLUTTER_PUB_URL || 'https://pub.dev'
+const GITHUB_REPO_URL = 'https://github.com/getsynkora/synkora-ai'
+const CHROME_EXTENSION_URL = process.env.NEXT_PUBLIC_CHROME_EXTENSION_URL || `${GITHUB_REPO_URL}/tree/master/extension`
+const FLUTTER_PUB_URL = process.env.NEXT_PUBLIC_FLUTTER_PUB_URL || 'https://pub.dev/packages/synkora_chat'
 
 const widgetFeatures = [
   'One script tag — works on any website or web app',
@@ -203,7 +204,7 @@ export default function IntegrationsPage() {
                       Get your embed code
                       <ArrowRight className="w-4 h-4" />
                     </Link>
-                    <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/80 px-6 py-3 text-sm font-semibold text-[#171717] transition-colors hover:bg-white">
+                    <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/80 px-6 py-3 text-sm font-semibold text-[#171717] transition-colors hover:bg-white">
                       <Code2 className="w-4 h-4" />
                       View Source
                       <ExternalLink className="w-3 h-3" />
@@ -269,7 +270,7 @@ export default function IntegrationsPage() {
                       <Download className="w-4 h-4" />
                       Install Extension
                     </a>
-                    <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/80 px-6 py-3 text-sm font-semibold text-[#171717] transition-colors hover:bg-white">
+                    <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/80 px-6 py-3 text-sm font-semibold text-[#171717] transition-colors hover:bg-white">
                       <Code2 className="w-4 h-4" />
                       View Source
                       <ExternalLink className="w-3 h-3" />
@@ -380,7 +381,7 @@ export default function IntegrationsPage() {
                       <Package className="w-4 h-4" />
                       View on pub.dev
                     </a>
-                    <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/80 px-6 py-3 text-sm font-semibold text-[#171717] transition-colors hover:bg-white">
+                    <a href={`${GITHUB_REPO_URL}/tree/master/flutter`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/80 px-6 py-3 text-sm font-semibold text-[#171717] transition-colors hover:bg-white">
                       <Terminal className="w-4 h-4" />
                       View Source
                       <ExternalLink className="w-3 h-3" />

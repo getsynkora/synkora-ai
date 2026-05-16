@@ -58,7 +58,7 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="https://docs.synkora.ai" target="_blank" className="text-sm text-[#b8b0a4] transition-colors hover:text-white">
+                <Link href="/docs" className="text-sm text-[#b8b0a4] transition-colors hover:text-white">
                   Documentation
                 </Link>
               </li>
@@ -79,7 +79,7 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="https://blog.synkora.ai" target="_blank" className="text-sm text-[#b8b0a4] transition-colors hover:text-white">
+                <Link href="/blog" className="text-sm text-[#b8b0a4] transition-colors hover:text-white">
                   Blog
                 </Link>
               </li>

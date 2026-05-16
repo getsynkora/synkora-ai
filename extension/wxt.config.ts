@@ -6,8 +6,7 @@ export default defineConfig({
   manifest: {
     name: 'Synkora Agent',
     description: 'Access your Synkora AI agents on any webpage',
-    version: '0.1.0',
-    permissions: ['storage', 'sidePanel', 'alarms', 'contextMenus', 'activeTab', 'tabs', 'identity'],
+permissions: ['storage', 'sidePanel', 'alarms', 'contextMenus', 'activeTab', 'tabs', 'identity', 'scripting'],
     optional_host_permissions: ['*://*/*'],
     action: {},
     commands: {

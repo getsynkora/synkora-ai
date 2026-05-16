@@ -5,6 +5,7 @@ import gsap from 'gsap'
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin'
 import Link from 'next/link'
 import { Check, Database, Globe2, ShieldCheck, Sparkles, Workflow } from 'lucide-react'
+import { useGitHubStars, formatStars } from '@/lib/hooks/useGitHubStars'
 
 gsap.registerPlugin(MotionPathPlugin)
 
@@ -55,6 +56,7 @@ export default function AnimatedHero() {
   const heroRef = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const artRef = useRef<HTMLDivElement>(null)
+  const stars = useGitHubStars()
 
   useEffect(() => {
     const artElement = artRef.current
@@ -293,12 +295,17 @@ export default function AnimatedHero() {
               <span className="text-black/20">|</span>
               <span className="text-sm font-medium text-[#5f5a52]">MIT License</span>
               <span className="text-black/20">|</span>
-              <span className="flex items-center gap-1 text-sm font-medium text-[#5f5a52]">
-                <svg className="h-3.5 w-3.5 fill-current text-[#d5a84d]" viewBox="0 0 24 24">
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              <a
+                href="https://github.com/getsynkora/synkora-ai"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-sm font-medium text-[#5f5a52] hover:text-[#3d3933]"
+              >
+                <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
                 </svg>
-                Star us on GitHub
-              </span>
+                {stars !== null ? formatStars(stars) : 'Star on GitHub'}
+              </a>
             </div>
 
             <h1 ref={titleRef} className="max-w-4xl text-5xl font-medium leading-[0.92] tracking-[-0.05em] text-[#171717] md:text-7xl">

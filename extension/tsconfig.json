@@ -7,7 +7,7 @@
     "paths": {
       "@/*": ["src/*"]
     },
-    "types": ["vitest/globals"]
+    "types": ["vitest/globals", "chrome"]
   },
   "include": ["src/**/*", ".wxt/wxt.d.ts"]
 }

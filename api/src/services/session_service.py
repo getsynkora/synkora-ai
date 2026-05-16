@@ -9,6 +9,7 @@ import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
 
+import jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -186,6 +187,12 @@ class SessionService:
 
         except ValueError:
             raise
+        except jwt.ExpiredSignatureError:
+            # Expected when a user's refresh token has naturally expired — not an error.
+            raise ValueError("Session expired. Please log in again.")
+        except jwt.InvalidTokenError as e:
+            logger.warning(f"Invalid refresh token: {e}")
+            raise ValueError("Invalid session token. Please log in again.")
         except Exception as e:
             logger.error(f"Failed to refresh session: {e}")
             raise ValueError(f"Failed to refresh session: {str(e)}") from e
