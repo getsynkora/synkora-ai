@@ -199,34 +199,23 @@ async def create_agent(
         await db.refresh(db_agent)
 
         # Enable AgentTool records for any tool categories in the request
-        # (category names like "news_tools" must be mapped to real tool names)
+        # (direct per-category patterns — avoids enabling unrelated tools in the same capability group)
         if request.config.tools:
             try:
                 import fnmatch
 
-                from src.controllers.agents.tools import CAPABILITIES
                 from src.models.agent_tool import AgentTool
                 from src.services.agents.adk_tools import tool_registry
-                from src.services.agents.internal_tools.platform_tools import TOOL_CATEGORY_TO_CAPABILITY_ID
+                from src.services.agents.internal_tools.platform_tools import TOOL_CATEGORY_TO_PATTERNS
 
                 available_tool_names = [t["name"] for t in tool_registry.list_tools()]
                 requested_categories = [t.name for t in request.config.tools]
 
-                capability_ids = list(
-                    {
-                        TOOL_CATEGORY_TO_CAPABILITY_ID[cat]
-                        for cat in requested_categories
-                        if cat in TOOL_CATEGORY_TO_CAPABILITY_ID
-                    }
-                )
-
                 matched_tools: set[str] = set()
-                for cap_id in capability_ids:
-                    capability = next((c for c in CAPABILITIES if c["id"] == cap_id), None)
-                    if not capability:
-                        continue
+                for cat in requested_categories:
+                    patterns = TOOL_CATEGORY_TO_PATTERNS.get(cat, [])
                     for tool_name in available_tool_names:
-                        if any(fnmatch.fnmatch(tool_name, p) for p in capability["tool_patterns"]):
+                        if any(fnmatch.fnmatch(tool_name, p) for p in patterns):
                             matched_tools.add(tool_name)
 
                 for tool_name in matched_tools:

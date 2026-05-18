@@ -693,6 +693,8 @@ class MultiProviderLLMClient:
                         error=None,
                         sequence=_rt.event_sequence,
                         system_prompt=(prompt or "")[:2000] if prompt else None,
+                        cache_read_tokens=int(_api_usage.get("cache_read_tokens") or 0),
+                        cache_creation_tokens=int(_api_usage.get("cache_creation_tokens") or 0),
                     )
             except Exception:
                 pass  # never block LLM response

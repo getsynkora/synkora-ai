@@ -30,7 +30,7 @@ class LocalCache {
   // Save / upsert
   // ---------------------------------------------------------------------------
 
-  Future<void> upsertMessages(String widgetKey, List<ChatMessage> messages) async {
+  Future<void> upsertMessages(String widgetKey, List<ChatMessage> messages, {String? convId}) async {
     await _db.batch((batch) {
       for (final msg in messages) {
         batch.insert(
@@ -38,7 +38,7 @@ class LocalCache {
           MessagesCompanion(
             id: Value(msg.id),
             widgetKey: Value(widgetKey),
-            convId: Value(msg.id), // convId stored separately when available
+            convId: Value(convId),
             role: Value(msg.role == MessageRole.user ? 'user' : 'assistant'),
             content: Value(msg.content),
             ts: Value(msg.timestamp),
@@ -73,6 +73,14 @@ class LocalCache {
     await (_db.delete(_db.messages)
           ..where((t) => t.widgetKey.equals(widgetKey) & t.isStreaming.equals(true)))
         .go();
+  }
+
+  Future<void> clearMessages(String widgetKey, {String? convId}) async {
+    final query = _db.delete(_db.messages)..where((t) => t.widgetKey.equals(widgetKey));
+    if (convId != null) {
+      query.where((t) => t.convId.equals(convId));
+    }
+    await query.go();
   }
 
   // ---------------------------------------------------------------------------

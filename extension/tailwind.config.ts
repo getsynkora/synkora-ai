@@ -5,21 +5,33 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['"Avenir Next"', '"Helvetica Neue"', '"Segoe UI"', 'system-ui', 'sans-serif'],
       },
       colors: {
         synkora: {
-          50:  '#f0f4ff',
-          100: '#e0eaff',
-          200: '#c7d7fd',
-          300: '#a4bbfb',
-          400: '#7c97f7',
-          500: '#4f6ef7',
-          600: '#3b5ce6',
-          700: '#2d4bd4',
-          800: '#2239b0',
-          900: '#1e318d',
+          50:  '#eefbf6',
+          100: '#daf6ea',
+          200: '#b9edd9',
+          300: '#97e5ca',
+          400: '#79dfbc',
+          500: '#55c9a0',
+          600: '#34ad82',
+          700: '#2d8b69',
+          800: '#276e55',
+          900: '#225446',
         },
+        brand: {
+          canvas: '#f7f2e7',
+          panel: '#fffaf1',
+          surface: '#f2ebde',
+          line: '#ddd2c4',
+          ink: '#171717',
+          muted: '#6d675f',
+        },
+      },
+      boxShadow: {
+        card: '0 14px 40px rgba(23, 23, 23, 0.08)',
+        soft: '0 8px 24px rgba(23, 23, 23, 0.06)',
       },
       animation: {
         'fade-in':    'fadeIn 0.18s ease-out',

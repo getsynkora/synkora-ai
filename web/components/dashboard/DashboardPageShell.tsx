@@ -26,6 +26,7 @@ interface DashboardPageShellProps {
   children: ReactNode
   maxWidthClassName?: string
   breadcrumbs?: DashboardBreadcrumb[]
+  heroOverflowVisible?: boolean
 }
 
 interface DashboardPagePanelProps {
@@ -112,6 +113,7 @@ export default function DashboardPageShell({
   children,
   maxWidthClassName = 'max-w-7xl',
   breadcrumbs,
+  heroOverflowVisible = false,
 }: DashboardPageShellProps) {
   const crumbItems = breadcrumbs || [
     { label: 'Home', href: '/' },
@@ -145,7 +147,7 @@ export default function DashboardPageShell({
           })}
         </div>
 
-        <div className="mb-6 overflow-hidden rounded-[2rem] border border-[#eadfce] bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.96),_rgba(247,240,231,0.94)_50%,_rgba(237,230,220,0.92)_100%)] shadow-[0_28px_80px_-42px_rgba(88,63,39,0.32)]">
+        <div className={`mb-6 rounded-[2rem] border border-[#eadfce] bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.96),_rgba(247,240,231,0.94)_50%,_rgba(237,230,220,0.92)_100%)] shadow-[0_28px_80px_-42px_rgba(88,63,39,0.32)] ${heroOverflowVisible ? 'overflow-visible' : 'overflow-hidden'}`}>
           <div className="flex flex-col gap-6 p-6 md:p-8">
             {backHref && backLabel ? (
               <Link

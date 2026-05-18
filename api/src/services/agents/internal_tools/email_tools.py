@@ -81,6 +81,7 @@ async def internal_send_email(
             return {"success": False, "error": "Email body is required", "to_email": to_email}
 
         # Apply assigned email template if one exists for this agent
+        template_was_applied = False
         email_template_id = getattr(runtime_context, "email_template_id", None)
         if email_template_id and db:
             try:
@@ -93,10 +94,16 @@ async def internal_send_email(
                 if agent_id:
                     template = await resolve_agent_email_template(agent_id, db)
                     if template:
-                        # Wrap body first, then mark as HTML
                         raw_html = body if html else f"<p>{body.replace(chr(10), '<br>')}</p>"
-                        body = await apply_template_to_html(raw_html, template)
-                        html = True
+                        body, template_was_applied = await apply_template_to_html(
+                            raw_html,
+                            template,
+                            db=db,
+                            tenant_id=tenant_id,
+                            subject=subject,
+                        )
+                        if template_was_applied:
+                            html = True
             except Exception as _tmpl_exc:
                 logger.warning(f"Email template apply failed (continuing without): {_tmpl_exc}")
 
@@ -118,7 +125,8 @@ async def internal_send_email(
 
         # Check if we should use async (Celery) or sync sending
         use_async = config.get("async", True) if config else True
-        apply_branding = config.get("apply_branding", True) if config else True
+        # Skip the generic branding wrapper in Celery when an agent template was already applied
+        apply_branding = False if template_was_applied else (config.get("apply_branding", True) if config else True)
         attachments = config.get("attachments") if config else None
 
         if use_async:

@@ -456,25 +456,19 @@ async def platform_create_agent(
         )
         db.add(llm_cfg)
 
-        # Enable AgentTool records from tool categories
+        # Enable AgentTool records from tool categories (direct pattern match, not capability groups)
         if tools_list:
             import fnmatch
 
-            from src.controllers.agents.tools import CAPABILITIES
             from src.models.agent_tool import AgentTool
             from src.services.agents.adk_tools import tool_registry
 
             available_tool_names = [t["name"] for t in tool_registry.list_tools()]
-            capability_ids = list(
-                {TOOL_CATEGORY_TO_CAPABILITY_ID[cat] for cat in tools_list if cat in TOOL_CATEGORY_TO_CAPABILITY_ID}
-            )
             matched_tools: set[str] = set()
-            for cap_id in capability_ids:
-                capability = next((c for c in CAPABILITIES if c["id"] == cap_id), None)
-                if not capability:
-                    continue
+            for cat in tools_list:
+                patterns = TOOL_CATEGORY_TO_PATTERNS.get(cat, [])
                 for tool_name in available_tool_names:
-                    if any(fnmatch.fnmatch(tool_name, p) for p in capability["tool_patterns"]):
+                    if any(fnmatch.fnmatch(tool_name, p) for p in patterns):
                         matched_tools.add(tool_name)
 
             for tool_name in matched_tools:
@@ -498,7 +492,7 @@ async def platform_create_agent(
         return {"success": False, "message": str(e)}
 
 
-# Maps platform tool category names → capability IDs (used by enable_capabilities_bulk)
+# Maps platform tool category names → capability IDs (kept for backwards compat, not used for tool expansion)
 TOOL_CATEGORY_TO_CAPABILITY_ID: dict[str, str] = {
     "browser_tools": "browser-web",
     "scheduler_tools": "scheduling",
@@ -526,6 +520,112 @@ TOOL_CATEGORY_TO_CAPABILITY_ID: dict[str, str] = {
     "news_tools": "social-media",
     "spawn_agent_tool": "multi-agent",
     "newsletter_tools": "email",
+}
+
+# Direct per-category tool patterns — used for precise tool expansion.
+# Each category maps only to the tools it specifically provides, preventing
+# broad capability groups from enabling unrelated tools (e.g. news_tools
+# should not enable twitter/linkedin/youtube).
+TOOL_CATEGORY_TO_PATTERNS: dict[str, list[str]] = {
+    "browser_tools": [
+        "internal_browser_*",
+        "internal_navigate_*",
+        "internal_screenshot_*",
+        "internal_extract_*",
+        "internal_scrape_*",
+        "internal_web_*",
+        "web_search",
+        "navigate_to_url",
+        "extract_links",
+        "extract_structured_data",
+        "check_element_exists",
+    ],
+    "scheduler_tools": [
+        "internal_create_scheduled_task",
+        "internal_create_cron_scheduled_task",
+        "internal_list_scheduled_tasks",
+        "internal_delete_scheduled_task",
+        "internal_toggle_scheduled_task",
+        "internal_schedule_*",
+    ],
+    "email_tools": [
+        "internal_send_email",
+        "internal_send_bulk_emails",
+        "internal_test_email_connection",
+        "internal_email_*",
+    ],
+    "gmail_tools": ["internal_gmail_*", "internal_read_email*", "internal_search_email*"],
+    "push_notification_tools": ["internal_send_push_notification"],
+    "newsletter_tools": ["internal_render_newsletter"],
+    "file_tools": [
+        "internal_read_file",
+        "internal_write_file",
+        "internal_edit_file",
+        "internal_search_files",
+        "internal_get_file_info",
+        "internal_move_file",
+        "internal_create_directory",
+        "internal_list_directory",
+        "internal_directory_tree",
+        "internal_glob",
+        "internal_grep",
+        "internal_read_*_file",
+    ],
+    "storage_tools": ["internal_s3_*", "internal_storage_*"],
+    "google_drive_tools": [
+        "internal_google_drive_*",
+        "internal_google_docs_*",
+        "internal_google_sheets_*",
+    ],
+    "command_tools": ["internal_run_command", "internal_execute_*", "internal_process_*"],
+    "database_tools": [
+        "internal_query_*",
+        "internal_list_database_*",
+        "internal_get_database_*",
+        "query_databricks",
+        "query_datadog_*",
+        "query_docker_*",
+    ],
+    "elasticsearch_tools": ["internal_elasticsearch_*"],
+    "data_analysis_tools": [
+        "internal_generate_chart",
+        "internal_chart_*",
+        "analyze_*",
+        "export_data_*",
+        "generate_chart_from_*",
+    ],
+    "document_tools": [
+        "internal_generate_pdf",
+        "internal_generate_powerpoint",
+        "internal_*_pdf",
+        "internal_*_pptx",
+        "internal_*_docx",
+    ],
+    "kb_ingest_tools": ["internal_kb_*"],
+    "news_tools": [
+        "internal_hackernews_*",
+        "internal_hn_*",
+        "internal_news_*",
+        "internal_fetch_rss_*",
+    ],
+    "github_tools": [
+        "internal_github_*",
+        "internal_git_*",
+        "internal_pr_review_*",
+        "internal_create_github_*",
+        "internal_deploy_*_github*",
+        "internal_enable_github_*",
+    ],
+    "gitlab_tools": ["internal_gitlab_*"],
+    "slack_tools": ["internal_slack_*", "internal_send_slack_*", "internal_search_slack_*"],
+    "jira_tools": ["internal_*jira_*"],
+    "clickup_tools": ["internal_*clickup_*", "internal_get_sprint_*"],
+    "zoom_tools": ["internal_zoom_*"],
+    "google_calendar_tools": ["internal_google_calendar_*"],
+    "twitter_tools": ["internal_twitter_*"],
+    "linkedin_tools": ["internal_linkedin_*"],
+    "youtube_tools": ["internal_youtube_*"],
+    "spawn_agent_tool": ["spawn_agent", "check_task", "list_background_tasks", "call_remote_agent"],
 }
 
 
@@ -581,29 +681,20 @@ async def platform_update_agent(
                 return {"success": False, "message": "status must be ACTIVE or INACTIVE"}
             agent.status = status.upper()
 
-        # Enable tools via AgentTool rows (same as capabilities/bulk endpoint)
+        # Enable tools via AgentTool rows (direct pattern match, not capability groups)
         tools_enabled: list[str] = []
         if tools_list:
             import fnmatch
 
-            from src.controllers.agents.tools import CAPABILITIES
             from src.models.agent_tool import AgentTool
             from src.services.agents.adk_tools import tool_registry
 
             available_tool_names = [t["name"] for t in tool_registry.list_tools()]
 
-            # Collect unique capability IDs from the requested tool categories
-            capability_ids = list(
-                {TOOL_CATEGORY_TO_CAPABILITY_ID[cat] for cat in tools_list if cat in TOOL_CATEGORY_TO_CAPABILITY_ID}
-            )
-
-            # For each capability, match and enable tools
-            for cap_id in capability_ids:
-                capability = next((c for c in CAPABILITIES if c["id"] == cap_id), None)
-                if not capability:
-                    continue
+            for cat in tools_list:
+                patterns = TOOL_CATEGORY_TO_PATTERNS.get(cat, [])
                 for tool_name in available_tool_names:
-                    if any(fnmatch.fnmatch(tool_name, p) for p in capability["tool_patterns"]):
+                    if any(fnmatch.fnmatch(tool_name, p) for p in patterns):
                         existing = (
                             await db.execute(
                                 select(AgentTool).where(

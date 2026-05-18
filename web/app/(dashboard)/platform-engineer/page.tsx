@@ -36,7 +36,7 @@ interface ToolStatus {
 }
 
 interface PEMessage extends Message {
-  _actionCard?: ActionCard & { status: ActionCardStatus; createdAgentName?: string }
+  _actionCard?: ActionCard & { status: ActionCardStatus; createdAgentName?: string; createdAgentSlug?: string }
   _integrationCard?: IntegrationCard
 }
 
@@ -278,12 +278,13 @@ export default function PlatformEngineerPage() {
       // Response: { success, message, data: { agent_id, agent_name } }
       const responseData = res.data?.data || res.data
       const created = responseData?.agent_name || config.name
+      const createdSlug: string | undefined = responseData?.slug
       const agentId: string | undefined = responseData?.agent_id
 
       setMessages((prev) =>
         prev.map((m) => {
           if (m._actionCard?.status === 'creating') {
-            return { ...m, _actionCard: { ...m._actionCard!, status: 'created', createdAgentName: created } }
+            return { ...m, _actionCard: { ...m._actionCard!, status: 'created', createdAgentName: created, createdAgentSlug: createdSlug } }
           }
           // Cancel any remaining pending duplicates for the same agent name
           if (m._actionCard?.status === 'pending' && m._actionCard.config?.name === config.name) {
@@ -541,7 +542,7 @@ export default function PlatformEngineerPage() {
                   )}
                   {msg._actionCard?.status === 'created' && msg._actionCard.createdAgentName && (
                     <div className="px-4 md:px-8 -mt-2 mb-4 ml-10">
-                      <AgentCreatedCard agentName={msg._actionCard.createdAgentName} />
+                      <AgentCreatedCard agentName={msg._actionCard.createdAgentName} agentSlug={msg._actionCard.createdAgentSlug} />
                     </div>
                   )}
                   {msg._integrationCard && (

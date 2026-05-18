@@ -5,17 +5,17 @@ void main() {
   group('WidgetTheme.fromJson', () {
     test('parses hex color correctly', () {
       final theme = WidgetTheme.fromJson({'primary_color': '#6366F1'});
-      expect(theme.primaryColor.value, 0xFF6366F1);
+      expect(theme.primaryColor.toARGB32(), 0xFF6366F1);
     });
 
     test('falls back to default color on empty string', () {
       final theme = WidgetTheme.fromJson({'primary_color': ''});
-      expect(theme.primaryColor.value, 0xFF6366F1);
+      expect(theme.primaryColor.toARGB32(), 0xFF79DFBC);
     });
 
     test('falls back to default color on invalid hex', () {
       final theme = WidgetTheme.fromJson({'primary_color': 'notacolor'});
-      expect(theme.primaryColor.value, 0xFF6366F1);
+      expect(theme.primaryColor.toARGB32(), 0xFF79DFBC);
     });
 
     test('parses welcome_message and placeholder', () {
@@ -51,7 +51,7 @@ void main() {
       expect(config.agentAvatarUrl, 'https://example.com/avatar.png');
       expect(config.suggestionPrompts.length, 1);
       expect(config.suggestionPrompts[0].title, 'Help');
-      expect(config.theme.primaryColor.value, 0xFFFF5733);
+      expect(config.theme.primaryColor.toARGB32(), 0xFFFF5733);
     });
 
     test('handles missing optional fields', () {

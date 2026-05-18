@@ -7,6 +7,7 @@ export interface ActionCard {
   config: AgentCreateConfig
   status: ActionCardStatus
   createdAgentName?: string
+  createdAgentSlug?: string
 }
 
 export interface IntegrationCard {

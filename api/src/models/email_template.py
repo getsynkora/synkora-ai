@@ -58,7 +58,7 @@ class EmailTemplate(BaseModel):
     builtin_name = Column(
         String(50),
         nullable=True,
-        comment="Built-in template name: 'editorial' or 'minimal'",
+        comment="Built-in template name: 'editorial', 'minimal', 'micromobility', or 'data-engineering'",
     )
     html_content = Column(
         Text,

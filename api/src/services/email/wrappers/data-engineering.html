@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ subject }}</title>
+    <!--[if mso]>
+    <style type="text/css">
+        body, table, td { font-family: Arial, sans-serif !important; }
+    </style>
+    <![endif]-->
+    <style>
+        body, table, td, p, h1, h2, h3, h4 { margin: 0; padding: 0; }
+        img { border: 0; display: block; }
+        a { text-decoration: none; }
+
+        /* ── Shared brand tokens ── */
+        /* bg: #fcfaf5  |  primary: {{ primary_color }}  |  dark: #171717  |  amber: #f0c56d */
+
+        .label {
+            font-family: 'Avenir Next', 'Helvetica Neue', 'Segoe UI', Arial, sans-serif;
+            font-size: 9px; font-weight: 700;
+            letter-spacing: 3px; text-transform: uppercase;
+        }
+        .mono {
+            font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+            font-size: 11px; letter-spacing: 0.5px;
+        }
+
+        /* ── Content area ── */
+        .content-body h1 {
+            font-family: 'Avenir Next', 'Helvetica Neue', 'Segoe UI', Arial, sans-serif;
+            font-size: 28px; font-weight: 700; line-height: 1.08;
+            color: #171717; margin: 0 0 10px; letter-spacing: -1px;
+        }
+        .content-body h2 {
+            font-family: 'Avenir Next', 'Helvetica Neue', 'Segoe UI', Arial, sans-serif;
+            font-size: 10px; font-weight: 700; letter-spacing: 3px;
+            text-transform: uppercase; color: {{ primary_color }};
+            margin: 28px 0 10px; padding-bottom: 8px;
+            border-bottom: 1px solid #e8e3d8;
+        }
+        .content-body h3 {
+            font-family: 'Avenir Next', 'Helvetica Neue', 'Segoe UI', Arial, sans-serif;
+            font-size: 18px; font-weight: 600; color: #171717;
+            margin: 18px 0 7px; letter-spacing: -0.3px;
+        }
+        .content-body p {
+            font-family: 'Avenir Next', 'Helvetica Neue', 'Segoe UI', Arial, sans-serif;
+            font-size: 14px; line-height: 1.72; color: #403a34;
+            margin: 0 0 12px;
+        }
+        .content-body a { color: {{ secondary_color }}; border-bottom: 1px solid {{ primary_color }}; }
+        .content-body strong, .content-body b { color: #171717; font-weight: 700; }
+        .content-body em { font-style: italic; }
+        .content-body hr { border: none; border-top: 1px solid #e8e3d8; margin: 20px 0; }
+        .content-body ul, .content-body ol { padding-left: 18px; margin: 0 0 12px; }
+        .content-body li {
+            font-family: 'Avenir Next', 'Helvetica Neue', 'Segoe UI', Arial, sans-serif;
+            font-size: 14px; line-height: 1.68; color: #403a34; margin-bottom: 6px;
+        }
+
+        /* ── Data tables — brand-styled ── */
+        .content-body table {
+            border-collapse: collapse; width: 100%; margin: 0 0 20px;
+        }
+        .content-body table thead tr {
+            background: {{ primary_color }};
+        }
+        .content-body table thead th {
+            font-family: 'Avenir Next', 'Helvetica Neue', 'Segoe UI', Arial, sans-serif;
+            font-size: 9px; font-weight: 700; letter-spacing: 2px;
+            text-transform: uppercase; color: #ffffff;
+            padding: 10px 14px; text-align: left;
+        }
+        .content-body table tbody tr { background: #ffffff; }
+        .content-body table tbody tr:nth-child(even) { background: #f7f4ed; }
+        .content-body table tbody td {
+            font-family: 'Avenir Next', 'Helvetica Neue', 'Segoe UI', Arial, sans-serif;
+            font-size: 13px; color: #3d3d3d;
+            padding: 9px 14px; border-bottom: 1px solid #e8e3d8;
+        }
+        .content-body table tbody td:first-child {
+            font-weight: 600; color: #171717;
+        }
+
+        /* ── Inline metric numbers ── */
+        .content-body .metric-value {
+            font-family: 'Avenir Next', 'Helvetica Neue', 'Segoe UI', Arial, sans-serif;
+            font-size: 34px; font-weight: 700;
+            color: {{ primary_color }}; line-height: 1;
+            letter-spacing: -1.2px;
+        }
+        .content-body .metric-label {
+            font-family: 'Avenir Next', 'Helvetica Neue', 'Segoe UI', Arial, sans-serif;
+            font-size: 9px; letter-spacing: 2.5px;
+            text-transform: uppercase; color: #888;
+        }
+
+        /* ── Bar charts (div-based) ── */
+        .content-body .bar-track {
+            background: #e8e3d8; border-radius: 2px; height: 7px;
+            width: 100%; margin: 4px 0 10px;
+        }
+        .content-body .bar-fill {
+            background: {{ primary_color }}; height: 7px; border-radius: 2px;
+        }
+        .content-body .bar-fill-amber {
+            background: #f0c56d; height: 7px; border-radius: 2px;
+        }
+
+        /* ── Status pills ── */
+        .content-body .pill-ok    { display:inline-block; background:#e6f4ee; color:{{ primary_color }}; border:1px solid {{ primary_color }}; font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif; font-size:9px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; padding:3px 10px; border-radius:20px; }
+        .content-body .pill-warn  { display:inline-block; background:#fdf6e0; color:#a07000; border:1px solid #f0c56d; font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif; font-size:9px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; padding:3px 10px; border-radius:20px; }
+        .content-body .pill-error { display:inline-block; background:#fdecea; color:#c0392b; border:1px solid #e07060; font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif; font-size:9px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; padding:3px 10px; border-radius:20px; }
+
+        /* ── Highlight / callout box ── */
+        .content-body .callout {
+            background: #f0f9f5; border-left: 3px solid {{ primary_color }};
+            padding: 14px 18px; margin: 16px 0;
+        }
+        .content-body .callout p { margin: 0; color: #2a5c45; }
+
+        @media only screen and (max-width: 520px) {
+            .kpi-cell { display: block !important; width: 100% !important; border-right: none !important; border-bottom: 1px solid #e8e3d8 !important; }
+            .side-col { display: none !important; }
+            .main-col { width: 100% !important; }
+        }
+    </style>
+</head>
+<body style="margin:0;padding:0;background-color:#f2ebe0;font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;">
+
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+       style="background-color:#f2ebe0;">
+  <tr>
+    <td align="center" style="padding:20px 8px 36px;">
+
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+             style="max-width:660px;width:100%;">
+
+        <!-- Top double rule — same as micromobility -->
+        <tr><td>
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr><td style="height:5px;background:#171717;"></td></tr>
+            <tr><td style="height:2px;background:#f2ebe0;"></td></tr>
+            <tr><td style="height:1px;background:#171717;"></td></tr>
+          </table>
+        </td></tr>
+
+        <!-- MASTHEAD -->
+        <tr><td style="background:#fdfbf5;padding:20px 32px 0;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+
+            <!-- Top meta row -->
+            <tr><td style="padding-bottom:10px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:10.5px;color:#6d675f;">Operations Report</td>
+                  <td align="center">
+                    <span style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:10px;color:#c2b8ab;">&#10022; &#10022; &#10022;</span>
+                  </td>
+                  <td align="right" style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:10.5px;color:#6d675f;">Daily Edition</td>
+                </tr>
+              </table>
+            </td></tr>
+
+            <!-- Nameplate -->
+            <tr><td align="center" style="padding:6px 0 14px;border-top:1px solid #171717;border-bottom:1px solid #171717;">
+              {% if logo_url %}
+                <img src="{{ logo_url }}" alt="{{ platform_name }}"
+                     style="max-height:52px;max-width:200px;display:inline-block;">
+              {% else %}
+                <div style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:11px;font-weight:700;
+                            letter-spacing:4px;text-transform:uppercase;color:#8c7a66;margin-bottom:7px;">Synkora</div>
+                <div style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:42px;
+                            font-weight:700;line-height:0.95;letter-spacing:-2px;color:#171717;">{{ platform_name }}</div>
+                <div style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:11px;
+                            font-weight:600;letter-spacing:2.4px;text-transform:uppercase;color:#7d746a;margin-top:9px;">
+                  Data &amp; Operations Review
+                </div>
+              {% endif %}
+            </td></tr>
+
+            <!-- Subject line -->
+            <tr><td style="padding:7px 0 0;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td>
+                    <span style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:10.5px;
+                                 color:{{ primary_color }};font-weight:bold;">&#9632;&nbsp;</span>
+                    <span style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:10.5px;color:#5f584f;">{{ subject }}</span>
+                  </td>
+                  <td align="right">
+                    <span style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:10.5px;color:#b7aea2;">Vol. I</span>
+                  </td>
+                </tr>
+              </table>
+            </td></tr>
+          </table>
+        </td></tr>
+
+        <!-- Section header bar -->
+        <tr><td>
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="background:#171717;padding:8px 32px;">
+                <span class="label" style="color:#ffffff;">Key Metrics</span>
+              </td>
+              <td style="background:{{ primary_color }};padding:8px 20px;" align="right">
+                <span class="label" style="color:#ffffff;">{{ platform_name }}</span>
+              </td>
+            </tr>
+          </table>
+        </td></tr>
+
+        <!-- KPI CARDS — brand cream + green numbers -->
+        <tr><td style="border-left:1px solid #ddd8cc;border-right:1px solid #ddd8cc;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td class="kpi-cell"
+                  style="width:25%;background:#fdfbf5;padding:18px 18px 16px;
+                         border-right:1px solid #e8e3d8;border-bottom:1px solid #e8e3d8;
+                         vertical-align:top;">
+                <div class="label" style="color:#aaa;margin-bottom:10px;">Records</div>
+                <div style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:28px;
+                            font-weight:700;color:{{ primary_color }};line-height:1;
+                            letter-spacing:-1px;">—</div>
+                <div style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:10px;
+                            color:#aaa;margin-top:6px;">Processed</div>
+              </td>
+              <td class="kpi-cell"
+                  style="width:25%;background:#fdfbf5;padding:18px 18px 16px;
+                         border-right:1px solid #e8e3d8;border-bottom:1px solid #e8e3d8;
+                         vertical-align:top;">
+                <div class="label" style="color:#aaa;margin-bottom:10px;">Pipelines</div>
+                <div style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:28px;
+                            font-weight:700;color:#171717;line-height:1;
+                            letter-spacing:-1px;">—</div>
+                <div style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:10px;
+                            color:#aaa;margin-top:6px;">Completed</div>
+              </td>
+              <td class="kpi-cell"
+                  style="width:25%;background:#fdfbf5;padding:18px 18px 16px;
+                         border-right:1px solid #e8e3d8;border-bottom:1px solid #e8e3d8;
+                         vertical-align:top;">
+                <div class="label" style="color:#aaa;margin-bottom:10px;">Errors</div>
+                <div style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:28px;
+                            font-weight:700;color:#171717;line-height:1;
+                            letter-spacing:-1px;">—</div>
+                <div style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:10px;
+                            color:#aaa;margin-top:6px;">Last 24h</div>
+              </td>
+              <td class="kpi-cell"
+                  style="width:25%;background:#fdfbf5;padding:18px 18px 16px;
+                         border-bottom:1px solid #e8e3d8;vertical-align:top;">
+                <div class="label" style="color:#aaa;margin-bottom:10px;">Uptime</div>
+                <div style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:28px;
+                            font-weight:700;color:{{ primary_color }};line-height:1;
+                            letter-spacing:-1px;">—</div>
+                <div style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:10px;
+                            color:#aaa;margin-top:6px;">Rolling 30d</div>
+              </td>
+            </tr>
+          </table>
+        </td></tr>
+
+        <!-- Second section bar -->
+        <tr><td>
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="background:#171717;padding:8px 32px;">
+                <span class="label" style="color:#ffffff;">Report</span>
+              </td>
+              <td style="background:#f0c56d;padding:8px 20px;" align="right">
+                <span class="label" style="color:#171717;">Daily Summary</span>
+              </td>
+            </tr>
+          </table>
+        </td></tr>
+
+        <!-- BODY: two-column -->
+        <tr><td style="background:#fdfbf5;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr valign="top">
+
+              <!-- LEFT: main content -->
+              <td class="main-col"
+                  style="width:64%;padding:26px 20px 26px 32px;
+                         border-right:1px solid #e8e3d8;
+                         border-left:1px solid #ddd8cc;
+                         vertical-align:top;">
+                <div class="content-body">
+                  {{ content }}
+                </div>
+              </td>
+
+              <!-- RIGHT: sidebar -->
+              <td class="side-col"
+                  style="width:36%;padding:26px 28px 26px 20px;
+                         border-right:1px solid #ddd8cc;
+                         vertical-align:top;background:#f7f4ec;">
+
+                <!-- About kicker -->
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:14px;">
+                  <tr>
+                    <td style="border-top:3px solid #171717;border-bottom:1px solid #171717;padding:5px 0;">
+                      <span class="label" style="color:#171717;">About This Report</span>
+                    </td>
+                  </tr>
+                </table>
+
+                <p style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:13px;
+                           line-height:1.74;color:#5f554a;margin:0 0 16px;">
+                  Generated by the
+                  <strong style="color:#171717;">{{ platform_name }}</strong>
+                  AI platform. Data sourced, aggregated, and reported automatically.
+                </p>
+
+                <!-- Green/amber stripe -->
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:18px;">
+                  <tr>
+                    <td style="height:3px;background:{{ primary_color }};width:50%;"></td>
+                    <td style="height:3px;background:#f0c56d;width:30%;"></td>
+                    <td style="height:3px;background:#e8e3d8;width:20%;"></td>
+                  </tr>
+                </table>
+
+                <!-- Pull stat box -->
+                <table width="100%" cellpadding="0" cellspacing="0" border="0"
+                       style="border:1px solid #e8e3d8;margin-bottom:18px;">
+                  <tr>
+                    <td style="background:{{ primary_color }};padding:3px 14px;">
+                      <span class="label" style="color:#fff;">At a glance</span>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="background:#fff;padding:16px 14px;">
+                      <div style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;
+                                  font-size:34px;font-weight:700;color:#f0c56d;
+                                  line-height:1;margin-bottom:2px;">&ldquo;</div>
+                      <p style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;
+                                 font-size:13px;font-style:italic;line-height:1.65;
+                                 color:#444;margin:0 0 10px;">
+                        Data is the backbone of every good decision.
+                      </p>
+                      <span class="label" style="color:{{ primary_color }};">Ops Team</span>
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Kicker -->
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:12px;">
+                  <tr>
+                    <td style="border-top:2px solid #171717;border-bottom:1px solid #171717;padding:5px 0;">
+                      <span class="label" style="color:#171717;">Powered By</span>
+                    </td>
+                  </tr>
+                </table>
+                <p style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:11px;
+                           line-height:1.8;color:#7d746a;margin:0;">
+                  AI agents &amp; automation.<br>
+                  <strong style="color:#4a433b;">{{ platform_name }}</strong> platform.
+                </p>
+
+              </td>
+            </tr>
+          </table>
+        </td></tr>
+
+        <!-- Bottom rule -->
+        <tr><td>
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr><td style="height:1px;background:#171717;"></td></tr>
+          </table>
+        </td></tr>
+
+        <!-- FOOTER -->
+        <tr><td style="background:#171717;padding:16px 32px;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr valign="middle">
+              <td>
+                <span style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:11px;color:#8f8578;line-height:1.7;">
+                  {{ footer_text }}
+                  {% if support_email %}
+                  &nbsp;&middot;&nbsp;
+                  <a href="mailto:{{ support_email }}" style="color:#b7afa2;text-decoration:underline;">Support</a>
+                  {% endif %}
+                </span>
+              </td>
+              <td align="right" style="white-space:nowrap;">
+                <a href="#" style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:11px;color:#b7afa2;text-decoration:underline;">Unsubscribe</a>
+                <span style="color:#6d675f;font-size:11px;">&nbsp;&middot;&nbsp;</span>
+                <a href="#" style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:11px;color:#b7afa2;text-decoration:underline;">Privacy</a>
+              </td>
+            </tr>
+          </table>
+        </td></tr>
+
+        <!-- Bottom accent stripe — green / amber / dark -->
+        <tr><td>
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="height:4px;background:{{ primary_color }};width:50%;"></td>
+              <td style="height:4px;background:#f0c56d;width:25%;"></td>
+              <td style="height:4px;background:#171717;width:25%;"></td>
+            </tr>
+          </table>
+        </td></tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>

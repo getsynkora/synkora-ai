@@ -1,11 +1,6 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
-
-gsap.registerPlugin(ScrollTrigger)
-
 const features = [
   {
     icon: '🧑‍💼',
@@ -30,31 +25,40 @@ export default function AnimatedFeatures() {
 
   useEffect(() => {
     const cards = cardsRef.current.filter(Boolean) as HTMLDivElement[]
-    const triggers: ScrollTrigger[] = []
+    const triggers: { kill: () => void }[] = []
+    let cancelled = false
 
-    cards.forEach((card, index) => {
-      const st = ScrollTrigger.create({
-        trigger: card,
-        start: 'top 82%',
-        onEnter: () => {
-          gsap.fromTo(
-            card,
-            { opacity: 0, y: 50 },
-            { opacity: 1, y: 0, duration: 0.7, delay: index * 0.12, ease: 'power3.out' }
-          )
-        },
-        once: true,
-      })
-      triggers.push(st)
+    Promise.all([import('gsap'), import('gsap/ScrollTrigger')]).then(
+      ([{ default: gsap }, { ScrollTrigger }]) => {
+        if (cancelled) return
+        gsap.registerPlugin(ScrollTrigger)
 
-      const onEnterHover = () => gsap.to(card, { y: -8, duration: 0.28, ease: 'power2.out' })
-      const onLeaveHover = () => gsap.to(card, { y: 0, duration: 0.28, ease: 'power2.out' })
+        cards.forEach((card, index) => {
+          const st = ScrollTrigger.create({
+            trigger: card,
+            start: 'top 82%',
+            onEnter: () => {
+              gsap.fromTo(
+                card,
+                { opacity: 0, y: 50 },
+                { opacity: 1, y: 0, duration: 0.7, delay: index * 0.12, ease: 'power3.out' }
+              )
+            },
+            once: true,
+          })
+          triggers.push(st)
 
-      card.addEventListener('mouseenter', onEnterHover)
-      card.addEventListener('mouseleave', onLeaveHover)
-    })
+          const onEnterHover = () => gsap.to(card, { y: -8, duration: 0.28, ease: 'power2.out' })
+          const onLeaveHover = () => gsap.to(card, { y: 0, duration: 0.28, ease: 'power2.out' })
+
+          card.addEventListener('mouseenter', onEnterHover)
+          card.addEventListener('mouseleave', onLeaveHover)
+        })
+      }
+    )
 
     return () => {
+      cancelled = true
       triggers.forEach((t) => t.kill())
     }
   }, [])

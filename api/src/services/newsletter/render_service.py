@@ -53,7 +53,7 @@ class NewsletterRenderService:
             pdf_url: Presigned URL for the generated PDF, injected into footer.
             image_url: Presigned URL for the OG share image, injected into footer.
             width: Container width in px (680 for email, 1200 for PDF/OG image).
-            template: Built-in template name ("editorial" or "minimal") or custom name.
+            template: Built-in template name ("editorial", "minimal", or "micromobility") or custom name.
             custom_template_html: Raw Jinja2 HTML string for tenant-uploaded templates.
 
         Returns:

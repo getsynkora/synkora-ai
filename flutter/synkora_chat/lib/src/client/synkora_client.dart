@@ -35,8 +35,12 @@ class SynkoraClient {
   // ---------------------------------------------------------------------------
 
   Future<WidgetConfig> loadConfig() async {
-    final response = await _dio.get<Map<String, dynamic>>('/api/v1/widgets/config');
-    return WidgetConfig.fromJson(response.data!);
+    try {
+      final response = await _dio.get<Map<String, dynamic>>('/api/v1/widgets/config');
+      return WidgetConfig.fromJson(response.data!);
+    } on DioException catch (e) {
+      throw Exception(_describeDioError(e));
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -137,7 +141,7 @@ class SynkoraClient {
       }
     } on DioException catch (e) {
       if (e.type != DioExceptionType.cancel) {
-        controller.add(ErrorEvent(e.message ?? 'Network error'));
+        controller.add(ErrorEvent(_describeDioError(e)));
       }
     } catch (e) {
       controller.add(ErrorEvent(e.toString()));
@@ -175,7 +179,7 @@ class SynkoraClient {
   // History
   // ---------------------------------------------------------------------------
 
-  Future<List<ChatMessage>> loadHistory({
+  Future<WidgetChatHistory> loadHistoryBundle({
     String? userId,
     String? sessionId,
     int limit = 50,
@@ -192,11 +196,57 @@ class SynkoraClient {
         queryParameters: queryParams,
       );
 
-      final messages = response.data?['messages'] as List<dynamic>? ?? [];
-      return messages.map((m) => _messageFromJson(m as Map<String, dynamic>)).toList();
+      final root = response.data ?? const <String, dynamic>{};
+      final payload = (root['data'] as Map<String, dynamic>?) ?? root;
+      final messages = (payload['messages'] as List<dynamic>? ?? [])
+          .map((m) => _messageFromJson(m as Map<String, dynamic>))
+          .toList();
+
+      return WidgetChatHistory(
+        conversationId: payload['conversation_id'] as String?,
+        messages: messages,
+      );
     } catch (_) {
-      return [];
+      return const WidgetChatHistory(conversationId: null, messages: []);
     }
+  }
+
+  Future<List<ChatMessage>> loadHistory({
+    String? userId,
+    String? sessionId,
+    int limit = 50,
+  }) async {
+    final history = await loadHistoryBundle(
+      userId: userId,
+      sessionId: sessionId,
+      limit: limit,
+    );
+    return history.messages;
+  }
+
+  String _describeDioError(DioException error) {
+    final statusCode = error.response?.statusCode;
+    final normalizedBase = baseUrl.replaceFirst(RegExp(r'^https?://'), '');
+
+    if (error.type == DioExceptionType.connectionTimeout ||
+        error.type == DioExceptionType.connectionError ||
+        error.type == DioExceptionType.unknown) {
+      return 'Cannot reach Synkora at $normalizedBase. Make sure the API is running and that this app can access $baseUrl.';
+    }
+
+    if (statusCode == 401 || statusCode == 403) {
+      return 'Synkora rejected this widget key. Check that the widget key is valid and belongs to the target instance.';
+    }
+
+    if (statusCode == 404) {
+      return 'Synkora responded, but the widget API route was not found at $normalizedBase. Check that your base URL points to the API server.';
+    }
+
+    if (statusCode != null && statusCode >= 500) {
+      return 'Synkora is reachable, but returned a server error ($statusCode). Check the API logs and try again.';
+    }
+
+    return error.message ?? 'Network error';
   }
 
   ChatMessage _messageFromJson(Map<String, dynamic> j) {

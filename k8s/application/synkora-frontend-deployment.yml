@@ -61,7 +61,7 @@ spec:
         - name: NEXT_PUBLIC_LOGS_URL
           value: "https://logs.synkora.ai"
         - name: NEXT_PUBLIC_COMING_SOON
-          value: "true"
+          value: "false"
         - name: PM2_INSTANCES
           value: "2"
         resources:

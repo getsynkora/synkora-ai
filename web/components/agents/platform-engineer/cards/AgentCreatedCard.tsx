@@ -5,10 +5,11 @@ import Link from 'next/link'
 
 interface Props {
   agentName: string
+  agentSlug?: string
 }
 
-export function AgentCreatedCard({ agentName }: Props) {
-  const encoded = encodeURIComponent(agentName)
+export function AgentCreatedCard({ agentName, agentSlug }: Props) {
+  const encoded = encodeURIComponent(agentSlug || agentName)
 
   return (
     <div className="border border-green-200 bg-green-50 rounded-xl p-4 space-y-3">

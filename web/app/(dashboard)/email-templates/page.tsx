@@ -22,12 +22,39 @@ const TYPE_LABELS: Record<EmailTemplateType, string> = {
 }
 
 const TYPE_COLORS: Record<EmailTemplateType, string> = {
-  BUILTIN: 'bg-blue-100 text-blue-700',
-  CUSTOM_HTML: 'bg-purple-100 text-purple-700',
-  SENDGRID: 'bg-green-100 text-green-700',
-  MAILCHIMP: 'bg-yellow-100 text-yellow-700',
-  BREVO: 'bg-orange-100 text-orange-700',
+  BUILTIN: 'bg-[#f2ece2] text-[#5f584f]',
+  CUSTOM_HTML: 'bg-[#e6f5ee] text-[#2d8b69]',
+  SENDGRID: 'bg-[#eaf5ee] text-[#317357]',
+  MAILCHIMP: 'bg-[#fff1d8] text-[#8d6b2c]',
+  BREVO: 'bg-[#fbe7de] text-[#a45c3c]',
 }
+
+const BUILTIN_LAYOUTS = [
+  {
+    value: 'editorial',
+    label: 'Editorial',
+    description: 'Magazine style, layered sections, warm premium look',
+  },
+  {
+    value: 'minimal',
+    label: 'Minimal',
+    description: 'Clean digest, restrained hierarchy, light and readable',
+  },
+  {
+    value: 'micromobility',
+    label: 'Micromobility',
+    description: 'OTORIDE-inspired operator dispatch branding for shared mobility briefings',
+  },
+  {
+    value: 'data-engineering',
+    label: 'Data Engineering',
+    description: 'Operations report layout for pipelines, metrics, and technical briefings',
+  },
+] as const
+
+const BUILTIN_LAYOUT_LABELS = Object.fromEntries(
+  BUILTIN_LAYOUTS.map((layout) => [layout.value, layout.label])
+) as Record<string, string>
 
 const STARTER_TEMPLATE = `<!DOCTYPE html>
 <html lang="en">
@@ -92,6 +119,9 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
+const inputCls = 'w-full rounded-[1.15rem] border border-[#e2d7c8] bg-white/90 px-4 py-3.5 text-sm text-gray-900 outline-none transition-all placeholder:text-[#8a8175] focus:border-[#2d8b69] focus:bg-white focus:ring-4 focus:ring-[#7de5c1]/25'
+const labelCls = 'mb-2 block text-sm font-semibold text-gray-700'
+
 function TemplateModal({
   editTarget, form, setForm, saving, onSave, onClose,
 }: {
@@ -104,50 +134,94 @@ function TemplateModal({
 }) {
   const isThirdParty = ['SENDGRID', 'MAILCHIMP', 'BREVO'].includes(form.template_type)
   const isCustom = form.template_type === 'CUSTOM_HTML'
-  const modalWidth = isCustom ? 'max-w-4xl' : 'max-w-lg'
+  const modalWidth = isCustom ? 'max-w-6xl' : 'max-w-2xl'
+  const typeOptionLabel =
+    form.template_type === 'BUILTIN'
+      ? 'Platform managed'
+      : form.template_type === 'CUSTOM_HTML'
+        ? 'Full control'
+        : 'External provider'
+  const typeSummary =
+    form.template_type === 'BUILTIN'
+      ? 'Use a clean built-in newsletter layout managed by the platform.'
+      : form.template_type === 'CUSTOM_HTML'
+        ? 'Wrap generated content inside your own HTML structure and branding.'
+        : 'Connect this template to a third-party provider while keeping agent-generated content reusable.'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className={`bg-white rounded-2xl shadow-2xl w-full ${modalWidth} max-h-[92vh] flex flex-col`}>
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="font-bold text-gray-900">{editTarget ? 'Edit Template' : 'New Email Template'}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(28,22,16,0.34)] p-4 backdrop-blur-[8px]">
+      <div className={`flex max-h-[92vh] w-full flex-col overflow-hidden rounded-[2rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.985),_rgba(249,245,239,0.965))] shadow-[0_36px_110px_-44px_rgba(73,45,23,0.36)] ${modalWidth}`}>
+        <div className="relative overflow-hidden border-b border-[#ece2d6] px-6 py-5">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.92),_rgba(247,240,231,0.78)_48%,_rgba(236,228,216,0.56)_100%)]" />
+          <div className="absolute right-8 top-2 h-24 w-24 rounded-full bg-[radial-gradient(circle,_rgba(125,229,193,0.22),_transparent_70%)]" />
+          <div className="absolute left-8 bottom-0 h-16 w-40 rounded-full bg-[radial-gradient(circle,_rgba(246,199,148,0.18),_transparent_72%)]" />
+
+          <div className="relative flex items-start justify-between gap-4">
+            <div>
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#5f584f] shadow-[0_12px_30px_-24px_rgba(30,22,14,0.45)]">
+                <Mail className="h-3.5 w-3.5 text-[#2d8b69]" />
+                Email Template
+              </div>
+              <h2 className="text-[2rem] font-semibold tracking-[-0.04em] text-gray-900">
+                {editTarget ? 'Edit Template' : 'New Email Template'}
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#6b645a]">
+                {typeSummary}
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="rounded-full border border-[#ddd2c4] bg-white/78 p-2.5 text-[#7a7267] shadow-[0_16px_30px_-24px_rgba(30,22,14,0.4)] transition-colors hover:bg-white hover:text-[#171717]"
+            >
+            <X size={18} />
+            </button>
+          </div>
         </div>
 
-        <div className={`overflow-y-auto flex-1 ${isCustom ? 'grid grid-cols-[1fr_280px]' : ''}`}>
-          {/* Left: form fields */}
-          <div className="px-6 py-5 space-y-4">
+        <div className={`min-h-0 flex-1 overflow-y-auto ${isCustom ? 'grid xl:grid-cols-[minmax(0,1fr)_320px]' : ''}`}>
+          <div className="space-y-5 px-6 py-6">
+            <div className="rounded-[1.5rem] border border-white/70 bg-white/75 px-4 py-3 shadow-[0_20px_45px_-38px_rgba(77,51,28,0.4)] backdrop-blur">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#766e63]">Template mode</span>
+                <span className="rounded-full bg-[#171717] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f7f2e7]">
+                  {TYPE_LABELS[form.template_type]}
+                </span>
+                <span className="rounded-full border border-[#dfd3c4] bg-[#f8f2e8] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7a6651]">
+                  {typeOptionLabel}
+                </span>
+              </div>
+            </div>
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+              <label className={labelCls}>Name *</label>
               <input
                 type="text"
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 placeholder="e.g. Weekly Report"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                className={inputCls}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <label className={labelCls}>Description</label>
               <input
                 type="text"
                 value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 placeholder="Optional description"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                className={inputCls}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Template Type</label>
+              <label className={labelCls}>Template Type</label>
               <select
                 value={form.template_type}
                 onChange={e => setForm(f => ({ ...f, template_type: e.target.value as EmailTemplateType }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                className={inputCls}
               >
-                <option value="BUILTIN">Built-in (editorial / minimal)</option>
+                <option value="BUILTIN">Built-in (editorial / minimal / micromobility / data engineering)</option>
                 <option value="CUSTOM_HTML">Custom HTML</option>
                 <option value="SENDGRID">SendGrid Dynamic Template</option>
                 <option value="MAILCHIMP">Mailchimp Template</option>
@@ -155,34 +229,35 @@ function TemplateModal({
               </select>
             </div>
 
-            {/* BUILTIN */}
             {form.template_type === 'BUILTIN' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Built-in layout</label>
+              <div className="rounded-[1.5rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.9),_rgba(247,241,234,0.88))] p-5 shadow-[0_20px_45px_-40px_rgba(30,22,14,0.32)]">
+                <label className={labelCls}>Built-in layout</label>
                 <select
                   value={form.builtin_name}
                   onChange={e => setForm(f => ({ ...f, builtin_name: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                  className={inputCls}
                 >
-                  <option value="editorial">Editorial — magazine style, rich sections</option>
-                  <option value="minimal">Minimal — clean, plain, text-focused</option>
+                  {BUILTIN_LAYOUTS.map((layout) => (
+                    <option key={layout.value} value={layout.value}>
+                      {layout.label} — {layout.description}
+                    </option>
+                  ))}
                 </select>
-                <p className="mt-2 text-xs text-gray-400">
+                <div className="mt-4 rounded-[1.15rem] border border-[#e7dac8] bg-white/80 px-4 py-3 text-sm leading-relaxed text-[#71695e]">
                   Built-in layouts are managed by the platform. The agent's generated content is automatically rendered inside the chosen layout — no variables needed.
-                </p>
+                </div>
               </div>
             )}
 
-            {/* CUSTOM_HTML */}
             {isCustom && (
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-sm font-medium text-gray-700">HTML Content *</label>
+              <div className="rounded-[1.65rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.94),_rgba(247,241,234,0.9))] p-5 shadow-[0_20px_45px_-40px_rgba(30,22,14,0.32)]">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <label className="block text-sm font-semibold text-gray-700">HTML Content *</label>
                   {!form.html_content && (
                     <button
                       type="button"
                       onClick={() => setForm(f => ({ ...f, html_content: STARTER_TEMPLATE }))}
-                      className="inline-flex items-center gap-1 text-xs text-red-600 hover:text-red-700 font-medium"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-[#dfd3c4] bg-white/80 px-3 py-1.5 text-xs font-semibold text-[#2d8b69] transition-colors hover:bg-white hover:text-[#236b50]"
                     >
                       <Code2 size={12} />
                       Insert starter template
@@ -195,16 +270,15 @@ function TemplateModal({
                   rows={22}
                   spellCheck={false}
                   placeholder={'<!DOCTYPE html>\n<html>\n<body>\n  {{ body }}\n</body>\n</html>'}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs font-mono focus:outline-none focus:ring-2 focus:ring-red-500 resize-none leading-relaxed"
+                  className={`${inputCls} min-h-[28rem] resize-none font-mono text-xs leading-relaxed`}
                 />
               </div>
             )}
 
-            {/* Third-party */}
             {isThirdParty && (
-              <>
+              <div className="space-y-4 rounded-[1.5rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.9),_rgba(247,241,234,0.88))] p-5 shadow-[0_20px_45px_-40px_rgba(30,22,14,0.32)]">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Template ID</label>
+                  <label className={labelCls}>Template ID</label>
                   <input
                     type="text"
                     value={form.external_template_id}
@@ -214,89 +288,96 @@ function TemplateModal({
                       form.template_type === 'MAILCHIMP' ? 'template_id or campaign name' :
                       'Template ID in Brevo'
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                    className={inputCls}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">From Email <span className="font-normal text-gray-400">(optional)</span></label>
+                  <label className={labelCls}>
+                    From Email <span className="font-normal text-gray-400">(optional)</span>
+                  </label>
                   <input
                     type="email"
                     value={(form.external_config as any)?.from_email ?? ''}
                     onChange={e => setForm(f => ({ ...f, external_config: { ...(f.external_config || {}), from_email: e.target.value } }))}
                     placeholder="sender@yourdomain.com"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                    className={inputCls}
                   />
-                  <p className="mt-1 text-xs text-gray-400">Credentials are pulled from the matching integration in your account settings.</p>
+                  <p className="mt-2 text-sm text-[#71695e]">Credentials are pulled from the matching integration in your account settings.</p>
                 </div>
-              </>
+              </div>
             )}
           </div>
 
-          {/* Right: variables reference panel — only for CUSTOM_HTML */}
           {isCustom && (
-            <div className="border-l border-gray-100 bg-gray-50 px-5 py-5 overflow-y-auto">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Template Variables</p>
+            <div className="border-t border-[#ece2d6] bg-[linear-gradient(180deg,_rgba(247,241,234,0.88),_rgba(243,236,226,0.92))] px-5 py-6 xl:max-h-[92vh] xl:overflow-y-auto xl:border-l xl:border-t-0">
+              <div className="xl:sticky xl:top-0">
+                <div className="mb-5 rounded-[1.5rem] border border-white/70 bg-white/80 p-4 shadow-[0_18px_40px_-36px_rgba(30,22,14,0.36)] backdrop-blur">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#766e63]">Template Variables</p>
+                  <p className="mt-2 text-sm leading-relaxed text-[#6e675d]">
+                    Use these placeholders and Jinja expressions to shape the final email output.
+                  </p>
+                </div>
 
-              <div className="space-y-3 mb-5">
-                {VARIABLES_REFERENCE.map(v => (
-                  <div key={v.variable} className="bg-white rounded-lg border border-gray-200 p-3">
-                    <div className="flex items-center gap-1 mb-1">
-                      <code className="text-xs font-mono text-red-600 font-semibold">{v.variable}</code>
-                      <CopyButton text={v.variable} />
+                <div className="mb-5 space-y-3">
+                  {VARIABLES_REFERENCE.map(v => (
+                    <div key={v.variable} className="rounded-[1.2rem] border border-[#e5d9ca] bg-white/85 p-3.5 shadow-[0_16px_34px_-34px_rgba(30,22,14,0.35)]">
+                      <div className="mb-1.5 flex items-center gap-1">
+                        <code className="text-xs font-semibold text-[#2d8b69]">{v.variable}</code>
+                        <CopyButton text={v.variable} />
+                      </div>
+                      <p className="text-xs leading-relaxed text-[#6e675d]">{v.desc}</p>
                     </div>
-                    <p className="text-xs text-gray-500 leading-relaxed">{v.desc}</p>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
 
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">How it works</p>
-              <div className="space-y-2 text-xs text-gray-500 leading-relaxed">
-                <p>When the agent calls <code className="bg-white border border-gray-200 px-1 rounded font-mono text-gray-700">internal_send_email</code>, it writes the email content. Your template wraps that content automatically.</p>
-                <p>Place <code className="bg-white border border-gray-200 px-1 rounded font-mono text-red-600">{`{{ body }}`}</code> exactly where you want the agent's content to appear.</p>
-                <p>The template is rendered using <strong>Jinja2</strong>, so you can use any Jinja2 expression:</p>
-              </div>
+                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[#766e63]">How it works</p>
+                <div className="space-y-2 text-xs leading-relaxed text-[#6e675d]">
+                  <p>When the agent calls <code className="rounded border border-[#e5d9ca] bg-white px-1.5 py-0.5 font-mono text-[#4b453d]">internal_send_email</code>, it writes the email content. Your template wraps that content automatically.</p>
+                  <p>Place <code className="rounded border border-[#d8ecdf] bg-white px-1.5 py-0.5 font-mono text-[#2d8b69]">{`{{ body }}`}</code> exactly where you want the agent&apos;s content to appear.</p>
+                  <p>The template is rendered using <strong>Jinja2</strong>, so you can use any Jinja2 expression:</p>
+                </div>
 
-              <div className="mt-3 space-y-2">
-                {[
-                  ['Conditional block', `{% if subject %}\n<h2>{{ subject }}</h2>\n{% endif %}`],
-                  ['Loop', `{% for item in items %}\n<li>{{ item }}</li>\n{% endfor %}`],
-                  ['Filter', `{{ body | safe }}`],
-                ].map(([label, code]) => (
-                  <div key={label} className="bg-white rounded-lg border border-gray-200 p-3">
-                    <p className="text-xs font-medium text-gray-600 mb-1">{label}</p>
-                    <div className="flex items-start justify-between gap-1">
-                      <pre className="text-xs font-mono text-gray-500 whitespace-pre-wrap leading-relaxed">{code}</pre>
-                      <CopyButton text={code} />
+                <div className="mt-3 space-y-2">
+                  {[
+                    ['Conditional block', `{% if subject %}\n<h2>{{ subject }}</h2>\n{% endif %}`],
+                    ['Loop', `{% for item in items %}\n<li>{{ item }}</li>\n{% endfor %}`],
+                    ['Filter', `{{ body | safe }}`],
+                  ].map(([label, code]) => (
+                    <div key={label} className="rounded-[1.2rem] border border-[#e5d9ca] bg-white/85 p-3.5 shadow-[0_16px_34px_-34px_rgba(30,22,14,0.35)]">
+                      <p className="mb-1.5 text-xs font-semibold text-[#5e584f]">{label}</p>
+                      <div className="flex items-start justify-between gap-2">
+                        <pre className="whitespace-pre-wrap text-xs leading-relaxed text-[#6e675d]">{code}</pre>
+                        <CopyButton text={code} />
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
 
-              <div className="mt-4 rounded-lg bg-amber-50 border border-amber-200 p-3">
-                <p className="text-xs font-semibold text-amber-800 mb-1">Tips</p>
-                <ul className="text-xs text-amber-700 space-y-1 list-disc list-inside">
-                  <li>Always include <code className="font-mono">{`{{ body }}`}</code> — without it the email content won't show</li>
-                  <li>Use inline CSS for best email client compatibility</li>
-                  <li>Max width 600px is recommended for email</li>
-                  <li>Test in multiple clients before going live</li>
-                </ul>
+                <div className="mt-4 rounded-[1.25rem] border border-[#ecd8b6] bg-[linear-gradient(180deg,_rgba(255,248,235,0.95),_rgba(252,243,221,0.92))] p-4">
+                  <p className="mb-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-[#8f6d36]">Tips</p>
+                  <ul className="space-y-1.5 text-xs leading-relaxed text-[#7f6336]">
+                    <li>Always include <code className="font-mono">{`{{ body }}`}</code> or the generated email content will not appear.</li>
+                    <li>Use inline CSS for the best email-client compatibility.</li>
+                    <li>Keep the layout near 600px width for a safer default.</li>
+                    <li>Test the final output across multiple clients before going live.</li>
+                  </ul>
+                </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200">
+        <div className="sticky bottom-0 flex justify-end gap-3 border-t border-[#ece2d6] bg-[rgba(252,249,244,0.96)] px-6 py-4 backdrop-blur">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+            className="rounded-[1.15rem] border border-[#ddd2c4] bg-white/88 px-5 py-3 text-sm font-semibold text-[#5f584f] transition-colors hover:bg-white"
           >
             Cancel
           </button>
           <button
             onClick={onSave}
             disabled={saving}
-            className="px-5 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg disabled:opacity-60 transition-colors"
+            className="rounded-[1.15rem] bg-[#191919] px-5 py-3 text-sm font-semibold text-[#f7f2e7] shadow-[0_20px_34px_-24px_rgba(0,0,0,0.45)] transition-colors hover:bg-[#0f0f0f] disabled:opacity-60"
           >
             {saving ? 'Saving…' : editTarget ? 'Save Changes' : 'Create Template'}
           </button>
@@ -460,7 +541,7 @@ export default function EmailTemplatesPage() {
                     </div>
                     {t.description && <p className="text-sm text-gray-500 mb-2">{t.description}</p>}
                     <div className="text-xs text-gray-400">
-                      {t.template_type === 'BUILTIN' && `Layout: ${t.builtin_name || 'editorial'}`}
+                      {t.template_type === 'BUILTIN' && `Layout: ${BUILTIN_LAYOUT_LABELS[t.builtin_name || 'editorial'] || (t.builtin_name || 'editorial')}`}
                       {t.template_type === 'CUSTOM_HTML' && 'Custom HTML layout'}
                       {['SENDGRID', 'MAILCHIMP', 'BREVO'].includes(t.template_type) && (
                         <span>Template ID: <code className="bg-gray-100 px-1 rounded">{t.external_template_id || '—'}</code></span>

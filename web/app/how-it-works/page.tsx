@@ -2,8 +2,6 @@
 
 import Link from 'next/link'
 import { useEffect, useRef } from 'react'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import PublicPageFrame from '@/components/public/PublicPageFrame'
 import {
   Zap,
@@ -30,8 +28,6 @@ import {
   Chrome,
   Smartphone
 } from 'lucide-react'
-
-gsap.registerPlugin(ScrollTrigger)
 
 const steps = [
   {
@@ -417,48 +413,57 @@ export default function HowItWorksPage() {
   const featuresRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    // Animate steps on scroll
-    if (stepsRef.current) {
-      gsap.fromTo(
-        stepsRef.current.querySelectorAll('.step-card'),
-        { opacity: 0, y: 40, scale: 0.97 },
-        {
-          opacity: 1,
-          y: 0,
-          scale: 1,
-          duration: 0.8,
-          stagger: 0.16,
-          ease: 'power3.out',
-          scrollTrigger: {
-            trigger: stepsRef.current,
-            start: 'top 70%'
-          }
-        }
-      )
-    }
+    const stepsEl = stepsRef.current
+    const featuresEl = featuresRef.current
+    let cancelled = false
 
-    // Animate features
-    if (featuresRef.current) {
-      gsap.fromTo(
-        featuresRef.current.querySelectorAll('.feature-card'),
-        { opacity: 0, y: 30, scale: 0.96 },
-        {
-          opacity: 1,
-          y: 0,
-          scale: 1,
-          duration: 0.6,
-          stagger: 0.1,
-          ease: 'power3.out',
-          scrollTrigger: {
-            trigger: featuresRef.current,
-            start: 'top 75%'
-          }
+    Promise.all([import('gsap'), import('gsap/ScrollTrigger')]).then(
+      ([{ default: gsap }, { ScrollTrigger }]) => {
+        if (cancelled) return
+        gsap.registerPlugin(ScrollTrigger)
+
+        if (stepsEl) {
+          gsap.fromTo(
+            stepsEl.querySelectorAll('.step-card'),
+            { opacity: 0, y: 40, scale: 0.97 },
+            {
+              opacity: 1,
+              y: 0,
+              scale: 1,
+              duration: 0.8,
+              stagger: 0.16,
+              ease: 'power3.out',
+              scrollTrigger: {
+                trigger: stepsEl,
+                start: 'top 70%'
+              }
+            }
+          )
         }
-      )
-    }
+
+        if (featuresEl) {
+          gsap.fromTo(
+            featuresEl.querySelectorAll('.feature-card'),
+            { opacity: 0, y: 30, scale: 0.96 },
+            {
+              opacity: 1,
+              y: 0,
+              scale: 1,
+              duration: 0.6,
+              stagger: 0.1,
+              ease: 'power3.out',
+              scrollTrigger: {
+                trigger: featuresEl,
+                start: 'top 75%'
+              }
+            }
+          )
+        }
+      }
+    )
 
     return () => {
-      ScrollTrigger.getAll().forEach(trigger => trigger.kill())
+      cancelled = true
     }
   }, [])
 

@@ -130,7 +130,7 @@ export default async function CreatorProfilePage({ params }: { params: Promise<{
                 >
                   {agent.hero_image_url && (
                     <div className="aspect-video rounded-xl overflow-hidden mb-4 bg-white/5">
-                      <img src={agent.hero_image_url} alt={agent.agent_name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <img src={agent.hero_image_url} alt={agent.agent_name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
                     </div>
                   )}
                   <div className="text-lg font-bold mb-1 group-hover:text-white/90">

@@ -2,11 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import Link from 'next/link'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { Zap } from 'lucide-react'
-
-gsap.registerPlugin(ScrollTrigger)
 
 export default function LandingDemoSection() {
   const sectionRef = useRef<HTMLElement>(null)
@@ -20,34 +16,44 @@ export default function LandingDemoSection() {
 
     const layers = Array.from(stage.querySelectorAll<HTMLElement>('[data-depth]'))
 
-    const handleMouseMove = (event: MouseEvent) => {
-      const rect = stage.getBoundingClientRect()
-      const x = (event.clientX - rect.left) / rect.width - 0.5
-      const y = (event.clientY - rect.top) / rect.height - 0.5
+    let ctx: { revert: () => void } | undefined
+    let mouseMoveHandler: ((e: MouseEvent) => void) | undefined
+    let mouseLeaveHandler: (() => void) | undefined
+    let cancelled = false
 
-      layers.forEach((layer) => {
-        const depth = Number(layer.dataset.depth || 0)
-        gsap.to(layer, {
-          x: x * depth,
-          y: y * depth,
-          duration: 1,
-          ease: 'power3.out',
-        })
-      })
-    }
+    Promise.all([import('gsap'), import('gsap/ScrollTrigger')]).then(
+      ([{ default: gsap }, { ScrollTrigger }]) => {
+        if (cancelled) return
+        gsap.registerPlugin(ScrollTrigger)
 
-    const handleMouseLeave = () => {
-      layers.forEach((layer) => {
-        gsap.to(layer, {
-          x: 0,
-          y: 0,
-          duration: 1.1,
-          ease: 'power3.out',
-        })
-      })
-    }
+        mouseMoveHandler = (event: MouseEvent) => {
+          const rect = stage.getBoundingClientRect()
+          const x = (event.clientX - rect.left) / rect.width - 0.5
+          const y = (event.clientY - rect.top) / rect.height - 0.5
 
-    const ctx = gsap.context(() => {
+          layers.forEach((layer) => {
+            const depth = Number(layer.dataset.depth || 0)
+            gsap.to(layer, {
+              x: x * depth,
+              y: y * depth,
+              duration: 1,
+              ease: 'power3.out',
+            })
+          })
+        }
+
+        mouseLeaveHandler = () => {
+          layers.forEach((layer) => {
+            gsap.to(layer, {
+              x: 0,
+              y: 0,
+              duration: 1.1,
+              ease: 'power3.out',
+            })
+          })
+        }
+
+        ctx = gsap.context(() => {
       gsap.fromTo(
         '.demo-badge, .demo-title, .demo-copy, .demo-cta',
         { opacity: 0, y: 28 },
@@ -146,15 +152,18 @@ export default function LandingDemoSection() {
           { scale: 1.16 + index * 0.04, opacity: 0, duration: 2.8 + index * 0.3, repeat: -1, delay: index * 0.28, ease: 'power1.out' }
         )
       })
-    }, section)
+        }, section)
 
-    stage.addEventListener('mousemove', handleMouseMove)
-    stage.addEventListener('mouseleave', handleMouseLeave)
+        stage.addEventListener('mousemove', mouseMoveHandler)
+        stage.addEventListener('mouseleave', mouseLeaveHandler)
+      }
+    )
 
     return () => {
-      stage.removeEventListener('mousemove', handleMouseMove)
-      stage.removeEventListener('mouseleave', handleMouseLeave)
-      ctx.revert()
+      cancelled = true
+      if (mouseMoveHandler) stage.removeEventListener('mousemove', mouseMoveHandler)
+      if (mouseLeaveHandler) stage.removeEventListener('mouseleave', mouseLeaveHandler)
+      ctx?.revert()
     }
   }, [])
 

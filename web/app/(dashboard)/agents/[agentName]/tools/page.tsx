@@ -89,6 +89,16 @@ interface ToolGroup {
   expanded?: boolean;
 }
 
+const toolModalShellClass =
+  'w-full max-w-5xl overflow-hidden rounded-[2rem] border border-black/10 bg-[#fffdf8] shadow-[0_32px_90px_rgba(23,23,23,0.22)]';
+const toolModalSectionClass =
+  'rounded-[1.5rem] border border-black/8 bg-white p-5 shadow-[0_10px_30px_rgba(23,23,23,0.05)]';
+const toolModalFieldClass =
+  'w-full rounded-[1rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-[#171717] outline-none transition focus:border-[#79dfbc] focus:ring-4 focus:ring-[#79dfbc]/20';
+const toolModalLabelClass = 'mb-1.5 block text-sm font-semibold text-[#171717]';
+const toolModalHelpClass = 'mb-2.5 text-xs leading-5 text-[#6d675f]';
+const toolModalLinkClass = 'font-semibold text-[#d44a32] transition hover:text-[#b93d27]';
+
 // Tool categories organized by integration/service (A–Z, Custom last)
 const TOOL_GROUPS: ToolGroup[] = [
   {
@@ -1966,42 +1976,53 @@ export default function AgentToolsPage() {
 
       {/* Configuration Modal */}
       {selectedTool && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200">
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#171717]/55 p-4 backdrop-blur-md">
+          <div className={`${toolModalShellClass} flex max-h-[88vh] flex-col`}>
+            <div className="sticky top-0 z-10 border-b border-black/8 bg-white/95 px-8 py-6 backdrop-blur">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">{selectedTool.icon}</span>
+                  <div className="flex h-14 w-14 items-center justify-center rounded-[1.25rem] border border-black/8 bg-[#fff5f3] text-[1.7rem] shadow-sm">
+                    <span>{selectedTool.icon}</span>
+                  </div>
                   <div>
-                    <h2 className="text-lg font-bold text-gray-900">{selectedTool.displayName}</h2>
-                    <p className="text-xs text-gray-600">{selectedTool.description}</p>
+                    <h2 className="text-[2rem] font-semibold tracking-[-0.03em] text-[#171717]">
+                      {selectedTool.displayName}
+                    </h2>
+                    <p className="max-w-3xl text-base leading-7 text-[#6d675f]">
+                      {selectedTool.description}
+                    </p>
                   </div>
                 </div>
                 <button
                   onClick={closeConfigModal}
-                  className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="flex h-11 w-11 items-center justify-center rounded-2xl border border-black/8 bg-[#fcfaf5] text-[#171717] transition hover:bg-[#f3ecdf]"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="h-5 w-5" />
                 </button>
               </div>
             </div>
 
-            <div className="p-5 space-y-5">
+            <div className="flex-1 space-y-6 overflow-y-auto bg-[#f6f1e7] px-8 py-7">
               {/* Required Fields */}
               {selectedTool.requiredFields.length > 0 && (
-                <div>
-                  <h3 className="text-xs font-semibold text-gray-900 mb-3">Required Configuration</h3>
-                  <div className="space-y-3.5">
+                <section className={toolModalSectionClass}>
+                  <div className="mb-5">
+                    <h3 className="text-lg font-semibold tracking-[-0.02em] text-[#171717]">Required Configuration</h3>
+                    <p className="mt-1 text-sm text-[#6d675f]">
+                      Add the minimum setup this tool needs before it can be tested or saved.
+                    </p>
+                  </div>
+                  <div className="space-y-5">
                     {selectedTool.requiredFields.map(field => (
                       <div key={field.key}>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                        <label className={toolModalLabelClass}>
                           {field.label}
                         </label>
-                        <p className="text-xs text-gray-500 mb-1.5">{field.description}</p>
+                        <p className={toolModalHelpClass}>{field.description}</p>
                         {field.type === 'select' && field.key === 'slack_connection' ? (
                           // Combined Slack bot + OAuth app dropdown
                           (field as any).noAccountsAvailable ? (
-                            <div className="border border-amber-200 bg-amber-50 rounded-lg p-4">
+                            <div className="rounded-[1.25rem] border border-amber-200 bg-amber-50/90 p-4">
                               <div className="flex items-start gap-3">
                                 <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                                 <div className="flex-1">
@@ -2012,14 +2033,14 @@ export default function AgentToolsPage() {
                                   <div className="flex gap-2 mt-3">
                                     <Link
                                       href={`/agents/${agentName}/slack-bots/create`}
-                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium rounded-lg transition-colors"
+                                      className="inline-flex items-center gap-1.5 rounded-xl bg-amber-600 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-amber-700"
                                     >
                                       <Link2 className="w-3.5 h-3.5" />
                                       Add Slack Bot
                                     </Link>
                                     <Link
                                       href="/oauth-apps/create"
-                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-amber-300 text-amber-700 text-xs font-medium rounded-lg hover:bg-amber-100 transition-colors"
+                                      className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 px-3 py-2 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-100"
                                     >
                                       Add OAuth App
                                     </Link>
@@ -2032,7 +2053,7 @@ export default function AgentToolsPage() {
                               <select
                                 value={toolConfig['slack_connection'] || ''}
                                 onChange={(e) => handleConfigChange('slack_connection', e.target.value)}
-                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                className={toolModalFieldClass}
                               >
                                 <option value="">Select connection (uses bot auto-detect if empty)</option>
                                 {(() => {
@@ -2051,7 +2072,7 @@ export default function AgentToolsPage() {
                                   ));
                                 })()}
                               </select>
-                              <p className="mt-1.5 text-xs text-gray-500">
+                              <p className="mt-2 text-xs text-[#6d675f]">
                                 Leave empty to auto-detect the connected Slack bot.
                               </p>
                             </div>
@@ -2059,7 +2080,7 @@ export default function AgentToolsPage() {
                         ) : field.type === 'select' && field.key === 'oauth_app_id' ? (
                           // Special handling for non-Slack Connected Account dropdown
                           (field as any).noAccountsAvailable ? (
-                            <div className="border border-amber-200 bg-amber-50 rounded-lg p-4">
+                            <div className="rounded-[1.25rem] border border-amber-200 bg-amber-50/90 p-4">
                               <div className="flex items-start gap-3">
                                 <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                                 <div className="flex-1">
@@ -2071,7 +2092,7 @@ export default function AgentToolsPage() {
                                   </p>
                                   <Link
                                     href="/oauth-apps/create"
-                                    className="inline-flex items-center gap-1.5 mt-3 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium rounded-lg transition-colors"
+                                    className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-amber-600 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-amber-700"
                                   >
                                     <Link2 className="w-3.5 h-3.5" />
                                     Connect {(field as any).providerName} Account
@@ -2084,17 +2105,17 @@ export default function AgentToolsPage() {
                               <select
                                 value={toolConfig[field.key] != null ? String(toolConfig[field.key]) : ''}
                                 onChange={(e) => handleConfigChange(field.key, e.target.value)}
-                                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                className={toolModalFieldClass}
                               >
                                 <option value="">Select an account</option>
                                 {field.options?.map(opt => (
                                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                                 ))}
                               </select>
-                              <div className="flex items-center justify-between mt-2">
-                                <p className="text-xs text-gray-500">
+                              <div className="mt-2 flex items-center justify-between">
+                                <p className="text-xs text-[#6d675f]">
                                   Select an account or{' '}
-                                  <Link href="/oauth-apps/create" className="text-red-600 hover:text-red-700 font-medium">
+                                  <Link href="/oauth-apps/create" className={toolModalLinkClass}>
                                     connect a new one
                                   </Link>
                                 </p>
@@ -2105,7 +2126,7 @@ export default function AgentToolsPage() {
                           <select
                             value={toolConfig[field.key] || ''}
                             onChange={(e) => handleConfigChange(field.key, e.target.value)}
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                            className={toolModalFieldClass}
                           >
                             <option value="">Select {field.label}</option>
                             {field.options.map(opt => (
@@ -2118,7 +2139,7 @@ export default function AgentToolsPage() {
                             onChange={(e) => handleConfigChange(field.key, e.target.value)}
                             placeholder={field.placeholder}
                             rows={4}
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                            className={`${toolModalFieldClass} min-h-[112px] resize-y`}
                           />
                         ) : (
                           <div className="relative">
@@ -2127,13 +2148,13 @@ export default function AgentToolsPage() {
                               value={toolConfig[field.key] || ''}
                               onChange={(e) => handleConfigChange(field.key, e.target.value)}
                               placeholder={field.placeholder}
-                              className="w-full px-3 py-2 pr-10 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                              className={`${toolModalFieldClass} pr-11`}
                             />
                             {field.type === 'password' && (
                               <button
                                 type="button"
                                 onClick={() => toggleShowKey(field.key)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8b857d] transition hover:text-[#171717]"
                               >
                                 {showKeys[field.key] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                               </button>
@@ -2143,33 +2164,38 @@ export default function AgentToolsPage() {
                       </div>
                     ))}
                   </div>
-                </div>
+                </section>
               )}
 
               {/* Optional Fields */}
               {selectedTool.optionalFields && selectedTool.optionalFields.length > 0 && (
-                <div>
-                  <h3 className="text-xs font-semibold text-gray-900 mb-3">Optional Configuration</h3>
-                  <div className="space-y-3.5">
+                <section className={toolModalSectionClass}>
+                  <div className="mb-5">
+                    <h3 className="text-lg font-semibold tracking-[-0.02em] text-[#171717]">Optional Configuration</h3>
+                    <p className="mt-1 text-sm text-[#6d675f]">
+                      Add extra values only if this tool needs custom behavior.
+                    </p>
+                  </div>
+                  <div className="space-y-5">
                     {selectedTool.optionalFields.map(field => (
                       <div key={field.key}>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                        <label className={toolModalLabelClass}>
                           {field.label}
                         </label>
-                        <p className="text-xs text-gray-500 mb-1.5">{field.description}</p>
+                        <p className={toolModalHelpClass}>{field.description}</p>
                         <div className="relative">
                           <input
                             type={showKeys[field.key] ? 'text' : field.type}
                             value={toolConfig[field.key] || ''}
                             onChange={(e) => handleConfigChange(field.key, e.target.value)}
                             placeholder={field.placeholder}
-                            className="w-full px-3 py-2 pr-10 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                            className={`${toolModalFieldClass} pr-11`}
                           />
                           {field.type === 'password' && (
                             <button
                               type="button"
                               onClick={() => toggleShowKey(field.key)}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8b857d] transition hover:text-[#171717]"
                             >
                               {showKeys[field.key] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                             </button>
@@ -2178,23 +2204,23 @@ export default function AgentToolsPage() {
                       </div>
                     ))}
                   </div>
-                </div>
+                </section>
               )}
 
               {/* GitHub Account Connection Section */}
               {selectedTool.name === 'github' && (
-                <div className="border-t border-gray-200 pt-6">
-                  <div className="flex items-center justify-between mb-4">
+                <section className={toolModalSectionClass}>
+                  <div className="mb-4 flex items-center justify-between">
                     <div>
-                      <h3 className="text-sm font-semibold text-gray-900">GitHub Account (Recommended)</h3>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <h3 className="text-lg font-semibold tracking-[-0.02em] text-[#171717]">GitHub Account</h3>
+                      <p className="mt-1 text-sm text-[#6d675f]">
                         Connect your GitHub account for enhanced access and higher rate limits
                       </p>
                     </div>
                   </div>
 
                   {oauthApps.length === 0 ? (
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <div className="rounded-[1.25rem] border border-amber-200 bg-amber-50/90 p-4">
                       <div className="flex items-start gap-3">
                         <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                         <div>
@@ -2206,7 +2232,7 @@ export default function AgentToolsPage() {
                           </p>
                           <Link
                             href="/oauth-apps/create"
-                            className="inline-flex items-center gap-1.5 mt-3 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium rounded-lg transition-colors"
+                            className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-amber-600 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-amber-700"
                           >
                             <Link2 className="w-3.5 h-3.5" />
                             Connect GitHub Account
@@ -2215,24 +2241,24 @@ export default function AgentToolsPage() {
                       </div>
                     </div>
                   ) : oauthStatus?.connected ? (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="rounded-[1.25rem] border border-emerald-200 bg-emerald-50/90 p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                            <Github className="w-5 h-5 text-green-600" />
+                          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100">
+                            <Github className="w-5 h-5 text-emerald-700" />
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-green-900">
+                            <p className="text-sm font-medium text-emerald-900">
                               Connected as @{oauthStatus.user}
                             </p>
                             {oauthStatus.user_name && (
-                              <p className="text-xs text-green-700">{oauthStatus.user_name}</p>
+                              <p className="text-xs text-emerald-700">{oauthStatus.user_name}</p>
                             )}
                           </div>
                         </div>
                         <button
                           onClick={handleOAuthDisconnect}
-                          className="flex items-center gap-2 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-red-600 transition-colors hover:bg-red-50"
                         >
                           <Unlink className="w-4 h-4" />
                           Disconnect
@@ -2242,21 +2268,21 @@ export default function AgentToolsPage() {
                   ) : (
                     <button
                       onClick={handleOAuthConnect}
-                      className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+                      className="flex w-full items-center justify-center gap-3 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
                     >
                       <Github className="w-5 h-5" />
                       Connect with GitHub
                     </button>
                   )}
-                </div>
+                </section>
               )}
 
             </div>
 
-            <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-5 py-3.5 flex items-center justify-end gap-2.5">
+            <div className="sticky bottom-0 flex items-center justify-end gap-3 border-t border-black/8 bg-[#f5eedf]/95 px-8 py-4 backdrop-blur">
               <button
                 onClick={closeConfigModal}
-                className="px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-xs font-medium"
+                className="rounded-2xl border border-black/10 bg-transparent px-4 py-2.5 text-sm font-medium text-[#5f5a54] transition hover:bg-white/70"
               >
                 Cancel
               </button>
@@ -2265,17 +2291,17 @@ export default function AgentToolsPage() {
                   <button
                     onClick={testTool}
                     disabled={testing}
-                    className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 text-xs font-medium"
+                    className="flex items-center gap-2 rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm font-medium text-[#171717] transition hover:bg-[#fcfaf5] disabled:opacity-50"
                   >
-                    <TestTube className="w-3.5 h-3.5" />
+                    <TestTube className="h-4 w-4" />
                     {testing ? 'Testing...' : 'Test'}
                   </button>
                   <button
                     onClick={saveTool}
                     disabled={saving}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-red-500 to-red-500 text-white rounded-lg hover:from-red-600 hover:to-red-600 transition-all disabled:opacity-50 text-xs font-medium shadow-sm"
+                    className="flex items-center gap-2 rounded-2xl bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-black disabled:opacity-50"
                   >
-                    <Save className="w-3.5 h-3.5" />
+                    <Save className="h-4 w-4" />
                     {saving ? 'Saving...' : 'Save'}
                   </button>
                 </>

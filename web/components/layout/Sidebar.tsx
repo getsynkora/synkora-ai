@@ -553,55 +553,57 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           )}
 
           {/* Settings Section */}
-          <div className="mt-4 border-t border-white/10 pt-4">
+          <div className="mt-2.5 border-t border-white/10 pt-2.5">
             {showLabels && (
-              <div className="px-4 mb-3">
+              <div className="mb-1.5 px-4">
                 <span className="text-xs font-semibold uppercase tracking-wider text-[#857d70]">
                   Settings
                 </span>
               </div>
             )}
-            {settingsNavigation.map((item) => {
-              if (item.permission && !hasPermission(item.permission.resource, item.permission.action)) {
-                return null
-              }
-              if (item.platformOnly && !hasPermission('platform', 'read')) {
-                return null
-              }
-              const isActive = pathname?.startsWith(item.href)
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  prefetch={false}
-                  className={cn(
-                    'relative flex items-center gap-3 overflow-hidden px-3 py-3 rounded-[1.2rem] transition-all',
-                    showLabels ? 'px-4 py-3.5' : 'mx-auto w-16 justify-center px-0 py-4',
-                    isActive
-                      ? 'border border-white/10 bg-white/[0.12] text-[#f7f2e7] shadow-[0_14px_30px_rgba(0,0,0,0.22)]'
-                      : 'text-[#b7afa2] hover:bg-white/[0.06] hover:text-[#f7f2e7]'
-                  )}
-                >
-                  {isActive && (
-                    <span className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-[#7de5c1]" aria-hidden="true" />
-                  )}
-                  <div className={cn(
-                    'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full transition-colors',
-                    isActive ? 'bg-white/[0.1] text-[#f7f2e7]' : 'text-current'
-                  )}>
-                    {item.icon}
-                  </div>
-                  {showLabels && (
-                    <span className={cn(
-                      'whitespace-nowrap text-sm',
-                      isActive ? 'font-semibold text-[#fffaf0]' : 'font-medium'
+            <div className={cn('space-y-1', showLabels ? '' : 'space-y-2')}>
+              {settingsNavigation.map((item) => {
+                if (item.permission && !hasPermission(item.permission.resource, item.permission.action)) {
+                  return null
+                }
+                if (item.platformOnly && !hasPermission('platform', 'read')) {
+                  return null
+                }
+                const isActive = pathname?.startsWith(item.href)
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    prefetch={false}
+                    className={cn(
+                      'relative flex items-center gap-3 overflow-hidden rounded-[1.2rem] transition-all',
+                      showLabels ? 'px-4 py-2' : 'mx-auto w-16 justify-center px-0 py-4',
+                      isActive
+                        ? 'border border-white/10 bg-white/[0.12] text-[#f7f2e7] shadow-[0_14px_30px_rgba(0,0,0,0.22)]'
+                        : 'text-[#b7afa2] hover:bg-white/[0.06] hover:text-[#f7f2e7]'
+                    )}
+                  >
+                    {isActive && (
+                      <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-[#7de5c1]" aria-hidden="true" />
+                    )}
+                    <div className={cn(
+                      'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full transition-colors',
+                      isActive ? 'bg-white/[0.1] text-[#f7f2e7]' : 'text-current'
                     )}>
-                      {item.name}
-                    </span>
-                  )}
-                </Link>
-              )
-            })}
+                      {item.icon}
+                    </div>
+                    {showLabels && (
+                      <span className={cn(
+                        'whitespace-nowrap text-sm',
+                        isActive ? 'font-semibold text-[#fffaf0]' : 'font-medium'
+                      )}>
+                        {item.name}
+                      </span>
+                    )}
+                  </Link>
+                )
+              })}
+            </div>
           </div>
         </nav>
 

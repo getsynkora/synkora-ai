@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import gsap from 'gsap'
 import { Check, Zap, Building2, Sparkles, ArrowRight, Loader2 } from 'lucide-react'
 import PublicPageFrame from '@/components/public/PublicPageFrame'
 
@@ -160,13 +159,15 @@ export default function PricingPage() {
   }, [])
 
   useEffect(() => {
-    // Animate cards after they load
     if (!loading && plans.length > 0 && containerRef.current) {
-      gsap.fromTo(
-        containerRef.current.querySelectorAll('.pricing-card'),
-        { opacity: 0, y: 40 },
-        { opacity: 1, y: 0, duration: 0.6, stagger: 0.15, ease: 'power3.out' }
-      )
+      const el = containerRef.current
+      import('gsap').then(({ default: gsap }) => {
+        gsap.fromTo(
+          el.querySelectorAll('.pricing-card'),
+          { opacity: 0, y: 40 },
+          { opacity: 1, y: 0, duration: 0.6, stagger: 0.15, ease: 'power3.out' }
+        )
+      })
     }
   }, [loading, plans])
 

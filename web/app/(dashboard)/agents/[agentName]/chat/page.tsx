@@ -11,6 +11,7 @@ import {
 } from '@/components/chat/components'
 import { Message, Agent, Source, Person, NewsItem, Attachment } from '@/components/chat/types'
 import { apiClient } from '@/lib/api/client'
+import { getLensOverview, type LensOverviewResponse } from '@/lib/api/agent-lens'
 import { useAgentLLMConfigs } from '@/hooks/useAgentLLMConfigs'
 import { useChatTransport } from '@/components/chat/hooks/useChatTransport'
 
@@ -102,6 +103,7 @@ export default function AdvancedChatPage() {
   const [totalMessages, setTotalMessages] = useState<number>(0)
   const [inputResetKey, setInputResetKey] = useState(0) // Key to force ChatInput remount
   const [streamStartTime, setStreamStartTime] = useState<number | null>(null)
+  const [lensStats, setLensStats] = useState<LensOverviewResponse | null>(null)
 
   // Demo placeholder widgets - dynamically generated from agent data
   const getDemoWidgets = () => ({
@@ -139,10 +141,32 @@ export default function AdvancedChatPage() {
         title: 'Quick Stats',
         content: {
           items: [
-            { label: 'Conversations', value: conversations.length.toLocaleString() },
-            { label: 'Total Messages', value: totalMessages.toLocaleString() },
-            { label: 'Success Rate', value: agent?.success_rate ? `${Math.round(agent.success_rate)}%` : 'N/A' },
-            { label: 'Executions', value: agent?.execution_count ? agent.execution_count.toLocaleString() : '0' }
+            {
+              label: 'Sessions (30d)',
+              value: lensStats ? lensStats.stats.total_sessions.toLocaleString() : conversations.length.toLocaleString()
+            },
+            {
+              label: 'Success Rate',
+              value: lensStats
+                ? `${Math.round((1 - lensStats.stats.failure_rate) * 100)}%`
+                : 'N/A'
+            },
+            {
+              label: 'Avg Latency',
+              value: lensStats
+                ? lensStats.stats.avg_latency_ms >= 1000
+                  ? `${(lensStats.stats.avg_latency_ms / 1000).toFixed(1)}s`
+                  : `${Math.round(lensStats.stats.avg_latency_ms)}ms`
+                : 'N/A'
+            },
+            {
+              label: 'Total Cost',
+              value: lensStats
+                ? lensStats.stats.total_cost_usd < 0.01
+                  ? `$${lensStats.stats.total_cost_usd.toFixed(4)}`
+                  : `$${lensStats.stats.total_cost_usd.toFixed(2)}`
+                : 'N/A'
+            },
           ]
         }
       },
@@ -164,12 +188,6 @@ export default function AdvancedChatPage() {
   const [, setKeyPeople] = useState<Person[]>([])
   const [, setNews] = useState<NewsItem[]>([])
   
-  // Agent configuration
-  // Note: These are fetched but currently not displayed in the UI
-  const [, setMcpServers] = useState<any[]>([])
-  const [, setKnowledgeBases] = useState<any[]>([])
-  const [, setTools] = useState<any[]>([])
-  const [, setContextFiles] = useState<any[]>([])
 
   // LLM Configs - Use hook to fetch LLM configs
   const { data: llmConfigs} = useAgentLLMConfigs(agentName, false)
@@ -214,6 +232,9 @@ export default function AdvancedChatPage() {
       setAgent(agentData)
       setAgentId(data.agent_id)
       setAgentLoadError(null)
+
+      // Fetch real stats from Elasticsearch (non-blocking)
+      getLensOverview(agentName, '30d').then(setLensStats).catch(() => {/* no lens data yet */})
     } catch (error) {
       console.error('Failed to fetch agent info:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to load agent'
@@ -265,25 +286,6 @@ export default function AdvancedChatPage() {
   }
 
 
-  const fetchAgentConfiguration = useCallback(async () => {
-    if (!agentId) return
-
-    try {
-      // All four requests are independent — run in parallel instead of serially
-      const [mcpData, kbData, toolsData, filesData] = await Promise.all([
-        apiClient.getAgentMCPServers(agentId),
-        apiClient.getAgentKnowledgeBases(agentId),
-        apiClient.getAgentToolsForAgent(agentId),
-        apiClient.getAgentContextFiles(agentName),
-      ])
-      setMcpServers(mcpData || [])
-      setKnowledgeBases(kbData || [])
-      setTools(toolsData || [])
-      setContextFiles(filesData || [])
-    } catch (error) {
-      console.error('Failed to fetch agent configuration:', error)
-    }
-  }, [agentId, agentName])
 
   const loadConversations = useCallback(async () => {
     if (!agentId) return
@@ -433,13 +435,12 @@ export default function AdvancedChatPage() {
     fetchAgentInfo()
   }, [agentName, fetchAgentInfo])
 
-  // Load conversations, agent config, and chat config when agent ID is available.
-  // All are independent of each other — run in parallel.
+  // Load conversations and chat config when agent ID is available — run in parallel.
   useEffect(() => {
     if (agentId) {
-      Promise.all([fetchAgentConfiguration(), loadConversations(), fetchChatConfig(agentId)])
+      Promise.all([loadConversations(), fetchChatConfig(agentId)])
     }
-  }, [agentId, fetchAgentConfiguration, loadConversations, fetchChatConfig])
+  }, [agentId, loadConversations, fetchChatConfig])
 
   // Note: Messages are loaded by the useEffect at line 280-285 that watches currentConversation?.id
   // Removed duplicate useEffect here to prevent race conditions with streaming

@@ -15,11 +15,15 @@ class SynkoraChatController extends ChangeNotifier {
 
   final String? userId;
   final String? sessionId;
+  final WidgetUser? user;
+  final String? userHash;
 
   SynkoraChatController({
     required SynkoraClient client,
     this.userId,
     this.sessionId,
+    this.user,
+    this.userHash,
     CacheDatabase? cacheDatabase,
   }) : _client = client {
     _cache = LocalCache(cacheDatabase ?? CacheDatabase());
@@ -43,6 +47,7 @@ class SynkoraChatController extends ChangeNotifier {
   String? get conversationId => _conversationId;
   WidgetConfig? get config => _config;
   String? get error => _error;
+  bool get hasConversationContent => _messages.any((m) => m.content.trim().isNotEmpty);
 
   // ---------------------------------------------------------------------------
   // Init: load config + local cache + server history in parallel
@@ -63,15 +68,18 @@ class SynkoraChatController extends ChangeNotifier {
       notifyListeners();
 
       // Fetch config + server history in parallel
+      final historyUserId = user?.id ?? userId;
       final results = await Future.wait([
         _client.loadConfig(),
-        _client.loadHistory(userId: userId, sessionId: sessionId),
+        _client.loadHistoryBundle(userId: historyUserId, sessionId: sessionId),
       ]);
 
       _config = results[0] as WidgetConfig;
 
       // Merge server history: server wins by id
-      final serverMessages = results[1] as List<ChatMessage>;
+      final history = results[1] as WidgetChatHistory;
+      _conversationId = history.conversationId ?? _conversationId;
+      final serverMessages = history.messages;
       if (serverMessages.isNotEmpty) {
         final byId = <String, ChatMessage>{};
         for (final m in _messages) {
@@ -81,20 +89,7 @@ class SynkoraChatController extends ChangeNotifier {
           byId[m.id] = m;
         }
         _messages = byId.values.toList()..sort((a, b) => a.timestamp.compareTo(b.timestamp));
-        await _cache.upsertMessages(_client.widgetKey, _messages);
-      }
-
-      // Prepend welcome message as a virtual message (not stored in DB)
-      final welcome = _config!.theme.welcomeMessage;
-      if (welcome.isNotEmpty && _messages.isEmpty) {
-        _messages = [
-          ChatMessage(
-            id: 'welcome',
-            role: MessageRole.assistant,
-            content: welcome,
-            timestamp: DateTime.fromMillisecondsSinceEpoch(0),
-          ),
-        ];
+        await _cache.upsertMessages(_client.widgetKey, _messages, convId: _conversationId);
       }
     } catch (e) {
       _error = e.toString();
@@ -143,6 +138,8 @@ class SynkoraChatController extends ChangeNotifier {
         text,
         conversationId: _conversationId,
         sessionId: sessionId,
+        user: user,
+        userHash: userHash,
       );
 
       await for (final event in stream) {
@@ -160,6 +157,7 @@ class SynkoraChatController extends ChangeNotifier {
         } else if (event is ErrorEvent) {
           _removeMessage(streamingId);
           _error = event.message;
+          _appendAssistantErrorMessage(event.message);
           _isStreaming = false;
           notifyListeners();
           return;
@@ -168,6 +166,7 @@ class SynkoraChatController extends ChangeNotifier {
     } catch (e) {
       _removeMessage(streamingId);
       _error = e.toString();
+      _appendAssistantErrorMessage(_error!);
     } finally {
       _isStreaming = false;
       notifyListeners();
@@ -175,9 +174,23 @@ class SynkoraChatController extends ChangeNotifier {
   }
 
   void retry() {
+    if (_config == null) {
+      init();
+      return;
+    }
     if (_lastMessage != null && !_isStreaming) {
       send(_lastMessage!);
     }
+  }
+
+  Future<void> clearSession() async {
+    if (_isStreaming) return;
+    _messages = [];
+    _conversationId = null;
+    _error = null;
+    _lastMessage = null;
+    await _cache.clearMessages(_client.widgetKey);
+    notifyListeners();
   }
 
   // ---------------------------------------------------------------------------
@@ -202,6 +215,26 @@ class SynkoraChatController extends ChangeNotifier {
 
   void _removeMessage(String id) {
     _messages = _messages.where((m) => m.id != id).toList();
+  }
+
+  void _appendAssistantErrorMessage(String message) {
+    final clean = message.replaceFirst('Exception: ', '').trim();
+    if (clean.isEmpty) return;
+
+    final last = _messages.isNotEmpty ? _messages.last : null;
+    if (last != null && last.role == MessageRole.assistant && last.content == clean) {
+      return;
+    }
+
+    _messages = [
+      ..._messages,
+      ChatMessage(
+        id: 'error_${DateTime.now().millisecondsSinceEpoch}',
+        role: MessageRole.assistant,
+        content: clean,
+        timestamp: DateTime.now(),
+      ),
+    ];
   }
 
   // ---------------------------------------------------------------------------
