@@ -4,6 +4,28 @@ on:
   push:
     tags:
       - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      force_api:
+        description: 'Force rebuild & deploy API (use when previous API deploy failed)'
+        type: boolean
+        default: false
+      force_web:
+        description: 'Force rebuild & deploy Frontend (use when previous web deploy failed)'
+        type: boolean
+        default: false
+      force_ml:
+        description: 'Force rebuild & deploy ML service'
+        type: boolean
+        default: false
+      force_scraper:
+        description: 'Force rebuild & deploy Scraper service'
+        type: boolean
+        default: false
+      force_sandbox:
+        description: 'Force rebuild & deploy Sandbox service'
+        type: boolean
+        default: false
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION || 'us-east-2' }}
@@ -35,6 +57,7 @@ jobs:
   release:
     name: Create GitHub Release
     needs: secret-scan
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -70,14 +93,27 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Diff against previous release tag
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502  # v4.0.2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Detect changed services
         id: diff
         run: |
-          # Find the previous semver tag (the one before the current tag)
           git fetch --tags --force
+
+          CURRENT="${{ github.ref_name }}"
+
+          # Two previous semver tags so we can check if a service changed in PREV
           PREV=$(git tag --sort=-version:refname \
             | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
             | sed -n '2p' || true)
+          PREV_PREV=$(git tag --sort=-version:refname \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+            | sed -n '3p' || true)
 
           if [ -z "$PREV" ]; then
             echo "No previous tag found — marking all services changed (first release)."
@@ -91,8 +127,9 @@ jobs:
             exit 0
           fi
 
-          echo "Comparing $PREV → ${{ github.ref_name }}"
-          CHANGED=$(git diff --name-only "${PREV}".."${{ github.ref_name }}")
+          # ── Git diff: what changed between PREV and CURRENT ──────────────
+          echo "Comparing $PREV → $CURRENT"
+          CHANGED=$(git diff --name-only "${PREV}".."${CURRENT}")
           echo "Changed files:"
           echo "$CHANGED"
 
@@ -103,12 +140,45 @@ jobs:
           sandbox=$(echo "$CHANGED" | grep -q '^services/sandbox/' && echo true || echo false)
           k8s=$(echo "$CHANGED"     | grep -q '^k8s/'              && echo true || echo false)
 
+          # ── Option 1: Force flags from workflow_dispatch ──────────────────
+          [ "${{ github.event.inputs.force_api     || 'false' }}" = "true" ] && api=true     && echo "::notice::force_api=true — forcing API rebuild"
+          [ "${{ github.event.inputs.force_web     || 'false' }}" = "true" ] && web=true     && echo "::notice::force_web=true — forcing Frontend rebuild"
+          [ "${{ github.event.inputs.force_ml      || 'false' }}" = "true" ] && ml=true      && echo "::notice::force_ml=true — forcing ML rebuild"
+          [ "${{ github.event.inputs.force_scraper || 'false' }}" = "true" ] && scraper=true && echo "::notice::force_scraper=true — forcing Scraper rebuild"
+          [ "${{ github.event.inputs.force_sandbox || 'false' }}" = "true" ] && sandbox=true && echo "::notice::force_sandbox=true — forcing Sandbox rebuild"
+
+          # ── Option 2: ECR check — if PREV image is missing but service had
+          #    git changes in PREV, the previous build failed → force rebuild ─
+          ecr_image_exists() {
+            aws ecr describe-images \
+              --repository-name "$1" \
+              --image-ids imageTag="${PREV}" \
+              --region "${{ env.AWS_REGION }}" \
+              --output text > /dev/null 2>&1
+          }
+
+          # Returns 0 (true) if the given path pattern had changes in the PREV tag
+          prev_had_changes() {
+            [ -n "$PREV_PREV" ] && \
+              git diff --name-only "${PREV_PREV}".."${PREV}" | grep -q "$1"
+          }
+
+          if [ "$api"     = "false" ] && prev_had_changes '^api/'              && ! ecr_image_exists "synkora-api";      then echo "::warning::synkora-api:${PREV} missing — previous build failed, forcing rebuild";     api=true;     fi
+          if [ "$web"     = "false" ] && prev_had_changes '^web/'              && ! ecr_image_exists "synkora-frontend";  then echo "::warning::synkora-frontend:${PREV} missing — previous build failed, forcing rebuild"; web=true;     fi
+          if [ "$ml"      = "false" ] && prev_had_changes '^services/ml/'      && ! ecr_image_exists "synkora-ml";        then echo "::warning::synkora-ml:${PREV} missing — previous build failed, forcing rebuild";       ml=true;      fi
+          if [ "$scraper" = "false" ] && prev_had_changes '^services/scraper/' && ! ecr_image_exists "synkora-scraper";   then echo "::warning::synkora-scraper:${PREV} missing — previous build failed, forcing rebuild";  scraper=true; fi
+          if [ "$sandbox" = "false" ] && prev_had_changes '^services/sandbox/' && ! ecr_image_exists "synkora-sandbox";   then echo "::warning::synkora-sandbox:${PREV} missing — previous build failed, forcing rebuild";  sandbox=true; fi
+
+          # ── Write outputs ─────────────────────────────────────────────────
           echo "api=$api"         >> "$GITHUB_OUTPUT"
           echo "web=$web"         >> "$GITHUB_OUTPUT"
           echo "ml=$ml"           >> "$GITHUB_OUTPUT"
           echo "scraper=$scraper" >> "$GITHUB_OUTPUT"
           echo "sandbox=$sandbox" >> "$GITHUB_OUTPUT"
           echo "k8s=$k8s"         >> "$GITHUB_OUTPUT"
+
+          echo "--- Final decision ---"
+          echo "api=$api web=$web ml=$ml scraper=$scraper sandbox=$sandbox k8s=$k8s"
 
           if [ "$api" = "true" ] || [ "$web" = "true" ] || [ "$ml" = "true" ] || \
              [ "$scraper" = "true" ] || [ "$sandbox" = "true" ] || [ "$k8s" = "true" ]; then
@@ -121,7 +191,7 @@ jobs:
   build-api:
     name: Build & Push API Image
     needs: [release, changes]
-    if: needs.changes.outputs.api == 'true'
+    if: always() && needs.changes.result == 'success' && needs.changes.outputs.api == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Free disk space
@@ -192,7 +262,7 @@ jobs:
   build-web:
     name: Build & Push Frontend Image
     needs: [release, changes]
-    if: needs.changes.outputs.web == 'true'
+    if: always() && needs.changes.result == 'success' && needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Free disk space
@@ -250,7 +320,7 @@ jobs:
   build-ml:
     name: Build & Push ML Image
     needs: [release, changes]
-    if: needs.changes.outputs.ml == 'true'
+    if: always() && needs.changes.result == 'success' && needs.changes.outputs.ml == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Free disk space
@@ -295,7 +365,7 @@ jobs:
   build-scraper:
     name: Build & Push Scraper Image
     needs: [release, changes]
-    if: needs.changes.outputs.scraper == 'true'
+    if: always() && needs.changes.result == 'success' && needs.changes.outputs.scraper == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Free disk space
@@ -340,7 +410,7 @@ jobs:
   build-sandbox:
     name: Build & Push Sandbox Image
     needs: [release, changes]
-    if: needs.changes.outputs.sandbox == 'true'
+    if: always() && needs.changes.result == 'success' && needs.changes.outputs.sandbox == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Free disk space
