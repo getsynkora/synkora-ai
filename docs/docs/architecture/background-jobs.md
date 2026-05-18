@@ -4,133 +4,77 @@ sidebar_position: 6
 
 # Background Jobs
 
-Celery-based task queue for async operations.
+Synkora moves slow, scheduled, or operationally isolated work out of the API request path and into Celery workers plus dedicated bot-worker processes.
 
-## Architecture
+## Core Runtime Pieces
 
-```
-API → Redis (Broker) → Celery Workers → Result Backend (Redis)
-                     → Celery Beat (Scheduler)
-```
+| Component | Source | Responsibility |
+| --- | --- | --- |
+| Celery app | `api/src/celery_app.py` | Worker configuration, queues, schedules, retry and failure behavior |
+| Task modules | `api/src/tasks/*` | Actual job implementations |
+| Celery Beat | configured in `celery_app.py` | Periodic job scheduling |
+| Bot worker | `api/src/bot_worker` | Long-lived messaging bot execution |
 
-## Configuration
+## Current Queue Layout
 
-```python
-# celery_app.py
-from celery import Celery
+`api/src/celery_app.py` currently routes work into named queues so one workload does not starve another.
 
-celery = Celery(
-    "synkora",
-    broker=settings.CELERY_BROKER_URL,
-    backend=settings.CELERY_RESULT_BACKEND,
-)
+| Queue | Examples of Work |
+| --- | --- |
+| `default` | general scheduled task dispatch and cleanup work |
+| `email` | verification, welcome, password reset, bulk email |
+| `notifications` | in-app, Slack, Teams, webhook, WhatsApp notifications |
+| `agents` | spawn-agent tasks, webhook processing, LLM batch polling, knowledge compilation, digest generation |
+| `billing` | usage analytics flush, credit deduction, reconciliation, subscription expiry, payouts |
+| `company_brain` | stream consumption, sync, batching, entity extraction, tier migration |
 
-celery.conf.update(
-    task_serializer="json",
-    accept_content=["json"],
-    result_expires=3600,
-    task_routes={
-        "tasks.document.*": {"queue": "documents"},
-        "tasks.embedding.*": {"queue": "embeddings"},
-    },
-)
-```
+## Scheduled Work Configured Today
 
-## Task Types
+The current beat schedule includes jobs such as:
 
-### Document Processing
+- scheduled task checks every minute
+- execution cleanup at midnight
+- usage analytics flush every hour
+- daily credit reconciliation
+- workspace cleanup every 6 hours
+- knowledge wiki compilation daily
+- stale webhook cleanup every 15 minutes
+- daily digest generation
+- pending LLM batch polling every 30 minutes
+- audit-log cleanup
+- Company Brain stream consumption and sync jobs
+- dormant account cleanup
+- weekly data-retention cleanup for conversations, messages, and files
+- hourly subscription expiry
+- monthly creator payout processing
 
-```python
-@celery.task
-def process_document(document_id: str):
-    """Process uploaded document."""
-    document = get_document(document_id)
+## Reliability Controls
 
-    # Parse content
-    content = parse_document(document.file_path)
+The current worker configuration includes a few important safeguards:
 
-    # Chunk
-    chunks = chunk_content(content, document.kb.chunking_config)
+- `task_acks_late=True`
+- `task_reject_on_worker_lost=True`
+- `worker_prefetch_multiplier=1`
+- `worker_max_tasks_per_child=1000`
+- hard and soft task time limits
 
-    # Embed
-    for chunk in chunks:
-        embed_chunk.delay(chunk.id)
+These settings reduce the chance that a crashed worker silently loses important work.
 
-    update_document_status(document_id, "ready")
-```
+## Failure Tracking
 
-### Embedding Generation
+`celery_app.py` also wires in:
 
-```python
-@celery.task
-def embed_chunk(chunk_id: str):
-    """Generate embedding for a chunk."""
-    chunk = get_chunk(chunk_id)
+- Sentry for worker exceptions
+- a Prometheus counter for task failures
+- a Redis-backed dead-letter queue at `celery:dlq`
 
-    embedding = generate_embedding(chunk.content)
+The DLQ stores failure payloads for monitoring and possible replay instead of letting failed jobs disappear.
 
-    store_embedding(chunk_id, embedding)
-```
+## Practical Guidance
 
-### Webhook Delivery
+If you are operating Synkora at scale:
 
-```python
-@celery.task(
-    bind=True,
-    max_retries=5,
-    default_retry_delay=60,
-)
-def deliver_webhook(self, webhook_id: str, event: dict):
-    """Deliver webhook with retry."""
-    try:
-        webhook = get_webhook(webhook_id)
-        response = requests.post(
-            webhook.url,
-            json=event,
-            headers=sign_request(webhook.secret, event),
-            timeout=30,
-        )
-        response.raise_for_status()
-    except Exception as exc:
-        self.retry(exc=exc, countdown=2 ** self.request.retries * 60)
-```
-
-## Scheduled Tasks
-
-```python
-# Celery Beat schedule
-celery.conf.beat_schedule = {
-    "cleanup-expired-conversations": {
-        "task": "tasks.cleanup.cleanup_conversations",
-        "schedule": crontab(hour=3, minute=0),  # Daily at 3 AM
-    },
-    "generate-usage-reports": {
-        "task": "tasks.reports.generate_daily_report",
-        "schedule": crontab(hour=0, minute=30),  # Daily at 12:30 AM
-    },
-    "refresh-oauth-tokens": {
-        "task": "tasks.oauth.refresh_expiring_tokens",
-        "schedule": crontab(minute="*/15"),  # Every 15 minutes
-    },
-}
-```
-
-## Running Workers
-
-```bash
-# Main worker
-celery -A src.celery_app worker --loglevel=info
-
-# Document processing queue
-celery -A src.celery_app worker -Q documents --loglevel=info
-
-# Scheduler
-celery -A src.celery_app beat --loglevel=info
-```
-
-## Monitoring
-
-```bash
-# Flower monitoring
-celery -A src.celery_app flower --port=5555
-```
+- scale queues independently
+- watch task failures, not only API health
+- keep messaging bots out of the API process
+- treat retries and replay as part of normal operations

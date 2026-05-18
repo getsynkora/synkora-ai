@@ -40,7 +40,7 @@ export default async function LandingPage() {
       style={{ fontFamily: '"Avenir Next", "Helvetica Neue", "Segoe UI", sans-serif' }}
     >
       <AnimatedNav />
-      <AnimatedHero />
+      <AnimatedHero stars={stars} />
 
       <section className="border-y border-black/10 bg-[#f4eee1] px-6 py-8">
         <div className="mx-auto max-w-6xl">

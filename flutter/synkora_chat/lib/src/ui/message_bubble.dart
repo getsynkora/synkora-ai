@@ -16,9 +16,16 @@ class MessageBubble extends StatelessWidget {
   });
 
   bool get _isUser => message.role == MessageRole.user;
+  static const _warmSurface = Color(0xFFF2EBDE);
+  static const _warmPanel = Color(0xFFFFFAF1);
+  static const _ink = Color(0xFF171717);
 
   @override
   Widget build(BuildContext context) {
+    final userFg = ThemeData.estimateBrightnessForColor(primaryColor) == Brightness.dark
+        ? Colors.white
+        : const Color(0xFF11231D);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Row(
@@ -36,7 +43,8 @@ class MessageBubble extends StatelessWidget {
               ),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: _isUser ? primaryColor : Theme.of(context).colorScheme.surfaceContainerHighest,
+                color: _isUser ? primaryColor : _warmSurface,
+                border: _isUser ? null : Border.all(color: const Color(0x1A171717)),
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(18),
                   topRight: const Radius.circular(18),
@@ -49,8 +57,8 @@ class MessageBubble extends StatelessWidget {
                   : _isUser
                       ? Text(
                           message.content,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: userFg,
                             fontSize: 15,
                             height: 1.4,
                           ),
@@ -58,18 +66,18 @@ class MessageBubble extends StatelessWidget {
                       : MarkdownBody(
                           data: message.content,
                           styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-                            p: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface,
+                            p: const TextStyle(
+                              color: _ink,
                               fontSize: 15,
                               height: 1.4,
                             ),
-                            strong: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface,
+                            strong: const TextStyle(
+                              color: _ink,
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
                             ),
-                            code: TextStyle(
-                              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                            code: const TextStyle(
+                              backgroundColor: _warmPanel,
                               fontSize: 13,
                             ),
                           ),
@@ -96,13 +104,13 @@ class _AgentAvatar extends StatelessWidget {
       return CircleAvatar(
         radius: 14,
         backgroundImage: NetworkImage(avatarUrl!),
-        backgroundColor: primaryColor.withOpacity(0.1),
+        backgroundColor: primaryColor.withValues(alpha: 0.12),
       );
     }
     return CircleAvatar(
       radius: 14,
-      backgroundColor: primaryColor.withOpacity(0.15),
-      child: Icon(Icons.smart_toy_outlined, size: 16, color: primaryColor),
+      backgroundColor: primaryColor.withValues(alpha: 0.15),
+      child: Icon(Icons.smart_toy_outlined, size: 16, color: const Color(0xFF171717)),
     );
   }
 }
@@ -148,7 +156,7 @@ class _TypingDotsState extends State<_TypingDots> with SingleTickerProviderState
                   width: 7,
                   height: 7,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                     shape: BoxShape.circle,
                   ),
                 ),

@@ -43,7 +43,10 @@ export function MessageRenderer({ message, onConfirm, onCancelAction }: Props) {
 
         {/* Success card (after agent created) */}
         {message.actionCard?.status === 'created' && message.actionCard.createdAgentName && (
-          <AgentCreatedCard agentName={message.actionCard.createdAgentName} />
+          <AgentCreatedCard
+            agentName={message.actionCard.createdAgentName}
+            agentSlug={message.actionCard.createdAgentSlug}
+          />
         )}
 
         {/* Integration required card */}

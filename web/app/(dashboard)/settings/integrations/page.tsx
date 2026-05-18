@@ -146,14 +146,18 @@ export default function IntegrationsPage() {
         { label: 'Settings', href: '/settings/profile' },
         { label: 'Integrations' },
       ]}
+      heroOverflowVisible
       actions={
         canCreate ? (
-          <div className="relative group">
-            <button className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black">
+          <div className="relative z-[70] group">
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+            >
               <Plus size={16} />
               Add Integration
             </button>
-            <div className="absolute right-0 z-10 mt-2 hidden w-64 overflow-hidden rounded-[1.25rem] border border-[#e5d9ca] bg-white shadow-[0_24px_70px_-36px_rgba(73,45,23,0.3)] group-hover:block">
+            <div className="absolute right-0 top-full z-[80] mt-2 hidden w-64 overflow-hidden rounded-[1.25rem] border border-[#e5d9ca] bg-white shadow-[0_24px_70px_-36px_rgba(73,45,23,0.3)] group-hover:block group-focus-within:block">
               {INTEGRATION_TYPES.map((type) => {
                 const Icon = type.icon
                 return (

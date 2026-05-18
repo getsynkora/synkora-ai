@@ -66,7 +66,7 @@ class LensSessionsResponse(BaseModel):
 
 
 class LensTimelineEvent(BaseModel):
-    event_type: Literal["user_message", "llm_call", "tool_call", "assistant_message"]
+    event_type: Literal["user_message", "llm_call", "tool_call", "assistant_message", "tool_pruning"]
     id: str
     timestamp: str | None = None
     sequence: int | None = None
@@ -91,6 +91,11 @@ class LensTimelineEvent(BaseModel):
     system_prompt_preview: str | None = None
     messages_json: str | None = None  # JSON string: list of chat messages sent to LLM
     tools_json: str | None = None  # JSON string: list of tool definitions sent to LLM
+    # llm_call prompt cache fields
+    cache_read_tokens: int | None = None
+    cache_creation_tokens: int | None = None
+    # llm_call context window pressure (0–100 %)
+    context_utilization_pct: float | None = None
     # tool call fields
     tool_name: str | None = None
     tool_args: str | None = None  # JSON string stored in ES text field
@@ -99,6 +104,15 @@ class LensTimelineEvent(BaseModel):
     duration_ms: int | None = None
     retry_count: int | None = None
     error_message: str | None = None
+    # tool_pruning fields
+    turn_index: int | None = None
+    tool_results_count: int | None = None
+    tool_results_pruned: int | None = None
+    data_bearing_pruned: int | None = None  # > 0 means data-holding results were trimmed
+    chars_saved: int | None = None
+    estimated_tokens_saved: int | None = None
+    original_chars: int | None = None
+    pruned_chars: int | None = None
 
 
 class LensSessionDetailResponse(BaseModel):
@@ -231,3 +245,83 @@ class AlertResponse(BaseModel):
     is_active: bool
     last_triggered_at: str | None = None
     created_at: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# Compaction / pruning analytics
+# ---------------------------------------------------------------------------
+
+
+class LensPruningTrendPoint(BaseModel):
+    date: str
+    pruning_events: int
+    tokens_saved: int
+    data_bearing_pruned: int
+
+
+class LensCompactionAnalyticsResponse(BaseModel):
+    total_sessions: int
+    sessions_with_pruning: int
+    pruning_rate: float  # 0.0–1.0
+    pruning_events_count: int
+    total_tokens_saved: int
+    avg_tokens_saved_per_session: float
+    data_bearing_pruned_total: int  # how many data-bearing results were trimmed
+    total_results_pruned: int
+    total_results_evaluated: int
+    avg_pruning_ratio: float  # pruned/evaluated ratio
+    trend: list[LensPruningTrendPoint]
+    period_start: str
+    period_end: str
+
+
+# ---------------------------------------------------------------------------
+# Cache analytics
+# ---------------------------------------------------------------------------
+
+
+class LensCacheTrendPoint(BaseModel):
+    date: str
+    input_tokens: int
+    cache_read_tokens: int
+    cache_creation_tokens: int
+    cache_hit_rate: float
+
+
+class LensCacheAnalyticsResponse(BaseModel):
+    total_llm_calls: int
+    total_input_tokens: int
+    total_cache_read_tokens: int
+    total_cache_creation_tokens: int
+    cache_hit_rate: float  # fraction of calls with any cache reads
+    estimated_savings_usd: float
+    avg_context_utilization_pct: float
+    max_context_utilization_pct: float
+    high_pressure_calls: int  # calls with context_utilization_pct >= 80
+    trend: list[LensCacheTrendPoint]
+    period_start: str
+    period_end: str
+
+
+# ---------------------------------------------------------------------------
+# Session graph
+# ---------------------------------------------------------------------------
+
+
+class LensGraphNode(BaseModel):
+    id: str
+    event_type: str
+    label: str
+    status: str  # normal | warning | error | info
+    metadata: dict[str, Any] | None = None
+
+
+class LensGraphEdge(BaseModel):
+    source: str
+    target: str
+
+
+class LensSessionGraphResponse(BaseModel):
+    conversation_id: str
+    nodes: list[LensGraphNode]
+    edges: list[LensGraphEdge]

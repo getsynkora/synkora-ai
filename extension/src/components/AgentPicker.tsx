@@ -27,24 +27,24 @@ export function AgentPicker({ agents, selectedAgentId, defaultAgentId, onSelect,
     <div className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-gray-50 transition-colors w-full text-left group"
+        className="flex items-center gap-3 px-3 py-2.5 rounded-2xl hover:bg-brand-surface transition-colors w-full text-left group"
         aria-expanded={open}
         aria-haspopup="listbox"
       >
         <AgentAvatar agent={selected ?? null} size={30} />
         <div className="flex-1 min-w-0">
-          <p className="text-[14px] font-semibold text-gray-900 truncate leading-tight">
+          <p className="text-[14px] font-semibold text-brand-ink truncate leading-tight">
             {selected?.name ?? 'Select agent'}
           </p>
           {selected?.description && (
-            <p className="text-[11px] text-gray-400 truncate leading-tight mt-0.5">
+            <p className="text-[11px] text-brand-muted/80 truncate leading-tight mt-0.5">
               {selected.description}
             </p>
           )}
         </div>
         <ChevronDown
           size={14}
-          className={`text-gray-400 transition-transform duration-200 flex-shrink-0 ${open ? 'rotate-180' : ''}`}
+          className={`text-brand-muted/70 transition-transform duration-200 flex-shrink-0 ${open ? 'rotate-180' : ''}`}
         />
       </button>
 
@@ -53,33 +53,33 @@ export function AgentPicker({ agents, selectedAgentId, defaultAgentId, onSelect,
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div
             role="listbox"
-            className="absolute left-2 right-2 top-full mt-1 bg-white border border-gray-200 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.1)] z-20 py-1.5 max-h-64 overflow-y-auto animate-slide-up"
+            className="absolute left-2 right-2 top-full mt-2 bg-brand-panel border border-brand-line rounded-[22px] shadow-card z-20 py-1.5 max-h-64 overflow-y-auto animate-slide-up"
           >
             {agents.map((agent) => (
               <div
                 key={agent.id}
                 role="option"
                 aria-selected={agent.id === selectedAgentId}
-                className="flex items-center gap-2.5 px-3 py-2 hover:bg-gray-50 cursor-pointer group transition-colors"
+                className="flex items-center gap-2.5 px-3 py-2.5 hover:bg-brand-surface cursor-pointer group transition-colors"
                 onClick={() => { onSelect(agent.id); setOpen(false); }}
               >
                 <AgentAvatar agent={agent} size={26} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-medium text-gray-900 truncate">{agent.name}</p>
+                  <p className="text-[13px] font-medium text-brand-ink truncate">{agent.name}</p>
                   {agent.description && (
-                    <p className="text-[11px] text-gray-400 truncate">{agent.description}</p>
+                    <p className="text-[11px] text-brand-muted/80 truncate">{agent.description}</p>
                   )}
                 </div>
                 {agent.id === selectedAgentId && (
-                  <Check size={13} className="text-synkora-600 flex-shrink-0" />
+                  <Check size={13} className="text-synkora-700 flex-shrink-0" />
                 )}
                 <button
                   title={agent.id === defaultAgentId ? 'Default agent' : 'Set as default'}
                   onClick={(e) => { e.stopPropagation(); onSetDefault(agent.id); }}
                   className={`flex-shrink-0 p-1 rounded-lg transition-all ${
                     agent.id === defaultAgentId
-                      ? 'text-synkora-500'
-                      : 'text-gray-300 opacity-0 group-hover:opacity-100 hover:text-gray-500'
+                      ? 'text-synkora-700 bg-synkora-100'
+                      : 'text-brand-muted/40 opacity-0 group-hover:opacity-100 hover:text-brand-muted'
                   }`}
                 >
                   <Pin size={12} />
@@ -99,7 +99,7 @@ interface AvatarProps {
 }
 
 export function AgentAvatar({ agent, size }: AvatarProps) {
-  const accentColor = agent?.accent_color ?? '#4f6ef7';
+  const accentColor = agent?.accent_color ?? '#79dfbc';
   const initials = agent?.name
     ? agent.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
     : '?';
@@ -119,7 +119,7 @@ export function AgentAvatar({ agent, size }: AvatarProps) {
 
   return (
     <div
-      className="rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0"
+      className="rounded-full flex items-center justify-center text-brand-ink font-semibold flex-shrink-0 ring-1 ring-brand-line/80"
       style={{
         width: size,
         height: size,

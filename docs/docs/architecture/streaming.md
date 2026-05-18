@@ -2,140 +2,67 @@
 sidebar_position: 7
 ---
 
-# SSE Streaming
+# Streaming and Realtime
 
-Server-Sent Events for real-time chat responses.
+Synkora’s realtime layer is implemented in `api/src/core/websocket.py`. It supports live chat-style experiences across the dashboard and other realtime surfaces without assuming a single API process.
 
-## How It Works
+## What The WebSocket Layer Supports
 
-```
-Client        Server         LLM Provider
-  │              │                │
-  │──POST /chat──▶               │
-  │              │──Request──────▶
-  │◀─SSE Stream──│◀─Stream───────│
-  │◀─────────────│◀───────────────│
-  │◀─────────────│◀───────────────│
-  │◀──[END]──────│◀───[DONE]──────│
-```
+The base `ConnectionManager` handles:
 
-## Server Implementation
+- multiple WebSocket connections per user
+- room-based messaging
+- user-targeted messaging
+- global broadcast
+- per-user, per-tenant, and global connection limits
+- room authorization callbacks
 
-```python
-from fastapi import FastAPI
-from fastapi.responses import StreamingResponse
+## Default Connection Limits
 
-@router.post("/agents/{agent_id}/chat/stream")
-async def chat_stream(agent_id: str, request: ChatRequest):
-    async def event_stream():
-        async for chunk in chat_service.stream(agent_id, request):
-            yield f"event: {chunk.type}\n"
-            yield f"data: {chunk.json()}\n\n"
+The current defaults are:
 
-        yield "event: end\n"
-        yield "data: {}\n\n"
+- `10` connections per user
+- `500` connections per tenant
+- `10,000` total connections
 
-    return StreamingResponse(
-        event_stream(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-        },
-    )
-```
+These are environment-configurable, but those are the built-in defaults in the code today.
 
-## Chat Stream Service
+## Distributed Delivery Across Pods
 
-```python
-class ChatStreamService:
-    async def stream(
-        self,
-        agent_id: str,
-        request: ChatRequest,
-    ) -> AsyncIterator[StreamChunk]:
-        agent = await self.get_agent(agent_id)
-        messages = await self.build_messages(agent, request)
+`DistributedConnectionManager` extends the base connection manager and uses Redis pub/sub for cross-pod delivery.
 
-        # Start event
-        yield StreamChunk(
-            type="start",
-            conversation_id=request.conversation_id,
-        )
+Current channel layout:
 
-        # Stream LLM response
-        async for chunk in self.llm_client.stream(agent.model_name, messages):
-            if chunk.content:
-                yield StreamChunk(type="content", content=chunk.content)
+- `ws:broadcast:all`
+- `ws:broadcast:user:*`
+- `ws:broadcast:room:*`
 
-            if chunk.tool_calls:
-                for tool_call in chunk.tool_calls:
-                    yield StreamChunk(type="tool_call", tool_call=tool_call)
+When a message is sent:
 
-                    # Execute tool
-                    result = await self.execute_tool(tool_call)
-                    yield StreamChunk(type="tool_result", result=result)
+1. it is delivered to local connections
+2. it is published to Redis
+3. other pods receive it and fan it out to their own local connections
 
-        # Citations (if RAG)
-        if citations := await self.get_citations():
-            yield StreamChunk(type="citations", citations=citations)
+Each message includes `source_pod` so the origin pod does not echo the message back to itself.
 
-        # Usage stats
-        yield StreamChunk(type="usage", usage=self.get_usage())
-```
+## Operational Behavior
 
-## Client Implementation
+The distributed subscriber is started in `api/src/app.py` during application startup.
 
-### JavaScript
+Implementation details that matter in production:
 
-```javascript
-const response = await fetch('/api/agents/123/chat/stream', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ message: 'Hello' }),
-});
+- pub/sub uses a dedicated Redis connection with no socket timeout
+- the listener reconnects with exponential backoff
+- room and user patterns are subscribed with `psubscribe`
+- if Redis pub/sub cannot start, the manager falls back to local-only mode
 
-const reader = response.body.getReader();
-const decoder = new TextDecoder();
+## Where This Matters
 
-while (true) {
-  const { done, value } = await reader.read();
-  if (done) break;
+This architecture is what lets Synkora support interactive surfaces such as:
 
-  const text = decoder.decode(value);
-  for (const line of text.split('\n')) {
-    if (line.startsWith('data: ')) {
-      const data = JSON.parse(line.slice(6));
-      if (data.content) {
-        console.log(data.content);
-      }
-    }
-  }
-}
-```
+- dashboard chat
+- widget and embedded chat experiences
+- public-facing agent sessions
+- operator views that expect live state
 
-### Python
-
-```python
-import httpx
-
-async with httpx.AsyncClient() as client:
-    async with client.stream('POST', url, json=payload) as response:
-        async for line in response.aiter_lines():
-            if line.startswith('data: '):
-                data = json.loads(line[6:])
-                print(data.get('content', ''), end='')
-```
-
-## Event Types
-
-| Event | Description |
-|-------|-------------|
-| `start` | Stream started |
-| `content` | Text content chunk |
-| `tool_call` | Tool invocation |
-| `tool_result` | Tool execution result |
-| `citations` | RAG citations |
-| `usage` | Token usage |
-| `error` | Error occurred |
-| `end` | Stream completed |
+Streaming is not just a UI improvement here. It is part of the platform runtime design.

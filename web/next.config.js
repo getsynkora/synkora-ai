@@ -1,4 +1,5 @@
 const { withSentryConfig } = require('@sentry/nextjs')
+const path = require('path')
 const withBundleAnalyzer =
   process.env.ANALYZE === 'true'
     ? require('@next/bundle-analyzer')({ enabled: true })
@@ -8,6 +9,7 @@ const withBundleAnalyzer =
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
+  outputFileTracingRoot: path.join(__dirname, '..'),
   // Never expose source maps to the browser in production (regardless of Sentry config)
   productionBrowserSourceMaps: false,
 
@@ -38,15 +40,10 @@ const nextConfig = {
     unoptimized: process.env.NODE_ENV === 'development',
   },
 
-  // Keep Webpack enabled in scripts until these client-side fallbacks are no longer needed.
-  webpack: (config) => {
-    config.resolve.fallback = {
-      ...config.resolve.fallback,
-      fs: false,
-      net: false,
-      tls: false,
-    }
-    return config
+  // Explicitly scope Turbopack to the web app root so it doesn't infer the
+  // monorepo root from sibling lockfiles and watch more files than necessary.
+  turbopack: {
+    root: path.join(__dirname),
   },
 
   // Headers for security

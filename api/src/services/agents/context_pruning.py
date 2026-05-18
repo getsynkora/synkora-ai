@@ -35,6 +35,23 @@ class PruningSettings:
     max_total_tool_chars: int = 400000  # Max total chars for all tool results combined
     prune_error_results: bool = True  # Replace old error results with compact summaries
     use_meaningful_summaries: bool = True  # Replace pruned results with informative 1-liners
+    # Tool name patterns whose results must never be reduced to a 1-liner.
+    # These tools return actual data (rows, file contents) the LLM may need
+    # to reference later, so they are trimmed head+tail instead of summarised.
+    protect_data_tools: tuple[str, ...] = (
+        "internal_execute_",
+        "internal_query_",
+        "internal_read_",
+        "internal_fetch_",
+        "internal_list_",
+        "internal_search_",
+        "internal_database_",
+        "internal_supabase_",
+        "internal_csv_",
+        "internal_sql_",
+        "internal_db_",
+        "internal_select_",
+    )
 
 
 @dataclass
@@ -45,6 +62,7 @@ class PruningStats:
     pruned_messages: int = 0
     tool_results_count: int = 0
     tool_results_pruned: int = 0
+    data_bearing_pruned: int = 0  # pruned results from data-bearing tools (quality signal)
     original_chars: int = 0
     pruned_chars: int = 0
     chars_saved: int = 0
@@ -202,6 +220,12 @@ def _looks_like_base64(s: str) -> bool:
     # Check if length is roughly right for base64 (multiple of 4)
     # Allow some flexibility
     return True
+
+
+def _is_data_bearing_tool(tool_name: str, settings: PruningSettings) -> bool:
+    """Return True if this tool returns data the LLM may need verbatim (e.g. SQL rows, file contents)."""
+    lower = tool_name.lower()
+    return any(lower.startswith(prefix) for prefix in settings.protect_data_tools)
 
 
 def _get_tool_name_for_result(msg: dict, messages: list[dict], index: int) -> str:
@@ -416,27 +440,41 @@ def prune_tool_results(
 
         # Check if we need to prune based on size
         if original_length > settings.max_result_chars:
-            if settings.use_meaningful_summaries:
-                # Replace with informative 1-liner instead of head+tail trim
-                tool_name = _get_tool_name_for_result(msg, messages, i)
+            tool_name = _get_tool_name_for_result(msg, messages, i)
+            is_data = _is_data_bearing_tool(tool_name, settings)
+
+            if is_data:
+                # Data-bearing tools (SELECT, read_csv, fetch, etc.): always keep
+                # head+tail so the LLM still sees actual row/file data, not just
+                # a count.  Never reduce to a 1-liner — that destroys the data.
+                trimmed_content = _trim_content(content_str, settings)
+                pruned_msg = {**msg, "content": trimmed_content}
+                total_tool_chars += len(trimmed_content)
+                stats.data_bearing_pruned += 1
+                logger.debug(
+                    f"Context pruning: Trimmed data-bearing tool result from "
+                    f"{original_length:,} chars (head+tail preserved) for {tool_name}"
+                )
+            elif settings.use_meaningful_summaries:
+                # Non-data tools: replace with informative 1-liner
                 try:
                     summary = _extract_result_summary(tool_name, content)
                 except Exception:
                     summary = _create_summary_placeholder(tool_name, original_length)
                 pruned_msg = {**msg, "content": summary}
                 total_tool_chars += len(summary)
+                logger.debug(
+                    f"Context pruning: Replaced tool result ({original_length:,} chars) with summary for {tool_name}"
+                )
             else:
                 # Legacy behaviour: keep head + tail
                 trimmed_content = _trim_content(content_str, settings)
                 pruned_msg = {**msg, "content": trimmed_content}
                 total_tool_chars += len(trimmed_content)
+                logger.debug(f"Context pruning: Trimmed tool result from {original_length:,} chars for {tool_name}")
 
             pruned_messages.append(pruned_msg)
             stats.tool_results_pruned += 1
-            logger.debug(
-                f"Context pruning: Pruned tool result from {original_length:,} chars "
-                f"({'summary' if settings.use_meaningful_summaries else 'trim'})"
-            )
         else:
             # Small results: keep as-is
             pruned_messages.append(msg)
@@ -488,15 +526,21 @@ def _aggressive_prune(
             pruned_messages.append(msg)
             continue
 
-        # Replace with compact summary
+        # Replace with compact summary (or head+tail for data-bearing tools)
         content = msg.get("content", "")
         original_length = _get_content_length(content)
         tool_name = _get_tool_name_for_result(msg, messages, i)
+        is_data = _is_data_bearing_tool(tool_name, settings)
 
-        try:
-            placeholder = _extract_result_summary(tool_name, content)
-        except Exception:
-            placeholder = _create_summary_placeholder(tool_name, original_length)
+        if is_data:
+            content_str = _get_content_as_string(content)
+            placeholder = _trim_content(content_str, settings)
+            stats.data_bearing_pruned += 1
+        else:
+            try:
+                placeholder = _extract_result_summary(tool_name, content)
+            except Exception:
+                placeholder = _create_summary_placeholder(tool_name, original_length)
 
         pruned_msg = {**msg, "content": placeholder}
         pruned_messages.append(pruned_msg)

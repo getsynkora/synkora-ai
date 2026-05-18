@@ -427,9 +427,35 @@ class FunctionCallingHandler:
                 conversation_history, pruning_stats = prune_tool_results(conversation_history, pruning_settings)
                 if pruning_stats.chars_saved > 0:
                     logger.info(
-                        f"🧹 Pruned {pruning_stats.chars_saved:,} chars "
+                        f"Pruned {pruning_stats.chars_saved:,} chars "
                         f"(~{pruning_stats.estimated_tokens_saved:,} tokens) from tool results"
+                        + (
+                            f" ({pruning_stats.data_bearing_pruned} data-bearing trimmed)"
+                            if pruning_stats.data_bearing_pruned
+                            else ""
+                        )
                     )
+                    if self.runtime_context is not None:
+                        try:
+                            from src.services.agents.agent_trace_service import fire_tool_pruning
+
+                            self.runtime_context.event_sequence += 1
+                            fire_tool_pruning(
+                                tenant_id=self.runtime_context.tenant_id,
+                                agent_id=self.runtime_context.agent_id,
+                                conversation_id=self.runtime_context.conversation_id,
+                                sequence=self.runtime_context.event_sequence,
+                                turn_index=self.runtime_context.llm_call_index,
+                                tool_results_count=pruning_stats.tool_results_count,
+                                tool_results_pruned=pruning_stats.tool_results_pruned,
+                                data_bearing_pruned=pruning_stats.data_bearing_pruned,
+                                chars_saved=pruning_stats.chars_saved,
+                                estimated_tokens_saved=pruning_stats.estimated_tokens_saved,
+                                original_chars=pruning_stats.original_chars,
+                                pruned_chars=pruning_stats.pruned_chars,
+                            )
+                        except Exception as _prune_trace_err:
+                            logger.warning("fire_tool_pruning failed (non-critical): %s", _prune_trace_err)
 
                 # Evict any cache entries whose messages were truncated or replaced with
                 # placeholders so the next identical request re-executes the tool and
@@ -474,6 +500,16 @@ class FunctionCallingHandler:
                     _out_tok = int(
                         getattr(_usage, "completion_tokens", None) or getattr(_usage, "output_tokens", None) or 0
                     )
+                    _cache_read_tok = int(
+                        getattr(_usage, "cache_read_input_tokens", None)
+                        or getattr(_usage, "cache_read_tokens", None)
+                        or 0
+                    )
+                    _cache_creation_tok = int(
+                        getattr(_usage, "cache_creation_input_tokens", None)
+                        or getattr(_usage, "cache_creation_tokens", None)
+                        or 0
+                    )
                     _resp_text = ""
                     if hasattr(response, "choices") and response.choices:
                         _msg = response.choices[0].message
@@ -514,6 +550,13 @@ class FunctionCallingHandler:
                         )
                     _tools_json = json.dumps(_tool_defs, default=str) if _tool_defs else None
 
+                    # Context window pressure: estimate utilization % from token counts.
+                    # ModelConfig has no context_window field; use 128k as a safe
+                    # universal fallback (correct for most modern models).
+                    _ctx_window = 128000
+                    _total_tok = _in_tok + _out_tok
+                    _ctx_pct = round((_total_tok / _ctx_window) * 100, 2) if _total_tok else None
+
                     fire_llm_call(
                         tenant_id=self.runtime_context.tenant_id,
                         agent_id=self.runtime_context.agent_id,
@@ -531,6 +574,9 @@ class FunctionCallingHandler:
                         system_prompt=_sys_prompt_trace,
                         messages_json=_messages_json,
                         tools_json=_tools_json,
+                        cache_read_tokens=_cache_read_tok,
+                        cache_creation_tokens=_cache_creation_tok,
+                        context_utilization_pct=_ctx_pct,
                     )
                 except Exception as _llm_trace_err:
                     logger.warning("fire_llm_call failed (non-critical): %s", _llm_trace_err)

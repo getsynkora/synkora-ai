@@ -1,0 +1,31 @@
+<svg width="1200" height="675" viewBox="0 0 1200 675" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="675" rx="36" fill="#F7F2E7"/>
+  <rect x="88" y="112" width="300" height="450" rx="30" fill="#FFF8ED" stroke="#171717" stroke-opacity="0.08" stroke-width="2"/>
+  <rect x="450" y="112" width="300" height="450" rx="30" fill="#171717" stroke="#171717" stroke-opacity="0.08" stroke-width="2"/>
+  <rect x="812" y="112" width="300" height="450" rx="30" fill="#FFFFFF" fill-opacity="0.8" stroke="#171717" stroke-opacity="0.08" stroke-width="2"/>
+  <path d="M388 338H450" stroke="#FF5F8F" stroke-width="8" stroke-linecap="round"/>
+  <path d="M750 338H812" stroke="#79DFBC" stroke-width="8" stroke-linecap="round"/>
+  <text x="238" y="170" text-anchor="middle" fill="#171717" font-family="Arial, sans-serif" font-size="28" font-weight="700">The Demo</text>
+  <text x="600" y="170" text-anchor="middle" fill="#F7F2E7" font-family="Arial, sans-serif" font-size="28" font-weight="700">The Gap</text>
+  <text x="962" y="170" text-anchor="middle" fill="#171717" font-family="Arial, sans-serif" font-size="28" font-weight="700">The Platform</text>
+  <rect x="128" y="212" width="220" height="74" rx="20" fill="#79DFBC" fill-opacity="0.28"/>
+  <rect x="128" y="306" width="220" height="74" rx="20" fill="#79DFBC" fill-opacity="0.18"/>
+  <rect x="128" y="400" width="220" height="74" rx="20" fill="#79DFBC" fill-opacity="0.12"/>
+  <text x="238" y="256" text-anchor="middle" fill="#171717" font-family="Arial, sans-serif" font-size="22" font-weight="700">Prompt</text>
+  <text x="238" y="350" text-anchor="middle" fill="#171717" font-family="Arial, sans-serif" font-size="22" font-weight="700">Model Call</text>
+  <text x="238" y="444" text-anchor="middle" fill="#171717" font-family="Arial, sans-serif" font-size="22" font-weight="700">"It works"</text>
+  <text x="600" y="248" text-anchor="middle" fill="#F7F2E7" font-family="Arial, sans-serif" font-size="22" font-weight="700">Auth</text>
+  <text x="600" y="286" text-anchor="middle" fill="#F7F2E7" font-family="Arial, sans-serif" font-size="22" font-weight="700">Tenants</text>
+  <text x="600" y="324" text-anchor="middle" fill="#F7F2E7" font-family="Arial, sans-serif" font-size="22" font-weight="700">RAG</text>
+  <text x="600" y="362" text-anchor="middle" fill="#F7F2E7" font-family="Arial, sans-serif" font-size="22" font-weight="700">Queues</text>
+  <text x="600" y="400" text-anchor="middle" fill="#F7F2E7" font-family="Arial, sans-serif" font-size="22" font-weight="700">Retries</text>
+  <text x="600" y="438" text-anchor="middle" fill="#F7F2E7" font-family="Arial, sans-serif" font-size="22" font-weight="700">Billing</text>
+  <text x="600" y="476" text-anchor="middle" fill="#F7F2E7" font-family="Arial, sans-serif" font-size="22" font-weight="700">Observability</text>
+  <rect x="852" y="204" width="220" height="82" rx="22" fill="#FFF8ED"/>
+  <rect x="852" y="306" width="220" height="82" rx="22" fill="#E7F6EF"/>
+  <rect x="852" y="408" width="220" height="82" rx="22" fill="#FFF8ED"/>
+  <text x="962" y="246" text-anchor="middle" fill="#171717" font-family="Arial, sans-serif" font-size="22" font-weight="700">Control Plane</text>
+  <text x="962" y="348" text-anchor="middle" fill="#171717" font-family="Arial, sans-serif" font-size="22" font-weight="700">Delivery Surfaces</text>
+  <text x="962" y="450" text-anchor="middle" fill="#171717" font-family="Arial, sans-serif" font-size="22" font-weight="700">Ops + Security</text>
+  <text x="600" y="608" text-anchor="middle" fill="#5B564E" font-family="Arial, sans-serif" font-size="24">The hard part of AI is not the first answer. It is everything around the answer.</text>
+</svg>

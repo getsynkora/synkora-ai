@@ -1,151 +1,73 @@
 ---
-sidebar_position: 5
+sidebar_position: 1
 ---
 
-# Embed Chat Widget
+# Embed the Web Widget
 
-Add a Synkora chat widget to your website.
+The Synkora widget is the fastest way to put an agent on a website or customer portal.
 
-## Quick Start
+## What You Need
 
-Add this script to your website:
+- a running Synkora instance
+- a configured widget in the dashboard
+- the widget ID and widget API key
+
+## Basic Embed
 
 ```html
-<!-- Replace YOUR_INSTANCE_URL with your Synkora deployment URL -->
+<script src="https://your-instance.com/widget.js"></script>
 <script>
-  (function(w, d, s, o, f, js, fjs) {
-    w['SynkoraWidget'] = o;
-    w[o] = w[o] || function() { (w[o].q = w[o].q || []).push(arguments) };
-    js = d.createElement(s); fjs = d.getElementsByTagName(s)[0];
-    js.id = o; js.src = f; js.async = 1;
-    fjs.parentNode.insertBefore(js, fjs);
-  }(window, document, 'script', 'synkora', 'https://YOUR_INSTANCE_URL/widget.js'));
-
-  synkora('init', {
-    agentId: 'YOUR_AGENT_ID',
-    token: 'YOUR_WIDGET_TOKEN'
+  SynkoraWidget.init({
+    widgetId: "your-widget-id",
+    apiKey: "swk_...",
   });
 </script>
 ```
 
-## Generate Widget Token
+## With Identified User
 
-```typescript
-const { token } = await synkora.agents.createWidgetToken(agentId, {
-  allowedOrigins: ['https://example.com'],
-  expiresIn: '30d',
-});
+```html
+<script src="https://your-instance.com/widget.js"></script>
+<script>
+  SynkoraWidget.init({
+    widgetId: "your-widget-id",
+    apiKey: "swk_...",
+    user: {
+      id: "usr_123",
+      name: "Alice",
+      email: "alice@example.com",
+      orgId: "acme",
+    },
+  });
+</script>
 ```
 
-## Configuration Options
+## With Identity Verification
 
-```javascript
-synkora('init', {
-  agentId: 'YOUR_AGENT_ID',
-  token: 'YOUR_WIDGET_TOKEN',
+If identity verification is enabled on the widget, your server must compute `userHash` and pass it to the browser. Do not compute it in frontend code.
 
-  // Appearance
-  position: 'bottom-right',  // bottom-right, bottom-left
-  primaryColor: '#0066cc',
-  title: 'Support Chat',
-  subtitle: 'Ask us anything!',
-  placeholder: 'Type your message...',
-
-  // Behavior
-  autoOpen: false,
-  autoOpenDelay: 5000,
-  showOnMobile: true,
-
-  // User context
-  user: {
-    id: 'user-123',
-    name: 'John Doe',
-    email: 'john@example.com',
-  },
-});
+```html
+<script src="https://your-instance.com/widget.js"></script>
+<script>
+  SynkoraWidget.init({
+    widgetId: "your-widget-id",
+    apiKey: "swk_...",
+    user: { id: "usr_123", orgId: "acme" },
+    userHash: "{{ server_computed_hash }}",
+  });
+</script>
 ```
 
-## Programmatic Control
+## Agent Routing
 
-```javascript
-// Open chat
-synkora('open');
+Widgets can route different organizations to different agents when:
 
-// Close chat
-synkora('close');
+- agent routing is enabled on the widget
+- a `user.orgId` is provided
+- routes are configured in Synkora
 
-// Toggle chat
-synkora('toggle');
+## Operational Advice
 
-// Send message programmatically
-synkora('send', 'Hello!');
-
-// Update user
-synkora('identify', {
-  id: 'user-123',
-  name: 'John Doe',
-});
-```
-
-## Custom Styling
-
-Override widget styles:
-
-```css
-:root {
-  --synkora-primary: #0066cc;
-  --synkora-background: #ffffff;
-  --synkora-text: #333333;
-  --synkora-border-radius: 12px;
-}
-```
-
-## Events
-
-Listen to widget events:
-
-```javascript
-synkora('on', 'open', () => {
-  console.log('Chat opened');
-});
-
-synkora('on', 'message', (message) => {
-  console.log('New message:', message);
-});
-
-synkora('on', 'close', () => {
-  console.log('Chat closed');
-});
-```
-
-## React Component
-
-> **Note:** A `@synkora/react` npm package is not yet published. Wrap the script-tag embed in a `useEffect` instead:
-
-```jsx
-import { useEffect } from 'react';
-
-function SynkoraWidget({ agentId, token, instanceUrl }) {
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = `${instanceUrl}/widget.js`;
-    script.async = true;
-    script.onload = () => window.synkora?.('init', { agentId, token });
-    document.body.appendChild(script);
-    return () => document.body.removeChild(script);
-  }, [agentId, token, instanceUrl]);
-
-  return null;
-}
-
-// <SynkoraWidget
-//   instanceUrl="https://YOUR_INSTANCE_URL"
-//   agentId="YOUR_AGENT_ID"
-//   token="YOUR_WIDGET_TOKEN"
-// />
-```
-
-## Next Steps
-
-- Customize [agent behavior](/docs/concepts/agents)
-- Add [knowledge base](/docs/guides/agents/create-rag-agent)
+- start anonymous if you only need public website chat
+- enable identity verification for customer or account-specific use cases
+- use org-based routing when one widget must serve many customer workspaces

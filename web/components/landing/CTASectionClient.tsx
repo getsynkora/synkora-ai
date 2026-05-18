@@ -2,13 +2,9 @@
 
 import Link from 'next/link'
 import { useEffect, useRef } from 'react'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { Zap } from 'lucide-react'
 import Footer from '@/components/landing/Footer'
 import { useGitHubStars, formatStars } from '@/lib/hooks/useGitHubStars'
-
-gsap.registerPlugin(ScrollTrigger)
 
 export default function CTASectionClient() {
   const ctaSectionRef = useRef<HTMLElement>(null)
@@ -17,94 +13,105 @@ export default function CTASectionClient() {
   const stars = useGitHubStars()
 
   useEffect(() => {
-    const triggers: ScrollTrigger[] = []
+    const triggers: { kill: () => void }[] = []
     const ctaBox = ctaBoxRef.current
+    let cancelled = false
 
-    if (ctaSectionRef.current && ctaBox) {
-      const t = ScrollTrigger.create({
-        trigger: ctaSectionRef.current,
-        start: 'top 80%',
-        onEnter: () => {
-          const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
-          tl.fromTo(
-            ctaBox,
-            { opacity: 0, scale: 0.94, y: 52, filter: 'blur(14px)' },
-            { opacity: 1, scale: 1, y: 0, filter: 'blur(0px)', duration: 1.02 }
-          )
-          tl.fromTo(
-            '.cta-kicker, .cta-line, .cta-actions',
-            { opacity: 0, y: 24 },
-            { opacity: 1, y: 0, duration: 0.7, stagger: 0.1 },
-            '-=0.56'
-          )
-          tl.fromTo(
-            '.cta-float',
-            { opacity: 0, y: 20, scale: 0.88 },
-            { opacity: 1, y: 0, scale: 1, duration: 0.65, stagger: 0.12 },
-            '-=0.52'
-          )
-        },
-        once: true,
-      })
-      triggers.push(t)
+    Promise.all([import('gsap'), import('gsap/ScrollTrigger')]).then(
+      ([{ default: gsap }, { ScrollTrigger }]) => {
+        if (cancelled) return
+        gsap.registerPlugin(ScrollTrigger)
+
+        if (ctaSectionRef.current && ctaBox) {
+          const t = ScrollTrigger.create({
+            trigger: ctaSectionRef.current,
+            start: 'top 80%',
+            onEnter: () => {
+              const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
+              tl.fromTo(
+                ctaBox,
+                { opacity: 0, scale: 0.94, y: 52, filter: 'blur(14px)' },
+                { opacity: 1, scale: 1, y: 0, filter: 'blur(0px)', duration: 1.02 }
+              )
+              tl.fromTo(
+                '.cta-kicker, .cta-line, .cta-actions',
+                { opacity: 0, y: 24 },
+                { opacity: 1, y: 0, duration: 0.7, stagger: 0.1 },
+                '-=0.56'
+              )
+              tl.fromTo(
+                '.cta-float',
+                { opacity: 0, y: 20, scale: 0.88 },
+                { opacity: 1, y: 0, scale: 1, duration: 0.65, stagger: 0.12 },
+                '-=0.52'
+              )
+            },
+            once: true,
+          })
+          triggers.push(t)
+        }
+
+        if (footerRef.current) {
+          const t = ScrollTrigger.create({
+            trigger: footerRef.current,
+            start: 'top 90%',
+            onEnter: () => {
+              gsap.fromTo(footerRef.current,
+                { opacity: 0, y: 30 },
+                { opacity: 1, y: 0, duration: 0.8 }
+              )
+            },
+            once: true,
+          })
+          triggers.push(t)
+        }
+
+        if (ctaBox) {
+          gsap.utils.toArray<HTMLElement>('.cta-orb').forEach((orb, index) => {
+            gsap.to(orb, {
+              x: index % 2 === 0 ? 22 : -18,
+              y: index % 2 === 0 ? -16 : 20,
+              duration: 6.2 + index,
+              repeat: -1,
+              yoyo: true,
+              ease: 'sine.inOut',
+            })
+          })
+
+          gsap.utils.toArray<HTMLElement>('.cta-beam').forEach((beam, index) => {
+            gsap.fromTo(
+              beam,
+              { xPercent: index % 2 === 0 ? -10 : 10, opacity: 0.18 },
+              { xPercent: index % 2 === 0 ? 10 : -10, opacity: 0.42, duration: 4.6 + index * 0.6, repeat: -1, yoyo: true, ease: 'sine.inOut' }
+            )
+          })
+
+          gsap.utils.toArray<HTMLElement>('.cta-pulse-ring').forEach((ring, index) => {
+            gsap.fromTo(
+              ring,
+              { scale: 0.82, opacity: 0.32 },
+              { scale: 1.18 + index * 0.04, opacity: 0, duration: 2.8 + index * 0.3, repeat: -1, delay: index * 0.35, ease: 'power1.out' }
+            )
+          })
+
+          gsap.utils.toArray<HTMLElement>('.cta-float').forEach((card, index) => {
+            gsap.to(card, {
+              y: index % 2 === 0 ? -10 : 10,
+              rotate: index % 2 === 0 ? '+=1.2' : '-=1.2',
+              duration: 5 + index * 0.8,
+              repeat: -1,
+              yoyo: true,
+              ease: 'sine.inOut',
+            })
+          })
+        }
+      }
+    )
+
+    return () => {
+      cancelled = true
+      triggers.forEach(t => t.kill())
     }
-
-    if (footerRef.current) {
-      const t = ScrollTrigger.create({
-        trigger: footerRef.current,
-        start: 'top 90%',
-        onEnter: () => {
-          gsap.fromTo(footerRef.current,
-            { opacity: 0, y: 30 },
-            { opacity: 1, y: 0, duration: 0.8 }
-          )
-        },
-        once: true,
-      })
-      triggers.push(t)
-    }
-
-    if (ctaBox) {
-      gsap.utils.toArray<HTMLElement>('.cta-orb').forEach((orb, index) => {
-        gsap.to(orb, {
-          x: index % 2 === 0 ? 22 : -18,
-          y: index % 2 === 0 ? -16 : 20,
-          duration: 6.2 + index,
-          repeat: -1,
-          yoyo: true,
-          ease: 'sine.inOut',
-        })
-      })
-
-      gsap.utils.toArray<HTMLElement>('.cta-beam').forEach((beam, index) => {
-        gsap.fromTo(
-          beam,
-          { xPercent: index % 2 === 0 ? -10 : 10, opacity: 0.18 },
-          { xPercent: index % 2 === 0 ? 10 : -10, opacity: 0.42, duration: 4.6 + index * 0.6, repeat: -1, yoyo: true, ease: 'sine.inOut' }
-        )
-      })
-
-      gsap.utils.toArray<HTMLElement>('.cta-pulse-ring').forEach((ring, index) => {
-        gsap.fromTo(
-          ring,
-          { scale: 0.82, opacity: 0.32 },
-          { scale: 1.18 + index * 0.04, opacity: 0, duration: 2.8 + index * 0.3, repeat: -1, delay: index * 0.35, ease: 'power1.out' }
-        )
-      })
-
-      gsap.utils.toArray<HTMLElement>('.cta-float').forEach((card, index) => {
-        gsap.to(card, {
-          y: index % 2 === 0 ? -10 : 10,
-          rotate: index % 2 === 0 ? '+=1.2' : '-=1.2',
-          duration: 5 + index * 0.8,
-          repeat: -1,
-          yoyo: true,
-          ease: 'sine.inOut',
-        })
-      })
-    }
-
-    return () => { triggers.forEach(t => t.kill()) }
   }, [])
 
   return (

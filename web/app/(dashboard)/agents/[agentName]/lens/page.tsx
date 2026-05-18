@@ -6,11 +6,12 @@ import Link from 'next/link'
 import {
   ArrowLeft, Activity, Bell, Plus, Trash2, CheckCircle, XCircle,
   AlertTriangle, Wrench, Zap, DollarSign, Clock, TrendingUp, BarChart2,
-  ThumbsUp, ThumbsDown, Minus,
+  ThumbsUp, ThumbsDown, Minus, Scissors, Database,
 } from 'lucide-react'
 import {
-  PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend,
+  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  LineChart, Line,
 } from 'recharts'
 import {
   getLensOverview,
@@ -18,6 +19,8 @@ import {
   getLensAlerts,
   getLensToolAnalytics,
   getLensToolROI,
+  getLensCompaction,
+  getLensCache,
   createLensAlert,
   deleteLensAlert,
   type LensOverviewResponse,
@@ -25,13 +28,15 @@ import {
   type LensToolAnalyticsResponse,
   type LensToolROIResponse,
   type LensToolROIStat,
+  type LensCompactionAnalyticsResponse,
+  type LensCacheAnalyticsResponse,
   type AlertResponse,
   type AlertCreateBody,
   type LensRange,
 } from '@/lib/api/agent-lens'
 import AgentPageShell, { AgentPagePanel, AgentPageTabs } from '@/components/agents/AgentPageShell'
 
-type Tab = 'overview' | 'tools' | 'roi' | 'alerts'
+type Tab = 'overview' | 'tools' | 'roi' | 'compaction' | 'cache' | 'alerts'
 
 const RANGE_OPTIONS: { label: string; value: LensRange }[] = [
   { label: '24h', value: '24h' },
@@ -177,6 +182,235 @@ function DonutCard({
       ) : (
         <div className="flex items-center justify-center h-40 text-gray-400 text-sm">No data yet</div>
       )}
+    </div>
+  )
+}
+
+// ─── Compaction ───────────────────────────────────────────────────────────────
+
+function CompactionView({ data }: { data: LensCompactionAnalyticsResponse }) {
+  const pruningPct = Math.round(data.pruning_rate * 100)
+  const ratiosPct = Math.round(data.avg_pruning_ratio * 100)
+  const hasDataWarning = data.data_bearing_pruned_total > 0
+  const trendData = data.trend.map(t => ({
+    date: t.date.slice(5),  // MM-DD
+    events: t.pruning_events,
+    tokens: t.tokens_saved,
+    data_bearing: t.data_bearing_pruned,
+  }))
+
+  return (
+    <div className="space-y-6">
+      {/* Quality warning */}
+      {hasDataWarning && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <span className="font-semibold">Quality risk: </span>
+          {data.data_bearing_pruned_total} data-bearing tool results (SQL rows, file contents) were
+          trimmed during context compaction. This can cause the LLM to lose track of data it already
+          retrieved. Consider reducing tool output sizes or increasing context limits.
+        </div>
+      )}
+
+      {/* KPI cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <KpiCard
+          label="Sessions Compacted"
+          value={`${pruningPct}%`}
+          sub={`${data.sessions_with_pruning} of ${data.total_sessions}`}
+          icon={Scissors}
+          iconBg={pruningPct > 30 ? 'bg-amber-50' : 'bg-primary-50'}
+          iconColor={pruningPct > 30 ? 'text-amber-600' : 'text-primary-600'}
+        />
+        <KpiCard
+          label="Tokens Saved"
+          value={fmtTokens(data.total_tokens_saved)}
+          sub={`avg ${fmtTokens(Math.round(data.avg_tokens_saved_per_session))} / session`}
+          icon={TrendingUp}
+          iconBg="bg-emerald-50"
+          iconColor="text-emerald-600"
+        />
+        <KpiCard
+          label="Data Tools Trimmed"
+          value={String(data.data_bearing_pruned_total)}
+          sub="SQL/file results affected"
+          icon={AlertTriangle}
+          iconBg={hasDataWarning ? 'bg-amber-50' : 'bg-gray-50'}
+          iconColor={hasDataWarning ? 'text-amber-600' : 'text-gray-400'}
+        />
+        <KpiCard
+          label="Avg Pruning Ratio"
+          value={`${ratiosPct}%`}
+          sub={`${data.total_results_pruned} of ${data.total_results_evaluated} results`}
+          icon={BarChart2}
+          iconBg="bg-violet-50"
+          iconColor="text-violet-600"
+        />
+      </div>
+
+      {/* Trend chart */}
+      {trendData.length > 0 && (
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4">Pruning Events Over Time</h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart data={trendData} margin={{ top: 0, right: 16, bottom: 0, left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+              <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 12 }}
+              />
+              <Line type="monotone" dataKey="events" stroke="#e11d48" strokeWidth={2} dot={false} name="Pruning events" />
+              <Line type="monotone" dataKey="data_bearing" stroke="#f59e0b" strokeWidth={2} dot={false} name="Data tools trimmed" strokeDasharray="4 2" />
+            </LineChart>
+          </ResponsiveContainer>
+          <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
+            <span className="flex items-center gap-1.5"><span className="inline-block h-0.5 w-5 bg-[#e11d48]" />Pruning events</span>
+            <span className="flex items-center gap-1.5"><span className="inline-block h-0.5 w-5 bg-[#f59e0b]" />Data tools trimmed</span>
+          </div>
+        </div>
+      )}
+
+      {/* Explanation */}
+      <div className="rounded-lg border border-gray-100 bg-gray-50 px-4 py-3 text-xs text-gray-500 leading-relaxed">
+        <span className="font-medium text-gray-700">How compaction works: </span>
+        When a conversation grows too long, older tool results are compacted to free context space.
+        Non-data tools (e.g. send_email) get a 1-line summary. Data-bearing tools (SQL queries, CSV reads) are
+        trimmed with head+tail preservation to keep data rows intact — but heavy trimming can still degrade quality.
+        The <span className="font-medium text-amber-700">Data Tools Trimmed</span> counter shows how often this
+        quality-sensitive path was triggered.
+      </div>
+    </div>
+  )
+}
+
+// ─── Cache ─────────────────────────────────────────────────────────────────────
+
+function CacheView({ data }: { data: LensCacheAnalyticsResponse }) {
+  const hitPct = Math.round(data.cache_hit_rate * 100)
+  const avgCtxPct = Math.round(data.avg_context_utilization_pct)
+  const maxCtxPct = Math.round(data.max_context_utilization_pct)
+  const highPressurePct = data.total_llm_calls > 0
+    ? Math.round((data.high_pressure_calls / data.total_llm_calls) * 100)
+    : 0
+  const trendData = data.trend.map(t => ({
+    date: t.date.slice(5),
+    hit_rate: Math.round(t.cache_hit_rate * 100),
+    cache_read: t.cache_read_tokens,
+    cache_creation: t.cache_creation_tokens,
+  }))
+
+  const ctxColor = avgCtxPct >= 80 ? 'text-red-700' : avgCtxPct >= 60 ? 'text-amber-700' : 'text-emerald-700'
+  const ctxBg = avgCtxPct >= 80 ? 'bg-red-50 border-red-200' : avgCtxPct >= 60 ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'
+
+  return (
+    <div className="space-y-6">
+      {/* Context pressure warning */}
+      {data.high_pressure_calls > 0 && (
+        <div className={`rounded-lg border px-4 py-3 text-sm ${avgCtxPct >= 80 ? 'border-red-300 bg-red-50 text-red-800' : 'border-amber-300 bg-amber-50 text-amber-800'}`}>
+          <span className="font-semibold">Context pressure: </span>
+          {data.high_pressure_calls} LLM calls ({highPressurePct}%) used ≥80% of the context window.
+          {avgCtxPct >= 70 && ' Consider reducing system prompt size or enabling more aggressive compaction.'}
+        </div>
+      )}
+
+      {/* KPI cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <KpiCard
+          label="Cache Hit Rate"
+          value={`${hitPct}%`}
+          sub={`${data.total_llm_calls} LLM calls`}
+          icon={Database}
+          iconBg={hitPct >= 50 ? 'bg-emerald-50' : 'bg-gray-50'}
+          iconColor={hitPct >= 50 ? 'text-emerald-600' : 'text-gray-400'}
+        />
+        <KpiCard
+          label="Est. Savings"
+          value={fmtCost(data.estimated_savings_usd)}
+          sub="from cache reads"
+          icon={DollarSign}
+          iconBg="bg-emerald-50"
+          iconColor="text-emerald-600"
+        />
+        <KpiCard
+          label="Avg Context Use"
+          value={`${avgCtxPct}%`}
+          sub={`max ${maxCtxPct}%`}
+          icon={TrendingUp}
+          iconBg={avgCtxPct >= 80 ? 'bg-red-50' : avgCtxPct >= 60 ? 'bg-amber-50' : 'bg-emerald-50'}
+          iconColor={avgCtxPct >= 80 ? 'text-red-600' : avgCtxPct >= 60 ? 'text-amber-600' : 'text-emerald-600'}
+        />
+        <KpiCard
+          label="High Pressure Calls"
+          value={String(data.high_pressure_calls)}
+          sub="≥80% context used"
+          icon={AlertTriangle}
+          iconBg={data.high_pressure_calls > 0 ? 'bg-amber-50' : 'bg-gray-50'}
+          iconColor={data.high_pressure_calls > 0 ? 'text-amber-600' : 'text-gray-400'}
+        />
+      </div>
+
+      {/* Context utilization gauge */}
+      <div className={`rounded-xl border p-5 shadow-sm ${ctxBg}`}>
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-xs font-medium text-gray-600">Average Context Window Utilization</span>
+          <span className={`text-3xl font-bold ${ctxColor}`}>{avgCtxPct}%</span>
+        </div>
+        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all ${avgCtxPct >= 80 ? 'bg-red-500' : avgCtxPct >= 60 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+            style={{ width: `${Math.min(avgCtxPct, 100)}%` }}
+          />
+        </div>
+        <div className="mt-2 flex justify-between text-xs text-gray-400">
+          <span>0%</span>
+          <span className="text-amber-600 font-medium">60% caution</span>
+          <span className="text-red-600 font-medium">80% critical</span>
+          <span>100%</span>
+        </div>
+      </div>
+
+      {/* Token stats */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: 'Total Input Tokens', value: fmtTokens(data.total_input_tokens), color: 'border-l-gray-400' },
+          { label: 'Cache Read Tokens', value: fmtTokens(data.total_cache_read_tokens), color: 'border-l-emerald-500' },
+          { label: 'Cache Creation Tokens', value: fmtTokens(data.total_cache_creation_tokens), color: 'border-l-violet-500' },
+        ].map(item => (
+          <div key={item.label} className={`rounded-xl border border-gray-200 bg-white p-4 shadow-sm border-l-4 ${item.color}`}>
+            <p className="text-xs font-medium text-gray-500 mb-1">{item.label}</p>
+            <p className="text-2xl font-bold text-gray-900">{item.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Trend chart */}
+      {trendData.length > 0 && (
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4">Cache Hit Rate Over Time</h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart data={trendData} margin={{ top: 0, right: 16, bottom: 0, left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+              <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} unit="%" domain={[0, 100]} />
+              <Tooltip
+                contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 12 }}
+                formatter={(v: number) => [`${v}%`, 'Cache hit rate']}
+              />
+              <Line type="monotone" dataKey="hit_rate" stroke="#10b981" strokeWidth={2} dot={false} name="Hit rate %" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Explanation */}
+      <div className="rounded-lg border border-gray-100 bg-gray-50 px-4 py-3 text-xs text-gray-500 leading-relaxed">
+        <span className="font-medium text-gray-700">Prompt cache: </span>
+        Anthropic's prompt caching stores common prefix tokens (system prompt, tools) server-side.
+        Cache reads cost ~10% of normal input token price, saving cost on repeated calls.
+        A high hit rate means the agent is reusing context efficiently.
+        Context utilization tracks how much of the model's context window is used per call — sustained
+        usage above 80% leads to compaction and potential quality degradation.
+      </div>
     </div>
   )
 }
@@ -347,11 +581,15 @@ export default function LensOverviewPage() {
   const [distribution, setDistribution] = useState<LensTokenDistributionResponse | null>(null)
   const [toolAnalytics, setToolAnalytics] = useState<LensToolAnalyticsResponse | null>(null)
   const [toolROI, setToolROI] = useState<LensToolROIResponse | null>(null)
+  const [compaction, setCompaction] = useState<LensCompactionAnalyticsResponse | null>(null)
+  const [cache, setCache] = useState<LensCacheAnalyticsResponse | null>(null)
   const [alerts, setAlerts] = useState<AlertResponse[]>([])
 
   const [loading, setLoading] = useState(true)
   const [toolsLoading, setToolsLoading] = useState(false)
   const [roiLoading, setRoiLoading] = useState(false)
+  const [compactionLoading, setCompactionLoading] = useState(false)
+  const [cacheLoading, setCacheLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const [showAlertForm, setShowAlertForm] = useState(false)
@@ -401,6 +639,20 @@ export default function LensOverviewPage() {
     } catch { } finally { setRoiLoading(false) }
   }, [agentSlug, range])
 
+  const loadCompaction = useCallback(async () => {
+    setCompactionLoading(true)
+    try {
+      setCompaction(await getLensCompaction(agentSlug, range))
+    } catch { } finally { setCompactionLoading(false) }
+  }, [agentSlug, range])
+
+  const loadCache = useCallback(async () => {
+    setCacheLoading(true)
+    try {
+      setCache(await getLensCache(agentSlug, range))
+    } catch { } finally { setCacheLoading(false) }
+  }, [agentSlug, range])
+
   const loadAlerts = useCallback(async () => {
     try {
       setAlerts(await getLensAlerts(agentSlug))
@@ -410,6 +662,8 @@ export default function LensOverviewPage() {
   useEffect(() => { loadOverview() }, [loadOverview])
   useEffect(() => { if (tab === 'tools') loadToolAnalytics() }, [tab, loadToolAnalytics])
   useEffect(() => { if (tab === 'roi') loadROI() }, [tab, loadROI])
+  useEffect(() => { if (tab === 'compaction') loadCompaction() }, [tab, loadCompaction])
+  useEffect(() => { if (tab === 'cache') loadCache() }, [tab, loadCache])
   useEffect(() => { if (tab === 'alerts') loadAlerts() }, [tab, loadAlerts])
 
   async function handleCreateAlert() {
@@ -484,6 +738,8 @@ export default function LensOverviewPage() {
             { id: 'overview', label: 'Overview', icon: <Activity size={14} /> },
             { id: 'tools', label: 'Tools', icon: <Wrench size={14} /> },
             { id: 'roi', label: 'Tool ROI', icon: <BarChart2 size={14} /> },
+            { id: 'compaction', label: 'Compaction', icon: <Scissors size={14} /> },
+            { id: 'cache', label: 'Cache', icon: <Database size={14} /> },
             { id: 'alerts', label: 'Alerts', icon: <Bell size={14} /> },
           ]}
         />
@@ -743,6 +999,32 @@ export default function LensOverviewPage() {
             <ToolROIView data={toolROI} />
           ) : (
             <div className="text-gray-400 py-16 text-center">No data available</div>
+          )}
+        </>
+      )}
+
+      {/* ── COMPACTION TAB ────────────────────────────────────────────────── */}
+      {tab === 'compaction' && (
+        <>
+          {compactionLoading ? (
+            <div className="text-gray-400 py-16 text-center">Loading compaction data...</div>
+          ) : compaction ? (
+            <CompactionView data={compaction} />
+          ) : (
+            <div className="text-gray-400 py-16 text-center">No compaction data available</div>
+          )}
+        </>
+      )}
+
+      {/* ── CACHE TAB ─────────────────────────────────────────────────────── */}
+      {tab === 'cache' && (
+        <>
+          {cacheLoading ? (
+            <div className="text-gray-400 py-16 text-center">Loading cache data...</div>
+          ) : cache ? (
+            <CacheView data={cache} />
+          ) : (
+            <div className="text-gray-400 py-16 text-center">No cache data available</div>
           )}
         </>
       )}

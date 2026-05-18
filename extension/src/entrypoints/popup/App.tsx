@@ -81,7 +81,7 @@ export default function App() {
 
   if (screen === 'loading') {
     return (
-      <div className="w-80 h-40 flex items-center justify-center bg-white">
+      <div className="w-80 h-40 flex items-center justify-center bg-brand-canvas">
         <div className="w-5 h-5 border-2 border-synkora-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -89,39 +89,39 @@ export default function App() {
 
   if (screen === 'setup' || screen === 'error') {
     return (
-      <div className="w-80 bg-white p-5">
+      <div className="w-80 bg-brand-canvas p-5">
         <div className="flex items-center gap-2 mb-4">
-          <div className="w-6 h-6 rounded-md bg-synkora-600 flex items-center justify-center">
-            <span className="text-white text-xs font-bold">S</span>
+          <div className="w-7 h-7 rounded-xl bg-synkora-400 flex items-center justify-center shadow-soft">
+            <span className="text-brand-ink text-xs font-bold">S</span>
           </div>
-          <span className="text-sm font-semibold text-gray-800">Connect to Synkora</span>
+          <span className="text-sm font-semibold text-brand-ink">Connect to Synkora</span>
         </div>
 
         {screen === 'error' && (
-          <div className="mb-3 flex items-start gap-2 bg-red-50 border border-red-100 rounded-lg px-3 py-2 text-xs text-red-600">
+          <div className="mb-3 flex items-start gap-2 bg-[#fff2ec] border border-[#f2d1bd] rounded-2xl px-3 py-2 text-xs text-[#8b3f1e]">
             <AlertCircle size={12} className="mt-0.5 flex-shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
 
-        <label className="block text-xs text-gray-500 mb-1">Synkora instance URL</label>
+        <label className="block text-xs text-brand-muted mb-1">Synkora instance URL</label>
         <input
           type="url"
           value={urlInput}
           onChange={(e) => setUrlInput(e.target.value)}
           placeholder="https://your-synkora-instance.com"
-          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 outline-none focus:border-synkora-400 mb-3"
+          className="w-full border border-brand-line bg-brand-panel rounded-2xl px-3 py-2.5 text-sm text-brand-ink outline-none focus:border-synkora-400 focus:shadow-[0_0_0_3px_rgba(121,223,188,0.18)] mb-3"
           onKeyDown={(e) => e.key === 'Enter' && handleConnect()}
         />
 
         <button
           onClick={handleConnect}
-          className="w-full bg-synkora-600 hover:bg-synkora-700 text-white text-sm font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
+          className="w-full bg-synkora-400 hover:bg-synkora-300 text-brand-ink text-sm font-semibold py-2.5 rounded-2xl transition-colors flex items-center justify-center gap-2 shadow-soft"
         >
           <ExternalLink size={13} />
           Connect with Synkora
         </button>
-        <p className="text-[10px] text-gray-400 text-center mt-2">
+        <p className="text-[10px] text-brand-muted/80 text-center mt-2">
           Opens your Synkora dashboard to authorize access
         </p>
       </div>
@@ -130,44 +130,44 @@ export default function App() {
 
   if (screen === 'connecting') {
     return (
-      <div className="w-80 h-40 flex flex-col items-center justify-center bg-white gap-3">
+      <div className="w-80 h-40 flex flex-col items-center justify-center bg-brand-canvas gap-3">
         <div className="w-5 h-5 border-2 border-synkora-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm text-gray-500">Waiting for authorization…</p>
-        <p className="text-xs text-gray-400">Complete sign-in in the browser tab</p>
+        <p className="text-sm text-brand-muted">Waiting for authorization…</p>
+        <p className="text-xs text-brand-muted/80">Complete sign-in in the browser tab</p>
       </div>
     );
   }
 
   return (
-    <div className="w-80 bg-white p-5">
+    <div className="w-80 bg-brand-canvas p-5">
       <div className="flex items-center gap-2 mb-4">
-        <div className="w-6 h-6 rounded-md bg-synkora-600 flex items-center justify-center">
-          <span className="text-white text-xs font-bold">S</span>
+        <div className="w-7 h-7 rounded-xl bg-synkora-400 flex items-center justify-center shadow-soft">
+          <span className="text-brand-ink text-xs font-bold">S</span>
         </div>
-        <span className="text-sm font-semibold text-gray-800">Synkora Agent</span>
-        <CheckCircle2 size={14} className="text-green-500 ml-auto" />
+        <span className="text-sm font-semibold text-brand-ink">Synkora Agent</span>
+        <CheckCircle2 size={14} className="text-synkora-700 ml-auto" />
       </div>
 
-      <div className="bg-gray-50 rounded-lg px-3 py-2 text-xs text-gray-500 mb-4 flex items-center gap-2">
-        <span className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
-        Connected to <span className="font-medium text-gray-700 truncate">{synkoraUrl}</span>
+      <div className="bg-brand-panel border border-brand-line rounded-2xl px-3 py-2.5 text-xs text-brand-muted mb-4 flex items-center gap-2 shadow-soft">
+        <span className="w-1.5 h-1.5 rounded-full bg-synkora-500 flex-shrink-0" />
+        Connected to <span className="font-medium text-brand-ink truncate">{synkoraUrl}</span>
       </div>
 
-      <p className="text-xs text-gray-500 mb-3">
-        Click the side panel icon or press <kbd className="bg-gray-100 px-1 rounded text-[10px]">Ctrl+Shift+S</kbd> to open the agent panel.
+      <p className="text-xs text-brand-muted mb-3">
+        Click the side panel icon or press <kbd className="bg-brand-surface border border-brand-line px-1.5 py-0.5 rounded-md text-[10px] text-brand-ink">Ctrl+Shift+S</kbd> to open the agent panel.
       </p>
 
       <div className="flex gap-2">
         <button
           onClick={() => chrome.tabs.create({ url: `${synkoraUrl}/settings` })}
-          className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 text-gray-600 text-xs py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 border border-brand-line bg-brand-panel text-brand-ink text-xs py-2 rounded-2xl hover:bg-brand-surface transition-colors"
         >
           <Settings size={12} />
           Settings
         </button>
         <button
           onClick={handleLogout}
-          className="flex-1 flex items-center justify-center gap-1.5 border border-red-100 text-red-500 text-xs py-1.5 rounded-lg hover:bg-red-50 transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 border border-[#f2d1bd] text-[#8b3f1e] text-xs py-2 rounded-2xl hover:bg-[#fff2ec] transition-colors"
         >
           <LogOut size={12} />
           Disconnect

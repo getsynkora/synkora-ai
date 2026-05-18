@@ -3,12 +3,27 @@ Email Template Service
 
 Provides branded, responsive email templates.
 Branding is loaded from platform settings or can be overridden.
+
+Built-in wrapper layouts live as Jinja2 HTML files under the ``wrappers/``
+sub-directory.  Adding a new layout only requires dropping a new file there —
+no Python code changes needed.  The file must accept these template variables:
+
+    {{ content }}         — agent-generated HTML (injected verbatim)
+    {{ subject }}         — email subject line
+    {{ platform_name }}   — from EmailBranding
+    {{ logo_url }}        — from EmailBranding (may be empty)
+    {{ primary_color }}   — hex colour string
+    {{ secondary_color }} — hex colour string
+    {{ footer_text }}     — computed footer text
+    {{ support_email }}   — from EmailBranding (may be empty)
 """
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from pathlib import Path
 from uuid import UUID
 
+import jinja2
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,11 +36,11 @@ class EmailBranding:
 
     platform_name: str = "Synkora"
     logo_url: str | None = None
-    primary_color: str = "#ff444f"  # Brand red
-    secondary_color: str = "#000000"  # Black
-    accent_color: str = "#ff444f"  # Brand red
-    background_color: str = "#ffffff"
-    text_color: str = "#000000"  # Black
+    primary_color: str = "#2d8b69"
+    secondary_color: str = "#171717"
+    accent_color: str = "#f0c56d"
+    background_color: str = "#fcfaf5"
+    text_color: str = "#171717"
     support_email: str | None = None
     footer_text: str | None = None
 
@@ -33,8 +48,32 @@ class EmailBranding:
 class EmailTemplateService:
     """Service for wrapping email content in branded templates."""
 
+    WRAPPERS_DIR = Path(__file__).parent / "wrappers"
+
     def __init__(self, db: AsyncSession | None = None):
         self.db = db
+        self._wrapper_env = jinja2.Environment(
+            loader=jinja2.FileSystemLoader(str(self.WRAPPERS_DIR)),
+            autoescape=False,  # content is trusted internal HTML
+        )
+
+    def _branding_for_builtin(self, builtin_name: str, branding: EmailBranding) -> EmailBranding:
+        """Return builtin-specific branding overrides when needed."""
+        if builtin_name == "micromobility":
+            return replace(
+                branding,
+                platform_name="OTORIDE",
+                logo_url=None,
+                primary_color="#44b889",
+                secondary_color="#102128",
+                accent_color="#8fdab9",
+                background_color="#eef4ef",
+                text_color="#102128",
+                support_email=None,
+                footer_text="Delivered by OTORIDE shared mobility platform.",
+            )
+
+        return branding
 
     async def get_branding(self, tenant_id: UUID | None = None) -> EmailBranding:
         """
@@ -82,7 +121,7 @@ class EmailTemplateService:
     ) -> str:
         """
         Wrap email content in a branded, responsive template.
-        Clean Medium Daily Digest style design.
+        Warm editorial email wrapper aligned with the newer platform design system.
 
         Args:
             content: HTML content to wrap
@@ -96,7 +135,7 @@ class EmailTemplateService:
         if branding is None:
             branding = await self.get_branding(tenant_id)
 
-        # Build logo HTML - Medium style with bold/light weight mix
+        # Build logo HTML with a restrained editorial treatment.
         logo_html = ""
         if branding.logo_url:
             logo_html = f'''
@@ -107,7 +146,7 @@ class EmailTemplateService:
             logo_html = f"""
             <span style="font-family: Georgia, 'Times New Roman', serif; font-size: 28px; letter-spacing: -0.5px;">
                 <span style="font-weight: 700; color: {branding.secondary_color};">{branding.platform_name}</span>
-                <span style="font-weight: 400; color: #292929;"> Daily Digest</span>
+                <span style="font-weight: 400; color: #5f584f;"> Platform Brief</span>
             </span>
             """
 
@@ -155,7 +194,7 @@ class EmailTemplateService:
                             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
                                 <tr>
                                     <td style="border-bottom: 1px solid #e6e6e6; padding-bottom: 8px;">
-                                        <span style="font-size: 12px; font-weight: 600; color: #757575; text-transform: uppercase; letter-spacing: 0.5px;">Today's Highlights</span>
+                                        <span style="font-size: 12px; font-weight: 600; color: #757575; text-transform: uppercase; letter-spacing: 0.5px;">Platform Update</span>
                                     </td>
                                 </tr>
                             </table>
@@ -285,9 +324,9 @@ class EmailTemplateService:
                     <!-- CTA Section -->
                     <tr>
                         <td style="padding: 0 20px 32px 20px; text-align: center;">
-                            <p style="font-size: 15px; color: #505050; margin: 0 0 16px 0;">See more of what you like and less of what you don't.</p>
+                            <p style="font-size: 15px; color: #505050; margin: 0 0 16px 0;">Open your workspace to review agents, workflows, and the latest changes.</p>
                             <a href="#" style="display: inline-block; background-color: {branding.primary_color}; color: #ffffff; padding: 12px 24px; border-radius: 20px; font-size: 14px; font-weight: 500; text-decoration: none;">
-                                Customize your digest
+                                Open workspace
                             </a>
                         </td>
                     </tr>
@@ -331,6 +370,44 @@ class EmailTemplateService:
 </html>"""
 
         return template
+
+    async def wrap_content_for_builtin(
+        self,
+        builtin_name: str,
+        content: str,
+        subject: str | None = None,
+        branding: EmailBranding | None = None,
+        tenant_id: UUID | None = None,
+    ) -> str:
+        """Render content using a file-based Jinja2 wrapper layout.
+
+        Looks for ``wrappers/{builtin_name}.html``.  Falls back to
+        ``wrappers/editorial.html`` when the requested file does not exist so
+        that unknown names never cause a hard failure.
+
+        Adding a new built-in layout requires only dropping a new HTML file in
+        the ``wrappers/`` directory — no Python code changes needed.
+        """
+        if branding is None:
+            branding = await self.get_branding(tenant_id)
+        branding = self._branding_for_builtin(builtin_name, branding)
+
+        fname = f"{builtin_name}.html"
+        if not (self.WRAPPERS_DIR / fname).exists():
+            logger.warning("Email wrapper '%s' not found, falling back to editorial", fname)
+            fname = "editorial.html"
+
+        tmpl = self._wrapper_env.get_template(fname)
+        return tmpl.render(
+            content=content,
+            subject=subject or branding.platform_name,
+            platform_name=branding.platform_name,
+            logo_url=branding.logo_url or "",
+            primary_color=branding.primary_color,
+            secondary_color=branding.secondary_color,
+            footer_text=branding.footer_text or f"Sent by {branding.platform_name}",
+            support_email=branding.support_email or "",
+        )
 
     async def create_notification_email(
         self,

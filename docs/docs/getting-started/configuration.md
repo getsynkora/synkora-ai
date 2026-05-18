@@ -4,289 +4,99 @@ sidebar_position: 3
 
 # Configuration
 
-Synkora is configured through environment variables. This guide covers all available configuration options.
+Synkora configuration is split by service. The most important files are:
 
-## Environment Variables
+- `api/.env`
+- `web/.env.local`
+- `docker-compose.yml`
 
-### Core Settings
+## Backend Configuration
 
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `SECRET_KEY` | Application secret key for JWT signing | - | Yes |
-| `DEBUG` | Enable debug mode | `false` | No |
-| `ENVIRONMENT` | Environment name (development, staging, production) | `development` | No |
-| `LOG_LEVEL` | Logging level (DEBUG, INFO, WARNING, ERROR) | `INFO` | No |
+Start from:
 
-### Database
-
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `DATABASE_URL` | PostgreSQL connection string | - | Yes |
-| `DATABASE_POOL_SIZE` | Connection pool size | `10` | No |
-| `DATABASE_MAX_OVERFLOW` | Max overflow connections | `20` | No |
-
-```env
-DATABASE_URL=postgresql://user:password@localhost:5432/synkora
-DATABASE_POOL_SIZE=20
+```bash
+cp api/.env.example api/.env
 ```
 
-### Redis
+The backend configuration covers:
 
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `REDIS_URL` | Redis connection URL | - | Yes |
-| `CACHE_TTL` | Default cache TTL in seconds | `3600` | No |
-
-```env
-REDIS_URL=redis://localhost:6379/0
-CACHE_TTL=3600
-```
-
-### LLM Providers
-
-Configure API keys for LLM providers you want to use:
-
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `OPENAI_API_KEY` | OpenAI API key | If using OpenAI |
-| `ANTHROPIC_API_KEY` | Anthropic API key | If using Anthropic |
-| `GOOGLE_API_KEY` | Google AI API key | If using Google |
-| `AZURE_OPENAI_API_KEY` | Azure OpenAI key | If using Azure |
-| `AZURE_OPENAI_ENDPOINT` | Azure OpenAI endpoint | If using Azure |
-| `AZURE_OPENAI_API_VERSION` | Azure API version | If using Azure |
-
-```env
-OPENAI_API_KEY=sk-your-openai-key
-ANTHROPIC_API_KEY=sk-ant-your-anthropic-key
-GOOGLE_API_KEY=your-google-key
-```
-
-### Vector Database
-
-#### Qdrant
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `QDRANT_URL` | Qdrant server URL | `http://localhost:6333` |
-| `QDRANT_API_KEY` | Qdrant API key (for cloud) | - |
-
-#### Pinecone
-
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `PINECONE_API_KEY` | Pinecone API key | If using Pinecone |
-| `PINECONE_ENVIRONMENT` | Pinecone environment | If using Pinecone |
-
-```env
-# Qdrant (self-hosted)
-QDRANT_URL=http://localhost:6333
-
-# Or Pinecone (cloud)
-PINECONE_API_KEY=your-pinecone-key
-PINECONE_ENVIRONMENT=us-east-1-aws
-```
-
-### File Storage
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `STORAGE_TYPE` | Storage backend (local, s3, minio) | `local` |
-| `STORAGE_PATH` | Local storage path | `./uploads` |
-| `S3_BUCKET` | S3 bucket name | - |
-| `S3_ACCESS_KEY` | AWS access key | - |
-| `S3_SECRET_KEY` | AWS secret key | - |
-| `S3_REGION` | AWS region | `us-east-1` |
-| `S3_ENDPOINT` | Custom S3 endpoint (for MinIO) | - |
-
-```env
-# Local storage
-STORAGE_TYPE=local
-STORAGE_PATH=/data/uploads
-
-# S3
-STORAGE_TYPE=s3
-S3_BUCKET=synkora-uploads
-S3_ACCESS_KEY=AKIAIOSFODNN7EXAMPLE
-S3_SECRET_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
-S3_REGION=us-east-1
-
-# MinIO
-STORAGE_TYPE=minio
-S3_ENDPOINT=http://minio:9000
-S3_BUCKET=synkora
-S3_ACCESS_KEY=minioadmin
-S3_SECRET_KEY=minioadmin
-```
-
-### Authentication
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `JWT_ALGORITHM` | JWT signing algorithm | `HS256` |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | Access token expiry | `30` |
-| `REFRESH_TOKEN_EXPIRE_DAYS` | Refresh token expiry | `7` |
-
-### OAuth Providers
-
-For SSO integration:
-
-```env
-# Google OAuth
-GOOGLE_CLIENT_ID=your-client-id
-GOOGLE_CLIENT_SECRET=your-client-secret
-
-# GitHub OAuth
-GITHUB_CLIENT_ID=your-client-id
-GITHUB_CLIENT_SECRET=your-client-secret
-
-# Microsoft OAuth
-MICROSOFT_CLIENT_ID=your-client-id
-MICROSOFT_CLIENT_SECRET=your-client-secret
-```
-
-### Email
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `SMTP_HOST` | SMTP server host | - |
-| `SMTP_PORT` | SMTP server port | `587` |
-| `SMTP_USER` | SMTP username | - |
-| `SMTP_PASSWORD` | SMTP password | - |
-| `SMTP_FROM_EMAIL` | Default from email | - |
-
-```env
-SMTP_HOST=smtp.sendgrid.net
-SMTP_PORT=587
-SMTP_USER=apikey
-SMTP_PASSWORD=your-sendgrid-api-key
-SMTP_FROM_EMAIL=noreply@your-domain.com
-```
-
-### Billing (Stripe)
-
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `STRIPE_SECRET_KEY` | Stripe secret key | If using billing |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook secret | If using billing |
-| `STRIPE_PUBLISHABLE_KEY` | Stripe publishable key | If using billing |
-
-### Observability
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `LANGFUSE_PUBLIC_KEY` | Langfuse public key | - |
-| `LANGFUSE_SECRET_KEY` | Langfuse secret key | - |
-| `LANGFUSE_HOST` | Langfuse host URL | - |
-
-```env
-LANGFUSE_PUBLIC_KEY=pk-lf-xxx
-LANGFUSE_SECRET_KEY=sk-lf-xxx
-LANGFUSE_HOST=https://cloud.langfuse.com
-```
-
-### Celery
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `CELERY_BROKER_URL` | Celery broker URL | `redis://localhost:6379/0` |
-| `CELERY_RESULT_BACKEND` | Celery result backend | `redis://localhost:6379/0` |
+- database and Redis connectivity
+- JWT and encryption secrets
+- storage provider configuration
+- vector/search providers
+- LLM provider keys
+- OAuth and SSO configuration
+- billing and payment providers
+- observability integrations
 
 ## Frontend Configuration
 
-Frontend-specific environment variables (prefixed with `NEXT_PUBLIC_`):
+Start from:
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `NEXT_PUBLIC_API_URL` | Backend API URL | `http://localhost:5001` |
-| `NEXT_PUBLIC_WS_URL` | WebSocket URL | `ws://localhost:5001` |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key | - |
-
-Create a `.env.local` file in the `web/` directory:
-
-```env
-NEXT_PUBLIC_API_URL=https://api.your-domain.com
-NEXT_PUBLIC_WS_URL=wss://api.your-domain.com
+```bash
+cp web/.env.example web/.env.local
 ```
 
-## Example Configuration
+Typical frontend values:
 
-### Development
+- `NEXT_PUBLIC_API_URL`
+- `NEXT_PUBLIC_APP_URL`
+- optional analytics or Sentry settings
 
-```env
-# Core
-DEBUG=true
-ENVIRONMENT=development
-SECRET_KEY=dev-secret-key-change-in-production
-LOG_LEVEL=DEBUG
+## Minimum Configuration For Local Development
 
-# Database
-DATABASE_URL=postgresql://synkora:synkora@localhost:5432/synkora
+For a working local environment, the practical minimum is:
 
-# Redis
-REDIS_URL=redis://localhost:6379/0
+- valid backend secrets
+- a reachable PostgreSQL and Redis setup
+- one LLM provider key
 
-# LLM
-OPENAI_API_KEY=sk-your-dev-key
+Everything else can be added incrementally.
 
-# Vector DB
-QDRANT_URL=http://localhost:6333
+## Recommended Configuration Layers
 
-# Storage
-STORAGE_TYPE=local
-STORAGE_PATH=./uploads
-```
+### Core platform
 
-### Production
+- app environment
+- URLs and ports
+- secrets
+- database
+- Redis
 
-```env
-# Core
-DEBUG=false
-ENVIRONMENT=production
-SECRET_KEY=your-very-long-random-secret-key-at-least-32-chars
-LOG_LEVEL=INFO
+### AI providers
 
-# Database
-DATABASE_URL=postgresql://synkora:secure-password@db.example.com:5432/synkora
-DATABASE_POOL_SIZE=20
+- OpenAI
+- Anthropic
+- Google
+- any additional LiteLLM-backed providers you use
 
-# Redis
-REDIS_URL=redis://:password@redis.example.com:6379/0
+### Retrieval and storage
 
-# LLM
-OPENAI_API_KEY=sk-prod-key
-ANTHROPIC_API_KEY=sk-ant-prod-key
+- PostgreSQL + pgvector
+- Qdrant / Pinecone / Elasticsearch if used
+- S3 / MinIO object storage
 
-# Vector DB
-QDRANT_URL=https://qdrant.example.com:6333
-QDRANT_API_KEY=your-qdrant-api-key
+### Integrations
 
-# Storage
-STORAGE_TYPE=s3
-S3_BUCKET=synkora-prod
-S3_REGION=us-east-1
+- OAuth apps
+- Slack / WhatsApp / Teams / Telegram credentials
+- widget identity settings
+- Okta SSO
 
-# Email
-SMTP_HOST=smtp.sendgrid.net
-SMTP_PORT=587
-SMTP_USER=apikey
-SMTP_PASSWORD=your-sendgrid-key
-SMTP_FROM_EMAIL=noreply@your-domain.com
+### Observability and billing
 
-# Billing
-STRIPE_SECRET_KEY=sk_live_xxx
-STRIPE_WEBHOOK_SECRET=whsec_xxx
+- Langfuse
+- Sentry
+- Stripe or Paddle, depending on your deployment
 
-# Observability
-LANGFUSE_PUBLIC_KEY=pk-lf-xxx
-LANGFUSE_SECRET_KEY=sk-lf-xxx
-LANGFUSE_HOST=https://cloud.langfuse.com
-```
+## Configuration Strategy
 
-## Security Best Practices
+- Keep secrets out of version control
+- Prefer one environment file per service
+- Treat payment, OAuth, and SSO config as environment-specific
+- Start with the smallest set of providers you actually need
 
-1. **Never commit `.env` files** to version control
-2. **Use strong, unique `SECRET_KEY`** (at least 32 characters)
-3. **Rotate API keys** regularly
-4. **Use secrets management** in production (AWS Secrets Manager, HashiCorp Vault, etc.)
-5. **Encrypt database connections** with SSL in production
-6. **Restrict database access** to application servers only
+## Related Pages
+
+- [Authentication](/docs/getting-started/authentication)
+- [Production Deployment](/docs/guides/deployment/production)

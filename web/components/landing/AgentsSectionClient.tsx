@@ -2,11 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { Sparkles, Star, ArrowRight } from 'lucide-react'
-
-gsap.registerPlugin(ScrollTrigger)
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
 
@@ -174,19 +170,32 @@ export default function AgentsSectionClient() {
     const agentCards = Array.from(sectionRef.current.querySelectorAll('.agent-card-animated'))
     if (agentCards.length === 0) return
 
-    const t = ScrollTrigger.create({
-      trigger: sectionRef.current,
-      start: 'top 75%',
-      onEnter: () => {
-        gsap.fromTo(agentCards,
-          { opacity: 0, y: 60, scale: 0.95 },
-          { opacity: 1, y: 0, scale: 1, duration: 0.8, stagger: 0.15, ease: 'power3.out' }
-        )
-      },
-      once: true,
-    })
+    const sectionEl = sectionRef.current
+    let trigger: { kill: () => void } | undefined
+    let cancelled = false
 
-    return () => { t.kill() }
+    Promise.all([import('gsap'), import('gsap/ScrollTrigger')]).then(
+      ([{ default: gsap }, { ScrollTrigger }]) => {
+        if (cancelled) return
+        gsap.registerPlugin(ScrollTrigger)
+        trigger = ScrollTrigger.create({
+          trigger: sectionEl,
+          start: 'top 75%',
+          onEnter: () => {
+            gsap.fromTo(agentCards,
+              { opacity: 0, y: 60, scale: 0.95 },
+              { opacity: 1, y: 0, scale: 1, duration: 0.8, stagger: 0.15, ease: 'power3.out' }
+            )
+          },
+          once: true,
+        })
+      }
+    )
+
+    return () => {
+      cancelled = true
+      trigger?.kill()
+    }
   }, [publicAgents, loading])
 
   return (

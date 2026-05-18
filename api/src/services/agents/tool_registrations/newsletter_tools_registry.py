@@ -31,7 +31,8 @@ def register_newsletter_tools(registry) -> None:
         name="internal_render_newsletter",
         description=(
             "Render a newsletter from structured JSON data into production-quality HTML using "
-            "the 'The Signal' editorial template. The tool automatically enriches items with OG "
+            "built-in newsletter templates such as editorial, minimal, or micromobility. "
+            "The tool automatically enriches items with OG "
             "images, generates a PDF and a 1200\u00d7630 share image, uploads them to S3, and "
             "returns the final email HTML plus a subject line. "
             "Call this BEFORE internal_send_email. Pass the HTML and subject returned here "
@@ -57,8 +58,9 @@ def register_newsletter_tools(registry) -> None:
                 "template": {
                     "type": "string",
                     "description": (
-                        "Template to use: 'editorial' (default, magazine-style) or 'minimal' "
-                        "(plain). Tenants may also pass an S3 key for a custom template."
+                        "Template to use: 'editorial' (default, magazine-style), 'minimal' "
+                        "(clean digest), or 'micromobility' (urban mobility / fleet style). "
+                        "Tenants may also pass an S3 key for a custom template."
                     ),
                     "default": "editorial",
                 },

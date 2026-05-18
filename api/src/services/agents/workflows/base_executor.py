@@ -332,12 +332,13 @@ class BaseWorkflowExecutor(ABC):
         try:
             # Execute the agent with db parameter and event callback
             result = await execute_agent(
-                agent_name=sub_agent.sub_agent.agent_name,
+                agent_name=sub_agent.sub_agent.slug or sub_agent.sub_agent.agent_name,
                 user_input=agent_input,
                 user_id=user_id,
                 db=db,
                 state=self.state,
                 event_callback=event_callback,
+                tenant_id=str(self.agent.tenant_id) if self.agent.tenant_id else None,
                 **{k: v for k, v in kwargs.items() if k not in ("db", "event_callback")},
             )
 

@@ -324,7 +324,11 @@ class AgentManager:
 
     async def reset_agent(self, agent_name: str, tenant_id: str = "") -> None:
         """
-        Reset an agent's state.
+        Reset an agent by evicting it from the in-memory registry.
+
+        Evicting forces a full reload from Redis/DB on the next request, ensuring
+        any updated LLM configs or tool changes take effect immediately. Simply
+        calling agent.reset() would keep the stale LLM client in memory.
 
         Args:
             agent_name: Name of the agent to reset
@@ -337,8 +341,8 @@ class AgentManager:
         if not agent:
             raise KeyError(f"Agent '{agent_name}' not found")
 
-        agent.reset()
-        logger.info(f"Reset agent: {agent_name}")
+        self.registry.unregister(agent_name, tenant_id)
+        logger.info(f"Reset agent (evicted from registry): {agent_name}")
 
     async def reset_all_agents(self) -> None:
         """Reset all registered agents."""

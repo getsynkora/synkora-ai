@@ -44,7 +44,7 @@ async def internal_render_newsletter(
         edition:
             Edition/volume number shown in the masthead.
         template:
-            Built-in template name ("editorial" or "minimal") OR an S3 key
+            Built-in template name ("editorial", "minimal", or "micromobility") OR an S3 key
             under ``newsletter-templates/{tenant_id}/`` for a tenant-uploaded
             custom template.
         config:
@@ -95,7 +95,7 @@ async def internal_render_newsletter(
     # ------------------------------------------------------------------
     # 1. Resolve custom template from S3 or DB if not a built-in name
     # ------------------------------------------------------------------
-    _builtin_names = {"editorial", "minimal"}
+    _builtin_names = {"editorial", "minimal", "micromobility"}
     custom_template_html: str | None = None
 
     if template == "__custom__":
@@ -256,7 +256,10 @@ async def internal_render_newsletter(
         **render_kwargs,
     )
 
-    subject = f"The Signal \u2014 AI & Tech Daily \u00b7 {date_str}"
+    if template == "micromobility":
+        subject = f"City Motion \u2014 Micromobility Brief \u00b7 {date_str}"
+    else:
+        subject = f"The Signal \u2014 AI & Platform Brief \u00b7 {date_str}"
 
     # ------------------------------------------------------------------
     # 6. Store rendered HTML in Redis so it never passes through LLM

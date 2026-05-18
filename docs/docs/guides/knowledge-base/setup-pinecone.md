@@ -1,59 +1,24 @@
 ---
-sidebar_position: 2
+sidebar_position: 3
 ---
 
-# Set Up Pinecone
+# Use Pinecone
 
-Configure Pinecone as your managed vector database.
+Pinecone is a good fit when you want a managed vector backend and do not want to operate the vector layer yourself.
 
-## Create Pinecone Account
+## Use Pinecone When
 
-1. Sign up at [pinecone.io](https://www.pinecone.io)
-2. Create a project
-3. Create an index
+- you prefer managed infrastructure
+- your deployment already leans on hosted services
+- you want to avoid running another database in production
 
-## Configure Synkora
+## Configuration Checklist
 
-```env
-PINECONE_API_KEY=your-api-key
-PINECONE_ENVIRONMENT=us-east-1-aws
-```
+- create the Pinecone project and index
+- provide credentials to Synkora
+- attach the knowledge base to the correct index/config
+- test retrieval with a small corpus before scaling up
 
-## Create Knowledge Base
+## Tradeoff
 
-```typescript
-const kb = await synkora.knowledgeBases.create({
-  name: 'Documentation',
-  vectorStore: 'pinecone',
-  vectorStoreConfig: {
-    indexName: 'synkora-docs',
-    namespace: 'production',
-  },
-});
-```
-
-## Index Configuration
-
-Create index with these settings:
-
-| Setting | Value |
-|---------|-------|
-| Dimensions | 1536 (text-embedding-3-small) or 3072 (text-embedding-3-large) |
-| Metric | Cosine |
-| Pod Type | p1 or s1 |
-
-## Namespaces
-
-Use namespaces for tenant isolation:
-
-```typescript
-vectorStoreConfig: {
-  indexName: 'synkora-docs',
-  namespace: `tenant-${tenantId}`,
-}
-```
-
-## Next Steps
-
-- [Document processing](/docs/guides/knowledge-base/document-processing)
-- [Advanced RAG](/docs/guides/knowledge-base/advanced-rag)
+Pinecone reduces operating burden, but it also introduces another managed dependency in your AI stack.

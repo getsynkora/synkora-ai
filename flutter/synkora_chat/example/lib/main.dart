@@ -37,7 +37,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
     try {
       if (Platform.isAndroid) return 'http://10.0.2.2:5001';
     } catch (_) {}
-    return 'http://localhost:5001';
+    return 'http://127.0.0.1:5001';
   }
 
   late final TextEditingController _keyCtrl =
@@ -46,6 +46,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
       TextEditingController(text: _defaultBase);
   late final TextEditingController _userCtrl =
       TextEditingController(text: 'test_user_001');
+  String? _connectionMessage;
+  bool _isChecking = false;
 
   @override
   void dispose() {
@@ -55,42 +57,70 @@ class _ConfigScreenState extends State<ConfigScreen> {
     super.dispose();
   }
 
-  void _openChat() {
+  Future<void> _openChat() async {
     final key = _keyCtrl.text.trim();
     final url = _urlCtrl.text.trim();
     if (key.isEmpty || url.isEmpty) return;
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ChatScreen(
-          widgetKey: key,
-          baseUrl: url,
-          userId: _userCtrl.text.trim().isEmpty ? null : _userCtrl.text.trim(),
+    setState(() {
+      _isChecking = true;
+      _connectionMessage = null;
+    });
+
+    try {
+      final client = SynkoraClient(widgetKey: key, baseUrl: url);
+      final config = await client.loadConfig();
+      client.dispose();
+
+      if (!mounted) return;
+
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChatScreen(
+            widgetKey: key,
+            baseUrl: url,
+            userId: _userCtrl.text.trim().isEmpty ? null : _userCtrl.text.trim(),
+          ),
         ),
-      ),
-    );
+      );
+
+      setState(() {
+        _connectionMessage = 'Connected to ${config.agentName} at $url';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _connectionMessage = e.toString().replaceFirst('Exception: ', '');
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isChecking = false;
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Synkora Chat — Test Harness')),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              'Paste your Widget Key and Base URL to test the chat widget.',
-              style: TextStyle(color: Colors.black54),
+              'Paste your widget key and API base URL to test the chat widget.',
+              style: TextStyle(color: Color(0xFF6D675F)),
             ),
             const SizedBox(height: 24),
             TextField(
               controller: _keyCtrl,
               decoration: const InputDecoration(
                 labelText: 'Widget Key',
-                hintText: 'wk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+                hintText: 'widget_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.key),
               ),
@@ -99,8 +129,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
             TextField(
               controller: _urlCtrl,
               decoration: const InputDecoration(
-                labelText: 'Base URL',
-                hintText: 'http://localhost:5001',
+                labelText: 'API Base URL',
+                hintText: 'http://127.0.0.1:5001',
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.link),
               ),
@@ -118,13 +148,31 @@ class _ConfigScreenState extends State<ConfigScreen> {
             ),
             const SizedBox(height: 32),
             FilledButton.icon(
-              onPressed: _openChat,
-              icon: const Icon(Icons.chat_bubble_outline),
-              label: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 4),
-                child: Text('Open Chat Widget', style: TextStyle(fontSize: 16)),
+              onPressed: _isChecking ? null : _openChat,
+              icon: _isChecking
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.chat_bubble_outline),
+              label: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Text(
+                  _isChecking ? 'Checking connection…' : 'Open Chat Widget',
+                  style: const TextStyle(fontSize: 16),
+                ),
               ),
             ),
+            if (_connectionMessage != null) ...[
+              const SizedBox(height: 16),
+              _StatusCard(
+                message: _connectionMessage!,
+                isError: _connectionMessage!.startsWith('Cannot reach') ||
+                    _connectionMessage!.startsWith('Synkora rejected') ||
+                    _connectionMessage!.startsWith('Synkora responded'),
+              ),
+            ],
             const SizedBox(height: 16),
             const _InfoCard(),
           ],
@@ -142,21 +190,68 @@ class _InfoCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.indigo.shade50,
+        color: const Color(0xFFFFFAF1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.indigo.shade100),
+        border: Border.all(color: const Color(0x1A171717)),
       ),
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Local dev tips', style: TextStyle(fontWeight: FontWeight.w600)),
           SizedBox(height: 4),
+          Text('Flutter talks directly to the API, not the Next.js app.',
+              style: TextStyle(fontSize: 12, color: Color(0xFF6D675F))),
           Text('Android emulator → use http://10.0.2.2:5001',
-              style: TextStyle(fontSize: 12, color: Colors.black54)),
-          Text('iOS Simulator → use http://localhost:5001',
-              style: TextStyle(fontSize: 12, color: Colors.black54)),
+              style: TextStyle(fontSize: 12, color: Color(0xFF6D675F))),
+          Text('iOS Simulator/macOS → use http://127.0.0.1:5001',
+              style: TextStyle(fontSize: 12, color: Color(0xFF6D675F))),
           Text('Get your widget key from the Synkora dashboard.',
-              style: TextStyle(fontSize: 12, color: Colors.black54)),
+              style: TextStyle(fontSize: 12, color: Color(0xFF6D675F))),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusCard extends StatelessWidget {
+  final String message;
+  final bool isError;
+
+  const _StatusCard({
+    required this.message,
+    required this.isError,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isError ? const Color(0xFFFFF2EC) : const Color(0xFFEEF9F3),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isError ? const Color(0xFFF2D1BD) : const Color(0xFFB9EDD9),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            isError ? Icons.wifi_off_rounded : Icons.check_circle_outline_rounded,
+            size: 18,
+            color: isError ? const Color(0xFFC45F34) : const Color(0xFF2D8B69),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.5,
+                color: isError ? const Color(0xFF8B3F1E) : const Color(0xFF225446),
+              ),
+            ),
+          ),
         ],
       ),
     );

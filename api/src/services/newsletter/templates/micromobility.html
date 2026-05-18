@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>OTORIDE Dispatch &mdash; {{ date }}</title>
+<!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><![endif]-->
+<style>
+  body, table, td, p, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+  body { margin: 0; padding: 0; background: #eef4ef; }
+  img { border: 0; line-height: 100%; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
+  a { color: #102128; }
+  a:hover { text-decoration: underline; }
+</style>
+</head>
+<body style="margin:0;padding:0;background-color:#eef4ef;">
+
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#eef4ef;">
+<tr>
+<td align="center" style="padding:24px 10px 34px 10px;">
+
+<table width="{{ container_width }}" cellpadding="0" cellspacing="0" border="0" style="max-width:{{ container_width }}px;width:100%;">
+<tr>
+<td style="background-color:#f9fbf9;border:1px solid #d9e5dc;padding:0 24px;">
+
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#102128;">
+    <tr>
+      <td style="padding:22px 22px 18px 22px;">
+        <div style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2.8px;text-transform:uppercase;color:#8fdab9;">OTORIDE Dispatch</div>
+        <div style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:42px;font-weight:700;letter-spacing:-1.8px;line-height:0.98;color:#f4faf5;margin-top:10px;">OTORIDE</div>
+        <div style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:11px;color:#b6c6bc;letter-spacing:2.1px;text-transform:uppercase;margin-top:10px;">
+          {{ date }} &nbsp;&middot;&nbsp; {{ edition }} &nbsp;&middot;&nbsp; Shared mobility intelligence
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:0 22px 18px 22px;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td style="width:18px;"><span style="display:block;width:12px;height:12px;border-radius:50%;background:#44b889;"></span></td>
+            <td style="border-top:2px solid #44b889;font-size:1px;line-height:1px;">&nbsp;</td>
+            <td style="width:18px;"><span style="display:block;width:12px;height:12px;border-radius:50%;background:#8fdab9;"></span></td>
+            <td style="border-top:2px solid #8fdab9;font-size:1px;line-height:1px;">&nbsp;</td>
+            <td style="width:18px;"><span style="display:block;width:12px;height:12px;border-radius:50%;background:#dceee3;"></span></td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  {% if lead_headline %}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:18px;background-color:#ffffff;border:1px solid #dde7df;">
+    <tr>
+      <td style="padding:18px;">
+        <span style="display:inline-block;background-color:#eef7f2;border:1px solid #d3e9db;padding:6px 10px;font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;color:#2c8a68;">Operator Snapshot</span>
+        <div style="margin-top:14px;">
+          <a href="{{ lead_url or '#' }}" style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:30px;font-weight:700;line-height:1.2;color:#102128;text-decoration:none;letter-spacing:-0.8px;">{{ lead_headline }}</a>
+        </div>
+        {% if lead_image_url %}
+        <div style="margin-top:16px;">
+          <img src="{{ lead_image_url }}" alt="{{ lead_headline | striptags }}" width="{{ container_width }}" style="width:100%;max-width:{{ container_width }}px;height:280px;object-fit:cover;display:block;" />
+        </div>
+        {% endif %}
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;">
+          <tr valign="top">
+            <td style="width:62%;padding-right:16px;border-right:1px solid #e2ebe4;">
+              <p style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:15px;line-height:1.75;color:#405358;margin:0;">{{ lead_summary }}</p>
+              <p style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:11px;color:#64767a;letter-spacing:1.2px;text-transform:uppercase;margin:12px 0 0 0;">{{ lead_source }}</p>
+            </td>
+            <td style="width:4%;">&nbsp;</td>
+            <td style="width:34%;padding-left:2px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#102128;">
+                <tr>
+                  <td style="padding:16px;">
+                    <div style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;color:#8fdab9;margin-bottom:8px;">Dispatch Note</div>
+                    <p style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:14px;line-height:1.75;color:#f4faf5;margin:0;font-style:italic;">
+                      {% if lead_why_it_matters %}
+                        {{ lead_why_it_matters }}
+                      {% else %}
+                        The operator, rider, or infrastructure move that matters most for shared mobility teams this cycle.
+                      {% endif %}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+  {% endif %}
+
+  {% if news_items %}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:20px;background-color:#ffffff;border:1px solid #dde7df;">
+    <tr>
+      <td style="padding:18px;">
+        <span style="display:inline-block;background-color:#eef7f2;border:1px solid #d7e9dd;padding:6px 10px;font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;color:#2d8b69;">Street Operations</span>
+        {% for item in news_items %}
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px;{% if not loop.last %}border-bottom:1px solid #e2ebe4;{% endif %}">
+          <tr valign="top">
+            {% if item.image_url %}<td style="width:100px;padding:0 12px 14px 0;"><img src="{{ item.image_url }}" alt="" width="100" height="76" style="display:block;object-fit:cover;" /></td>{% endif %}
+            <td style="padding:0 0 14px 0;">
+              <a href="{{ item.url or '#' }}" style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:18px;font-weight:700;line-height:1.35;color:#102128;text-decoration:none;letter-spacing:-0.4px;">{{ item.title }}</a>
+              {% if item.summary %}<p style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:13px;line-height:1.68;color:#405358;margin:7px 0 0 0;">{{ item.summary | truncate(170, false, '&hellip;') }}</p>{% endif %}
+              <p style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:11px;color:#64767a;letter-spacing:1px;text-transform:uppercase;margin:8px 0 0 0;">{{ item.source or '' }}{% if item.score %} &middot; {{ item.score }} pts{% endif %}</p>
+            </td>
+          </tr>
+        </table>
+        {% endfor %}
+      </td>
+    </tr>
+  </table>
+  {% endif %}
+
+  {% if github_items %}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:20px;background-color:#ffffff;border:1px solid #dde7df;">
+    <tr>
+      <td style="padding:18px;">
+        <span style="display:inline-block;background-color:#edf5ff;border:1px solid #d7e4f5;padding:6px 10px;font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;color:#305c82;">Platform Stack</span>
+        {% for repo in github_items %}
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px;{% if not loop.last %}border-bottom:1px solid #e2ebe4;{% endif %}">
+          <tr>
+            <td style="padding:0 0 14px 0;">
+              <a href="{{ repo.url or '#' }}" style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:16px;font-weight:700;color:#102128;text-decoration:none;">{{ repo.name }}</a>
+              {% if repo.language %}<span style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:10px;color:#305c82;letter-spacing:1.2px;text-transform:uppercase;margin-left:8px;">{{ repo.language }}</span>{% endif %}
+              {% if repo.description %}<p style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:13px;line-height:1.65;color:#405358;margin:6px 0 0 0;">{{ repo.description | truncate(120, false, '&hellip;') }}</p>{% endif %}
+              <p style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:11px;color:#64767a;margin:7px 0 0 0;">+{{ repo.stars_today or 0 }} stars today</p>
+            </td>
+          </tr>
+        </table>
+        {% endfor %}
+      </td>
+    </tr>
+  </table>
+  {% endif %}
+
+  {% if papers %}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:20px;background-color:#ffffff;border:1px solid #dde7df;">
+    <tr>
+      <td style="padding:18px;">
+        <span style="display:inline-block;background-color:#f4f7f2;border:1px solid #dce6dd;padding:6px 10px;font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;color:#53715a;">Mobility Policy</span>
+        {% for paper in papers %}
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px;{% if not loop.last %}border-bottom:1px solid #e2ebe4;{% endif %}">
+          <tr>
+            <td style="padding:0 0 14px 0;">
+              <a href="{{ paper.url or '#' }}" style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:16px;font-weight:700;color:#102128;text-decoration:none;">{{ paper.title }}</a>
+              {% if paper.summary %}<p style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:13px;line-height:1.65;color:#405358;margin:6px 0 0 0;">{{ paper.summary | truncate(180, false, '&hellip;') }}</p>{% endif %}
+            </td>
+          </tr>
+        </table>
+        {% endfor %}
+      </td>
+    </tr>
+  </table>
+  {% endif %}
+
+  {% if products %}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:20px;background-color:#ffffff;border:1px solid #dde7df;">
+    <tr>
+      <td style="padding:18px;">
+        <span style="display:inline-block;background-color:#eef7f2;border:1px solid #d7e9dd;padding:6px 10px;font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;color:#2d8b69;">Fleet &amp; Rider Launches</span>
+        {% for product in products %}
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px;{% if not loop.last %}border-bottom:1px solid #e2ebe4;{% endif %}">
+          <tr valign="top">
+            {% if product.image_url %}<td style="width:58px;padding-right:10px;"><img src="{{ product.image_url }}" alt="{{ product.name | striptags }}" width="58" height="58" style="display:block;border-radius:14px;object-fit:cover;" /></td>{% endif %}
+            <td style="padding:0 0 14px 0;">
+              <a href="{{ product.url or '#' }}" style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:16px;font-weight:700;color:#102128;text-decoration:none;">{{ product.name }}</a>
+              {% if product.tagline %}<p style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:13px;line-height:1.6;color:#405358;margin:4px 0 0 0;">{{ product.tagline }}</p>{% endif %}
+              {% if product.upvotes %}<p style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:11px;color:#2d8b69;font-weight:bold;margin:6px 0 0 0;">Launch buzz: {{ product.upvotes }}</p>{% endif %}
+            </td>
+          </tr>
+        </table>
+        {% endfor %}
+      </td>
+    </tr>
+  </table>
+  {% endif %}
+
+  {% if youtube_items %}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:20px;background-color:#ffffff;border:1px solid #dde7df;">
+    <tr>
+      <td style="padding:18px;">
+        <span style="display:inline-block;background-color:#edf5ff;border:1px solid #d7e4f5;padding:6px 10px;font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;color:#305c82;">Field Watch</span>
+        {% for video in youtube_items %}
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px;{% if not loop.last %}border-bottom:1px solid #e2ebe4;{% endif %}">
+          <tr valign="top">
+            {% if video.thumbnail_url %}<td style="width:124px;padding-right:12px;"><img src="{{ video.thumbnail_url }}" alt="{{ video.title | striptags }}" width="124" style="display:block;" /></td>{% endif %}
+            <td style="padding:0 0 14px 0;">
+              <a href="{{ video.url or '#' }}" style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:16px;font-weight:700;color:#102128;text-decoration:none;">{{ video.title }}</a>
+              {% if video.channel %}<p style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:11px;color:#64767a;letter-spacing:1px;text-transform:uppercase;margin:6px 0 0 0;">{{ video.channel }}</p>{% endif %}
+            </td>
+          </tr>
+        </table>
+        {% endfor %}
+      </td>
+    </tr>
+  </table>
+  {% endif %}
+
+  {% if twitter %}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:20px;background-color:#102128;">
+    <tr>
+      <td style="padding:18px;">
+        <span style="display:inline-block;background-color:#17323b;border:1px solid #23464f;padding:6px 10px;font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;color:#8fdab9;">Network Pulse</span>
+        {% if twitter.top_tweets %}
+        {% for tweet in twitter.top_tweets %}
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px;background-color:#183039;border-left:3px solid #44b889;">
+          <tr>
+            <td style="padding:14px 16px;">
+              <p style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:15px;line-height:1.7;color:#f4faf5;margin:0;font-style:italic;">&ldquo;{{ tweet }}&rdquo;</p>
+            </td>
+          </tr>
+        </table>
+        {% endfor %}
+        {% endif %}
+        {% if twitter.breaking %}<p style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:13px;line-height:1.7;color:#d7e6dc;margin:12px 0 0 0;"><strong style="color:#ffffff;">Breaking:</strong> {{ twitter.breaking }}</p>{% endif %}
+        {% if twitter.themes %}<p style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:12px;line-height:1.7;color:#b7c7bd;margin:8px 0 0 0;"><strong style="color:#ffffff;">Themes:</strong> {{ twitter.themes }}</p>{% endif %}
+      </td>
+    </tr>
+  </table>
+  {% endif %}
+
+  {% if editors_take %}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:20px;background-color:#ffffff;border:1px solid #dde7df;">
+    <tr>
+      <td style="padding:18px;">
+        <span style="display:inline-block;background-color:#f4f7f2;border:1px solid #dce6dd;padding:6px 10px;font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;color:#53715a;">Operator Note</span>
+        <p style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:17px;line-height:1.8;color:#102128;margin:14px 0 0 0;font-style:italic;">{{ editors_take }}</p>
+      </td>
+    </tr>
+  </table>
+  {% endif %}
+
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:22px;background-color:#102128;">
+    <tr>
+      <td style="padding:18px 18px 20px 18px;">
+        <div style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:20px;font-weight:700;color:#f3f8f4;letter-spacing:-0.5px;">OTORIDE</div>
+        <div style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:11px;color:#b6c6bc;letter-spacing:1px;text-transform:uppercase;margin-top:4px;">{{ date }} &middot; Shared mobility operator briefing</div>
+        {% if pdf_url or image_url %}
+        <p style="margin:12px 0 0 0;">
+          {% if pdf_url %}<a href="{{ pdf_url }}" style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:11px;font-weight:bold;color:#8fdab9;text-decoration:none;text-transform:uppercase;letter-spacing:1px;margin-right:14px;">PDF Version</a>{% endif %}
+          {% if image_url %}<a href="{{ image_url }}" style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:11px;font-weight:bold;color:#8fdab9;text-decoration:none;text-transform:uppercase;letter-spacing:1px;">Share Image</a>{% endif %}
+        </p>
+        {% endif %}
+      </td>
+    </tr>
+  </table>
+
+</td>
+</tr>
+</table>
+
+</td>
+</tr>
+</table>
+
+</body>
+</html>

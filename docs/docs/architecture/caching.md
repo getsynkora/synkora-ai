@@ -2,126 +2,64 @@
 sidebar_position: 5
 ---
 
-# Caching Strategy
+# Caching and Coordination
 
-Redis-based caching for performance optimization.
+Redis in Synkora is both a cache and a coordination layer. It is used for agent data caching, cross-pod messaging, rate limiting, auth state, and Celery.
 
-## Cache Layers
+## Redis Roles In The Current Stack
 
-```
-Request → Cache Check → [HIT] → Return cached
-                      → [MISS] → Compute → Cache → Return
-```
+- agent configuration cache
+- knowledge-base and context-file cache
+- agent list cache
+- distributed cache invalidation via pub/sub
+- distributed WebSocket delivery
+- rate limiting
+- token blacklist and token-version state
+- Celery broker and optional result backend
 
-## Implementation
+## Agent Cache Behavior
 
-### Cache Decorator
+`api/src/services/cache/agent_cache_service.py` is the clearest example of how Redis is used as a product-level cache.
 
-```python
-from functools import wraps
-from core.cache import redis_client
+It currently caches:
 
-def cache(ttl: int = 3600, prefix: str = ""):
-    def decorator(func):
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            key = f"{prefix}:{hash(args)}:{hash(frozenset(kwargs.items()))}"
+- agent configs
+- agent tools
+- attached knowledge bases
+- context files
+- paginated agent lists
 
-            cached = await redis_client.get(key)
-            if cached:
-                return json.loads(cached)
+Key implementation details:
 
-            result = await func(*args, **kwargs)
-            await redis_client.setex(key, ttl, json.dumps(result))
-            return result
-        return wrapper
-    return decorator
-```
+- agent config keys are tenant-scoped to avoid cross-tenant cache hits
+- default TTL is `300` seconds
+- paginated agent list cache uses a shorter `60` second TTL
+- invalidations are broadcast on `cache:invalidation:agent`
+- each pod ignores invalidation messages that it published itself
 
-### Usage
+## Distributed Cache Invalidation
 
-```python
-@cache(ttl=300, prefix="agent")
-async def get_agent(agent_id: str) -> Agent:
-    return await db.agents.get(agent_id)
-```
+`app.py` starts the cache invalidation subscriber during API startup. That matters when multiple API pods are running.
 
-## Cache Patterns
+The flow is:
 
-### Agent Configuration
+1. One pod updates agent state.
+2. That pod invalidates its Redis cache keys.
+3. It publishes an invalidation message.
+4. Other pods receive the message and invalidate their own cached copies.
 
-```python
-# Cache agent config for fast chat responses
-AGENT_CACHE_TTL = 300  # 5 minutes
+This keeps cached agent state from drifting across pods.
 
-async def get_cached_agent(agent_id: str):
-    key = f"agent:{agent_id}"
-    cached = await redis.get(key)
+## Coordination, Not Just Speed
 
-    if cached:
-        return Agent.parse_raw(cached)
+Redis is also used outside classic caching:
 
-    agent = await db.agents.get(agent_id)
-    await redis.setex(key, AGENT_CACHE_TTL, agent.json())
-    return agent
-```
+- `auth_middleware.py` checks token blacklist and token version through Redis
+- `core/websocket.py` uses Redis pub/sub for cross-pod realtime delivery
+- `celery_app.py` uses Redis as broker and optional result backend
 
-### Session Data
+So Redis is part of the control plane, not just a performance optimization.
 
-```python
-# Store session state in Redis
-SESSION_TTL = 86400  # 24 hours
+## Design Rule
 
-async def set_session(session_id: str, data: dict):
-    await redis.setex(f"session:{session_id}", SESSION_TTL, json.dumps(data))
-
-async def get_session(session_id: str) -> dict:
-    data = await redis.get(f"session:{session_id}")
-    return json.loads(data) if data else None
-```
-
-### Rate Limiting
-
-```python
-# Sliding window rate limiter
-async def check_rate_limit(key: str, limit: int, window: int) -> bool:
-    current = await redis.incr(key)
-
-    if current == 1:
-        await redis.expire(key, window)
-
-    return current <= limit
-```
-
-## Cache Invalidation
-
-### Manual Invalidation
-
-```python
-async def update_agent(agent_id: str, data: UpdateRequest):
-    agent = await db.agents.update(agent_id, data)
-
-    # Invalidate cache
-    await redis.delete(f"agent:{agent_id}")
-
-    return agent
-```
-
-### Pattern Invalidation
-
-```python
-# Delete all keys matching pattern
-async def invalidate_tenant_cache(tenant_id: str):
-    keys = await redis.keys(f"*:tenant:{tenant_id}:*")
-    if keys:
-        await redis.delete(*keys)
-```
-
-## Recommended TTLs
-
-| Data Type | TTL | Reason |
-|-----------|-----|--------|
-| Agent config | 5 min | Rarely changes |
-| User session | 24 hours | Session duration |
-| API responses | 1 min | Freshness vs load |
-| Rate limits | 1 min | Window size |
+Redis improves latency and coordination, but it is not the durable source of truth. Durable state still belongs in PostgreSQL and object storage.

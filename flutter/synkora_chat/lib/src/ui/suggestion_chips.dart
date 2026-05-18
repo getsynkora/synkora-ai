@@ -20,21 +20,26 @@ class SuggestionChips extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-          childAspectRatio: 1.5,
-        ),
-        itemCount: prompts.length,
-        itemBuilder: (context, i) => _ChipCard(
-          prompt: prompts[i],
-          primaryColor: primaryColor,
-          onTap: () => onTap(prompts[i].prompt),
-        ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 320;
+          return GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: isCompact ? 1 : 2,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              childAspectRatio: isCompact ? 2.45 : 1.18,
+            ),
+            itemCount: prompts.length,
+            itemBuilder: (context, i) => _ChipCard(
+              prompt: prompts[i],
+              primaryColor: primaryColor,
+              onTap: () => onTap(prompts[i].prompt),
+            ),
+          );
+        },
       ),
     );
   }
@@ -55,45 +60,62 @@ class _ChipCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-          borderRadius: BorderRadius.circular(12),
+          color: const Color(0xFFFFFAF1),
+          border: Border.all(
+            color: primaryColor.withValues(alpha: 0.18),
+          ),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x12000000),
+              blurRadius: 14,
+              offset: Offset(0, 6),
+            ),
+          ],
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (prompt.icon.isNotEmpty)
               Container(
-                width: 30,
-                height: 30,
+                width: 28,
+                height: 28,
                 decoration: BoxDecoration(
-                  color: primaryColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: primaryColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 alignment: Alignment.center,
-                child: Text(prompt.icon, style: const TextStyle(fontSize: 16)),
+                child: Text(prompt.icon, style: const TextStyle(fontSize: 15)),
               ),
             const SizedBox(height: 6),
             Text(
               prompt.title,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-              maxLines: 1,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: Color(0xFF171717),
+              ),
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            if (prompt.description.isNotEmpty)
+            if (prompt.description.isNotEmpty) ...[
+              const SizedBox(height: 4),
               Text(
                 prompt.description,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 11,
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.55),
+                  color: Color(0xFF6D675F),
+                  height: 1.35,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
+            ],
           ],
         ),
       ),

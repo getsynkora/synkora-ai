@@ -216,7 +216,8 @@ async def execute_agent(
     conversation_id: str | None = None,
     llm_config_id: str | None = None,
     state: dict[str, Any] | None = None,
-    event_callback: Callable | None = None,  # NEW: callback to stream events to orchestrator
+    event_callback: Callable | None = None,
+    tenant_id: str | None = None,
     **_kwargs,
 ) -> dict[str, Any]:
     """
@@ -269,11 +270,12 @@ async def execute_agent(
         async for sse_event in stream_service.stream_agent_response(
             agent_name=agent_name,
             message=rendered_prompt,
-            conversation_history=None,  # Sub-agents don't need conversation history
-            conversation_id=None,  # Don't save sub-agent conversations to DB
+            conversation_history=None,
+            conversation_id=None,
             attachments=None,
             llm_config_id=llm_config_id,
             db=db,
+            tenant_id=tenant_id,
         ):
             # Parse SSE events to accumulate text content
             # Events come as "data: {json}\n\n"

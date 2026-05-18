@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
-_BUILTIN_NAMES = {"editorial", "minimal"}
+_BUILTIN_NAMES = {"editorial", "minimal", "micromobility", "data-engineering"}
 
 
 async def resolve_agent_email_template(
@@ -54,36 +54,63 @@ async def resolve_agent_email_template(
 async def apply_template_to_html(
     body_html: str,
     template: dict[str, Any],
-) -> str:
-    """Wrap body_html with a CUSTOM_HTML template's Jinja2 layout.
+    db: AsyncSession | None = None,
+    tenant_id: uuid.UUID | None = None,
+    subject: str | None = None,
+) -> tuple[str, bool]:
+    """Wrap body_html with the agent's assigned email template.
 
-    For BUILTIN types the newsletter render service handles rendering;
-    this function is only called for CUSTOM_HTML wrapping of plain emails.
+    Returns (rendered_html, was_applied) so the caller can skip
+    the generic branding wrapper in Celery when a template was applied.
+
+    Handles:
+      - BUILTIN: renders via the named built-in layout (editorial / minimal)
+      - CUSTOM_HTML: renders via Jinja2 with the stored HTML layout
+      - Third-party types (SENDGRID, MAILCHIMP, BREVO): no-op, applied at delivery
     """
     from src.models.email_template import EmailTemplateType
 
-    if template["type"] != EmailTemplateType.CUSTOM_HTML:
-        return body_html
+    tmpl_type = template["type"]
 
-    html_content: str | None = template.get("html_content")
-    if not html_content:
-        return body_html
+    if tmpl_type == EmailTemplateType.BUILTIN:
+        try:
+            from src.services.email.email_template_service import EmailTemplateService
 
-    try:
-        from jinja2 import Environment, Undefined
+            builtin_name = template.get("builtin_name") or "editorial"
+            svc = EmailTemplateService(db)
+            rendered = await svc.wrap_content_for_builtin(
+                builtin_name=builtin_name,
+                content=body_html,
+                subject=subject,
+                tenant_id=tenant_id,
+            )
+            return rendered, True
+        except Exception as exc:
+            logger.warning(f"Failed to render builtin email template: {exc}")
+            return body_html, False
 
-        env = Environment(undefined=Undefined)
-        t = env.from_string(html_content)
-        return t.render(body=body_html, content=body_html)
-    except Exception as exc:
-        logger.warning(f"Failed to render custom email template: {exc}")
-        return body_html
+    if tmpl_type == EmailTemplateType.CUSTOM_HTML:
+        html_content: str | None = template.get("html_content")
+        if not html_content:
+            return body_html, False
+        try:
+            from jinja2 import Environment, Undefined
+
+            env = Environment(undefined=Undefined)
+            t = env.from_string(html_content)
+            return t.render(body=body_html, content=body_html), True
+        except Exception as exc:
+            logger.warning(f"Failed to render custom email template: {exc}")
+            return body_html, False
+
+    # Third-party providers (SENDGRID, MAILCHIMP, BREVO) — template applied at delivery
+    return body_html, False
 
 
 def get_newsletter_template_name(template: dict[str, Any] | None) -> str | None:
     """Return the newsletter template name to use for internal_render_newsletter.
 
-    For BUILTIN type returns the builtin_name ("editorial" or "minimal").
+    For BUILTIN type returns the builtin_name ("editorial", "minimal", or "micromobility").
     For CUSTOM_HTML returns the html_content key so the tool can use it directly.
     Returns None for third-party types (handled at send time, not render time).
     """

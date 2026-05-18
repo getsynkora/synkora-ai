@@ -118,7 +118,7 @@ export default function App() {
 
   if (initializing) {
     return (
-      <div className="flex flex-col h-screen bg-white items-center justify-center">
+      <div className="flex flex-col h-screen bg-brand-canvas items-center justify-center">
         <div className="w-5 h-5 border-2 border-synkora-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -126,38 +126,38 @@ export default function App() {
 
   if (!isConnected) {
     return (
-      <div className="flex flex-col h-screen bg-white items-center justify-center px-6 gap-5">
-        <div className="w-10 h-10 rounded-xl bg-synkora-600 flex items-center justify-center">
-          <span className="text-white font-bold text-lg">S</span>
+      <div className="flex flex-col h-screen bg-brand-canvas items-center justify-center px-6 gap-5">
+        <div className="w-11 h-11 rounded-2xl bg-synkora-400 flex items-center justify-center shadow-soft">
+          <span className="text-brand-ink font-bold text-lg">S</span>
         </div>
         <div className="text-center">
-          <p className="text-sm font-semibold text-gray-800 mb-1">Connect to Synkora</p>
-          <p className="text-xs text-gray-500">Enter your Synkora instance URL to get started.</p>
+          <p className="text-sm font-semibold text-brand-ink mb-1">Connect to Synkora</p>
+          <p className="text-xs text-brand-muted">Enter your Synkora instance URL to get started.</p>
         </div>
         {authError && (
-          <div className="w-full flex items-start gap-2 bg-red-50 border border-red-100 rounded-lg px-3 py-2 text-xs text-red-600">
+          <div className="w-full flex items-start gap-2 bg-[#fff2ec] border border-[#f2d1bd] rounded-2xl px-3 py-2 text-xs text-[#8b3f1e]">
             <AlertCircle size={12} className="mt-0.5 flex-shrink-0" />
             <span>{authError}</span>
           </div>
         )}
         <div className="w-full">
-          <label className="block text-xs text-gray-500 mb-1">Synkora instance URL</label>
+          <label className="block text-xs text-brand-muted mb-1">Synkora instance URL</label>
           <input
             type="url"
             value={urlInput}
             onChange={(e) => setUrlInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleConnect()}
             placeholder="https://your-synkora.com"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 outline-none focus:border-synkora-400 mb-3"
+            className="w-full border border-brand-line bg-brand-panel rounded-2xl px-3 py-2.5 text-sm text-brand-ink outline-none focus:border-synkora-400 focus:shadow-[0_0_0_3px_rgba(121,223,188,0.18)] mb-3"
           />
           <button
             onClick={handleConnect}
             disabled={connecting}
-            className="w-full bg-synkora-600 hover:bg-synkora-700 disabled:opacity-60 text-white text-sm font-medium py-2 rounded-lg transition-colors"
+            className="w-full bg-synkora-400 hover:bg-synkora-300 disabled:opacity-60 text-brand-ink text-sm font-semibold py-2.5 rounded-2xl transition-colors shadow-soft"
           >
             {connecting ? 'Waiting for authorization…' : 'Connect with Synkora'}
           </button>
-          <p className="text-[10px] text-gray-400 text-center mt-2">
+          <p className="text-[10px] text-brand-muted/80 text-center mt-2">
             Opens your Synkora dashboard to authorize access
           </p>
         </div>
@@ -167,22 +167,22 @@ export default function App() {
 
   if (agentsLoading) {
     return (
-      <div className="flex flex-col h-screen bg-white font-sans">
-        <div className="border-b border-gray-100 px-3 py-2.5 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-gray-200 animate-pulse flex-shrink-0" />
+      <div className="flex flex-col h-screen bg-brand-canvas font-sans">
+        <div className="border-b border-brand-line px-3 py-2.5 flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-brand-surface animate-pulse flex-shrink-0" />
           <div className="flex-1 space-y-1.5">
-            <div className="h-3 bg-gray-200 rounded-full animate-pulse w-28" />
-            <div className="h-2 bg-gray-100 rounded-full animate-pulse w-20" />
+            <div className="h-3 bg-brand-surface rounded-full animate-pulse w-28" />
+            <div className="h-2 bg-brand-panel rounded-full animate-pulse w-20" />
           </div>
         </div>
         <div className="flex-1 flex items-center justify-center">
           <div className="space-y-4 px-4 w-full">
             {[1, 2, 3].map((i) => (
               <div key={i} className="flex gap-2.5">
-                <div className="w-7 h-7 rounded-full bg-gray-100 animate-pulse flex-shrink-0 mt-1" />
+                <div className="w-7 h-7 rounded-full bg-brand-surface animate-pulse flex-shrink-0 mt-1" />
                 <div className="flex-1 space-y-1.5">
-                  <div className="h-3 bg-gray-100 rounded-full animate-pulse" style={{ width: `${55 + i * 10}%` }} />
-                  <div className="h-3 bg-gray-100 rounded-full animate-pulse" style={{ width: `${35 + i * 8}%` }} />
+                  <div className="h-3 bg-brand-surface rounded-full animate-pulse" style={{ width: `${55 + i * 10}%` }} />
+                  <div className="h-3 bg-brand-surface rounded-full animate-pulse" style={{ width: `${35 + i * 8}%` }} />
                 </div>
               </div>
             ))}
@@ -194,17 +194,17 @@ export default function App() {
 
   if (!selectedAgent) {
     return (
-      <div className="flex flex-col h-screen bg-white font-sans items-center justify-center px-6 text-center gap-3">
-        <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mb-1">
-          <span className="text-2xl text-gray-400">✦</span>
+      <div className="flex flex-col h-screen bg-brand-canvas font-sans items-center justify-center px-6 text-center gap-3">
+        <div className="w-14 h-14 rounded-[22px] bg-brand-surface flex items-center justify-center mb-1 shadow-soft">
+          <span className="text-2xl text-synkora-600">✦</span>
         </div>
-        <p className="text-[14px] font-semibold text-gray-700">No agents found</p>
-        <p className="text-[12px] text-gray-400 leading-relaxed">Create an agent in your Synkora dashboard to get started.</p>
+        <p className="text-[14px] font-semibold text-brand-ink">No agents found</p>
+        <p className="text-[12px] text-brand-muted leading-relaxed">Create an agent in your Synkora dashboard to get started.</p>
         <a
           href={`${synkoraUrl}/agents`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[12px] text-synkora-600 font-medium hover:underline"
+          className="text-[12px] text-synkora-700 font-medium hover:underline"
         >
           Open Synkora dashboard →
         </a>
@@ -213,9 +213,9 @@ export default function App() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-white font-sans">
+    <div className="flex flex-col h-screen bg-brand-canvas font-sans">
       {/* Header */}
-      <div className="border-b border-gray-100 bg-white/95 backdrop-blur-sm px-1 pt-1.5 pb-0 flex-shrink-0">
+      <div className="border-b border-brand-line bg-brand-canvas/95 backdrop-blur-sm px-1 pt-1.5 pb-1 flex-shrink-0">
         <AgentPicker
           agents={agents}
           selectedAgentId={selectedAgentId}

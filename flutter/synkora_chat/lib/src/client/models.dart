@@ -39,7 +39,7 @@ class WidgetTheme {
   });
 
   factory WidgetTheme.fromJson(Map<String, dynamic> j) {
-    Color primary = const Color(0xFF6366F1);
+    Color primary = const Color(0xFF79DFBC);
     final hex = j['primary_color'] as String?;
     if (hex != null && hex.isNotEmpty) {
       try {
@@ -57,7 +57,7 @@ class WidgetTheme {
   }
 
   static WidgetTheme get defaults => const WidgetTheme(
-        primaryColor: Color(0xFF6366F1),
+        primaryColor: Color(0xFF79DFBC),
         welcomeMessage: '',
         placeholder: 'Type a message...',
         title: '',
@@ -96,6 +96,16 @@ class WidgetConfig {
       suggestionPrompts: prompts,
     );
   }
+}
+
+class WidgetChatHistory {
+  final String? conversationId;
+  final List<ChatMessage> messages;
+
+  const WidgetChatHistory({
+    required this.conversationId,
+    required this.messages,
+  });
 }
 
 // ---------------------------------------------------------------------------

@@ -21,8 +21,11 @@ from src.schemas.agent_lens import (
     AlertCreateBody,
     AlertResponse,
     AlertUpdateBody,
+    LensCacheAnalyticsResponse,
+    LensCompactionAnalyticsResponse,
     LensOverviewResponse,
     LensSessionDetailResponse,
+    LensSessionGraphResponse,
     LensSessionsResponse,
     LensStatCard,
     LensTokenDistributionResponse,
@@ -236,6 +239,109 @@ async def lens_tool_roi(
         total_sessions=data["total_sessions"],
         period_start=data["period_start"],
         period_end=data["period_end"],
+    )
+
+
+@router.get("/{agent_slug}/lens/compaction", response_model=LensCompactionAnalyticsResponse)
+async def lens_compaction(
+    agent_slug: str,
+    range: str = Query(default="7d"),
+    tenant_id: UUID = Depends(get_current_tenant_id),
+    db: AsyncSession = Depends(get_async_db),
+):
+    """Return context-pruning / compaction analytics.
+
+    Shows how often pruning triggered, how many tokens were saved, and whether
+    data-bearing tool results (SQL rows, CSV contents) were trimmed — a key
+    signal for understanding LLM quality degradation.
+    """
+    if range not in _VALID_RANGES:
+        range = "7d"
+
+    agent = await _get_agent(agent_slug, tenant_id, db)
+    start_date, end_date = _parse_range(range)
+
+    from src.schemas.agent_lens import LensPruningTrendPoint
+    from src.services.agents.agent_trace_service import get_compaction_analytics
+
+    data = await get_compaction_analytics(tenant_id, agent.id, start_date, end_date)
+    return LensCompactionAnalyticsResponse(
+        total_sessions=data["total_sessions"],
+        sessions_with_pruning=data["sessions_with_pruning"],
+        pruning_rate=data["pruning_rate"],
+        pruning_events_count=data["pruning_events_count"],
+        total_tokens_saved=data["total_tokens_saved"],
+        avg_tokens_saved_per_session=data["avg_tokens_saved_per_session"],
+        data_bearing_pruned_total=data["data_bearing_pruned_total"],
+        total_results_pruned=data["total_results_pruned"],
+        total_results_evaluated=data["total_results_evaluated"],
+        avg_pruning_ratio=data["avg_pruning_ratio"],
+        trend=[LensPruningTrendPoint(**t) for t in data["trend"]],
+        period_start=data["period_start"],
+        period_end=data["period_end"],
+    )
+
+
+@router.get("/{agent_slug}/lens/cache", response_model=LensCacheAnalyticsResponse)
+async def lens_cache(
+    agent_slug: str,
+    range: str = Query(default="7d"),
+    tenant_id: UUID = Depends(get_current_tenant_id),
+    db: AsyncSession = Depends(get_async_db),
+):
+    """Return prompt-cache analytics: hit rate, tokens saved, context window pressure."""
+    if range not in _VALID_RANGES:
+        range = "7d"
+
+    agent = await _get_agent(agent_slug, tenant_id, db)
+    start_date, end_date = _parse_range(range)
+
+    from src.schemas.agent_lens import LensCacheTrendPoint
+    from src.services.agents.agent_trace_service import get_cache_analytics
+
+    data = await get_cache_analytics(tenant_id, agent.id, start_date, end_date)
+    return LensCacheAnalyticsResponse(
+        total_llm_calls=data["total_llm_calls"],
+        total_input_tokens=data["total_input_tokens"],
+        total_cache_read_tokens=data["total_cache_read_tokens"],
+        total_cache_creation_tokens=data["total_cache_creation_tokens"],
+        cache_hit_rate=data["cache_hit_rate"],
+        estimated_savings_usd=data["estimated_savings_usd"],
+        avg_context_utilization_pct=data["avg_context_utilization_pct"],
+        max_context_utilization_pct=data["max_context_utilization_pct"],
+        high_pressure_calls=data["high_pressure_calls"],
+        trend=[LensCacheTrendPoint(**t) for t in data["trend"]],
+        period_start=data["period_start"],
+        period_end=data["period_end"],
+    )
+
+
+@router.get("/{agent_slug}/lens/sessions/{session_id}/graph", response_model=LensSessionGraphResponse)
+async def lens_session_graph(
+    agent_slug: str,
+    session_id: UUID,
+    tenant_id: UUID = Depends(get_current_tenant_id),
+    db: AsyncSession = Depends(get_async_db),
+):
+    """Return the session timeline as a directed graph (nodes + edges) for visualisation.
+
+    Each event becomes a node; edges connect them in chronological order.
+    Pruning events appear inline so you can see exactly when context was compacted
+    and whether data-bearing results were affected.
+    """
+    agent = await _get_agent(agent_slug, tenant_id, db)
+
+    from src.schemas.agent_lens import LensGraphEdge, LensGraphNode
+    from src.services.agents.agent_trace_service import get_session_graph
+
+    data = await get_session_graph(tenant_id, agent.id, session_id)
+    if not data:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+
+    return LensSessionGraphResponse(
+        conversation_id=data["conversation_id"],
+        nodes=[LensGraphNode(**n) for n in data["nodes"]],
+        edges=[LensGraphEdge(**e) for e in data["edges"]],
     )
 
 

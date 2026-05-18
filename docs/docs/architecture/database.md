@@ -2,158 +2,78 @@
 sidebar_position: 4
 ---
 
-# Database Schema
+# Data and Search Architecture
 
-PostgreSQL database schema with pgvector for embeddings.
+Synkora separates durable product state from retrieval-oriented data. PostgreSQL is the system of record. Vector databases, search engines, Redis, and object storage support specific runtime jobs around retrieval, caching, and files.
 
-## Core Models
+## Data Plane Diagram
 
-### Tenants
+![Synkora data and search high-level architecture diagram.](/images/docs/architecture/data-hld.svg)
 
-```sql
-CREATE TABLE tenants (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
-    slug VARCHAR(100) UNIQUE NOT NULL,
-    plan VARCHAR(50) DEFAULT 'free',
-    settings JSONB DEFAULT '{}',
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
-```
+## What Lives Where
 
-### Accounts (Users)
+| Store | Role in Synkora | Typical Data |
+| --- | --- | --- |
+| PostgreSQL | System of record | tenants, accounts, agents, conversations, billing, integrations, settings |
+| PostgreSQL + `pgvector` | Relational data plus vector similarity | embeddings and vector search tied to relational records |
+| Redis | Coordination and ephemeral runtime state | cache entries, pub/sub, rate-limit state, token state, Celery broker data |
+| Elasticsearch | Search and analytics support | knowledge/search workloads, session tracing used by Lens-related flows |
+| Qdrant / Pinecone | External vector retrieval backends | knowledge-base embeddings when those providers are selected |
+| MinIO / S3 | Object storage | uploaded files, avatars, documents, generated assets |
 
-```sql
-CREATE TABLE accounts (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255),
-    name VARCHAR(255),
-    avatar_url VARCHAR(500),
-    status VARCHAR(50) DEFAULT 'active',
-    created_at TIMESTAMP DEFAULT NOW()
-);
+## Database Access Pattern
 
-CREATE TABLE tenant_account_join (
-    tenant_id UUID REFERENCES tenants(id),
-    account_id UUID REFERENCES accounts(id),
-    role VARCHAR(50) DEFAULT 'member',
-    PRIMARY KEY (tenant_id, account_id)
-);
-```
+`api/src/core/database.py` sets up two access paths:
 
-### Agents
+- a **sync SQLAlchemy engine** for sync workloads and legacy paths
+- an **async SQLAlchemy engine** for FastAPI request handling
 
-```sql
-CREATE TABLE agents (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID REFERENCES tenants(id) NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    slug VARCHAR(100) NOT NULL,
-    description TEXT,
-    model_name VARCHAR(100) NOT NULL,
-    system_prompt TEXT,
-    temperature FLOAT DEFAULT 0.7,
-    max_tokens INTEGER DEFAULT 1000,
-    status VARCHAR(50) DEFAULT 'active',
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
-    UNIQUE (tenant_id, slug)
-);
+Important implementation details:
 
-CREATE INDEX ix_agents_tenant ON agents(tenant_id);
-```
+- SQLAlchemy 2 style configuration
+- Alembic migrations for schema changes
+- `asyncpg` for async database connections
+- `psycopg2` for sync connections
+- `statement_timeout` set to `30s`
+- pooled connections in normal environments
+- `NullPool` in tests
 
-### Knowledge Bases
+## Modeling Pattern
 
-```sql
-CREATE TABLE knowledge_bases (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID REFERENCES tenants(id) NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    embedding_model VARCHAR(100) DEFAULT 'text-embedding-3-small',
-    vector_store VARCHAR(50) DEFAULT 'qdrant',
-    chunking_config JSONB DEFAULT '{}',
-    status VARCHAR(50) DEFAULT 'active',
-    created_at TIMESTAMP DEFAULT NOW()
-);
+Most durable models inherit common mixins from `api/src/models/base.py`:
 
-CREATE TABLE documents (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    knowledge_base_id UUID REFERENCES knowledge_bases(id) NOT NULL,
-    name VARCHAR(500) NOT NULL,
-    type VARCHAR(50),
-    size_bytes BIGINT,
-    metadata JSONB DEFAULT '{}',
-    status VARCHAR(50) DEFAULT 'pending',
-    created_at TIMESTAMP DEFAULT NOW()
-);
+- `UUIDMixin`
+- `TimestampMixin`
+- `TenantMixin`
+- `SoftDeleteMixin`
+- `StatusMixin`
 
-CREATE TABLE document_segments (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    document_id UUID REFERENCES documents(id) NOT NULL,
-    content TEXT NOT NULL,
-    metadata JSONB DEFAULT '{}',
-    embedding vector(1536),  -- pgvector
-    created_at TIMESTAMP DEFAULT NOW()
-);
-```
+That gives the platform a consistent baseline for:
 
-### Conversations
+- UUID primary keys
+- audit timestamps
+- tenant-scoped records
+- soft deletion
+- status tracking
 
-```sql
-CREATE TABLE conversations (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    agent_id UUID REFERENCES agents(id) NOT NULL,
-    tenant_id UUID REFERENCES tenants(id) NOT NULL,
-    metadata JSONB DEFAULT '{}',
-    status VARCHAR(50) DEFAULT 'active',
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
-);
+## Performance Patterns
 
-CREATE TABLE messages (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    conversation_id UUID REFERENCES conversations(id) NOT NULL,
-    role VARCHAR(50) NOT NULL,
-    content TEXT NOT NULL,
-    citations JSONB DEFAULT '[]',
-    tool_calls JSONB DEFAULT '[]',
-    usage JSONB DEFAULT '{}',
-    created_at TIMESTAMP DEFAULT NOW()
-);
+The current backend architecture intentionally treats the relational layer as the durable truth and optimizes around that:
 
-CREATE INDEX ix_messages_conversation ON messages(conversation_id);
-```
+- `tenant_id`, `status`, and key lookup columns are indexed
+- lazy loading is the default for many relationships
+- `selectinload` and `joinedload` are used where relationship data is needed
+- async session factories are created lazily so they bind to the correct event loop
 
-## Key Relationships
+## Practical Rule
 
-```
-Tenant
-  └── Account (via TenantAccountJoin)
-  └── Agent
-        └── AgentTool
-        └── AgentKnowledgeBase
-        └── Conversation
-              └── Message
-  └── KnowledgeBase
-        └── Document
-              └── DocumentSegment
-```
+Use PostgreSQL for truth, consistency, and multi-tenant state.
 
-## Migrations
+Use vector databases, search engines, Redis, and object storage as specialized supporting systems for:
 
-Using Alembic:
+- retrieval
+- search
+- performance
+- file handling
 
-```bash
-# Create migration
-alembic revision --autogenerate -m "description"
-
-# Run migrations
-alembic upgrade head
-
-# Rollback
-alembic downgrade -1
-```
+That split keeps Synkora from turning the vector layer into the product database.

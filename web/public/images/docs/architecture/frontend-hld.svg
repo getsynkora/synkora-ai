@@ -1,0 +1,98 @@
+<svg width="1600" height="940" viewBox="0 0 1600 940" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="180" y1="60" x2="1460" y2="880" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FBF6EC"/>
+      <stop offset="1" stop-color="#F3EBDD"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="16" stdDeviation="22" flood-color="#171717" flood-opacity="0.08"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+      <path d="M1 1L11 6L1 11V1Z" fill="#FF5F8F"/>
+    </marker>
+    <style>
+      .kicker { font: 700 16px Arial, sans-serif; letter-spacing: 0.24em; text-transform: uppercase; fill: #7A736A; }
+      .title { font: 700 44px Arial, sans-serif; fill: #171717; }
+      .subtitle { font: 400 22px Arial, sans-serif; fill: #5B564E; }
+      .band { fill: #FFFFFF; fill-opacity: 0.84; stroke: #171717; stroke-opacity: 0.08; stroke-width: 2; }
+      .card { fill: #FFF9EF; stroke: #171717; stroke-opacity: 0.08; stroke-width: 2; }
+      .cardDark { fill: #171717; }
+      .cardMint { fill: #79DFBC; fill-opacity: 0.22; stroke: #171717; stroke-opacity: 0.08; stroke-width: 2; }
+      .titleSm { font: 700 24px Arial, sans-serif; fill: #171717; }
+      .titleSmDark { font: 700 24px Arial, sans-serif; fill: #F7F2E7; }
+      .text { font: 400 18px Arial, sans-serif; fill: #5B564E; }
+      .textDark { font: 400 18px Arial, sans-serif; fill: #D8D0C4; }
+      .label { font: 700 16px Arial, sans-serif; letter-spacing: 0.18em; text-transform: uppercase; fill: #7A736A; }
+      .line { stroke: #FF5F8F; stroke-width: 6; stroke-linecap: round; marker-end: url(#arrow); }
+      .lineMint { stroke: #79DFBC; stroke-width: 6; stroke-linecap: round; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect width="1600" height="940" rx="40" fill="url(#bg)"/>
+  <circle cx="1372" cy="128" r="152" fill="#FFF8ED"/>
+  <circle cx="208" cy="826" r="126" fill="#EEE4CF"/>
+
+  <text x="120" y="104" class="kicker">Frontend Architecture</text>
+  <text x="120" y="166" class="title">One Next.js application, multiple product surfaces</text>
+  <text x="120" y="208" class="subtitle">The frontend in `web/` is the control plane for the platform and also serves docs, blog, marketing pages, and public agent experiences.</text>
+
+  <rect x="120" y="276" width="460" height="520" rx="34" class="band" filter="url(#shadow)"/>
+  <text x="156" y="324" class="label">Route groups and page surfaces</text>
+
+  <rect x="156" y="360" width="388" height="94" rx="26" class="card"/>
+  <text x="190" y="412" class="titleSm">`app/(auth)`</text>
+  <text x="190" y="438" class="text">signin, signup, reset-password, verify-email</text>
+
+  <rect x="156" y="478" width="388" height="94" rx="26" class="card"/>
+  <text x="190" y="530" class="titleSm">`app/(dashboard)`</text>
+  <text x="190" y="556" class="text">agents, knowledge bases, billing, settings, tools</text>
+
+  <rect x="156" y="596" width="388" height="94" rx="26" class="card"/>
+  <text x="190" y="648" class="titleSm">`app/(public)`</text>
+  <text x="190" y="674" class="text">public agents, creator pages, shareable experiences</text>
+
+  <rect x="156" y="714" width="388" height="54" rx="20" class="cardMint"/>
+  <text x="190" y="749" class="titleSm">Top-level routes: `/docs`, `/blog`, `/pricing`, `/integrations`</text>
+
+  <rect x="620" y="276" width="430" height="520" rx="34" class="band" filter="url(#shadow)"/>
+  <text x="656" y="324" class="label">Rendering and composition</text>
+
+  <rect x="656" y="360" width="358" height="106" rx="28" class="cardDark"/>
+  <text x="690" y="414" class="titleSmDark">Pages and layouts</text>
+  <text x="690" y="442" class="textDark">App Router shells, navigation, authenticated and public views</text>
+
+  <rect x="656" y="500" width="358" height="106" rx="28" class="card"/>
+  <text x="690" y="554" class="titleSm">`web/components/*`</text>
+  <text x="690" y="582" class="text">domain UI for agents, chat, public site, billing, widgets</text>
+
+  <rect x="656" y="640" width="358" height="106" rx="28" class="cardMint"/>
+  <text x="690" y="694" class="titleSm">Content capabilities</text>
+  <text x="690" y="722" class="text">markdown, charts, Tiptap, diagrams, rich product surfaces</text>
+
+  <rect x="1090" y="276" width="390" height="520" rx="34" class="band" filter="url(#shadow)"/>
+  <text x="1126" y="324" class="label">Client state and API access</text>
+
+  <rect x="1126" y="360" width="318" height="96" rx="26" class="card"/>
+  <text x="1160" y="412" class="titleSm">`web/lib/api/*`</text>
+  <text x="1160" y="438" class="text">domain modules and compatibility barrel exports</text>
+
+  <rect x="1126" y="486" width="318" height="96" rx="26" class="card"/>
+  <text x="1160" y="538" class="titleSm">Axios HTTP client</text>
+  <text x="1160" y="564" class="text">shared API transport with credentials and auth headers</text>
+
+  <rect x="1126" y="612" width="318" height="96" rx="26" class="cardMint"/>
+  <text x="1160" y="664" class="titleSm">Auth + state</text>
+  <text x="1160" y="690" class="text">in-memory access token, HttpOnly refresh cookie, Zustand</text>
+
+  <rect x="580" y="832" width="440" height="66" rx="24" class="cardDark"/>
+  <text x="620" y="874" class="titleSmDark">FastAPI backend and public APIs</text>
+
+  <path d="M546 406H648" class="line"/>
+  <path d="M546 524H648" class="line"/>
+  <path d="M546 642H648" class="line"/>
+  <path d="M1018 414H1118" class="line"/>
+  <path d="M1018 554H1118" class="line"/>
+  <path d="M1018 694H1118" class="line"/>
+  <path d="M1284 712V824" class="lineMint"/>
+  <path d="M836 748V824" class="lineMint"/>
+</svg>

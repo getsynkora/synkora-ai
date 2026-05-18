@@ -1,0 +1,77 @@
+<svg width="1600" height="940" viewBox="0 0 1600 940" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="160" y1="60" x2="1460" y2="880" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FBF6EC"/>
+      <stop offset="1" stop-color="#F4ECDD"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="16" stdDeviation="22" flood-color="#171717" flood-opacity="0.08"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+      <path d="M1 1L11 6L1 11V1Z" fill="#FF5F8F"/>
+    </marker>
+    <style>
+      .kicker { font: 700 16px Arial, sans-serif; letter-spacing: 0.24em; text-transform: uppercase; fill: #7A736A; }
+      .title { font: 700 44px Arial, sans-serif; fill: #171717; }
+      .subtitle { font: 400 22px Arial, sans-serif; fill: #5B564E; }
+      .band { fill: #FFFFFF; fill-opacity: 0.84; stroke: #171717; stroke-opacity: 0.08; stroke-width: 2; }
+      .card { fill: #FFFFFF; fill-opacity: 0.92; stroke: #171717; stroke-opacity: 0.08; stroke-width: 2; }
+      .cardMint { fill: #79DFBC; fill-opacity: 0.22; stroke: #171717; stroke-opacity: 0.08; stroke-width: 2; }
+      .cardDark { fill: #171717; }
+      .titleSm { font: 700 24px Arial, sans-serif; fill: #171717; }
+      .titleSmDark { font: 700 24px Arial, sans-serif; fill: #F7F2E7; }
+      .text { font: 400 18px Arial, sans-serif; fill: #5B564E; }
+      .textDark { font: 400 18px Arial, sans-serif; fill: #D8D0C4; }
+      .label { font: 700 16px Arial, sans-serif; letter-spacing: 0.18em; text-transform: uppercase; fill: #7A736A; }
+      .line { stroke: #FF5F8F; stroke-width: 6; stroke-linecap: round; marker-end: url(#arrow); }
+      .lineMint { stroke: #79DFBC; stroke-width: 6; stroke-linecap: round; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect width="1600" height="940" rx="40" fill="url(#bg)"/>
+  <circle cx="1354" cy="132" r="156" fill="#FFF8ED"/>
+  <circle cx="186" cy="828" r="124" fill="#EEE4CF"/>
+
+  <text x="120" y="104" class="kicker">Data and Search Architecture</text>
+  <text x="120" y="166" class="title">Durable truth in PostgreSQL, specialized support around it</text>
+  <text x="120" y="208" class="subtitle">Synkora keeps platform state in relational storage and uses Redis, vector systems, search engines, and object storage for specific runtime jobs.</text>
+
+  <rect x="120" y="286" width="1360" height="560" rx="34" class="band" filter="url(#shadow)"/>
+  <text x="156" y="334" class="label">Core data plane</text>
+
+  <rect x="560" y="384" width="480" height="176" rx="34" class="cardDark"/>
+  <text x="602" y="450" class="titleSmDark">PostgreSQL + pgvector</text>
+  <text x="602" y="486" class="textDark">tenants, accounts, agents, conversations, billing, settings,</text>
+  <text x="602" y="514" class="textDark">relational truth, transactional state, and vector-aware workloads</text>
+
+  <rect x="188" y="394" width="286" height="124" rx="30" class="card"/>
+  <text x="222" y="450" class="titleSm">API + workers write path</text>
+  <text x="222" y="478" class="text">FastAPI and Celery persist durable platform state here</text>
+
+  <rect x="188" y="606" width="286" height="124" rx="30" class="cardMint"/>
+  <text x="222" y="662" class="titleSm">Redis coordination</text>
+  <text x="222" y="690" class="text">cache, pub/sub, rate limits, token state, queue broker</text>
+
+  <rect x="1118" y="356" width="278" height="124" rx="30" class="card"/>
+  <text x="1152" y="412" class="titleSm">Qdrant / Pinecone</text>
+  <text x="1152" y="440" class="text">external vector retrieval backends for knowledge search</text>
+
+  <rect x="1118" y="514" width="278" height="124" rx="30" class="card"/>
+  <text x="1152" y="570" class="titleSm">Elasticsearch</text>
+  <text x="1152" y="598" class="text">search workloads and session tracing support</text>
+
+  <rect x="1118" y="672" width="278" height="124" rx="30" class="card"/>
+  <text x="1152" y="728" class="titleSm">MinIO / S3</text>
+  <text x="1152" y="756" class="text">documents, uploads, avatars, and generated artifacts</text>
+
+  <rect x="558" y="646" width="482" height="116" rx="30" class="cardMint"/>
+  <text x="600" y="700" class="titleSm">Query and retrieval path</text>
+  <text x="600" y="728" class="text">services read relational state first, then pull from cache, vector stores, search, and object storage as needed</text>
+
+  <path d="M476 456H548" class="line"/>
+  <path d="M476 668L548 668" class="lineMint"/>
+  <path d="M1044 456H1104" class="line"/>
+  <path d="M1044 538H1104" class="line"/>
+  <path d="M1044 730H1104" class="lineMint"/>
+  <path d="M800 564V636" class="lineMint"/>
+</svg>

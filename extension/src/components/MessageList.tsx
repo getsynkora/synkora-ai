@@ -32,7 +32,7 @@ function MessageBubble({ message, agent }: { message: Message; agent: Agent | nu
   if (isUser) {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[82%] bg-gray-950 text-white/95 rounded-2xl rounded-tr-md px-4 py-3 text-[14px] leading-relaxed shadow-sm">
+        <div className="max-w-[82%] bg-brand-ink text-brand-panel rounded-2xl rounded-tr-md px-4 py-3 text-[14px] leading-relaxed shadow-soft">
           {message.content}
         </div>
       </div>
@@ -48,10 +48,10 @@ function MessageBubble({ message, agent }: { message: Message; agent: Agent | nu
         {message.isStreaming && !message.content ? (
           <TypingIndicator />
         ) : (
-          <div className="text-[14px] text-gray-800 leading-relaxed">
+          <div className="text-[14px] text-brand-ink leading-relaxed">
             <MarkdownContent content={message.content} />
             {message.isStreaming && (
-              <span className="inline-block w-[2px] h-[14px] bg-gray-500 ml-0.5 align-middle animate-blink" />
+              <span className="inline-block w-[2px] h-[14px] bg-brand-muted ml-0.5 align-middle animate-blink" />
             )}
           </div>
         )}
@@ -66,7 +66,7 @@ function TypingIndicator() {
       {[0, 1, 2].map((i) => (
         <span
           key={i}
-          className="w-2 h-2 rounded-full bg-gray-400 animate-bounce-dot"
+          className="w-2 h-2 rounded-full bg-synkora-500 animate-bounce-dot"
           style={{ animationDelay: `${i * 0.18}s` }}
         />
       ))}
@@ -77,7 +77,7 @@ function TypingIndicator() {
 function MarkdownContent({ content }: { content: string }) {
   return (
     <div
-      className="[&_strong]:font-semibold [&_em]:italic [&_code]:bg-gray-100 [&_code]:border [&_code]:border-gray-200 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-[12px] [&_code]:font-mono [&_code]:text-gray-700 [&_pre]:bg-gray-950 [&_pre]:text-gray-100 [&_pre]:rounded-xl [&_pre]:p-3 [&_pre]:overflow-x-auto [&_pre]:text-[12px] [&_pre]:my-2 [&_ul]:list-disc [&_ul]:pl-4 [&_ul]:my-2 [&_ol]:list-decimal [&_ol]:pl-4 [&_ol]:my-2 [&_li]:my-1 [&_a]:text-synkora-600 [&_a]:underline [&_a]:underline-offset-2 [&_h3]:font-semibold [&_h3]:text-gray-900 [&_h3]:mt-3 [&_h3]:mb-1 [&_p]:my-1.5 first:[&_p]:mt-0"
+      className="[&_strong]:font-semibold [&_em]:italic [&_code]:bg-brand-surface [&_code]:border [&_code]:border-brand-line [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-[12px] [&_code]:font-mono [&_code]:text-brand-ink [&_pre]:bg-brand-ink [&_pre]:text-brand-panel [&_pre]:rounded-xl [&_pre]:p-3 [&_pre]:overflow-x-auto [&_pre]:text-[12px] [&_pre]:my-2 [&_ul]:list-disc [&_ul]:pl-4 [&_ul]:my-2 [&_ol]:list-decimal [&_ol]:pl-4 [&_ol]:my-2 [&_li]:my-1 [&_a]:text-synkora-700 [&_a]:underline [&_a]:underline-offset-2 [&_h3]:font-semibold [&_h3]:text-brand-ink [&_h3]:mt-3 [&_h3]:mb-1 [&_p]:my-1.5 first:[&_p]:mt-0"
       dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
     />
   );

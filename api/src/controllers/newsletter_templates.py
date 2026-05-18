@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/newsletter/templates", tags=["newsletter-templates"])
 
 _BUILTIN_TEMPLATE_DIR = Path(__file__).parent.parent / "services" / "newsletter" / "templates"
-_BUILTIN_NAMES = ["editorial", "minimal"]
+_BUILTIN_NAMES = ["editorial", "minimal", "micromobility"]
 _MAX_TEMPLATE_SIZE = 512 * 1024  # 512 KB
 
 

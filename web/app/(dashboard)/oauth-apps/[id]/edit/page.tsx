@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import { PencilLine } from 'lucide-react'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import ErrorAlert from '@/components/common/ErrorAlert'
+import DashboardPageShell from '@/components/dashboard/DashboardPageShell'
 import { apiClient } from '@/lib/api/client'
 
 interface OAuthApp {
@@ -33,6 +35,25 @@ const DEFAULT_SCOPES: Record<string, string[]> = {
   ],
 }
 
+const sectionClassName =
+  'rounded-[1.9rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,245,239,0.96))] p-6 shadow-[0_24px_60px_-46px_rgba(73,45,23,0.3)]'
+
+const labelClassName = 'mb-1.5 block text-sm font-semibold text-gray-700'
+const inputClassName =
+  'w-full rounded-[1rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]'
+const monoInputClassName = `${inputClassName} font-mono`
+const helperClassName = 'mt-1.5 text-xs leading-5 text-gray-500'
+const checkboxClassName =
+  'h-4 w-4 rounded border-gray-300 text-[#ff5c8a] focus:ring-2 focus:ring-[#79dfbc]'
+const primaryButtonClassName =
+  'inline-flex items-center justify-center gap-2 rounded-[1rem] bg-[#171717] px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_36px_-24px_rgba(0,0,0,0.45)] transition-colors hover:bg-[#2a2a2a] disabled:cursor-not-allowed disabled:opacity-60'
+const secondaryButtonClassName =
+  'inline-flex items-center justify-center rounded-[1rem] border border-black/10 bg-white/85 px-5 py-3 text-sm font-semibold text-gray-700 transition-colors hover:border-[#cdb79d] hover:bg-[#f7f2e7] hover:text-gray-900'
+const scopePillClassName =
+  'inline-flex rounded-full border border-[#e5d9ca] bg-[#f7f2e7] px-2.5 py-1 font-mono text-[11px] text-[#6f5a46]'
+const selectionCardClassName =
+  'flex items-start gap-3 rounded-[1.2rem] border border-black/10 bg-white/80 px-4 py-3 transition-colors hover:border-[#d7c6b4] hover:bg-[#f9f5ee]'
+
 export default function EditOAuthAppPage() {
   const router = useRouter()
   const params = useParams()
@@ -57,11 +78,7 @@ export default function EditOAuthAppPage() {
     config: {} as Record<string, any>,
   })
 
-  useEffect(() => {
-    fetchOAuthApp()
-  }, [appId])
-
-  const fetchOAuthApp = async () => {
+  const fetchOAuthApp = useCallback(async () => {
     if (!appId) return
     try {
       setLoading(true)
@@ -85,7 +102,11 @@ export default function EditOAuthAppPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [appId])
+
+  useEffect(() => {
+    fetchOAuthApp()
+  }, [fetchOAuthApp])
 
   const handleScopeChange = (scope: string, checked: boolean) => {
     if (checked) {
@@ -134,8 +155,8 @@ export default function EditOAuthAppPage() {
 
   if (!app) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-8">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen p-4 md:p-6">
+        <div className="mx-auto max-w-4xl">
           <ErrorAlert message="OAuth app not found" />
         </div>
       </div>
@@ -146,75 +167,88 @@ export default function EditOAuthAppPage() {
   const isMicromobility = app.provider === 'micromobility'
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <Link
-            href="/oauth-apps"
-            className="text-[#ff444f] hover:text-red-700 flex items-center gap-2 mb-4 font-medium"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Connected Accounts
-          </Link>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
-            Edit {app.app_name}
-          </h1>
-          <p className="text-gray-500 mt-1 text-sm capitalize">
-            {app.provider} · {app.auth_method?.replace('_', ' ')}
-          </p>
-        </div>
-
+    <DashboardPageShell
+      title={`Edit ${app.app_name}`}
+      description={
+        <span className="capitalize">
+          Update credentials, scopes, and defaults for this {app.provider} connection.
+        </span>
+      }
+      icon={PencilLine}
+      badge="OAuth Apps"
+      backHref="/oauth-apps"
+      backLabel="Back to Connected Accounts"
+      maxWidthClassName="max-w-5xl"
+      breadcrumbs={[
+        { label: 'Home', href: '/' },
+        { label: 'OAuth Apps', href: '/oauth-apps' },
+        { label: app.app_name },
+        { label: 'Edit' },
+      ]}
+    >
+      <div className="space-y-5">
         {error && (
-          <div className="mb-6">
+          <div className="mb-5">
             <ErrorAlert message={error} onDismiss={() => setError(null)} />
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Basic Information */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-            <h2 className="text-base font-semibold text-gray-900 mb-4">Basic Information</h2>
+          <div className={sectionClassName}>
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-base font-semibold text-gray-900">Basic Information</h2>
+                <p className="mt-1 text-sm text-gray-500">Name, description, and connection status.</p>
+              </div>
+              <div className="rounded-full border border-[#e2d7c8] bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8f6f53]">
+                {app.provider} · {app.auth_method?.replace('_', ' ')}
+              </div>
+            </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Connection Name *</label>
+                <label className={labelClassName}>Connection Name *</label>
                 <input
                   type="text"
                   required
                   value={formData.app_name}
                   onChange={(e) => setFormData({ ...formData, app_name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent text-sm"
+                  className={inputClassName}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
+                <label className={labelClassName}>Description</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent text-sm"
-                  rows={2}
+                  className={inputClassName}
+                  rows={3}
                 />
               </div>
-              <div className="flex items-center gap-5">
-                <label className="flex items-center gap-2">
+              <div className="grid gap-3 md:grid-cols-2">
+                <label className={selectionCardClassName}>
                   <input
                     type="checkbox"
                     checked={formData.is_active}
                     onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                    className="w-4 h-4 text-[#ff444f] border-gray-300 rounded focus:ring-[#ff444f]"
+                    className={checkboxClassName}
                   />
-                  <span className="text-sm text-gray-700">Active</span>
+                  <div>
+                    <div className="text-sm font-semibold text-gray-900">Active</div>
+                    <p className="text-xs text-gray-500">Allow this connection to be used immediately.</p>
+                  </div>
                 </label>
-                <label className="flex items-center gap-2">
+                <label className={selectionCardClassName}>
                   <input
                     type="checkbox"
                     checked={formData.is_default}
                     onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
-                    className="w-4 h-4 text-[#ff444f] border-gray-300 rounded focus:ring-[#ff444f]"
+                    className={checkboxClassName}
                   />
-                  <span className="text-sm text-gray-700">Default for this provider</span>
+                  <div>
+                    <div className="text-sm font-semibold text-gray-900">Default for this provider</div>
+                    <p className="text-xs text-gray-500">Use this account as the primary connection by default.</p>
+                  </div>
                 </label>
               </div>
             </div>
@@ -222,38 +256,41 @@ export default function EditOAuthAppPage() {
 
           {/* Credentials — OAuth */}
           {formData.auth_method === 'oauth' && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-              <h2 className="text-base font-semibold text-gray-900 mb-4">OAuth Credentials</h2>
+            <div className={sectionClassName}>
+              <div className="mb-4">
+                <h2 className="text-base font-semibold text-gray-900">OAuth Credentials</h2>
+                <p className="mt-1 text-sm text-gray-500">Rotate the secret only when you need to replace it.</p>
+              </div>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Client ID *</label>
+                  <label className={labelClassName}>Client ID *</label>
                   <input
                     type="text"
                     required
                     value={formData.client_id}
                     onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-sm"
+                    className={monoInputClassName}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Client Secret</label>
+                  <label className={labelClassName}>Client Secret</label>
                   <input
                     type="password"
                     value={formData.client_secret}
                     onChange={(e) => setFormData({ ...formData, client_secret: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-sm"
+                    className={monoInputClassName}
                     placeholder="Leave blank to keep current secret"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Only enter a new value to replace the existing secret.</p>
+                  <p className={helperClassName}>Only enter a new value to replace the existing secret.</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Redirect URI *</label>
+                  <label className={labelClassName}>Redirect URI *</label>
                   <input
                     type="url"
                     required
                     value={formData.redirect_uri}
                     onChange={(e) => setFormData({ ...formData, redirect_uri: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-sm"
+                    className={monoInputClassName}
                   />
                 </div>
               </div>
@@ -262,95 +299,94 @@ export default function EditOAuthAppPage() {
 
           {/* Credentials — Basic Auth (Username + Password → JWT) */}
           {formData.auth_method === 'basic_auth' && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-              <h2 className="text-base font-semibold text-gray-900 mb-4">Login Credentials</h2>
+            <div className={sectionClassName}>
+              <div className="mb-4">
+                <h2 className="text-base font-semibold text-gray-900">Login Credentials</h2>
+                <p className="mt-1 text-sm text-gray-500">These settings are used to fetch and refresh access tokens.</p>
+              </div>
               <div className="space-y-4">
                 {isMicromobility && (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                        Base URL *
-                      </label>
+                      <label className={labelClassName}>Base URL *</label>
                       <input
                         type="url"
                         required
                         value={formData.config.base_url || ''}
                         onChange={(e) => setFormData({ ...formData, config: { ...formData.config, base_url: e.target.value } })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-sm"
+                        className={monoInputClassName}
                         placeholder="https://api.your-oto-instance.com"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Login Endpoint *</label>
+                      <label className={labelClassName}>Login Endpoint *</label>
                       <input
                         type="text"
                         required
                         value={formData.config.login_endpoint || ''}
                         onChange={(e) => setFormData({ ...formData, config: { ...formData.config, login_endpoint: e.target.value } })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-sm"
+                        className={monoInputClassName}
                         placeholder="/admin-login-jwt/"
                       />
-                      <p className="text-xs text-gray-500 mt-1">Endpoint to POST username/password to receive a JWT</p>
+                      <p className={helperClassName}>Endpoint to POST username/password to receive a JWT.</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Token Field in Response *</label>
+                      <label className={labelClassName}>Token Field in Response *</label>
                       <input
                         type="text"
                         required
                         value={formData.config.token_response_field || ''}
                         onChange={(e) => setFormData({ ...formData, config: { ...formData.config, token_response_field: e.target.value } })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-sm"
+                        className={monoInputClassName}
                         placeholder="token"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Username *</label>
+                      <label className={labelClassName}>Username *</label>
                       <input
                         type="text"
                         required
                         value={formData.config.username || ''}
                         onChange={(e) => setFormData({ ...formData, config: { ...formData.config, username: e.target.value } })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent text-sm"
+                        className={inputClassName}
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Username Field Name</label>
+                        <label className={labelClassName}>Username Field Name</label>
                         <input
                           type="text"
                           value={formData.config.login_username_field || ''}
                           onChange={(e) => setFormData({ ...formData, config: { ...formData.config, login_username_field: e.target.value } })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-sm"
+                          className={monoInputClassName}
                           placeholder="username"
                         />
-                        <p className="text-xs text-gray-500 mt-1">JSON body field name for username (default: username)</p>
+                        <p className={helperClassName}>JSON body field name for username.</p>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Password Field Name</label>
+                        <label className={labelClassName}>Password Field Name</label>
                         <input
                           type="text"
                           value={formData.config.login_password_field || ''}
                           onChange={(e) => setFormData({ ...formData, config: { ...formData.config, login_password_field: e.target.value } })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-sm"
+                          className={monoInputClassName}
                           placeholder="password"
                         />
-                        <p className="text-xs text-gray-500 mt-1">JSON body field name for password (default: password)</p>
+                        <p className={helperClassName}>JSON body field name for password.</p>
                       </div>
                     </div>
                   </>
                 )}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Password {formData.api_token ? '*' : '(leave blank to keep current)'}
-                  </label>
+                  <label className={labelClassName}>Password {formData.api_token ? '*' : '(leave blank to keep current)'}</label>
                   <input
                     type="password"
                     value={formData.api_token}
                     onChange={(e) => setFormData({ ...formData, api_token: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-sm"
+                    className={monoInputClassName}
                     placeholder="Leave blank to keep current password"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className={helperClassName}>
                     Encrypted and stored securely. Changing the password will clear the cached JWT token and trigger a fresh login on next use.
                   </p>
                 </div>
@@ -360,56 +396,57 @@ export default function EditOAuthAppPage() {
 
           {/* Credentials — API Token */}
           {formData.auth_method === 'api_token' && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-              <h2 className="text-base font-semibold text-gray-900 mb-4">API Token</h2>
+            <div className={sectionClassName}>
+              <div className="mb-4">
+                <h2 className="text-base font-semibold text-gray-900">API Token</h2>
+                <p className="mt-1 text-sm text-gray-500">Token-based authentication with optional custom headers.</p>
+              </div>
               <div className="space-y-4">
                 {isMicromobility && (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Base URL *</label>
+                      <label className={labelClassName}>Base URL *</label>
                       <input
                         type="url"
                         required
                         value={formData.config.base_url || ''}
                         onChange={(e) => setFormData({ ...formData, config: { ...formData.config, base_url: e.target.value } })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-sm"
+                        className={monoInputClassName}
                         placeholder="https://api.your-oto-instance.com"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">API Key Header</label>
+                      <label className={labelClassName}>API Key Header</label>
                       <input
                         type="text"
                         value={formData.config.api_key_header || 'Authorization'}
                         onChange={(e) => setFormData({ ...formData, config: { ...formData.config, api_key_header: e.target.value } })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-sm"
+                        className={monoInputClassName}
                         placeholder="Authorization"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">API Key Format</label>
+                      <label className={labelClassName}>API Key Format</label>
                       <input
                         type="text"
                         value={formData.config.api_key_format || 'Bearer {token}'}
                         onChange={(e) => setFormData({ ...formData, config: { ...formData.config, api_key_format: e.target.value } })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-sm"
+                        className={monoInputClassName}
                         placeholder="Bearer {token}"
                       />
                     </div>
                   </>
                 )}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    API Token (leave blank to keep current)
-                  </label>
+                  <label className={labelClassName}>API Token (leave blank to keep current)</label>
                   <input
                     type="password"
                     value={formData.api_token}
                     onChange={(e) => setFormData({ ...formData, api_token: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-sm"
+                    className={monoInputClassName}
                     placeholder="Leave blank to keep current token"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Only enter a new value to replace the existing token.</p>
+                  <p className={helperClassName}>Only enter a new value to replace the existing token.</p>
                 </div>
               </div>
             </div>
@@ -417,18 +454,21 @@ export default function EditOAuthAppPage() {
 
           {/* Scopes (OAuth only) */}
           {formData.auth_method === 'oauth' && availableScopes.length > 0 && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-              <h2 className="text-base font-semibold text-gray-900 mb-3">OAuth Scopes</h2>
-              <div className="space-y-2">
+            <div className={sectionClassName}>
+              <div className="mb-4">
+                <h2 className="text-base font-semibold text-gray-900">OAuth Scopes</h2>
+                <p className="mt-1 text-sm text-gray-500">Choose which permissions this connection should request.</p>
+              </div>
+              <div className="grid gap-2">
                 {availableScopes.map((scope) => (
-                  <label key={scope} className="flex items-center gap-2">
+                  <label key={scope} className={selectionCardClassName}>
                     <input
                       type="checkbox"
                       checked={formData.scopes.includes(scope)}
                       onChange={(e) => handleScopeChange(scope, e.target.checked)}
-                      className="w-4 h-4 text-[#ff444f] border-gray-300 rounded focus:ring-[#ff444f]"
+                      className={checkboxClassName}
                     />
-                    <code className="text-xs bg-gray-100 px-2 py-0.5 rounded">{scope}</code>
+                    <span className={scopePillClassName}>{scope}</span>
                   </label>
                 ))}
               </div>
@@ -436,11 +476,11 @@ export default function EditOAuthAppPage() {
           )}
 
           {/* Actions */}
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 px-5 py-2.5 bg-[#ff444f] text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
+              className={`${primaryButtonClassName} flex-1`}
             >
               {saving ? (
                 <span className="flex items-center justify-center gap-2">
@@ -453,13 +493,13 @@ export default function EditOAuthAppPage() {
             </button>
             <Link
               href="/oauth-apps"
-              className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm text-center"
+              className={secondaryButtonClassName}
             >
               Cancel
             </Link>
           </div>
         </form>
       </div>
-    </div>
+    </DashboardPageShell>
   )
 }

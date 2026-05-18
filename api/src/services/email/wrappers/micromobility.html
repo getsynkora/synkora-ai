@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ subject }}</title>
+    <!--[if mso]>
+    <style type="text/css">
+        body, table, td { font-family: Arial, sans-serif !important; }
+    </style>
+    <![endif]-->
+    <style>
+        body, table, td, p, h1, h2, h3, h4 { margin: 0; padding: 0; }
+        img { border: 0; display: block; }
+        a { text-decoration: none; }
+
+        .eyebrow,
+        .meta-copy,
+        .content-body p,
+        .content-body li,
+        .content-body table td,
+        .content-body table th {
+            font-family: 'Avenir Next', 'Helvetica Neue', 'Segoe UI', Arial, sans-serif;
+        }
+
+        .eyebrow {
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 2.8px;
+            text-transform: uppercase;
+        }
+
+        .meta-copy {
+            font-size: 10.5px;
+            letter-spacing: 0.8px;
+            color: #9db2b0;
+        }
+
+        .content-body h1 {
+            font-family: 'Avenir Next', 'Helvetica Neue', 'Segoe UI', Arial, sans-serif;
+            font-size: 30px;
+            font-weight: 700;
+            line-height: 1.08;
+            color: #102128;
+            margin: 0 0 12px;
+            letter-spacing: -1px;
+        }
+
+        .content-body h2 {
+            font-family: 'Avenir Next', 'Helvetica Neue', 'Segoe UI', Arial, sans-serif;
+            font-size: 10px;
+            font-weight: 700;
+            line-height: 1.3;
+            color: #44b889;
+            margin: 26px 0 10px;
+            padding-top: 18px;
+            border-top: 1px solid #dce7e1;
+            letter-spacing: 2.4px;
+            text-transform: uppercase;
+        }
+
+        .content-body h3 {
+            font-family: 'Avenir Next', 'Helvetica Neue', 'Segoe UI', Arial, sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: #102128;
+            margin: 16px 0 7px;
+            letter-spacing: -0.3px;
+        }
+
+        .content-body p {
+            font-size: 14px;
+            line-height: 1.72;
+            color: #415459;
+            margin: 0 0 13px;
+        }
+
+        .content-body a {
+            color: #102128;
+            border-bottom: 1px solid #44b889;
+        }
+
+        .content-body ul,
+        .content-body ol {
+            padding-left: 18px;
+            margin: 0 0 12px;
+        }
+
+        .content-body li {
+            font-size: 14px;
+            line-height: 1.68;
+            color: #415459;
+            margin-bottom: 7px;
+        }
+
+        .content-body strong,
+        .content-body b {
+            color: #102128;
+            font-weight: 700;
+        }
+
+        .content-body em,
+        .content-body i {
+            font-style: italic;
+            color: #54686d;
+        }
+
+        .content-body hr {
+            border: none;
+            border-top: 1px solid #dce7e1;
+            margin: 18px 0;
+        }
+
+        .content-body blockquote {
+            border-left: 3px solid #44b889;
+            margin: 16px 0;
+            padding: 10px 16px;
+            font-family: 'Avenir Next', 'Helvetica Neue', 'Segoe UI', Arial, sans-serif;
+            font-style: italic;
+            font-size: 15px;
+            color: #234248;
+            background: #eef7f2;
+        }
+
+        .content-body table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 12px;
+        }
+
+        .content-body table td,
+        .content-body table th {
+            font-size: 13px;
+            line-height: 1.5;
+            color: #304348;
+            padding: 8px 10px;
+            border: 1px solid #dce7e1;
+        }
+
+        .content-body table th {
+            background: #102128;
+            color: #eef6f0;
+            font-weight: 700;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+        }
+
+        @media only screen and (max-width: 520px) {
+            .main-col { display: block !important; width: 100% !important; }
+            .side-col { display: block !important; width: 100% !important; }
+        }
+    </style>
+</head>
+<body style="margin:0;padding:0;background-color:#eef4ef;font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;">
+
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+       style="background-color:#eef4ef;min-width:320px;">
+  <tr>
+    <td align="center" style="padding:22px 10px 36px;">
+
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+             style="max-width:660px;width:100%;">
+
+        <tr><td>
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr><td style="height:4px;background:#44b889;"></td></tr>
+            <tr><td style="height:2px;background:#eef4ef;"></td></tr>
+            <tr><td style="height:1px;background:#102128;"></td></tr>
+          </table>
+        </td></tr>
+
+        <tr><td style="background:#102128;padding:22px 28px 0;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td class="meta-copy">Shared mobility platform</td>
+              <td align="right" class="meta-copy">Operator dispatch</td>
+            </tr>
+
+            <tr><td colspan="2" style="padding:18px 0 18px;border-top:1px solid rgba(255,255,255,0.14);border-bottom:1px solid rgba(255,255,255,0.14);">
+              {% if logo_url %}
+                <img src="{{ logo_url }}" alt="OTORIDE"
+                     style="max-height:54px;max-width:220px;display:inline-block;">
+              {% else %}
+                <div style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:#8fdab9;margin-bottom:8px;">OTORIDE</div>
+                <div style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:39px;font-weight:700;line-height:0.98;letter-spacing:-1.6px;color:#f4faf5;">Shared Mobility</div>
+                <div style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#b7cbc2;margin-top:10px;">
+                  Operations briefing
+                </div>
+              {% endif %}
+            </td></tr>
+
+            <tr><td colspan="2" style="padding:12px 0 16px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td>
+                    <span style="display:inline-block;height:10px;width:10px;border-radius:50%;background:#44b889;margin-right:8px;vertical-align:middle;"></span>
+                    <span class="meta-copy" style="color:#d7e7dd;">{{ subject }}</span>
+                  </td>
+                  <td align="right">
+                    <span class="meta-copy" style="color:#8fdab9;">Operator signal</span>
+                  </td>
+                </tr>
+              </table>
+            </td></tr>
+          </table>
+        </td></tr>
+
+        <tr><td>
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="background:#44b889;padding:9px 28px;">
+                <span class="eyebrow" style="color:#ffffff;">Street intelligence</span>
+              </td>
+              <td style="background:#173038;padding:9px 20px;" align="right">
+                <span class="eyebrow" style="color:#bfe7d1;">OTORIDE</span>
+              </td>
+            </tr>
+          </table>
+        </td></tr>
+
+        <tr><td style="background:#f9fbf9;border-left:1px solid #dce7e1;border-right:1px solid #dce7e1;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr valign="top">
+
+              <td class="main-col"
+                  style="width:64%;padding:28px 20px 28px 28px;border-right:1px solid #dce7e1;vertical-align:top;">
+                <div class="content-body">
+                  {{ content }}
+                </div>
+              </td>
+
+              <td class="side-col"
+                  style="width:36%;padding:28px 24px 28px 20px;vertical-align:top;background:#f2f7f3;">
+
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:14px;">
+                  <tr>
+                    <td style="border-top:2px solid #102128;border-bottom:1px solid #d5e2db;padding:6px 0;">
+                      <span class="eyebrow" style="color:#102128;">Why it matters</span>
+                    </td>
+                  </tr>
+                </table>
+
+                <p style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:13px;line-height:1.72;color:#4c6065;margin:0 0 16px;">
+                  OTORIDE keeps fleet operations, rider flows, and city movement signals in one operator-ready view.
+                </p>
+
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:18px;">
+                  <tr>
+                    <td style="height:3px;background:#44b889;width:44%;"></td>
+                    <td style="height:3px;background:#cfe1d6;width:56%;"></td>
+                  </tr>
+                </table>
+
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#102128;margin-bottom:18px;">
+                  <tr>
+                    <td style="padding:16px 16px 18px;">
+                      <div style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:34px;font-weight:700;color:#44b889;line-height:1;margin-bottom:2px;">&ldquo;</div>
+                      <p style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:13px;font-style:italic;line-height:1.68;color:#eef6f0;margin:0 0 10px;">
+                        Operational clarity for fleets, cities, and riders in motion.
+                      </p>
+                      <span style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#8fdab9;">OTORIDE</span>
+                    </td>
+                  </tr>
+                </table>
+
+                <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:12px;">
+                  <tr>
+                    <td style="border-top:2px solid #102128;border-bottom:1px solid #d5e2db;padding:6px 0;">
+                      <span class="eyebrow" style="color:#102128;">Operator context</span>
+                    </td>
+                  </tr>
+                </table>
+
+                <p style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:11px;line-height:1.8;color:#62767a;margin:0;">
+                  Built for shared mobility teams.<br>
+                  OTORIDE dispatch, rider, and operations workflows aligned in one view.
+                </p>
+
+              </td>
+            </tr>
+          </table>
+        </td></tr>
+
+        <tr><td>
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr><td style="height:1px;background:#102128;"></td></tr>
+          </table>
+        </td></tr>
+
+        <tr><td style="background:#102128;padding:16px 28px;">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr valign="middle">
+              <td>
+                <span style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:11px;color:#a7bbb2;line-height:1.7;">
+                  {{ footer_text }}
+                </span>
+              </td>
+              <td align="right" style="white-space:nowrap;">
+                <a href="#" style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:11px;color:#d5e5dc;text-decoration:underline;">Unsubscribe</a>
+                <span style="color:#6c8076;font-size:11px;">&nbsp;&middot;&nbsp;</span>
+                <a href="#" style="font-family:'Avenir Next','Helvetica Neue','Segoe UI',Arial,sans-serif;font-size:11px;color:#d5e5dc;text-decoration:underline;">Privacy</a>
+              </td>
+            </tr>
+          </table>
+        </td></tr>
+
+        <tr><td>
+          <table width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="height:4px;background:#44b889;width:40%;"></td>
+              <td style="height:4px;background:#173038;width:30%;"></td>
+              <td style="height:4px;background:#8fdab9;width:30%;"></td>
+            </tr>
+          </table>
+        </td></tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>

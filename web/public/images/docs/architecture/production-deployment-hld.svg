@@ -1,0 +1,153 @@
+<svg width="1800" height="1180" viewBox="0 0 1800 1180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="160" y1="60" x2="1640" y2="1080" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FBF6EC"/>
+      <stop offset="1" stop-color="#F2E9D8"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="24" flood-color="#171717" flood-opacity="0.08"/>
+    </filter>
+    <marker id="arrowPink" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+      <path d="M1 1L11 6L1 11V1Z" fill="#FF5F8F"/>
+    </marker>
+    <marker id="arrowMint" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+      <path d="M1 1L11 6L1 11V1Z" fill="#79DFBC"/>
+    </marker>
+    <style>
+      .kicker { font: 700 16px Arial, sans-serif; letter-spacing: 0.24em; text-transform: uppercase; fill: #7A736A; }
+      .title { font: 700 46px Arial, sans-serif; fill: #171717; }
+      .subtitle { font: 400 22px Arial, sans-serif; fill: #5B564E; }
+      .zone { fill: #FFFFFF; fill-opacity: 0.82; stroke: #171717; stroke-opacity: 0.08; stroke-width: 2; }
+      .zoneLabel { font: 700 16px Arial, sans-serif; letter-spacing: 0.18em; text-transform: uppercase; fill: #7A736A; }
+      .card { fill: #FFF9EF; stroke: #171717; stroke-opacity: 0.08; stroke-width: 2; }
+      .cardWhite { fill: #FFFFFF; fill-opacity: 0.94; stroke: #171717; stroke-opacity: 0.08; stroke-width: 2; }
+      .cardDark { fill: #171717; }
+      .cardMint { fill: #79DFBC; fill-opacity: 0.22; stroke: #171717; stroke-opacity: 0.08; stroke-width: 2; }
+      .cardRose { fill: #FFE7EE; stroke: #171717; stroke-opacity: 0.08; stroke-width: 2; }
+      .cardAmber { fill: #FFF1D8; stroke: #171717; stroke-opacity: 0.08; stroke-width: 2; }
+      .h { font: 700 24px Arial, sans-serif; fill: #171717; }
+      .hDark { font: 700 24px Arial, sans-serif; fill: #F7F2E7; }
+      .b { font: 400 17px Arial, sans-serif; fill: #5B564E; }
+      .bDark { font: 400 17px Arial, sans-serif; fill: #D8D0C4; }
+      .pill { fill: #EDF8F3; stroke: #D7EADF; stroke-width: 1.5; }
+      .pillText { font: 700 14px Arial, sans-serif; fill: #2D8B69; }
+      .linePink { stroke: #FF5F8F; stroke-width: 6; stroke-linecap: round; marker-end: url(#arrowPink); }
+      .lineMint { stroke: #79DFBC; stroke-width: 6; stroke-linecap: round; marker-end: url(#arrowMint); }
+      .small { font: 700 13px Arial, sans-serif; letter-spacing: 0.14em; text-transform: uppercase; fill: #7A736A; }
+    </style>
+  </defs>
+
+  <rect width="1800" height="1180" rx="40" fill="url(#bg)"/>
+  <circle cx="1520" cy="136" r="180" fill="#FFF8ED"/>
+  <circle cx="212" cy="1012" r="150" fill="#EEE4CF"/>
+
+  <text x="120" y="102" class="kicker">Production Deployment HLD</text>
+  <text x="120" y="166" class="title">AWS/EKS-style high-level deployment architecture</text>
+  <text x="120" y="208" class="subtitle">ALB ingress, horizontally scaled web and API tiers, dedicated background workers, internal microservices, managed data services, and external AI providers.</text>
+
+  <rect x="120" y="254" width="1560" height="112" rx="34" class="zone" filter="url(#shadow)"/>
+  <text x="154" y="298" class="zoneLabel">Edge and ingress</text>
+  <rect x="154" y="316" width="206" height="32" rx="16" class="pill"/>
+  <text x="184" y="338" class="pillText">Users and operators</text>
+  <rect x="404" y="304" width="388" height="46" rx="20" class="cardDark"/>
+  <text x="438" y="334" class="hDark">AWS ALB + Kubernetes Ingress</text>
+  <rect x="826" y="304" width="230" height="46" rx="20" class="cardWhite"/>
+  <text x="860" y="334" class="h">TLS + health checks</text>
+  <rect x="1090" y="304" width="554" height="46" rx="20" class="cardWhite"/>
+  <text x="1124" y="334" class="h">internet-facing ALB, `alb` ingress class, ACM certificate, `/health` checks</text>
+
+  <rect x="120" y="402" width="1560" height="382" rx="34" class="zone" filter="url(#shadow)"/>
+  <text x="154" y="446" class="zoneLabel">Kubernetes application plane</text>
+
+  <rect x="154" y="492" width="364" height="116" rx="30" class="cardDark"/>
+  <text x="188" y="546" class="hDark">Web deployment</text>
+  <text x="188" y="576" class="bDark">Next.js public site, docs, blog, dashboard shell</text>
+  <text x="188" y="602" class="bDark">replicas + HPA enabled in Helm</text>
+
+  <rect x="566" y="476" width="440" height="148" rx="32" class="card"/>
+  <text x="600" y="530" class="h">API deployment</text>
+  <text x="600" y="560" class="b">FastAPI pods handling auth, chat, webhooks, realtime, public APIs,</text>
+  <text x="600" y="586" class="b">agent orchestration, tenant-aware business logic, and integrations</text>
+  <text x="600" y="612" class="b">Helm defaults expose HPA for API with min/max replicas</text>
+
+  <rect x="1054" y="492" width="256" height="116" rx="30" class="cardMint"/>
+  <text x="1088" y="546" class="h">Redis</text>
+  <text x="1088" y="576" class="b">cache, pub/sub, token state, Celery broker</text>
+  <text x="1088" y="602" class="b">shared coordination layer</text>
+
+  <rect x="1342" y="476" width="304" height="148" rx="32" class="cardAmber"/>
+  <text x="1376" y="530" class="h">PgBouncer</text>
+  <text x="1376" y="560" class="b">production K8s note in repo points to pgbouncer</text>
+  <text x="1376" y="586" class="b">between API/workers and PostgreSQL</text>
+
+  <rect x="170" y="658" width="268" height="92" rx="28" class="cardWhite"/>
+  <text x="204" y="710" class="h">Bot worker</text>
+  <text x="204" y="736" class="b">Slack / Telegram long-lived bot runtime</text>
+
+  <rect x="470" y="658" width="224" height="92" rx="28" class="cardWhite"/>
+  <text x="504" y="710" class="h">ML service</text>
+  <text x="504" y="736" class="b">embeddings + reranking microservice</text>
+
+  <rect x="726" y="658" width="224" height="92" rx="28" class="cardWhite"/>
+  <text x="760" y="710" class="h">Scraper service</text>
+  <text x="760" y="736" class="b">browser automation + crawl workflows</text>
+
+  <rect x="982" y="658" width="224" height="92" rx="28" class="cardWhite"/>
+  <text x="1016" y="710" class="h">Sandbox service</text>
+  <text x="1016" y="736" class="b">secure code execution microservice</text>
+
+  <rect x="1238" y="648" width="408" height="110" rx="28" class="cardRose"/>
+  <text x="1272" y="696" class="h">Celery execution layer</text>
+  <text x="1272" y="722" class="b">default, agents, notifications, company_brain, billing, beat</text>
+  <text x="1272" y="748" class="b">dedicated queue groups with worker split reflected in compose and code</text>
+
+  <path d="M362 350H392" class="linePink"/>
+  <path d="M792 334H814" class="linePink"/>
+  <path d="M518 550H556" class="linePink"/>
+  <path d="M1008 550H1040" class="linePink"/>
+  <path d="M1312 550H1334" class="linePink"/>
+  <path d="M792 624V650" class="lineMint"/>
+  <path d="M792 624L578 650" class="lineMint"/>
+  <path d="M792 624L834 650" class="lineMint"/>
+  <path d="M792 624L1090 650" class="lineMint"/>
+  <path d="M1244 612V640" class="lineMint"/>
+  <path d="M270 608V650" class="lineMint"/>
+
+  <rect x="120" y="820" width="1560" height="250" rx="34" class="zone" filter="url(#shadow)"/>
+  <text x="154" y="864" class="zoneLabel">Managed and external services</text>
+
+  <rect x="156" y="900" width="296" height="130" rx="30" class="cardWhite"/>
+  <text x="190" y="952" class="h">Managed PostgreSQL</text>
+  <text x="190" y="978" class="b">production-style deployment target</text>
+  <text x="190" y="1004" class="b">for durable relational state</text>
+  <text x="190" y="1030" class="b">for example Amazon RDS / managed Postgres</text>
+
+  <rect x="488" y="900" width="268" height="130" rx="30" class="cardWhite"/>
+  <text x="522" y="952" class="h">AWS S3 / S3-compatible</text>
+  <text x="522" y="978" class="b">documents, uploads, media, Langfuse event/media storage</text>
+  <text x="522" y="1004" class="b">MinIO locally, object storage in production</text>
+
+  <rect x="792" y="900" width="288" height="130" rx="30" class="cardWhite"/>
+  <text x="826" y="952" class="h">Vector databases</text>
+  <text x="826" y="978" class="b">Qdrant / Pinecone and pgvector-backed retrieval</text>
+  <text x="826" y="1004" class="b">knowledge search and RAG support</text>
+
+  <rect x="1116" y="900" width="248" height="130" rx="30" class="cardWhite"/>
+  <text x="1150" y="952" class="h">Elasticsearch</text>
+  <text x="1150" y="978" class="b">search support and agent trace / Lens analytics</text>
+  <text x="1150" y="1004" class="b">used for observability-facing workloads</text>
+
+  <rect x="1400" y="884" width="244" height="146" rx="30" class="cardDark"/>
+  <text x="1434" y="938" class="hDark">Langfuse + providers</text>
+  <text x="1434" y="966" class="bDark">Langfuse web/worker/clickhouse</text>
+  <text x="1434" y="992" class="bDark">OpenAI, Anthropic, Google via LiteLLM</text>
+  <text x="1434" y="1018" class="bDark">agent observability + multi-LLM runtime</text>
+
+  <path d="M1494 624V874" class="lineMint"/>
+  <path d="M1460 624L1248 888" class="lineMint"/>
+  <path d="M1412 624L930 888" class="lineMint"/>
+  <path d="M1380 624L640 888" class="lineMint"/>
+  <path d="M1430 624L298 888" class="lineMint"/>
+
+  <text x="120" y="1112" class="small">Note: the repo ships both local/self-hosted components and Kubernetes/AWS-oriented deployment knobs. This diagram emphasizes the production-style topology you requested while staying aligned with the codebase references for ALB ingress, HPA, PgBouncer, queue split, internal services, storage, Langfuse, Elasticsearch, and external provider integrations.</text>
+</svg>

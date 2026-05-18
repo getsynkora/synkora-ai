@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import gsap from 'gsap'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useGitHubStars, formatStars } from '@/lib/hooks/useGitHubStars'
@@ -29,9 +28,11 @@ export default function AnimatedNav() {
       setScrolled(window.scrollY > 16)
     }
 
-    gsap.fromTo(brandRef.current, { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: 0.75, ease: 'power3.out' })
-    gsap.fromTo(centerRef.current?.children || [], { opacity: 0, y: -14 }, { opacity: 1, y: 0, duration: 0.5, stagger: 0.06, delay: 0.15, ease: 'power2.out' })
-    gsap.fromTo(actionsRef.current?.children || [], { opacity: 0, x: 18 }, { opacity: 1, x: 0, duration: 0.55, stagger: 0.07, delay: 0.2, ease: 'power2.out' })
+    import('gsap').then(({ default: gsap }) => {
+      gsap.fromTo(brandRef.current, { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: 0.75, ease: 'power3.out' })
+      gsap.fromTo(centerRef.current?.children || [], { opacity: 0, y: -14 }, { opacity: 1, y: 0, duration: 0.5, stagger: 0.06, delay: 0.15, ease: 'power2.out' })
+      gsap.fromTo(actionsRef.current?.children || [], { opacity: 0, x: 18 }, { opacity: 1, x: 0, duration: 0.55, stagger: 0.07, delay: 0.2, ease: 'power2.out' })
+    })
 
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)

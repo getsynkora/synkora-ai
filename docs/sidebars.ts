@@ -33,50 +33,13 @@ const sidebars: SidebarsConfig = {
       label: 'API Reference',
       items: [
         'api-reference/overview',
-        {
-          type: 'category',
-          label: 'Agents',
-          items: [
-            'api-reference/agents/index',
-            'api-reference/agents/chat',
-            'api-reference/agents/conversations',
-            'api-reference/agents/tools',
-            'api-reference/agents/knowledge-bases',
-            'api-reference/agents/llm-configs',
-          ],
-        },
-        {
-          type: 'category',
-          label: 'Knowledge Bases',
-          items: [
-            'api-reference/knowledge-bases/index',
-            'api-reference/knowledge-bases/documents',
-            'api-reference/knowledge-bases/search',
-          ],
-        },
-        {
-          type: 'category',
-          label: 'Billing',
-          items: [
-            'api-reference/billing/subscriptions',
-            'api-reference/billing/credits',
-            'api-reference/billing/usage',
-          ],
-        },
-        {
-          type: 'category',
-          label: 'Integrations',
-          items: [
-            'api-reference/integrations/slack',
-            'api-reference/integrations/telegram',
-            'api-reference/integrations/whatsapp',
-            'api-reference/integrations/teams',
-            'api-reference/integrations/oauth',
-          ],
-        },
+        'api-reference/agents/index',
+        'api-reference/knowledge-bases/index',
+        'api-reference/billing/usage',
+        'api-reference/integrations/oauth',
         'api-reference/webhooks',
-        'api-reference/errors',
         'api-reference/rate-limits',
+        'api-reference/errors',
       ],
     },
     {
@@ -87,8 +50,8 @@ const sidebars: SidebarsConfig = {
           type: 'category',
           label: 'Agents',
           items: [
-            'guides/agents/create-rag-agent',
             'guides/agents/add-tools',
+            'guides/agents/create-rag-agent',
             'guides/agents/custom-tools',
             'guides/agents/mcp-servers',
           ],
@@ -97,30 +60,31 @@ const sidebars: SidebarsConfig = {
           type: 'category',
           label: 'Integrations',
           items: [
+            'guides/integrations/embed-widget',
             'guides/integrations/slack-bot',
+            'guides/integrations/teams-bot',
             'guides/integrations/telegram-bot',
             'guides/integrations/whatsapp-bot',
-            'guides/integrations/teams-bot',
-            'guides/integrations/embed-widget',
+            'guides/integrations/chrome-extension',
           ],
         },
         {
           type: 'category',
           label: 'Knowledge Base',
           items: [
-            'guides/knowledge-base/setup-qdrant',
-            'guides/knowledge-base/setup-pinecone',
             'guides/knowledge-base/document-processing',
             'guides/knowledge-base/advanced-rag',
+            'guides/knowledge-base/setup-qdrant',
+            'guides/knowledge-base/setup-pinecone',
           ],
         },
         {
           type: 'category',
           label: 'Authentication',
           items: [
-            'guides/auth/sso-okta',
-            'guides/auth/oauth-providers',
             'guides/auth/api-keys',
+            'guides/auth/oauth-providers',
+            'guides/auth/sso-okta',
           ],
         },
         {
@@ -140,21 +104,10 @@ const sidebars: SidebarsConfig = {
       items: [
         {
           type: 'category',
-          label: 'TypeScript',
+          label: 'Flutter',
           items: [
-            'sdk/typescript/installation',
-            'sdk/typescript/quick-start',
-            'sdk/typescript/agents',
-            'sdk/typescript/chat',
-            'sdk/typescript/reference',
-          ],
-        },
-        {
-          type: 'category',
-          label: 'Python',
-          items: [
-            'sdk/python/installation',
-            'sdk/python/quick-start',
+            'sdk/flutter/chat-sdk',
+            'sdk/flutter/push-notifications',
           ],
         },
       ],
@@ -171,6 +124,7 @@ const sidebars: SidebarsConfig = {
         'architecture/background-jobs',
         'architecture/streaming',
         'architecture/multi-tenancy',
+        'architecture/security-and-reliability',
       ],
     },
   ],

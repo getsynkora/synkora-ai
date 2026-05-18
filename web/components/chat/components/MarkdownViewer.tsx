@@ -3,8 +3,13 @@
 import { useEffect, useState, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import dynamic from 'next/dynamic'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
+
+const SyntaxHighlighter = dynamic(
+  () => import('react-syntax-highlighter').then((m) => ({ default: m.Prism })),
+  { ssr: false, loading: () => <pre className="bg-gray-900 text-gray-100 p-3 text-[12px] font-mono overflow-x-auto" /> }
+)
 import { FileText, Loader2, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react'
 import DOMPurify from 'dompurify'
 

@@ -204,6 +204,7 @@ export function ChatScreen({ agentName = 'platform_engineer_agent' }: Props) {
       })
 
       const createdName = response.data?.agent_name || config.name
+      const createdSlug = response.data?.slug
 
       setMessages((prev) =>
         prev.map((m) =>
@@ -214,6 +215,7 @@ export function ChatScreen({ agentName = 'platform_engineer_agent' }: Props) {
                   ...m.actionCard!,
                   status: 'created',
                   createdAgentName: createdName,
+                  createdAgentSlug: createdSlug,
                 },
               }
             : m

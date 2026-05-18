@@ -151,6 +151,11 @@ def fire_llm_call(
     system_prompt: str | None = None,
     messages_json: str | None = None,
     tools_json: str | None = None,
+    # Prompt cache metrics (Anthropic and compatible providers)
+    cache_read_tokens: int = 0,
+    cache_creation_tokens: int = 0,
+    # Context window pressure (0–100 pct)
+    context_utilization_pct: float | None = None,
 ) -> None:
     """Fire-and-forget: index an llm_call event."""
     from src.config.settings import settings
@@ -179,6 +184,52 @@ def fire_llm_call(
             "system_prompt": (system_prompt or "")[:2000] if system_prompt else None,
             "messages_json": messages_json[:16000] if messages_json else None,
             "tools_json": tools_json[:32000] if tools_json else None,
+            # Prompt cache
+            "cache_read_tokens": cache_read_tokens or 0,
+            "cache_creation_tokens": cache_creation_tokens or 0,
+            # Context pressure (percent of model context window used)
+            "context_utilization_pct": context_utilization_pct,
+        }
+    )
+
+
+def fire_tool_pruning(
+    *,
+    tenant_id: UUID,
+    agent_id: UUID | None,
+    conversation_id: UUID | None,
+    sequence: int,
+    turn_index: int,
+    tool_results_count: int,
+    tool_results_pruned: int,
+    data_bearing_pruned: int,
+    chars_saved: int,
+    estimated_tokens_saved: int,
+    original_chars: int,
+    pruned_chars: int,
+) -> None:
+    """Fire-and-forget: index a tool_pruning event."""
+    from src.config.settings import settings
+
+    if not settings.agent_trace_enabled:
+        return
+
+    _fire_index_event(
+        {
+            "tenant_id": str(tenant_id),
+            "agent_id": str(agent_id) if agent_id else None,
+            "conversation_id": str(conversation_id) if conversation_id else None,
+            "event_type": "tool_pruning",
+            "sequence": sequence,
+            "timestamp": _now_iso(),
+            "turn_index": turn_index,
+            "tool_results_count": tool_results_count,
+            "tool_results_pruned": tool_results_pruned,
+            "data_bearing_pruned": data_bearing_pruned,
+            "chars_saved": chars_saved,
+            "estimated_tokens_saved": estimated_tokens_saved,
+            "original_chars": original_chars,
+            "pruned_chars": pruned_chars,
         }
     )
 
@@ -724,6 +775,11 @@ async def get_session_detail(
                     "system_prompt_preview": e.get("system_prompt"),
                     "messages_json": e.get("messages_json"),
                     "tools_json": e.get("tools_json"),
+                    # Prompt cache
+                    "cache_read_tokens": e.get("cache_read_tokens"),
+                    "cache_creation_tokens": e.get("cache_creation_tokens"),
+                    # Context pressure
+                    "context_utilization_pct": e.get("context_utilization_pct"),
                 }
             )
         elif evt_type == "tool_call":
@@ -748,6 +804,19 @@ async def get_session_detail(
                     "latency_ms": e.get("total_latency_ms"),
                 }
             )
+        elif evt_type == "tool_pruning":
+            base.update(
+                {
+                    "turn_index": e.get("turn_index"),
+                    "tool_results_count": e.get("tool_results_count"),
+                    "tool_results_pruned": e.get("tool_results_pruned"),
+                    "data_bearing_pruned": e.get("data_bearing_pruned"),
+                    "chars_saved": e.get("chars_saved"),
+                    "estimated_tokens_saved": e.get("estimated_tokens_saved"),
+                    "original_chars": e.get("original_chars"),
+                    "pruned_chars": e.get("pruned_chars"),
+                }
+            )
         timeline.append(base)
 
     return {
@@ -763,6 +832,346 @@ async def get_session_detail(
         "total_tool_calls": total_tool_calls,
         "failed_tool_calls": failed_tool_calls,
         "message_count": message_count,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Compaction / pruning analytics
+# ---------------------------------------------------------------------------
+
+
+async def get_compaction_analytics(
+    tenant_id: UUID,
+    agent_id: UUID,
+    start: datetime,
+    end: datetime,
+) -> dict:
+    """Return context-pruning / compaction analytics aggregated from tool_pruning events."""
+    es = await _get_es_client()
+    from src.config.settings import settings
+
+    base = _base_filter(tenant_id, agent_id, start, end)
+
+    body = {
+        "size": 0,
+        "query": {"bool": {"filter": base}},
+        "aggs": {
+            # Total sessions (cardinality across all events)
+            "total_sessions": {"cardinality": {"field": "conversation_id"}},
+            # Pruning-specific aggregations
+            "pruning_events": {
+                "filter": {"term": {"event_type": "tool_pruning"}},
+                "aggs": {
+                    "count": {"value_count": {"field": "event_type"}},
+                    "sessions_with_pruning": {"cardinality": {"field": "conversation_id"}},
+                    "total_tokens_saved": {"sum": {"field": "estimated_tokens_saved"}},
+                    "total_chars_saved": {"sum": {"field": "chars_saved"}},
+                    "total_data_bearing_pruned": {"sum": {"field": "data_bearing_pruned"}},
+                    "avg_tokens_saved": {"avg": {"field": "estimated_tokens_saved"}},
+                    "total_results_pruned": {"sum": {"field": "tool_results_pruned"}},
+                    "total_results_evaluated": {"sum": {"field": "tool_results_count"}},
+                    # Daily trend buckets
+                    "trend": {
+                        "date_histogram": {
+                            "field": "timestamp",
+                            "calendar_interval": "day",
+                            "min_doc_count": 0,
+                            "extended_bounds": {
+                                "min": start.isoformat(),
+                                "max": end.isoformat(),
+                            },
+                        },
+                        "aggs": {
+                            "pruning_events": {"value_count": {"field": "event_type"}},
+                            "tokens_saved": {"sum": {"field": "estimated_tokens_saved"}},
+                            "data_bearing_pruned": {"sum": {"field": "data_bearing_pruned"}},
+                        },
+                    },
+                },
+            },
+        },
+    }
+
+    resp = await es.search(index=settings.agent_trace_index, body=body)
+    aggs = resp["aggregations"]
+    pr = aggs["pruning_events"]
+
+    total_sessions = int(aggs["total_sessions"]["value"])
+    sessions_with_pruning = int(pr["sessions_with_pruning"]["value"])
+    pruning_rate = (sessions_with_pruning / total_sessions) if total_sessions > 0 else 0.0
+    total_tokens_saved = int(pr["total_tokens_saved"]["value"] or 0)
+    avg_tokens_saved = float(pr["avg_tokens_saved"]["value"] or 0)
+    data_bearing_pruned_total = int(pr["total_data_bearing_pruned"]["value"] or 0)
+    total_results_pruned = int(pr["total_results_pruned"]["value"] or 0)
+    total_results_evaluated = int(pr["total_results_evaluated"]["value"] or 0)
+    pruning_ratio = (total_results_pruned / total_results_evaluated) if total_results_evaluated > 0 else 0.0
+    pruning_events_count = int(pr["count"]["value"])
+
+    trend = []
+    for b in pr["trend"]["buckets"]:
+        trend.append(
+            {
+                "date": b["key_as_string"][:10],
+                "pruning_events": int(b["pruning_events"]["value"]),
+                "tokens_saved": int(b["tokens_saved"]["value"] or 0),
+                "data_bearing_pruned": int(b["data_bearing_pruned"]["value"] or 0),
+            }
+        )
+
+    return {
+        "total_sessions": total_sessions,
+        "sessions_with_pruning": sessions_with_pruning,
+        "pruning_rate": round(pruning_rate, 4),
+        "pruning_events_count": pruning_events_count,
+        "total_tokens_saved": total_tokens_saved,
+        "avg_tokens_saved_per_session": round(avg_tokens_saved, 1),
+        "data_bearing_pruned_total": data_bearing_pruned_total,
+        "total_results_pruned": total_results_pruned,
+        "total_results_evaluated": total_results_evaluated,
+        "avg_pruning_ratio": round(pruning_ratio, 4),
+        "trend": trend,
+        "period_start": start.isoformat(),
+        "period_end": end.isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Prompt cache analytics
+# ---------------------------------------------------------------------------
+
+
+async def get_cache_analytics(
+    tenant_id: UUID,
+    agent_id: UUID,
+    start: datetime,
+    end: datetime,
+) -> dict:
+    """Return prompt-cache hit metrics aggregated from llm_call events."""
+    es = await _get_es_client()
+    from src.config.settings import settings
+
+    body = {
+        "size": 0,
+        "query": {
+            "bool": {
+                "filter": [
+                    *_base_filter(tenant_id, agent_id, start, end),
+                    {"term": {"event_type": "llm_call"}},
+                ]
+            }
+        },
+        "aggs": {
+            "total_llm_calls": {"value_count": {"field": "event_type"}},
+            "total_input_tokens": {"sum": {"field": "input_tokens"}},
+            "total_cache_read": {"sum": {"field": "cache_read_tokens"}},
+            "total_cache_creation": {"sum": {"field": "cache_creation_tokens"}},
+            # Calls that had at least one cache-read token
+            "calls_with_cache_hit": {
+                "filter": {"range": {"cache_read_tokens": {"gt": 0}}},
+                "aggs": {"count": {"value_count": {"field": "event_type"}}},
+            },
+            # Daily trend
+            "trend": {
+                "date_histogram": {
+                    "field": "timestamp",
+                    "calendar_interval": "day",
+                    "min_doc_count": 0,
+                    "extended_bounds": {
+                        "min": start.isoformat(),
+                        "max": end.isoformat(),
+                    },
+                },
+                "aggs": {
+                    "cache_read": {"sum": {"field": "cache_read_tokens"}},
+                    "cache_creation": {"sum": {"field": "cache_creation_tokens"}},
+                    "input_tokens": {"sum": {"field": "input_tokens"}},
+                },
+            },
+            # Context utilization distribution
+            "context_pressure": {
+                "filter": {"exists": {"field": "context_utilization_pct"}},
+                "aggs": {
+                    "avg_utilization": {"avg": {"field": "context_utilization_pct"}},
+                    "max_utilization": {"max": {"field": "context_utilization_pct"}},
+                    "high_pressure": {
+                        "filter": {"range": {"context_utilization_pct": {"gte": 80}}},
+                        "aggs": {"count": {"value_count": {"field": "event_type"}}},
+                    },
+                },
+            },
+        },
+    }
+
+    resp = await es.search(index=settings.agent_trace_index, body=body)
+    aggs = resp["aggregations"]
+
+    total_calls = int(aggs["total_llm_calls"]["value"])
+    total_input = int(aggs["total_input_tokens"]["value"] or 0)
+    total_cache_read = int(aggs["total_cache_read"]["value"] or 0)
+    total_cache_creation = int(aggs["total_cache_creation"]["value"] or 0)
+    calls_with_hit = int(aggs["calls_with_cache_hit"]["count"]["value"])
+    cache_hit_rate = (calls_with_hit / total_calls) if total_calls > 0 else 0.0
+
+    # Anthropic cached reads cost ~10% of regular input — rough savings estimate
+    # $3 per 1M input tokens → $0.30 per 1M cached = $0.0000027 per cached token
+    _CACHE_SAVINGS_PER_TOKEN = 0.0000027
+    estimated_savings_usd = total_cache_read * _CACHE_SAVINGS_PER_TOKEN
+
+    ctx = aggs["context_pressure"]
+    avg_utilization = float(ctx["avg_utilization"]["value"] or 0)
+    max_utilization = float(ctx["max_utilization"]["value"] or 0)
+    high_pressure_calls = int(ctx["high_pressure"]["count"]["value"])
+
+    trend = []
+    for b in aggs["trend"]["buckets"]:
+        inp = int(b["input_tokens"]["value"] or 0)
+        cr = int(b["cache_read"]["value"] or 0)
+        trend.append(
+            {
+                "date": b["key_as_string"][:10],
+                "input_tokens": inp,
+                "cache_read_tokens": cr,
+                "cache_creation_tokens": int(b["cache_creation"]["value"] or 0),
+                "cache_hit_rate": round((cr / inp) if inp > 0 else 0.0, 4),
+            }
+        )
+
+    return {
+        "total_llm_calls": total_calls,
+        "total_input_tokens": total_input,
+        "total_cache_read_tokens": total_cache_read,
+        "total_cache_creation_tokens": total_cache_creation,
+        "cache_hit_rate": round(cache_hit_rate, 4),
+        "estimated_savings_usd": round(estimated_savings_usd, 6),
+        "avg_context_utilization_pct": round(avg_utilization, 2),
+        "max_context_utilization_pct": round(max_utilization, 2),
+        "high_pressure_calls": high_pressure_calls,
+        "trend": trend,
+        "period_start": start.isoformat(),
+        "period_end": end.isoformat(),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Session interaction graph
+# ---------------------------------------------------------------------------
+
+
+def _build_session_graph(timeline: list[dict]) -> dict:
+    """Transform a flat timeline into nodes + directed edges for visualisation."""
+    nodes = []
+    edges = []
+
+    # Track last node of each logical "track" to connect edges
+    last_node_id: str | None = None
+
+    for event in timeline:
+        evt_type = event.get("event_type")
+        node_id = event.get("id") or f"{evt_type}-{event.get('sequence', 0)}"
+
+        # Build label
+        if evt_type == "user_message":
+            content = event.get("content") or ""
+            label = content[:60] + ("..." if len(content) > 60 else "")
+            status = "normal"
+        elif evt_type == "llm_call":
+            model = event.get("model") or "LLM"
+            inp = event.get("input_tokens") or 0
+            out = event.get("output_tokens") or 0
+            cache_read = event.get("cache_read_tokens") or 0
+            ctx_pct = event.get("context_utilization_pct")
+            label = f"{model} · {inp}in/{out}out tok"
+            if cache_read:
+                label += f" · {cache_read} cached"
+            status = (
+                "error" if event.get("status") == "error" else ("warning" if ctx_pct and ctx_pct >= 80 else "normal")
+            )
+        elif evt_type == "tool_call":
+            tool_name = event.get("tool_name") or "tool"
+            duration = event.get("duration_ms") or 0
+            label = f"{tool_name} ({duration}ms)"
+            status = "error" if not event.get("success", True) else "normal"
+        elif evt_type == "tool_pruning":
+            tokens_saved = event.get("estimated_tokens_saved") or 0
+            pruned = event.get("tool_results_pruned") or 0
+            data_pruned = event.get("data_bearing_pruned") or 0
+            label = f"Pruned {pruned} results · ~{tokens_saved} tok saved"
+            status = "warning" if data_pruned > 0 else "info"
+        elif evt_type == "assistant_message":
+            content = event.get("content") or ""
+            label = content[:60] + ("..." if len(content) > 60 else "")
+            status = "normal"
+        else:
+            label = evt_type or "unknown"
+            status = "normal"
+
+        # Build metadata (subset of fields for the graph tooltip)
+        meta: dict = {"timestamp": event.get("timestamp"), "sequence": event.get("sequence")}
+        if evt_type == "llm_call":
+            meta.update(
+                {
+                    "input_tokens": event.get("input_tokens"),
+                    "output_tokens": event.get("output_tokens"),
+                    "cost_usd": event.get("cost_usd"),
+                    "latency_ms": event.get("latency_ms"),
+                    "cache_read_tokens": event.get("cache_read_tokens"),
+                    "cache_creation_tokens": event.get("cache_creation_tokens"),
+                    "context_utilization_pct": event.get("context_utilization_pct"),
+                }
+            )
+        elif evt_type == "tool_call":
+            meta.update(
+                {
+                    "success": event.get("success"),
+                    "duration_ms": event.get("duration_ms"),
+                    "retry_count": event.get("retry_count"),
+                    "error_message": event.get("error_message"),
+                }
+            )
+        elif evt_type == "tool_pruning":
+            meta.update(
+                {
+                    "tool_results_count": event.get("tool_results_count"),
+                    "tool_results_pruned": event.get("tool_results_pruned"),
+                    "data_bearing_pruned": event.get("data_bearing_pruned"),
+                    "chars_saved": event.get("chars_saved"),
+                    "estimated_tokens_saved": event.get("estimated_tokens_saved"),
+                }
+            )
+
+        nodes.append(
+            {
+                "id": node_id,
+                "event_type": evt_type,
+                "label": label,
+                "status": status,
+                "metadata": meta,
+            }
+        )
+
+        if last_node_id is not None:
+            edges.append({"source": last_node_id, "target": node_id})
+
+        last_node_id = node_id
+
+    return {"nodes": nodes, "edges": edges}
+
+
+async def get_session_graph(
+    tenant_id: UUID,
+    agent_id: UUID,
+    conversation_id: UUID,
+) -> dict | None:
+    """Return session timeline as a graph (nodes + edges) for visualisation."""
+    detail = await get_session_detail(tenant_id, agent_id, conversation_id)
+    if not detail:
+        return None
+
+    graph = _build_session_graph(detail["timeline"])
+    return {
+        "conversation_id": str(conversation_id),
+        "nodes": graph["nodes"],
+        "edges": graph["edges"],
     }
 
 

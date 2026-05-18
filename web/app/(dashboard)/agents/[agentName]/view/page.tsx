@@ -36,6 +36,7 @@ import {
 } from 'lucide-react'
 import { apiClient } from '@/lib/api/client'
 import { getLLMConfigs } from '@/lib/api/agent-llm-configs'
+import { getLensOverview, type LensOverviewResponse } from '@/lib/api/agent-lens'
 import type { AgentLLMConfig } from '@/types/agent-llm-config'
 
 interface AgentDetails {
@@ -77,6 +78,7 @@ export default function AgentViewPage() {
   
   const [agent, setAgent] = useState<AgentDetails | null>(null)
   const [defaultLLMConfig, setDefaultLLMConfig] = useState<AgentLLMConfig | null>(null)
+  const [lensStats, setLensStats] = useState<LensOverviewResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -90,25 +92,28 @@ export default function AgentViewPage() {
   const fetchAgentDetails = async () => {
     try {
       setLoading(true)
+
+      // Step 1: fetch agent (need its ID for getLLMConfigs)
       const data = await apiClient.getAgent(agentName)
       setAgent(data)
 
-      // Fetch the default LLM config
-      if (data.id) {
-        const llmConfigs = await getLLMConfigs(data.id)
-        const defaultConfig = llmConfigs.find(config => config.is_default)
-        setDefaultLLMConfig(defaultConfig || null)
-      }
+      // Step 2: everything that can run in parallel
+      const [llmConfigs] = await Promise.all([
+        data.id ? getLLMConfigs(data.id) : Promise.resolve([]),
+        // Public profile — only needs agentName, ignore failure
+        apiClient.request('GET', `/api/v1/agents/${agentName}/public-profile`)
+          .then((r: { profile?: { is_published?: boolean; slug?: string } }) => {
+            if (r?.profile?.is_published && r.profile.slug) setPublicSlug(r.profile.slug)
+          })
+          .catch(() => {}),
+        // Lens stats — only needs agentName, ignore failure
+        getLensOverview(agentName, '30d')
+          .then(setLensStats)
+          .catch(() => {}),
+      ])
 
-      // Fetch public profile to get slug (for public page link)
-      try {
-        const profileRes = await apiClient.request('GET', `/api/v1/agents/${agentName}/public-profile`)
-        if (profileRes?.profile?.is_published && profileRes?.profile?.slug) {
-          setPublicSlug(profileRes.profile.slug)
-        }
-      } catch {
-        // No public profile yet — that's fine
-      }
+      const defaultConfig = llmConfigs.find((c: { is_default: boolean }) => c.is_default)
+      setDefaultLLMConfig(defaultConfig ?? null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
@@ -171,8 +176,8 @@ export default function AgentViewPage() {
     )
   }
 
-  const successRate = agent.stats?.total_executions 
-    ? Math.round((agent.stats.successful_executions / agent.stats.total_executions) * 100)
+  const successRate = lensStats
+    ? Math.round((1 - lensStats.stats.failure_rate) * 100)
     : 0
 
   return (
@@ -479,54 +484,122 @@ export default function AgentViewPage() {
           )}
         </div>
 
-        {/* Stats Cards */}
-        {agent.stats && Object.keys(agent.stats).length > 0 && (
-          <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <div className="dashboard-panel rounded-[1.6rem] p-5 transition-all duration-300 hover:-translate-y-1">
-              <div className="mb-3 flex items-center justify-between">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#ffe1ea]">
-                  <Activity className="h-4.5 w-4.5 text-[#171717]" />
-                </div>
-                <TrendingUp className="h-4 w-4 text-[#8a8378]" />
+        {/* Stats Cards — sourced from Elasticsearch via Lens API (last 30 days) */}
+        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="dashboard-panel rounded-[1.6rem] p-5 transition-all duration-300 hover:-translate-y-1">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#ffe1ea]">
+                <Activity className="h-4 w-4 text-[#171717]" />
               </div>
-              <p className="mb-1 text-[13px] font-medium text-[#6c655c]">Total Executions</p>
-              <p className="text-[1.65rem] font-semibold tracking-[-0.04em] text-[#171717]">{agent.stats.total_executions || 0}</p>
+              <TrendingUp className="h-4 w-4 text-[#8a8378]" />
             </div>
+            <p className="mb-1 text-[13px] font-medium text-[#6c655c]">Sessions (30d)</p>
+            <p className="text-[1.65rem] font-semibold tracking-[-0.04em] text-[#171717]">
+              {lensStats ? lensStats.stats.total_sessions.toLocaleString() : '—'}
+            </p>
+          </div>
 
-            <div className="dashboard-panel rounded-[1.6rem] p-5 transition-all duration-300 hover:-translate-y-1">
-              <div className="mb-3 flex items-center justify-between">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#def4eb]">
-                  <CheckCircle className="h-4.5 w-4.5 text-[#171717]" />
-                </div>
-                <span className="rounded-full bg-[#def4eb] px-2.5 py-1 text-[11px] font-semibold text-[#171717]">
+          <div className="dashboard-panel rounded-[1.6rem] p-5 transition-all duration-300 hover:-translate-y-1">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#def4eb]">
+                <CheckCircle className="h-4 w-4 text-[#171717]" />
+              </div>
+              {lensStats && (
+                <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                  successRate >= 90 ? 'bg-[#def4eb] text-[#171717]' : successRate >= 70 ? 'bg-[#fff0d9] text-[#171717]' : 'bg-[#ffe1ea] text-[#171717]'
+                }`}>
                   {successRate}%
                 </span>
-              </div>
-              <p className="mb-1 text-[13px] font-medium text-[#6c655c]">Success Rate</p>
-              <p className="text-[1.65rem] font-semibold tracking-[-0.04em] text-[#171717]">{successRate}%</p>
+              )}
             </div>
+            <p className="mb-1 text-[13px] font-medium text-[#6c655c]">Success Rate</p>
+            <p className="text-[1.65rem] font-semibold tracking-[-0.04em] text-[#171717]">
+              {lensStats ? `${successRate}%` : '—'}
+            </p>
+          </div>
 
-            <div className="dashboard-panel rounded-[1.6rem] p-5 transition-all duration-300 hover:-translate-y-1">
-              <div className="mb-3 flex items-center justify-between">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#ffe1ea]">
-                  <XCircle className="h-4.5 w-4.5 text-[#171717]" />
-                </div>
+          <div className="dashboard-panel rounded-[1.6rem] p-5 transition-all duration-300 hover:-translate-y-1">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#fff0d9]">
+                <Clock className="h-4 w-4 text-[#171717]" />
               </div>
-              <p className="mb-1 text-[13px] font-medium text-[#6c655c]">Failed Executions</p>
-              <p className="text-[1.65rem] font-semibold tracking-[-0.04em] text-[#171717]">{agent.stats.failed_executions || 0}</p>
             </div>
+            <p className="mb-1 text-[13px] font-medium text-[#6c655c]">Avg. Latency</p>
+            <p className="text-[1.65rem] font-semibold tracking-[-0.04em] text-[#171717]">
+              {lensStats
+                ? lensStats.stats.avg_latency_ms >= 1000
+                  ? `${(lensStats.stats.avg_latency_ms / 1000).toFixed(1)}s`
+                  : `${Math.round(lensStats.stats.avg_latency_ms)}ms`
+                : '—'}
+            </p>
+          </div>
 
-            <div className="dashboard-panel rounded-[1.6rem] p-5 transition-all duration-300 hover:-translate-y-1">
-              <div className="mb-3 flex items-center justify-between">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#fff0d9]">
-                  <Clock className="h-4.5 w-4.5 text-[#171717]" />
-                </div>
+          <div className="dashboard-panel rounded-[1.6rem] p-5 transition-all duration-300 hover:-translate-y-1">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f0f9ff]">
+                <DollarSign className="h-4 w-4 text-[#171717]" />
               </div>
-              <p className="mb-1 text-[13px] font-medium text-[#6c655c]">Avg. Execution Time</p>
-              <p className="text-[1.65rem] font-semibold tracking-[-0.04em] text-[#171717]">
-                {agent.stats.average_execution_time 
-                  ? `${agent.stats.average_execution_time.toFixed(2)}s`
-                  : '0s'}
+            </div>
+            <p className="mb-1 text-[13px] font-medium text-[#6c655c]">Total Cost (30d)</p>
+            <p className="text-[1.65rem] font-semibold tracking-[-0.04em] text-[#171717]">
+              {lensStats
+                ? lensStats.stats.total_cost_usd === 0
+                  ? '$0.00'
+                  : lensStats.stats.total_cost_usd < 0.01
+                    ? `$${lensStats.stats.total_cost_usd.toFixed(4)}`
+                    : `$${lensStats.stats.total_cost_usd.toFixed(2)}`
+                : '—'}
+            </p>
+          </div>
+        </div>
+
+        {/* Secondary stats row */}
+        {lensStats && (lensStats.stats.total_tokens > 0 || lensStats.stats.total_tool_calls > 0) && (
+          <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="dashboard-panel rounded-[1.6rem] p-5">
+              <div className="mb-2 flex items-center gap-2">
+                <BarChart2 className="h-4 w-4 text-[#4a67cc]" />
+                <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#8a8378]">Tokens Used</p>
+              </div>
+              <p className="text-[1.4rem] font-semibold tracking-[-0.03em] text-[#171717]">
+                {lensStats.stats.total_tokens >= 1_000_000
+                  ? `${(lensStats.stats.total_tokens / 1_000_000).toFixed(1)}M`
+                  : lensStats.stats.total_tokens >= 1_000
+                    ? `${(lensStats.stats.total_tokens / 1_000).toFixed(1)}K`
+                    : lensStats.stats.total_tokens.toLocaleString()}
+              </p>
+              <p className="mt-1 text-[11px] text-[#8a8378]">
+                {lensStats.stats.input_tokens.toLocaleString()} in · {lensStats.stats.output_tokens.toLocaleString()} out
+              </p>
+            </div>
+            <div className="dashboard-panel rounded-[1.6rem] p-5">
+              <div className="mb-2 flex items-center gap-2">
+                <Zap className="h-4 w-4 text-[#d9a441]" />
+                <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#8a8378]">Tool Calls</p>
+              </div>
+              <p className="text-[1.4rem] font-semibold tracking-[-0.03em] text-[#171717]">
+                {lensStats.stats.total_tool_calls.toLocaleString()}
+              </p>
+              <p className="mt-1 text-[11px] text-[#8a8378]">
+                {lensStats.stats.failed_tool_calls > 0
+                  ? `${lensStats.stats.failed_tool_calls} failed`
+                  : 'all successful'}
+              </p>
+            </div>
+            <div className="dashboard-panel rounded-[1.6rem] p-5">
+              <div className="mb-2 flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-[#2d8b69]" />
+                <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#8a8378]">Cost per Session</p>
+              </div>
+              <p className="text-[1.4rem] font-semibold tracking-[-0.03em] text-[#171717]">
+                {lensStats.stats.avg_cost_per_session === 0
+                  ? '$0.00'
+                  : lensStats.stats.avg_cost_per_session < 0.001
+                    ? `$${lensStats.stats.avg_cost_per_session.toFixed(5)}`
+                    : `$${lensStats.stats.avg_cost_per_session.toFixed(4)}`}
+              </p>
+              <p className="mt-1 text-[11px] text-[#8a8378]">
+                avg across {lensStats.stats.total_sessions} sessions
               </p>
             </div>
           </div>

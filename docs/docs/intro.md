@@ -5,128 +5,62 @@ slug: /
 
 # Welcome to Synkora
 
-Synkora is a production-ready, multitenant LLM application platform for building, deploying,
-and managing AI agents at scale. It provides an application abstraction over LLM workflows —
-combining prompt management, multi-provider model routing, RAG-powered knowledge bases,
-a tool/function registry, and full observability in a single API-first platform.
+Synkora is an open-source, multi-tenant **LLM application platform** for building, deploying, and operating AI agents.
 
-:::info Correct Classification
-Synkora is an **LLM application platform** — not a low-code workflow tool (Dify, n8n), not an agent orchestration framework (CrewAI, LangChain), and not a domain-specific SaaS. It is infrastructure for building, deploying, and operating AI applications at the application layer.
-:::
+It is designed for teams that need more than a framework and more than a single chat UI. Synkora gives you a control plane for agents: web UI, API, knowledge bases, tools, messaging surfaces, billing, scheduling, and observability in one system.
 
-## What is Synkora?
+## What Synkora Includes
 
-Synkora is a full-stack platform that combines:
+- A Next.js dashboard for creating and managing agents
+- A FastAPI backend with streaming chat, tenant-aware APIs, and role-based access
+- Knowledge bases with PostgreSQL + pgvector and optional Qdrant, Pinecone, or Elasticsearch
+- Tooling via built-in tools, OAuth-backed integrations, custom tools, and MCP servers
+- Deployment surfaces across web widget, REST API, Slack, WhatsApp, Teams, Telegram, and browser/mobile companion surfaces
+- Background execution with Redis + Celery for ingestion, automation, retries, and scheduling
+- Usage tracking, credits, subscriptions, and observability integrations
 
-- **Agent Builder**: Create AI agents with custom personalities, knowledge bases, and tool integrations
-- **Knowledge Management**: Build RAG-powered agents with vector search across your documents
-- **Multi-Channel Deployment**: Deploy to Slack, Telegram, WhatsApp, Teams, or embed on your website
-- **Enterprise Features**: Multi-tenancy, SSO, usage billing, and comprehensive security
+## What Synkora Is Not
 
-## Key Features
+Synkora is **not**:
 
-### Intelligent Agents
+- just a prompt playground
+- just an orchestration framework
+- just a website chat widget
+- just a low-code builder
 
-Create AI agents powered by leading LLM providers (OpenAI, Anthropic, Google, and more) through a unified interface.
+It sits one layer above model SDKs and one layer below your product-specific workflows.
 
-```typescript
-const agent = await synkora.agents.create({
-  name: 'Support Bot',
-  model: 'gpt-4o',
-  systemPrompt: 'You are a helpful customer support agent...',
-  tools: ['search_knowledge_base', 'create_ticket'],
-});
-```
+## Start Here
 
-### Knowledge Bases
+- [Quick Start](/docs/getting-started/quick-start): get a local environment running fast
+- [Installation](/docs/getting-started/installation): choose the right install path
+- [Create Your First Agent](/docs/getting-started/first-agent): go from blank workspace to working agent
+- [Agents](/docs/concepts/agents): understand the core product model
+- [Architecture Overview](/docs/architecture/overview): see how the platform is structured
 
-Connect your agents to your data with RAG (Retrieval Augmented Generation):
+## Core Ideas
 
-- Upload PDFs, documents, web pages, and more
-- Automatic chunking and embedding
-- Vector search with Qdrant or Pinecone
-- Hybrid search with reranking
+### Platform, not framework
 
-### Tool Integration
+Synkora is meant to help teams ship AI products without rebuilding the same platform layer over and over.
 
-Extend agent capabilities with built-in and custom tools:
+### Multi-tenant by design
 
-- **Built-in tools**: Web search, code execution, file operations
-- **OAuth integrations**: Google, GitHub, Slack, Jira, and more
-- **MCP servers**: Connect Model Context Protocol servers
-- **Custom tools**: Build your own tool functions
+Tenant isolation, quotas, API keys, usage, and billing are built into the platform model from the start.
 
-### Multi-Channel Deployment
+### Bring your own model stack
 
-Deploy your agents across multiple channels:
+Synkora uses LiteLLM so you can work with OpenAI, Anthropic, Google, and other providers without tying the entire platform to one vendor.
 
-| Channel | Features |
-|---------|----------|
-| **Web Widget** | Embeddable chat widget for any website |
-| **Slack** | Slack bot with thread support |
-| **Telegram** | Telegram bot integration |
-| **WhatsApp** | WhatsApp Business API |
-| **MS Teams** | Microsoft Teams bot |
-| **API** | Direct API access for custom integrations |
+### Deploy where work already happens
 
-## Architecture Overview
+Agents are useful only if they can show up in the right place. Synkora supports web, API, and messaging surfaces, and the repo also includes a Chrome extension and Flutter chat SDK for companion experiences.
 
-Synkora is built on modern, scalable architecture:
+## Recommended Reading Order
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                     Frontend (Next.js)                   │
-└─────────────────────────────┬───────────────────────────┘
-                              │
-┌─────────────────────────────▼───────────────────────────┐
-│                     API (FastAPI)                        │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────────┐ │
-│  │ Agents  │  │   RAG   │  │ Billing │  │ Integrations│ │
-│  └─────────┘  └─────────┘  └─────────┘  └─────────────┘ │
-└─────────────────────────────┬───────────────────────────┘
-                              │
-┌─────────────────────────────▼───────────────────────────┐
-│                    Infrastructure                        │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────────┐ │
-│  │PostgreSQL│ │  Redis  │  │ Qdrant  │  │   Celery    │ │
-│  └─────────┘  └─────────┘  └─────────┘  └─────────────┘ │
-└─────────────────────────────────────────────────────────┘
-```
-
-## Quick Links
-
-<div className="row">
-  <div className="col col--6">
-    <div className="card">
-      <div className="card__header">
-        <h3>Getting Started</h3>
-      </div>
-      <div className="card__body">
-        <p>Get up and running with Synkora in 5 minutes.</p>
-      </div>
-      <div className="card__footer">
-        <a href="/docs/getting-started/quick-start" className="button button--primary button--block">Quick Start</a>
-      </div>
-    </div>
-  </div>
-  <div className="col col--6">
-    <div className="card">
-      <div className="card__header">
-        <h3>API Reference</h3>
-      </div>
-      <div className="card__body">
-        <p>Complete API documentation with examples.</p>
-      </div>
-      <div className="card__footer">
-        <a href="/docs/api-reference/overview" className="button button--primary button--block">View API</a>
-      </div>
-    </div>
-  </div>
-</div>
-
-## Next Steps
-
-- **[Quick Start](/docs/getting-started/quick-start)**: Create your first agent in 5 minutes
-- **[Core Concepts](/docs/concepts/agents)**: Understand how Synkora works
-- **[Guides](/docs/guides/agents/create-rag-agent)**: Step-by-step tutorials
-- **[API Reference](/docs/api-reference/overview)**: Complete API documentation
+1. [Quick Start](/docs/getting-started/quick-start)
+2. [Configuration](/docs/getting-started/configuration)
+3. [Agents](/docs/concepts/agents)
+4. [Knowledge Bases](/docs/concepts/knowledge-bases)
+5. [Tools](/docs/concepts/tools)
+6. [Deployment Guides](/docs/guides/deployment/docker)

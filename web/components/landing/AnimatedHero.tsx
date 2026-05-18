@@ -1,13 +1,9 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import gsap from 'gsap'
-import { MotionPathPlugin } from 'gsap/MotionPathPlugin'
 import Link from 'next/link'
 import { Check, Database, Globe2, ShieldCheck, Sparkles, Workflow } from 'lucide-react'
-import { useGitHubStars, formatStars } from '@/lib/hooks/useGitHubStars'
-
-gsap.registerPlugin(MotionPathPlugin)
+import { formatStars } from '@/lib/utils/formatStars'
 
 const surfaceCards = [
   {
@@ -52,11 +48,10 @@ const signalDots = [
   { id: 'node-5', path: 'hero-path-5', fill: '#79dfbc', radius: 4.5, startX: 248, startY: 214, duration: 9.8, delay: 0.45 },
 ]
 
-export default function AnimatedHero() {
+export default function AnimatedHero({ stars }: { stars?: number | null }) {
   const heroRef = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const artRef = useRef<HTMLDivElement>(null)
-  const stars = useGitHubStars()
 
   useEffect(() => {
     const artElement = artRef.current
@@ -64,34 +59,44 @@ export default function AnimatedHero() {
 
     const layers = Array.from(artElement.querySelectorAll<HTMLElement>('[data-depth]'))
 
-    const handleMouseMove = (event: MouseEvent) => {
-      const rect = artElement.getBoundingClientRect()
-      const x = (event.clientX - rect.left) / rect.width - 0.5
-      const y = (event.clientY - rect.top) / rect.height - 0.5
+    let ctx: { revert: () => void } | undefined
+    let mouseMoveHandler: ((e: MouseEvent) => void) | undefined
+    let mouseLeaveHandler: (() => void) | undefined
+    let cancelled = false
 
-      layers.forEach((layer) => {
-        const depth = Number(layer.dataset.depth || 0)
-        gsap.to(layer, {
-          x: x * depth,
-          y: y * depth,
-          duration: 1.15,
-          ease: 'power3.out',
-        })
-      })
-    }
+    Promise.all([import('gsap'), import('gsap/MotionPathPlugin')]).then(
+      ([{ default: gsap }, { MotionPathPlugin }]) => {
+        if (cancelled) return
+        gsap.registerPlugin(MotionPathPlugin)
 
-    const handleMouseLeave = () => {
-      layers.forEach((layer) => {
-        gsap.to(layer, {
-          x: 0,
-          y: 0,
-          duration: 1.25,
-          ease: 'power3.out',
-        })
-      })
-    }
+        mouseMoveHandler = (event: MouseEvent) => {
+          const rect = artElement.getBoundingClientRect()
+          const x = (event.clientX - rect.left) / rect.width - 0.5
+          const y = (event.clientY - rect.top) / rect.height - 0.5
 
-    const ctx = gsap.context(() => {
+          layers.forEach((layer) => {
+            const depth = Number(layer.dataset.depth || 0)
+            gsap.to(layer, {
+              x: x * depth,
+              y: y * depth,
+              duration: 1.15,
+              ease: 'power3.out',
+            })
+          })
+        }
+
+        mouseLeaveHandler = () => {
+          layers.forEach((layer) => {
+            gsap.to(layer, {
+              x: 0,
+              y: 0,
+              duration: 1.25,
+              ease: 'power3.out',
+            })
+          })
+        }
+
+        ctx = gsap.context(() => {
       const titleWords = titleRef.current ? Array.from(titleRef.current.querySelectorAll('.word')) : []
       const floatingCards = Array.from(artElement.querySelectorAll<HTMLElement>('.floating-card'))
       const ambientOrbs = Array.from(artElement.querySelectorAll<HTMLElement>('.ambient-orb'))
@@ -261,15 +266,18 @@ export default function AnimatedHero() {
           ease: 'sine.inOut',
         })
       })
-    }, heroRef)
+        }, heroRef)
 
-    artElement.addEventListener('mousemove', handleMouseMove)
-    artElement.addEventListener('mouseleave', handleMouseLeave)
+        artElement.addEventListener('mousemove', mouseMoveHandler)
+        artElement.addEventListener('mouseleave', mouseLeaveHandler)
+      }
+    )
 
     return () => {
-      artElement.removeEventListener('mousemove', handleMouseMove)
-      artElement.removeEventListener('mouseleave', handleMouseLeave)
-      ctx.revert()
+      cancelled = true
+      if (mouseMoveHandler) artElement.removeEventListener('mousemove', mouseMoveHandler)
+      if (mouseLeaveHandler) artElement.removeEventListener('mouseleave', mouseLeaveHandler)
+      ctx?.revert()
     }
   }, [])
 
@@ -304,7 +312,7 @@ export default function AnimatedHero() {
                 <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
                   <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
                 </svg>
-                {stars !== null ? formatStars(stars) : 'Star on GitHub'}
+                {stars != null ? formatStars(stars) : 'Star on GitHub'}
               </a>
             </div>
 

@@ -45,7 +45,7 @@ export interface LensSessionsResponse {
 }
 
 export interface LensTimelineEvent {
-  event_type: 'user_message' | 'llm_call' | 'tool_call' | 'assistant_message';
+  event_type: 'user_message' | 'llm_call' | 'tool_call' | 'assistant_message' | 'tool_pruning';
   id: string;
   timestamp: string | null;
   sequence?: number;
@@ -70,6 +70,11 @@ export interface LensTimelineEvent {
   system_prompt_preview?: string;
   messages_json?: string;  // JSON string: list of chat messages sent to LLM
   tools_json?: string;     // JSON string: list of tool definitions sent to LLM
+  // llm_call prompt cache fields
+  cache_read_tokens?: number;
+  cache_creation_tokens?: number;
+  // llm_call context window pressure (0–100 %)
+  context_utilization_pct?: number;
   // tool call fields
   tool_name?: string;
   tool_args?: string;  // JSON string stored in ES text field
@@ -78,6 +83,15 @@ export interface LensTimelineEvent {
   duration_ms?: number;
   retry_count?: number;
   error_message?: string;
+  // tool_pruning fields
+  turn_index?: number;
+  tool_results_count?: number;
+  tool_results_pruned?: number;
+  data_bearing_pruned?: number;
+  chars_saved?: number;
+  estimated_tokens_saved?: number;
+  original_chars?: number;
+  pruned_chars?: number;
 }
 
 export interface LensSessionDetailResponse {
@@ -249,4 +263,102 @@ export async function getLensToolROI(
   range: LensRange = '7d'
 ): Promise<LensToolROIResponse> {
   return apiClient.request('GET', `/api/v1/agents/${agentSlug}/lens/tool-roi?range=${range}`);
+}
+
+// ---------------------------------------------------------------------------
+// Compaction analytics
+// ---------------------------------------------------------------------------
+
+export interface LensPruningTrendPoint {
+  date: string;
+  pruning_events: number;
+  tokens_saved: number;
+  data_bearing_pruned: number;
+}
+
+export interface LensCompactionAnalyticsResponse {
+  total_sessions: number;
+  sessions_with_pruning: number;
+  pruning_rate: number;
+  pruning_events_count: number;
+  total_tokens_saved: number;
+  avg_tokens_saved_per_session: number;
+  data_bearing_pruned_total: number;
+  total_results_pruned: number;
+  total_results_evaluated: number;
+  avg_pruning_ratio: number;
+  trend: LensPruningTrendPoint[];
+  period_start: string;
+  period_end: string;
+}
+
+export async function getLensCompaction(
+  agentSlug: string,
+  range: LensRange = '7d'
+): Promise<LensCompactionAnalyticsResponse> {
+  return apiClient.request('GET', `/api/v1/agents/${agentSlug}/lens/compaction?range=${range}`);
+}
+
+// ---------------------------------------------------------------------------
+// Cache analytics
+// ---------------------------------------------------------------------------
+
+export interface LensCacheTrendPoint {
+  date: string;
+  input_tokens: number;
+  cache_read_tokens: number;
+  cache_creation_tokens: number;
+  cache_hit_rate: number;
+}
+
+export interface LensCacheAnalyticsResponse {
+  total_llm_calls: number;
+  total_input_tokens: number;
+  total_cache_read_tokens: number;
+  total_cache_creation_tokens: number;
+  cache_hit_rate: number;
+  estimated_savings_usd: number;
+  avg_context_utilization_pct: number;
+  max_context_utilization_pct: number;
+  high_pressure_calls: number;
+  trend: LensCacheTrendPoint[];
+  period_start: string;
+  period_end: string;
+}
+
+export async function getLensCache(
+  agentSlug: string,
+  range: LensRange = '7d'
+): Promise<LensCacheAnalyticsResponse> {
+  return apiClient.request('GET', `/api/v1/agents/${agentSlug}/lens/cache?range=${range}`);
+}
+
+// ---------------------------------------------------------------------------
+// Session graph
+// ---------------------------------------------------------------------------
+
+export interface LensGraphNode {
+  id: string;
+  event_type: string;
+  label: string;
+  status: 'normal' | 'warning' | 'error' | 'info';
+  metadata: Record<string, unknown> | null;
+}
+
+export interface LensGraphEdge {
+  source: string;
+  target: string;
+}
+
+export interface LensSessionGraphResponse {
+  conversation_id: string;
+  nodes: LensGraphNode[];
+  edges: LensGraphEdge[];
+}
+
+export async function getLensSessionGraph(
+  agentSlug: string,
+  sessionId: string
+): Promise<LensSessionGraphResponse> {
+  return apiClient.request('GET', `/api/v1/agents/${agentSlug}/lens/sessions/${sessionId}/graph`);
 }

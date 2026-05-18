@@ -8,454 +8,352 @@
 <!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><![endif]-->
 <style>
   body, table, td, p, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
-  body { margin: 0; padding: 0; background: #f5f0e8; }
+  body { margin: 0; padding: 0; background: #f6f1e8; }
   img { border: 0; line-height: 100%; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
-  a { color: #c8102e; }
+  a { color: #171717; }
   a:hover { text-decoration: underline; }
 </style>
 </head>
-<body style="margin:0;padding:0;background-color:#f5f0e8;">
+<body style="margin:0;padding:0;background-color:#f6f1e8;">
 
-<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f5f0e8;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f6f1e8;">
 <tr>
-<td align="center" style="padding:20px 10px 32px 10px;">
+<td align="center" style="padding:24px 10px 34px 10px;">
 
-<!-- ================================================================ -->
-<!-- CONTAINER                                                          -->
-<!-- ================================================================ -->
-<table width="{{ container_width }}" cellpadding="0" cellspacing="0" border="0" style="background-color:#f5f0e8;max-width:{{ container_width }}px;width:100%;">
-
-<!-- ============================================================ -->
-<!-- MASTHEAD                                                       -->
-<!-- ============================================================ -->
+<table width="{{ container_width }}" cellpadding="0" cellspacing="0" border="0" style="max-width:{{ container_width }}px;width:100%;">
 <tr>
-<td style="padding:0;border-top:4px solid #1a1208;padding-top:18px;text-align:center;">
-  <div style="font-family:Georgia,'Times New Roman',serif;font-size:52px;font-weight:bold;color:#1a1208;letter-spacing:-2px;line-height:1;margin:0;">THE SIGNAL</div>
-  <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#8b7355;letter-spacing:3px;text-transform:uppercase;margin-top:8px;">
-    {{ date }}&nbsp;&nbsp;&middot;&nbsp;&nbsp;{{ edition }}&nbsp;&nbsp;&middot;&nbsp;&nbsp;AI &amp; TECHNOLOGY
-  </div>
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px;">
+<td style="background-color:#fffaf3;border:1px solid #e5d9ca;padding:0 26px;">
+
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
     <tr>
-      <td style="border-top:3px solid #1a1208;font-size:1px;line-height:1px;">&nbsp;</td>
+      <td style="padding:18px 0 0 0;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td style="height:5px;background-color:#171717;font-size:1px;line-height:1px;">&nbsp;</td>
+          </tr>
+          <tr>
+            <td style="height:3px;background-color:#7de5c1;font-size:1px;line-height:1px;">&nbsp;</td>
+          </tr>
+          <tr>
+            <td style="height:1px;background-color:#f2d4a9;font-size:1px;line-height:1px;">&nbsp;</td>
+          </tr>
+        </table>
+      </td>
     </tr>
     <tr>
-      <td style="border-top:1px solid #d4c9b0;font-size:3px;line-height:3px;">&nbsp;</td>
+      <td style="padding:22px 0 18px 0;text-align:center;">
+        <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;letter-spacing:3px;text-transform:uppercase;color:#6d655b;">Editorial Briefing</div>
+        <div style="font-family:Georgia,'Times New Roman',serif;font-size:48px;font-weight:bold;letter-spacing:-2px;line-height:0.98;color:#171717;margin-top:10px;">THE SIGNAL</div>
+        <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#6f675d;letter-spacing:2.6px;text-transform:uppercase;margin-top:10px;">
+          {{ date }} &nbsp;&middot;&nbsp; {{ edition }} &nbsp;&middot;&nbsp; AI &amp; Platform Intelligence
+        </div>
+      </td>
     </tr>
   </table>
-</td>
-</tr>
 
-{% if lead_headline %}
-<!-- ============================================================ -->
-<!-- LEAD STORY                                                     -->
-<!-- ============================================================ -->
-<tr>
-<td style="padding:22px 0 0 0;">
-  <div style="border-left:4px solid #c8102e;padding-left:12px;margin-bottom:10px;">
-    <span style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;color:#c8102e;letter-spacing:2px;text-transform:uppercase;">LEAD STORY</span>
-  </div>
-  <a href="{{ lead_url }}" style="font-family:Georgia,'Times New Roman',serif;font-size:30px;font-weight:bold;color:#1a1208;text-decoration:none;line-height:1.2;display:block;">{{ lead_headline }}</a>
+  {% if lead_headline %}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #eadfce;">
+    <tr>
+      <td style="padding:24px 0 0 0;">
+        <span style="display:inline-block;background-color:#eef8f3;border:1px solid #d9ecdf;padding:6px 11px;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2.2px;text-transform:uppercase;color:#2d8b69;">Lead Story</span>
+        <div style="margin-top:14px;">
+          <a href="{{ lead_url or '#' }}" style="font-family:Georgia,'Times New Roman',serif;font-size:31px;font-weight:bold;line-height:1.2;color:#171717;text-decoration:none;">{{ lead_headline }}</a>
+        </div>
 
-  {% if lead_image_url %}
-  <div style="margin-top:16px;">
-    <img src="{{ lead_image_url }}" alt="{{ lead_headline | striptags }}" width="{{ container_width }}" style="width:100%;max-width:{{ container_width }}px;height:280px;object-fit:cover;display:block;" />
-    <div style="background:#c8102e;padding:4px 10px;display:inline-block;">
-      <span style="font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#ffffff;letter-spacing:1px;text-transform:uppercase;">{{ lead_source }}</span>
-    </div>
-  </div>
-  {% endif %}
-
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;">
-    <tr valign="top">
-      <td style="width:58%;padding-right:16px;border-right:1px solid #d4c9b0;">
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#2d2416;line-height:1.65;margin:0;">{{ lead_summary }}</p>
-        {% if not lead_image_url %}
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#8b7355;margin:10px 0 0 0;text-transform:uppercase;letter-spacing:1px;">Source: {{ lead_source }}</p>
+        {% if lead_image_url %}
+        <div style="margin-top:18px;">
+          <img src="{{ lead_image_url }}" alt="{{ lead_headline | striptags }}" width="{{ container_width }}" style="width:100%;max-width:{{ container_width }}px;height:300px;object-fit:cover;display:block;" />
+        </div>
         {% endif %}
-        <p style="margin:14px 0 0 0;"><a href="{{ lead_url }}" style="font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:bold;color:#c8102e;text-decoration:none;text-transform:uppercase;letter-spacing:1px;">Read full story &rarr;</a></p>
-      </td>
-      <td style="width:2%;font-size:1px;line-height:1px;">&nbsp;</td>
-      <td style="width:40%;padding-left:16px;">
-        {% if lead_why_it_matters %}
-        <table width="100%" cellpadding="14" cellspacing="0" border="0" style="background-color:#1a1208;">
-          <tr>
-            <td>
-              <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;color:#c8102e;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">WHY IT MATTERS</div>
-              <p style="font-family:Georgia,'Times New Roman',serif;font-size:13px;color:#f5f0e8;line-height:1.65;margin:0;font-style:italic;">{{ lead_why_it_matters }}</p>
+
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:18px;">
+          <tr valign="top">
+            <td style="width:60%;padding-right:18px;border-right:1px solid #eadfce;">
+              <p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.75;color:#413a33;margin:0;">{{ lead_summary }}</p>
+              <p style="margin:16px 0 0 0;">
+                <a href="{{ lead_url or '#' }}" style="font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#2d8b69;text-decoration:none;text-transform:uppercase;letter-spacing:1.6px;">Read the full brief &rarr;</a>
+              </p>
+            </td>
+            <td style="width:4%;">&nbsp;</td>
+            <td style="width:36%;padding-left:4px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#171717;">
+                <tr>
+                  <td style="padding:16px;">
+                    <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;color:#7de5c1;margin-bottom:8px;">Why it matters</div>
+                    <p style="font-family:Georgia,'Times New Roman',serif;font-size:14px;line-height:1.7;color:#f7f2e7;margin:0;font-style:italic;">
+                      {% if lead_why_it_matters %}
+                        {{ lead_why_it_matters }}
+                      {% else %}
+                        A fast read on what changed, why it matters, and where the platform momentum is moving next.
+                      {% endif %}
+                    </p>
+                    <p style="font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#c9c1b6;letter-spacing:1.2px;text-transform:uppercase;margin:12px 0 0 0;">{{ lead_source }}</p>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
         </table>
-        {% endif %}
       </td>
     </tr>
   </table>
-</td>
-</tr>
-{% endif %}
+  {% endif %}
 
-{% if news_items %}
-<!-- ============================================================ -->
-<!-- SECTION RULE                                                   -->
-<!-- ============================================================ -->
-<tr>
-<td style="padding-top:22px;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0">
-    <tr><td style="border-top:3px solid #1a1208;font-size:1px;line-height:1px;">&nbsp;</td></tr>
-    <tr><td style="border-top:1px solid #d4c9b0;font-size:3px;line-height:3px;">&nbsp;</td></tr>
-  </table>
-</td>
-</tr>
-
-<!-- TODAY IN TECH -->
-<tr>
-<td style="padding-top:18px;">
-  <div style="border-left:4px solid #c8102e;padding-left:12px;margin-bottom:16px;">
-    <span style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;color:#c8102e;letter-spacing:3px;text-transform:uppercase;">TODAY IN TECH</span>
-  </div>
-
-  {% set ns = namespace(pairs=news_items | batch(2, None) | list) %}
-  {% for pair in ns.pairs %}
-  {% set has_second = (pair | length) > 1 %}
-  <table width="100%" cellpadding="0" cellspacing="0" border="0">
-    <tr valign="top">
-      <!-- Col 1 -->
-      <td style="width:{% if has_second %}48%{% else %}100%{% endif %};vertical-align:top;padding-right:{% if has_second %}16px{% else %}0{% endif %};padding-bottom:16px;">
-        {% if pair[0] %}{% set item = pair[0] %}
-        {% if item.image_url %}<img src="{{ item.image_url }}" alt="" width="80" height="60" style="float:left;margin:0 10px 4px 0;object-fit:cover;display:block;" />{% endif %}
-        <a href="{{ item.url or '#' }}" style="font-family:Georgia,'Times New Roman',serif;font-size:15px;font-weight:bold;color:#1a1208;text-decoration:none;line-height:1.3;display:block;">{{ item.title }}</a>
-        {% if item.summary %}<p style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#2d2416;line-height:1.5;margin:5px 0 0 0;clear:both;">{{ item.summary | truncate(180, false, '&hellip;') }}</p>{% endif %}
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#8b7355;margin:5px 0 0 0;text-transform:uppercase;letter-spacing:1px;clear:both;">{{ item.source or '' }}{% if item.score %} &middot; {{ item.score }} pts{% endif %}</p>
-        <div style="clear:both;"></div>
-        {% endif %}
-      </td>
-      {% if has_second %}
-      <!-- Divider -->
-      <td style="width:4px;border-left:1px solid #d4c9b0;font-size:1px;line-height:1px;">&nbsp;</td>
-      <!-- Col 2 -->
-      <td style="width:48%;vertical-align:top;padding-left:16px;padding-bottom:16px;">
-        {% set item = pair[1] %}
-        {% if item.image_url %}<img src="{{ item.image_url }}" alt="" width="80" height="60" style="float:left;margin:0 10px 4px 0;object-fit:cover;display:block;" />{% endif %}
-        <a href="{{ item.url or '#' }}" style="font-family:Georgia,'Times New Roman',serif;font-size:15px;font-weight:bold;color:#1a1208;text-decoration:none;line-height:1.3;display:block;">{{ item.title }}</a>
-        {% if item.summary %}<p style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#2d2416;line-height:1.5;margin:5px 0 0 0;clear:both;">{{ item.summary | truncate(180, false, '&hellip;') }}</p>{% endif %}
-        <p style="font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#8b7355;margin:5px 0 0 0;text-transform:uppercase;letter-spacing:1px;clear:both;">{{ item.source or '' }}{% if item.score %} &middot; {{ item.score }} pts{% endif %}</p>
-        <div style="clear:both;"></div>
-      </td>
-      {% endif %}
-    </tr>
-    {% if not loop.last %}
-    <tr><td colspan="{% if has_second %}3{% else %}1{% endif %}" style="border-top:1px solid #d4c9b0;font-size:1px;line-height:1px;padding:0;">&nbsp;</td></tr>
-    {% endif %}
-  </table>
-  {% endfor %}
-</td>
-</tr>
-{% endif %}
-
-{% if github_items %}
-<!-- SECTION RULE -->
-<tr>
-<td style="padding-top:6px;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0">
-    <tr><td style="border-top:3px solid #1a1208;font-size:1px;line-height:1px;">&nbsp;</td></tr>
-    <tr><td style="border-top:1px solid #d4c9b0;font-size:3px;line-height:3px;">&nbsp;</td></tr>
-  </table>
-</td>
-</tr>
-
-<!-- GITHUB TRENDING -->
-<tr>
-<td style="padding-top:18px;">
-  <div style="border-left:4px solid #c8102e;padding-left:12px;margin-bottom:14px;">
-    <span style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;color:#c8102e;letter-spacing:3px;text-transform:uppercase;">GITHUB TRENDING</span>
-  </div>
-  <table width="100%" cellpadding="0" cellspacing="0" border="0">
-    {% for repo in github_items %}
+  {% if news_items %}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #eadfce;margin-top:24px;">
     <tr>
-      <td style="padding:9px 0;{% if not loop.last %}border-bottom:1px solid #d4c9b0;{% endif %}">
+      <td style="padding-top:20px;">
+        <span style="display:inline-block;background-color:#f7edd8;border:1px solid #ead9bb;padding:6px 11px;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2.2px;text-transform:uppercase;color:#7b6540;">Today in Tech</span>
+        {% set pairs = news_items | batch(2, None) | list %}
+        {% for pair in pairs %}
+        {% set has_second = (pair | length) > 1 %}
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;">
+          <tr valign="top">
+            <td style="width:{% if has_second %}48%{% else %}100%{% endif %};padding-right:{% if has_second %}16px{% else %}0{% endif %};vertical-align:top;">
+              {% if pair[0] %}{% set item = pair[0] %}
+              {% if item.image_url %}<img src="{{ item.image_url }}" alt="" width="100%" style="width:100%;height:180px;object-fit:cover;display:block;margin-bottom:10px;" />{% endif %}
+              <a href="{{ item.url or '#' }}" style="font-family:Georgia,'Times New Roman',serif;font-size:18px;font-weight:bold;line-height:1.35;color:#171717;text-decoration:none;">{{ item.title }}</a>
+              {% if item.summary %}<p style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.7;color:#4e463d;margin:8px 0 0 0;">{{ item.summary | truncate(180, false, '&hellip;') }}</p>{% endif %}
+              <p style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#7a7166;letter-spacing:1px;text-transform:uppercase;margin:8px 0 0 0;">{{ item.source or '' }}{% if item.score %} &middot; {{ item.score }} pts{% endif %}</p>
+              {% endif %}
+            </td>
+            {% if has_second %}
+            <td style="width:4%;border-left:1px solid #eadfce;">&nbsp;</td>
+            <td style="width:48%;padding-left:16px;vertical-align:top;">
+              {% set item = pair[1] %}
+              {% if item.image_url %}<img src="{{ item.image_url }}" alt="" width="100%" style="width:100%;height:180px;object-fit:cover;display:block;margin-bottom:10px;" />{% endif %}
+              <a href="{{ item.url or '#' }}" style="font-family:Georgia,'Times New Roman',serif;font-size:18px;font-weight:bold;line-height:1.35;color:#171717;text-decoration:none;">{{ item.title }}</a>
+              {% if item.summary %}<p style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.7;color:#4e463d;margin:8px 0 0 0;">{{ item.summary | truncate(180, false, '&hellip;') }}</p>{% endif %}
+              <p style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#7a7166;letter-spacing:1px;text-transform:uppercase;margin:8px 0 0 0;">{{ item.source or '' }}{% if item.score %} &middot; {{ item.score }} pts{% endif %}</p>
+            </td>
+            {% endif %}
+          </tr>
+          {% if not loop.last %}
+          <tr><td colspan="{% if has_second %}3{% else %}1{% endif %}" style="padding-top:16px;border-bottom:1px solid #eadfce;font-size:1px;line-height:1px;">&nbsp;</td></tr>
+          {% endif %}
+        </table>
+        {% endfor %}
+      </td>
+    </tr>
+  </table>
+  {% endif %}
+
+  {% if github_items %}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #eadfce;margin-top:24px;">
+    <tr>
+      <td style="padding-top:20px;">
+        <span style="display:inline-block;background-color:#eef8f3;border:1px solid #d9ecdf;padding:6px 11px;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2.2px;text-transform:uppercase;color:#2d8b69;">GitHub Trending</span>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;">
+          {% for repo in github_items %}
+          <tr>
+            <td style="padding:0 0 14px 0;{% if not loop.last %}border-bottom:1px solid #eadfce;{% endif %}{% if not loop.first %}padding-top:14px;{% endif %}">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr valign="middle">
+                  <td>
+                    <a href="{{ repo.url or '#' }}" style="font-family:Georgia,'Times New Roman',serif;font-size:17px;font-weight:bold;color:#171717;text-decoration:none;">{{ repo.name }}</a>
+                    {% if repo.language %}<span style="font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#7b6540;letter-spacing:1.2px;text-transform:uppercase;margin-left:8px;">{{ repo.language }}</span>{% endif %}
+                    {% if repo.description %}<div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.65;color:#4e463d;margin-top:5px;">{{ repo.description | truncate(100, false, '&hellip;') }}</div>{% endif %}
+                  </td>
+                  <td align="right" style="white-space:nowrap;padding-left:12px;">
+                    <span style="font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#2d8b69;">+{{ repo.stars_today or 0 }}</span>
+                    <span style="font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#7a7166;text-transform:uppercase;letter-spacing:1px;"> today</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          {% endfor %}
+        </table>
+      </td>
+    </tr>
+  </table>
+  {% endif %}
+
+  {% if papers %}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #eadfce;margin-top:24px;">
+    <tr>
+      <td style="padding-top:20px;">
+        <span style="display:inline-block;background-color:#f4efe5;border:1px solid #e5d9ca;padding:6px 11px;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2.2px;text-transform:uppercase;color:#655d53;">Research</span>
+        {% set paper_pairs = papers | batch(2, None) | list %}
+        {% for pair in paper_pairs %}
+        {% set has_second = (pair | length) > 1 %}
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;">
+          <tr valign="top">
+            <td style="width:{% if has_second %}48%{% else %}100%{% endif %};padding-right:{% if has_second %}16px{% else %}0{% endif %};vertical-align:top;">
+              {% set paper = pair[0] %}
+              <span style="display:inline-block;background-color:#171717;padding:3px 8px;font-family:Arial,Helvetica,sans-serif;font-size:9px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;color:#f7f2e7;margin-bottom:8px;">Paper</span>
+              <a href="{{ paper.url or '#' }}" style="display:block;font-family:Georgia,'Times New Roman',serif;font-size:16px;font-weight:bold;line-height:1.4;color:#171717;text-decoration:none;">{{ paper.title }}</a>
+              {% if paper.summary %}<p style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.65;color:#4e463d;margin:8px 0 0 0;">{{ paper.summary | truncate(200, false, '&hellip;') }}</p>{% endif %}
+            </td>
+            {% if has_second %}
+            <td style="width:4%;border-left:1px solid #eadfce;">&nbsp;</td>
+            <td style="width:48%;padding-left:16px;vertical-align:top;">
+              {% set paper = pair[1] %}
+              <span style="display:inline-block;background-color:#171717;padding:3px 8px;font-family:Arial,Helvetica,sans-serif;font-size:9px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;color:#f7f2e7;margin-bottom:8px;">Paper</span>
+              <a href="{{ paper.url or '#' }}" style="display:block;font-family:Georgia,'Times New Roman',serif;font-size:16px;font-weight:bold;line-height:1.4;color:#171717;text-decoration:none;">{{ paper.title }}</a>
+              {% if paper.summary %}<p style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.65;color:#4e463d;margin:8px 0 0 0;">{{ paper.summary | truncate(200, false, '&hellip;') }}</p>{% endif %}
+            </td>
+            {% endif %}
+          </tr>
+          {% if not loop.last %}
+          <tr><td colspan="{% if has_second %}3{% else %}1{% endif %}" style="padding-top:16px;border-bottom:1px solid #eadfce;font-size:1px;line-height:1px;">&nbsp;</td></tr>
+          {% endif %}
+        </table>
+        {% endfor %}
+      </td>
+    </tr>
+  </table>
+  {% endif %}
+
+  {% if products %}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #eadfce;margin-top:24px;">
+    <tr>
+      <td style="padding-top:20px;">
+        <span style="display:inline-block;background-color:#f7edd8;border:1px solid #ead9bb;padding:6px 11px;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2.2px;text-transform:uppercase;color:#7b6540;">Product Launches</span>
+        {% set product_pairs = products | batch(2, None) | list %}
+        {% for pair in product_pairs %}
+        {% set has_second = (pair | length) > 1 %}
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;">
+          <tr valign="top">
+            <td style="width:{% if has_second %}48%{% else %}100%{% endif %};padding-right:{% if has_second %}16px{% else %}0{% endif %};vertical-align:top;">
+              {% set product = pair[0] %}
+              <table cellpadding="0" cellspacing="0" border="0">
+                <tr valign="top">
+                  {% if product.image_url %}<td style="padding-right:10px;"><img src="{{ product.image_url }}" alt="{{ product.name | striptags }}" width="52" height="52" style="display:block;border:1px solid #eadfce;border-radius:12px;object-fit:cover;" /></td>{% endif %}
+                  <td>
+                    <a href="{{ product.url or '#' }}" style="display:block;font-family:Georgia,'Times New Roman',serif;font-size:16px;font-weight:bold;line-height:1.35;color:#171717;text-decoration:none;">{{ product.name }}</a>
+                    {% if product.tagline %}<div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.6;color:#4e463d;margin-top:4px;">{{ product.tagline }}</div>{% endif %}
+                    {% if product.upvotes %}<div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#2d8b69;margin-top:6px;">&#9650; {{ product.upvotes }} upvotes</div>{% endif %}
+                  </td>
+                </tr>
+              </table>
+            </td>
+            {% if has_second %}
+            <td style="width:4%;border-left:1px solid #eadfce;">&nbsp;</td>
+            <td style="width:48%;padding-left:16px;vertical-align:top;">
+              {% set product = pair[1] %}
+              <table cellpadding="0" cellspacing="0" border="0">
+                <tr valign="top">
+                  {% if product.image_url %}<td style="padding-right:10px;"><img src="{{ product.image_url }}" alt="{{ product.name | striptags }}" width="52" height="52" style="display:block;border:1px solid #eadfce;border-radius:12px;object-fit:cover;" /></td>{% endif %}
+                  <td>
+                    <a href="{{ product.url or '#' }}" style="display:block;font-family:Georgia,'Times New Roman',serif;font-size:16px;font-weight:bold;line-height:1.35;color:#171717;text-decoration:none;">{{ product.name }}</a>
+                    {% if product.tagline %}<div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.6;color:#4e463d;margin-top:4px;">{{ product.tagline }}</div>{% endif %}
+                    {% if product.upvotes %}<div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#2d8b69;margin-top:6px;">&#9650; {{ product.upvotes }} upvotes</div>{% endif %}
+                  </td>
+                </tr>
+              </table>
+            </td>
+            {% endif %}
+          </tr>
+          {% if not loop.last %}
+          <tr><td colspan="{% if has_second %}3{% else %}1{% endif %}" style="padding-top:16px;border-bottom:1px solid #eadfce;font-size:1px;line-height:1px;">&nbsp;</td></tr>
+          {% endif %}
+        </table>
+        {% endfor %}
+      </td>
+    </tr>
+  </table>
+  {% endif %}
+
+  {% if youtube_items %}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #eadfce;margin-top:24px;">
+    <tr>
+      <td style="padding-top:20px;">
+        <span style="display:inline-block;background-color:#eef8f3;border:1px solid #d9ecdf;padding:6px 11px;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2.2px;text-transform:uppercase;color:#2d8b69;">Must Watch</span>
+        {% set videos = youtube_items | batch(2, None) | list %}
+        {% for pair in videos %}
+        {% set has_second = (pair | length) > 1 %}
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;">
+          <tr valign="top">
+            <td style="width:{% if has_second %}48%{% else %}100%{% endif %};padding-right:{% if has_second %}16px{% else %}0{% endif %};vertical-align:top;">
+              {% set video = pair[0] %}
+              {% if video.thumbnail_url %}<a href="{{ video.url or '#' }}" style="display:block;text-decoration:none;"><img src="{{ video.thumbnail_url }}" alt="{{ video.title | striptags }}" width="100%" style="width:100%;height:auto;display:block;border:1px solid #eadfce;margin-bottom:10px;" /></a>{% endif %}
+              <a href="{{ video.url or '#' }}" style="display:block;font-family:Georgia,'Times New Roman',serif;font-size:16px;font-weight:bold;line-height:1.4;color:#171717;text-decoration:none;">{{ video.title }}</a>
+              {% if video.channel %}<p style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#7a7166;letter-spacing:1px;text-transform:uppercase;margin:7px 0 0 0;">{{ video.channel }}</p>{% endif %}
+            </td>
+            {% if has_second %}
+            <td style="width:4%;border-left:1px solid #eadfce;">&nbsp;</td>
+            <td style="width:48%;padding-left:16px;vertical-align:top;">
+              {% set video = pair[1] %}
+              {% if video.thumbnail_url %}<a href="{{ video.url or '#' }}" style="display:block;text-decoration:none;"><img src="{{ video.thumbnail_url }}" alt="{{ video.title | striptags }}" width="100%" style="width:100%;height:auto;display:block;border:1px solid #eadfce;margin-bottom:10px;" /></a>{% endif %}
+              <a href="{{ video.url or '#' }}" style="display:block;font-family:Georgia,'Times New Roman',serif;font-size:16px;font-weight:bold;line-height:1.4;color:#171717;text-decoration:none;">{{ video.title }}</a>
+              {% if video.channel %}<p style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#7a7166;letter-spacing:1px;text-transform:uppercase;margin:7px 0 0 0;">{{ video.channel }}</p>{% endif %}
+            </td>
+            {% endif %}
+          </tr>
+          {% if not loop.last %}
+          <tr><td colspan="{% if has_second %}3{% else %}1{% endif %}" style="padding-top:16px;border-bottom:1px solid #eadfce;font-size:1px;line-height:1px;">&nbsp;</td></tr>
+          {% endif %}
+        </table>
+        {% endfor %}
+      </td>
+    </tr>
+  </table>
+  {% endif %}
+
+  {% if twitter %}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #eadfce;margin-top:24px;">
+    <tr>
+      <td style="padding-top:20px;">
+        <span style="display:inline-block;background-color:#f4efe5;border:1px solid #e5d9ca;padding:6px 11px;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2.2px;text-transform:uppercase;color:#655d53;">Social Pulse</span>
+        {% if twitter.top_tweets %}
+        {% for tweet in twitter.top_tweets %}
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px;background-color:#f4efe5;border-left:3px solid #2d8b69;">
+          <tr>
+            <td style="padding:14px 16px;">
+              <p style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.7;color:#171717;margin:0;font-style:italic;">&ldquo;{{ tweet }}&rdquo;</p>
+            </td>
+          </tr>
+        </table>
+        {% endfor %}
+        {% endif %}
+        {% if twitter.breaking %}<p style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.7;color:#413a33;margin:12px 0 0 0;"><strong style="color:#171717;">Breaking:</strong> {{ twitter.breaking }}</p>{% endif %}
+        {% if twitter.themes %}<p style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.7;color:#6f675d;margin:8px 0 0 0;"><strong style="color:#171717;">Trending themes:</strong> {{ twitter.themes }}</p>{% endif %}
+      </td>
+    </tr>
+  </table>
+  {% endif %}
+
+  {% if editors_take %}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #eadfce;margin-top:24px;">
+    <tr>
+      <td style="padding-top:20px;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#171717;">
+          <tr>
+            <td style="padding:22px;">
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2.4px;text-transform:uppercase;color:#7de5c1;margin-bottom:12px;">Editor&rsquo;s Take</div>
+              <p style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.8;color:#f7f2e7;margin:0;font-style:italic;">{{ editors_take }}</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+  {% endif %}
+
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #eadfce;margin-top:28px;">
+    <tr>
+      <td style="padding:18px 0 24px 0;">
         <table width="100%" cellpadding="0" cellspacing="0" border="0">
           <tr valign="middle">
             <td>
-              <a href="{{ repo.url or '#' }}" style="font-family:Georgia,'Times New Roman',serif;font-size:14px;font-weight:bold;color:#1a1208;text-decoration:none;">{{ repo.name }}</a>
-              {% if repo.language %}<span style="font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#8b7355;margin-left:8px;text-transform:uppercase;letter-spacing:1px;">{{ repo.language }}</span>{% endif %}
-              {% if repo.description %}<div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#8b7355;margin-top:2px;">{{ repo.description | truncate(100, false, '&hellip;') }}</div>{% endif %}
+              <div style="font-family:Georgia,'Times New Roman',serif;font-size:18px;font-weight:bold;color:#171717;letter-spacing:-0.4px;">The Signal</div>
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#7a7166;letter-spacing:1px;text-transform:uppercase;margin-top:4px;">{{ date }} &middot; Editorial platform digest</div>
             </td>
-            <td align="right" style="white-space:nowrap;padding-left:12px;">
-              <span style="font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;color:#c8102e;">+{{ repo.stars_today or 0 }}</span>
-              <span style="font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#8b7355;"> today</span>
+            {% if pdf_url or image_url %}
+            <td align="right" style="padding-left:12px;">
+              {% if pdf_url %}<a href="{{ pdf_url }}" style="font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#2d8b69;text-decoration:none;text-transform:uppercase;letter-spacing:1px;margin-left:14px;">PDF Version</a>{% endif %}
+              {% if image_url %}<a href="{{ image_url }}" style="font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#2d8b69;text-decoration:none;text-transform:uppercase;letter-spacing:1px;margin-left:14px;">Share Image</a>{% endif %}
             </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-    {% endfor %}
-  </table>
-</td>
-</tr>
-{% endif %}
-
-{% if papers %}
-<!-- SECTION RULE -->
-<tr>
-<td style="padding-top:18px;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0">
-    <tr><td style="border-top:3px solid #1a1208;font-size:1px;line-height:1px;">&nbsp;</td></tr>
-    <tr><td style="border-top:1px solid #d4c9b0;font-size:3px;line-height:3px;">&nbsp;</td></tr>
-  </table>
-</td>
-</tr>
-
-<!-- RESEARCH PAPERS -->
-<tr>
-<td style="padding-top:18px;">
-  <div style="border-left:4px solid #c8102e;padding-left:12px;margin-bottom:16px;">
-    <span style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;color:#c8102e;letter-spacing:3px;text-transform:uppercase;">RESEARCH</span>
-  </div>
-  {% set paper_pairs = papers | batch(2, None) | list %}
-  {% for pair in paper_pairs %}
-  {% set has_second = (pair | length) > 1 %}
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px;">
-    <tr valign="top">
-      <td style="width:{% if has_second %}48%{% else %}100%{% endif %};vertical-align:top;padding-right:{% if has_second %}16px{% else %}0{% endif %};">
-        {% set paper = pair[0] %}
-        <span style="font-family:Arial,Helvetica,sans-serif;font-size:9px;font-weight:bold;background-color:#1a1208;color:#f5f0e8;padding:2px 6px;letter-spacing:2px;text-transform:uppercase;display:inline-block;margin-bottom:7px;">PAPER</span>
-        <a href="{{ paper.url or '#' }}" style="font-family:Georgia,'Times New Roman',serif;font-size:14px;font-weight:bold;color:#1a1208;text-decoration:none;line-height:1.35;display:block;">{{ paper.title }}</a>
-        {% if paper.summary %}<p style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#2d2416;line-height:1.5;margin:6px 0 0 0;">{{ paper.summary | truncate(200, false, '&hellip;') }}</p>{% endif %}
-      </td>
-      {% if has_second %}
-      <td style="width:4px;border-left:1px solid #d4c9b0;font-size:1px;line-height:1px;">&nbsp;</td>
-      <td style="width:48%;vertical-align:top;padding-left:16px;">
-        {% set paper = pair[1] %}
-        <span style="font-family:Arial,Helvetica,sans-serif;font-size:9px;font-weight:bold;background-color:#1a1208;color:#f5f0e8;padding:2px 6px;letter-spacing:2px;text-transform:uppercase;display:inline-block;margin-bottom:7px;">PAPER</span>
-        <a href="{{ paper.url or '#' }}" style="font-family:Georgia,'Times New Roman',serif;font-size:14px;font-weight:bold;color:#1a1208;text-decoration:none;line-height:1.35;display:block;">{{ paper.title }}</a>
-        {% if paper.summary %}<p style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#2d2416;line-height:1.5;margin:6px 0 0 0;">{{ paper.summary | truncate(200, false, '&hellip;') }}</p>{% endif %}
-      </td>
-      {% endif %}
-    </tr>
-    {% if not loop.last %}
-    <tr><td colspan="{% if has_second %}3{% else %}1{% endif %}" style="border-top:1px solid #d4c9b0;font-size:1px;line-height:1px;padding:0;">&nbsp;</td></tr>
-    {% endif %}
-  </table>
-  {% endfor %}
-</td>
-</tr>
-{% endif %}
-
-{% if products %}
-<!-- SECTION RULE -->
-<tr>
-<td style="padding-top:6px;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0">
-    <tr><td style="border-top:3px solid #1a1208;font-size:1px;line-height:1px;">&nbsp;</td></tr>
-    <tr><td style="border-top:1px solid #d4c9b0;font-size:3px;line-height:3px;">&nbsp;</td></tr>
-  </table>
-</td>
-</tr>
-
-<!-- PRODUCT LAUNCHES -->
-<tr>
-<td style="padding-top:18px;">
-  <div style="border-left:4px solid #c8102e;padding-left:12px;margin-bottom:16px;">
-    <span style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;color:#c8102e;letter-spacing:3px;text-transform:uppercase;">PRODUCT LAUNCHES</span>
-  </div>
-  {% set product_pairs = products | batch(2, None) | list %}
-  {% for pair in product_pairs %}
-  {% set has_second = (pair | length) > 1 %}
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px;">
-    <tr valign="top">
-      <td style="width:{% if has_second %}48%{% else %}100%{% endif %};vertical-align:top;padding-right:{% if has_second %}16px{% else %}0{% endif %};">
-        {% set product = pair[0] %}
-        <table cellpadding="0" cellspacing="0" border="0">
-          <tr valign="middle">
-            {% if product.image_url %}<td style="padding-right:10px;"><img src="{{ product.image_url }}" alt="{{ product.name | striptags }}" width="48" height="48" style="border-radius:8px;object-fit:cover;display:block;" /></td>{% endif %}
-            <td>
-              <a href="{{ product.url or '#' }}" style="font-family:Georgia,'Times New Roman',serif;font-size:15px;font-weight:bold;color:#1a1208;text-decoration:none;display:block;line-height:1.25;">{{ product.name }}</a>
-              {% if product.tagline %}<div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#2d2416;margin-top:3px;">{{ product.tagline }}</div>{% endif %}
-              {% if product.upvotes %}<div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:bold;color:#c8102e;margin-top:5px;">&#9650; {{ product.upvotes }} upvotes</div>{% endif %}
-            </td>
-          </tr>
-        </table>
-      </td>
-      {% if has_second %}
-      <td style="width:4px;border-left:1px solid #d4c9b0;font-size:1px;line-height:1px;">&nbsp;</td>
-      <td style="width:48%;vertical-align:top;padding-left:16px;">
-        {% set product = pair[1] %}
-        <table cellpadding="0" cellspacing="0" border="0">
-          <tr valign="middle">
-            {% if product.image_url %}<td style="padding-right:10px;"><img src="{{ product.image_url }}" alt="{{ product.name | striptags }}" width="48" height="48" style="border-radius:8px;object-fit:cover;display:block;" /></td>{% endif %}
-            <td>
-              <a href="{{ product.url or '#' }}" style="font-family:Georgia,'Times New Roman',serif;font-size:15px;font-weight:bold;color:#1a1208;text-decoration:none;display:block;line-height:1.25;">{{ product.name }}</a>
-              {% if product.tagline %}<div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#2d2416;margin-top:3px;">{{ product.tagline }}</div>{% endif %}
-              {% if product.upvotes %}<div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:bold;color:#c8102e;margin-top:5px;">&#9650; {{ product.upvotes }} upvotes</div>{% endif %}
-            </td>
-          </tr>
-        </table>
-      </td>
-      {% endif %}
-    </tr>
-    {% if not loop.last %}
-    <tr><td colspan="{% if has_second %}3{% else %}1{% endif %}" style="border-top:1px solid #d4c9b0;font-size:1px;line-height:1px;padding:0;">&nbsp;</td></tr>
-    {% endif %}
-  </table>
-  {% endfor %}
-</td>
-</tr>
-{% endif %}
-
-{% if youtube_items %}
-<!-- SECTION RULE -->
-<tr>
-<td style="padding-top:6px;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0">
-    <tr><td style="border-top:3px solid #1a1208;font-size:1px;line-height:1px;">&nbsp;</td></tr>
-    <tr><td style="border-top:1px solid #d4c9b0;font-size:3px;line-height:3px;">&nbsp;</td></tr>
-  </table>
-</td>
-</tr>
-
-<!-- YOUTUBE / MUST WATCH -->
-<tr>
-<td style="padding-top:18px;">
-  <div style="border-left:4px solid #c8102e;padding-left:12px;margin-bottom:16px;">
-    <span style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;color:#c8102e;letter-spacing:3px;text-transform:uppercase;">MUST WATCH</span>
-  </div>
-  {% set yt_pairs = youtube_items | batch(2, None) | list %}
-  {% for pair in yt_pairs %}
-  {% set has_second = (pair | length) > 1 %}
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px;">
-    <tr valign="top">
-      <td style="width:{% if has_second %}48%{% else %}100%{% endif %};vertical-align:top;padding-right:{% if has_second %}16px{% else %}0{% endif %};">
-        {% set video = pair[0] %}
-        {% if video.thumbnail_url %}
-        <a href="{{ video.url or '#' }}" style="display:block;margin-bottom:8px;text-decoration:none;">
-          <img src="{{ video.thumbnail_url }}" alt="{{ video.title | striptags }}" width="100%" style="width:100%;height:auto;display:block;border:1px solid #d4c9b0;" />
-        </a>
-        <span style="font-family:Arial,Helvetica,sans-serif;font-size:9px;font-weight:bold;background-color:#c8102e;color:#ffffff;padding:3px 7px;letter-spacing:2px;text-transform:uppercase;display:inline-block;margin-bottom:7px;">VIDEO</span>
-        {% endif %}
-        <a href="{{ video.url or '#' }}" style="font-family:Georgia,'Times New Roman',serif;font-size:14px;font-weight:bold;color:#1a1208;text-decoration:none;line-height:1.3;display:block;">{{ video.title }}</a>
-        {% if video.channel %}<p style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#8b7355;margin:5px 0 0 0;text-transform:uppercase;letter-spacing:1px;">{{ video.channel }}</p>{% endif %}
-      </td>
-      {% if has_second %}
-      <td style="width:4px;border-left:1px solid #d4c9b0;font-size:1px;line-height:1px;">&nbsp;</td>
-      <td style="width:48%;vertical-align:top;padding-left:16px;">
-        {% set video = pair[1] %}
-        {% if video.thumbnail_url %}
-        <a href="{{ video.url or '#' }}" style="display:block;margin-bottom:8px;text-decoration:none;">
-          <img src="{{ video.thumbnail_url }}" alt="{{ video.title | striptags }}" width="100%" style="width:100%;height:auto;display:block;border:1px solid #d4c9b0;" />
-        </a>
-        <span style="font-family:Arial,Helvetica,sans-serif;font-size:9px;font-weight:bold;background-color:#c8102e;color:#ffffff;padding:3px 7px;letter-spacing:2px;text-transform:uppercase;display:inline-block;margin-bottom:7px;">VIDEO</span>
-        {% endif %}
-        <a href="{{ video.url or '#' }}" style="font-family:Georgia,'Times New Roman',serif;font-size:14px;font-weight:bold;color:#1a1208;text-decoration:none;line-height:1.3;display:block;">{{ video.title }}</a>
-        {% if video.channel %}<p style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#8b7355;margin:5px 0 0 0;text-transform:uppercase;letter-spacing:1px;">{{ video.channel }}</p>{% endif %}
-      </td>
-      {% endif %}
-    </tr>
-    {% if not loop.last %}
-    <tr><td colspan="{% if has_second %}3{% else %}1{% endif %}" style="border-top:1px solid #d4c9b0;font-size:1px;line-height:1px;padding:0;">&nbsp;</td></tr>
-    {% endif %}
-  </table>
-  {% endfor %}
-</td>
-</tr>
-{% endif %}
-
-{% if twitter %}
-<!-- SECTION RULE -->
-<tr>
-<td style="padding-top:6px;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0">
-    <tr><td style="border-top:3px solid #1a1208;font-size:1px;line-height:1px;">&nbsp;</td></tr>
-    <tr><td style="border-top:1px solid #d4c9b0;font-size:3px;line-height:3px;">&nbsp;</td></tr>
-  </table>
-</td>
-</tr>
-
-<!-- TWITTER / X PULSE -->
-<tr>
-<td style="padding-top:18px;">
-  <div style="border-left:4px solid #c8102e;padding-left:12px;margin-bottom:14px;">
-    <span style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;color:#c8102e;letter-spacing:3px;text-transform:uppercase;">TWITTER / X PULSE</span>
-  </div>
-  {% if twitter.top_tweets %}
-  {% for tweet in twitter.top_tweets %}
-  <table width="100%" cellpadding="12" cellspacing="0" border="0" style="background-color:#ffffff;border:1px solid #d4c9b0;margin-bottom:8px;">
-    <tr>
-      <td>
-        <p style="font-family:Georgia,'Times New Roman',serif;font-size:14px;color:#1a1208;line-height:1.55;margin:0;font-style:italic;">&ldquo;{{ tweet }}&rdquo;</p>
-      </td>
-    </tr>
-  </table>
-  {% endfor %}
-  {% endif %}
-  {% if twitter.breaking %}
-  <p style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#2d2416;margin:10px 0 0 0;line-height:1.5;"><strong style="color:#1a1208;">Breaking:</strong> {{ twitter.breaking }}</p>
-  {% endif %}
-  {% if twitter.themes %}
-  <p style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#8b7355;margin:8px 0 0 0;"><strong style="color:#1a1208;">Trending themes:</strong> {{ twitter.themes }}</p>
-  {% endif %}
-</td>
-</tr>
-{% endif %}
-
-{% if editors_take %}
-<!-- SECTION RULE -->
-<tr>
-<td style="padding-top:18px;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0">
-    <tr><td style="border-top:3px solid #1a1208;font-size:1px;line-height:1px;">&nbsp;</td></tr>
-    <tr><td style="border-top:1px solid #d4c9b0;font-size:3px;line-height:3px;">&nbsp;</td></tr>
-  </table>
-</td>
-</tr>
-
-<!-- EDITOR'S TAKE -->
-<tr>
-<td style="padding-top:18px;">
-  <table width="100%" cellpadding="24" cellspacing="0" border="0" style="background-color:#1a1208;">
-    <tr>
-      <td>
-        <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;color:#c8102e;letter-spacing:3px;text-transform:uppercase;margin-bottom:14px;">EDITOR&rsquo;S TAKE</div>
-        <table width="100%" cellpadding="0" cellspacing="0" border="0">
-          <tr>
-            <td style="width:4px;background-color:#c8102e;font-size:1px;line-height:1px;">&nbsp;</td>
-            <td style="padding-left:16px;">
-              <p style="font-family:Georgia,'Times New Roman',serif;font-size:16px;color:#f5f0e8;line-height:1.7;margin:0;font-style:italic;">{{ editors_take }}</p>
-            </td>
+            {% endif %}
           </tr>
         </table>
       </td>
     </tr>
   </table>
+
 </td>
 </tr>
-{% endif %}
-
-<!-- ============================================================ -->
-<!-- FOOTER                                                         -->
-<!-- ============================================================ -->
-<tr>
-<td style="padding-top:24px;padding-bottom:24px;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px;">
-    <tr><td style="border-top:3px solid #1a1208;font-size:1px;line-height:1px;">&nbsp;</td></tr>
-    <tr><td style="border-top:1px solid #d4c9b0;font-size:3px;line-height:3px;">&nbsp;</td></tr>
-  </table>
-  <table width="100%" cellpadding="0" cellspacing="0" border="0">
-    <tr valign="middle">
-      <td>
-        <div style="font-family:Georgia,'Times New Roman',serif;font-size:18px;font-weight:bold;color:#1a1208;letter-spacing:-0.5px;">THE SIGNAL</div>
-        <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#8b7355;margin-top:4px;text-transform:uppercase;letter-spacing:1px;">{{ date }} &middot; AI &amp; Technology Digest</div>
-      </td>
-      {% if pdf_url or image_url %}
-      <td align="right">
-        {% if pdf_url %}<a href="{{ pdf_url }}" style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#c8102e;text-decoration:none;font-weight:bold;text-transform:uppercase;letter-spacing:1px;margin-left:16px;">PDF Version</a>{% endif %}
-        {% if image_url %}<a href="{{ image_url }}" style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#c8102e;text-decoration:none;font-weight:bold;text-transform:uppercase;letter-spacing:1px;margin-left:16px;">Share Image</a>{% endif %}
-      </td>
-      {% endif %}
-    </tr>
-  </table>
-</td>
-</tr>
-
-<!-- /CONTAINER -->
 </table>
 
 </td>

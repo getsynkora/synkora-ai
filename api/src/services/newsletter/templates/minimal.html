@@ -3,127 +3,218 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
 <title>The Signal &mdash; {{ date }}</title>
+<!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><![endif]-->
 <style>
-  body { margin: 0; padding: 0; background: #ffffff; font-family: Arial, Helvetica, sans-serif; color: #111111; }
-  a { color: #0066cc; }
-  h1, h2, h3 { font-family: Georgia, 'Times New Roman', serif; }
-  .section { border-top: 2px solid #111111; padding-top: 16px; margin-top: 24px; }
-  .section-label { font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; color: #666666; margin-bottom: 12px; }
-  .item { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid #eeeeee; }
-  .item:last-child { border-bottom: none; }
-  .meta { font-size: 11px; color: #888888; margin-top: 4px; }
+  body, table, td, p, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+  body { margin: 0; padding: 0; background: #fcfaf5; }
+  img { border: 0; line-height: 100%; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
+  a { color: #171717; }
+  a:hover { text-decoration: underline; }
 </style>
 </head>
-<body style="margin:0;padding:0;background:#ffffff;">
-<table width="100%" cellpadding="0" cellspacing="0" border="0">
-<tr><td align="center" style="padding:20px 10px;">
+<body style="margin:0;padding:0;background-color:#fcfaf5;">
+
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#fcfaf5;">
+<tr>
+<td align="center" style="padding:24px 12px;">
+
 <table width="{{ container_width }}" cellpadding="0" cellspacing="0" border="0" style="max-width:{{ container_width }}px;width:100%;">
+<tr>
+<td style="border:1px solid #e7ddcf;background-color:#fffdf9;padding:0 28px;">
 
-<!-- Masthead -->
-<tr><td style="border-top:3px solid #111111;padding-top:16px;padding-bottom:16px;">
-  <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:36px;font-weight:bold;color:#111111;margin:0;letter-spacing:-1px;">The Signal</h1>
-  <p style="font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#666666;margin:6px 0 0 0;">{{ date }} &middot; {{ edition }} &middot; AI &amp; Technology</p>
-</td></tr>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+    <tr>
+      <td style="padding:18px 0 0 0;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td style="height:4px;background-color:#171717;font-size:1px;line-height:1px;">&nbsp;</td>
+          </tr>
+          <tr>
+            <td style="height:3px;background-color:#7de5c1;font-size:1px;line-height:1px;">&nbsp;</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:22px 0 18px 0;">
+        <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2.6px;text-transform:uppercase;color:#6b645a;">Digest Layout</div>
+        <div style="font-family:Georgia,'Times New Roman',serif;font-size:34px;font-weight:bold;letter-spacing:-1px;line-height:1.05;color:#171717;margin-top:10px;">The Signal</div>
+        <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:#6f675d;margin-top:8px;">
+          {{ date }} &nbsp;&middot;&nbsp; {{ edition }} &nbsp;&middot;&nbsp; Clean platform briefing
+        </div>
+      </td>
+    </tr>
+  </table>
 
-{% if lead_headline %}
-<!-- Lead Story -->
-<tr><td class="section">
-  <div class="section-label">Lead Story</div>
-  <h2 style="font-family:Georgia,'Times New Roman',serif;font-size:22px;color:#111111;margin:0 0 8px 0;"><a href="{{ lead_url }}" style="color:#111111;text-decoration:none;">{{ lead_headline }}</a></h2>
-  <p style="font-size:14px;line-height:1.6;color:#333333;margin:0;">{{ lead_summary }}</p>
-  {% if lead_why_it_matters %}
-  <p style="font-size:13px;line-height:1.5;color:#555555;margin:10px 0 0 0;font-style:italic;"><strong>Why it matters:</strong> {{ lead_why_it_matters }}</p>
+  {% if lead_headline %}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #e9e0d4;">
+    <tr>
+      <td style="padding:22px 0 0 0;">
+        <span style="display:inline-block;background-color:#eef8f3;border:1px solid #d8ece1;padding:5px 10px;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;color:#2d8b69;">Lead Story</span>
+        <div style="margin-top:14px;">
+          <a href="{{ lead_url or '#' }}" style="font-family:Georgia,'Times New Roman',serif;font-size:27px;font-weight:bold;line-height:1.25;color:#171717;text-decoration:none;">{{ lead_headline }}</a>
+        </div>
+        {% if lead_image_url %}
+        <div style="margin-top:16px;">
+          <img src="{{ lead_image_url }}" alt="{{ lead_headline | striptags }}" width="{{ container_width }}" style="width:100%;max-width:{{ container_width }}px;height:auto;display:block;" />
+        </div>
+        {% endif %}
+        <p style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.75;color:#413a33;margin:16px 0 0 0;">{{ lead_summary }}</p>
+        {% if lead_why_it_matters %}
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:16px;background-color:#f4efe5;border-left:3px solid #171717;">
+          <tr>
+            <td style="padding:14px 16px;">
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;color:#6b645a;margin-bottom:6px;">Why it matters</div>
+              <p style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:1.7;color:#171717;margin:0;font-style:italic;">{{ lead_why_it_matters }}</p>
+            </td>
+          </tr>
+        </table>
+        {% endif %}
+        <p style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#7a7166;letter-spacing:1px;text-transform:uppercase;margin:12px 0 0 0;">{{ lead_source }}</p>
+      </td>
+    </tr>
+  </table>
   {% endif %}
-  <p class="meta">{{ lead_source }} &middot; <a href="{{ lead_url }}">Read more &rarr;</a></p>
-</td></tr>
-{% endif %}
 
-{% if news_items %}
-<tr><td class="section">
-  <div class="section-label">Today in Tech</div>
-  {% for item in news_items %}
-  <div class="item">
-    <a href="{{ item.url or '#' }}" style="font-family:Georgia,'Times New Roman',serif;font-size:15px;font-weight:bold;color:#111111;text-decoration:none;">{{ item.title }}</a>
-    {% if item.summary %}<p style="font-size:12px;color:#444444;line-height:1.5;margin:4px 0 0 0;">{{ item.summary | truncate(160, false, '&hellip;') }}</p>{% endif %}
-    <p class="meta">{{ item.source or '' }}{% if item.score %} &middot; {{ item.score }} pts{% endif %}</p>
-  </div>
-  {% endfor %}
-</td></tr>
-{% endif %}
-
-{% if github_items %}
-<tr><td class="section">
-  <div class="section-label">GitHub Trending</div>
-  {% for repo in github_items %}
-  <div class="item">
-    <a href="{{ repo.url or '#' }}" style="font-weight:bold;color:#111111;">{{ repo.name }}</a>
-    {% if repo.language %}<span class="meta" style="margin-left:8px;">{{ repo.language }}</span>{% endif %}
-    {% if repo.description %}<p style="font-size:12px;color:#555555;margin:3px 0 0 0;">{{ repo.description | truncate(120, false, '&hellip;') }}</p>{% endif %}
-    <p class="meta">+{{ repo.stars_today or 0 }} stars today</p>
-  </div>
-  {% endfor %}
-</td></tr>
-{% endif %}
-
-{% if papers %}
-<tr><td class="section">
-  <div class="section-label">Research</div>
-  {% for paper in papers %}
-  <div class="item">
-    <a href="{{ paper.url or '#' }}" style="font-family:Georgia,'Times New Roman',serif;font-weight:bold;color:#111111;font-size:14px;">{{ paper.title }}</a>
-    {% if paper.summary %}<p style="font-size:12px;color:#444444;line-height:1.5;margin:4px 0 0 0;">{{ paper.summary | truncate(200, false, '&hellip;') }}</p>{% endif %}
-  </div>
-  {% endfor %}
-</td></tr>
-{% endif %}
-
-{% if products %}
-<tr><td class="section">
-  <div class="section-label">Product Launches</div>
-  {% for product in products %}
-  <div class="item">
-    <a href="{{ product.url or '#' }}" style="font-weight:bold;color:#111111;font-size:14px;">{{ product.name }}</a>
-    {% if product.tagline %}<span style="font-size:13px;color:#444444;margin-left:6px;">&mdash; {{ product.tagline }}</span>{% endif %}
-    {% if product.upvotes %}<p class="meta">&#9650; {{ product.upvotes }} upvotes</p>{% endif %}
-  </div>
-  {% endfor %}
-</td></tr>
-{% endif %}
-
-{% if youtube_items %}
-<tr><td class="section">
-  <div class="section-label">Must Watch</div>
-  {% for video in youtube_items %}
-  <div class="item">
-    <a href="{{ video.url or '#' }}" style="font-weight:bold;color:#111111;font-size:14px;">{{ video.title }}</a>
-    {% if video.channel %}<p class="meta">{{ video.channel }}</p>{% endif %}
-  </div>
-  {% endfor %}
-</td></tr>
-{% endif %}
-
-{% if editors_take %}
-<tr><td class="section">
-  <div class="section-label">Editor's Take</div>
-  <p style="font-family:Georgia,'Times New Roman',serif;font-size:15px;color:#111111;line-height:1.65;font-style:italic;margin:0;">{{ editors_take }}</p>
-</td></tr>
-{% endif %}
-
-<!-- Footer -->
-<tr><td style="border-top:2px solid #111111;padding-top:14px;padding-bottom:20px;margin-top:24px;">
-  <p style="font-family:Georgia,'Times New Roman',serif;font-size:16px;font-weight:bold;color:#111111;margin:0;">The Signal</p>
-  <p style="font-size:11px;color:#888888;margin:4px 0 0 0;">{{ date }} &middot; AI &amp; Technology Digest</p>
-  {% if pdf_url or image_url %}
-  <p style="font-size:12px;margin:10px 0 0 0;">
-    {% if pdf_url %}<a href="{{ pdf_url }}" style="color:#0066cc;margin-right:12px;">PDF Version</a>{% endif %}
-    {% if image_url %}<a href="{{ image_url }}" style="color:#0066cc;">Share Image</a>{% endif %}
-  </p>
+  {% if news_items %}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #e9e0d4;margin-top:24px;">
+    <tr>
+      <td style="padding-top:18px;">
+        <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2.4px;text-transform:uppercase;color:#6b645a;margin-bottom:14px;">Today in Tech</div>
+        {% for item in news_items %}
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="{% if not loop.last %}border-bottom:1px solid #ece3d7;{% endif %}">
+          <tr>
+            <td style="padding:0 0 16px 0;{% if not loop.first %}padding-top:16px;{% endif %}">
+              <a href="{{ item.url or '#' }}" style="font-family:Georgia,'Times New Roman',serif;font-size:18px;font-weight:bold;line-height:1.35;color:#171717;text-decoration:none;">{{ item.title }}</a>
+              {% if item.summary %}<p style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.7;color:#4e463d;margin:8px 0 0 0;">{{ item.summary | truncate(180, false, '&hellip;') }}</p>{% endif %}
+              <p style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#7a7166;letter-spacing:1px;text-transform:uppercase;margin:8px 0 0 0;">{{ item.source or '' }}{% if item.score %} &middot; {{ item.score }} pts{% endif %}</p>
+            </td>
+          </tr>
+        </table>
+        {% endfor %}
+      </td>
+    </tr>
+  </table>
   {% endif %}
-</td></tr>
 
+  {% if github_items %}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #e9e0d4;margin-top:24px;">
+    <tr>
+      <td style="padding-top:18px;">
+        <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2.4px;text-transform:uppercase;color:#6b645a;margin-bottom:14px;">GitHub Trending</div>
+        {% for repo in github_items %}
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="{% if not loop.last %}border-bottom:1px solid #ece3d7;{% endif %}">
+          <tr>
+            <td style="padding:0 0 14px 0;{% if not loop.first %}padding-top:14px;{% endif %}">
+              <a href="{{ repo.url or '#' }}" style="font-family:Georgia,'Times New Roman',serif;font-size:17px;font-weight:bold;color:#171717;text-decoration:none;">{{ repo.name }}</a>
+              {% if repo.language %}<span style="font-family:Arial,Helvetica,sans-serif;font-size:10px;color:#2d8b69;letter-spacing:1.4px;text-transform:uppercase;margin-left:8px;">{{ repo.language }}</span>{% endif %}
+              {% if repo.description %}<p style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.65;color:#4e463d;margin:6px 0 0 0;">{{ repo.description | truncate(120, false, '&hellip;') }}</p>{% endif %}
+              <p style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#7a7166;margin:6px 0 0 0;">+{{ repo.stars_today or 0 }} stars today</p>
+            </td>
+          </tr>
+        </table>
+        {% endfor %}
+      </td>
+    </tr>
+  </table>
+  {% endif %}
+
+  {% if papers %}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #e9e0d4;margin-top:24px;">
+    <tr>
+      <td style="padding-top:18px;">
+        <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2.4px;text-transform:uppercase;color:#6b645a;margin-bottom:14px;">Research</div>
+        {% for paper in papers %}
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="{% if not loop.last %}border-bottom:1px solid #ece3d7;{% endif %}">
+          <tr>
+            <td style="padding:0 0 14px 0;{% if not loop.first %}padding-top:14px;{% endif %}">
+              <a href="{{ paper.url or '#' }}" style="font-family:Georgia,'Times New Roman',serif;font-size:17px;font-weight:bold;color:#171717;text-decoration:none;">{{ paper.title }}</a>
+              {% if paper.summary %}<p style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.7;color:#4e463d;margin:7px 0 0 0;">{{ paper.summary | truncate(200, false, '&hellip;') }}</p>{% endif %}
+            </td>
+          </tr>
+        </table>
+        {% endfor %}
+      </td>
+    </tr>
+  </table>
+  {% endif %}
+
+  {% if products %}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #e9e0d4;margin-top:24px;">
+    <tr>
+      <td style="padding-top:18px;">
+        <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2.4px;text-transform:uppercase;color:#6b645a;margin-bottom:14px;">Product Launches</div>
+        {% for product in products %}
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="{% if not loop.last %}border-bottom:1px solid #ece3d7;{% endif %}">
+          <tr>
+            <td style="padding:0 0 14px 0;{% if not loop.first %}padding-top:14px;{% endif %}">
+              <a href="{{ product.url or '#' }}" style="font-family:Georgia,'Times New Roman',serif;font-size:17px;font-weight:bold;color:#171717;text-decoration:none;">{{ product.name }}</a>
+              {% if product.tagline %}<p style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.65;color:#4e463d;margin:6px 0 0 0;">{{ product.tagline }}</p>{% endif %}
+              {% if product.upvotes %}<p style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#7a7166;margin:6px 0 0 0;">&#9650; {{ product.upvotes }} upvotes</p>{% endif %}
+            </td>
+          </tr>
+        </table>
+        {% endfor %}
+      </td>
+    </tr>
+  </table>
+  {% endif %}
+
+  {% if youtube_items %}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #e9e0d4;margin-top:24px;">
+    <tr>
+      <td style="padding-top:18px;">
+        <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2.4px;text-transform:uppercase;color:#6b645a;margin-bottom:14px;">Must Watch</div>
+        {% for video in youtube_items %}
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="{% if not loop.last %}border-bottom:1px solid #ece3d7;{% endif %}">
+          <tr>
+            <td style="padding:0 0 14px 0;{% if not loop.first %}padding-top:14px;{% endif %}">
+              <a href="{{ video.url or '#' }}" style="font-family:Georgia,'Times New Roman',serif;font-size:17px;font-weight:bold;color:#171717;text-decoration:none;">{{ video.title }}</a>
+              {% if video.channel %}<p style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#7a7166;letter-spacing:1px;text-transform:uppercase;margin:6px 0 0 0;">{{ video.channel }}</p>{% endif %}
+            </td>
+          </tr>
+        </table>
+        {% endfor %}
+      </td>
+    </tr>
+  </table>
+  {% endif %}
+
+  {% if editors_take %}
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #e9e0d4;margin-top:24px;">
+    <tr>
+      <td style="padding:18px 0 0 0;">
+        <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;letter-spacing:2.4px;text-transform:uppercase;color:#6b645a;margin-bottom:14px;">Editor's Take</div>
+        <p style="font-family:Georgia,'Times New Roman',serif;font-size:17px;line-height:1.75;color:#171717;margin:0 0 6px 0;font-style:italic;">{{ editors_take }}</p>
+      </td>
+    </tr>
+  </table>
+  {% endif %}
+
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid #e9e0d4;margin-top:28px;">
+    <tr>
+      <td style="padding:18px 0 22px 0;">
+        <div style="font-family:Georgia,'Times New Roman',serif;font-size:18px;font-weight:bold;color:#171717;">The Signal</div>
+        <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#7a7166;letter-spacing:1px;text-transform:uppercase;margin-top:4px;">{{ date }} &middot; Clean platform digest</div>
+        {% if pdf_url or image_url %}
+        <p style="margin:12px 0 0 0;">
+          {% if pdf_url %}<a href="{{ pdf_url }}" style="font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#2d8b69;text-decoration:none;letter-spacing:1px;text-transform:uppercase;margin-right:14px;">PDF Version</a>{% endif %}
+          {% if image_url %}<a href="{{ image_url }}" style="font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;color:#2d8b69;text-decoration:none;letter-spacing:1px;text-transform:uppercase;">Share Image</a>{% endif %}
+        </p>
+        {% endif %}
+      </td>
+    </tr>
+  </table>
+
+</td>
+</tr>
 </table>
-</td></tr>
+
+</td>
+</tr>
 </table>
+
 </body>
 </html>

@@ -1,0 +1,107 @@
+<svg width="1600" height="980" viewBox="0 0 1600 980" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="140" y1="60" x2="1440" y2="920" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FBF6EC"/>
+      <stop offset="1" stop-color="#F3ECDD"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="16" stdDeviation="22" flood-color="#171717" flood-opacity="0.08"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+      <path d="M1 1L11 6L1 11V1Z" fill="#FF5F8F"/>
+    </marker>
+    <style>
+      .kicker { font: 700 16px Arial, sans-serif; letter-spacing: 0.24em; text-transform: uppercase; fill: #7A736A; }
+      .title { font: 700 44px Arial, sans-serif; fill: #171717; }
+      .subtitle { font: 400 22px Arial, sans-serif; fill: #5B564E; }
+      .card { fill: #FFFFFF; fill-opacity: 0.9; stroke: #171717; stroke-opacity: 0.08; stroke-width: 2; }
+      .cardDark { fill: #171717; }
+      .cardMint { fill: #79DFBC; fill-opacity: 0.22; stroke: #171717; stroke-opacity: 0.08; stroke-width: 2; }
+      .titleSm { font: 700 24px Arial, sans-serif; fill: #171717; }
+      .titleSmDark { font: 700 24px Arial, sans-serif; fill: #F7F2E7; }
+      .text { font: 400 18px Arial, sans-serif; fill: #5B564E; }
+      .textDark { font: 400 18px Arial, sans-serif; fill: #D8D0C4; }
+      .list { font: 400 17px Arial, sans-serif; fill: #5B564E; }
+      .line { stroke: #FF5F8F; stroke-width: 6; stroke-linecap: round; marker-end: url(#arrow); }
+      .lineMint { stroke: #79DFBC; stroke-width: 6; stroke-linecap: round; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect width="1600" height="980" rx="40" fill="url(#bg)"/>
+  <circle cx="1322" cy="120" r="150" fill="#FFF8ED"/>
+  <circle cx="198" cy="870" r="132" fill="#EEE4CF"/>
+
+  <text x="120" y="104" class="kicker">Backend Architecture</text>
+  <text x="120" y="166" class="title">Request path, orchestration, and runtime services</text>
+  <text x="120" y="208" class="subtitle">The FastAPI backend is organized around middleware, auth, thin controllers, service orchestration, and async execution.</text>
+
+  <rect x="120" y="276" width="1010" height="566" rx="34" class="card" filter="url(#shadow)"/>
+  <rect x="1164" y="276" width="316" height="566" rx="34" class="card" filter="url(#shadow)"/>
+
+  <rect x="156" y="330" width="194" height="94" rx="26" class="cardDark"/>
+  <text x="188" y="382" class="titleSmDark">Clients</text>
+  <text x="188" y="408" class="textDark">web app, widget, public surfaces</text>
+
+  <rect x="390" y="330" width="246" height="94" rx="26" class="card"/>
+  <text x="424" y="382" class="titleSm">Middleware</text>
+  <text x="424" y="408" class="text">size limits, security, CORS, rate limiting</text>
+
+  <rect x="676" y="330" width="254" height="94" rx="26" class="card"/>
+  <text x="710" y="382" class="titleSm">Auth + Tenant Context</text>
+  <text x="710" y="408" class="text">JWT decode, Redis revocation, role, tenant</text>
+
+  <rect x="212" y="490" width="244" height="100" rx="28" class="cardWhite card"/>
+  <text x="246" y="542" class="titleSm">Controllers</text>
+  <text x="246" y="568" class="text">HTTP boundaries and response shaping</text>
+
+  <rect x="496" y="476" width="402" height="128" rx="30" class="cardMint"/>
+  <text x="530" y="530" class="titleSm">Services</text>
+  <text x="530" y="558" class="text">agents, chat, knowledge, tools, integrations, billing,</text>
+  <text x="530" y="584" class="text">compute, webhooks, SSO, messaging bots, observability</text>
+
+  <rect x="156" y="676" width="206" height="108" rx="28" class="card"/>
+  <text x="190" y="730" class="titleSm">PostgreSQL</text>
+  <text x="190" y="756" class="text">system of record + pgvector</text>
+
+  <rect x="390" y="676" width="202" height="108" rx="28" class="card"/>
+  <text x="424" y="730" class="titleSm">Redis</text>
+  <text x="424" y="756" class="text">cache, pub/sub, token state</text>
+
+  <rect x="620" y="676" width="212" height="108" rx="28" class="card"/>
+  <text x="654" y="730" class="titleSm">Search + Vector</text>
+  <text x="654" y="756" class="text">Qdrant, Pinecone, Elasticsearch</text>
+
+  <rect x="860" y="676" width="234" height="108" rx="28" class="card"/>
+  <text x="894" y="730" class="titleSm">Storage + Providers</text>
+  <text x="894" y="756" class="text">S3, LLM APIs, email, Slack, Telegram</text>
+
+  <path d="M352 378H384" class="line"/>
+  <path d="M638 378H670" class="line"/>
+  <path d="M804 424V466" class="line"/>
+  <path d="M334 426V478" class="line"/>
+  <path d="M456 540H490" class="line"/>
+  <path d="M622 606V668" class="lineMint"/>
+  <path d="M504 606L490 666" class="lineMint"/>
+  <path d="M706 606V668" class="lineMint"/>
+  <path d="M792 606L864 666" class="lineMint"/>
+
+  <rect x="1200" y="326" width="244" height="86" rx="26" class="cardDark"/>
+  <text x="1232" y="376" class="titleSmDark">Startup lifecycle</text>
+  <text x="1232" y="402" class="textDark">pool warm-up, subscribers, encryption</text>
+
+  <rect x="1200" y="442" width="244" height="116" rx="28" class="card"/>
+  <text x="1232" y="492" class="titleSm">Distributed runtime</text>
+  <text x="1232" y="520" class="text">WebSocket pub/sub</text>
+  <text x="1232" y="546" class="text">cache invalidation across pods</text>
+
+  <rect x="1200" y="588" width="244" height="176" rx="28" class="card"/>
+  <text x="1232" y="638" class="titleSm">Async execution</text>
+  <text x="1232" y="670" class="list">• Celery workers</text>
+  <text x="1232" y="698" class="list">• Beat schedules</text>
+  <text x="1232" y="726" class="list">• billing queue</text>
+  <text x="1232" y="754" class="list">• agent queue</text>
+  <text x="1232" y="782" class="list">• bot worker service</text>
+
+  <path d="M900 542H1170" class="line"/>
+  <path d="M1040 730H1170" class="lineMint"/>
+</svg>

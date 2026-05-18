@@ -72,7 +72,7 @@ export function ChatPanel({ agent, pageUrl, contextAvailable }: Props) {
   })();
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 bg-white">
+    <div className="flex flex-col flex-1 min-h-0 bg-brand-panel">
 
       {/* Messages / Welcome */}
       <div ref={messagesRef} className="flex-1 min-h-0 overflow-y-auto scroll-smooth">
@@ -91,22 +91,22 @@ export function ChatPanel({ agent, pageUrl, contextAvailable }: Props) {
 
       {/* Error */}
       {error && (
-        <div className="mx-3 mb-2 px-3 py-2 bg-red-50 border border-red-100 rounded-xl text-xs text-red-600 flex items-center justify-between animate-fade-in">
+        <div className="mx-3 mb-2 px-3 py-2 bg-[#fff2ec] border border-[#f2d1bd] rounded-2xl text-xs text-[#8b3f1e] flex items-center justify-between animate-fade-in">
           <span>{error}</span>
-          <button onClick={() => handleSend()} className="font-semibold underline ml-2 hover:text-red-700">Retry</button>
+          <button onClick={() => handleSend()} className="font-semibold underline ml-2 hover:text-[#6e2e13]">Retry</button>
         </div>
       )}
 
       {/* Bottom bar */}
-      <div className="border-t border-gray-100 bg-white px-3 pt-2.5 pb-3">
+      <div className="border-t border-brand-line bg-brand-panel px-3 pt-3 pb-3">
         {/* Toolbar row */}
         <div className="flex items-center gap-2 mb-2">
           {/* Context indicator */}
           {hostname && (
-            <div className={`flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border ${
+            <div className={`flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full border ${
               contextAvailable
-                ? 'border-synkora-200 text-synkora-600 bg-synkora-50'
-                : 'border-gray-200 text-gray-400 bg-white'
+                ? 'border-synkora-200 text-synkora-700 bg-synkora-50'
+                : 'border-brand-line text-brand-muted bg-brand-panel'
             }`}>
               {contextAvailable ? <Globe size={10} /> : <FileText size={10} />}
               <span className="truncate max-w-[100px]">{hostname}</span>
@@ -116,7 +116,7 @@ export function ChatPanel({ agent, pageUrl, contextAvailable }: Props) {
           {!isEmpty && (
             <button
               onClick={() => clearConversation(convKey)}
-              className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-red-400 transition-colors"
+              className="flex items-center gap-1 text-[11px] text-brand-muted hover:text-[#b35630] transition-colors"
             >
               <Trash2 size={11} />
               Clear
@@ -125,10 +125,10 @@ export function ChatPanel({ agent, pageUrl, contextAvailable }: Props) {
         </div>
 
         {/* Input */}
-        <div className={`flex items-end gap-2 bg-gray-50 border rounded-2xl px-3.5 py-2.5 transition-all duration-150 ${
+        <div className={`flex items-end gap-2 bg-brand-surface border rounded-[24px] px-3.5 py-2.5 transition-all duration-150 ${
           isStreaming
-            ? 'border-synkora-300 bg-synkora-50/30'
-            : 'border-gray-200 focus-within:border-synkora-400 focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(59,92,230,0.08)]'
+            ? 'border-synkora-300 bg-synkora-50/50'
+            : 'border-brand-line focus-within:border-synkora-400 focus-within:bg-brand-panel focus-within:shadow-[0_0_0_3px_rgba(121,223,188,0.18)]'
         }`}>
           <textarea
             ref={textareaRef}
@@ -138,17 +138,17 @@ export function ChatPanel({ agent, pageUrl, contextAvailable }: Props) {
             placeholder={`Message ${agent.name}…`}
             rows={1}
             disabled={isStreaming}
-            className="flex-1 resize-none bg-transparent text-[14px] text-gray-900 placeholder-gray-400 outline-none leading-relaxed min-h-[20px] font-sans"
+            className="flex-1 resize-none bg-transparent text-[14px] text-brand-ink placeholder:text-brand-muted/80 outline-none leading-relaxed min-h-[20px] font-sans"
           />
           <button
             onClick={isStreaming ? stop : () => handleSend()}
             disabled={!isStreaming && !input.trim()}
             className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-150 ${
               isStreaming
-                ? 'bg-red-500 text-white hover:bg-red-600 shadow-sm'
+                ? 'bg-[#b35630] text-white hover:bg-[#944726] shadow-sm'
                 : input.trim()
-                ? 'bg-synkora-600 text-white hover:bg-synkora-700 shadow-sm active:scale-95'
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                ? 'bg-synkora-500 text-brand-ink hover:bg-synkora-400 shadow-sm active:scale-95'
+                : 'bg-[#e5ddcf] text-brand-muted/70 cursor-not-allowed'
             }`}
           >
             {isStreaming
@@ -157,7 +157,7 @@ export function ChatPanel({ agent, pageUrl, contextAvailable }: Props) {
             }
           </button>
         </div>
-        <p className="text-[10px] text-gray-300 mt-1.5 text-center tracking-tight">
+        <p className="text-[10px] text-brand-muted/60 mt-1.5 text-center tracking-tight">
           Enter to send · Shift+Enter for new line
         </p>
       </div>
@@ -179,32 +179,32 @@ function WelcomeScreen({
     : [{ icon: '✦', label: `What can you help me with?` }, { icon: '?', label: 'What are your capabilities?' }];
 
   return (
-    <div className="flex flex-col items-center px-5 pt-10 pb-4 text-center animate-fade-in">
+    <div className="flex flex-col items-center px-5 pt-10 pb-5 text-center animate-fade-in">
       {/* Agent icon */}
       <div className="relative mb-4">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-synkora-500 to-synkora-700 flex items-center justify-center shadow-card">
+        <div className="w-16 h-16 rounded-[22px] bg-gradient-to-br from-synkora-300 via-synkora-400 to-synkora-600 flex items-center justify-center shadow-card ring-1 ring-white/70">
           {agent.avatar_url ? (
-            <img src={agent.avatar_url} alt={agent.name} className="w-full h-full rounded-2xl object-cover" />
+            <img src={agent.avatar_url} alt={agent.name} className="w-full h-full rounded-[22px] object-cover" />
           ) : (
-            <Sparkles size={28} className="text-white" strokeWidth={1.5} />
+            <Sparkles size={28} className="text-brand-ink" strokeWidth={1.5} />
           )}
         </div>
-        <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-400 rounded-full border-2 border-white" />
+        <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-synkora-400 rounded-full border-2 border-brand-panel" />
       </div>
 
       {/* Heading */}
-      <h2 className="text-[16px] font-semibold text-gray-900 mb-1 tracking-tight">
+      <h2 className="text-[16px] font-semibold text-brand-ink mb-1 tracking-tight">
         Hi, I'm {agent.name}
       </h2>
-      <p className="text-[13px] text-gray-500 leading-relaxed mb-1">
+      <p className="text-[13px] text-brand-muted leading-relaxed mb-1">
         {agent.description
           ? agent.description
           : 'Your AI assistant — ask me anything.'}
       </p>
       {hostname && (
-        <p className="text-[11px] text-gray-400 mb-6 flex items-center gap-1">
+        <p className="text-[11px] text-brand-muted/80 mb-6 flex items-center gap-1">
           {contextAvailable ? (
-            <><Globe size={10} className="text-synkora-400" /> I can see <span className="font-medium text-gray-500">{hostname}</span></>
+            <><Globe size={10} className="text-synkora-500" /> I can see <span className="font-medium text-brand-ink">{hostname}</span></>
           ) : (
             <><FileText size={10} /> No page context on this tab</>
           )}
@@ -218,10 +218,10 @@ function WelcomeScreen({
             key={s.label}
             onClick={() => onSuggestion(s.label)}
             disabled={isStreaming}
-            className="flex flex-col items-start gap-1.5 p-3 bg-gray-50 hover:bg-synkora-50 border border-gray-100 hover:border-synkora-200 rounded-xl text-left transition-all duration-150 active:scale-[0.97] disabled:opacity-50 group"
+            className="flex flex-col items-start gap-1.5 p-3 bg-brand-panel hover:bg-synkora-50 border border-brand-line hover:border-synkora-200 rounded-2xl text-left transition-all duration-150 active:scale-[0.97] disabled:opacity-50 group shadow-soft"
           >
             <span className="text-base leading-none">{s.icon}</span>
-            <span className="text-[12px] text-gray-600 group-hover:text-synkora-700 font-medium leading-tight">{s.label}</span>
+            <span className="text-[12px] text-brand-muted group-hover:text-brand-ink font-medium leading-tight">{s.label}</span>
           </button>
         ))}
       </div>
