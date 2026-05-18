@@ -2,133 +2,54 @@
 sidebar_position: 8
 ---
 
-# Multi-Tenancy Design
+# Multi-Tenant Architecture
 
-Data isolation and tenant management architecture.
+Multi-tenancy in Synkora is enforced in the data model, the auth layer, cache keys, and realtime limits. It is not only a UI grouping concept.
 
-## Isolation Strategy
+## Data Model Enforcement
 
-Synkora uses **shared database, shared schema** with **row-level isolation**:
+`api/src/models/base.py` defines `TenantMixin`, which adds an indexed `tenant_id` column to tenant-scoped models.
 
-```
-┌──────────────────────────────────────────────────────┐
-│                   PostgreSQL                          │
-│  ┌─────────────────────────────────────────────────┐ │
-│  │                   agents                         │ │
-│  │  tenant_id │ id │ name │ ...                    │ │
-│  │  ──────────┼────┼──────┼────                    │ │
-│  │  tenant-1  │ a1 │ Bot  │ ...                    │ │
-│  │  tenant-2  │ a2 │ Bot  │ ...                    │ │
-│  └─────────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────┘
-```
+That pattern is used across many platform records, including areas such as:
 
-## Implementation
+- agent-related records
+- human contacts
+- MCP servers
+- knowledge and wiki records
+- integration and security records
 
-### Base Model
+## Auth And Request Context
 
-```python
-class TenantMixin:
-    tenant_id = Column(UUID, ForeignKey("tenants.id"), nullable=False, index=True)
+`api/src/middleware/auth_middleware.py` extracts tenant context from the JWT payload after the request passes token validation.
 
-class Agent(BaseModel, TenantMixin):
-    __tablename__ = "agents"
-    id = Column(UUID, primary_key=True)
-    name = Column(String)
-    # ...
-```
+The current auth flow does this:
 
-### Query Filtering
+1. extract bearer token
+2. decode JWT
+3. check Redis-backed token blacklist and token version
+4. load the account from the database
+5. resolve `tenant_id` and role for downstream dependencies
 
-```python
-class TenantAwareRepository:
-    def __init__(self, session: Session, tenant_id: str):
-        self.session = session
-        self.tenant_id = tenant_id
+That means tenant-scoped routes are tied to validated auth state, not just to a request parameter.
 
-    async def list(self) -> List[Model]:
-        return await self.session.execute(
-            select(self.model).where(self.model.tenant_id == self.tenant_id)
-        )
+## Where Tenant Context Shows Up Operationally
 
-    async def get(self, id: str) -> Optional[Model]:
-        result = await self.session.execute(
-            select(self.model)
-            .where(self.model.id == id)
-            .where(self.model.tenant_id == self.tenant_id)
-        )
-        return result.scalar_one_or_none()
-```
+Tenant isolation affects more than database queries:
 
-### Middleware
+- cache keys include tenant context where it matters, such as agent config caching
+- WebSocket connection counts are tracked per tenant
+- room authorization receives `tenant_id`
+- billing and subscription events can be attributed to the correct workspace
+- SSO and enterprise identity flows are tenant-scoped
 
-```python
-@app.middleware("http")
-async def tenant_middleware(request: Request, call_next):
-    # Extract tenant from JWT or API key
-    token = request.headers.get("Authorization")
-    tenant_id = extract_tenant_id(token)
+## Why The Pattern Matters
 
-    # Store in request state
-    request.state.tenant_id = tenant_id
+Synkora supports many workspaces from one platform runtime. To do that safely, tenant boundaries have to exist in:
 
-    return await call_next(request)
+- persistence
+- auth
+- caching
+- realtime delivery
+- billing and integrations
 
-def get_tenant_id(request: Request) -> str:
-    return request.state.tenant_id
-```
-
-### Controller Usage
-
-```python
-@router.get("/agents")
-async def list_agents(
-    tenant_id: str = Depends(get_tenant_id),
-    db: Session = Depends(get_db),
-):
-    repo = AgentRepository(db, tenant_id)
-    return await repo.list()
-```
-
-## Tenant Context
-
-### JWT Token
-
-```json
-{
-  "sub": "user-uuid",
-  "tenant_id": "tenant-uuid",
-  "roles": ["admin"],
-  "exp": 1234567890
-}
-```
-
-### API Key
-
-```python
-# API keys are scoped to a tenant
-class APIKey(BaseModel):
-    tenant_id = Column(UUID, ForeignKey("tenants.id"))
-    scopes = Column(ARRAY(String))
-```
-
-## Cross-Tenant Operations
-
-For admin operations:
-
-```python
-@router.get("/admin/agents")
-async def list_all_agents(
-    current_user: User = Depends(require_super_admin),
-):
-    # Super admin can access all tenants
-    return await agent_repo.list_all()
-```
-
-## Best Practices
-
-1. **Always filter by tenant_id** in queries
-2. **Index tenant_id** on all tenant-scoped tables
-3. **Validate tenant access** in every endpoint
-4. **Audit cross-tenant** admin operations
-5. **Test isolation** thoroughly
+That is why multi-tenancy is an architecture concern here, not just a dashboard feature.

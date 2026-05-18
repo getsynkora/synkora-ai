@@ -4,61 +4,28 @@ sidebar_position: 2
 
 # OAuth Providers
 
-Configure OAuth providers for user authentication.
+OAuth providers let Synkora agents access external systems through user- or admin-authorized connections.
 
-## Google OAuth
+## Where OAuth Fits
 
-### Setup
+Use OAuth when agents need to work with services such as:
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com)
-2. Create OAuth 2.0 credentials
-3. Set redirect URI: `https://api.synkora.io/auth/oauth/google/callback`
+- Google
+- Microsoft ecosystems
+- GitHub
+- Slack
+- other supported SaaS applications
 
-### Configuration
+## Setup Pattern
 
-```env
-GOOGLE_CLIENT_ID=your-client-id
-GOOGLE_CLIENT_SECRET=your-client-secret
-```
+1. Create the OAuth app in the external provider
+2. Configure client credentials in Synkora
+3. Define redirect URIs correctly
+4. Authorize the connection from the correct account or workspace
+5. Bind the resulting access path to the agent or tool
 
-## GitHub OAuth
+## Security Advice
 
-### Setup
-
-1. Go to GitHub Settings > Developer settings > OAuth Apps
-2. Create new OAuth App
-3. Set callback URL: `https://api.synkora.io/auth/oauth/github/callback`
-
-### Configuration
-
-```env
-GITHUB_CLIENT_ID=your-client-id
-GITHUB_CLIENT_SECRET=your-client-secret
-```
-
-## Microsoft OAuth
-
-### Setup
-
-1. Go to Azure Portal > App registrations
-2. Create new registration
-3. Add redirect URI: `https://api.synkora.io/auth/oauth/microsoft/callback`
-
-### Configuration
-
-```env
-MICROSOFT_CLIENT_ID=your-client-id
-MICROSOFT_CLIENT_SECRET=your-client-secret
-MICROSOFT_TENANT_ID=your-tenant-id
-```
-
-## Custom OIDC Provider
-
-```typescript
-await synkora.tenants.configureOIDC({
-  discoveryUrl: 'https://auth.example.com/.well-known/openid-configuration',
-  clientId: 'your-client-id',
-  clientSecret: 'your-client-secret',
-  scopes: ['openid', 'email', 'profile'],
-});
-```
+- grant only the scopes you actually need
+- separate admin-level connections from end-user connections
+- keep redirect URIs environment-specific

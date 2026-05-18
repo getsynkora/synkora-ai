@@ -4,190 +4,189 @@ sidebar_position: 4
 
 # Create Your First Agent
 
-This guide walks you through creating and configuring your first AI agent with Synkora.
+This walkthrough follows the current dashboard flow in `web/app/(dashboard)/agents/create/page.tsx` and the follow-up agent workspace in `web/app/(dashboard)/agents/[agentName]/view/page.tsx`.
 
-## What is an Agent?
+## Before You Start
 
-An agent in Synkora is an AI-powered assistant that can:
+Make sure you have:
 
-- Respond to user messages using LLM models
-- Access knowledge bases for contextual information
-- Execute tools to perform actions
-- Maintain conversation history
-- Be deployed across multiple channels
+- the web app running at `http://localhost:3005`
+- a working account that can access the dashboard
+- at least one LLM provider key ready
 
-## Creating an Agent
+The current create flow will not let you finish without:
 
-### Using the Dashboard
+- `name`
+- `description`
+- `llm_provider`
+- `llm_model`
+- `llm_api_key`
+- `system_prompt`
 
-1. **Navigate to Agents**
-   - Open the Synkora dashboard
-   - Click **Agents** in the sidebar
+## Step 1: Open the Create Flow
 
-2. **Create New Agent**
-   - Click the **Create Agent** button
-   - Fill in the basic information:
+1. Sign in to Synkora.
+2. Open **Agents**.
+3. Click **Create Agent**.
 
-   | Field | Description | Example |
-   |-------|-------------|---------|
-   | Name | Agent's display name | Customer Support Bot |
-   | Description | Brief description | Handles customer inquiries |
-   | Slug | URL-friendly identifier | support-bot |
+The create screen is a four-step wizard:
 
-3. **Configure the Model**
-   - Select your LLM provider (OpenAI, Anthropic, etc.)
-   - Choose a model (e.g., GPT-4o, Claude 3.5 Sonnet)
-   - Set parameters:
-     - **Temperature**: 0.0-1.0 (lower = more focused)
-     - **Max Tokens**: Maximum response length
+1. **Basics**
+2. **AI Model**
+3. **Personality**
+4. **Review**
 
-4. **Write the System Prompt**
+## Step 2: Complete Basics
 
-   The system prompt defines your agent's behavior:
+On the **Basics** step, fill in the agent identity first:
 
-   ```text
-   You are a helpful customer support agent for Acme Corp.
+1. Enter the agent name.
+2. Add a short description of the job it should do.
+3. Optionally upload an avatar.
+4. Optionally choose a template or public-facing settings if they fit your use case.
 
-   Your responsibilities:
-   - Answer questions about our products
-   - Help with order status and returns
-   - Escalate complex issues to human support
+Keep the first version narrow. Good first agents are usually one of these:
 
-   Guidelines:
-   - Be friendly and professional
-   - Keep responses concise
-   - Ask clarifying questions when needed
-   - Never make up information
-   ```
+- support assistant
+- documentation assistant
+- internal operations helper
+- research assistant
 
-5. **Save and Test**
-   - Click **Create**
-   - Use the built-in chat to test your agent
+If the name already exists, the create flow returns you to **Basics** and shows the conflict there.
 
-### Using the API
+## Step 3: Configure the AI Model
 
-```bash
-curl -X POST http://localhost:5001/api/v1/agents \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Customer Support Bot",
-    "description": "Handles customer inquiries",
-    "slug": "support-bot",
-    "model_name": "gpt-4o",
-    "system_prompt": "You are a helpful customer support agent...",
-    "temperature": 0.7,
-    "max_tokens": 1000
-  }'
-```
+On the **AI Model** step:
 
+1. Select the provider.
+2. Select the model.
+3. Paste the provider API key.
+4. Adjust optional fields only if you need them, such as API base, temperature, max tokens, or `top_p`.
 
-## Testing Your Agent
+This is the minimum model configuration the current UI enforces before you can continue.
 
-### In the Dashboard
+## Step 4: Set Personality and Instructions
 
-1. Navigate to your agent
-2. Click the **Chat** tab
-3. Send test messages
+On the **Personality** step:
 
-### Via API
+1. Choose one of the built-in presets:
+   - Friendly
+   - Professional
+   - Expert
+   - Custom
+2. Review the generated system prompt.
+3. Replace it with your own prompt if needed.
 
-```bash
-# Start a conversation
-curl -X POST http://localhost:5001/api/v1/agents/YOUR_AGENT_ID/chat \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "Hi, I need help with my order"
-  }'
-```
+The wizard requires a non-empty system prompt before it will move forward.
 
+## Step 5: Review and Create
 
-## Improving Your Agent
+On **Review**, confirm the configuration and create the agent.
 
-### Add a Knowledge Base
+The current create flow does two things:
 
-Connect your agent to documentation or FAQs via the dashboard (Agents → your agent → Knowledge Base tab) or the API:
+1. Creates the agent record and its initial LLM config.
+2. If you selected capabilities, enables them in bulk after the agent is created.
 
-```bash
-# Create a knowledge base
-curl -X POST http://localhost:5001/api/v1/knowledge-bases \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "Product Documentation"}'
-
-# Attach it to your agent
-curl -X POST http://localhost:5001/api/v1/agents/YOUR_AGENT_ID/knowledge-bases \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"knowledge_base_id": "KB_ID"}'
-```
-
-### Add Tools
-
-Enable built-in tools for your agent via the dashboard (Agents → your agent → Tools tab) or the API:
-
-```bash
-curl -X POST http://localhost:5001/api/v1/agents/YOUR_AGENT_ID/tools \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"tool_name": "web_search"}'
-```
-
-### Configure Personality
-
-Fine-tune the system prompt:
+On success, Synkora redirects to:
 
 ```text
-You are Alex, a friendly and knowledgeable support agent.
-
-Personality traits:
-- Warm and empathetic
-- Patient with explanations
-- Uses casual but professional language
-- Occasionally uses appropriate emoji
-
-Response style:
-- Start with acknowledgment of the user's concern
-- Provide clear, step-by-step solutions
-- End with an offer to help further
+/agents/{createdAgentSlug}/edit?tab=llm-models
 ```
 
-## Agent Configuration Options
+## Step 6: Validate the Agent
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `name` | Display name | Required |
-| `slug` | URL identifier | Auto-generated |
-| `model_name` | LLM model to use | Required |
-| `system_prompt` | Behavior instructions | Required |
-| `temperature` | Response randomness (0-1) | `0.7` |
-| `max_tokens` | Max response length | `1000` |
-| `top_p` | Nucleus sampling | `1.0` |
-| `presence_penalty` | Repetition penalty | `0.0` |
-| `frequency_penalty` | Word frequency penalty | `0.0` |
+After creation, use this order instead of configuring every feature at once.
 
-## Best Practices
+### 1. Test the core behavior
 
-### System Prompt Guidelines
+Open:
 
-1. **Be specific** about the agent's role and capabilities
-2. **Set boundaries** on what the agent should/shouldn't do
-3. **Provide examples** of good responses when helpful
-4. **Include error handling** instructions
-5. **Keep it focused** - avoid overly long prompts
+```text
+/agents/{agentName}/chat
+```
 
-### Testing Strategies
+Send a few prompts and confirm the response quality before adding knowledge or tools.
 
-1. Test **edge cases** (unusual questions, errors)
-2. Test **conversation flow** (multi-turn dialogues)
-3. Test **knowledge retrieval** if using RAG
-4. Test **tool usage** if tools are enabled
-5. Monitor **token usage** to optimize costs
+### 2. Review the model config
 
-## Next Steps
+Open:
 
-- [Add a Knowledge Base](/docs/guides/agents/create-rag-agent) - Enable RAG for your agent
-- [Add Tools](/docs/guides/agents/add-tools) - Give your agent capabilities
-- [Deploy to Slack](/docs/guides/integrations/slack-bot) - Make your agent available in Slack
-- [Embed on Website](/docs/guides/integrations/embed-widget) - Add a chat widget
+```text
+/agents/{agentName}/llm-configs
+```
+
+Use this page when you need to change provider, model, or model settings after the initial setup.
+
+### 3. Attach knowledge
+
+Open:
+
+```text
+/agents/{agentName}/knowledge-bases
+```
+
+Use this when the agent needs grounded answers from your documents or site content.
+
+See [Create a RAG Agent](/docs/guides/agents/create-rag-agent).
+
+### 4. Add tools
+
+Open:
+
+```text
+/agents/{agentName}/tools
+```
+
+This is where you turn the agent from “answers questions” into “takes action”.
+
+See [Add Tools](/docs/guides/agents/add-tools).
+
+### 5. Pick delivery surfaces
+
+The current agent workspace exposes these deployment and delivery paths:
+
+- `landing-page`
+- `widgets`
+- `domains`
+- `api-keys`
+- `slack-bots`
+- `messaging-bots`
+- `telegram-bots`
+- `webhooks`
+- `voice`
+
+Pick one surface first. Do not configure everything on day one.
+
+### 6. Turn on advanced features only when needed
+
+The current UI also exposes:
+
+- `autonomous`
+- `sub-agents`
+- `mcp-servers`
+- `outputs`
+- `chat-customization`
+- `lens`
+- `database-connections`
+- `compute`
+- `subscriptions`
+
+These are useful, but they should come after the base agent behavior is stable.
+
+## Recommended First-Agent Sequence
+
+For most teams, the cleanest path is:
+
+1. Create the agent.
+2. Test it in chat.
+3. Attach one knowledge base if it needs context.
+4. Add one or two tools.
+5. Expose it through a widget, API key, or one messaging channel.
+6. Watch usage and quality in Lens.
+
+## Related Pages
+
+- [Agents](/docs/concepts/agents)
+- [Knowledge Bases](/docs/concepts/knowledge-bases)
+- [Embed the Web Widget](/docs/guides/integrations/embed-widget)

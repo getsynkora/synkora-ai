@@ -4,177 +4,113 @@ sidebar_position: 2
 
 # Backend Architecture
 
-The Synkora backend is built with FastAPI and follows clean architecture principles.
+The backend lives in `api/` and is built as a FastAPI application with async request handling, tenant-aware auth, Redis-backed coordination, and Celery workers for off-path execution.
 
-## Directory Structure
+## Backend Flow Diagram
 
-```
-api/src/
-├── app.py                 # FastAPI application entry
-├── celery_app.py          # Celery configuration
-├── config/
-│   └── settings.py        # Application settings
-├── core/
-│   ├── database.py        # Database connections
-│   ├── cache.py           # Redis caching
-│   ├── websocket.py       # WebSocket handling
-│   └── exceptions.py      # Custom exceptions
-├── models/
-│   ├── base.py            # Base model
-│   ├── agent.py           # Agent models
-│   ├── knowledge_base.py  # KB models
-│   └── ...
-├── schemas/
-│   ├── agent.py           # Pydantic schemas
-│   └── ...
-├── controllers/
-│   ├── agents/            # Agent endpoints
-│   ├── knowledge_bases/   # KB endpoints
-│   └── ...
-├── services/
-│   ├── agents/
-│   │   ├── agent_manager.py
-│   │   ├── chat_stream_service.py
-│   │   └── llm_client.py
-│   ├── knowledge_base/
-│   │   ├── rag_service.py
-│   │   └── ...
-│   └── ...
-├── middleware/
-│   ├── auth.py            # JWT/API key auth
-│   ├── rate_limit.py      # Rate limiting
-│   └── ...
-└── tasks/
-    └── ...                # Celery tasks
-```
+![Synkora backend high-level architecture diagram.](/images/docs/architecture/backend-hld.svg)
 
-## Key Services
+## Main Entry Points
 
-### Agent Manager
+| File | Responsibility |
+| --- | --- |
+| `api/src/app.py` | Builds the FastAPI app, applies middleware, manages startup and shutdown lifecycle |
+| `api/src/router_registry.py` | Registers routers declaratively instead of keeping a long list of imports in `app.py` |
+| `api/src/celery_app.py` | Configures queues, beat schedules, worker reliability, Sentry, and DLQ behavior |
 
-Orchestrates agent lifecycle:
+## Directory Layout
 
-```python
-class AgentManager:
-    async def create(self, data: CreateAgentRequest) -> Agent
-    async def chat(self, agent_id: str, message: str) -> ChatResponse
-    async def chat_stream(self, agent_id: str, message: str) -> AsyncIterator
-```
+| Path | Responsibility |
+| --- | --- |
+| `api/src/controllers` | HTTP boundaries and route handlers |
+| `api/src/controllers/agents` | Agent runtime, chat, tools, outputs, autonomous mode, lens, webhooks, compute |
+| `api/src/controllers/console` | Console and admin-style routes, including auth and SSO flows |
+| `api/src/controllers/oauth` | OAuth provider flows |
+| `api/src/controllers/service_api` | Service-oriented APIs |
+| `api/src/controllers/web` | Public web-facing API routes |
+| `api/src/services` | Business logic and orchestration across domains |
+| `api/src/models` | SQLAlchemy ORM models |
+| `api/src/schemas` | Pydantic schemas |
+| `api/src/middleware` | Security headers, CORS, rate limiting, auth helpers |
+| `api/src/core` | Database setup, WebSocket infrastructure, error handling, model provider plumbing |
+| `api/src/tasks` | Background job implementations |
+| `api/src/bot_worker` | Dedicated worker process for long-lived bot workloads |
 
-### Chat Stream Service
+## Request Lifecycle
 
-Handles SSE streaming:
+Most backend requests follow this path:
 
-```python
-class ChatStreamService:
-    async def stream_response(
-        self,
-        agent: Agent,
-        messages: List[Message],
-        context: Dict,
-    ) -> AsyncIterator[StreamChunk]
-```
+1. `app.py` applies request-size limits, security headers, dynamic CORS, and rate limiting.
+2. Auth dependencies decode the JWT once per request, then check token revocation and token version in Redis.
+3. Tenant and role context are derived from the token for tenant-aware routes.
+4. Controllers validate input and shape the HTTP response.
+5. Services run the business logic.
+6. Models and database sessions handle durable state.
+7. Long-running work is pushed to Celery instead of blocking the request.
 
-### LLM Client
+That is the default shape for the backend even though individual domains add their own provider calls or async jobs on top of it.
 
-Unified interface to LLM providers via LiteLLM:
+## Runtime Behavior On Startup
 
-```python
-class LLMClient:
-    async def chat(
-        self,
-        model: str,
-        messages: List[Dict],
-        **kwargs,
-    ) -> ChatResponse
+The API lifespan in `api/src/app.py` does more than start the web server:
 
-    async def chat_stream(
-        self,
-        model: str,
-        messages: List[Dict],
-        **kwargs,
-    ) -> AsyncIterator
-```
+- pre-warms the async PostgreSQL connection pool
+- clears stale Redis conversation locks left by previous processes
+- initializes encryption for sensitive values
+- starts the Redis subscriber for distributed WebSocket delivery
+- starts the Redis subscriber for distributed cache invalidation
+- configures WebSocket room authorization
 
-### RAG Service
+On shutdown it stops those subscribers cleanly so Kubernetes-style restarts are safer.
 
-Handles retrieval augmented generation:
+## Backend Service Domains
 
-```python
-class RAGService:
-    async def search(
-        self,
-        kb_id: str,
-        query: str,
-        top_k: int = 5,
-    ) -> List[SearchResult]
+The backend is organized by business capability rather than by one large generic service layer. Current service areas include:
 
-    async def get_context(
-        self,
-        agent: Agent,
-        query: str,
-    ) -> str
-```
+- agents, chat, outputs, and autonomous workflows
+- knowledge bases, knowledge autopilot, and company brain ingestion
+- custom tools, MCP, webhooks, and compute
+- billing, subscriptions, roles, permissions, and teams
+- OAuth, SSO, Slack, Telegram, WhatsApp, and other integrations
+- storage, email, search, observability, and performance tooling
 
-## Middleware
+This structure is visible in `api/src/services/*`.
 
-### Authentication
+## Database Access Model
 
-```python
-@router.get("/agents")
-async def list_agents(
-    current_user: User = Depends(get_current_user),
-    tenant_id: str = Depends(get_tenant_id),
-):
-    return await agent_service.list(tenant_id)
-```
+The backend uses two database modes:
 
-### Rate Limiting
+- **async SQLAlchemy + asyncpg** for FastAPI request paths
+- **sync SQLAlchemy + psycopg2** for sync code paths and some worker use cases
 
-```python
-@router.post("/chat")
-@rate_limit(requests=60, window=60)
-async def chat(request: ChatRequest):
-    ...
-```
+`api/src/core/database.py` also creates fresh async session factories for Celery tasks when a new event loop is required.
 
-## Database Patterns
+## Reliability and Security Patterns
 
-### Repository Pattern
+The current backend includes:
 
-```python
-class AgentRepository:
-    async def create(self, data: CreateAgentRequest) -> Agent
-    async def get(self, id: str) -> Optional[Agent]
-    async def update(self, id: str, data: UpdateAgentRequest) -> Agent
-    async def delete(self, id: str) -> None
-    async def list(self, tenant_id: str, **filters) -> List[Agent]
-```
+- Redis-backed distributed rate limiting
+- token blacklisting and token version checks
+- per-request tenant resolution
+- request body size limits
+- Redis-backed distributed WebSocket delivery
+- Redis-backed cross-pod cache invalidation
+- Celery dead-letter queue tracking in Redis
+- Prometheus counters for task failures
 
-### Multi-Tenancy
+## Current Backend Stack
 
-```python
-class TenantMixin:
-    tenant_id = Column(UUID, ForeignKey("tenants.id"), nullable=False)
+| Area | Current Stack |
+| --- | --- |
+| Language | Python `>=3.11,<3.13` |
+| Web framework | FastAPI |
+| Servers | Uvicorn, Gunicorn |
+| ORM | SQLAlchemy 2 |
+| Migrations | Alembic |
+| Validation | Pydantic v2 and `pydantic-settings` |
+| Queueing | Celery, Redis, Flower |
+| LLM orchestration | LiteLLM, OpenAI, Anthropic, Google GenAI |
+| Realtime | FastAPI WebSockets + Redis pub/sub |
+| Observability | Langfuse, Sentry, Prometheus |
 
-class Agent(BaseModel, TenantMixin):
-    __tablename__ = "agents"
-    # ...
-```
-
-## Error Handling
-
-```python
-@app.exception_handler(SynkoraException)
-async def synkora_exception_handler(request, exc):
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={
-            "success": False,
-            "error": {
-                "code": exc.code,
-                "message": exc.message,
-            },
-        },
-    )
-```
+If you need the data layer details next, continue to [Database Architecture](/docs/architecture/database).

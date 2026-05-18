@@ -2,90 +2,41 @@
 sidebar_position: 3
 ---
 
-# Production Checklist
+# Production Deployment
 
-Essential steps before deploying Synkora to production.
+Production Synkora is a platform rollout, not just an app deployment.
 
-## Security
+## Core Production Concerns
 
-- [ ] Generate strong `SECRET_KEY` (32+ characters)
-- [ ] Enable HTTPS/TLS everywhere
-- [ ] Configure CORS properly
-- [ ] Set secure cookie flags
-- [ ] Enable rate limiting
-- [ ] Rotate default credentials
+- secret management
+- stable persistent storage
+- database backup and recovery
+- Redis durability strategy
+- observability and alerting
+- worker isolation
+- payment and billing correctness
+- tenant isolation and auth posture
 
-## Database
+## Recommended Production Posture
 
-- [ ] Use managed PostgreSQL (RDS, Cloud SQL)
-- [ ] Enable SSL for connections
-- [ ] Configure connection pooling
-- [ ] Set up automated backups
-- [ ] Run migrations: `alembic upgrade head`
+- managed PostgreSQL where possible
+- managed Redis where possible
+- S3-compatible object storage
+- external TLS termination
+- Langfuse and Sentry configured before heavy usage
 
-## Redis
+## Before Go-Live
 
-- [ ] Use managed Redis (ElastiCache, Memorystore)
-- [ ] Enable persistence
-- [ ] Configure password authentication
+- validate backup and restore paths
+- confirm LLM provider key ownership
+- review widget and API key exposure
+- test billing and usage tracking
+- test retries, failed jobs, and worker restart behavior
 
-## Vector Database
+## Surfaces To Review Explicitly
 
-- [ ] Use Qdrant Cloud or managed Pinecone
-- [ ] Configure API key authentication
-- [ ] Size appropriately for your data
-
-## Environment Variables
-
-```env
-# Core
-DEBUG=false
-ENVIRONMENT=production
-SECRET_KEY=your-very-long-random-secret-key
-
-# Database
-DATABASE_URL=postgresql://user:pass@host:5432/synkora?sslmode=require
-DATABASE_POOL_SIZE=20
-
-# Redis
-REDIS_URL=redis://:password@host:6379/0
-
-# LLM
-OPENAI_API_KEY=sk-prod-key
-
-# Storage
-STORAGE_TYPE=s3
-S3_BUCKET=synkora-prod
-
-# Email
-SMTP_HOST=smtp.sendgrid.net
-SMTP_FROM_EMAIL=noreply@your-domain.com
-```
-
-## Monitoring
-
-- [ ] Set up application logging
-- [ ] Configure error tracking (Sentry)
-- [ ] Enable LLM observability (Langfuse)
-- [ ] Set up uptime monitoring
-- [ ] Configure alerts
-
-## Performance
-
-- [ ] Enable caching
-- [ ] Configure CDN for static assets
-- [ ] Optimize database queries
-- [ ] Set appropriate timeouts
-
-## Backups
-
-- [ ] Database: Daily automated backups
-- [ ] Vector DB: Regular snapshots
-- [ ] File storage: Cross-region replication
-- [ ] Test restore procedures
-
-## Scaling
-
-- [ ] API: 2+ replicas minimum
-- [ ] Workers: Scale based on queue size
-- [ ] Database: Read replicas for high traffic
+- widget authentication
+- messaging bot credentials
+- OAuth redirects
+- extension auth flow
+- tenant and role boundaries

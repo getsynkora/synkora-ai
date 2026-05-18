@@ -1,54 +1,27 @@
 ---
-sidebar_position: 1
+sidebar_position: 3
 ---
 
-# Okta SSO Setup
+# Okta SSO
 
-Configure Okta for enterprise single sign-on.
+Okta SSO is the right choice when Synkora is being adopted as an internal platform and user identity must stay under centralized enterprise control.
 
-## Prerequisites
+## Use Okta When
 
-- Okta admin access
-- Synkora Enterprise plan
+- employees should not manage local credentials in Synkora
+- identity lifecycle is already owned by IT
+- environment access must follow enterprise group policies
 
-## Step 1: Create Okta Application
+## High-Level Flow
 
-1. Go to Okta Admin Console
-2. Applications > Create App Integration
-3. Select SAML 2.0
+1. Create the Okta app
+2. Configure redirect URIs
+3. Enter the Okta settings in Synkora
+4. Test with a staging environment first
+5. Roll out tenant by tenant or environment by environment
 
-## Step 2: Configure SAML Settings
+## Rollout Advice
 
-| Setting | Value |
-|---------|-------|
-| Single Sign On URL | `https://api.synkora.io/auth/saml/callback` |
-| Audience URI | `synkora` |
-| Name ID Format | EmailAddress |
-
-### Attribute Statements
-
-| Name | Value |
-|------|-------|
-| email | user.email |
-| firstName | user.firstName |
-| lastName | user.lastName |
-
-## Step 3: Configure Synkora
-
-```typescript
-await synkora.tenants.configureSAML({
-  provider: 'okta',
-  ssoUrl: 'https://your-org.okta.com/app/xxx/sso/saml',
-  certificate: '-----BEGIN CERTIFICATE-----...',
-  entityId: 'http://www.okta.com/xxx',
-});
-```
-
-## Step 4: Test SSO
-
-Visit: `https://app.synkora.io/auth/sso?tenant=your-tenant`
-
-## Next Steps
-
-- [Configure other OAuth providers](/docs/guides/auth/oauth-providers)
-- [Manage API keys](/docs/guides/auth/api-keys)
+- do not enable SSO first in production
+- test group mappings and tenant access carefully
+- document an emergency break-glass admin path before rollout

@@ -1,70 +1,27 @@
 ---
-sidebar_position: 2
+sidebar_position: 4
 ---
 
 # Deploy a Telegram Bot
 
-Deploy your Synkora agent as a Telegram bot.
+Telegram is a lightweight way to expose Synkora agents outside the dashboard.
 
-## Prerequisites
+## Good Fits
 
-- Synkora agent created
-- Telegram account
-- Bot token from @BotFather
+- community-facing assistants
+- notification or update bots
+- lightweight support and Q&A
 
-## Step 1: Create a Telegram Bot
+## Setup Flow
 
-1. Open Telegram and search for **@BotFather**
-2. Send `/newbot` command
-3. Follow prompts to name your bot
-4. Copy the **bot token**
+1. Create the agent
+2. Create the Telegram bot credentials
+3. Configure the bot inside Synkora
+4. Attach it to the correct agent
+5. Test with a private channel or small user group first
 
-## Step 2: Create Synkora Integration
+## Practical Advice
 
-```typescript
-const integration = await synkora.integrations.telegram.create({
-  agentId: agent.id,
-  botToken: 'YOUR_BOT_TOKEN',
-  config: {
-    welcomeMessage: 'Hello! How can I help you today?',
-    commands: [
-      { command: 'start', description: 'Start conversation' },
-      { command: 'help', description: 'Get help' },
-      { command: 'reset', description: 'Reset conversation' },
-    ],
-  },
-});
-```
-
-## Step 3: Configure Commands
-
-Set bot commands in Telegram:
-
-```typescript
-await synkora.integrations.telegram.setCommands(integrationId, [
-  { command: 'start', description: 'Start conversation' },
-  { command: 'help', description: 'Get help' },
-]);
-```
-
-## Configuration Options
-
-```typescript
-config: {
-  welcomeMessage: 'Hello!',        // Message on /start
-  allowedUsers: [],                 // Empty = all users
-  groupsEnabled: true,              // Allow in groups
-  inlineMode: false,                // Inline query support
-}
-```
-
-## Using the Bot
-
-- **Direct chat**: Send any message
-- **Groups**: Mention the bot or reply to its messages
-- **Commands**: Use /start, /help, etc.
-
-## Next Steps
-
-- [Deploy to WhatsApp](/docs/guides/integrations/whatsapp-bot)
-- [Add knowledge base](/docs/guides/agents/create-rag-agent)
+- keep prompts short and surface-aware
+- design for concise mobile-first interactions
+- avoid assuming rich UI controls are always available

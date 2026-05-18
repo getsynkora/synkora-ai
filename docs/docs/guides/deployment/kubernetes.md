@@ -2,104 +2,41 @@
 sidebar_position: 2
 ---
 
-# Kubernetes Deployment
+# Deploy with Kubernetes
 
-Deploy Synkora on Kubernetes with Helm.
+Use Kubernetes when you need Synkora as a durable multi-service platform instead of a single-box deployment.
 
-## Prerequisites
+## Best Fit
 
-- Kubernetes 1.24+
-- Helm 3.0+
-- kubectl configured
+Kubernetes is the right choice when you need:
 
-## Install with Helm
+- horizontal scaling
+- managed secrets and config
+- controlled rollouts
+- production-grade health checks and restarts
+- workload separation across web, API, workers, and supporting services
 
-```bash
-# Add repository
-helm repo add synkora https://charts.synkora.io
-helm repo update
+## Repo Assets
 
-# Create namespace
-kubectl create namespace synkora
+The repo includes Kubernetes resources and Helm charts under:
 
-# Create secrets
-kubectl create secret generic synkora-secrets \
-  --namespace synkora \
-  --from-literal=SECRET_KEY=$(openssl rand -hex 32) \
-  --from-literal=OPENAI_API_KEY=sk-xxx \
-  --from-literal=DATABASE_URL=postgresql://...
+- `helm/`
+- `k8s/`
 
-# Install
-helm install synkora synkora/synkora \
-  --namespace synkora \
-  --values values.yaml
-```
+## Rollout Model
 
-## values.yaml
+Treat these as separate workload groups:
 
-```yaml
-global:
-  domain: synkora.example.com
+- web frontend
+- API
+- Celery workers
+- scheduler
+- bot workers
+- supporting infrastructure
 
-api:
-  replicas: 3
-  resources:
-    requests:
-      memory: "512Mi"
-      cpu: "250m"
-    limits:
-      memory: "2Gi"
-      cpu: "1000m"
+## Advice
 
-web:
-  replicas: 2
-
-celery:
-  worker:
-    replicas: 2
-  beat:
-    replicas: 1
-
-postgresql:
-  enabled: true
-  primary:
-    persistence:
-      size: 50Gi
-
-redis:
-  enabled: true
-
-qdrant:
-  enabled: true
-  persistence:
-    size: 20Gi
-
-ingress:
-  enabled: true
-  className: nginx
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-  hosts:
-    - host: synkora.example.com
-  tls:
-    - secretName: synkora-tls
-      hosts:
-        - synkora.example.com
-```
-
-## Scaling
-
-```bash
-kubectl scale deployment synkora-api --replicas=5 -n synkora
-```
-
-## Monitoring
-
-```bash
-kubectl logs -f deployment/synkora-api -n synkora
-kubectl get pods -n synkora
-```
-
-## Next Steps
-
-- [Production checklist](/docs/guides/deployment/production)
+- externalize managed services where possible
+- isolate resource-heavy services like search and ML
+- validate Redis and database connectivity in readiness checks
+- do not scale chat/API traffic without also reviewing workers and retrieval backends

@@ -1,77 +1,40 @@
 ---
-sidebar_position: 4
+sidebar_position: 1
 ---
 
 # Advanced RAG
 
-Optimize retrieval quality with advanced RAG techniques.
+Once basic retrieval works, most gains come from data quality, indexing discipline, and retrieval design rather than endlessly rewriting prompts.
 
-## Hybrid Search
+## Focus Areas
 
-Combine semantic and keyword search:
+### Source quality
 
-```typescript
-await synkora.agents.updateKnowledgeBase(agentId, kbId, {
-  searchConfig: {
-    searchType: 'hybrid',
-    semanticWeight: 0.7,
-    keywordWeight: 0.3,
-  },
-});
-```
+Clean, current documents outperform larger noisy corpora almost every time.
 
-## Reranking
+### Scope control
 
-Improve result relevance with a reranker:
+Use separate knowledge bases for different domains when possible.
 
-```typescript
-searchConfig: {
-  topK: 20,              // Retrieve more candidates
-  reranking: true,
-  rerankTopN: 5,         // Keep top 5 after reranking
-  rerankModel: 'cohere-rerank-v3',
-}
-```
+### Retrieval tuning
 
-## Multi-Query RAG
+Review:
 
-Generate multiple search queries:
+- chunk size
+- metadata quality
+- vector backend choice
+- reranking behavior
 
-```typescript
-ragConfig: {
-  multiQuery: true,
-  queryCount: 3,
-  fusionMethod: 'reciprocal_rank',
-}
-```
+### Prompt grounding
 
-## Query Expansion
+Make it explicit when the agent should:
 
-Expand queries for better recall:
+- rely on retrieved context
+- admit missing context
+- avoid inventing specifics
 
-```typescript
-ragConfig: {
-  queryExpansion: true,
-  expansionModel: 'gpt-3.5-turbo',
-}
-```
+## Practical Advice
 
-## Contextual Compression
-
-Compress retrieved context:
-
-```typescript
-ragConfig: {
-  contextCompression: true,
-  maxContextTokens: 4000,
-}
-```
-
-## Evaluation
-
-Track RAG quality metrics:
-
-```typescript
-const metrics = await synkora.knowledgeBases.getMetrics(kbId);
-// { avgRelevanceScore: 0.85, hitRate: 0.92, mrr: 0.78 }
-```
+- fix ingestion quality before tuning the model
+- prefer one clean retrieval domain over one giant mixed corpus
+- validate grounded answers with real user questions, not toy prompts

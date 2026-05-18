@@ -1,0 +1,40 @@
+<svg width="1200" height="675" viewBox="0 0 1200 675" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="675" rx="36" fill="#F7F2E7"/>
+  <circle cx="1016" cy="112" r="132" fill="#FFF8ED"/>
+  <circle cx="166" cy="568" r="118" fill="#EEE4CF"/>
+  <rect x="140" y="118" width="920" height="438" rx="32" fill="white" fill-opacity="0.78" stroke="#171717" stroke-opacity="0.08" stroke-width="2"/>
+  <rect x="430" y="205" width="340" height="252" rx="26" fill="#171717"/>
+  <rect x="456" y="232" width="288" height="42" rx="14" fill="#2A2926"/>
+  <rect x="456" y="292" width="128" height="116" rx="18" fill="#79DFBC" fill-opacity="0.24"/>
+  <rect x="600" y="292" width="144" height="116" rx="18" fill="#FFF8ED"/>
+  <rect x="212" y="227" width="158" height="74" rx="24" fill="#FFF8ED" stroke="#171717" stroke-opacity="0.08" stroke-width="2"/>
+  <rect x="212" y="327" width="158" height="74" rx="24" fill="#FFF8ED" stroke="#171717" stroke-opacity="0.08" stroke-width="2"/>
+  <rect x="212" y="427" width="158" height="74" rx="24" fill="#FFF8ED" stroke="#171717" stroke-opacity="0.08" stroke-width="2"/>
+  <rect x="830" y="227" width="158" height="74" rx="24" fill="#FFF8ED" stroke="#171717" stroke-opacity="0.08" stroke-width="2"/>
+  <rect x="830" y="327" width="158" height="74" rx="24" fill="#FFF8ED" stroke="#171717" stroke-opacity="0.08" stroke-width="2"/>
+  <rect x="830" y="427" width="158" height="74" rx="24" fill="#FFF8ED" stroke="#171717" stroke-opacity="0.08" stroke-width="2"/>
+  <path d="M370 264H430" stroke="#79DFBC" stroke-width="6" stroke-linecap="round"/>
+  <path d="M370 364H430" stroke="#79DFBC" stroke-width="6" stroke-linecap="round"/>
+  <path d="M370 464H430" stroke="#79DFBC" stroke-width="6" stroke-linecap="round"/>
+  <path d="M770 264H830" stroke="#FF5F8F" stroke-width="6" stroke-linecap="round"/>
+  <path d="M770 364H830" stroke="#FF5F8F" stroke-width="6" stroke-linecap="round"/>
+  <path d="M770 464H830" stroke="#FF5F8F" stroke-width="6" stroke-linecap="round"/>
+  <text x="600" y="112" text-anchor="middle" fill="#7A736A" font-family="Arial, sans-serif" font-size="20" font-weight="700" letter-spacing="5">BUILD ONCE, DEPLOY EVERYWHERE</text>
+  <text x="600" y="181" text-anchor="middle" fill="#171717" font-family="Arial, sans-serif" font-size="42" font-weight="700">Synkora</text>
+  <text x="600" y="259" text-anchor="middle" fill="#F7F2E7" font-family="Arial, sans-serif" font-size="26" font-weight="700">Agent Platform</text>
+  <text x="520" y="328" fill="#171717" font-family="Arial, sans-serif" font-size="18" font-weight="700">Knowledge</text>
+  <text x="520" y="352" fill="#171717" font-family="Arial, sans-serif" font-size="18" font-weight="700">Tools</text>
+  <text x="520" y="376" fill="#171717" font-family="Arial, sans-serif" font-size="18" font-weight="700">Tenants</text>
+  <text x="520" y="400" fill="#171717" font-family="Arial, sans-serif" font-size="18" font-weight="700">Billing</text>
+  <text x="624" y="328" fill="#171717" font-family="Arial, sans-serif" font-size="18" font-weight="700">API</text>
+  <text x="624" y="352" fill="#171717" font-family="Arial, sans-serif" font-size="18" font-weight="700">Widget</text>
+  <text x="624" y="376" fill="#171717" font-family="Arial, sans-serif" font-size="18" font-weight="700">Bots</text>
+  <text x="624" y="400" fill="#171717" font-family="Arial, sans-serif" font-size="18" font-weight="700">Extensions</text>
+  <text x="291" y="272" text-anchor="middle" fill="#171717" font-family="Arial, sans-serif" font-size="22" font-weight="700">Slack</text>
+  <text x="291" y="372" text-anchor="middle" fill="#171717" font-family="Arial, sans-serif" font-size="22" font-weight="700">WhatsApp</text>
+  <text x="291" y="472" text-anchor="middle" fill="#171717" font-family="Arial, sans-serif" font-size="22" font-weight="700">Teams</text>
+  <text x="909" y="272" text-anchor="middle" fill="#171717" font-family="Arial, sans-serif" font-size="22" font-weight="700">Widget</text>
+  <text x="909" y="372" text-anchor="middle" fill="#171717" font-family="Arial, sans-serif" font-size="22" font-weight="700">REST API</text>
+  <text x="909" y="472" text-anchor="middle" fill="#171717" font-family="Arial, sans-serif" font-size="22" font-weight="700">Chrome Ext</text>
+  <text x="600" y="607" text-anchor="middle" fill="#5B564E" font-family="Arial, sans-serif" font-size="24">One control plane for agents, channels, knowledge, billing, and operations.</text>
+</svg>

@@ -9,6 +9,7 @@ const withBundleAnalyzer =
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
+  outputFileTracingRoot: path.join(__dirname, '..'),
   // Never expose source maps to the browser in production (regardless of Sentry config)
   productionBrowserSourceMaps: false,
 

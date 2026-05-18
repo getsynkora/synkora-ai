@@ -2,101 +2,42 @@
 sidebar_position: 1
 ---
 
-# Docker Deployment
+# Deploy with Docker Compose
 
-Deploy Synkora using Docker Compose.
+Docker Compose is the default way to run Synkora locally and a practical way to run it in smaller self-hosted environments.
 
-## Quick Start
+## What Compose Gives You
 
-```bash
-git clone https://github.com/getsynkora/synkora-ai.git
-cd synkora
-cp .env.example .env
-docker-compose up -d
-```
+- web app
+- API
+- PostgreSQL
+- Redis
+- vector/search services
+- workers and scheduler
+- ML and scraper services
+- observability components
 
-## docker-compose.yml
-
-```yaml
-version: '3.8'
-
-services:
-  api:
-    build: ./api
-    ports:
-      - "5001:5001"
-    environment:
-      - DATABASE_URL=postgresql://synkora:synkora@postgres:5432/synkora
-      - REDIS_URL=redis://redis:6379/0
-      - QDRANT_URL=http://qdrant:6333
-    depends_on:
-      - postgres
-      - redis
-      - qdrant
-
-  web:
-    build: ./web
-    ports:
-      - "3005:3000"
-    environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:5001
-
-  postgres:
-    image: postgres:15
-    environment:
-      - POSTGRES_USER=synkora
-      - POSTGRES_PASSWORD=synkora
-      - POSTGRES_DB=synkora
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  redis:
-    image: redis:7
-    volumes:
-      - redis_data:/data
-
-  qdrant:
-    image: qdrant/qdrant
-    volumes:
-      - qdrant_data:/qdrant/storage
-
-  celery-worker:
-    build: ./api
-    command: celery -A src.celery_app worker --loglevel=info
-    depends_on:
-      - redis
-      - postgres
-
-  celery-beat:
-    build: ./api
-    command: celery -A src.celery_app beat --loglevel=info
-    depends_on:
-      - redis
-
-volumes:
-  postgres_data:
-  redis_data:
-  qdrant_data:
-```
-
-## Post-Deployment
+## Basic Flow
 
 ```bash
-# Run migrations
-docker-compose exec api alembic upgrade head
+cp api/.env.example api/.env
+cp web/.env.example web/.env.local
 
-# Create admin user
-docker-compose exec api python create_super_admin.py
-
-# Check logs
-docker-compose logs -f api
+docker compose up -d
+docker compose exec api alembic upgrade head
+docker compose exec api python create_super_admin.py
+docker compose exec api python seed_platform_config.py
 ```
 
-## SSL/TLS
+## When To Use Compose
 
-Use a reverse proxy (nginx, Traefik) for SSL termination.
+- local development
+- evaluation environments
+- smaller self-hosted deployments
+- pre-production integration environments
 
-## Next Steps
+## Operational Advice
 
-- [Kubernetes deployment](/docs/guides/deployment/kubernetes)
-- [Production checklist](/docs/guides/deployment/production)
+- monitor memory usage closely
+- keep environment files explicit and versioned outside git
+- use named volumes carefully when resetting environments

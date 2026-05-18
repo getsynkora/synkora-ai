@@ -1,89 +1,38 @@
 ---
-sidebar_position: 3
+sidebar_position: 2
 ---
 
 # Document Processing
 
-Learn how to optimize document processing for your knowledge base.
-
-## Chunking Strategies
-
-### Recursive (Default)
-
-Best for general documents:
-
-```typescript
-chunkingConfig: {
-  strategy: 'recursive',
-  chunkSize: 1000,
-  chunkOverlap: 200,
-}
-```
-
-### Semantic
-
-Best for technical documentation:
-
-```typescript
-chunkingConfig: {
-  strategy: 'semantic',
-  chunkSize: 800,
-  chunkOverlap: 100,
-}
-```
-
-### Markdown
-
-Preserves document structure:
-
-```typescript
-chunkingConfig: {
-  strategy: 'markdown',
-  preserveHeaders: true,
-}
-```
-
-## Metadata Extraction
-
-Add metadata for better filtering:
-
-```typescript
-await synkora.knowledgeBases.uploadDocument(kbId, {
-  file: fileStream,
-  metadata: {
-    category: 'user-guide',
-    version: '2.0',
-    language: 'en',
-    author: 'Documentation Team',
-  },
-});
-```
+Document processing is the part of RAG work most teams underestimate.
 
 ## Processing Pipeline
 
-1. **Parse**: Extract text from files
-2. **Clean**: Remove boilerplate, fix encoding
-3. **Chunk**: Split into segments
-4. **Embed**: Generate vector embeddings
-5. **Index**: Store in vector database
+At a high level:
 
-## Best Practices
+1. upload or fetch source
+2. extract usable text
+3. normalize structure
+4. split into chunks
+5. embed and index
 
-- Clean documents before upload
-- Use consistent metadata schema
-- Monitor processing status
-- Reindex after configuration changes
+## Sources That Usually Work Well
 
-## Troubleshooting
+- markdown
+- PDFs with clean text layers
+- plain text
+- structured internal docs
 
-### Slow Processing
+## Sources That Need More Care
 
-- Reduce chunk overlap
-- Use smaller embedding model
-- Check document size
+- scanned PDFs
+- image-heavy files
+- long mixed-format exports
+- highly duplicated content
 
-### Poor Search Results
+## Operational Advice
 
-- Increase chunk overlap
-- Try different chunking strategy
-- Lower similarity threshold
+- start with a small set of high-quality documents
+- remove duplicates early
+- separate very different document families into separate KBs
+- reprocess content when the source structure changes meaningfully
