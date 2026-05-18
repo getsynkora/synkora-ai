@@ -93,7 +93,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials (for ECR check)
+        id: aws-creds
+        continue-on-error: true
         uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502  # v4.0.2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -147,27 +149,31 @@ jobs:
           [ "${{ github.event.inputs.force_scraper || 'false' }}" = "true" ] && scraper=true && echo "::notice::force_scraper=true — forcing Scraper rebuild"
           [ "${{ github.event.inputs.force_sandbox || 'false' }}" = "true" ] && sandbox=true && echo "::notice::force_sandbox=true — forcing Sandbox rebuild"
 
-          # ── Option 2: ECR check — if PREV image is missing but service had
-          #    git changes in PREV, the previous build failed → force rebuild ─
-          ecr_image_exists() {
-            aws ecr describe-images \
-              --repository-name "$1" \
-              --image-ids imageTag="${PREV}" \
-              --region "${{ env.AWS_REGION }}" \
-              --output text > /dev/null 2>&1
-          }
+          # ── Option 2: ECR check — only if AWS credentials are available ───
+          # If PREV image is missing but service had git changes in PREV,
+          # the previous build failed → force rebuild with current tag.
+          if [ "${{ steps.aws-creds.outcome }}" = "success" ]; then
+            ecr_image_exists() {
+              aws ecr describe-images \
+                --repository-name "$1" \
+                --image-ids imageTag="${PREV}" \
+                --region "${{ env.AWS_REGION }}" \
+                --output text > /dev/null 2>&1
+            }
 
-          # Returns 0 (true) if the given path pattern had changes in the PREV tag
-          prev_had_changes() {
-            [ -n "$PREV_PREV" ] && \
-              git diff --name-only "${PREV_PREV}".."${PREV}" | grep -q "$1"
-          }
+            prev_had_changes() {
+              [ -n "$PREV_PREV" ] && \
+                git diff --name-only "${PREV_PREV}".."${PREV}" | grep -q "$1"
+            }
 
-          if [ "$api"     = "false" ] && prev_had_changes '^api/'              && ! ecr_image_exists "synkora-api";      then echo "::warning::synkora-api:${PREV} missing — previous build failed, forcing rebuild";     api=true;     fi
-          if [ "$web"     = "false" ] && prev_had_changes '^web/'              && ! ecr_image_exists "synkora-frontend";  then echo "::warning::synkora-frontend:${PREV} missing — previous build failed, forcing rebuild"; web=true;     fi
-          if [ "$ml"      = "false" ] && prev_had_changes '^services/ml/'      && ! ecr_image_exists "synkora-ml";        then echo "::warning::synkora-ml:${PREV} missing — previous build failed, forcing rebuild";       ml=true;      fi
-          if [ "$scraper" = "false" ] && prev_had_changes '^services/scraper/' && ! ecr_image_exists "synkora-scraper";   then echo "::warning::synkora-scraper:${PREV} missing — previous build failed, forcing rebuild";  scraper=true; fi
-          if [ "$sandbox" = "false" ] && prev_had_changes '^services/sandbox/' && ! ecr_image_exists "synkora-sandbox";   then echo "::warning::synkora-sandbox:${PREV} missing — previous build failed, forcing rebuild";  sandbox=true; fi
+            if [ "$api"     = "false" ] && prev_had_changes '^api/'              && ! ecr_image_exists "synkora-api";     then echo "::warning::synkora-api:${PREV} missing — previous build failed, forcing rebuild";     api=true;     fi
+            if [ "$web"     = "false" ] && prev_had_changes '^web/'              && ! ecr_image_exists "synkora-frontend"; then echo "::warning::synkora-frontend:${PREV} missing — previous build failed, forcing rebuild"; web=true;     fi
+            if [ "$ml"      = "false" ] && prev_had_changes '^services/ml/'      && ! ecr_image_exists "synkora-ml";       then echo "::warning::synkora-ml:${PREV} missing — previous build failed, forcing rebuild";       ml=true;      fi
+            if [ "$scraper" = "false" ] && prev_had_changes '^services/scraper/' && ! ecr_image_exists "synkora-scraper";  then echo "::warning::synkora-scraper:${PREV} missing — previous build failed, forcing rebuild";  scraper=true; fi
+            if [ "$sandbox" = "false" ] && prev_had_changes '^services/sandbox/' && ! ecr_image_exists "synkora-sandbox";  then echo "::warning::synkora-sandbox:${PREV} missing — previous build failed, forcing rebuild";  sandbox=true; fi
+          else
+            echo "::notice::AWS credentials unavailable — skipping ECR check (Option 2 inactive)"
+          fi
 
           # ── Write outputs ─────────────────────────────────────────────────
           echo "api=$api"         >> "$GITHUB_OUTPUT"
@@ -191,7 +197,7 @@ jobs:
   build-api:
     name: Build & Push API Image
     needs: [release, changes]
-    if: always() && needs.changes.result == 'success' && needs.changes.outputs.api == 'true'
+    if: needs.changes.result == 'success' && needs.changes.outputs.api == 'true' && (needs.release.result == 'success' || needs.release.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - name: Free disk space
@@ -262,7 +268,7 @@ jobs:
   build-web:
     name: Build & Push Frontend Image
     needs: [release, changes]
-    if: always() && needs.changes.result == 'success' && needs.changes.outputs.web == 'true'
+    if: needs.changes.result == 'success' && needs.changes.outputs.web == 'true' && (needs.release.result == 'success' || needs.release.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - name: Free disk space
@@ -320,7 +326,7 @@ jobs:
   build-ml:
     name: Build & Push ML Image
     needs: [release, changes]
-    if: always() && needs.changes.result == 'success' && needs.changes.outputs.ml == 'true'
+    if: needs.changes.result == 'success' && needs.changes.outputs.ml == 'true' && (needs.release.result == 'success' || needs.release.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - name: Free disk space
@@ -365,7 +371,7 @@ jobs:
   build-scraper:
     name: Build & Push Scraper Image
     needs: [release, changes]
-    if: always() && needs.changes.result == 'success' && needs.changes.outputs.scraper == 'true'
+    if: needs.changes.result == 'success' && needs.changes.outputs.scraper == 'true' && (needs.release.result == 'success' || needs.release.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - name: Free disk space
@@ -410,7 +416,7 @@ jobs:
   build-sandbox:
     name: Build & Push Sandbox Image
     needs: [release, changes]
-    if: always() && needs.changes.result == 'success' && needs.changes.outputs.sandbox == 'true'
+    if: needs.changes.result == 'success' && needs.changes.outputs.sandbox == 'true' && (needs.release.result == 'success' || needs.release.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - name: Free disk space
