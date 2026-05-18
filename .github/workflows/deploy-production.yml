@@ -230,7 +230,7 @@ jobs:
       - name: Build and push Frontend image
         uses: docker/build-push-action@67a2d409c0a876cbe6b11854e3e25193efe4e62d  # v5.4.0
         with:
-          context: ./web
+          context: .
           file: ./web/Dockerfile
           push: true
           platforms: linux/amd64

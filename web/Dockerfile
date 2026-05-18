@@ -24,7 +24,7 @@ FROM base AS packages
 
 WORKDIR /app/web
 
-COPY package.json pnpm-lock.yaml ./
+COPY web/package.json web/pnpm-lock.yaml ./
 
 # Install dependencies
 RUN pnpm config set auto-install-peers true && pnpm config set strict-peer-dependencies false && pnpm install --frozen-lockfile
@@ -36,7 +36,8 @@ FROM base AS builder
 WORKDIR /app/web
 
 COPY --from=packages /app/web/node_modules ./node_modules
-COPY . .
+COPY web/ .
+COPY docs/ /app/docs/
 
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
@@ -69,7 +70,7 @@ COPY --from=builder /app/web/.next/static ./.next/static
 COPY --from=builder /app/web/public ./public
 
 # Copy entrypoint script
-COPY docker/entrypoint.sh ./entrypoint.sh
+COPY web/docker/entrypoint.sh ./entrypoint.sh
 RUN chmod +x ./entrypoint.sh
 
 # Install PM2 globally for process management

@@ -1,0 +1,26 @@
+# Exclude heavy directories not needed for the web build
+api/
+flutter/
+extension/
+services/
+helm/
+k8s/
+deploy/
+loadtest-deploy/
+do-functions/
+agent-docs/
+agent-test-docs/
+scripts/
+node_modules/
+.git/
+
+# web build artifacts
+web/node_modules/
+web/.next/
+web/.turbo/
+web/coverage/
+web/out/
+web/dist/
+web/build/
+web/.env
+web/.env.*
