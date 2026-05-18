@@ -37,7 +37,8 @@ WORKDIR /app/web
 
 COPY --from=packages /app/web/node_modules ./node_modules
 COPY web/ .
-COPY docs/ /app/docs/
+COPY docs/docs/ /app/docs/docs/
+COPY docs/blog/ /app/docs/blog/
 
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 
