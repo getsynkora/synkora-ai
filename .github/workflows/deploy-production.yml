@@ -93,14 +93,17 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Configure AWS credentials (for ECR check)
-        id: aws-creds
+      - name: Install doctl
+        id: doctl
         continue-on-error: true
-        uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502  # v4.0.2
+        uses: digitalocean/action-doctl@v2
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Configure kubectl
+        id: kubectl
+        continue-on-error: true
+        run: doctl kubernetes cluster kubeconfig save ${{ secrets.DOKS_CLUSTER_NAME }}
 
       - name: Detect changed services
         id: diff
@@ -108,17 +111,14 @@ jobs:
           git fetch --tags --force
 
           CURRENT="${{ github.ref_name }}"
+          NAMESPACE="${{ env.NAMESPACE }}"
 
-          # Two previous semver tags so we can check if a service changed in PREV
           PREV=$(git tag --sort=-version:refname \
             | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
             | sed -n '2p' || true)
-          PREV_PREV=$(git tag --sort=-version:refname \
-            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
-            | sed -n '3p' || true)
 
           if [ -z "$PREV" ]; then
-            echo "No previous tag found — marking all services changed (first release)."
+            echo "No previous tag — marking all services changed (first release)."
             echo "api=true"     >> "$GITHUB_OUTPUT"
             echo "web=true"     >> "$GITHUB_OUTPUT"
             echo "ml=true"      >> "$GITHUB_OUTPUT"
@@ -129,18 +129,35 @@ jobs:
             exit 0
           fi
 
-          # ── Git diff: what changed between PREV and CURRENT ──────────────
-          echo "Comparing $PREV → $CURRENT"
-          CHANGED=$(git diff --name-only "${PREV}".."${CURRENT}")
-          echo "Changed files:"
-          echo "$CHANGED"
+          # ── Get the currently deployed tag per service from the cluster ───
+          # This is the ground truth: what tag is actually running right now.
+          # Falls back to PREV if kubectl is unavailable.
+          deployed_tag() {
+            local dep="$1" container="$2"
+            if [ "${{ steps.kubectl.outcome }}" = "success" ]; then
+              kubectl get deployment/"${dep}" -n "${NAMESPACE}" \
+                -o jsonpath="{.spec.template.spec.containers[?(@.name==\"${container}\")].image}" \
+                2>/dev/null | sed 's/.*://' | grep -E '^v[0-9]+\.[0-9]+' || echo "$PREV"
+            else
+              echo "$PREV"
+            fi
+          }
 
-          api=$(echo "$CHANGED"     | grep -q '^api/'              && echo true || echo false)
-          web=$(echo "$CHANGED"     | grep -q '^web/'              && echo true || echo false)
-          ml=$(echo "$CHANGED"      | grep -q '^services/ml/'      && echo true || echo false)
-          scraper=$(echo "$CHANGED" | grep -q '^services/scraper/' && echo true || echo false)
-          sandbox=$(echo "$CHANGED" | grep -q '^services/sandbox/' && echo true || echo false)
-          k8s=$(echo "$CHANGED"     | grep -q '^k8s/'              && echo true || echo false)
+          API_BASE=$(deployed_tag     "synkora-api"      "api")
+          WEB_BASE=$(deployed_tag     "synkora-frontend" "frontend")
+          ML_BASE=$(deployed_tag      "synkora-ml"       "ml")
+          SCRAPER_BASE=$(deployed_tag "synkora-scraper"  "scraper")
+          SANDBOX_BASE=$(deployed_tag "synkora-sandbox"  "sandbox")
+
+          echo "Base tags: api=$API_BASE web=$WEB_BASE ml=$ML_BASE scraper=$SCRAPER_BASE sandbox=$SANDBOX_BASE"
+
+          # ── Diff each service against its own deployed base tag ───────────
+          api=$(git diff --name-only "${API_BASE}".."${CURRENT}"         | grep -q '^api/'              && echo true || echo false)
+          web=$(git diff --name-only "${WEB_BASE}".."${CURRENT}"         | grep -q '^web/'              && echo true || echo false)
+          ml=$(git diff --name-only "${ML_BASE}".."${CURRENT}"           | grep -q '^services/ml/'      && echo true || echo false)
+          scraper=$(git diff --name-only "${SCRAPER_BASE}".."${CURRENT}" | grep -q '^services/scraper/' && echo true || echo false)
+          sandbox=$(git diff --name-only "${SANDBOX_BASE}".."${CURRENT}" | grep -q '^services/sandbox/' && echo true || echo false)
+          k8s=$(git diff --name-only "${PREV}".."${CURRENT}"             | grep -q '^k8s/'              && echo true || echo false)
 
           # ── Option 1: Force flags from workflow_dispatch ──────────────────
           [ "${{ github.event.inputs.force_api     || 'false' }}" = "true" ] && api=true     && echo "::notice::force_api=true — forcing API rebuild"
@@ -148,32 +165,6 @@ jobs:
           [ "${{ github.event.inputs.force_ml      || 'false' }}" = "true" ] && ml=true      && echo "::notice::force_ml=true — forcing ML rebuild"
           [ "${{ github.event.inputs.force_scraper || 'false' }}" = "true" ] && scraper=true && echo "::notice::force_scraper=true — forcing Scraper rebuild"
           [ "${{ github.event.inputs.force_sandbox || 'false' }}" = "true" ] && sandbox=true && echo "::notice::force_sandbox=true — forcing Sandbox rebuild"
-
-          # ── Option 2: ECR check — only if AWS credentials are available ───
-          # If PREV image is missing but service had git changes in PREV,
-          # the previous build failed → force rebuild with current tag.
-          if [ "${{ steps.aws-creds.outcome }}" = "success" ]; then
-            ecr_image_exists() {
-              aws ecr describe-images \
-                --repository-name "$1" \
-                --image-ids imageTag="${PREV}" \
-                --region "${{ env.AWS_REGION }}" \
-                --output text > /dev/null 2>&1
-            }
-
-            prev_had_changes() {
-              [ -n "$PREV_PREV" ] && \
-                git diff --name-only "${PREV_PREV}".."${PREV}" | grep -q "$1"
-            }
-
-            if [ "$api"     = "false" ] && prev_had_changes '^api/'              && ! ecr_image_exists "synkora-api";     then echo "::warning::synkora-api:${PREV} missing — previous build failed, forcing rebuild";     api=true;     fi
-            if [ "$web"     = "false" ] && prev_had_changes '^web/'              && ! ecr_image_exists "synkora-frontend"; then echo "::warning::synkora-frontend:${PREV} missing — previous build failed, forcing rebuild"; web=true;     fi
-            if [ "$ml"      = "false" ] && prev_had_changes '^services/ml/'      && ! ecr_image_exists "synkora-ml";       then echo "::warning::synkora-ml:${PREV} missing — previous build failed, forcing rebuild";       ml=true;      fi
-            if [ "$scraper" = "false" ] && prev_had_changes '^services/scraper/' && ! ecr_image_exists "synkora-scraper";  then echo "::warning::synkora-scraper:${PREV} missing — previous build failed, forcing rebuild";  scraper=true; fi
-            if [ "$sandbox" = "false" ] && prev_had_changes '^services/sandbox/' && ! ecr_image_exists "synkora-sandbox";  then echo "::warning::synkora-sandbox:${PREV} missing — previous build failed, forcing rebuild";  sandbox=true; fi
-          else
-            echo "::notice::AWS credentials unavailable — skipping ECR check (Option 2 inactive)"
-          fi
 
           # ── Write outputs ─────────────────────────────────────────────────
           echo "api=$api"         >> "$GITHUB_OUTPUT"
