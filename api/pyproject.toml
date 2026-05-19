@@ -8,6 +8,8 @@ readme = "README.md"
 license = {text = "MIT"}
 
 dependencies = [
+    # Security: idna<3.15 has CVE-2026-45409 (transitive dep, pinned here to enforce fix)
+    "idna>=3.15",
     # Web Framework
     "fastapi>=0.115.6,<1.0.0",
     "uvicorn[standard]>=0.34.0,<1.0.0",
