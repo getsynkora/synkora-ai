@@ -16,6 +16,9 @@ def register_data_analysis_tools(registry: Any):
     Args:
         registry: ADKToolRegistry instance
     """
+    from src.services.agents.internal_tools.file_analysis_tools import (
+        query_file_with_duckdb,
+    )
     from src.services.agents.tool_registrations.data_analysis_tool_functions import (
         analyze_data_statistics,
         export_data_report,
@@ -299,4 +302,39 @@ def register_data_analysis_tools(registry: Any):
         function=generate_chart_from_data,
     )
 
-    logger.info("Registered 8 data analysis tools")
+    # Register DuckDB file query tool — lets agents query large uploaded CSV/Parquet/JSON files
+    registry.register_tool(
+        name="query_file_with_duckdb",
+        description=(
+            "Execute a SQL query against a large CSV, Parquet, or JSON file uploaded to S3. "
+            "The file is queried in-process using DuckDB — no database connection record needed. "
+            "The query MUST use read_csv_auto(s3_url), read_parquet(s3_url), or read_json_auto(s3_url) "
+            "as the table source, where s3_url is the exact s3:// URL provided by the user.\n\n"
+            "Examples:\n"
+            "  SELECT * FROM read_csv_auto('s3://bucket/path/file.csv') LIMIT 10\n"
+            "  SELECT category, SUM(amount) FROM read_csv_auto('s3://bucket/path/file.csv') GROUP BY category\n"
+            "  SELECT * FROM read_parquet('s3://bucket/path/data.parquet') WHERE date > '2024-01-01'\n\n"
+            "Returns up to 1000 rows. For large result sets, use GROUP BY / aggregation in your query."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "s3_url": {
+                    "type": "string",
+                    "description": "S3 URL of the uploaded file, e.g. s3://bucket/data-uploads/tenant/2026/05/19/uuid_sales.csv",
+                },
+                "query": {
+                    "type": "string",
+                    "description": (
+                        "DuckDB SQL query. Must reference the file via read_csv_auto(s3_url), "
+                        "read_parquet(s3_url), or read_json_auto(s3_url). "
+                        "Example: SELECT region, COUNT(*) FROM read_csv_auto('s3://...') GROUP BY region"
+                    ),
+                },
+            },
+            "required": ["s3_url", "query"],
+        },
+        function=query_file_with_duckdb,
+    )
+
+    logger.info("Registered 9 data analysis tools")

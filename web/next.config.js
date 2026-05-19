@@ -77,6 +77,9 @@ const nextConfig = {
         'https://cloudflareinsights.com',
         process.env.NEXT_PUBLIC_LOGS_URL || '',
         process.env.NEXT_PUBLIC_SENTRY_HOST || '',
+        // S3/MinIO presigned URL uploads go directly from the browser
+        isDev ? 'http://localhost:9000' : '',
+        process.env.NEXT_PUBLIC_MINIO_PUBLIC_URL || '',
       ].filter(Boolean).join(' '),
       "worker-src 'self' blob:",
       // Allow iframes for document embedding, Office Online, and video providers

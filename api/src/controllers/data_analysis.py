@@ -6,9 +6,11 @@ import hmac
 import json
 import logging
 import os
+import re
 import time
 from typing import Any
 from uuid import UUID
+from uuid import uuid4 as _uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from pydantic import BaseModel, Field
@@ -441,4 +443,71 @@ async def list_available_connectors(current_account: Account = Depends(get_curre
             {"format": "json", "name": "JSON", "description": "JavaScript Object Notation"},
             {"format": "html", "name": "HTML", "description": "HTML table report"},
         ],
+    }
+
+
+# ---------------------------------------------------------------------------
+# Presigned upload URL for large data files (CSV, Parquet, JSON, TSV)
+# ---------------------------------------------------------------------------
+
+_SAFE_FILENAME_RE = re.compile(r"[^a-zA-Z0-9._\-]")
+_ALLOWED_UPLOAD_CONTENT_TYPES = {
+    "text/csv",
+    "text/tab-separated-values",
+    "application/json",
+    "application/octet-stream",  # .parquet often arrives with this type
+}
+
+
+@router.get("/upload-presigned-url")
+async def get_analysis_upload_presigned_url(
+    filename: str,
+    content_type: str = "text/csv",
+    tenant_id: UUID = Depends(get_current_tenant_id),
+) -> dict[str, Any]:
+    """
+    Return a presigned S3 PUT URL so the browser can upload a large data file
+    directly to S3 without routing through the API server.
+
+    The caller must HTTP PUT the file body to ``upload_url`` with a matching
+    ``Content-Type`` header.  After upload completes, pass ``s3_url`` to the
+    agent's ``query_file_with_duckdb`` tool.
+    """
+    from datetime import UTC, datetime
+
+    from src.services.storage.s3_storage import S3StorageService
+
+    if content_type not in _ALLOWED_UPLOAD_CONTENT_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"content_type must be one of: {', '.join(sorted(_ALLOWED_UPLOAD_CONTENT_TYPES))}",
+        )
+
+    # Sanitise filename — replace anything that isn't alphanumeric, dot, dash, underscore,
+    # then collapse any remaining ".." sequences to prevent path traversal in the S3 key.
+    safe_name = _SAFE_FILENAME_RE.sub("_", filename)
+    safe_name = safe_name.replace("..", "_")
+    if not safe_name or safe_name.strip("_").strip(".") == "":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid filename")
+
+    file_id = str(_uuid4())
+    date_path = datetime.now(UTC).strftime("%Y/%m/%d")
+    s3_key = f"data-uploads/{tenant_id}/{date_path}/{file_id}_{safe_name}"
+
+    storage = S3StorageService()
+    upload_url: str = storage.presigned_client.generate_presigned_url(
+        "put_object",
+        Params={
+            "Bucket": storage.bucket_name,
+            "Key": s3_key,
+            "ContentType": content_type,
+        },
+        ExpiresIn=3600,
+    )
+
+    return {
+        "upload_url": upload_url,
+        "s3_key": s3_key,
+        "s3_url": f"s3://{storage.bucket_name}/{s3_key}",
+        "expires_in": 3600,
     }

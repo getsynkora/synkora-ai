@@ -34,7 +34,7 @@ export function CodeBlock({ language, code }: CodeBlockProps) {
           Copy
         </button>
       </div>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto max-h-80 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(156,163,175,0.4) transparent' }}>
         <SyntaxHighlighter
           style={vscDarkPlus as never}
           language={language || 'text'}

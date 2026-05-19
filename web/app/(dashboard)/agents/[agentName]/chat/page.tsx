@@ -287,51 +287,86 @@ export default function AdvancedChatPage() {
 
 
 
+  // Track if we just created a new conversation (to skip loading messages)
+  const skipLoadMessagesRef = useRef(false)
+
+  // Ref to always hold the latest currentConversation — used inside useCallback closures
+  // to avoid stale closures capturing the initial null value.
+  const currentConversationRef = useRef(currentConversation)
+  useEffect(() => {
+    currentConversationRef.current = currentConversation
+  }, [currentConversation])
+
+  // Ref for latest isStreaming — used inside async functions to avoid stale closures
+  const isStreamingRef = useRef(isStreaming)
+  useEffect(() => {
+    isStreamingRef.current = isStreaming
+  }, [isStreaming])
+
   const loadConversations = useCallback(async () => {
     if (!agentId) return
 
     try {
       const convs = await apiClient.getAgentConversations(agentId, 50)
       setConversations(convs)
-      
+
       // Calculate total messages across all conversations
       const total = convs.reduce((sum, conv) => sum + (conv.message_count || 0), 0)
       setTotalMessages(total)
-      
-      // Only set first conversation if truly none selected
-      if (!currentConversation && convs.length > 0) {
+
+      // Only set first conversation if truly none selected.
+      // Use the ref to read the live value instead of the stale closure value.
+      if (!currentConversationRef.current && convs.length > 0) {
         setCurrentConversation(convs[0])
       }
     } catch (error) {
       console.error('Failed to load conversations:', error)
     }
-  }, [agentId]) // Removed currentConversation from dependencies
-
-  // Track if we just created a new conversation (to skip loading messages)
-  const skipLoadMessagesRef = useRef(false)
+  }, [agentId])
 
   // Chat transport — SSE by default; switches to WebSocket when configured per-agent
   const transport = useChatTransport(chatConfig?.chat_transport ?? 'sse', API_URL)
 
+  // Tracks a conversation ID whose message-load was deferred because streaming was active
+  const pendingLoadConvIdRef = useRef<string | null>(null)
+
   // Load messages when conversation changes (skip if streaming or just created)
   useEffect(() => {
-    if (currentConversation?.id && !isStreaming && !skipLoadMessagesRef.current) {
-      loadConversationMessages(currentConversation.id)
+    if (currentConversation?.id) {
+      if (isStreamingRef.current || skipLoadMessagesRef.current) {
+        // Defer the load until streaming ends — only for non-skip case
+        if (!skipLoadMessagesRef.current) {
+          pendingLoadConvIdRef.current = currentConversation.id
+        }
+      } else {
+        pendingLoadConvIdRef.current = null
+        loadConversationMessages(currentConversation.id)
+      }
     }
     // Reset the skip flag after checking
     if (skipLoadMessagesRef.current) {
       skipLoadMessagesRef.current = false
     }
-  }, [currentConversation?.id]) // Only depend on ID to avoid unnecessary reloads
+  }, [currentConversation?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // When streaming ends, reload any conversation whose load was deferred
+  useEffect(() => {
+    if (!isStreaming && pendingLoadConvIdRef.current) {
+      const convId = pendingLoadConvIdRef.current
+      pendingLoadConvIdRef.current = null
+      loadConversationMessages(convId)
+    }
+  }, [isStreaming]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadConversationMessages = async (conversationId: string, preserveEphemeral = false) => {
-    // Don't load if we're streaming - it would overwrite streaming messages
-    if (isStreaming) return
+    // Don't load if we're streaming — it would overwrite in-progress messages.
+    // Use the ref so this check is always fresh regardless of closure age.
+    if (isStreamingRef.current) return
 
     try {
       const msgs = await apiClient.getConversationMessages(conversationId)
-      // Double-check we're not streaming before setting messages
-      if (!isStreaming) {
+      // Double-check streaming didn't start while the request was in flight
+      if (!isStreamingRef.current) {
         setMessages((prev) => {
           const loaded = msgs.map((msg: any) => ({
             id: msg.id,
@@ -342,12 +377,25 @@ export default function AdvancedChatPage() {
             metadata: msg.metadata || {},
           }))
 
+          // Guard: never replace a non-empty conversation with an empty API response.
+          // This can happen in preserveEphemeral mode when the backend hasn't committed
+          // the new messages yet (DB write vs read race). Keep what's visible.
+          if (loaded.length === 0 && prev.length > 0) return prev
+
           if (preserveEphemeral) {
             // Merge back streaming-only metadata (fleet_cards, charts, diagrams, etc.) that
             // the backend doesn't persist. Match by index since order is stable.
+            // Also preserve the existing client-side `id` as the React key so that
+            // ChatMessage components are NOT remounted when we swap in real DB UUIDs —
+            // that swap would otherwise change every key and cause a visible flash.
             loaded.forEach((newMsg, i) => {
               const existing = prev[i]
-              if (!existing || newMsg.role !== 'assistant' || existing.role !== 'assistant') return
+              if (!existing) return
+
+              // Keep the stable key that React already knows about
+              newMsg.id = existing.id
+
+              if (newMsg.role !== 'assistant' || existing.role !== 'assistant') return
               const { fleet_cards, charts, diagrams, infographics, vehicle_maps, generated_images } = existing.metadata || {}
               newMsg.metadata = {
                 ...newMsg.metadata,
@@ -366,8 +414,10 @@ export default function AdvancedChatPage() {
       }
     } catch (error) {
       console.error('Failed to load conversation messages:', error)
-      if (!isStreaming) {
-        setMessages([])
+      // Only clear messages on error when there are none yet — never wipe existing
+      // messages just because the reload after streaming failed.
+      if (!isStreamingRef.current) {
+        setMessages((prev) => (prev.length === 0 ? [] : prev))
       }
     }
   }

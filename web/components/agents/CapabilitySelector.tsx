@@ -450,6 +450,7 @@ export function CapabilityToggles({
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [togglingCapability, setTogglingCapability] = useState<string | null>(null)
+  const [collapsed, setCollapsed] = useState(false)
 
   useEffect(() => {
     loadCapabilities()
@@ -526,117 +527,139 @@ export function CapabilityToggles({
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 sm:max-w-md">
-            <div className="rounded-[1.1rem] border border-black/10 bg-white/85 px-3 py-2.5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7c5d45]">Enabled</p>
-              <p className="mt-1 text-lg font-semibold text-gray-950">{enabledCapabilityCount}</p>
+          <div className="flex flex-col gap-3 sm:items-end">
+            <div className="grid grid-cols-3 gap-2 sm:max-w-md">
+              <div className="rounded-[1.1rem] border border-black/10 bg-white/85 px-3 py-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7c5d45]">Enabled</p>
+                <p className="mt-1 text-lg font-semibold text-gray-950">{enabledCapabilityCount}</p>
+              </div>
+              <div className="rounded-[1.1rem] border border-[#ecd9af] bg-[#f8f0dd] px-3 py-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#9a6700]">Partial</p>
+                <p className="mt-1 text-lg font-semibold text-[#6a4b12]">{partialCapabilityCount}</p>
+              </div>
+              <div className="rounded-[1.1rem] border border-[#cfe6d9] bg-[#e8f4ee] px-3 py-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2d8b69]">Tools On</p>
+                <p className="mt-1 text-lg font-semibold text-[#215c46]">{totalEnabledTools}</p>
+              </div>
             </div>
-            <div className="rounded-[1.1rem] border border-[#ecd9af] bg-[#f8f0dd] px-3 py-2.5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#9a6700]">Partial</p>
-              <p className="mt-1 text-lg font-semibold text-[#6a4b12]">{partialCapabilityCount}</p>
-            </div>
-            <div className="rounded-[1.1rem] border border-[#cfe6d9] bg-[#e8f4ee] px-3 py-2.5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2d8b69]">Tools On</p>
-              <p className="mt-1 text-lg font-semibold text-[#215c46]">{totalEnabledTools}</p>
-            </div>
+
+            <button
+              type="button"
+              onClick={() => setCollapsed((prev) => !prev)}
+              className="inline-flex items-center gap-2 self-start rounded-full border border-black/10 bg-white/85 px-3 py-2 text-sm font-medium text-[#5f5a54] transition hover:bg-white sm:self-end"
+            >
+              {collapsed ? (
+                <>
+                  <ChevronDown className="h-4 w-4" />
+                  Expand toggles
+                </>
+              ) : (
+                <>
+                  <ChevronUp className="h-4 w-4" />
+                  Collapse toggles
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="p-5">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-        {capabilities.map((capability) => {
-          const isEnabled = isCapabilityEnabled(capability)
-          const isPartial = isCapabilityPartiallyEnabled(capability)
-          const isToggling = togglingCapability === capability.id
-          const totalTools = capability.tool_count || capability.toolCount || capability.tools?.length || 0
-          const enabledTools = capability.tools?.filter(tool => enabledToolNames.includes(tool)).length || 0
+      {!collapsed && (
+        <div className="p-5">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            {capabilities.map((capability) => {
+              const isEnabled = isCapabilityEnabled(capability)
+              const isPartial = isCapabilityPartiallyEnabled(capability)
+              const isToggling = togglingCapability === capability.id
+              const totalTools = capability.tool_count || capability.toolCount || capability.tools?.length || 0
+              const enabledTools = capability.tools?.filter(tool => enabledToolNames.includes(tool)).length || 0
 
-          return (
-            <button
-              key={capability.id}
-              onClick={() => handleToggle(capability)}
-              disabled={isToggling}
-              className={`rounded-[1.35rem] border p-4 text-left transition-all ${
-                isEnabled
-                  ? 'border-[#cfe6d9] bg-[#e8f4ee]'
-                  : isPartial
-                    ? 'border-[#ecd9af] bg-[#f8f0dd]'
-                    : 'border-black/10 bg-white/85 hover:border-black/20 hover:bg-white'
-              } ${isToggling ? 'cursor-wait opacity-50' : ''}`}
-              title={`${totalTools} tools`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[1rem] border text-lg ${
-                        isEnabled
-                          ? 'border-[#b7dcc6] bg-white/70'
-                          : isPartial
-                            ? 'border-[#e5c983] bg-white/60'
-                            : 'border-black/10 bg-[#f3ecde]'
-                      }`}
-                    >
-                      <span>{capability.icon}</span>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-gray-950">{capability.name}</p>
-                      <p
-                        className={`mt-0.5 text-xs font-semibold uppercase tracking-[0.16em] ${
-                          isEnabled
-                            ? 'text-[#2d8b69]'
-                            : isPartial
-                              ? 'text-[#9a6700]'
-                              : 'text-[#7c5d45]'
-                        }`}
-                      >
-                        {isEnabled ? 'Enabled' : isPartial ? 'Partially Enabled' : 'Disabled'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <p className="mt-3 line-clamp-2 text-sm leading-6 text-gray-600">
-                    {capability.description}
-                  </p>
-
-                  <div className="mt-3 flex items-center justify-between gap-3 text-xs">
-                    <div className="flex flex-wrap gap-2">
-                      <span className="rounded-full bg-white/80 px-2.5 py-1 font-semibold text-gray-700">
-                        {totalTools} tools
-                      </span>
-                      {enabledTools > 0 && (
-                        <span
-                          className={`rounded-full px-2.5 py-1 font-semibold ${
+              return (
+                <button
+                  key={capability.id}
+                  onClick={() => handleToggle(capability)}
+                  disabled={isToggling}
+                  className={`rounded-[1.35rem] border p-4 text-left transition-all ${
+                    isEnabled
+                      ? 'border-[#cfe6d9] bg-[#e8f4ee]'
+                      : isPartial
+                        ? 'border-[#ecd9af] bg-[#f8f0dd]'
+                        : 'border-black/10 bg-white/85 hover:border-black/20 hover:bg-white'
+                  } ${isToggling ? 'cursor-wait opacity-50' : ''}`}
+                  title={`${totalTools} tools`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[1rem] border text-lg ${
                             isEnabled
-                              ? 'bg-white/80 text-[#2d8b69]'
-                              : 'bg-white/70 text-[#9a6700]'
+                              ? 'border-[#b7dcc6] bg-white/70'
+                              : isPartial
+                                ? 'border-[#e5c983] bg-white/60'
+                                : 'border-black/10 bg-[#f3ecde]'
                           }`}
                         >
-                          {enabledTools} on
-                        </span>
-                      )}
-                    </div>
+                          <span>{capability.icon}</span>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-gray-950">{capability.name}</p>
+                          <p
+                            className={`mt-0.5 text-xs font-semibold uppercase tracking-[0.16em] ${
+                              isEnabled
+                                ? 'text-[#2d8b69]'
+                                : isPartial
+                                  ? 'text-[#9a6700]'
+                                  : 'text-[#7c5d45]'
+                            }`}
+                          >
+                            {isEnabled ? 'Enabled' : isPartial ? 'Partially Enabled' : 'Disabled'}
+                          </p>
+                        </div>
+                      </div>
 
-                    <div
-                      className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border ${
-                        isEnabled
-                          ? 'border-[#2d8b69] bg-[#2d8b69] text-white'
-                          : isPartial
-                            ? 'border-[#c69025] bg-[#f8f0dd] text-[#9a6700]'
-                            : 'border-black/15 bg-white text-transparent'
-                      }`}
-                    >
-                      <Check className="h-3.5 w-3.5" />
+                      <p className="mt-3 line-clamp-2 text-sm leading-6 text-gray-600">
+                        {capability.description}
+                      </p>
+
+                      <div className="mt-3 flex items-center justify-between gap-3 text-xs">
+                        <div className="flex flex-wrap gap-2">
+                          <span className="rounded-full bg-white/80 px-2.5 py-1 font-semibold text-gray-700">
+                            {totalTools} tools
+                          </span>
+                          {enabledTools > 0 && (
+                            <span
+                              className={`rounded-full px-2.5 py-1 font-semibold ${
+                                isEnabled
+                                  ? 'bg-white/80 text-[#2d8b69]'
+                                  : 'bg-white/70 text-[#9a6700]'
+                              }`}
+                            >
+                              {enabledTools} on
+                            </span>
+                          )}
+                        </div>
+
+                        <div
+                          className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border ${
+                            isEnabled
+                              ? 'border-[#2d8b69] bg-[#2d8b69] text-white'
+                              : isPartial
+                                ? 'border-[#c69025] bg-[#f8f0dd] text-[#9a6700]'
+                                : 'border-black/15 bg-white text-transparent'
+                          }`}
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            </button>
-          )
-        })}
+                </button>
+              )
+            })}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

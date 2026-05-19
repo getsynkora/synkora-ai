@@ -238,8 +238,8 @@ function MarkdownBody({ content }: { content: string }) {
         code({ className, children, ...props }) {
           const isBlock = className?.startsWith('language-')
           return isBlock ? (
-            <pre className="my-3 overflow-auto rounded-2xl bg-slate-950 px-4 py-3.5 text-[12px] shadow-inner">
-              <code className={`${className} whitespace-pre text-slate-100`} {...props}>
+            <pre className="my-3 overflow-auto rounded-2xl bg-slate-950 px-4 py-3.5 text-[12px] text-slate-100 shadow-inner">
+              <code className={`${className} whitespace-pre`} {...props}>
                 {children}
               </code>
             </pre>

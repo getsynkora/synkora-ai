@@ -150,3 +150,15 @@ export async function uploadChatAttachment(
   )
   return data.data || data
 }
+
+// Data file analysis — presigned S3 PUT URL for large file uploads
+export async function getAnalysisUploadUrl(
+  filename: string,
+  contentType: string = 'text/csv'
+): Promise<{ upload_url: string; s3_key: string; s3_url: string; expires_in: number }> {
+  const params = new URLSearchParams({ filename, content_type: contentType })
+  const { data } = await apiClient.axios.get(
+    `/api/v1/data-analysis/upload-presigned-url?${params}`
+  )
+  return data
+}

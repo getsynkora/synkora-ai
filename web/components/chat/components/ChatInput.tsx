@@ -15,10 +15,12 @@ import {
   Loader2,
   FileText,
   File,
+  BarChart2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { VoiceInputModal } from './VoiceInputModal'
 import { useFileUpload } from '../hooks/useFileUpload'
+import { useDataFileUpload } from '../hooks/useDataFileUpload'
 import { Attachment } from '../types'
 
 interface ChatConfig {
@@ -60,8 +62,10 @@ export function ChatInput({
   const [uploadError, setUploadError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  
+  const analysisFileInputRef = useRef<HTMLInputElement>(null)
+
   const { uploadFiles, uploadProgress, isUploading, clearProgress } = useFileUpload()
+  const { upload: uploadForAnalysis, state: analysisUploadState, reset: resetAnalysis } = useDataFileUpload()
   
   // Get primary color for theming
   const primaryColor = chatConfig?.chat_primary_color || '#0d9488' // teal-600 as default
@@ -147,6 +151,22 @@ export function ChatInput({
       // If no conversationId yet, just add to selectedFiles
       setSelectedFiles((prev) => [...prev, ...files])
     }
+  }
+
+  const handleAnalysisFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (analysisFileInputRef.current) analysisFileInputRef.current.value = ''
+    if (!file) return
+
+    const result = await uploadForAnalysis(file)
+    if (!result) return // error state already set inside the hook
+
+    const prompt =
+      `I've uploaded **${result.filename}** for analysis.\n\n` +
+      `S3 URL: \`${result.s3Url}\`\n\n` +
+      `Please analyze this file: describe the schema, row count, and key statistics. Then ask me what analysis I'd like to run.`
+    resetAnalysis()
+    onSend(prompt)
   }
 
   const removeFile = (index: number) => {
@@ -271,6 +291,36 @@ export function ChatInput({
         </div>
       )}
 
+      {/* Analysis Upload Error */}
+      {analysisUploadState.error && (
+        <div className="px-3 sm:px-4 lg:px-5 pb-2">
+          <div className="flex items-center gap-2 px-3 py-2 bg-red-50 rounded-lg text-red-700 text-sm">
+            <X size={14} />
+            <span className="flex-1">{analysisUploadState.error}</span>
+            <button onClick={resetAnalysis} className="p-1 hover:bg-red-100 rounded">
+              <X size={12} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Analysis Upload Progress */}
+      {analysisUploadState.status === 'uploading' && (
+        <div className="px-3 sm:px-4 lg:px-5 pb-2">
+          <div className="flex items-center gap-2 text-sm">
+            <BarChart2 size={14} className="text-teal-600 shrink-0" />
+            <span className="text-gray-600 flex-1 truncate">Uploading for analysis…</span>
+            <div className="w-20 bg-gray-200 rounded-full h-1">
+              <div
+                className="h-1 rounded-full transition-all"
+                style={{ width: `${analysisUploadState.progress}%`, backgroundColor: primaryColor }}
+              />
+            </div>
+            <span className="text-gray-400 text-xs w-8">{analysisUploadState.progress}%</span>
+          </div>
+        </div>
+      )}
+
       {/* Upload Progress */}
       {uploadProgress.length > 0 && (
         <div className="px-3 sm:px-4 lg:px-5 pb-2">
@@ -346,6 +396,13 @@ export function ChatInput({
                 className="hidden"
                 onChange={handleFileSelect}
               />
+              <input
+                ref={analysisFileInputRef}
+                type="file"
+                accept=".csv,.tsv,.json,.parquet,.ndjson,.jsonl"
+                className="hidden"
+                onChange={handleAnalysisFileSelect}
+              />
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className="rounded-[0.8rem] p-1.5 text-gray-400 transition-colors hover:bg-white/70 hover:text-gray-600"
@@ -353,6 +410,14 @@ export function ChatInput({
                 disabled={isDisabled}
               >
                 <Paperclip size={16} />
+              </button>
+              <button
+                onClick={() => analysisFileInputRef.current?.click()}
+                className="rounded-[0.8rem] p-1.5 text-gray-400 transition-colors hover:bg-white/70 hover:text-gray-600"
+                title="Upload CSV / data file for analysis"
+                disabled={isDisabled || analysisUploadState.status === 'uploading'}
+              >
+                <BarChart2 size={16} />
               </button>
             </div>
 

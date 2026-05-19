@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import {
   Settings,
@@ -13,7 +13,6 @@ import {
   EyeOff,
   Save,
   TestTube,
-  ArrowLeft,
   Github,
   Unlink,
   FileText,
@@ -23,11 +22,9 @@ import {
   MessageSquare,
   Calendar,
   Package,
-  Info,
   ChevronDown,
   ChevronRight,
   Globe,
-  ExternalLink,
   AlertTriangle,
   Link2,
   CheckCircle,
@@ -508,7 +505,6 @@ const NEW_TOOLS: Tool[] = [];
 
 export default function AgentToolsPage() {
   const params = useParams();
-  const router = useRouter();
   const agentName = params.agentName as string;
 
   const [agent, setAgent] = useState<any>(null);
@@ -1381,15 +1377,15 @@ export default function AgentToolsPage() {
     }
   };
 
-  const isToolEnabled = (toolName: string) => {
-    if (!Array.isArray(agentTools)) return false;
-    return agentTools.some(t => t.tool_name === toolName && t.enabled);
-  };
-
   const getToolConfig = (toolName: string) => {
     if (!Array.isArray(agentTools)) return {};
     const tool = agentTools.find(t => t.tool_name === toolName);
     return tool?.config || {};
+  };
+
+  const isToolEnabled = (toolName: string) => {
+    if (!Array.isArray(agentTools)) return false;
+    return agentTools.some(t => t.tool_name === toolName && t.enabled);
   };
 
   const openConfigModal = async (tool: Tool) => {
@@ -1705,8 +1701,6 @@ export default function AgentToolsPage() {
       title="Tool Configuration"
       description={<>Configure tools for <span className="font-semibold text-gray-900">{agent?.agent_name || agentName}</span>.</>}
       icon={Settings}
-      backHref={`/agents/${agentName}/view`}
-      backLabel="Back to Agent"
       badge="Capability Control"
       maxWidthClassName="max-w-7xl"
     >
