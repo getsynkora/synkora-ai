@@ -349,9 +349,7 @@ class AgentLoaderService:
             "routing_config": getattr(db_agent, "routing_config", None),
             "status": db_agent.status,
             "tenant_id": str(db_agent.tenant_id),
-            "email_template_id": str(db_agent.email_template_id)
-            if getattr(db_agent, "email_template_id", None)
-            else None,
+            "email_template_id": str(db_agent.email_template_id) if getattr(db_agent, "email_template_id", None) else None,
             "created_at": db_agent.created_at.isoformat() if db_agent.created_at else None,
             "updated_at": db_agent.updated_at.isoformat() if db_agent.updated_at else None,
         }

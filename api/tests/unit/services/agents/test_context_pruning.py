@@ -51,14 +51,14 @@ def _user(text: str) -> dict:
     return {"role": "user", "content": text}
 
 
-def _four_tool_conversation(first_content, tool_name: str = "internal_query_database") -> list[dict]:
+def _four_tool_conversation(first_content) -> list[dict]:
     """
     Conversation with 4 tool results so that `keep_last_results=3`
     puts the first one into prune_candidates.
     """
     return [
         _user("query 1"),
-        _assistant_call("c1", tool_name),
+        _assistant_call("c1", "internal_query_database"),
         _tool_msg("c1", first_content),
         _assistant_text("got it"),
         _user("query 2"),
@@ -237,7 +237,7 @@ class TestMeaningfulSummaries:
         )
 
     def test_large_old_result_replaced_with_summary(self):
-        messages = _four_tool_conversation(self._large_db_result(500), tool_name="get_report")
+        messages = _four_tool_conversation(self._large_db_result(500))
         settings = PruningSettings(
             use_meaningful_summaries=True,
             max_result_chars=100,  # Force pruning
@@ -283,7 +283,7 @@ class TestMeaningfulSummaries:
 
     def test_summary_marker_present_in_pruned_results(self):
         """Pruned results must start with RESULT_PRUNED_MARKER for dedup cache eviction."""
-        messages = _four_tool_conversation(self._large_db_result(200), tool_name="get_report")
+        messages = _four_tool_conversation(self._large_db_result(200))
         settings = PruningSettings(
             use_meaningful_summaries=True,
             max_result_chars=100,

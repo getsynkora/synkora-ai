@@ -78,6 +78,10 @@ export default function EditOAuthAppPage() {
     config: {} as Record<string, any>,
   })
 
+  useEffect(() => {
+    fetchOAuthApp()
+  }, [fetchOAuthApp])
+
   const fetchOAuthApp = useCallback(async () => {
     if (!appId) return
     try {
@@ -103,10 +107,6 @@ export default function EditOAuthAppPage() {
       setLoading(false)
     }
   }, [appId])
-
-  useEffect(() => {
-    fetchOAuthApp()
-  }, [fetchOAuthApp])
 
   const handleScopeChange = (scope: string, checked: boolean) => {
     if (checked) {

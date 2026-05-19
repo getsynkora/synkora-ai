@@ -3,7 +3,7 @@ AI image generation tool.
 
 Loads the image-generation LLM config from agent_metadata.image_generation_llm_config_id.
 The config must be one of the agent's AgentLLMConfig rows whose model is an image model:
-  - OpenAI image models (gpt-image-2, dall-e-3, dall-e-2)
+  - OpenAI image models (gpt-image-1, gpt-image-2, dall-e-3, dall-e-2)
   - Google Imagen models (imagen-3.0-generate-002, imagen-3.0-fast-generate-001)
   - xAI / Grok image model (grok-2-image)
 """
@@ -25,8 +25,8 @@ _SIZE_MAP: dict[str, tuple[str, str]] = {
     "landscape": ("1536x1024", "16:9"),
 }
 
-# gpt-image-2 quality values: low | medium | high
-_GPT_IMAGE_2_QUALITY_MAP: dict[str, str] = {
+# gpt-image-* quality values: low | medium | high
+_GPT_IMAGE_QUALITY_MAP: dict[str, str] = {
     "standard": "medium",
     "hd": "high",
     "low": "low",
@@ -43,12 +43,14 @@ _DALLE_QUALITY_MAP: dict[str, str] = {
     "low": "standard",
 }
 
+_GPT_IMAGE_1 = "gpt-image-1"
 _GPT_IMAGE_2 = "gpt-image-2"
 _IMAGEN_3 = "imagen-3.0-generate-002"
 _GROK_IMAGE = "grok-2-image"
 
 _GOOGLE_IMAGE_MODELS = {"imagen-3.0-generate-002", "imagen-3.0-fast-generate-001"}
-_OPENAI_IMAGE_MODELS = {"gpt-image-2", "dall-e-3", "dall-e-2"}
+_GPT_IMAGE_MODELS = {_GPT_IMAGE_1, _GPT_IMAGE_2}
+_OPENAI_IMAGE_MODELS = _GPT_IMAGE_MODELS | {"dall-e-3", "dall-e-2"}
 _GROK_IMAGE_MODELS = {"grok-2-image"}
 _GROK_PROVIDERS = {"xai", "grok", "x-ai", "x_ai"}
 
@@ -92,9 +94,9 @@ async def internal_generate_image(
     size_key = size.lower().strip() if size.lower().strip() in _SIZE_MAP else "square"
     openai_size, google_ratio = _SIZE_MAP[size_key]
     quality_key = quality.lower().strip()
-    # gpt-image-2 uses low/medium/high; dall-e-3/dall-e-2 use standard/hd
-    if model_name == _GPT_IMAGE_2:
-        mapped_quality = _GPT_IMAGE_2_QUALITY_MAP.get(quality_key, "medium")
+    # gpt-image-* uses low/medium/high; dall-e-3/dall-e-2 use standard/hd
+    if model_name in _GPT_IMAGE_MODELS:
+        mapped_quality = _GPT_IMAGE_QUALITY_MAP.get(quality_key, "medium")
     else:
         mapped_quality = _DALLE_QUALITY_MAP.get(quality_key, "standard")
 
@@ -146,7 +148,7 @@ async def internal_generate_image(
         "error": (
             f"Model '{model_name}' is not a supported image generation model. "
             "Please assign a valid image model in the agent's Vision tab "
-            "(e.g. gpt-image-2, dall-e-3, imagen-3.0-generate-002)."
+            "(e.g. gpt-image-1, gpt-image-2, dall-e-3, imagen-3.0-generate-002)."
         ),
     }
 
@@ -257,9 +259,9 @@ async def _generate_openai_compat(
             "size": size,
             "n": 1,
         }
-        # gpt-image-2 does not accept response_format — it always returns b64_json.
+        # gpt-image-* does not accept response_format — it always returns b64_json.
         # dall-e-2 and dall-e-3 require it to receive base64 instead of a URL.
-        if model != _GPT_IMAGE_2:
+        if model not in _GPT_IMAGE_MODELS:
             kwargs["response_format"] = "b64_json"
         if quality is not None:
             kwargs["quality"] = quality

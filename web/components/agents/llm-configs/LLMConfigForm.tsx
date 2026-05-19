@@ -226,8 +226,11 @@ export default function LLMConfigForm({
       )
     : models
 
-  const filteredModels = allFilteredModels.filter(m => !m.tags?.includes('image_generation'))
+  const filteredModels = allFilteredModels.filter(
+    (m) => !m.tags?.includes('image_generation') && !m.tags?.includes('video_generation')
+  )
   const imageModels = allFilteredModels.filter(m => m.tags?.includes('image_generation'))
+  const videoModels = allFilteredModels.filter(m => m.tags?.includes('video_generation'))
 
   return (
     <form onSubmit={handleSubmit} className="space-y-7">
@@ -440,7 +443,7 @@ export default function LLMConfigForm({
                 })}
               </div>
 
-              {filteredModels.length === 0 && modelSearch && imageModels.length === 0 && (
+              {filteredModels.length === 0 && modelSearch && imageModels.length === 0 && videoModels.length === 0 && (
                 <p className="text-sm text-gray-500 text-center py-6">No models match "{modelSearch}"</p>
               )}
 
@@ -497,6 +500,61 @@ export default function LLMConfigForm({
                   <p className="mt-2 text-[11px] text-gray-400">
                     Image models are used by the Image Generation tool — not for chat.
                     Enable the tool in the agent&apos;s Tools tab.
+                  </p>
+                </div>
+              )}
+
+              {videoModels.length > 0 && (
+                <div className="mt-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="h-px flex-1 bg-gray-100" />
+                    <span className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
+                      <span className="inline-block w-2 h-2 rounded-full bg-sky-400" />
+                      Video Generation
+                    </span>
+                    <div className="h-px flex-1 bg-gray-100" />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {videoModels.map((model: ModelPreset) => {
+                      const isSelected = formData.model_name === model.model_name
+                      return (
+                        <button
+                          key={model.model_name}
+                          type="button"
+                          onClick={() => handleModelChange(model.model_name)}
+                          disabled={isSubmitting}
+                          className={`relative flex flex-col rounded-xl border-2 text-left transition-all duration-150 overflow-hidden ${
+                            isSelected
+                              ? 'border-sky-500 shadow-md shadow-sky-500/10'
+                              : 'border-gray-200 bg-white hover:border-sky-300 hover:shadow-sm'
+                          }`}
+                        >
+                          <div className={`h-0.5 w-full ${isSelected ? 'bg-sky-500' : 'bg-transparent'}`} />
+                          <div className={`px-4 pt-3 pb-3 ${isSelected ? 'bg-sky-50' : ''}`}>
+                            <div className="flex items-start justify-between gap-2 mb-0.5">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className={`font-bold text-sm leading-tight ${isSelected ? 'text-sky-800' : 'text-gray-900'}`}>
+                                  {model.name}
+                                </span>
+                                <span className="px-1.5 py-0.5 bg-sky-100 text-sky-700 text-[10px] font-bold rounded-full">
+                                  Video
+                                </span>
+                              </div>
+                              {isSelected && (
+                                <div className="shrink-0 w-5 h-5 bg-sky-500 rounded-full flex items-center justify-center">
+                                  <Check size={11} className="text-white" />
+                                </div>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-gray-400 font-mono truncate mb-1">{model.model_name}</p>
+                            <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{model.description}</p>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <p className="mt-2 text-[11px] text-gray-400">
+                    Video models are for media generation workflows — not for chat completions.
                   </p>
                 </div>
               )}

@@ -1206,7 +1206,7 @@ function ObservabilityTab({ config, setConfig }: any) {
 
 // Image models that can be assigned for image generation
 const IMAGE_GENERATION_MODELS = new Set([
-  'gpt-image-2', 'dall-e-3', 'dall-e-2',
+  'gpt-image-1', 'gpt-image-2', 'dall-e-3', 'dall-e-2',
   'imagen-3.0-generate-002', 'imagen-3.0-fast-generate-001',
   'grok-2-image',
 ])
@@ -1250,14 +1250,14 @@ function VisionTab({ formData, agentLlmConfigs, imageGenLlmConfigId, setImageGen
         <h4 className="text-sm font-semibold text-gray-900 mb-1">Image Generation Model</h4>
         <p className="text-xs text-gray-500 mb-4">
           Select which LLM config the image generation tool should use. Only configs with an image
-          model (gpt-image-2, dall-e-3, dall-e-2, Imagen, grok-2-image) are shown.
+          model (gpt-image-1, gpt-image-2, dall-e-3, dall-e-2, Imagen, grok-2-image) are shown.
         </p>
 
         {imageGenConfigs.length === 0 ? (
           <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
             <p className="text-sm text-orange-800">
               No image generation models found. Add an LLM config with an image model (e.g.
-              gpt-image-2, dall-e-3) in the <strong>AI Model</strong> tab, then come back here to
+              gpt-image-1, gpt-image-2, dall-e-3) in the <strong>AI Model</strong> tab, then come back here to
               assign it.
             </p>
           </div>

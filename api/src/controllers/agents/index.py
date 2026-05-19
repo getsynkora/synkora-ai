@@ -158,10 +158,27 @@ async def create_agent(
 
         # Prepare llm_config with encrypted API key
         from src.services.agents.security import encrypt_value
+        from src.services.agents.internal_tools.platform_tools import normalize_tool_categories
 
         llm_config_data = request.config.llm_config.model_dump()
         if llm_config_data.get("api_key"):
             llm_config_data["api_key"] = encrypt_value(llm_config_data["api_key"])
+
+        normalized_tool_names = normalize_tool_categories([tool.name for tool in request.config.tools]) if request.config.tools else []
+        normalized_tool_payloads: list[dict[str, object]] = []
+        if request.config.tools:
+            seen_tool_names: set[str] = set()
+            for tool in request.config.tools:
+                normalized_values = normalize_tool_categories([tool.name])
+                normalized_name = normalized_values[0] if normalized_values else tool.name
+                if normalized_name in seen_tool_names:
+                    continue
+                seen_tool_names.add(normalized_name)
+                tool_payload = tool.model_dump()
+                tool_payload["name"] = normalized_name
+                if tool_payload.get("description") == tool.name.replace("_", " "):
+                    tool_payload["description"] = normalized_name.replace("_", " ")
+                normalized_tool_payloads.append(tool_payload)
 
         # Save to database
         db_agent = Agent(
@@ -172,10 +189,10 @@ async def create_agent(
             avatar=request.config.avatar,
             system_prompt=request.config.system_prompt,
             llm_config=llm_config_data,
-            tools_config={"tools": [tool.model_dump() for tool in request.config.tools]}
-            if request.config.tools
+            tools_config={"tools": normalized_tool_payloads}
+            if normalized_tool_payloads
             else None,
-            agent_metadata={},
+            agent_metadata=request.config.metadata or {},
             status="ACTIVE",
             suggestion_prompts=sanitized_suggestion_prompts,  # SECURITY: Use sanitized prompts
             is_public=getattr(request, "is_public", False),
@@ -209,7 +226,7 @@ async def create_agent(
                 from src.services.agents.internal_tools.platform_tools import TOOL_CATEGORY_TO_PATTERNS
 
                 available_tool_names = [t["name"] for t in tool_registry.list_tools()]
-                requested_categories = [t.name for t in request.config.tools]
+                requested_categories = normalized_tool_names
 
                 matched_tools: set[str] = set()
                 for cat in requested_categories:
@@ -312,6 +329,33 @@ async def create_agent(
                 enabled=True,
             )
             db.add(llm_config_entry)
+            await db.flush()
+
+            from src.services.agents.internal_tools.platform_tools import (
+                resolve_image_generation_config,
+                upsert_image_generation_llm_config,
+            )
+
+            requested_categories = normalized_tool_names
+            image_metadata = request.config.metadata or {}
+            image_config = resolve_image_generation_config(
+                tools_list=requested_categories,
+                image_llm_provider=image_metadata.get("image_generation_provider"),
+                image_llm_model=image_metadata.get("image_generation_model"),
+                fallback_provider=effective_provider,
+            )
+            if image_config:
+                await upsert_image_generation_llm_config(
+                    db_session=db,
+                    agent=db_agent,
+                    tenant_id=tenant_id,
+                    encrypted_api_key=encrypted_api_key,
+                    api_base=effective_api_base,
+                    additional_params=effective_additional_params,
+                    provider=image_config["provider"],
+                    model_name=image_config["model"],
+                )
+
             await db.commit()
             logger.info(f"Created LLM config entry for agent '{request.config.name}'")
         except Exception as llm_err:

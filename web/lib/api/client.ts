@@ -115,6 +115,7 @@ interface ExtendedAPIClient extends APIClient {
   sendMessage: typeof conversations.sendMessage
   getMessages: typeof conversations.getMessages
   uploadChatAttachment: typeof conversations.uploadChatAttachment
+  getAnalysisUploadUrl: typeof conversations.getAnalysisUploadUrl
   createConversationShare: typeof conversations.createConversationShare
   listConversationShares: typeof conversations.listConversationShares
   revokeConversationShare: typeof conversations.revokeConversationShare
@@ -346,6 +347,7 @@ export const apiClient: ExtendedAPIClient = Object.assign(_apiClient, {
   sendMessage: conversations.sendMessage,
   getMessages: conversations.getMessages,
   uploadChatAttachment: conversations.uploadChatAttachment,
+  getAnalysisUploadUrl: conversations.getAnalysisUploadUrl,
   createConversationShare: conversations.createConversationShare,
   listConversationShares: conversations.listConversationShares,
   revokeConversationShare: conversations.revokeConversationShare,

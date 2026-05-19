@@ -63,6 +63,8 @@ def register_platform_tools(registry) -> None:
             tools_list=kwargs.get("tools_list"),
             category=kwargs.get("category"),
             tags=kwargs.get("tags"),
+            image_llm_provider=kwargs.get("image_llm_provider"),
+            image_llm_model=kwargs.get("image_llm_model"),
             runtime_context=runtime_context,
         )
 
@@ -74,6 +76,8 @@ def register_platform_tools(registry) -> None:
             system_prompt=kwargs.get("system_prompt"),
             status=kwargs.get("status"),
             tools_list=kwargs.get("tools_list"),
+            image_llm_provider=kwargs.get("image_llm_provider"),
+            image_llm_model=kwargs.get("image_llm_model"),
             runtime_context=runtime_context,
         )
 
@@ -135,7 +139,7 @@ def register_platform_tools(registry) -> None:
             "and wait for the user to confirm. Only call this tool after the user "
             "sends __CONFIRMED__ in their reply. "
             "The 'config' object in the marker must include: "
-            "name, description, system_prompt, llm_provider, llm_model, and optionally tools_list."
+            "name, description, system_prompt, and optionally tools_list, image_llm_provider, image_llm_model."
         ),
         parameters={
             "type": "object",
@@ -169,6 +173,14 @@ def register_platform_tools(registry) -> None:
                     "type": "array",
                     "items": {"type": "string"},
                     "description": "List of tool category names to enable (from platform_get_available_tools)",
+                },
+                "image_llm_provider": {
+                    "type": "string",
+                    "description": "Optional provider for image generation agents, e.g. openai or google.",
+                },
+                "image_llm_model": {
+                    "type": "string",
+                    "description": "Optional image model, e.g. gpt-image-2 or imagen-3.0-generate-002.",
                 },
                 "category": {"type": "string", "description": "Agent category for organization"},
                 "tags": {
@@ -210,13 +222,21 @@ def register_platform_tools(registry) -> None:
                         "Adds tools without removing existing ones. "
                         "Use the same names as platform_create_agent: "
                         "browser_tools, scheduler_tools, email_tools, gmail_tools, "
-                        "file_tools, storage_tools, command_tools, database_tools, "
+                        "file_tools, storage_tools, command_tools, database_tools, image_generation, "
                         "elasticsearch_tools, data_analysis_tools, document_tools, "
                         "github_tools, gitlab_tools, slack_tools, jira_tools, "
                         "clickup_tools, zoom_tools, google_calendar_tools, "
                         "google_drive_tools, twitter_tools, linkedin_tools, "
                         "youtube_tools, news_tools."
                     ),
+                },
+                "image_llm_provider": {
+                    "type": "string",
+                    "description": "Optional provider for the agent's image generation config.",
+                },
+                "image_llm_model": {
+                    "type": "string",
+                    "description": "Optional image model to assign, e.g. gpt-image-2.",
                 },
             },
             "required": ["agent_name"],

@@ -2743,6 +2743,12 @@ LITELLM_PRESET = ProviderPreset(
         ),
         # ── Image Generation Models ───────────────────────────────────────────
         ModelPreset(
+            name="GPT Image 1",
+            model_name="gpt-image-1",
+            description="OpenAI GPT Image 1 via LiteLLM proxy. Supports prompt-based image generation through the OpenAI Images API.",
+            tags=["image_generation"],
+        ),
+        ModelPreset(
             name="GPT Image 2",
             model_name="gpt-image-2",
             description="OpenAI GPT Image 2 via LiteLLM proxy. Supports square (1024x1024), portrait (1024x1536), landscape (1536x1024).",
@@ -2765,6 +2771,25 @@ LITELLM_PRESET = ProviderPreset(
             model_name="imagen-3.0-generate-002",
             description="Google Imagen 3 via LiteLLM proxy. State-of-the-art image generation.",
             tags=["image_generation"],
+        ),
+        # ── Video Generation Models ───────────────────────────────────────────
+        ModelPreset(
+            name="Veo 3",
+            model_name="vertex_ai/veo-3.0-generate-001",
+            description="Google Veo 3 via LiteLLM proxy on Vertex AI. High-fidelity text-to-video generation.",
+            tags=["video_generation"],
+        ),
+        ModelPreset(
+            name="Veo 3 Fast",
+            model_name="vertex_ai/veo-3.0-fast-generate-001",
+            description="Google Veo 3 Fast via LiteLLM proxy on Vertex AI. Faster text-to-video generation.",
+            tags=["video_generation"],
+        ),
+        ModelPreset(
+            name="Veo 2",
+            model_name="vertex_ai/veo-2.0-generate-001",
+            description="Google Veo 2 via LiteLLM proxy on Vertex AI. Text-to-video and image-to-video generation.",
+            tags=["video_generation"],
         ),
     ],
     setup_instructions="Configure LiteLLM proxy and set appropriate model names. LiteLLM supports 100+ providers through a unified API.",

@@ -253,6 +253,13 @@ export default function PlatformEngineerPage() {
         description: t.replace(/_/g, ' '),
         enabled: true,
       }))
+      const wantsImageGeneration = (config.tools_list || []).includes('image_generation')
+      const metadata = wantsImageGeneration || config.image_llm_model || config.image_llm_provider
+        ? {
+            image_generation_provider: config.image_llm_provider || 'openai',
+            image_generation_model: config.image_llm_model || 'gpt-image-2',
+          }
+        : {}
 
       const res = await apiClient.axios.post('/api/v1/agents/', {
         config: {
@@ -268,7 +275,7 @@ export default function PlatformEngineerPage() {
             api_key: '',
           },
           tools: toolObjects,
-          metadata: {},
+          metadata,
         },
         agent_type: 'llm',
         is_public: false,

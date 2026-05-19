@@ -17,6 +17,128 @@ from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
+IMAGE_GENERATION_CATEGORY = "image_generation"
+
+IMAGE_PROVIDER_DEFAULT_MODELS: dict[str, str] = {
+    "openai": "gpt-image-2",
+    "litellm": "gpt-image-2",
+    "azure_openai": "gpt-image-2",
+    "google": "imagen-3.0-generate-002",
+    "gemini": "imagen-3.0-generate-002",
+    "xai": "grok-2-image",
+    "grok": "grok-2-image",
+    "x-ai": "grok-2-image",
+    "x_ai": "grok-2-image",
+}
+
+TOOL_CATEGORY_ALIASES: dict[str, str] = {
+    "web_search": "browser_tools",
+    "browser": "browser_tools",
+    "send_email": "email_tools",
+    "email": "email_tools",
+    "storage": "storage_tools",
+    "s3": "storage_tools",
+    "generate_image": IMAGE_GENERATION_CATEGORY,
+    "internal_generate_image": IMAGE_GENERATION_CATEGORY,
+}
+
+
+def normalize_tool_categories(tools_list: list[str] | None) -> list[str]:
+    normalized: list[str] = []
+    seen: set[str] = set()
+
+    for raw_name in tools_list or []:
+        tool_name = TOOL_CATEGORY_ALIASES.get(raw_name, raw_name)
+        if tool_name not in seen:
+            seen.add(tool_name)
+            normalized.append(tool_name)
+
+    return normalized
+
+
+def resolve_image_generation_config(
+    tools_list: list[str] | None = None,
+    image_llm_provider: str | None = None,
+    image_llm_model: str | None = None,
+    fallback_provider: str | None = None,
+) -> dict[str, str] | None:
+    wants_image_generation = (
+        IMAGE_GENERATION_CATEGORY in (tools_list or [])
+        or bool(image_llm_provider)
+        or bool(image_llm_model)
+    )
+    if not wants_image_generation:
+        return None
+
+    provider = (image_llm_provider or fallback_provider or "openai").strip().lower()
+    model = (image_llm_model or IMAGE_PROVIDER_DEFAULT_MODELS.get(provider) or "gpt-image-2").strip()
+    return {"provider": provider, "model": model}
+
+
+async def upsert_image_generation_llm_config(
+    *,
+    db_session: Any,
+    agent: Any,
+    tenant_id: Any,
+    encrypted_api_key: str,
+    api_base: str | None,
+    additional_params: dict[str, Any] | None,
+    provider: str,
+    model_name: str,
+) -> None:
+    from sqlalchemy.orm.attributes import flag_modified
+
+    from src.models.agent_llm_config import AgentLLMConfig
+
+    metadata = dict(agent.agent_metadata or {})
+    existing_config_id = metadata.get("image_generation_llm_config_id")
+    existing_cfg = None
+
+    if existing_config_id:
+        existing_cfg = (
+            await db_session.execute(
+                select(AgentLLMConfig).where(
+                    AgentLLMConfig.id == existing_config_id,
+                    AgentLLMConfig.agent_id == agent.id,
+                    AgentLLMConfig.tenant_id == tenant_id,
+                )
+            )
+        ).scalar_one_or_none()
+
+    if existing_cfg:
+        existing_cfg.name = "Image Generation"
+        existing_cfg.provider = provider
+        existing_cfg.model_name = model_name
+        existing_cfg.api_key = encrypted_api_key
+        existing_cfg.api_base = api_base
+        existing_cfg.additional_params = additional_params or {}
+        existing_cfg.enabled = True
+        image_cfg = existing_cfg
+    else:
+        image_cfg = AgentLLMConfig(
+            id=uuid4(),
+            agent_id=agent.id,
+            tenant_id=tenant_id,
+            name="Image Generation",
+            provider=provider,
+            model_name=model_name,
+            api_key=encrypted_api_key,
+            api_base=api_base,
+            temperature=0.7,
+            max_tokens=None,
+            top_p=None,
+            additional_params=additional_params or {},
+            is_default=False,
+            display_order=1,
+            enabled=True,
+        )
+        db_session.add(image_cfg)
+        await db_session.flush()
+
+    metadata["image_generation_llm_config_id"] = str(image_cfg.id)
+    agent.agent_metadata = metadata
+    flag_modified(agent, "agent_metadata")
+
 # All tool categories available on the platform with OAuth requirements
 PLATFORM_TOOL_CATALOG = {
     "browser_tools": {
@@ -65,6 +187,13 @@ PLATFORM_TOOL_CATALOG = {
     },
     "data_analysis_tools": {
         "description": "Analyze datasets, run statistical analysis, and generate charts/reports",
+        "requires_oauth": [],
+    },
+    "image_generation": {
+        "description": (
+            "Generate AI images from text prompts for avatars, illustrations, marketing creatives, and branded visuals. "
+            "Supports OpenAI gpt-image-2, Google Imagen 3, and Grok image models."
+        ),
         "requires_oauth": [],
     },
     "storage_tools": {
@@ -289,6 +418,8 @@ async def platform_create_agent(
     tools_list: list[str] | None = None,
     category: str | None = None,
     tags: list[str] | None = None,
+    image_llm_provider: str | None = None,
+    image_llm_model: str | None = None,
     runtime_context: Any = None,
 ) -> dict:
     """
@@ -325,6 +456,7 @@ async def platform_create_agent(
 
         db = runtime_context.db_session
         tenant_id = runtime_context.tenant_id
+        normalized_tools_list = normalize_tool_categories(tools_list)
 
         # Check plan limit before creating
         restriction_service = PlanRestrictionService(db)
@@ -412,8 +544,8 @@ async def platform_create_agent(
 
         # Build tools_config from tools_list
         tools_config: list[dict] = []
-        if tools_list:
-            for tool_name in tools_list:
+        if normalized_tools_list:
+            for tool_name in normalized_tools_list:
                 tools_config.append({"name": tool_name, "enabled": True, "config": {}})
 
         agent = Agent(
@@ -455,9 +587,28 @@ async def platform_create_agent(
             enabled=True,
         )
         db.add(llm_cfg)
+        await db.flush()
+
+        image_config = resolve_image_generation_config(
+            tools_list=normalized_tools_list,
+            image_llm_provider=image_llm_provider,
+            image_llm_model=image_llm_model,
+            fallback_provider=llm_provider,
+        )
+        if image_config:
+            await upsert_image_generation_llm_config(
+                db_session=db,
+                agent=agent,
+                tenant_id=tenant_id,
+                encrypted_api_key=encrypted_key,
+                api_base=llm_api_base,
+                additional_params=llm_additional_params,
+                provider=image_config["provider"],
+                model_name=image_config["model"],
+            )
 
         # Enable AgentTool records from tool categories (direct pattern match, not capability groups)
-        if tools_list:
+        if normalized_tools_list:
             import fnmatch
 
             from src.models.agent_tool import AgentTool
@@ -465,7 +616,7 @@ async def platform_create_agent(
 
             available_tool_names = [t["name"] for t in tool_registry.list_tools()]
             matched_tools: set[str] = set()
-            for cat in tools_list:
+            for cat in normalized_tools_list:
                 patterns = TOOL_CATEGORY_TO_PATTERNS.get(cat, [])
                 for tool_name in available_tool_names:
                     if any(fnmatch.fnmatch(tool_name, p) for p in patterns):
@@ -505,6 +656,7 @@ TOOL_CATEGORY_TO_CAPABILITY_ID: dict[str, str] = {
     "database_tools": "database-analytics",
     "elasticsearch_tools": "database-analytics",
     "data_analysis_tools": "database-analytics",
+    "image_generation": "image-generation",
     "document_tools": "documents",
     "kb_ingest_tools": "knowledge-base",
     "github_tools": "code-github",
@@ -528,93 +680,57 @@ TOOL_CATEGORY_TO_CAPABILITY_ID: dict[str, str] = {
 # should not enable twitter/linkedin/youtube).
 TOOL_CATEGORY_TO_PATTERNS: dict[str, list[str]] = {
     "browser_tools": [
-        "internal_browser_*",
-        "internal_navigate_*",
-        "internal_screenshot_*",
-        "internal_extract_*",
-        "internal_scrape_*",
-        "internal_web_*",
-        "web_search",
-        "navigate_to_url",
-        "extract_links",
-        "extract_structured_data",
-        "check_element_exists",
+        "internal_browser_*", "internal_navigate_*", "internal_screenshot_*",
+        "internal_extract_*", "internal_scrape_*", "internal_web_*",
+        "web_search", "navigate_to_url", "extract_links",
+        "extract_structured_data", "check_element_exists",
     ],
     "scheduler_tools": [
-        "internal_create_scheduled_task",
-        "internal_create_cron_scheduled_task",
-        "internal_list_scheduled_tasks",
-        "internal_delete_scheduled_task",
-        "internal_toggle_scheduled_task",
-        "internal_schedule_*",
+        "internal_create_scheduled_task", "internal_create_cron_scheduled_task",
+        "internal_list_scheduled_tasks", "internal_delete_scheduled_task",
+        "internal_toggle_scheduled_task", "internal_schedule_*",
     ],
     "email_tools": [
-        "internal_send_email",
-        "internal_send_bulk_emails",
-        "internal_test_email_connection",
-        "internal_email_*",
+        "internal_send_email", "internal_send_bulk_emails",
+        "internal_test_email_connection", "internal_email_*",
     ],
     "gmail_tools": ["internal_gmail_*", "internal_read_email*", "internal_search_email*"],
     "push_notification_tools": ["internal_send_push_notification"],
     "newsletter_tools": ["internal_render_newsletter"],
     "file_tools": [
-        "internal_read_file",
-        "internal_write_file",
-        "internal_edit_file",
-        "internal_search_files",
-        "internal_get_file_info",
-        "internal_move_file",
-        "internal_create_directory",
-        "internal_list_directory",
-        "internal_directory_tree",
-        "internal_glob",
-        "internal_grep",
+        "internal_read_file", "internal_write_file", "internal_edit_file",
+        "internal_search_files", "internal_get_file_info", "internal_move_file",
+        "internal_create_directory", "internal_list_directory",
+        "internal_directory_tree", "internal_glob", "internal_grep",
         "internal_read_*_file",
     ],
     "storage_tools": ["internal_s3_*", "internal_storage_*"],
     "google_drive_tools": [
-        "internal_google_drive_*",
-        "internal_google_docs_*",
-        "internal_google_sheets_*",
+        "internal_google_drive_*", "internal_google_docs_*", "internal_google_sheets_*",
     ],
     "command_tools": ["internal_run_command", "internal_execute_*", "internal_process_*"],
     "database_tools": [
-        "internal_query_*",
-        "internal_list_database_*",
-        "internal_get_database_*",
-        "query_databricks",
-        "query_datadog_*",
-        "query_docker_*",
+        "internal_query_*", "internal_list_database_*", "internal_get_database_*",
+        "query_databricks", "query_datadog_*", "query_docker_*",
     ],
     "elasticsearch_tools": ["internal_elasticsearch_*"],
     "data_analysis_tools": [
-        "internal_generate_chart",
-        "internal_chart_*",
-        "analyze_*",
-        "export_data_*",
-        "generate_chart_from_*",
+        "internal_generate_chart", "internal_chart_*",
+        "analyze_*", "export_data_*", "generate_chart_from_*",
     ],
+    "image_generation": ["internal_generate_image"],
     "document_tools": [
-        "internal_generate_pdf",
-        "internal_generate_powerpoint",
-        "internal_*_pdf",
-        "internal_*_pptx",
-        "internal_*_docx",
+        "internal_generate_pdf", "internal_generate_powerpoint",
+        "internal_*_pdf", "internal_*_pptx", "internal_*_docx",
     ],
     "kb_ingest_tools": ["internal_kb_*"],
     "news_tools": [
-        "internal_hackernews_*",
-        "internal_hn_*",
-        "internal_news_*",
-        "internal_fetch_rss_*",
+        "internal_hackernews_*", "internal_hn_*",
+        "internal_news_*", "internal_fetch_rss_*",
     ],
     "github_tools": [
-        "internal_github_*",
-        "internal_git_*",
-        "internal_pr_review_*",
-        "internal_create_github_*",
-        "internal_deploy_*_github*",
-        "internal_enable_github_*",
+        "internal_github_*", "internal_git_*", "internal_pr_review_*",
+        "internal_create_github_*", "internal_deploy_*_github*", "internal_enable_github_*",
     ],
     "gitlab_tools": ["internal_gitlab_*"],
     "slack_tools": ["internal_slack_*", "internal_send_slack_*", "internal_search_slack_*"],
@@ -635,6 +751,8 @@ async def platform_update_agent(
     system_prompt: str | None = None,
     status: str | None = None,
     tools_list: list[str] | None = None,
+    image_llm_provider: str | None = None,
+    image_llm_model: str | None = None,
     runtime_context: Any = None,
 ) -> dict:
     """
@@ -662,6 +780,7 @@ async def platform_update_agent(
         from src.models.agent import Agent
 
         db = runtime_context.db_session
+        normalized_tools_list = normalize_tool_categories(tools_list)
         result = await db.execute(
             select(Agent).where(
                 Agent.tenant_id == runtime_context.tenant_id,
@@ -683,7 +802,7 @@ async def platform_update_agent(
 
         # Enable tools via AgentTool rows (direct pattern match, not capability groups)
         tools_enabled: list[str] = []
-        if tools_list:
+        if normalized_tools_list:
             import fnmatch
 
             from src.models.agent_tool import AgentTool
@@ -691,7 +810,7 @@ async def platform_update_agent(
 
             available_tool_names = [t["name"] for t in tool_registry.list_tools()]
 
-            for cat in tools_list:
+            for cat in normalized_tools_list:
                 patterns = TOOL_CATEGORY_TO_PATTERNS.get(cat, [])
                 for tool_name in available_tool_names:
                     if any(fnmatch.fnmatch(tool_name, p) for p in patterns):
@@ -729,6 +848,7 @@ async def platform_update_agent(
             )
         ).scalar_one_or_none()
 
+        pe_cfg = None
         if not existing_llm or not existing_llm.api_key:
             # Look up PE agent and its per-tenant config
             from src.models.agent import Agent as _Agent
@@ -777,6 +897,25 @@ async def platform_update_agent(
                                 enabled=True,
                             )
                         )
+
+        image_config = resolve_image_generation_config(
+            tools_list=normalized_tools_list,
+            image_llm_provider=image_llm_provider,
+            image_llm_model=image_llm_model,
+            fallback_provider=(existing_llm.provider if existing_llm else None) or (pe_cfg.provider if pe_cfg else None),
+        )
+        if image_config:
+            await upsert_image_generation_llm_config(
+                db_session=db,
+                agent=agent,
+                tenant_id=tenant_id,
+                encrypted_api_key=(existing_llm.api_key if existing_llm else None) or (pe_cfg.api_key if pe_cfg else ""),
+                api_base=(existing_llm.api_base if existing_llm else None) or (pe_cfg.api_base if pe_cfg else None),
+                additional_params=(existing_llm.additional_params if existing_llm else None)
+                or (pe_cfg.additional_params if pe_cfg else None),
+                provider=image_config["provider"],
+                model_name=image_config["model"],
+            )
 
         await db.commit()
 
