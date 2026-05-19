@@ -70,6 +70,7 @@ WORKDIR /app/web
 # the monorepo structure: server.js lives at web/server.js inside the output, not
 # at the root. Copy to /app/ so it lands at /app/web/server.js where PM2 expects it.
 COPY --from=builder /app/web/.next/standalone /app/
+RUN test -f /app/web/server.js || (echo "ERROR: server.js not found at /app/web/server.js — check outputFileTracingRoot standalone structure:" && find /app -name "server.js" 2>/dev/null && exit 1)
 COPY --from=builder /app/web/.next/static ./.next/static
 COPY --from=builder /app/web/public ./public
 
