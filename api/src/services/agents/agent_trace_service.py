@@ -1083,8 +1083,8 @@ def _build_session_graph(timeline: list[dict]) -> dict:
             label = f"{model} · {inp}in/{out}out tok"
             if cache_read:
                 label += f" · {cache_read} cached"
-            status = "error" if event.get("status") == "error" else (
-                "warning" if ctx_pct and ctx_pct >= 80 else "normal"
+            status = (
+                "error" if event.get("status") == "error" else ("warning" if ctx_pct and ctx_pct >= 80 else "normal")
             )
         elif evt_type == "tool_call":
             tool_name = event.get("tool_name") or "tool"

@@ -41,10 +41,7 @@ def _validate_s3_url(s3_url: str) -> str | None:
 def _validate_query(query: str, s3_url: str) -> str | None:
     """Return error message if query is not acceptable, else None."""
     if not _ALLOWED_READ_FUNCTIONS.search(query):
-        return (
-            "query must reference read_csv_auto(), read_parquet(), or "
-            "read_json_auto() as the data source"
-        )
+        return "query must reference read_csv_auto(), read_parquet(), or read_json_auto() as the data source"
     if s3_url not in query:
         return "The s3_url must appear inside the query string"
     return None
@@ -72,8 +69,8 @@ async def _run_duckdb_query(query: str) -> Any:
             endpoint = os.getenv("AWS_ENDPOINT_URL", "")
 
             if access_key and secret_key:
-                conn.execute(f"SET s3_access_key_id='{access_key.replace(chr(39), chr(39)*2)}'")
-                conn.execute(f"SET s3_secret_access_key='{secret_key.replace(chr(39), chr(39)*2)}'")
+                conn.execute(f"SET s3_access_key_id='{access_key.replace(chr(39), chr(39) * 2)}'")
+                conn.execute(f"SET s3_secret_access_key='{secret_key.replace(chr(39), chr(39) * 2)}'")
                 conn.execute(f"SET s3_region='{region}'")
 
             if endpoint:

@@ -464,17 +464,14 @@ def prune_tool_results(
                 pruned_msg = {**msg, "content": summary}
                 total_tool_chars += len(summary)
                 logger.debug(
-                    f"Context pruning: Replaced tool result ({original_length:,} chars) "
-                    f"with summary for {tool_name}"
+                    f"Context pruning: Replaced tool result ({original_length:,} chars) with summary for {tool_name}"
                 )
             else:
                 # Legacy behaviour: keep head + tail
                 trimmed_content = _trim_content(content_str, settings)
                 pruned_msg = {**msg, "content": trimmed_content}
                 total_tool_chars += len(trimmed_content)
-                logger.debug(
-                    f"Context pruning: Trimmed tool result from {original_length:,} chars for {tool_name}"
-                )
+                logger.debug(f"Context pruning: Trimmed tool result from {original_length:,} chars for {tool_name}")
 
             pruned_messages.append(pruned_msg)
             stats.tool_results_pruned += 1

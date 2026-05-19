@@ -1,7 +1,9 @@
 """Unit tests for query_file_with_duckdb agent tool."""
-import pytest
-import pandas as pd
+
 from unittest.mock import AsyncMock, patch
+
+import pandas as pd
+import pytest
 
 
 @pytest.mark.asyncio

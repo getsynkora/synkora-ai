@@ -63,9 +63,7 @@ def resolve_image_generation_config(
     fallback_provider: str | None = None,
 ) -> dict[str, str] | None:
     wants_image_generation = (
-        IMAGE_GENERATION_CATEGORY in (tools_list or [])
-        or bool(image_llm_provider)
-        or bool(image_llm_model)
+        IMAGE_GENERATION_CATEGORY in (tools_list or []) or bool(image_llm_provider) or bool(image_llm_model)
     )
     if not wants_image_generation:
         return None
@@ -138,6 +136,7 @@ async def upsert_image_generation_llm_config(
     metadata["image_generation_llm_config_id"] = str(image_cfg.id)
     agent.agent_metadata = metadata
     flag_modified(agent, "agent_metadata")
+
 
 # All tool categories available on the platform with OAuth requirements
 PLATFORM_TOOL_CATALOG = {
@@ -680,57 +679,94 @@ TOOL_CATEGORY_TO_CAPABILITY_ID: dict[str, str] = {
 # should not enable twitter/linkedin/youtube).
 TOOL_CATEGORY_TO_PATTERNS: dict[str, list[str]] = {
     "browser_tools": [
-        "internal_browser_*", "internal_navigate_*", "internal_screenshot_*",
-        "internal_extract_*", "internal_scrape_*", "internal_web_*",
-        "web_search", "navigate_to_url", "extract_links",
-        "extract_structured_data", "check_element_exists",
+        "internal_browser_*",
+        "internal_navigate_*",
+        "internal_screenshot_*",
+        "internal_extract_*",
+        "internal_scrape_*",
+        "internal_web_*",
+        "web_search",
+        "navigate_to_url",
+        "extract_links",
+        "extract_structured_data",
+        "check_element_exists",
     ],
     "scheduler_tools": [
-        "internal_create_scheduled_task", "internal_create_cron_scheduled_task",
-        "internal_list_scheduled_tasks", "internal_delete_scheduled_task",
-        "internal_toggle_scheduled_task", "internal_schedule_*",
+        "internal_create_scheduled_task",
+        "internal_create_cron_scheduled_task",
+        "internal_list_scheduled_tasks",
+        "internal_delete_scheduled_task",
+        "internal_toggle_scheduled_task",
+        "internal_schedule_*",
     ],
     "email_tools": [
-        "internal_send_email", "internal_send_bulk_emails",
-        "internal_test_email_connection", "internal_email_*",
+        "internal_send_email",
+        "internal_send_bulk_emails",
+        "internal_test_email_connection",
+        "internal_email_*",
     ],
     "gmail_tools": ["internal_gmail_*", "internal_read_email*", "internal_search_email*"],
     "push_notification_tools": ["internal_send_push_notification"],
     "newsletter_tools": ["internal_render_newsletter"],
     "file_tools": [
-        "internal_read_file", "internal_write_file", "internal_edit_file",
-        "internal_search_files", "internal_get_file_info", "internal_move_file",
-        "internal_create_directory", "internal_list_directory",
-        "internal_directory_tree", "internal_glob", "internal_grep",
+        "internal_read_file",
+        "internal_write_file",
+        "internal_edit_file",
+        "internal_search_files",
+        "internal_get_file_info",
+        "internal_move_file",
+        "internal_create_directory",
+        "internal_list_directory",
+        "internal_directory_tree",
+        "internal_glob",
+        "internal_grep",
         "internal_read_*_file",
     ],
     "storage_tools": ["internal_s3_*", "internal_storage_*"],
     "google_drive_tools": [
-        "internal_google_drive_*", "internal_google_docs_*", "internal_google_sheets_*",
+        "internal_google_drive_*",
+        "internal_google_docs_*",
+        "internal_google_sheets_*",
     ],
     "command_tools": ["internal_run_command", "internal_execute_*", "internal_process_*"],
     "database_tools": [
-        "internal_query_*", "internal_list_database_*", "internal_get_database_*",
-        "query_databricks", "query_datadog_*", "query_docker_*",
+        "internal_query_*",
+        "internal_list_database_*",
+        "internal_get_database_*",
+        "query_databricks",
+        "query_datadog_*",
+        "query_docker_*",
     ],
     "elasticsearch_tools": ["internal_elasticsearch_*"],
     "data_analysis_tools": [
-        "internal_generate_chart", "internal_chart_*",
-        "analyze_*", "export_data_*", "generate_chart_from_*",
+        "internal_generate_chart",
+        "internal_chart_*",
+        "analyze_*",
+        "export_data_*",
+        "generate_chart_from_*",
     ],
     "image_generation": ["internal_generate_image"],
     "document_tools": [
-        "internal_generate_pdf", "internal_generate_powerpoint",
-        "internal_*_pdf", "internal_*_pptx", "internal_*_docx",
+        "internal_generate_pdf",
+        "internal_generate_powerpoint",
+        "internal_*_pdf",
+        "internal_*_pptx",
+        "internal_*_docx",
     ],
     "kb_ingest_tools": ["internal_kb_*"],
     "news_tools": [
-        "internal_hackernews_*", "internal_hn_*",
-        "internal_news_*", "internal_fetch_rss_*",
+        "internal_hackernews_*",
+        "internal_hn_*",
+        "internal_news_*",
+        "internal_fetch_rss_*",
     ],
     "github_tools": [
-        "internal_github_*", "internal_git_*", "internal_pr_review_*",
-        "internal_create_github_*", "internal_deploy_*_github*", "internal_enable_github_*",
+        "internal_github_*",
+        "internal_git_*",
+        "internal_pr_review_*",
+        "internal_create_github_*",
+        "internal_deploy_*_github*",
+        "internal_enable_github_*",
     ],
     "gitlab_tools": ["internal_gitlab_*"],
     "slack_tools": ["internal_slack_*", "internal_send_slack_*", "internal_search_slack_*"],
@@ -902,14 +938,16 @@ async def platform_update_agent(
             tools_list=normalized_tools_list,
             image_llm_provider=image_llm_provider,
             image_llm_model=image_llm_model,
-            fallback_provider=(existing_llm.provider if existing_llm else None) or (pe_cfg.provider if pe_cfg else None),
+            fallback_provider=(existing_llm.provider if existing_llm else None)
+            or (pe_cfg.provider if pe_cfg else None),
         )
         if image_config:
             await upsert_image_generation_llm_config(
                 db_session=db,
                 agent=agent,
                 tenant_id=tenant_id,
-                encrypted_api_key=(existing_llm.api_key if existing_llm else None) or (pe_cfg.api_key if pe_cfg else ""),
+                encrypted_api_key=(existing_llm.api_key if existing_llm else None)
+                or (pe_cfg.api_key if pe_cfg else ""),
                 api_base=(existing_llm.api_base if existing_llm else None) or (pe_cfg.api_base if pe_cfg else None),
                 additional_params=(existing_llm.additional_params if existing_llm else None)
                 or (pe_cfg.additional_params if pe_cfg else None),

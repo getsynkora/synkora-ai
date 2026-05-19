@@ -9,7 +9,8 @@ import os
 import re
 import time
 from typing import Any
-from uuid import UUID, uuid4 as _uuid4
+from uuid import UUID
+from uuid import uuid4 as _uuid4
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from pydantic import BaseModel, Field

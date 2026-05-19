@@ -157,14 +157,16 @@ async def create_agent(
             )
 
         # Prepare llm_config with encrypted API key
-        from src.services.agents.security import encrypt_value
         from src.services.agents.internal_tools.platform_tools import normalize_tool_categories
+        from src.services.agents.security import encrypt_value
 
         llm_config_data = request.config.llm_config.model_dump()
         if llm_config_data.get("api_key"):
             llm_config_data["api_key"] = encrypt_value(llm_config_data["api_key"])
 
-        normalized_tool_names = normalize_tool_categories([tool.name for tool in request.config.tools]) if request.config.tools else []
+        normalized_tool_names = (
+            normalize_tool_categories([tool.name for tool in request.config.tools]) if request.config.tools else []
+        )
         normalized_tool_payloads: list[dict[str, object]] = []
         if request.config.tools:
             seen_tool_names: set[str] = set()
@@ -189,9 +191,7 @@ async def create_agent(
             avatar=request.config.avatar,
             system_prompt=request.config.system_prompt,
             llm_config=llm_config_data,
-            tools_config={"tools": normalized_tool_payloads}
-            if normalized_tool_payloads
-            else None,
+            tools_config={"tools": normalized_tool_payloads} if normalized_tool_payloads else None,
             agent_metadata=request.config.metadata or {},
             status="ACTIVE",
             suggestion_prompts=sanitized_suggestion_prompts,  # SECURITY: Use sanitized prompts
