@@ -65,10 +65,17 @@ RUN ln -s /usr/share/zoneinfo/${TZ} /etc/localtime \
 
 WORKDIR /app/web
 
-# Copy built application
-COPY --from=builder /app/web/.next/standalone ./
+# Copy built application.
+# outputFileTracingRoot=path.join(__dirname,'..') means Next.js standalone mirrors
+# the monorepo structure: server.js lives at web/server.js inside the output, not
+# at the root. Copy to /app/ so it lands at /app/web/server.js where PM2 expects it.
+COPY --from=builder /app/web/.next/standalone /app/
 COPY --from=builder /app/web/.next/static ./.next/static
 COPY --from=builder /app/web/public ./public
+
+# Copy docs — lib/content.ts reads these via fs at runtime; Next.js can't auto-trace
+# dynamic readdir calls, so they must be explicitly included in the production image.
+COPY --from=builder /app/docs/ /app/docs/
 
 # Copy entrypoint script
 COPY web/docker/entrypoint.sh ./entrypoint.sh
@@ -77,8 +84,8 @@ RUN chmod +x ./entrypoint.sh
 # Install PM2 globally for process management
 RUN pnpm add -g pm2 \
     && mkdir /.pm2 \
-    && chown -R 1001:0 /.pm2 /app/web \
-    && chmod -R g=u /.pm2 /app/web
+    && chown -R 1001:0 /.pm2 /app/web /app/docs \
+    && chmod -R g=u /.pm2 /app/web /app/docs
 
 ARG COMMIT_SHA
 ENV COMMIT_SHA=${COMMIT_SHA}
