@@ -12,7 +12,6 @@ from typing import Any
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
-
 _FONT_DIR = Path(__file__).resolve().parents[2] / "assets" / "fonts"
 _SYSTEM_FONT_DIR = Path("/System/Library/Fonts/Supplemental")
 
@@ -323,13 +322,10 @@ def render_share_card_png(card: dict[str, Any]) -> bytes:
 
     if card["tone"] == "growth":
         primary = brand_mint
-        secondary = brand_mint_deep
     elif card["tone"] == "fixed":
         primary = brand_pink
-        secondary = brand_pink_deep
     else:
         primary = brand_pink
-        secondary = brand_mint
 
     image = Image.new("RGBA", (W, H), (250, 247, 241, 255))
     draw = ImageDraw.Draw(image)

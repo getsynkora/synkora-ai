@@ -11,7 +11,8 @@ dependencies = [
     # Security: idna<3.15 has CVE-2026-45409 (transitive dep, pinned here to enforce fix)
     "idna>=3.15",
     # Web Framework
-    "fastapi>=0.115.6,<1.0.0",
+    "fastapi>=0.136.0,<2.0.0",
+    "starlette>=1.0.1",
     "uvicorn[standard]>=0.34.0,<1.0.0",
     "gunicorn>=23.0.0,<24.0.0",
     "python-multipart>=0.0.26,<1.0.0",
@@ -99,10 +100,10 @@ dependencies = [
     "duckdb>=0.10.0,<2.0.0",            # DuckDB — in-process (run_in_executor, no async API)
     # Data Analysis
     "pandas>=2.0.0,<3.0.0",
-    "numpy>=1.24.0,<2.0.0",  # Pin to 1.x for pyarrow compatibility
+    "numpy>=1.24.0",
     "matplotlib>=3.7.0,<4.0.0",  # Server-side chart rendering for Slack
     "openpyxl>=3.1.0,<4.0.0",
-    "pyarrow>=17.0.0,<18.0.0",
+    "pyarrow>=23.0.1",
     "databricks-sql-connector>=3.0.0,<4.0.0",
     "docker>=6.1.0,<8.0.0",
     "datadog-api-client>=2.0.0,<3.0.0",

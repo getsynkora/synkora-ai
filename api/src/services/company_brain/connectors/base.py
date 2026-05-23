@@ -81,7 +81,7 @@ class BaseConnector(ABC):
         """
         # Make the method a proper async generator
         return
-        yield  # noqa: unreachable
+        yield  # noqa: F704
 
     @abstractmethod
     async def health_check(self) -> ConnectorHealth:
