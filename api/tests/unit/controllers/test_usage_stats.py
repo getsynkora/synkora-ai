@@ -84,8 +84,10 @@ class TestGetUsageStats:
             )
             mock_plan_instance.get_tenant_plan = AsyncMock(return_value=mock_plan)
 
+            mock_credit_balance = MagicMock()
+            mock_credit_balance.available_credits = Decimal("100.50")
             mock_credit_instance = mock_credit_service.return_value
-            mock_credit_instance.get_balance = AsyncMock(return_value=Decimal("100.50"))
+            mock_credit_instance.get_balance = AsyncMock(return_value=mock_credit_balance)
 
             response = test_client.get("/usage-stats")
 

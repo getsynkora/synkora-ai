@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Synkora streaming indicator — equalizer bars */
+@keyframes synkora-bar {
+  0%, 100% { transform: scaleY(0.25); opacity: 0.5; }
+  50%       { transform: scaleY(1);    opacity: 1;   }
+}
+
 /* Floating animation for SVG avatars */
 @keyframes float {
   0%, 100% {

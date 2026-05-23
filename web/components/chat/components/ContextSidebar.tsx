@@ -504,7 +504,7 @@ function SourceCard({ source, primaryColor = '#14b8a6' }: SourceCardProps) {
             style={{ backgroundColor: primaryLight }}
           >
             {source.favicon ? (
-              // eslint-disable-next-line @next/next/no-img-element
+               
               <img
                 src={source.favicon}
                 alt=""
@@ -552,7 +552,7 @@ function PersonCard({ person, primaryColor = '#14b8a6' }: PersonCardProps) {
     <ModernCard primaryColor={primaryColor}>
       <div className="flex items-start gap-2">
         {person.avatar ? (
-          // eslint-disable-next-line @next/next/no-img-element
+           
           <img
             src={person.avatar}
             alt={person.name}
@@ -619,7 +619,7 @@ function NewsCard({ news, primaryColor = '#14b8a6' }: NewsCardProps) {
       <ModernCard primaryColor={primaryColor} className="hover:scale-[1.02] cursor-pointer">
         <div className="flex gap-2">
           {news.thumbnail && (
-            // eslint-disable-next-line @next/next/no-img-element
+             
             <img
               src={news.thumbnail}
               alt=""

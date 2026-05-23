@@ -350,6 +350,10 @@ services:
     container_name: synkora-scraper
     environment:
       - SCRAPER_API_KEY=${SCRAPER_API_KEY:-dev-scraper-key}
+    # Chromium requires at least 2 GB of /dev/shm to avoid SIGSEGV crashes when
+    # running multiple tabs or complex pages. Docker's default is 64 MB which is
+    # far too small — the browser will segfault under normal load without this.
+    shm_size: '2gb'
     networks:
       - synkora-network
 

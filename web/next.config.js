@@ -56,7 +56,7 @@ const nextConfig = {
       "default-src 'self'",
       // Next.js requires unsafe-inline for hydration scripts; unsafe-eval for some libs
       // Cloudflare injects beacon.min.js at the edge — must be explicitly allowed
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://synkora.ai",
       // Tailwind and styled components require unsafe-inline for styles
       "style-src 'self' 'unsafe-inline'",
       // Images from self, data URIs, blobs, and any HTTPS source (for user avatars etc.)
@@ -127,7 +127,9 @@ const nextConfig = {
           },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()',
+            // microphone=(self) allows the page itself to request mic access
+            // (needed for the widget's voice input). cross-origin iframes remain blocked.
+            value: 'camera=(), microphone=(self), geolocation=()',
           },
           // Cross-Origin isolation — prevent Spectre/Meltdown side-channel leaks.
           // Using 'credentialless' instead of 'require-corp': still provides isolation
@@ -181,7 +183,9 @@ const nextConfig = {
           },
           {
             key: 'Cache-Control',
-            value: 'public, max-age=3600, s-maxage=3600',
+            // No caching in development so changes are instant.
+            // In production, bump the ?v= query param on deploy to bust CDN cache.
+            value: isDev ? 'no-store' : 'public, max-age=3600, s-maxage=3600',
           },
         ],
       },

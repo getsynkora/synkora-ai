@@ -1,8 +1,61 @@
+import type { Metadata } from 'next'
+import { headers } from 'next/headers'
 import { getSharedConversation } from '@/lib/api/conversations'
+import { extractMindsetShareData } from '@/lib/share/mindsetShare'
 import { SharedChatView } from './SharedChatView'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
 
 interface Props {
   params: Promise<{ token: string }>
+}
+
+function buildMetadataDescription(data: any) {
+  const mindsetShare = extractMindsetShareData(data)
+  if (mindsetShare) return mindsetShare.shareCaption
+  if (data?.agent?.description) return data.agent.description
+  return 'A shared Synkora conversation.'
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { token } = await params
+
+  try {
+    const headerStore = await headers()
+    const host = headerStore.get('x-forwarded-host') || headerStore.get('host')
+    const protocol = headerStore.get('x-forwarded-proto') || (host?.includes('localhost') ? 'http' : 'https')
+    const data = await getSharedConversation(token)
+    const mindsetShare = extractMindsetShareData(data)
+    const title = mindsetShare
+      ? `${mindsetShare.headline} | Synkora Mindset Snapshot`
+      : `${data?.conversation?.name || 'Shared Conversation'} | Synkora`
+    const description = buildMetadataDescription(data)
+    const ogImage = `${API_URL}/api/v1/public/share/${encodeURIComponent(token)}/image`
+
+    return {
+      ...(host && { metadataBase: new URL(`${protocol}://${host}`) }),
+      title,
+      description,
+      openGraph: {
+        title,
+        description,
+        type: 'article',
+        siteName: 'Synkora',
+        images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title,
+        description,
+        images: [ogImage],
+      },
+    }
+  } catch {
+    return {
+      title: 'Shared Conversation | Synkora',
+      description: 'A shared Synkora conversation.',
+    }
+  }
 }
 
 export default async function SharePage({ params }: Props) {

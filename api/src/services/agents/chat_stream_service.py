@@ -47,6 +47,7 @@ class StreamState:
     diagram_data: list[dict[str, Any]] = None
     infographic_data: list[dict[str, Any]] = None
     generated_images_data: list[dict[str, Any]] = None
+    forms_data: list[dict[str, Any]] = None
     fleet_card_data: list[dict[str, Any]] = None
     total_output_tokens: int = 0
     first_token_time: float | None = None
@@ -59,6 +60,8 @@ class StreamState:
             self.infographic_data = []
         if self.generated_images_data is None:
             self.generated_images_data = []
+        if self.forms_data is None:
+            self.forms_data = []
         if self.fleet_card_data is None:
             self.fleet_card_data = []
         if self.tool_start_times is None:
@@ -208,6 +211,7 @@ class ChatStreamService:
                     conversation_id=conversation_uuid,
                     message=message,
                     db=db,
+                    attachments=attachments,
                 )
 
             load_result = await self.agent_loader.load_agent(
@@ -413,7 +417,9 @@ class ChatStreamService:
             if platform_tool_names:
                 mcp_tool_names = list(set((mcp_tool_names or []) + platform_tool_names))
 
-            final_tool_names = self._select_tools(agent, agent_tools, message, mcp_tool_names)
+            final_tool_names, all_configured_tool_names = self._select_tools(
+                agent, agent_tools, message, mcp_tool_names
+            )
 
             trace_id = self._create_trace(agent, agent_name, message, final_tool_names)
 
@@ -492,6 +498,7 @@ class ChatStreamService:
                             prompt=system_prompt,
                             messages=structured_messages,
                             tool_names=final_tool_names,
+                            all_configured_tool_names=all_configured_tool_names,
                             trace_id=trace_id,
                             conversation_uuid=conversation_uuid,
                             user_message_id=user_message_saved.id if user_message_saved else None,
@@ -552,6 +559,7 @@ class ChatStreamService:
                 "total_tokens": total_input_tokens + state.total_output_tokens,
                 "routed_model": routed_model,
                 "routing_mode": getattr(db_agent, "routing_mode", "fixed"),
+                "conversation_id": str(conversation_uuid) if conversation_uuid else None,
             }
             yield await generate_done_event(sources=retrieved_sources, metadata=metadata)
             final_content = "".join(state.assistant_chunks) if hasattr(state, "assistant_chunks") else ""
@@ -589,6 +597,8 @@ class ChatStreamService:
                     logger.info(f"💾 Saving {len(state.infographic_data)} infographics to database metadata")
                 if state.fleet_card_data:
                     logger.info(f"💾 Saving {len(state.fleet_card_data)} fleet cards to database metadata")
+                if state.forms_data:
+                    logger.info(f"💾 Saving {len(state.forms_data)} forms to database metadata")
 
                 post_db = session_factory() if managed_db_session else db
                 try:
@@ -600,6 +610,7 @@ class ChatStreamService:
                         diagrams=state.diagram_data,
                         infographics=state.infographic_data,
                         generated_images=state.generated_images_data,
+                        forms=state.forms_data,
                         fleet_cards=state.fleet_card_data,
                         timing=timing_metrics,
                         usage={
@@ -1844,7 +1855,9 @@ class ChatStreamService:
             f"Tool selection: {len(tool_names)} configured → {len(filtered_tools)} filtered (message: '{msg_preview}')"
         )
 
-        return filtered_tools
+        # Return both the filtered set (for initial LLM context) and the full
+        # configured set (so discovery tools can expose the rest on demand).
+        return filtered_tools, tool_names
 
     def _create_trace(
         self,
@@ -1880,12 +1893,13 @@ class ChatStreamService:
         prompt: str,
         messages: list[dict[str, str]],
         tool_names: list[str],
-        trace_id: str | None,
-        conversation_uuid,
-        user_message_id,
-        start_time: float,
-        state: StreamState,
-        db: AsyncSession | None,
+        all_configured_tool_names: list[str] | None = None,
+        trace_id: str | None = None,
+        conversation_uuid=None,
+        user_message_id=None,
+        start_time: float = 0.0,
+        state: StreamState | None = None,
+        db: AsyncSession | None = None,
         user_id: str | None = None,
         shared_state: dict[str, Any] | None = None,
         caller_tenant_id: Any | None = None,
@@ -1943,9 +1957,13 @@ class ChatStreamService:
             email_template_id=getattr(db_agent, "email_template_id", None),
         )
 
-        # Populate assigned tools so discovery only exposes agent's own tools
+        # Populate assigned tools so discovery tools expose agent's full capability set.
+        # Use the full configured list (not the filtered subset) so that tools excluded
+        # from the initial context by the tool-filter are still discoverable via
+        # internal_search_available_tools and can be injected dynamically mid-run.
+        _discovery_names = set(all_configured_tool_names) if all_configured_tool_names else set(tool_names)
         runtime_context.all_available_tools = [
-            t for t in self.tool_registry.list_tools() if t["name"] in set(tool_names)
+            t for t in self.tool_registry.list_tools() if t["name"] in _discovery_names
         ]
 
         # Populate allowed database connections from agent metadata
@@ -2123,6 +2141,12 @@ class ChatStreamService:
                     state.generated_images_data.append(image)
                     image_payload = {k: v for k, v in event.items() if k != "type"}
                     yield await generate_sse_event("generated_image", image_payload)
+
+                elif event["type"] == "form":
+                    form = event.get("form", {})
+                    state.forms_data.append(form)
+                    form_payload = {k: v for k, v in event.items() if k != "type"}
+                    yield await generate_sse_event("form", form_payload)
 
                 elif event["type"] == "vehicle_map":
                     map_payload = {k: v for k, v in event.items() if k != "type"}

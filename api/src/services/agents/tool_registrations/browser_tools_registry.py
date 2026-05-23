@@ -1292,7 +1292,7 @@ Popular proxy providers with country selection:
         return await internal_browser_get_network_requests(
             session_id=kwargs.get("session_id", "default"),
             page_id=kwargs.get("page_id"),
-            filter_pattern=kwargs.get("filter_pattern"),
+            filter_type=kwargs.get("filter_pattern") or kwargs.get("filter_type"),
             limit=kwargs.get("limit", 50),
             runtime_context=runtime_context,
             config=config,

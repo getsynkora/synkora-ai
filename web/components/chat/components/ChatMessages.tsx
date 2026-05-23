@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
-import { Message, SuggestionPrompt } from '../types'
+import { Attachment, FormDefinition, Message, SuggestionPrompt } from '../types'
 import { ChatMessage } from './ChatMessage'
 import { Sparkles, MessageSquare, Lightbulb } from 'lucide-react'
 
@@ -50,7 +50,11 @@ interface ChatMessagesProps {
   chatConfig?: ChatConfig | null
   agentAvatar?: string
   userAvatar?: string
+  userName?: string
   agentName?: string
+  conversationId?: string
+  onFormSubmit?: (form: FormDefinition, answers: Record<string, unknown>, attachments?: Attachment[]) => Promise<void> | void
+  formSubmissionDisabled?: boolean
 }
 
 /**
@@ -74,7 +78,11 @@ export function ChatMessages({
   chatConfig,
   agentAvatar,
   userAvatar,
+  userName,
   agentName,
+  conversationId,
+  onFormSubmit,
+  formSubmissionDisabled = false,
 }: ChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -138,7 +146,11 @@ export function ChatMessages({
                 chatConfig={chatConfig}
                 agentAvatar={agentAvatar}
                 userAvatar={userAvatar}
+                userName={userName}
                 agentName={agentName}
+                conversationId={conversationId}
+                onFormSubmit={onFormSubmit}
+                formSubmissionDisabled={formSubmissionDisabled}
               />
             )
           })}

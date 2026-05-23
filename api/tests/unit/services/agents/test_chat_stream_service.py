@@ -256,10 +256,10 @@ class TestSelectTools:
         tool2.name = "tool2"
         agent.config.tools = [tool1, tool2]
 
-        result = service._select_tools(agent, [])
+        _, all_tools = service._select_tools(agent, [])
 
-        assert "tool1" in result
-        assert "tool2" in result
+        assert "tool1" in all_tools
+        assert "tool2" in all_tools
 
     def test_select_tools_from_db(self, mock_agent_loader, mock_chat_service, mock_tool_registry):
         """Test selecting tools from database."""
@@ -281,10 +281,10 @@ class TestSelectTools:
         db_tool2 = Mock()
         db_tool2.tool_name = "db_tool2"
 
-        result = service._select_tools(agent, [db_tool1, db_tool2])
+        _, all_tools = service._select_tools(agent, [db_tool1, db_tool2])
 
-        assert "db_tool1" in result
-        assert "db_tool2" in result
+        assert "db_tool1" in all_tools
+        assert "db_tool2" in all_tools
 
     def test_select_tools_combined(self, mock_agent_loader, mock_chat_service, mock_tool_registry):
         """Test combining tools from config and database."""
@@ -306,10 +306,10 @@ class TestSelectTools:
         db_tool = Mock()
         db_tool.tool_name = "db_tool"
 
-        result = service._select_tools(agent, [db_tool])
+        _, all_tools = service._select_tools(agent, [db_tool])
 
-        assert "config_tool" in result
-        assert "db_tool" in result
+        assert "config_tool" in all_tools
+        assert "db_tool" in all_tools
 
     def test_select_tools_deduplication(self, mock_agent_loader, mock_chat_service, mock_tool_registry):
         """Test deduplication of tool names."""
@@ -331,14 +331,14 @@ class TestSelectTools:
         db_tool = Mock()
         db_tool.tool_name = "same_tool"
 
-        result = service._select_tools(agent, [db_tool])
+        _, all_tools = service._select_tools(agent, [db_tool])
 
         # Should have: same_tool (deduplicated) + ALWAYS_INCLUDE_TOOLS
-        assert "same_tool" in result
-        assert result.count("same_tool") == 1  # Deduplicated
+        assert "same_tool" in all_tools
+        assert all_tools.count("same_tool") == 1  # Deduplicated
         # Discovery tools are always included
         for tool in ALWAYS_INCLUDE_TOOLS:
-            assert tool in result
+            assert tool in all_tools
 
     def test_select_tools_no_tools(self, mock_agent_loader, mock_chat_service, mock_tool_registry):
         """Test selecting when no tools available - still includes discovery tools."""
@@ -354,12 +354,12 @@ class TestSelectTools:
         agent = Mock()
         agent.config.tools = []
 
-        result = service._select_tools(agent, [])
+        _, all_tools = service._select_tools(agent, [])
 
         # Even with no configured tools, discovery tools are always included
-        assert len(result) == len(ALWAYS_INCLUDE_TOOLS)
+        assert len(all_tools) == len(ALWAYS_INCLUDE_TOOLS)
         for tool in ALWAYS_INCLUDE_TOOLS:
-            assert tool in result
+            assert tool in all_tools
 
 
 class TestCreateTrace:

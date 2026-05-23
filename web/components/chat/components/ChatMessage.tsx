@@ -5,13 +5,14 @@ import Image from 'next/image'
 import dynamic from 'next/dynamic'
 import { Copy, Check, RefreshCw, Sparkles, FileText, Image as ImageIcon, Download, File, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Message, Attachment, GeneratedImageData } from '../types'
+import { Message, Attachment, GeneratedImageData, FormDefinition } from '../types'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import DOMPurify from 'dompurify'
 import { SourcesList } from './SourceCard'
 import { VoicePlayer } from './VoicePlayer'
 import { ToolStatusDisplay } from './ToolStatusDisplay'
+import { InteractiveFormCard } from './InteractiveFormCard'
 
 const ChartRenderer = dynamic(
   () => import('@/components/charts/ChartRenderer').then((mod) => mod.ChartRenderer),
@@ -202,7 +203,22 @@ interface ChatMessageProps {
   chatConfig?: ChatConfig | null
   agentAvatar?: string
   userAvatar?: string
+  userName?: string
   agentName?: string
+  conversationId?: string
+  onFormSubmit?: (form: FormDefinition, answers: Record<string, unknown>, attachments?: Attachment[]) => Promise<void> | void
+  formSubmissionDisabled?: boolean
+}
+
+function UserInitialAvatar({ name }: { name?: string }) {
+  const seed = encodeURIComponent(name?.trim() || 'User')
+  return (
+    <img
+      src={`https://api.dicebear.com/9.x/adventurer/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`}
+      alt={name || 'User'}
+      className="h-full w-full object-cover"
+    />
+  )
 }
 
 /**
@@ -247,13 +263,13 @@ function TableWithExport({ children, ...props }: any) {
     setExporting('pdf')
     try {
       const { headers, rows } = extractTableData()
-      const thStyle = 'text-align:left;padding:14px 18px;border:1px solid #e4d7c6;background:#f0e7da;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#5f564d;'
-      const tdStyle = 'padding:18px;border:1px solid #e9ddcd;font-size:13px;color:#342f2a;'
+      const thStyle = 'text-align:left;padding:8px 12px;border:1px solid #d1d5db;background:#f3f4f6;font-size:12px;font-weight:600;color:#374151;'
+      const tdStyle = 'padding:8px 12px;border:1px solid #d1d5db;font-size:12px;color:#374151;'
       const tableHtml = `
-        <table style="border-collapse:collapse;width:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;border-radius:18px;overflow:hidden;">
+        <table style="border-collapse:collapse;width:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
           <thead><tr>${headers.map(h => `<th style="${thStyle}">${h}</th>`).join('')}</tr></thead>
           <tbody>${rows.map((row, i) =>
-            `<tr style="${i % 2 !== 0 ? 'background:#fbf7f1;' : 'background:#ffffff;'}">${row.map(cell => `<td style="${tdStyle}">${cell}</td>`).join('')}</tr>`
+            `<tr style="${i % 2 !== 0 ? 'background:#f9fafb;' : ''}">${row.map(cell => `<td style="${tdStyle}">${cell}</td>`).join('')}</tr>`
           ).join('')}</tbody>
         </table>`
       const win = window.open('', '_blank')
@@ -270,48 +286,41 @@ function TableWithExport({ children, ...props }: any) {
   }
 
   return (
-    <div className="my-5 w-full max-w-full overflow-hidden rounded-[1.7rem] border border-[#ddd1c0] bg-[linear-gradient(180deg,_rgba(255,255,255,0.92),_rgba(248,242,232,0.98))] shadow-[0_24px_58px_-42px_rgba(39,27,16,0.34)]">
-      <div className="flex flex-col gap-3 border-b border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(251,246,239,0.98),_rgba(243,235,224,0.94))] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#8a8378]">Structured Summary</div>
-          <div className="mt-1 text-sm font-semibold tracking-[-0.02em] text-[#171717]">Review and export this table</div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={exportCSV}
-            disabled={exporting !== null}
-            title="Export as CSV"
-            className="inline-flex items-center gap-1.5 rounded-full border border-[#d8ccbc] bg-white/88 px-3 py-1.5 text-xs font-semibold text-[#4b443c] transition-all duration-200 hover:-translate-y-0.5 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {exporting === 'csv' ? (
-              <svg className="animate-spin" width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" strokeLinecap="round"/>
-              </svg>
-            ) : (
-              <Download size={12} />
-            )}
-            CSV
-          </button>
-          <button
-            onClick={exportPDF}
-            disabled={exporting !== null}
-            title="Export as PDF"
-            className="inline-flex items-center gap-1.5 rounded-full border border-[#d8ccbc] bg-white/88 px-3 py-1.5 text-xs font-semibold text-[#4b443c] transition-all duration-200 hover:-translate-y-0.5 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {exporting === 'pdf' ? (
-              <svg className="animate-spin" width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" strokeLinecap="round"/>
-              </svg>
-            ) : (
-              <FileText size={12} />
-            )}
-            PDF
-          </button>
-        </div>
+    <div className="my-3 rounded-lg border border-gray-200 overflow-hidden w-full max-w-full">
+      <div className="flex items-center justify-end gap-3 px-3 py-1.5 bg-gray-50 border-b border-gray-200">
+        <button
+          onClick={exportCSV}
+          disabled={exporting !== null}
+          title="Export as CSV"
+          className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {exporting === 'csv' ? (
+            <svg className="animate-spin" width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" strokeLinecap="round"/>
+            </svg>
+          ) : (
+            <Download size={12} />
+          )}
+          CSV
+        </button>
+        <button
+          onClick={exportPDF}
+          disabled={exporting !== null}
+          title="Export as PDF"
+          className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {exporting === 'pdf' ? (
+            <svg className="animate-spin" width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" strokeLinecap="round"/>
+            </svg>
+          ) : (
+            <FileText size={12} />
+          )}
+          PDF
+        </button>
       </div>
-      <div className="overflow-x-auto px-1 pb-1">
-        <table ref={tableRef} className="min-w-full border-separate border-spacing-0" {...props}>
+      <div className="overflow-x-auto">
+        <table ref={tableRef} className="min-w-full divide-y divide-gray-200" {...props}>
           {children}
         </table>
       </div>
@@ -338,7 +347,11 @@ export const ChatMessage = memo(function ChatMessage({
   chatConfig,
   agentAvatar,
   userAvatar,
+  userName,
   agentName,
+  conversationId,
+  onFormSubmit,
+  formSubmissionDisabled = false,
 }: ChatMessageProps) {
   const [copied, setCopied] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
@@ -379,15 +392,15 @@ export const ChatMessage = memo(function ChatMessage({
     setTimeout(() => setCopied(false), 2000)
   }
 
-  // User message — right-aligned dark bubble
+  // User message — right-aligned light bubble
   if (isUser) {
     return (
-      <div className={cn('flex justify-end group', className)}>
+      <div className={cn('flex justify-end items-start gap-2.5 group', className)}>
         <div className="max-w-[85%] sm:max-w-[72%]">
-          <div className="bg-gray-900 rounded-2xl rounded-tr-sm px-4 py-3.5 shadow-sm">
+          <div className="bg-[#f0f0f0] border border-black/[0.07] rounded-2xl rounded-tr-sm px-4 py-3.5 shadow-sm">
             <p
-              className="text-[15px] text-white/95 leading-[1.65] whitespace-pre-wrap tracking-[-0.01em] max-h-48 overflow-y-auto"
-              style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.2) transparent' }}
+              className="text-[15px] font-semibold text-[#111111] leading-[1.65] whitespace-pre-wrap tracking-[-0.01em] max-h-48 overflow-y-auto"
+              style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(0,0,0,0.15) transparent' }}
             >{message.content}</p>
             {message.attachments && message.attachments.length > 0 && (
               <div className="mt-2 space-y-1.5">
@@ -438,6 +451,13 @@ export const ChatMessage = memo(function ChatMessage({
               </>
             )}
           </div>
+        </div>
+        {/* User avatar */}
+        <div className="flex-shrink-0 h-8 w-8 rounded-full overflow-hidden mt-0.5">
+          {userAvatar
+            ? <img src={userAvatar} alt="You" className="h-full w-full object-cover" />
+            : <UserInitialAvatar name={userName} />
+          }
         </div>
       </div>
     )
@@ -559,30 +579,24 @@ export const ChatMessage = memo(function ChatMessage({
         )}
 
         {/* Message Content */}
-        <div
-          className={cn(
-            'prose prose-sm max-w-none prose-gray',
-            isPlatformEngineer && 'rounded-[1.7rem] border border-[#e2d7c8] bg-[linear-gradient(180deg,_rgba(255,255,255,0.9),_rgba(248,243,235,0.98))] px-5 py-4 shadow-[0_24px_58px_-44px_rgba(39,27,16,0.28)]'
-          )}
-          style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
-        >
+        <div className="prose prose-sm max-w-none prose-gray" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
           {!message.isError && thinkingStatus && !message.content && !toolStatus && recentTools.length === 0 ? (
-            <div className="flex items-center gap-2 py-1">
-              <div className="flex gap-1">
-                <span
-                  className="w-1.5 h-1.5 rounded-full animate-bounce inline-block"
-                  style={{ animationDelay: '0ms', backgroundColor: primaryColor }}
-                />
-                <span
-                  className="w-1.5 h-1.5 rounded-full animate-bounce inline-block"
-                  style={{ animationDelay: '150ms', backgroundColor: primaryColor }}
-                />
-                <span
-                  className="w-1.5 h-1.5 rounded-full animate-bounce inline-block"
-                  style={{ animationDelay: '300ms', backgroundColor: primaryColor }}
-                />
-              </div>
-              <span className="text-sm text-gray-500">{thinkingStatus}</span>
+            <div className="flex items-center gap-2.5 py-1">
+              <span className="inline-flex items-end gap-[3px]" style={{ height: '18px' }} aria-hidden>
+                {[0, 140, 280].map((delay, i) => (
+                  <span
+                    key={i}
+                    className="inline-block w-[3px] rounded-full origin-bottom"
+                    style={{
+                      height: '100%',
+                      backgroundColor: '#ff444f',
+                      boxShadow: '0 0 5px #ff444faa',
+                      animation: `synkora-bar 0.75s ease-in-out ${delay}ms infinite`,
+                    }}
+                  />
+                ))}
+              </span>
+              <span className="text-sm font-medium" style={{ color: '#ff444f' }}>Working…</span>
             </div>
           ) : !message.isError ? (
             <ReactMarkdown
@@ -633,28 +647,28 @@ export const ChatMessage = memo(function ChatMessage({
                   <TableWithExport {...props}>{children}</TableWithExport>
                 ),
                 thead: ({ children, ...props }: any) => (
-                  <thead className="bg-[#f1e7da]" {...props}>
+                  <thead className="bg-gray-50" {...props}>
                     {children}
                   </thead>
                 ),
                 tbody: ({ children, ...props }: any) => (
-                  <tbody className="[&_tr:nth-child(even)]:bg-[#fbf7f1] [&_tr:nth-child(odd)]:bg-white" {...props}>
+                  <tbody className="bg-white divide-y divide-gray-100" {...props}>
                     {children}
                   </tbody>
                 ),
                 tr: ({ children, ...props }: any) => (
-                  <tr className="transition-colors hover:bg-[#f8f2e8] [&>td]:border-b [&>td]:border-[#ede2d3] last:[&>td]:border-b-0" {...props}>{children}</tr>
+                  <tr className="hover:bg-gray-50 transition-colors" {...props}>{children}</tr>
                 ),
                 th: ({ children, ...props }: any) => (
                   <th
-                    className="px-5 py-4 text-left text-[11px] font-semibold uppercase tracking-[0.2em] text-[#6b635a]"
+                    className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide"
                     {...props}
                   >
                     {children}
                   </th>
                 ),
                 td: ({ children, ...props }: any) => (
-                  <td className="px-5 py-5 align-top text-[15px] leading-7 text-[#474139] first:font-semibold first:text-[#171717]" {...props}>
+                  <td className="px-3 py-2 text-sm text-gray-700" {...props}>
                     {children}
                   </td>
                 ),
@@ -742,11 +756,25 @@ export const ChatMessage = memo(function ChatMessage({
             </ReactMarkdown>
           ) : null}
 
-          {isStreaming && (
+          {isStreaming && !(!message.content && !toolStatus && recentTools.length === 0 && thinkingStatus) && (
             <span
-              className="inline-block w-0.5 h-4 animate-pulse ml-0.5"
-              style={{ backgroundColor: primaryColor }}
-            />
+              className="inline-flex items-end gap-[3px] ml-1.5 align-middle"
+              style={{ height: '18px' }}
+              aria-label="Generating"
+            >
+              {([0, 140, 280] as const).map((delay, i) => (
+                <span
+                  key={i}
+                  className="inline-block w-[3px] rounded-full origin-bottom"
+                  style={{
+                    height: '100%',
+                    backgroundColor: '#ff444f',
+                    boxShadow: '0 0 5px #ff444faa',
+                    animation: `synkora-bar 0.75s ease-in-out ${delay}ms infinite`,
+                  }}
+                />
+              ))}
+            </span>
           )}
         </div>
 
@@ -879,6 +907,22 @@ export const ChatMessage = memo(function ChatMessage({
                   </div>
                 )}
               </div>
+            ))}
+          </div>
+        )}
+
+        {/* Interactive Forms */}
+        {message.metadata?.forms && message.metadata.forms.length > 0 && (
+          <div className="space-y-4">
+            {message.metadata.forms.map((form, index) => (
+              <InteractiveFormCard
+                key={form.form_id || index}
+                form={form}
+                conversationId={conversationId}
+                onSubmit={onFormSubmit}
+                disabled={formSubmissionDisabled}
+                primaryColor={primaryColor}
+              />
             ))}
           </div>
         )}
@@ -1565,7 +1609,7 @@ function EmbeddedImage({ url, primaryColor = '#0d9488' }: EmbeddedImageProps) {
             />
           </div>
         )}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
+        { }
         <img
           src={url}
           alt="Screenshot"
@@ -1612,7 +1656,7 @@ function EmbeddedImage({ url, primaryColor = '#0d9488' }: EmbeddedImageProps) {
             >
               <Download size={20} />
             </a>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+            { }
             <img
               src={url}
               alt="Screenshot"

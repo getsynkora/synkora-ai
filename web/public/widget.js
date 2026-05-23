@@ -583,9 +583,10 @@
     #snkr-input::placeholder { color: #8a8175; }
     #snkr-input:disabled { opacity: 0.6; cursor: not-allowed; }
     #snkr-footer-row {
-      display: flex; align-items: center; justify-content: flex-end;
-      padding: 4px 8px 6px; gap: 8px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 4px 8px 6px; gap: 4px;
     }
+    #snkr-footer-actions { display: flex; align-items: center; gap: 6px; }
     #snkr-send {
       width: 34px; height: 34px; border-radius: 50%; border: none;
       background: #d8d0c3; cursor: pointer;
@@ -676,6 +677,201 @@
       border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid #1e293b;
     }
 
+    /* ── History ─────────────────────── */
+    #snkr-history-section { margin-top: 12px; }
+    .snkr-history-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; padding: 0 4px; }
+    .snkr-history-label { font-size: 11px; font-weight: 600; color: rgba(0,0,0,0.38); text-transform: uppercase; letter-spacing: .06em; }
+    .snkr-history-viewall { font-size: 11px; font-weight: 600; color: var(--snkr-c, #79dfbc); background: none; border: none; cursor: pointer; padding: 0; font-family: inherit; filter: brightness(0.75); transition: opacity .15s; }
+    .snkr-history-viewall:hover { opacity: 0.7; }
+    .snkr-history-empty { font-size: 12px; color: rgba(0,0,0,0.3); text-align: center; padding: 14px 8px; font-style: italic; }
+    .snkr-history-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 12px; cursor: pointer; transition: background .15s; border: none; background: none; width: 100%; text-align: left; font-family: inherit; }
+    .snkr-history-item:hover { background: rgba(0,0,0,0.05); }
+    .snkr-history-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--snkr-c); flex-shrink: 0; opacity: 0.8; }
+    .snkr-history-content { flex: 1; min-width: 0; }
+    .snkr-history-preview { font-size: 13px; color: #111; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+    .snkr-history-time { font-size: 11px; color: rgba(0,0,0,0.38); margin-top: 1px; }
+    .snkr-history-chevron { opacity: 0.25; flex-shrink: 0; }
+
+    /* ── Voice recording UI ──────────── */
+    #snkr-rec-indicator {
+      display: none; align-items: center; gap: 6px;
+      padding: 6px 12px; background: #fef2f2; border-radius: 20px;
+      font-size: 11.5px; font-weight: 600; color: #ef4444; flex-shrink: 0;
+    }
+    #snkr-rec-indicator.show { display: flex; }
+    #snkr-rec-timer { font-variant-numeric: tabular-nums; min-width: 28px; }
+    .snkr-rec-wave { display: flex; align-items: center; gap: 2px; }
+    .snkr-rec-wave span {
+      display: inline-block; width: 3px; border-radius: 2px; background: #ef4444;
+      animation: snkr-wave 0.9s ease-in-out infinite;
+    }
+    .snkr-rec-wave span:nth-child(1) { height: 8px; animation-delay: 0s; }
+    .snkr-rec-wave span:nth-child(2) { height: 14px; animation-delay: .15s; }
+    .snkr-rec-wave span:nth-child(3) { height: 10px; animation-delay: .3s; }
+    .snkr-rec-wave span:nth-child(4) { height: 16px; animation-delay: .45s; }
+    .snkr-rec-wave span:nth-child(5) { height: 8px; animation-delay: .6s; }
+    @keyframes snkr-wave { 0%,100%{transform:scaleY(0.5)} 50%{transform:scaleY(1)} }
+
+    /* ── Audio message bubble ─────────── */
+    .snkr-audio-msg { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+    .snkr-audio-msg audio { height: 32px; outline: none; max-width: 200px; }
+    .snkr-audio-label { font-size: 11px; color: rgba(23,23,23,0.5); white-space: nowrap; }
+
+    /* ── Privacy bar ─────────────────── */
+    #snkr-privacy-bar {
+      display: none; align-items: center; justify-content: space-between; gap: 8px;
+      padding: 8px 14px; background: #f0ebe0; border-bottom: 1px solid rgba(23,23,23,0.08);
+      font-size: 11.5px; color: #6d675f; flex-shrink: 0;
+    }
+    #snkr-privacy-bar.show { display: flex; }
+    #snkr-privacy-bar a { color: #171717; font-weight: 600; text-decoration: none; border-bottom: 1px solid currentColor; }
+    #snkr-privacy-bar a:hover { opacity: 0.7; }
+    #snkr-privacy-close {
+      background: none; border: none; cursor: pointer; color: #8a8175; padding: 2px;
+      display: flex; align-items: center; border-radius: 4px; outline: none;
+      transition: background .15s, color .15s; flex-shrink: 0;
+    }
+    #snkr-privacy-close:hover { background: rgba(23,23,23,0.08); color: #171717; }
+
+    /* ── Chat chips (in-chat suggestions) */
+    #snkr-chat-chips {
+      display: none; padding: 0 16px 10px; flex-direction: column; gap: 8px; flex-shrink: 0;
+    }
+    #snkr-chat-chips.show { display: flex; }
+    .snkr-chat-chips-label {
+      font-size: 11px; font-weight: 600; color: rgba(0,0,0,0.3); text-transform: uppercase;
+      letter-spacing: .06em; padding: 0 2px;
+    }
+    .snkr-chat-chips-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .snkr-chat-chip-btn {
+      display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px;
+      border-radius: 20px; border: 1.5px solid rgba(var(--snkr-rgb,121,223,188),0.35);
+      background: rgba(var(--snkr-rgb,121,223,188),0.07); cursor: pointer; font-family: inherit;
+      font-size: 13px; font-weight: 500; color: #171717; outline: none;
+      transition: background .15s, border-color .15s; white-space: nowrap;
+    }
+    .snkr-chat-chip-btn:hover {
+      background: rgba(var(--snkr-rgb,121,223,188),0.15);
+      border-color: rgba(var(--snkr-rgb,121,223,188),0.6);
+    }
+
+    /* ── Attach + Mic buttons ────────── */
+    #snkr-attach-btn, #snkr-mic-btn {
+      width: 30px; height: 30px; border-radius: 50%; border: none;
+      background: transparent; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0; flex-shrink: 0; outline: none; color: #9e9690;
+      transition: background .15s, color .15s;
+    }
+    #snkr-attach-btn:hover, #snkr-mic-btn:hover { background: #ece5d8; color: #4f463b; }
+    #snkr-mic-btn.recording {
+      color: #ef4444; background: #fef2f2;
+      animation: snkr-mic-pulse 1s ease-in-out infinite;
+    }
+    @keyframes snkr-mic-pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+    /* ── File preview chip ───────────── */
+    #snkr-file-preview { display: none; padding: 8px 16px 0; }
+    #snkr-file-preview.show { display: flex; }
+    .snkr-file-chip {
+      display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px;
+      border-radius: 10px; background: #f0ebe0; border: 1px solid #ddd2c4;
+      font-size: 12px; color: #171717; max-width: 100%;
+    }
+    .snkr-file-chip-icon { flex-shrink: 0; color: #8a8175; }
+    .snkr-file-chip-name {
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      max-width: 180px; font-weight: 500;
+    }
+    .snkr-file-remove {
+      background: none; border: none; cursor: pointer; padding: 0; outline: none;
+      color: #9e9690; display: flex; align-items: center; transition: color .15s; flex-shrink: 0;
+    }
+    .snkr-file-remove:hover { color: #ef4444; }
+
+    /* ── End-chat banner ─────────────── */
+    .snkr-ended-wrap {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 24px 20px; text-align: center; animation: snkr-in .25s ease both;
+    }
+    .snkr-ended-ring {
+      width: 44px; height: 44px; border-radius: 50%; background: #f0ebe0;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 12px; color: #8a8175;
+    }
+    .snkr-ended-title { font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 4px; }
+    .snkr-ended-sub { font-size: 13px; color: #8a8175; margin-bottom: 16px; }
+    .snkr-restart-btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px;
+      border-radius: 14px; border: 1.5px solid rgba(var(--snkr-rgb,121,223,188),0.4);
+      background: rgba(var(--snkr-rgb,121,223,188),0.08); cursor: pointer;
+      font-family: inherit; font-size: 13px; font-weight: 600; color: #171717; outline: none;
+      transition: background .15s, border-color .15s;
+    }
+    .snkr-restart-btn:hover {
+      background: rgba(var(--snkr-rgb,121,223,188),0.16);
+      border-color: rgba(var(--snkr-rgb,121,223,188),0.6);
+    }
+    .snkr-divider-line {
+      display: flex; align-items: center; gap: 10px; width: 100%;
+      margin: 8px 0 4px; padding: 0 16px;
+    }
+    .snkr-divider-line::before, .snkr-divider-line::after {
+      content: ''; flex: 1; height: 1px; background: rgba(23,23,23,0.08);
+    }
+    .snkr-divider-line span { font-size: 11px; color: #9e9690; white-space: nowrap; }
+
+    /* ── Menu item: danger ───────────── */
+    .snkr-menu-item-danger { color: #c0392b; }
+    .snkr-menu-item-danger:hover { background: #fff5f5; }
+    .snkr-menu-separator { height: 1px; background: rgba(23,23,23,0.06); margin: 3px 0; }
+
+    /* ── History overlay ─────────────── */
+    #snkr-hist-overlay {
+      position: absolute; inset: 0; z-index: 30; background: #fffaf1;
+      display: none; flex-direction: column; border-radius: 24px; overflow: hidden;
+    }
+    #snkr-hist-overlay.open {
+      display: flex;
+      animation: snkr-slidein .22s cubic-bezier(0.34,1.4,0.64,1) both;
+    }
+    #snkr-hist-overlay-hdr {
+      padding: 0 14px; height: 64px; display: flex; align-items: center; gap: 10px;
+      border-bottom: 1px solid rgba(23,23,23,0.08); flex-shrink: 0; background: #fffaf1;
+    }
+    #snkr-hist-overlay-back {
+      background: #f2ebde; border: none; cursor: pointer; color: #4f463b;
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0; outline: none; transition: background .15s; flex-shrink: 0;
+    }
+    #snkr-hist-overlay-back:hover { background: #ebe0d0; }
+    #snkr-hist-overlay-title { font-size: 14px; font-weight: 700; color: #111827; flex: 1; }
+    #snkr-hist-overlay-body { flex: 1; overflow-y: auto; padding: 10px 12px; }
+    #snkr-hist-overlay-body::-webkit-scrollbar { width: 4px; }
+    #snkr-hist-overlay-body::-webkit-scrollbar-thumb { background: #d7c9b6; border-radius: 4px; }
+    .snkr-hist-ol-empty {
+      text-align: center; padding: 48px 20px; color: #9e9690; font-size: 13px;
+    }
+    .snkr-hist-ol-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+      border-radius: 14px; cursor: pointer; background: none; border: none;
+      width: 100%; text-align: left; font-family: inherit; transition: background .15s;
+    }
+    .snkr-hist-ol-item:hover { background: #f0ebe0; }
+    .snkr-hist-ol-dot {
+      width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+      background: rgba(var(--snkr-rgb,121,223,188),0.12);
+      display: flex; align-items: center; justify-content: center; color: #4f463b;
+    }
+    .snkr-hist-ol-content { flex: 1; min-width: 0; }
+    .snkr-hist-ol-preview {
+      font-size: 13px; font-weight: 600; color: #111827;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .snkr-hist-ol-time { font-size: 11px; color: #9e9690; margin-top: 2px; }
+    .snkr-hist-ol-chevron { opacity: 0.22; flex-shrink: 0; }
+
     /* ── Mobile ──────────────────────── */
     @media (max-width: 480px) {
       #snkr-panel { width: calc(100vw - 16px); height: calc(100dvh - 100px); right: 8px; bottom: 88px; border-radius: 16px; }
@@ -700,6 +896,14 @@
     arrow:    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>',
     chevron:  '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>',
     check:    '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+    newchat:  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>',
+    attach:   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>',
+    mic:      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>',
+    micoff:   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>',
+    history:  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95L1 10"/><polyline points="12 7 12 12 15 15"/></svg>',
+    endchat:  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+    fileicon: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>',
+    shield:   '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
   };
 
   // ─── Widget ───────────────────────────────────────────────────────────────────
@@ -710,9 +914,24 @@
     this.apiUrl         = (cfg.apiUrl || "http://localhost:5001/api/v1").replace(/\/$/, "");
     this._user          = cfg.user || null;
     this._userHash      = cfg.userHash || null;
-    // Stable session: identified users get a deterministic ID so history survives page reload
-    this.sessionId      = (this._user && this._user.id) ? "eu_" + this._user.id : uid();
+    // Stable session IDs:
+    //   Identified users  → deterministic "eu_{user.id}" (same across all page loads)
+    //   Anonymous users   → persisted random ID in localStorage so the same visitor
+    //                        is recognised across page reloads without login
+    if (this._user && this._user.id) {
+      this.sessionId = "eu_" + this._user.id;
+    } else {
+      var _anonKey = "snkr_anon_" + (cfg.widgetId || "default");
+      var _anonId = null;
+      try { _anonId = localStorage.getItem(_anonKey); } catch (_) {}
+      if (!_anonId) {
+        _anonId = uid();
+        try { localStorage.setItem(_anonKey, _anonId); } catch (_) {}
+      }
+      this.sessionId = _anonId;
+    }
     this.conversationId = null;
+    this._serverHistoryLoaded = false;
     this.streaming      = false;
     this._isOpen        = false;
     this._agentBubble   = null;
@@ -725,6 +944,7 @@
     this._backgrounded  = false;      // Feature 5: tab was hidden while streaming
     this._ambientFired  = {};         // Feature 4: which probes have fired
     this._pioneerKey    = "snkr_pioneer_" + (cfg.widgetId || "default");
+    this._historyKey    = "snkr_hist_"    + (cfg.widgetId || "default");
     this._visHandler    = null;       // Feature 5: stored visibility handler
     this._cfg = {
       agentName: "AI Assistant",
@@ -734,9 +954,19 @@
       placeholder: "Type a message…",
       primaryColor: "#79dfbc",
       suggestions: [],
-      brandingText: cfg.brandingText !== undefined ? cfg.brandingText : "Powered by AI",
-      brandingUrl:  cfg.brandingUrl  || "",
+      brandingText:      cfg.brandingText !== undefined ? cfg.brandingText : "Powered by AI",
+      brandingUrl:       cfg.brandingUrl  || "",
+      privacyPolicyUrl:  cfg.privacyPolicyUrl  || "",
+      privacyPolicyText: cfg.privacyPolicyText || "By chatting, you agree to our",
     };
+    this._attachedFile  = null;
+    this._micActive        = false;
+    this._recognition      = null;
+    this._mediaRecorder    = null;
+    this._recTimerInterval = null;
+    this._recStartTime     = 0;
+    this._recChunks        = [];
+    this._chatEnded        = false;
 
     this._mount();
     this._loadConfig();
@@ -845,11 +1075,21 @@
       '<div id="snkr-menu-wrap">' +
         '<button id="snkr-menu-btn" aria-label="More options">' + I.dots + '</button>' +
         '<div id="snkr-menu-dropdown">' +
+          '<button class="snkr-menu-item" id="snkr-newchat-btn">' +
+            I.newchat + '<span>New chat</span>' +
+          '</button>' +
+          '<button class="snkr-menu-item" id="snkr-viewhistory-btn">' +
+            I.history + '<span>Recent chats</span>' +
+          '</button>' +
           '<button class="snkr-menu-item" id="snkr-expand-btn">' +
             I.expand + '<span>Expand window</span>' +
           '</button>' +
           '<button class="snkr-menu-item" id="snkr-download-btn">' +
             I.download + '<span>Download transcript</span>' +
+          '</button>' +
+          '<div class="snkr-menu-separator"></div>' +
+          '<button class="snkr-menu-item snkr-menu-item-danger" id="snkr-endchat-btn">' +
+            I.endchat + '<span>End chat</span>' +
           '</button>' +
         '</div>' +
       '</div>' +
@@ -875,6 +1115,18 @@
     // Footer with new design
     var footer = document.createElement("div");
     footer.id = "snkr-footer";
+
+    // File preview chip (shown when file attached, above input box)
+    var filePreview = document.createElement("div");
+    filePreview.id = "snkr-file-preview";
+
+    // Hidden file input
+    var fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.id = "snkr-file-input";
+    fileInput.style.display = "none";
+    fileInput.accept = "image/*,.pdf,.doc,.docx,.txt,.csv,.xlsx";
+
     var inputBox = document.createElement("div");
     inputBox.id = "snkr-input-box";
     var input = document.createElement("textarea");
@@ -884,13 +1136,45 @@
     input.setAttribute("aria-label", "Message");
     var footerRow = document.createElement("div");
     footerRow.id = "snkr-footer-row";
+
+    // Left: attach button
+    var attachBtn = document.createElement("button");
+    attachBtn.id = "snkr-attach-btn";
+    attachBtn.setAttribute("aria-label", "Attach file");
+    attachBtn.innerHTML = I.attach;
+
+    // Right: mic + send
+    var footerActions = document.createElement("div");
+    footerActions.id = "snkr-footer-actions";
+
+    // Recording indicator (shown while mic is active)
+    var recIndicator = document.createElement("div");
+    recIndicator.id = "snkr-rec-indicator";
+    recIndicator.innerHTML = '<div class="snkr-rec-wave"><span></span><span></span><span></span><span></span><span></span></div><span id="snkr-rec-timer">0:00</span>';
+
+    var micBtn = document.createElement("button");
+    micBtn.id = "snkr-mic-btn";
+    micBtn.setAttribute("aria-label", "Voice input");
+    micBtn.innerHTML = I.mic;
+    // Show mic for both SpeechRecognition (transcription) and MediaRecorder (voice notes)
+    if (!window.SpeechRecognition && !window.webkitSpeechRecognition && !window.MediaRecorder) {
+      micBtn.style.display = "none";
+    }
+
     var sendBtn = document.createElement("button");
     sendBtn.id = "snkr-send";
     sendBtn.setAttribute("aria-label", "Send");
     sendBtn.innerHTML = I.send;
-    footerRow.appendChild(sendBtn);
+
+    footerActions.appendChild(recIndicator);
+    footerActions.appendChild(micBtn);
+    footerActions.appendChild(sendBtn);
+    footerRow.appendChild(attachBtn);
+    footerRow.appendChild(fileInput);
+    footerRow.appendChild(footerActions);
     inputBox.appendChild(input);
     inputBox.appendChild(footerRow);
+    footer.appendChild(filePreview);
     footer.appendChild(inputBox);
 
     var branding = document.createElement("div");
@@ -903,27 +1187,75 @@
         : esc(bText);
     }
 
+    // Privacy bar (between header and body)
+    var privacyBar = document.createElement("div");
+    privacyBar.id = "snkr-privacy-bar";
+    var privacyText = document.createElement("span");
+    privacyText.id = "snkr-privacy-text";
+    var privacyClose = document.createElement("button");
+    privacyClose.id = "snkr-privacy-close";
+    privacyClose.setAttribute("aria-label", "Dismiss");
+    privacyClose.innerHTML = I.xsm;
+    privacyBar.appendChild(privacyText);
+    privacyBar.appendChild(privacyClose);
+
+    // Chat chips (suggestions inside chat, shown when empty)
+    var chatChips = document.createElement("div");
+    chatChips.id = "snkr-chat-chips";
+
     chat.appendChild(header);
+    chat.appendChild(privacyBar);
     chat.appendChild(body);
+    chat.appendChild(chatChips);
     chat.appendChild(footer);
     chat.appendChild(branding);
     panel.appendChild(chat);
 
+    // History overlay (covers full panel)
+    var histOverlay = document.createElement("div");
+    histOverlay.id = "snkr-hist-overlay";
+    var histHdr = document.createElement("div");
+    histHdr.id = "snkr-hist-overlay-hdr";
+    var histBack = document.createElement("button");
+    histBack.id = "snkr-hist-overlay-back";
+    histBack.setAttribute("aria-label", "Back");
+    histBack.innerHTML = I.back;
+    var histTitle = document.createElement("div");
+    histTitle.id = "snkr-hist-overlay-title";
+    histTitle.textContent = "Recent chats";
+    histHdr.appendChild(histBack);
+    histHdr.appendChild(histTitle);
+    var histBody = document.createElement("div");
+    histBody.id = "snkr-hist-overlay-body";
+    histOverlay.appendChild(histHdr);
+    histOverlay.appendChild(histBody);
+    panel.appendChild(histOverlay);
+
     shadow.appendChild(panel);
 
     // Save refs
-    this._shadow   = shadow;
-    this._toggle   = toggle;
-    this._panel    = panel;
-    this._home     = home;
-    this._homeBody = homeBody;
-    this._chat     = chat;
-    this._body     = body;
-    this._loading  = loading;
-    this._messages = messages;
-    this._input    = input;
-    this._sendBtn  = sendBtn;
-    this._expanded = false;
+    this._shadow      = shadow;
+    this._toggle      = toggle;
+    this._panel       = panel;
+    this._home        = home;
+    this._homeBody    = homeBody;
+    this._chat        = chat;
+    this._body        = body;
+    this._loading     = loading;
+    this._messages    = messages;
+    this._input       = input;
+    this._sendBtn     = sendBtn;
+    this._expanded    = false;
+    this._privacyBar  = privacyBar;
+    this._privacyText = privacyText;
+    this._chatChips   = chatChips;
+    this._filePreview = filePreview;
+    this._fileInput   = fileInput;
+    this._attachBtn   = attachBtn;
+    this._micBtn      = micBtn;
+    this._recIndicator = recIndicator;
+    this._histOverlay = histOverlay;
+    this._histBody    = histBody;
 
     // Code copy + image zoom (delegation)
     messages.addEventListener("click", function (e) {
@@ -975,6 +1307,18 @@
       e.stopPropagation();
       shadow.getElementById("snkr-menu-dropdown").classList.toggle("open");
     });
+    // Menu: new chat
+    shadow.getElementById("snkr-newchat-btn").addEventListener("click", function (e) {
+      e.stopPropagation();
+      shadow.getElementById("snkr-menu-dropdown").classList.remove("open");
+      self._newChat();
+    });
+    // Menu: recent chats
+    shadow.getElementById("snkr-viewhistory-btn").addEventListener("click", function (e) {
+      e.stopPropagation();
+      shadow.getElementById("snkr-menu-dropdown").classList.remove("open");
+      self._openHistoryOverlay();
+    });
     // Menu: expand
     shadow.getElementById("snkr-expand-btn").addEventListener("click", function (e) {
       e.stopPropagation();
@@ -986,6 +1330,47 @@
       e.stopPropagation();
       self._downloadTranscript();
       shadow.getElementById("snkr-menu-dropdown").classList.remove("open");
+    });
+    // Menu: end chat
+    shadow.getElementById("snkr-endchat-btn").addEventListener("click", function (e) {
+      e.stopPropagation();
+      shadow.getElementById("snkr-menu-dropdown").classList.remove("open");
+      self._endChat();
+    });
+
+    // Privacy bar: dismiss
+    privacyClose.addEventListener("click", function (e) {
+      e.stopPropagation();
+      self._dismissPrivacy();
+    });
+
+    // Attach: open file picker
+    attachBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      fileInput.click();
+    });
+    fileInput.addEventListener("change", function () {
+      var file = fileInput.files && fileInput.files[0];
+      if (file) { self._setAttachedFile(file); }
+      fileInput.value = "";
+    });
+
+    // Mic: toggle voice — stop active recording or start new one
+    micBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (!self._micActive) {
+        self._startMic();
+      } else if (self._mediaRecorder) {
+        self._stopVoiceNote();
+      } else {
+        self._stopMic();
+      }
+    });
+
+    // History overlay: back
+    histBack.addEventListener("click", function (e) {
+      e.stopPropagation();
+      self._closeHistoryOverlay();
     });
 
     // Send
@@ -1015,11 +1400,14 @@
   Widget.prototype._showHome = function () {
     this._home.style.display = "flex";
     this._chat.classList.remove("active");
+    this._buildHistorySection();
   };
 
   Widget.prototype._showChat = function () {
     this._home.style.display = "none";
     this._chat.classList.add("active");
+    this._updatePrivacyBar();
+    this._updateChatChips();
     this._input.focus();
   };
 
@@ -1055,6 +1443,614 @@
     document.body.appendChild(a);
     a.click();
     setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+  };
+
+  // ── Chat history + new session ────────────────────────────────────────────────
+
+  Widget.prototype._saveToHistory = function () {
+    var rows = this._messages.querySelectorAll(".snkr-row");
+    if (rows.length === 0) return;
+    // Use server conversation_id when available; fall back to client session_id so
+    // anonymous sessions are also persisted.
+    var histId = this.conversationId || ("ses_" + this.sessionId);
+    var messages = [];
+    rows.forEach(function (row) {
+      var bubble = row.querySelector(".snkr-bubble");
+      if (!bubble) return;
+      messages.push({
+        role: row.classList.contains("user") ? "user" : "agent",
+        html: bubble.innerHTML,
+      });
+    });
+    // Use first user message as preview
+    var preview = "";
+    for (var i = 0; i < messages.length; i++) {
+      if (messages[i].role === "user") {
+        var tmp = document.createElement("div");
+        tmp.innerHTML = messages[i].html;
+        preview = (tmp.innerText || tmp.textContent || "").slice(0, 80);
+        break;
+      }
+    }
+    try {
+      var history = JSON.parse(localStorage.getItem(this._historyKey) || "[]");
+      // Replace existing entry for the same ID
+      history = history.filter(function (h) { return h.conversationId !== histId; });
+      history.unshift({ conversationId: histId, preview: preview, timestamp: Date.now(), messages: messages });
+      history = history.slice(0, 8);
+      localStorage.setItem(this._historyKey, JSON.stringify(history));
+    } catch (_) {}
+  };
+
+  Widget.prototype._newChat = function () {
+    this._saveToHistory();
+    this.conversationId = null;
+    this.sessionId = uid();
+    this._sherlockEl = null;
+    this._sherlockSteps = {};
+    this._toolsUsed = 0;
+    this._chatEnded = false;
+    this._serverHistoryLoaded = false;
+    this._clearAttachedFile();
+    while (this._messages.firstChild) { this._messages.removeChild(this._messages.firstChild); }
+    this._showHome();
+  };
+
+  Widget.prototype._resumeConversation = function (item) {
+    this.conversationId = item.conversationId;
+    while (this._messages.firstChild) { this._messages.removeChild(this._messages.firstChild); }
+    var self = this;
+    (item.messages || []).forEach(function (m) {
+      var row = document.createElement("div");
+      row.className = "snkr-row " + (m.role === "user" ? "user" : "agent");
+      var bubble = document.createElement("div");
+      bubble.className = "snkr-bubble";
+      bubble.innerHTML = m.html;
+      row.appendChild(bubble);
+      self._messages.appendChild(row);
+    });
+    this._showChat();
+    this._scroll();
+  };
+
+  // ── Server history (identified users) ────────────────────────────────────────
+
+  Widget.prototype._loadServerHistory = function () {
+    var self = this;
+    var url = this.apiUrl + "/widgets/chat/history?external_user_id=" + encodeURIComponent(this._user.id);
+
+    fetch(url, {
+      headers: { "X-Widget-API-Key": this.apiKey },
+    })
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (json) {
+        var data = json && json.data;
+        var msgs = data && Array.isArray(data.messages) ? data.messages : [];
+        var convId = data && data.conversation_id;
+
+        if (msgs.length === 0) {
+          // No server history — show home screen as usual
+          self._showHome();
+          self._checkPioneer();
+          return;
+        }
+
+        // Populate messages from server
+        while (self._messages.firstChild) { self._messages.removeChild(self._messages.firstChild); }
+        msgs.forEach(function (m) {
+          // DB roles are uppercase enum values: USER, ASSISTANT
+          var roleRaw = (m.role && m.role.value) ? m.role.value : String(m.role || "");
+          var isUser = roleRaw.toUpperCase() === "USER";
+          var row = document.createElement("div");
+          row.className = "snkr-row " + (isUser ? "user" : "agent");
+          var bubble = document.createElement("div");
+          bubble.className = "snkr-bubble";
+          bubble.innerHTML = isUser ? esc(m.content || "") : mdParse(m.content || "", false);
+          row.appendChild(bubble);
+          self._messages.appendChild(row);
+        });
+
+        // Persist to localStorage so "Recent chats" shows this conversation
+        if (convId) {
+          self.conversationId = convId;
+          self._saveToHistory();
+        }
+
+        // Go straight to chat — user has an existing conversation
+        self._showChat();
+        self._scroll();
+      })
+      .catch(function () {
+        // Network error: fall back to home screen
+        self._showHome();
+        self._checkPioneer();
+      });
+  };
+
+  Widget.prototype._buildHistorySection = function () {
+    var old = this._shadow.getElementById("snkr-history-section");
+    if (old) old.parentNode.removeChild(old);
+    var history = [];
+    try { history = JSON.parse(localStorage.getItem(this._historyKey) || "[]"); } catch (_) {}
+
+    var self = this;
+    var section = document.createElement("div");
+    section.id = "snkr-history-section";
+
+    // Header row: label + "View all" button
+    var labelRow = document.createElement("div");
+    labelRow.className = "snkr-history-label-row";
+    var label = document.createElement("div");
+    label.className = "snkr-history-label";
+    label.textContent = "Recent conversations";
+    var viewAll = document.createElement("button");
+    viewAll.className = "snkr-history-viewall";
+    viewAll.textContent = "View all";
+    viewAll.addEventListener("click", function (e) {
+      e.stopPropagation();
+      self._openHistoryOverlay();
+    });
+    labelRow.appendChild(label);
+    labelRow.appendChild(viewAll);
+    section.appendChild(labelRow);
+
+    if (history.length === 0) {
+      var empty = document.createElement("div");
+      empty.className = "snkr-history-empty";
+      empty.textContent = "No previous conversations yet.";
+      section.appendChild(empty);
+    } else {
+      history.slice(0, 5).forEach(function (item) {
+        var btn = document.createElement("button");
+        btn.className = "snkr-history-item";
+        var age = Date.now() - (item.timestamp || 0);
+        var timeStr = age < 60000 ? "Just now"
+          : age < 3600000 ? Math.floor(age / 60000) + "m ago"
+          : age < 86400000 ? Math.floor(age / 3600000) + "h ago"
+          : Math.floor(age / 86400000) + "d ago";
+        btn.innerHTML =
+          '<span class="snkr-history-dot"></span>' +
+          '<span class="snkr-history-content">' +
+            '<div class="snkr-history-preview">' + esc(item.preview || "Conversation") + '</div>' +
+            '<div class="snkr-history-time">' + esc(timeStr) + '</div>' +
+          '</span>' +
+          '<span class="snkr-history-chevron">' + I.chevron + '</span>';
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          self._resumeConversation(item);
+        });
+        section.appendChild(btn);
+      });
+    }
+
+    var homeBody = this._shadow.getElementById("snkr-home-body");
+    if (homeBody) homeBody.appendChild(section);
+  };
+
+  // ── Privacy bar ───────────────────────────────────────────────────────────────
+
+  Widget.prototype._privacyDismissKey = function () {
+    return "snkr_priv_" + (this.widgetId || "default");
+  };
+
+  Widget.prototype._updatePrivacyBar = function () {
+    var cfg = this._cfg;
+    if (!cfg.privacyPolicyUrl) return; // Not configured — don't show
+    var dismissed = false;
+    try { dismissed = !!localStorage.getItem(this._privacyDismissKey()); } catch (_) {}
+    if (dismissed) return;
+
+    var text = cfg.privacyPolicyText || "By chatting, you agree to our";
+    this._privacyText.innerHTML =
+      I.shield + " " + esc(text) + ' <a href="' + esc(cfg.privacyPolicyUrl) +
+      '" target="_blank" rel="noopener noreferrer">Privacy Policy</a>';
+    this._privacyBar.classList.add("show");
+  };
+
+  Widget.prototype._dismissPrivacy = function () {
+    this._privacyBar.classList.remove("show");
+    try { localStorage.setItem(this._privacyDismissKey(), "1"); } catch (_) {}
+  };
+
+  // ── Chat chips (in-chat suggestions) ─────────────────────────────────────────
+
+  Widget.prototype._updateChatChips = function () {
+    var chips = this._chatChips;
+    // Only show if no messages yet and suggestions configured
+    var hasMessages = this._messages.querySelectorAll(".snkr-row").length > 0;
+    var suggestions = this._cfg.suggestions || [];
+    if (hasMessages || suggestions.length === 0 || this._chatEnded) {
+      chips.classList.remove("show");
+      return;
+    }
+    // Rebuild
+    while (chips.firstChild) { chips.removeChild(chips.firstChild); }
+
+    var label = document.createElement("div");
+    label.className = "snkr-chat-chips-label";
+    label.textContent = "Suggestions";
+    chips.appendChild(label);
+
+    var row = document.createElement("div");
+    row.className = "snkr-chat-chips-row";
+    var self = this;
+    suggestions.slice(0, 6).forEach(function (s) {
+      var btn = document.createElement("button");
+      btn.className = "snkr-chat-chip-btn";
+      btn.textContent = s.title || s;
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        chips.classList.remove("show");
+        self._input.value = s.title || s;
+        self._input.dispatchEvent(new Event("input"));
+        self._send();
+      });
+      row.appendChild(btn);
+    });
+    chips.appendChild(row);
+    chips.classList.add("show");
+  };
+
+  // ── End chat ──────────────────────────────────────────────────────────────────
+
+  Widget.prototype._endChat = function () {
+    if (this._chatEnded) return;
+    this._chatEnded = true;
+    this._saveToHistory();
+    this._chatChips.classList.remove("show");
+
+    // Show divider + ended banner in messages area
+    var divider = document.createElement("div");
+    divider.className = "snkr-divider-line";
+    divider.innerHTML = "<span>Chat ended</span>";
+    this._messages.appendChild(divider);
+
+    var wrap = document.createElement("div");
+    wrap.className = "snkr-ended-wrap";
+    var self = this;
+    wrap.innerHTML =
+      '<div class="snkr-ended-ring">' + I.endchat + '</div>' +
+      '<div class="snkr-ended-title">This conversation has ended</div>' +
+      '<div class="snkr-ended-sub">Your chat history is saved above.</div>';
+    var restartBtn = document.createElement("button");
+    restartBtn.className = "snkr-restart-btn";
+    restartBtn.innerHTML = I.newchat + " <span>Start new conversation</span>";
+    restartBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      self._newChat();
+      self._showChat();
+    });
+    wrap.appendChild(restartBtn);
+    this._messages.appendChild(wrap);
+    this._scroll();
+
+    // Disable input
+    this._input.disabled = true;
+    this._sendBtn.disabled = true;
+  };
+
+  // ── History overlay ───────────────────────────────────────────────────────────
+
+  Widget.prototype._openHistoryOverlay = function () {
+    var self = this;
+    var body = this._histBody;
+    // Rebuild list
+    while (body.firstChild) { body.removeChild(body.firstChild); }
+
+    var history = [];
+    try { history = JSON.parse(localStorage.getItem(this._historyKey) || "[]"); } catch (_) {}
+
+    if (history.length === 0) {
+      var empty = document.createElement("div");
+      empty.className = "snkr-hist-ol-empty";
+      empty.textContent = "No previous conversations yet.";
+      body.appendChild(empty);
+    } else {
+      history.forEach(function (item) {
+        var age = Date.now() - (item.timestamp || 0);
+        var timeStr = age < 60000 ? "Just now"
+          : age < 3600000 ? Math.floor(age / 60000) + "m ago"
+          : age < 86400000 ? Math.floor(age / 3600000) + "h ago"
+          : Math.floor(age / 86400000) + "d ago";
+
+        var btn = document.createElement("button");
+        btn.className = "snkr-hist-ol-item";
+        btn.innerHTML =
+          '<div class="snkr-hist-ol-dot">' + I.history + '</div>' +
+          '<div class="snkr-hist-ol-content">' +
+            '<div class="snkr-hist-ol-preview">' + esc(item.preview || "Conversation") + '</div>' +
+            '<div class="snkr-hist-ol-time">' + esc(timeStr) + '</div>' +
+          '</div>' +
+          '<span class="snkr-hist-ol-chevron">' + I.chevron + '</span>';
+        btn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          self._closeHistoryOverlay();
+          self._resumeConversation(item);
+        });
+        body.appendChild(btn);
+      });
+    }
+
+    this._histOverlay.classList.add("open");
+  };
+
+  Widget.prototype._closeHistoryOverlay = function () {
+    this._histOverlay.classList.remove("open");
+  };
+
+  // ── File attachment ───────────────────────────────────────────────────────────
+
+  Widget.prototype._setAttachedFile = function (file) {
+    this._attachedFile = file;
+    var preview = this._filePreview;
+    while (preview.firstChild) { preview.removeChild(preview.firstChild); }
+
+    var chip = document.createElement("div");
+    chip.className = "snkr-file-chip";
+    var self = this;
+    chip.innerHTML =
+      '<span class="snkr-file-chip-icon">' + I.fileicon + '</span>' +
+      '<span class="snkr-file-chip-name">' + esc(file.name) + '</span>';
+    var removeBtn = document.createElement("button");
+    removeBtn.className = "snkr-file-remove";
+    removeBtn.setAttribute("aria-label", "Remove");
+    removeBtn.innerHTML = I.xsm;
+    removeBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      self._clearAttachedFile();
+    });
+    chip.appendChild(removeBtn);
+    preview.appendChild(chip);
+    preview.classList.add("show");
+  };
+
+  Widget.prototype._clearAttachedFile = function () {
+    this._attachedFile = null;
+    this._filePreview.classList.remove("show");
+    while (this._filePreview.firstChild) {
+      this._filePreview.removeChild(this._filePreview.firstChild);
+    }
+  };
+
+  // ── Voice input ───────────────────────────────────────────────────────────────
+
+  Widget.prototype._startRecIndicator = function () {
+    var self = this;
+    this._recStartTime = Date.now();
+    this._recIndicator.classList.add("show");
+    var timerEl = this._shadow.getElementById("snkr-rec-timer");
+    this._recTimerInterval = setInterval(function () {
+      var secs = Math.floor((Date.now() - self._recStartTime) / 1000);
+      var m = Math.floor(secs / 60);
+      var s = secs % 60;
+      if (timerEl) timerEl.textContent = m + ":" + (s < 10 ? "0" : "") + s;
+    }, 500);
+  };
+
+  Widget.prototype._stopRecIndicator = function () {
+    this._recIndicator.classList.remove("show");
+    if (this._recTimerInterval) {
+      clearInterval(this._recTimerInterval);
+      this._recTimerInterval = null;
+    }
+    var timerEl = this._shadow.getElementById("snkr-rec-timer");
+    if (timerEl) timerEl.textContent = "0:00";
+  };
+
+  Widget.prototype._startMic = function () {
+    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    // If SpeechRecognition is available use it for real-time transcription.
+    // Otherwise fall back to MediaRecorder to capture a voice note.
+    if (SpeechRecognition) {
+      this._startSpeechRecognition(SpeechRecognition);
+    } else {
+      this._startVoiceNote();
+    }
+  };
+
+  Widget.prototype._startSpeechRecognition = function (SpeechRecognition) {
+    if (!SpeechRecognition) return;
+    // SpeechRecognition manages its own mic permission prompt — no getUserMedia
+    // pre-flight needed. The onerror handler falls back to MediaRecorder if the
+    // speech service is blocked or unavailable.
+    this._doSpeechRecognition(SpeechRecognition);
+  };
+
+  Widget.prototype._doSpeechRecognition = function (SpeechRecognition) {
+    var self = this;
+    var rec = new SpeechRecognition();
+    // continuous = true: keep listening until the user clicks stop.
+    // With false the browser silently auto-stops after a brief pause.
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = navigator.language || "en-US";
+
+    rec.onstart = function () {
+      self._micActive = true;
+      self._micBtn.classList.add("recording");
+      self._micBtn.innerHTML = I.micoff;
+      self._micBtn.setAttribute("aria-label", "Stop recording");
+      self._startRecIndicator();
+    };
+
+    rec.onresult = function (e) {
+      var transcript = "";
+      for (var i = e.resultIndex; i < e.results.length; i++) {
+        transcript += e.results[i][0].transcript;
+      }
+      self._input.value = transcript;
+      self._input.style.height = "auto";
+      self._input.style.height = Math.min(self._input.scrollHeight, 120) + "px";
+      self._sendBtn.classList.toggle("snkr-send-active", transcript.trim().length > 0);
+    };
+
+    rec.onerror = function (e) {
+      console.warn("[SynkoraWidget] SpeechRecognition error:", e.error);
+      // no-speech is benign — keep listening, don't reset the UI
+      if (e.error === "no-speech") return;
+      // Null ref BEFORE stopping so onend doesn't loop back in
+      self._recognition = null;
+      try { rec.stop(); } catch (_) {}
+      self._stopMicUI();
+      // For any SpeechRecognition denial (not-allowed on HTTP, service-not-allowed,
+      // network error), fall back to MediaRecorder voice note. MediaRecorder uses
+      // getUserMedia which works on http://localhost. If the mic is truly blocked
+      // at the OS/browser level, getUserMedia will fail and show the right message.
+      self._startVoiceNote();
+    };
+
+    rec.onend = function () {
+      // onend fires after manual stop AND after onerror.
+      // If _micActive is already false, cleanup already ran — just auto-send.
+      if (self._micActive) {
+        self._recognition = null;
+        self._stopMicUI();
+      }
+      if (self._input.value.trim()) { self._send(); }
+    };
+
+    this._recognition = rec;
+    try {
+      rec.start();
+    } catch (_) {
+      this._recognition = null;
+      this._stopMicUI();
+    }
+  };
+
+  Widget.prototype._stopMic = function () {
+    // Null the reference first so the onend callback doesn't re-enter
+    var rec = this._recognition;
+    this._recognition = null;
+    this._stopMicUI();
+    if (rec) { try { rec.stop(); } catch (_) {} }
+    // Auto-send whatever was transcribed
+    if (this._input.value.trim()) { this._send(); }
+  };
+
+  Widget.prototype._stopMicUI = function () {
+    this._micActive = false;
+    this._micBtn.classList.remove("recording");
+    this._micBtn.innerHTML = I.mic;
+    this._micBtn.setAttribute("aria-label", "Voice input");
+    this._stopRecIndicator();
+  };
+
+  Widget.prototype._showMicBlocked = function () {
+    // Microphone blocked — could be OS-level (macOS System Settings → Privacy →
+    // Microphone → enable the browser) or browser-level (site settings).
+    var isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+    var msg = isMac
+      ? "Allow mic: System Settings \u2192 Privacy \u2192 Microphone \u2192 enable your browser"
+      : "Microphone blocked \u2014 check browser or OS permissions";
+    var orig = this._input.placeholder;
+    this._input.placeholder = msg;
+    var self = this;
+    setTimeout(function () { self._input.placeholder = self._cfg.placeholder || orig; }, 6000);
+  };
+
+  // ── Voice note (MediaRecorder fallback) ───────────────────────────────────────
+
+  Widget.prototype._startVoiceNote = function () {
+    if (!window.MediaRecorder || !navigator.mediaDevices) return;
+    var self = this;
+
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+
+      self._recChunks = [];
+      var mr = new window.MediaRecorder(stream);
+      self._mediaRecorder = mr;
+      mr.ondataavailable = function (e) {
+        if (e.data && e.data.size > 0) self._recChunks.push(e.data);
+      };
+      mr.onstop = function () {
+        stream.getTracks().forEach(function (t) { t.stop(); });
+        self._stopMicUI();
+        var blob = new Blob(self._recChunks, { type: mr.mimeType || "audio/webm" });
+        var duration = Math.round((Date.now() - self._recStartTime) / 1000);
+        var url = URL.createObjectURL(blob);
+        self._addVoiceNoteBubble(url, duration);
+        self._mediaRecorder = null;
+        self._recChunks = [];
+      };
+      mr.start();
+      self._micActive = true;
+      self._micBtn.classList.add("recording");
+      self._micBtn.innerHTML = I.micoff;
+      self._micBtn.setAttribute("aria-label", "Stop recording");
+      self._startRecIndicator();
+    }).catch(function (err) {
+      console.warn("[SynkoraWidget] getUserMedia error:", err && err.name, err && err.message);
+      self._showMicBlocked();
+    });
+  };
+
+  Widget.prototype._stopVoiceNote = function () {
+    if (this._mediaRecorder && this._mediaRecorder.state !== "inactive") {
+      this._mediaRecorder.stop();
+    }
+  };
+
+  Widget.prototype._addVoiceNoteBubble = function (url, durationSecs) {
+    var self = this;
+    var bubble = this._row("user");
+    var m = Math.floor(durationSecs / 60);
+    var s = durationSecs % 60;
+    var label = "Voice note · " + m + ":" + (s < 10 ? "0" : "") + s;
+    var wrapper = document.createElement("div");
+    wrapper.className = "snkr-audio-msg";
+    var audio = document.createElement("audio");
+    audio.controls = true;
+    audio.src = url;
+    var lbl = document.createElement("span");
+    lbl.className = "snkr-audio-label";
+    lbl.textContent = label;
+    wrapper.appendChild(audio);
+    wrapper.appendChild(lbl);
+    bubble.appendChild(wrapper);
+    this._scroll();
+    // Also send transcription prompt to agent
+    self._sendVoiceNoteToAgent(label);
+  };
+
+  Widget.prototype._sendVoiceNoteToAgent = function (label) {
+    // Send a text proxy to the agent so the conversation continues
+    var self = this;
+    this._typingEl = this._typing();
+    this._busy(true);
+    this._agentText = "";
+    this._agentBubble = null;
+    this._toolsUsed = 0;
+    fetch(this.apiUrl + "/widgets/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Widget-API-Key": this.apiKey },
+      body: JSON.stringify({
+        message: "[" + label + "]",
+        session_id: this.sessionId,
+        conversation_id: this.conversationId || undefined,
+        user: this._user || undefined,
+        user_hash: this._userHash || undefined,
+      }),
+    }).then(function (res) {
+      if (!res.ok || !res.body) { self._finish(); return; }
+      var reader = res.body.getReader();
+      var dec = new TextDecoder();
+      var buf = "";
+      function pump() {
+        return reader.read().then(function (r) {
+          if (r.done) { self._finish(); return; }
+          buf += dec.decode(r.value, { stream: true });
+          var parts = buf.split("\n\n"); buf = parts.pop();
+          parts.forEach(function (p) {
+            var line = p.replace(/^data:\s*/, "");
+            if (!line) return;
+            try { self._processEvent(JSON.parse(line)); } catch (_) {}
+          });
+          return pump();
+        });
+      }
+      return pump();
+    }).catch(function () { self._finish(); });
   };
 
   // ── Load config ───────────────────────────────────────────────────────────────
@@ -1228,14 +2224,20 @@
       .then(function (res) { return res.ok ? res.json() : null; })
       .then(function (data) {
         if (!data) { self._applyConfig({}); return; }
+        var theme = data.theme || {};
         self._applyConfig({
-          agentName:        data.agent_name || "",
-          agentAvatar:      data.agent_avatar || "",
-          agentDescription: data.agent_description || "",
-          welcomeMessage:   (data.theme && data.theme.welcome_message) || "",
-          placeholder:      (data.theme && data.theme.placeholder) || "",
-          primaryColor:     (data.theme && data.theme.primary_color) || "",
-          suggestions:      data.suggestion_prompts || [],
+          agentName:         data.agent_name || "",
+          agentAvatar:       data.agent_avatar || "",
+          agentDescription:  data.agent_description || "",
+          welcomeMessage:    theme.welcome_message || "",
+          placeholder:       theme.placeholder || "",
+          primaryColor:      theme.primary_color || "",
+          suggestions:       data.suggestion_prompts || [],
+          privacyPolicyUrl:  theme.privacy_policy_url || "",
+          privacyPolicyText: theme.privacy_policy_text || "",
+          // branding_text can be a string OR false (to hide the bar entirely)
+          brandingText:      theme.branding_text !== undefined ? theme.branding_text : undefined,
+          brandingUrl:       theme.branding_url  || "",
         });
       })
       .catch(function () { self._applyConfig({}); });
@@ -1244,13 +2246,33 @@
   Widget.prototype._applyConfig = function (c) {
     var self = this;
     var cfg = this._cfg;
-    cfg.agentName        = c.agentName        || "AI Assistant";
-    cfg.agentAvatar      = c.agentAvatar      || "";
-    cfg.agentDescription = c.agentDescription || "";
-    cfg.welcomeMessage   = c.welcomeMessage   || ("Hi there 👋\nHow can we help?");
-    cfg.placeholder      = c.placeholder      || "Message…";
-    cfg.primaryColor     = c.primaryColor     || "#79dfbc";
-    cfg.suggestions      = Array.isArray(c.suggestions) ? c.suggestions : [];
+    cfg.agentName         = c.agentName         || "AI Assistant";
+    cfg.agentAvatar       = c.agentAvatar       || "";
+    cfg.agentDescription  = c.agentDescription  || "";
+    cfg.welcomeMessage    = c.welcomeMessage    || ("Hi there 👋\nHow can we help?");
+    cfg.placeholder       = c.placeholder       || "Message…";
+    cfg.primaryColor      = c.primaryColor      || "#79dfbc";
+    cfg.suggestions       = Array.isArray(c.suggestions) ? c.suggestions : [];
+    if (c.privacyPolicyUrl)  cfg.privacyPolicyUrl  = c.privacyPolicyUrl;
+    if (c.privacyPolicyText) cfg.privacyPolicyText = c.privacyPolicyText;
+    // Branding: server value overrides JS init value when present
+    if (c.brandingText !== undefined) cfg.brandingText = c.brandingText;
+    if (c.brandingUrl)               cfg.brandingUrl  = c.brandingUrl;
+    // Update both branding elements now that we have config
+    var self = this;
+    ["snkr-branding", "snkr-home-branding"].forEach(function (id) {
+      var el = self._shadow.getElementById(id);
+      if (!el) return;
+      if (cfg.brandingText === false) {
+        el.innerHTML = "";
+      } else {
+        var bText = cfg.brandingText || "Powered by AI";
+        var bUrl  = cfg.brandingUrl;
+        el.innerHTML = bUrl
+          ? bText.replace(/^(Powered by )(.+)$/, '$1<a href="' + esc(bUrl) + '" target="_blank" rel="noopener">$2</a>')
+          : esc(bText);
+      }
+    });
 
     var color = cfg.primaryColor;
     this._host.style.setProperty("--snkr-c",   color);
@@ -1348,6 +2370,15 @@
     this._toggle.appendChild(this._badge);
     this._toggle.setAttribute("aria-label", "Close chat");
     this._panel.classList.add("open");
+
+    // For identified users: load server history on first open.
+    // This restores conversations across devices/browsers automatically.
+    if (this._user && this._user.id && !this._serverHistoryLoaded && this._messages.children.length === 0) {
+      this._serverHistoryLoaded = true; // set now to prevent double-fetch
+      this._loadServerHistory();
+      return; // _loadServerHistory decides what screen to show after fetch
+    }
+
     // Always show home screen when opening (unless chat already has messages)
     if (this._messages.children.length === 0) {
       this._showHome();
@@ -1359,6 +2390,7 @@
   };
 
   Widget.prototype.close = function () {
+    this._saveToHistory();
     this._isOpen = false;
     this._toggle.innerHTML = I.chat;
     // Re-append badge after innerHTML replacement
@@ -1446,7 +2478,16 @@
 
   Widget.prototype._send = function () {
     var text = this._input.value.trim();
-    if (!text || this.streaming) return;
+    if (!text || this.streaming || this._chatEnded) return;
+
+    // Hide chat chips once user sends first message
+    this._chatChips.classList.remove("show");
+
+    // Append attached file reference to message text
+    if (this._attachedFile) {
+      text = text + "\n\n[Attached: " + this._attachedFile.name + "]";
+      this._clearAttachedFile();
+    }
 
     this._input.value = "";
     this._input.style.height = "auto";
@@ -1638,6 +2679,9 @@
     }
     this._backgrounded = false;
     this._input.focus();
+    // Persist the completed turn (user + agent) to localStorage so history
+    // is always up-to-date, even if the user never closes the widget.
+    this._saveToHistory();
   };
 
   // ─── Public API ────────────────────────────────────────────────────────────────

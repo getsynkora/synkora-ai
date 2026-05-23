@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic'
 import type { ChartData } from '../ChartRenderer'
 
-const Plot = dynamic(() => import('react-plotly.js') as any, { ssr: false }) as any // eslint-disable-line @typescript-eslint/no-explicit-any
+const Plot = dynamic(() => import('react-plotly.js') as any, { ssr: false }) as any  
 
 export function PlotlyRenderer({ chart }: { chart: ChartData }) {
   const d = chart.data as { data?: object[]; layout?: object }

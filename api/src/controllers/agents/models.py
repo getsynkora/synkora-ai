@@ -55,6 +55,11 @@ class UpdateAgentRequest(StrictModel):
     )
     status: str | None = Field(None, description="Agent status")
     is_public: bool | None = Field(None, description="Whether agent is public in marketplace")
+    portal_visibility: str | None = Field(
+        None,
+        description="Portal visibility: hidden | public | members_only",
+        pattern=r"^(hidden|public|members_only)$",
+    )
     category: str | None = Field(None, description="Agent category for marketplace")
     tags: list[str] | None = Field(None, description="Tags for agent discovery")
     voice_enabled: bool | None = Field(None, description="Whether voice chat is enabled")

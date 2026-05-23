@@ -165,6 +165,7 @@ export default function EditOAuthAppPage() {
 
   const availableScopes = DEFAULT_SCOPES[app.provider] || []
   const isMicromobility = app.provider === 'micromobility'
+  const isMailisk = app.provider === 'mailisk'
 
   return (
     <DashboardPageShell
@@ -434,6 +435,35 @@ export default function EditOAuthAppPage() {
                         className={monoInputClassName}
                         placeholder="Bearer {token}"
                       />
+                    </div>
+                  </>
+                )}
+                {isMailisk && (
+                  <>
+                    <div>
+                      <label className={labelClassName}>Mailisk Namespace *</label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.config.namespace || ''}
+                        onChange={(e) => setFormData({ ...formData, config: { ...formData.config, namespace: e.target.value.trim().toLowerCase() } })}
+                        className={monoInputClassName}
+                        placeholder="your-team"
+                      />
+                      <p className={helperClassName}>
+                        Used to generate inboxes like <code className="bg-gray-100 px-1 rounded">run-123@your-team.mailisk.net</code>.
+                      </p>
+                    </div>
+                    <div>
+                      <label className={labelClassName}>Mailisk API Base URL</label>
+                      <input
+                        type="url"
+                        value={formData.config.base_url || ''}
+                        onChange={(e) => setFormData({ ...formData, config: { ...formData.config, base_url: e.target.value } })}
+                        className={monoInputClassName}
+                        placeholder="https://api.mailisk.com"
+                      />
+                      <p className={helperClassName}>Leave blank to use the default Mailisk API endpoint.</p>
                     </div>
                   </>
                 )}

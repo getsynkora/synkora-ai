@@ -112,6 +112,15 @@ const OnePasswordIcon = () => (
   </svg>
 )
 
+const MailiskIcon = () => (
+  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
+    <rect width="24" height="24" rx="6" fill="#111827" />
+    <path d="M5 8.5A1.5 1.5 0 0 1 6.5 7h11A1.5 1.5 0 0 1 19 8.5v7A1.5 1.5 0 0 1 17.5 17h-11A1.5 1.5 0 0 1 5 15.5v-7Z" stroke="#F9FAFB" strokeWidth="1.5"/>
+    <path d="m6 8 6 4.5L18 8" stroke="#F97316" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M8 19h8" stroke="#F9FAFB" strokeWidth="1.5" strokeLinecap="round"/>
+  </svg>
+)
+
 const TwitterIcon = () => (
   <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
@@ -360,6 +369,20 @@ const PROVIDERS = [
     supportsOAuth: false,
     supportsApiToken: true,
     apiTokenDescription: 'Use 1Password Service Account Token for accessing vaults and secrets'
+  },
+  {
+    value: 'mailisk',
+    label: 'Mailisk',
+    icon: <MailiskIcon />,
+    color: 'text-gray-900',
+    bgColor: 'bg-orange-50',
+    description: 'Disposable inboxes for automated signup, email OTP, and magic-link testing',
+    defaultScopes: [],
+    redirectUri: '',
+    setupGuide: 'https://docs.mailisk.com/',
+    supportsOAuth: false,
+    supportsApiToken: true,
+    apiTokenDescription: 'Use your Mailisk API key together with a namespace for tenant-specific test inboxes'
   },
   {
     value: 'twitter',
@@ -1257,6 +1280,48 @@ export default function CreateOAuthAppPage() {
                       </div>
                     )}
 
+                    {formData.provider === 'mailisk' && (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                            Mailisk Namespace *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={formData.config.namespace || ''}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              config: { ...formData.config, namespace: e.target.value.trim().toLowerCase() }
+                            })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-sm"
+                            placeholder="your-team"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            The tenant inbox namespace. The agent will generate addresses like <code className="bg-gray-100 px-1 rounded">run-123@your-team.mailisk.net</code>.
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                            Mailisk API Base URL
+                          </label>
+                          <input
+                            type="url"
+                            value={formData.config.base_url || ''}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              config: { ...formData.config, base_url: e.target.value }
+                            })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-sm"
+                            placeholder="https://api.mailisk.com"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Optional override. Leave blank to use the default Mailisk API endpoint.
+                          </p>
+                        </div>
+                      </>
+                    )}
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">
                         {selectedProvider?.label} API Token *
@@ -1278,6 +1343,7 @@ export default function CreateOAuthAppPage() {
                         {formData.provider === 'twitter' && ' For Twitter, use your Bearer Token from the Developer Portal.'}
                         {formData.provider === 'linkedin' && ' For LinkedIn, use an Access Token from your app.'}
                         {formData.provider === 'onepassword' && ' For 1Password, use a Service Account Token.'}
+                        {formData.provider === 'mailisk' && ' For Mailisk, use the API key from your Mailisk dashboard.'}
                         {formData.provider === 'recall' && ' For Recall.ai, use your API key from the Recall.ai dashboard.'}
                         {formData.provider === 'micromobility' && ' For Micromobility, use the JWT token returned by the admin login endpoint (POST /admin-login-jwt/).'}
                         {formData.provider === 'openweather' && ' Get your API key from openweathermap.org after signing up.'}

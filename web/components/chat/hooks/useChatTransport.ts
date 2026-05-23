@@ -26,6 +26,7 @@ export type ChatEvent =
   | { type: 'vehicle_map'; map?: unknown; [key: string]: unknown }
   | { type: 'fleet_card'; card?: unknown; [key: string]: unknown }
   | { type: 'generated_image'; generated_image?: unknown; [key: string]: unknown }
+  | { type: 'form'; form?: unknown; [key: string]: unknown }
   | {
       type: 'done'
       sources?: unknown[]

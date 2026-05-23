@@ -92,7 +92,9 @@ async def _run_duckdb_query(query: str) -> Any:
 async def query_file_with_duckdb(
     s3_url: str,
     query: str,
+    output_path: str | None = None,
     config: dict[str, Any] | None = None,
+    runtime_context: Any | None = None,
 ) -> dict[str, Any]:
     """
     Execute a SQL query against a file stored in S3 / MinIO using DuckDB.
@@ -101,13 +103,17 @@ async def query_file_with_duckdb(
     read_json_auto(s3_url) as its data source.
 
     Args:
-        s3_url:  S3 URL of the uploaded file, e.g. ``s3://bucket/path/file.csv``
-        query:   SQL referencing the file via a DuckDB read function.
-        config:  Runtime context (not used — credentials come from env vars).
+        s3_url:       S3 URL of the uploaded file, e.g. ``s3://bucket/path/file.csv``
+        query:        SQL referencing the file via a DuckDB read function.
+        output_path:  Optional filename (e.g. ``filtered.csv``) to write the full
+                      result set to the workspace. When set, rows are NOT returned
+                      inline — use this for large exports so the context stays small.
+        config:       Runtime context (credentials come from env vars).
+        runtime_context: Runtime context for workspace resolution.
 
     Returns:
-        ``{"success": bool, "rows": list[dict], "row_count": int,
-           "columns": list[str], "truncated": bool, "error": str}``
+        Without output_path: ``{"success": bool, "rows": list[dict], "row_count": int, ...}``
+        With output_path:    ``{"success": bool, "output_path": str, "row_count": int, ...}``
     """
     _empty: dict[str, Any] = {"rows": [], "columns": [], "row_count": 0, "truncated": False}
 
@@ -128,11 +134,48 @@ async def query_file_with_duckdb(
         return {"success": False, "error": str(exc), **_empty}
 
     total = len(df)
+    columns: list[str] = list(df.columns)
+
+    # --- Export to workspace file (preferred for large result sets) ---
+    if output_path:
+        from src.services.agents.internal_tools.storage_tools import _get_workspace_path, _validate_path_in_workspace
+
+        # runtime_context may be injected via config["_runtime_context"] by the ADK framework
+        if runtime_context is None and config:
+            runtime_context = config.get("_runtime_context")
+
+        workspace_path = _get_workspace_path(config, runtime_context)
+        is_valid, err = _validate_path_in_workspace(output_path, workspace_path)
+        if not is_valid:
+            return {"success": False, "error": err, **_empty}
+
+        # Resolve relative path against workspace
+        if workspace_path and not os.path.isabs(output_path):
+            resolved = os.path.join(workspace_path, output_path)
+        else:
+            resolved = output_path
+
+        os.makedirs(os.path.dirname(resolved) if os.path.dirname(resolved) else workspace_path or ".", exist_ok=True)
+
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, lambda: df.to_csv(resolved, index=False))
+        logger.info(f"DuckDB query results saved to: {resolved} ({total} rows)")
+
+        return {
+            "success": True,
+            "output_path": resolved,
+            "row_count": total,
+            "columns": columns,
+            "message": (
+                f"Results ({total} rows, {len(columns)} columns) saved to '{resolved}'. "
+                f"Use internal_s3_upload_file with file_path='{output_path}' to upload it."
+            ),
+        }
+
+    # --- Return rows inline (capped at MAX_ROWS) ---
     truncated = total > MAX_ROWS
     if truncated:
         df = df.head(MAX_ROWS)
-
-    columns: list[str] = list(df.columns)
 
     import json
 

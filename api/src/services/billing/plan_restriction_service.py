@@ -22,6 +22,7 @@ from src.models.message import Message
 from src.models.scheduled_task import ScheduledTask
 from src.models.slack_bot import SlackBot
 from src.models.subscription_plan import PlanTier, SubscriptionPlan
+from src.models.tenant import TenantAccountJoin
 from src.models.tenant_subscription import SubscriptionStatus, TenantSubscription
 
 
@@ -235,7 +236,9 @@ class PlanRestrictionService:
             return True
 
         # Count current team members
-        result = await self.db.execute(select(func.count(AgentUser.id)).where(AgentUser.tenant_id == tenant_id))
+        result = await self.db.execute(
+            select(func.count(TenantAccountJoin.id)).where(TenantAccountJoin.tenant_id == tenant_id)
+        )
         current_count = result.scalar()
 
         return current_count < plan.max_team_members
@@ -612,7 +615,7 @@ class PlanRestrictionService:
         agents_count = agents_result.scalar()
 
         team_members_result = await self.db.execute(
-            select(func.count(AgentUser.id)).where(AgentUser.tenant_id == tenant_id)
+            select(func.count(TenantAccountJoin.id)).where(TenantAccountJoin.tenant_id == tenant_id)
         )
         team_members_count = team_members_result.scalar()
 

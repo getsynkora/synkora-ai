@@ -122,6 +122,9 @@ from .test_scenario import TestScenario
 from .upload_file import FileSource, FileType, UploadFile
 from .usage_analytics import UsageAnalytics
 from .user_oauth_token import UserOAuthToken
+from .phone_call import PhoneCall, PhoneCallStatus
+from .phone_number import PhoneNumber
+from .phone_provider_credential import PhoneProviderCredential
 from .voice_api_key import VoiceApiKey
 from .voice_usage import VoiceUsage
 from .whatsapp_bot import WhatsAppBot
@@ -134,6 +137,7 @@ from .workflow_execution import (
     WorkflowStepExecution,
     WorkflowStepStatus,
 )
+from .tenant_portal import TenantPortal
 from .writing_style_profile import WritingStyleProfile
 
 __all__ = [
@@ -351,4 +355,6 @@ __all__ = [
     "MonitoringProvider",
     # SCIM models
     "SCIMToken",
+    # Portal models
+    "TenantPortal",
 ]

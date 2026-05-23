@@ -88,7 +88,7 @@ export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
         window.speechSynthesis.onvoiceschanged = null;
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [isSupported]);
 
   // Cleanup on unmount

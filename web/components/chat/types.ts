@@ -60,12 +60,71 @@ export interface GeneratedImageData {
   created_at?: string
 }
 
+export interface FormOption {
+  label: string
+  value: string
+}
+
+export interface FormField {
+  id: string
+  type:
+    | 'boolean'
+    | 'radio'
+    | 'checkbox_group'
+    | 'select'
+    | 'text'
+    | 'textarea'
+    | 'number'
+    | 'scale'
+    | 'image_upload'
+    | 'file_upload'
+  label: string
+  description?: string
+  help_text?: string
+  placeholder?: string
+  required?: boolean
+  default_value?: unknown
+  options?: FormOption[]
+  min?: number
+  max?: number
+  step?: number
+  min_label?: string
+  max_label?: string
+  max_length?: number
+  max_files?: number
+  accept?: string[]
+}
+
+export interface FormDefinition {
+  form_id: string
+  title: string
+  description?: string
+  submit_label?: string
+  status?: 'pending' | 'submitted'
+  fields: FormField[]
+}
+
+export interface MindsetResultData {
+  classification?: string
+  score?: number | string
+  score_percent?: number | string
+  headline?: string
+  share_caption?: string
+  insight?: string
+  domain?: string
+  strengths?: string[]
+  growth_edges?: string[]
+  top_growth_signals?: string[]
+  top_fixed_signals?: string[]
+}
+
 export interface MessageMetadata {
   sources?: Source[]
   charts?: ChartData[]
   diagrams?: DiagramData[]
   infographics?: InfographicData[]
   generated_images?: GeneratedImageData[]
+  forms?: FormDefinition[]
   tables?: TableData[]
   keyPeople?: Person[]
   news?: NewsItem[]
@@ -75,6 +134,7 @@ export interface MessageMetadata {
   workflow?: WorkflowMetadata
   vehicle_maps?: VehicleMapData[]
   fleet_cards?: FleetCardData[]
+  mindset_result?: MindsetResultData
   confidence?: number
 }
 

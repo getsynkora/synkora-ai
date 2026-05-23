@@ -70,8 +70,17 @@ class Agent(BaseModel, StatusMixin, TenantMixin):
 
     voice_config = Column(JSON, nullable=True, comment="Voice configuration (STT/TTS providers, voice settings, etc.)")
 
+    phone_config = Column(JSON, nullable=True, comment="Inbound call configuration (provider, greeting, voice, etc.)")
+
     is_public = Column(
         Boolean, nullable=False, default=False, comment="Whether agent is publicly visible in marketplace"
+    )
+
+    portal_visibility = Column(
+        String(20),
+        nullable=False,
+        default="hidden",
+        comment="Tenant portal visibility: hidden | public | members_only (independent of is_public)",
     )
 
     allow_subscriptions = Column(
