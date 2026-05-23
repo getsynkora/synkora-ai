@@ -45,13 +45,22 @@ def _validate_path_in_workspace(path: str, workspace_path: str | None) -> tuple[
         return False, "No workspace path configured. File operations require a valid workspace."
 
     try:
-        real_path = os.path.realpath(path)
-        real_workspace = os.path.realpath(workspace_path)
-        real_path = real_path.removeprefix("/private")
-        real_workspace = real_workspace.removeprefix("/private")
+        real_workspace = os.path.realpath(workspace_path).removeprefix("/private")
+
+        # Resolve relative paths against the workspace root so the LLM can pass
+        # bare filenames like "output.csv" or subdirectory paths like "exports/output.csv".
+        if not os.path.isabs(path):
+            resolved = os.path.join(workspace_path, path)
+        else:
+            resolved = path
+
+        real_path = os.path.realpath(resolved).removeprefix("/private")
 
         if not (real_path.startswith(real_workspace + os.sep) or real_path == real_workspace):
-            return False, f"Path '{path}' is outside the workspace directory"
+            return False, (
+                f"Path '{path}' is outside the workspace directory. "
+                f"Use a relative filename (e.g. 'output.csv') or a path under '{workspace_path}'."
+            )
 
         return True, None
     except Exception as e:
@@ -87,6 +96,10 @@ async def internal_s3_upload_file(
         is_valid, error = _validate_path_in_workspace(file_path, workspace_path)
         if not is_valid:
             return {"error": error}
+
+        # Resolve relative paths against workspace root
+        if workspace_path and not os.path.isabs(file_path):
+            file_path = os.path.join(workspace_path, file_path)
 
         if not await async_path_exists(file_path, config):
             return {"error": f"File not found: {file_path}"}
@@ -260,11 +273,15 @@ async def internal_s3_download_file(
     """
     try:
         # Validate output_path is within workspace if provided
+        resolved_output_path = output_path
         if output_path:
             workspace_path = _get_workspace_path(config, runtime_context)
             is_valid, error = _validate_path_in_workspace(output_path, workspace_path)
             if not is_valid:
                 return {"error": error}
+            # Use the workspace-resolved absolute path for writing
+            if workspace_path and not os.path.isabs(output_path):
+                resolved_output_path = os.path.join(workspace_path, output_path)
 
         # Initialize S3 service
         s3_service = get_s3_storage()
@@ -273,19 +290,19 @@ async def internal_s3_download_file(
         file_content = s3_service.download_file(s3_key)
 
         # Save to file if output path provided
-        if output_path:
-            parent_dir = os.path.dirname(output_path)
+        if resolved_output_path:
+            parent_dir = os.path.dirname(resolved_output_path)
             if parent_dir:
                 await async_makedirs(parent_dir, config)
-            await async_write_file_bytes(output_path, file_content, config)
-            logger.info(f"Downloaded S3 file to: {output_path}")
+            await async_write_file_bytes(resolved_output_path, file_content, config)
+            logger.info(f"Downloaded S3 file to: {resolved_output_path}")
 
         return {
             "success": True,
             "s3_key": s3_key,
-            "output_path": output_path,
+            "output_path": resolved_output_path,
             "size": len(file_content),
-            "content": file_content.decode("utf-8") if output_path is None else None,
+            "content": file_content.decode("utf-8") if resolved_output_path is None else None,
         }
 
     except Exception as e:

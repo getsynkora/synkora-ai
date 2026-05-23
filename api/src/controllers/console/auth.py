@@ -47,6 +47,14 @@ class RegisterRequest(StrictModel):
     password: str = Field(max_length=128)
     name: str = Field(min_length=1, max_length=100)
     tenant_name: str | None = Field(default=None, max_length=100)
+    portal_slug: str | None = Field(
+        default=None,
+        max_length=100,
+        description=(
+            "If provided, automatically joins the new account to the tenant "
+            "whose white-label portal has this subdomain slug."
+        ),
+    )
 
     @field_validator("password")
     @classmethod
@@ -467,6 +475,25 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_async_d
                 detail="This password has appeared in a data breach. Please choose a different password.",
             )
 
+        # If portal_slug is provided, resolve the target tenant before registering
+        # so we can auto-join the new account as a NORMAL member after creation.
+        portal_tenant_id = None
+        if data.portal_slug:
+            try:
+                from src.models.tenant_portal import TenantPortal
+
+                _portal_result = await db.execute(
+                    select(TenantPortal).where(
+                        TenantPortal.subdomain == data.portal_slug,
+                        TenantPortal.portal_enabled.is_(True),
+                    )
+                )
+                _portal = _portal_result.scalar_one_or_none()
+                if _portal:
+                    portal_tenant_id = _portal.tenant_id
+            except Exception as _pe:
+                logger.warning(f"portal_slug lookup failed for '{data.portal_slug}': {_pe}")
+
         # Register user
         account, tenant = await AuthService.register(
             db,
@@ -475,6 +502,29 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_async_d
             name=data.name,
             tenant_name=data.tenant_name,
         )
+
+        # Auto-join the account to the portal's tenant as a NORMAL member
+        if portal_tenant_id:
+            try:
+                from src.models.tenant import AccountRole, TenantAccountJoin
+
+                _existing = await db.execute(
+                    select(TenantAccountJoin).where(
+                        TenantAccountJoin.tenant_id == portal_tenant_id,
+                        TenantAccountJoin.account_id == account.id,
+                    )
+                )
+                if not _existing.scalar_one_or_none():
+                    _join = TenantAccountJoin(
+                        tenant_id=portal_tenant_id,
+                        account_id=account.id,
+                        role=AccountRole.NORMAL,
+                        invited_by=None,
+                    )
+                    db.add(_join)
+                    await db.commit()
+            except Exception as _je:
+                logger.warning(f"Auto-join to portal tenant failed: {_je}")
 
         # Send verification email asynchronously using Celery
         try:

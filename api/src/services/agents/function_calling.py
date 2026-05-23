@@ -696,6 +696,40 @@ class FunctionCallingHandler:
                 else:
                     execution_results.append(next(fresh_iter))
 
+            # Dynamic tool expansion: if internal_search_available_tools ran and returned
+            # tool names, inject those tools' full schemas into self.available_tools so the
+            # LLM can actually call them in the next iteration (schemas are required for
+            # structured function calls — the LLM cannot call a tool it has no schema for).
+            for _exec_result in execution_results:
+                if (
+                    _exec_result.name == "internal_search_available_tools"
+                    and isinstance(_exec_result.result, dict)
+                    and _exec_result.result.get("success")
+                ):
+                    _discovered = _exec_result.result.get("tools", [])
+                    if _discovered:
+                        # Source tool definitions from the agent's assigned tools only
+                        _all_assigned: dict[str, dict] = {}
+                        if self.runtime_context is not None and self.runtime_context.all_available_tools:
+                            _all_assigned = {t["name"]: t for t in self.runtime_context.all_available_tools}
+                        else:
+                            from src.services.agents.adk_tools import tool_registry
+
+                            _all_assigned = {t["name"]: t for t in tool_registry.list_tools()}
+                        _current_names = {t["name"] for t in self.available_tools}
+                        _added: list[str] = []
+                        for _disc in _discovered:
+                            _name = _disc.get("name") if isinstance(_disc, dict) else None
+                            if _name and _name not in _current_names and _name in _all_assigned:
+                                self.available_tools.append(_all_assigned[_name])
+                                _current_names.add(_name)
+                                _added.append(_name)
+                        if _added:
+                            logger.info(
+                                f"Tool discovery: dynamically injected {len(_added)} schemas "
+                                f"into active context: {_added}"
+                            )
+
             # Check for repeated errors (circuit breaker)
             for exec_result in execution_results:
                 if not exec_result.success or (
@@ -720,7 +754,19 @@ class FunctionCallingHandler:
                         "no such directory",
                         "exceeds maximum allowed size",
                     )
-                    if any(p in error_message.lower() for p in _NOT_FOUND_PHRASES):
+                    # Exclude infra/system errors that happen to contain "not found" substrings
+                    # (e.g. Playwright browser crashes, container errors). These are transient
+                    # infrastructure failures, not deterministic path-doesn't-exist errors.
+                    _INFRA_ERROR_PHRASES = (
+                        "browsertype.launch",
+                        "browser has been closed",
+                        "target page, context or browser",
+                        "playwright",
+                        "sigsegv",
+                        "chromium",
+                    )
+                    _is_infra_error = any(p in error_message.lower() for p in _INFRA_ERROR_PHRASES)
+                    if not _is_infra_error and any(p in error_message.lower() for p in _NOT_FOUND_PHRASES):
                         note_key = f"{exec_result.name}:{error_message[:150]}"
                         if note_key not in _not_found_noted:
                             _not_found_noted.add(note_key)
@@ -898,6 +944,14 @@ class FunctionCallingHandler:
                             },
                         }
 
+                # Interactive form tool detection
+                if func_name == "internal_request_user_input":
+                    if isinstance(result, dict) and result.get("success") and "form" in result:
+                        yield {
+                            "type": "form",
+                            "form": convert_to_json_serializable(result["form"]),
+                        }
+
                 # Infographic tool detection
                 if func_name in ["internal_generate_infographic", "internal_generate_slack_infographic"]:
                     if isinstance(result, dict) and result.get("success"):
@@ -965,6 +1019,18 @@ class FunctionCallingHandler:
                             "provider": result.get("provider"),
                         }
 
+                # Strip full form schema after it has been rendered inline.
+                if exec_result.name == "internal_request_user_input":
+                    if isinstance(result, dict) and result.get("success") and "form" in result:
+                        form = result.get("form") or {}
+                        result = {
+                            "success": True,
+                            "message": "Interactive form displayed to the user inline.",
+                            "form_id": form.get("form_id"),
+                            "title": form.get("title"),
+                            "field_count": len(form.get("fields") or []),
+                        }
+
                 # Strip SVG content from infographic results — already emitted as a separate SSE event.
                 if exec_result.name in ("internal_generate_infographic", "internal_generate_slack_infographic"):
                     if isinstance(result, dict) and result.get("success"):
@@ -977,9 +1043,19 @@ class FunctionCallingHandler:
                         }
 
                 content = json.dumps(convert_to_json_serializable(result)) if not isinstance(result, str) else result
+                # For cached results, inject a hint so the LLM understands the data is from
+                # a prior call and re-requesting the same tool will not produce new information.
+                # This prevents the agent from looping on the same tool call indefinitely.
+                if i in cached_results_by_idx:
+                    content += (
+                        "\n[System: This result was served from cache — this tool was already called "
+                        "with these exact arguments in a prior iteration. The data has not changed. "
+                        "Do not call this tool again with the same arguments; proceed with your "
+                        "analysis using the data already provided.]"
+                    )
                 # Trust boundary: wrap external tool output to reduce prompt-injection risk
                 if isinstance(content, str) and len(content) > 0:
-                    content = f'<external-tool-result tool="{func_name}">\n{content}\n</external-tool-result>'
+                    content = f'<external-tool-result tool="{exec_result.name}">\n{content}\n</external-tool-result>'
                 # PII redaction — no-op when pii_redactor is None (all existing agents unaffected)
                 if self.pii_redactor:
                     content = self.pii_redactor.redact_tool_result(content)
@@ -1365,9 +1441,25 @@ class FunctionCallingHandler:
             message = response.choices[0].message
             if hasattr(message, "tool_calls") and message.tool_calls:
                 for tool_call in message.tool_calls:
-                    function_calls.append(
-                        {"name": tool_call.function.name, "arguments": json.loads(tool_call.function.arguments)}
-                    )
+                    raw_args = tool_call.function.arguments or "{}"
+                    try:
+                        arguments = json.loads(raw_args)
+                    except json.JSONDecodeError:
+                        # Model returned truncated/malformed JSON (common at high context lengths).
+                        # Attempt a simple close-brace repair, then give up gracefully rather
+                        # than crashing the entire session.
+                        repaired = raw_args.strip()
+                        if not repaired.endswith("}"):
+                            repaired = repaired + "}"
+                        try:
+                            arguments = json.loads(repaired)
+                        except json.JSONDecodeError:
+                            logger.warning(
+                                f"Skipping malformed tool call '{tool_call.function.name}': "
+                                f"could not parse arguments JSON: {raw_args[:120]!r}"
+                            )
+                            continue
+                    function_calls.append({"name": tool_call.function.name, "arguments": arguments})
 
         return function_calls
 

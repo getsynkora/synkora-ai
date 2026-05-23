@@ -453,6 +453,24 @@ class TestOAuthAppsManagement:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "api_token is required" in response.json()["detail"]
 
+    def test_create_mailisk_oauth_app_requires_namespace(self, authenticated_client):
+        """Mailisk tenant integrations must include config.namespace."""
+        test_client, mock_db, tenant_id, mock_account = authenticated_client
+
+        response = test_client.post(
+            "/api/v1/oauth/apps",
+            json={
+                "provider": "mailisk",
+                "app_name": "Tenant Mailisk",
+                "auth_method": "api_token",
+                "api_token": "mailisk_test_key",
+                "config": {},
+            },
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.json()["detail"] == "Mailisk integrations require config.namespace"
+
     def test_create_oauth_app_duplicate(self, authenticated_client):
         """Test creating duplicate app."""
         test_client, mock_db, tenant_id, mock_account = authenticated_client

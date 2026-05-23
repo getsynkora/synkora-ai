@@ -282,6 +282,11 @@ async def get_widget_config(http_request: Request, db: AsyncSession = Depends(ge
                 "welcome_message": theme.get("chat_welcome_message") or "",
                 "placeholder": theme.get("chat_placeholder") or "",
                 "title": theme.get("chat_title") or "",
+                "privacy_policy_url": theme.get("privacy_policy_url") or "",
+                "privacy_policy_text": theme.get("privacy_policy_text") or "",
+                # branding_text can be a string or False to hide the bar entirely
+                "branding_text": theme.get("branding_text"),
+                "branding_url": theme.get("branding_url") or "",
             },
         }
 
@@ -1266,17 +1271,21 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
             conv_id = resolved_conversation_id
             reply_chunks: list[str] = []
             async for chunk in raw_stream:
-                yield chunk
                 try:
                     data_str = chunk.replace("data: ", "").strip()
                     if data_str:
                         parsed = _json.loads(data_str)
                         if parsed.get("type") == "done":
-                            conv_id = parsed.get("conversation_id") or conv_id
+                            # Inject conversation_id into done event metadata so the
+                            # widget can persist chat history for identified users.
+                            if conv_id and not parsed.get("metadata", {}).get("conversation_id"):
+                                parsed.setdefault("metadata", {})["conversation_id"] = conv_id
+                                chunk = "data: " + _json.dumps(parsed) + "\n\n"
                         elif parsed.get("type") == "chunk":
                             reply_chunks.append(parsed.get("content", ""))
                 except Exception:
                     pass
+                yield chunk
             # Stream exhausted — fire FCM push (fire-and-forget)
             if conv_id:
                 try:

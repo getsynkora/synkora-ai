@@ -68,7 +68,7 @@ class SecurityHeadersMiddleware:
             # Referrer Policy - Control referrer information
             b"referrer-policy": b"strict-origin-when-cross-origin",
             # Permissions Policy - Control browser features
-            b"permissions-policy": b"geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), speaker=()",
+            b"permissions-policy": b"geolocation=(), microphone=(self), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), speaker=()",
             # NOTE: cache-control intentionally omitted from global headers.
             # Setting no-store on every response (including health checks, public configs,
             # metrics) breaks CDN/reverse proxy caching. Auth controllers set their own
@@ -273,10 +273,34 @@ class InputSanitizationMiddleware:
 
         await self.app(scope, receive_replayed, send)
 
+    # Fields that legitimately contain technical/HTML content written by users or
+    # platform operators (agent system prompts, descriptions, email templates, etc.).
+    # Scanning these causes false positives — e.g. a system prompt that says
+    # "handle @import rules" or references onload= in documentation.
+    _SKIP_XSS_FIELDS: frozenset[str] = frozenset(
+        {
+            "system_prompt",
+            "instructions",
+            "prompt",
+            "description",
+            "content",
+            "body",
+            "template",
+            "html",
+            "welcome_message",
+            "placeholder",
+            "footer_text",
+            "subject",
+            "preheader",
+        }
+    )
+
     def _extract_scannable_strings(self, body_str: str) -> list[str]:
         """Return the string values that should be scanned for XSS.
 
-        For a JSON object body, only top-level string values are returned.
+        For a JSON object body, only top-level string values are returned,
+        excluding known content fields (system_prompt, description, etc.) that
+        legitimately contain HTML/code and would cause false positives.
         Nested arrays and objects (e.g. conversation_history) are skipped
         because they contain prior AI-generated or pre-validated content, not
         raw user input.  If the body is not a JSON object, the raw string is
@@ -285,7 +309,7 @@ class InputSanitizationMiddleware:
         try:
             data = json.loads(body_str)
             if isinstance(data, dict):
-                return [v for v in data.values() if isinstance(v, str)]
+                return [v for k, v in data.items() if isinstance(v, str) and k not in self._SKIP_XSS_FIELDS]
             if isinstance(data, str):
                 return [data]
         except (json.JSONDecodeError, ValueError):

@@ -314,7 +314,10 @@ def register_data_analysis_tools(registry: Any):
             "  SELECT * FROM read_csv_auto('s3://bucket/path/file.csv') LIMIT 10\n"
             "  SELECT category, SUM(amount) FROM read_csv_auto('s3://bucket/path/file.csv') GROUP BY category\n"
             "  SELECT * FROM read_parquet('s3://bucket/path/data.parquet') WHERE date > '2024-01-01'\n\n"
-            "Returns up to 1000 rows. For large result sets, use GROUP BY / aggregation in your query."
+            "IMPORTANT — for large exports or when the user wants a downloadable file:\n"
+            "  Set output_path to a filename like 'filtered.csv'. The full result is saved to the "
+            "workspace and you get back the path — then call internal_s3_upload_file to upload it.\n"
+            "  Without output_path, only up to 1000 rows are returned inline (for quick inspection)."
         ),
         parameters={
             "type": "object",
@@ -329,6 +332,14 @@ def register_data_analysis_tools(registry: Any):
                         "DuckDB SQL query. Must reference the file via read_csv_auto(s3_url), "
                         "read_parquet(s3_url), or read_json_auto(s3_url). "
                         "Example: SELECT region, COUNT(*) FROM read_csv_auto('s3://...') GROUP BY region"
+                    ),
+                },
+                "output_path": {
+                    "type": "string",
+                    "description": (
+                        "Optional filename to save ALL query results as CSV in the workspace "
+                        "(e.g. 'filtered.csv'). Use this whenever the user wants a downloadable file. "
+                        "When set, rows are not returned inline — use internal_s3_upload_file next."
                     ),
                 },
             },

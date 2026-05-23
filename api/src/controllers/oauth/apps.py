@@ -28,6 +28,19 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def _validate_mailisk_config(provider: str, auth_method: str, config: dict | None) -> None:
+    """Validate Mailisk-specific configuration requirements."""
+    if str(provider).lower() != "mailisk" or auth_method != "api_token":
+        return
+
+    namespace = ""
+    if isinstance(config, dict):
+        namespace = str(config.get("namespace") or "").strip()
+
+    if not namespace:
+        raise HTTPException(status_code=400, detail="Mailisk integrations require config.namespace")
+
+
 @router.get("/apps")
 async def list_oauth_apps(
     provider: str = Query(None, description="Filter by provider"),
@@ -181,6 +194,8 @@ async def create_oauth_app(
                     status_code=400, detail="password (api_token field) is required for basic_auth method"
                 )
 
+        _validate_mailisk_config(data.provider, data.auth_method, data.config)
+
         # Check if app with same provider and name exists for this tenant
         existing_result = await db.execute(
             select(OAuthApp).filter(
@@ -267,6 +282,12 @@ async def update_oauth_app(
         # Validate auth method if changing
         if data.auth_method is not None and data.auth_method not in ["oauth", "api_token", "basic_auth"]:
             raise HTTPException(status_code=400, detail="auth_method must be 'oauth', 'api_token', or 'basic_auth'")
+
+        _validate_mailisk_config(
+            app.provider,
+            data.auth_method or app.auth_method,
+            data.config if data.config is not None else app.config,
+        )
 
         # Update fields if provided
         if data.app_name is not None:

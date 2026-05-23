@@ -383,6 +383,25 @@ ROUTER_REGISTRY: list[RouteConfig] = [
         prefix="/api/v1/voice",
         tags=["voice"],
     ),
+    # ===== Phone Calls (inbound) =====
+    RouteConfig(
+        module="src.controllers.phone_calls",
+        attribute="public_router",
+        prefix="",
+        tags=["phone-calls"],
+    ),
+    RouteConfig(
+        module="src.controllers.phone_calls",
+        attribute="router",
+        prefix="",
+        tags=["phone-calls"],
+    ),
+    RouteConfig(
+        module="src.controllers.phone_calls",
+        attribute="agent_router",
+        prefix="",
+        tags=["phone-calls"],
+    ),
     # ===== App Store & Charts =====
     RouteConfig(
         module="src.controllers.app_store_sources",
@@ -632,6 +651,21 @@ ROUTER_REGISTRY: list[RouteConfig] = [
         attribute="router",
         prefix="/api",
         tags=["newsletter-templates"],
+    ),
+    # ===== White-label Portal =====
+    # public_router first — no auth, slug-based routes
+    RouteConfig(
+        module="src.controllers.portal",
+        attribute="public_router",
+        prefix="",
+        tags=["portal"],
+    ),
+    # authenticated settings router
+    RouteConfig(
+        module="src.controllers.portal",
+        attribute="router",
+        prefix="",
+        tags=["portal"],
     ),
 ]
 

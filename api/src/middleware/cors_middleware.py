@@ -227,7 +227,7 @@ class DynamicCORSMiddleware:
             if not widget:
                 logger.warning("Widget not found for API key (length: %d)", len(api_key))
                 result = None
-            elif not widget.allowed_domains:
+            elif not widget.allowed_domains or "*" in widget.allowed_domains:
                 # No domain restrictions — allow all origins
                 result = origin
             else:
@@ -289,40 +289,45 @@ class DynamicCORSMiddleware:
 
     def _extract_host(self, url: str) -> str:
         """
-        Extract host from URL.
+        Extract host (with port) from URL.
 
         Args:
             url: Full URL or host
 
         Returns:
-            Host portion
+            Host:port portion (port included when present)
         """
         if "://" in url:
-            # Full URL
-            return url.split("://")[1].split("/")[0].split(":")[0]
-        return url.split("/")[0].split(":")[0]
+            return url.split("://")[1].split("/")[0]
+        return url.split("/")[0]
 
     def _match_domain(self, origin_host: str, allowed_domain: str) -> bool:
         """
         Check if origin matches allowed domain pattern.
 
+        Compares both with and without port so that storing "localhost:3005"
+        or "localhost" both match an origin of "localhost:3005".
         Supports wildcard patterns like *.example.com
 
         Args:
-            origin_host: Origin hostname
+            origin_host: Origin host (may include port, e.g. "localhost:3005")
             allowed_domain: Allowed domain pattern
 
         Returns:
             True if matches, False otherwise
         """
-        # Exact match
-        if origin_host == allowed_domain:
+        # Bare hostname without port (for fallback comparisons)
+        origin_bare = origin_host.split(":")[0]
+        allowed_bare = allowed_domain.split(":")[0] if not allowed_domain.startswith("*.") else allowed_domain
+
+        # Exact match (with or without port)
+        if origin_host == allowed_domain or origin_bare == allowed_bare:
             return True
 
         # Wildcard match (*.example.com)
         if allowed_domain.startswith("*."):
             domain_suffix = allowed_domain[2:]  # Remove *.
-            return origin_host.endswith(f".{domain_suffix}") or origin_host == domain_suffix
+            return origin_bare.endswith(f".{domain_suffix}") or origin_bare == domain_suffix
 
         return False
 

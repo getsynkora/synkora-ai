@@ -65,6 +65,13 @@ class ADKToolRegistry:
 
         register_gmail_tools(self)
 
+        # Mailisk inbox tools - disposable inboxes for browser signup/login tests
+        from src.services.agents.tool_registrations.mailisk_tools_registry import (
+            register_mailisk_tools,
+        )
+
+        register_mailisk_tools(self)
+
         # Google Calendar tools - use modular registry
         from src.services.agents.tool_registrations.google_calendar_tools_registry import (
             register_google_calendar_tools,
@@ -116,6 +123,13 @@ class ADKToolRegistry:
         )
 
         register_followup_tools(self)
+
+        # Interactive user input tools - render forms inside chat
+        from src.services.agents.tool_registrations.user_input_tools_registry import (
+            register_user_input_tools,
+        )
+
+        register_user_input_tools(self)
 
         # Scheduler tools - use modular registry
         from src.services.agents.tool_registrations.scheduler_tools_registry import (

@@ -218,7 +218,11 @@ def _get_locator_strategies(page, ref: str, state=None) -> list:
         strategies.append(("role", page.get_by_role(role, name=name)))
         return strategies
     if ref.startswith("text="):
-        strategies.append(("text", page.get_by_text(ref[5:])))
+        text_val = ref[5:]
+        # Try exact match first (avoids strict-mode violations from partial matches),
+        # then fall back to first partial match so we never hard-error on ambiguous text.
+        strategies.append(("text_exact", page.get_by_text(text_val, exact=True).first))
+        strategies.append(("text_first", page.get_by_text(text_val).first))
         return strategies
     if ref.startswith("label="):
         strategies.append(("label", page.get_by_label(ref[6:])))

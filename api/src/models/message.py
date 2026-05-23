@@ -105,6 +105,7 @@ class Message(Base, UUIDMixin, TimestampMixin):
             "role": self.role.value,
             "content": self.content,
             "metadata": self.message_metadata,
+            "attachments": self.attachments,
             "status": self.status.value,
             "error": self.error,
             "token_count": self.token_count,

@@ -541,18 +541,19 @@ CAPABILITIES = [
     {
         "id": "email",
         "name": "Email",
-        "description": "Send, read, and search emails via Gmail",
+        "description": "Send email, read inboxes, and handle OTP or magic-link flows via Gmail or Mailisk",
         "icon": "✉️",
         "tool_patterns": [
             "internal_email_*",
             "internal_gmail_*",
+            "internal_mailisk_*",
             "internal_send_email",
             "internal_send_bulk_emails",
             "internal_test_email_connection",
             "internal_read_email*",
             "internal_search_email*",
         ],
-        "requires_oauth": ["GMAIL"],
+        "requires_oauth": ["GMAIL", "MAILISK"],
     },
     {
         "id": "scheduling",

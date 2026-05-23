@@ -89,6 +89,9 @@ from .monitoring_integration import MonitoringIntegration, MonitoringProvider
 from .oauth_app import OAuthApp
 from .okta_tenant import OktaTenant
 from .permission import Permission
+from .phone_call import PhoneCall, PhoneCallStatus
+from .phone_number import PhoneNumber
+from .phone_provider_credential import PhoneProviderCredential
 from .platform_settings import PlatformSettings
 from .project import Project, ProjectStatus
 from .project_agent import ProjectAgent
@@ -115,6 +118,7 @@ from .tenant import (
     TenantStatus,
     TenantType,
 )
+from .tenant_portal import TenantPortal
 from .tenant_subscription import BillingCycle, SubscriptionStatus, TenantSubscription
 from .test_result import MetricType, PercentileType, TestResult
 from .test_run import TestRun, TestRunStatus
@@ -351,4 +355,6 @@ __all__ = [
     "MonitoringProvider",
     # SCIM models
     "SCIMToken",
+    # Portal models
+    "TenantPortal",
 ]

@@ -7,12 +7,14 @@ Handles both custom domains and platform subdomains.
 
 import logging
 from typing import Any
+from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.agent import Agent
 from src.models.agent_domain import AgentDomain
+from src.models.tenant_portal import TenantPortal
 
 logger = logging.getLogger(__name__)
 
@@ -295,6 +297,44 @@ class DomainResolver:
             "meta_description": "Get instant help from our AI-powered assistant",
             "meta_keywords": "",
         }
+
+    async def resolve_portal_from_domain(self, domain: str) -> TenantPortal | None:
+        """
+        Resolve a TenantPortal by custom domain (Host header).
+
+        Allows portal endpoints to work via custom domain without a slug in the URL.
+        Returns None if the domain is not mapped to any active portal.
+
+        Args:
+            domain: The incoming hostname (e.g. 'ai.acmecorp.com')
+
+        Returns:
+            TenantPortal if found and enabled, None otherwise
+        """
+        try:
+            result = await self.db.execute(
+                select(TenantPortal).where(
+                    TenantPortal.portal_domain == domain,
+                    TenantPortal.portal_enabled.is_(True),
+                )
+            )
+            portal = result.scalar_one_or_none()
+            if portal:
+                logger.info(f"Resolved portal domain {domain} to tenant {portal.tenant_id}")
+            return portal
+        except Exception as e:
+            logger.error(f"Error resolving portal domain {domain}: {e}")
+            return None
+
+    async def resolve_portal_tenant_id(self, domain: str) -> UUID | None:
+        """
+        Return the tenant_id for a given portal custom domain, or None.
+
+        Convenience wrapper used by middleware to inject tenant context
+        for custom-domain portal requests.
+        """
+        portal = await self.resolve_portal_from_domain(domain)
+        return portal.tenant_id if portal else None
 
     async def is_domain_available(self, domain: str) -> bool:
         """

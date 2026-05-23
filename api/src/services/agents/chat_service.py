@@ -33,7 +33,12 @@ class ChatService:
     """Service for chat operations."""
 
     @staticmethod
-    async def save_user_message(conversation_id: uuid.UUID, message: str, db: AsyncSession) -> Message | None:
+    async def save_user_message(
+        conversation_id: uuid.UUID,
+        message: str,
+        db: AsyncSession,
+        attachments: list[dict[str, Any]] | None = None,
+    ) -> Message | None:
         """
         Save user message to conversation.
 
@@ -58,6 +63,7 @@ class ChatService:
                 role=MessageRole.USER,
                 content=message,
                 message_metadata={},
+                attachments=attachments,
                 status=MessageStatus.COMPLETED,
             )
 
@@ -86,6 +92,7 @@ class ChatService:
         diagrams: list[dict[str, Any]] | None = None,
         infographics: list[dict[str, Any]] | None = None,
         generated_images: list[dict[str, Any]] | None = None,
+        forms: list[dict[str, Any]] | None = None,
         fleet_cards: list[dict[str, Any]] | None = None,
         workflow_type: str | None = None,
         execution_log: list[dict[str, Any]] | None = None,
@@ -126,6 +133,7 @@ class ChatService:
                 diagrams=diagrams,
                 infographics=infographics,
                 generated_images=generated_images,
+                forms=forms,
                 fleet_cards=fleet_cards,
                 workflow_type=workflow_type,
                 execution_log=execution_log,

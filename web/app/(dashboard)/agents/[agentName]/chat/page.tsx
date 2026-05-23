@@ -9,7 +9,7 @@ import {
   ChatSidebar,
   ShareModal,
 } from '@/components/chat/components'
-import { Message, Agent, Source, Person, NewsItem, Attachment } from '@/components/chat/types'
+import { Message, Agent, Source, Person, NewsItem, Attachment, FormDefinition } from '@/components/chat/types'
 import { apiClient } from '@/lib/api/client'
 import { getLensOverview, type LensOverviewResponse } from '@/lib/api/agent-lens'
 import { useAgentLLMConfigs } from '@/hooks/useAgentLLMConfigs'
@@ -347,7 +347,7 @@ export default function AdvancedChatPage() {
     if (skipLoadMessagesRef.current) {
       skipLoadMessagesRef.current = false
     }
-  }, [currentConversation?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentConversation?.id])  
 
   // When streaming ends, reload any conversation whose load was deferred
   useEffect(() => {
@@ -356,7 +356,7 @@ export default function AdvancedChatPage() {
       pendingLoadConvIdRef.current = null
       loadConversationMessages(convId)
     }
-  }, [isStreaming]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isStreaming])  
 
   const loadConversationMessages = async (conversationId: string, preserveEphemeral = false) => {
     // Don't load if we're streaming — it would overwrite in-progress messages.
@@ -373,6 +373,7 @@ export default function AdvancedChatPage() {
             role: msg.role.toLowerCase(), // Convert "USER" -> "user", "ASSISTANT" -> "assistant"
             content: msg.content,
             timestamp: new Date(msg.created_at),
+            attachments: msg.attachments || [],
             sources: msg.metadata?.sources || [],
             metadata: msg.metadata || {},
           }))
@@ -396,7 +397,7 @@ export default function AdvancedChatPage() {
               newMsg.id = existing.id
 
               if (newMsg.role !== 'assistant' || existing.role !== 'assistant') return
-              const { fleet_cards, charts, diagrams, infographics, vehicle_maps, generated_images } = existing.metadata || {}
+              const { fleet_cards, charts, diagrams, infographics, vehicle_maps, generated_images, forms } = existing.metadata || {}
               newMsg.metadata = {
                 ...newMsg.metadata,
                 ...(fleet_cards?.length && { fleet_cards }),
@@ -405,6 +406,7 @@ export default function AdvancedChatPage() {
                 ...(infographics?.length && { infographics }),
                 ...(vehicle_maps?.length && { vehicle_maps }),
                 ...(generated_images?.length && { generated_images }),
+                ...(forms?.length && { forms }),
               }
             })
           }
@@ -723,6 +725,22 @@ export default function AdvancedChatPage() {
             }
             return newMessages
           })
+        } else if (event.type === 'form' && (event as any).form) {
+          setMessages((prev) => {
+            const newMessages = [...prev]
+            const lastIndex = newMessages.length - 1
+            if (lastIndex >= 0 && newMessages[lastIndex].role === 'assistant') {
+              const currentMetadata = newMessages[lastIndex].metadata || {}
+              newMessages[lastIndex] = {
+                ...newMessages[lastIndex],
+                metadata: {
+                  ...currentMetadata,
+                  forms: [...(currentMetadata.forms || []), (event as any).form as FormDefinition],
+                },
+              }
+            }
+            return newMessages
+          })
         } else if (event.type === 'done') {
           setThinkingStatus('')
           responseSources = event.sources || []
@@ -808,6 +826,25 @@ export default function AdvancedChatPage() {
     }
   }
 
+  const handleFormSubmit = async (
+    form: FormDefinition,
+    answers: Record<string, unknown>,
+    attachments?: Attachment[],
+  ) => {
+    const submissionPayload = {
+      type: 'form_submission',
+      form_id: form.form_id,
+      title: form.title,
+      answers,
+      submitted_at: new Date().toISOString(),
+    }
+
+    await handleSend(
+      `Form submission for "${form.title}":\n${JSON.stringify(submissionPayload, null, 2)}`,
+      attachments,
+    )
+  }
+
   const handleCopyMessage = async (content: string) => {
     try {
       await navigator.clipboard.writeText(content)
@@ -846,7 +883,7 @@ export default function AdvancedChatPage() {
     switch (widget.type) {
       case 'profile':
         return (
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+          <div className="bg-white rounded-xl p-4 border border-[#ece2d6]">
             <div className="flex flex-col items-center text-center">
               <div 
                 className="w-24 h-24 rounded-full mb-4 flex items-center justify-center text-white text-xl sm:text-3xl font-bold shadow-lg"
@@ -869,7 +906,7 @@ export default function AdvancedChatPage() {
       
       case 'social':
         return (
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+          <div className="bg-white rounded-xl p-4 border border-[#ece2d6]">
             <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -906,7 +943,7 @@ export default function AdvancedChatPage() {
       
       case 'resume':
         return (
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+          <div className="bg-white rounded-xl p-4 border border-[#ece2d6]">
             <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -929,7 +966,7 @@ export default function AdvancedChatPage() {
       
       case 'about':
         return (
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+          <div className="bg-white rounded-xl p-4 border border-[#ece2d6]">
             <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1030,13 +1067,13 @@ export default function AdvancedChatPage() {
       
       case 'stats':
         return (
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-            <h3 className="text-sm font-bold text-gray-900 mb-4">{widget.title || 'Stats'}</h3>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="bg-white rounded-xl p-4 border border-[#ece2d6]">
+            <h3 className="text-sm font-bold text-gray-900 mb-3">{widget.title || 'Stats'}</h3>
+            <div className="grid grid-cols-2 gap-2">
               {widget.content?.items?.map((stat: any, idx: number) => (
-                <div key={idx} className="text-center p-3 rounded-xl bg-gray-50">
-                  <p className="text-2xl font-bold" style={{ color: primaryColor }}>{stat.value}</p>
-                  <p className="text-xs text-gray-600 mt-1">{stat.label}</p>
+                <div key={idx} className="text-center p-2.5 rounded-lg bg-[#faf5f0]">
+                  <p className="text-lg font-bold truncate" style={{ color: primaryColor }}>{stat.value}</p>
+                  <p className="text-xs text-gray-500 mt-0.5 leading-tight">{stat.label}</p>
                 </div>
               ))}
             </div>
@@ -1045,7 +1082,7 @@ export default function AdvancedChatPage() {
       
       case 'links':
         return (
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+          <div className="bg-white rounded-xl p-4 border border-[#ece2d6]">
             <h3 className="text-sm font-bold text-gray-900 mb-4">{widget.title || 'Quick Links'}</h3>
             <div className="space-y-2">
               {widget.content?.items?.map((link: any, idx: number) => (
@@ -1352,9 +1389,13 @@ export default function AdvancedChatPage() {
                   suggestionPrompts={agent?.suggestion_prompts || []}
                   onSuggestionClick={(prompt) => handleSend(prompt)}
                   onActionClick={(text) => handleSend(text)}
+                  conversationId={currentConversation?.id}
+                  onFormSubmit={handleFormSubmit}
+                  formSubmissionDisabled={isStreaming}
                   chatConfig={chatConfig}
                   agentAvatar={agent?.avatar}
                   userAvatar={user?.avatar}
+                  userName={user?.name}
                   agentName={agent?.agent_name}
                 />
               </div>
@@ -1378,7 +1419,7 @@ export default function AdvancedChatPage() {
 
           {/* Right Sidebar - Widgets (hidden on mobile) */}
           {showSidebar && rightWidgets.length > 0 && (
-            <div className="hidden w-72 space-y-3 overflow-y-auto border-l border-[#ece2d6] bg-[rgba(255,255,255,0.82)] p-3 shadow-sm backdrop-blur lg:block">
+            <div className="hidden w-72 flex-shrink-0 space-y-3 overflow-y-auto border-l border-[#ece2d6] bg-[#faf8f5] p-3 lg:block">
               {rightWidgets.map((widget, idx) => (
                 <div key={idx}>{renderWidget(widget)}</div>
               ))}
@@ -1391,6 +1432,9 @@ export default function AdvancedChatPage() {
     {shareConvId && (
       <ShareModal
         conversationId={shareConvId}
+        messages={messages}
+        conversationName={currentConversation?.name}
+        agentName={agent?.agent_name}
         onClose={() => setShareConvId(null)}
       />
     )}

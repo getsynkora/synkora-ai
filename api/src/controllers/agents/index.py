@@ -697,6 +697,7 @@ async def list_agents(
                     "sub_agents_count": sub_agent_count_map.get(agent_id_str, 0),
                     "sub_agents": sub_agents_map.get(agent_id_str, []),
                     "is_public": db_agent.is_public,
+                    "portal_visibility": db_agent.portal_visibility or "hidden",
                     "category": db_agent.category,
                     "tags": db_agent.tags or [],
                     "is_sub_agent": is_sub_agent,
@@ -908,6 +909,7 @@ async def get_agent(
                 "suggestion_prompts": db_agent.suggestion_prompts or [],
                 "status": db_agent.status,
                 "is_public": db_agent.is_public or False,
+                "portal_visibility": db_agent.portal_visibility or "hidden",
                 "allow_subscriptions": db_agent.allow_subscriptions or False,
                 "category": db_agent.category,
                 "tags": db_agent.tags or [],
@@ -1132,6 +1134,8 @@ async def update_agent(
             db_agent.status = request.status
         if request.is_public is not None:
             db_agent.is_public = request.is_public
+        if request.portal_visibility is not None:
+            db_agent.portal_visibility = request.portal_visibility
         if request.category is not None:
             db_agent.category = request.category
         if request.tags is not None:

@@ -179,6 +179,22 @@ const PROVIDER_CONFIG: Record<string, {
     description: 'Secure credential & secret management',
     setupUrl: 'https://developer.1password.com/docs/service-accounts/',
   },
+  mailisk: {
+    name: 'Mailisk',
+    icon: (
+      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+        <rect width="24" height="24" rx="6" fill="#111827" />
+        <path d="M5 8.5A1.5 1.5 0 0 1 6.5 7h11A1.5 1.5 0 0 1 19 8.5v7A1.5 1.5 0 0 1 17.5 17h-11A1.5 1.5 0 0 1 5 15.5v-7Z" stroke="#F9FAFB" strokeWidth="1.5"/>
+        <path d="m6 8 6 4.5L18 8" stroke="#F97316" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M8 19h8" stroke="#F9FAFB" strokeWidth="1.5" strokeLinecap="round"/>
+      </svg>
+    ),
+    color: 'text-orange-700',
+    bgColor: 'bg-orange-50',
+    borderColor: 'border-orange-200',
+    description: 'Disposable inboxes for automated signup and OTP verification tests',
+    setupUrl: 'https://docs.mailisk.com/',
+  },
   jira: {
     name: 'Jira',
     icon: (

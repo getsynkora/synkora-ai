@@ -307,6 +307,14 @@ const TOOL_GROUPS: ToolGroup[] = [
     expanded: false
   },
   {
+    id: 'mailisk',
+    name: 'Mailisk Inbox',
+    description: 'Disposable inboxes for signup flows, OTP extraction, and magic-link verification',
+    icon: Mail,
+    tools: [],
+    expanded: false
+  },
+  {
     id: 'google_calendar',
     name: 'Google Calendar Tools',
     description: 'Manage calendar events and schedules',
@@ -604,7 +612,7 @@ export default function AgentToolsPage() {
 
   const loadAllOAuthApps = async () => {
     try {
-      const providers = ['github', 'gitlab', 'SLACK', 'gmail', 'zoom', 'google_calendar', 'google_drive', 'clickup', 'jira', 'twitter', 'linkedin', 'recall', 'newsapi', 'micromobility', 'openweather', 'predicthq', 'ticketmaster', 'mapbox'];
+      const providers = ['github', 'gitlab', 'SLACK', 'gmail', 'mailisk', 'zoom', 'google_calendar', 'google_drive', 'clickup', 'jira', 'twitter', 'linkedin', 'recall', 'newsapi', 'micromobility', 'openweather', 'predicthq', 'ticketmaster', 'mapbox'];
       const allApps: any[] = [];
       
       for (const provider of providers) {
@@ -665,7 +673,7 @@ export default function AgentToolsPage() {
 
   const getAuthMethodForProvider = (provider: string) => {
     // Providers that only support API tokens (no OAuth flow)
-    const apiTokenOnlyProviders = ['recall', 'TELEGRAM', 'onepassword', 'newsapi', 'micromobility', 'openweather', 'predicthq', 'ticketmaster', 'mapbox'];
+    const apiTokenOnlyProviders = ['recall', 'TELEGRAM', 'onepassword', 'mailisk', 'newsapi', 'micromobility', 'openweather', 'predicthq', 'ticketmaster', 'mapbox'];
     if (apiTokenOnlyProviders.includes(provider.toLowerCase()) ||
         apiTokenOnlyProviders.includes(provider)) {
       return 'api_token';
@@ -693,7 +701,7 @@ export default function AgentToolsPage() {
       const app = providerApps[0]; // Use first available app
 
       // Providers that only support API tokens (no OAuth flow)
-      const apiTokenOnlyProviders = ['recall', 'TELEGRAM', 'onepassword', 'newsapi', 'micromobility', 'openweather', 'predicthq', 'ticketmaster', 'mapbox'];
+      const apiTokenOnlyProviders = ['recall', 'TELEGRAM', 'onepassword', 'mailisk', 'newsapi', 'micromobility', 'openweather', 'predicthq', 'ticketmaster', 'mapbox'];
       const isApiTokenOnly = apiTokenOnlyProviders.includes(provider.toLowerCase()) ||
                              apiTokenOnlyProviders.includes(provider);
 
@@ -784,6 +792,8 @@ export default function AgentToolsPage() {
         groupId = 'google_drive';
       } else if (toolName.includes('gmail')) {
         groupId = 'gmail';
+      } else if (toolName.startsWith('internal_mailisk_') || toolName.includes('mailisk')) {
+        groupId = 'mailisk';
       } else if (toolName.includes('twitter')) {
         groupId = 'twitter';
       } else if (toolName.includes('linkedin')) {
@@ -1165,6 +1175,22 @@ export default function AgentToolsPage() {
           ];
         }
 
+        // Add integration selector for all Mailisk inbox tools
+        if (tool.name.includes('mailisk')) {
+          baseTool.configurable = true;
+          baseTool.oauthProvider = 'mailisk';
+          baseTool.requiredFields = [
+            {
+              key: 'oauth_app_id',
+              label: 'Mailisk Integration',
+              description: 'Select a configured Mailisk integration for inbox-based signup and OTP flows',
+              placeholder: 'Select Mailisk integration',
+              type: 'select',
+              options: []
+            }
+          ];
+        }
+
         // Add OAuth selector for ALL Twitter tools
         if (tool.name.includes('twitter') && tool.name.startsWith('internal_')) {
           baseTool.configurable = true;
@@ -1266,6 +1292,7 @@ export default function AgentToolsPage() {
     if (name.includes('twitter')) return '🐦';
     if (name.includes('linkedin')) return '💼';
     if (name.includes('gmail')) return '✉️';
+    if (name.includes('mailisk')) return '📬';
     if (name === 'internal_send_email' || name === 'internal_send_bulk_emails' || name === 'internal_test_email_connection') return '📧';
     if (name.startsWith('internal_google_sheets_')) return '📊';
     if (name.startsWith('internal_google_docs_')) return '📝';
@@ -1792,6 +1819,7 @@ export default function AgentToolsPage() {
                 if (group.id === 'clickup') return 'clickup';
                 if (group.id === 'jira') return 'jira';
                 if (group.id === 'gmail') return 'gmail';
+                if (group.id === 'mailisk') return 'mailisk';
                 if (group.id === 'twitter') return 'twitter';
                 if (group.id === 'linkedin') return 'linkedin';
                 if (group.id === 'recall') return 'recall';

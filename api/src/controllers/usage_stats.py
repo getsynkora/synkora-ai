@@ -94,7 +94,7 @@ async def get_usage_stats(
                 "team_members": _pct(team_members.get("current", 0), team_members.get("limit")),
                 "api_calls": 0.0,
             },
-            credit_balance=credit_balance,
+            credit_balance=credit_balance.available_credits if credit_balance else None,
         )
 
     except Exception as e:

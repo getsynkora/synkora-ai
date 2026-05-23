@@ -27,6 +27,7 @@ from .infographic_tools_registry import register_infographic_tools
 from .jira_tools_registry import register_jira_tools
 from .kb_ingest_tools_registry import register_kb_ingest_tools
 from .linkedin_tools_registry import register_linkedin_tools
+from .mailisk_tools_registry import register_mailisk_tools
 from .mapbox_tools_registry import register_mapbox_tools
 from .micromobility_event_tools_registry import register_micromobility_event_tools
 from .micromobility_intelligence_tools_registry import register_micromobility_intelligence_tools
@@ -69,6 +70,7 @@ __all__ = [
     "register_youtube_tools",
     "register_twitter_tools",
     "register_linkedin_tools",
+    "register_mailisk_tools",
     "register_hackernews_tools",
     "register_gitlab_tools",
     "register_recall_tools",

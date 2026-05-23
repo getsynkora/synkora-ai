@@ -191,16 +191,17 @@ export const CAPABILITIES: Capability[] = [
   {
     id: 'email',
     name: 'Email',
-    description: 'Send, read, and search emails via Gmail',
+    description: 'Send email, read inboxes, and handle OTP or magic-link flows via Gmail or Mailisk',
     icon: '✉️',
     toolPatterns: [
       'internal_email_*',
       'internal_gmail_*',
+      'internal_mailisk_*',
       'internal_send_email',
       'internal_read_email*',
       'internal_search_email*'
     ],
-    requiresOAuth: ['gmail']
+    requiresOAuth: ['gmail', 'mailisk']
   },
   {
     id: 'meeting-recording',

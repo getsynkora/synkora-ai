@@ -58,6 +58,7 @@ export default function EditAgentPage() {
     top_p: 1.0,
     extra_headers: '',
     is_public: false,
+    portal_visibility: 'hidden',
     category: '',
     tags: '',
     human_contact_id: '',
@@ -233,6 +234,7 @@ export default function EditAgentPage() {
         top_p: agent.llm_config.top_p || 1.0,
         extra_headers: extraHeadersStr,
         is_public: agent.is_public || false,
+        portal_visibility: agent.portal_visibility || 'hidden',
         category: agent.category || '',
         tags: agent.tags ? agent.tags.join(', ') : '',
         human_contact_id: agent.human_contact_id || '',
@@ -389,6 +391,7 @@ export default function EditAgentPage() {
         system_prompt: formData.system_prompt,
         suggestion_prompts: suggestionPrompts,
         is_public: formData.is_public,
+        portal_visibility: formData.portal_visibility,
         category: formData.is_public ? formData.category : null,
         tags: formData.is_public && formData.tags
           ? formData.tags.split(',').map((t: string) => t.trim()).filter(Boolean)
@@ -876,6 +879,21 @@ function GeneralTab({ formData, setFormData, isEdit, onAvatarUpload, onAvatarRem
           placeholder="You are a helpful AI assistant with access to various tools and capabilities..."
           required
         />
+      </div>
+
+      {/* Portal Visibility */}
+      <div className="border-t border-gray-200 pt-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-1">Portal Visibility</h3>
+        <p className="text-sm text-gray-500 mb-4">Control how this agent appears on your white-label portal.</p>
+        <select
+          value={formData.portal_visibility}
+          onChange={(e) => setFormData({ ...formData, portal_visibility: e.target.value })}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+        >
+          <option value="hidden">Hidden — not shown on portal public pages</option>
+          <option value="public">Public — visible to anyone on your portal</option>
+          <option value="members_only">Members Only — visible to logged-in portal users</option>
+        </select>
       </div>
 
       {/* Marketplace Settings */}
