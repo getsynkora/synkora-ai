@@ -28,6 +28,7 @@ from src.models.agent_widget import AgentWidget, WidgetAnalytics
 from src.models.conversation import Conversation, ConversationStatus
 from src.models.message import Message
 from src.models.widget_agent_route import WidgetAgentRoute
+from src.controllers.agents.index import convert_s3_uri_to_presigned_url
 from src.services.security.advanced_prompt_scanner import advanced_prompt_scanner
 
 logger = logging.getLogger(__name__)
@@ -275,7 +276,7 @@ async def get_widget_config(http_request: Request, db: AsyncSession = Depends(ge
             "widget_name": widget.widget_name,
             "agent_name": agent.agent_name,
             "agent_description": agent.description or "",
-            "agent_avatar": agent.avatar or "",
+            "agent_avatar": convert_s3_uri_to_presigned_url(agent.avatar or ""),
             "suggestion_prompts": agent.suggestion_prompts or [],
             "theme": {
                 "primary_color": theme.get("chat_primary_color") or theme.get("primaryColor") or "",
