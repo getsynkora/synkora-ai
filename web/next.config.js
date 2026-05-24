@@ -18,7 +18,7 @@ const nextConfig = {
   
   // Environment variables
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || '',
   },
 
   // Image optimization
@@ -49,7 +49,7 @@ const nextConfig = {
   // Headers for security
   async headers() {
     const isDev = process.env.NODE_ENV === 'development'
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || ''
 
     // Build CSP — restrict where scripts can connect to prevent XSS token exfiltration
     const cspDirectives = [
@@ -69,6 +69,9 @@ const nextConfig = {
         apiUrl,
         // WebSocket for real-time features
         apiUrl.replace('http', 'ws'),
+        // Widget API access — always allowed so embedded widget.js works in any environment
+        'https://api.synkora.ai',
+        'wss://api.synkora.ai',
         // Sentry error reporting (self-hosted + cloud)
         'https://*.sentry.io',
         'https://ingest.sentry.io',
@@ -201,7 +204,7 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'}/api/:path*`,
+        destination: `${process.env.NEXT_PUBLIC_API_URL}/api/:path*`,
       },
     ]
   },
