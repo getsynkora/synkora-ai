@@ -517,6 +517,7 @@ jobs:
             --from-literal=SCRAPER_SERVICE_URL="${{ vars.K8S_SCRAPER_SERVICE_URL }}" \
             --from-literal=SANDBOX_SERVICE_URL="${{ vars.K8S_SANDBOX_SERVICE_URL }}" \
             --from-literal=SANDBOX_API_KEY="${{ secrets.K8S_SANDBOX_API_KEY }}" \
+            --from-literal=SCRAPER_API_KEY="${{ secrets.K8S_SCRAPER_API_KEY }}" \
             --from-literal=SECRET_KEY="${{ secrets.K8S_SECRET_KEY }}" \
             --from-literal=JWT_SECRET_KEY="${{ secrets.K8S_JWT_SECRET_KEY }}" \
             --from-literal=ENCRYPTION_KEY="${{ secrets.K8S_ENCRYPTION_KEY }}" \
@@ -590,17 +591,34 @@ jobs:
           MANIFESTS_TMP=$(mktemp -d)
           cp -r k8s/application/. "$MANIFESTS_TMP/"
 
-          # Determine the frontend image tag independently of the API tag
-          if [ "${{ needs.changes.outputs.web }}" = "true" ]; then
-            FRONTEND_IMAGE_TAG="${{ env.ECR_REGISTRY }}/synkora-frontend:${NEW_TAG}"
-          else
-            FRONTEND_IMAGE_TAG=$(kubectl get deployment/synkora-frontend -n ${{ env.NAMESPACE }} \
-              -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null || echo "")
-            FRONTEND_IMAGE_TAG="${FRONTEND_IMAGE_TAG:-${{ env.ECR_REGISTRY }}/synkora-frontend:latest}"
-          fi
+          # Determine per-service image tags — use current cluster image if not rebuilt,
+          # new tag if it was. This prevents manifest apply from clobbering running services.
+          resolve_image() {
+            local changed="$1" registry_image="$2" deployment="$3" container="$4"
+            if [ "$changed" = "true" ]; then
+              echo "${registry_image}:${NEW_TAG}"
+            else
+              local current
+              current=$(kubectl get deployment/"${deployment}" -n ${{ env.NAMESPACE }} \
+                -o jsonpath="{.spec.template.spec.containers[?(@.name==\"${container}\")].image}" \
+                2>/dev/null || echo "")
+              echo "${current:-${registry_image}:latest}"
+            fi
+          }
+
+          FRONTEND_IMAGE_TAG=$(resolve_image "${{ needs.changes.outputs.web }}"     "${{ env.ECR_REGISTRY }}/synkora-frontend" "synkora-frontend" "frontend")
+          ML_IMAGE_TAG=$(resolve_image       "${{ needs.changes.outputs.ml }}"      "${{ env.ECR_REGISTRY }}/synkora-ml"       "synkora-ml"       "ml")
+          SCRAPER_IMAGE_TAG=$(resolve_image  "${{ needs.changes.outputs.scraper }}" "${{ env.ECR_REGISTRY }}/synkora-scraper"  "synkora-scraper"  "scraper")
+          SANDBOX_IMAGE_TAG=$(resolve_image  "${{ needs.changes.outputs.sandbox }}" "${{ env.ECR_REGISTRY }}/synkora-sandbox"  "synkora-sandbox"  "sandbox")
 
           find "$MANIFESTS_TMP" -name "*.yml" -o -name "*.yaml" | xargs sed -i \
             "s|FRONTEND_IMAGE_PLACEHOLDER|${FRONTEND_IMAGE_TAG}|g"
+          find "$MANIFESTS_TMP" -name "*.yml" -o -name "*.yaml" | xargs sed -i \
+            "s|ML_IMAGE_PLACEHOLDER|${ML_IMAGE_TAG}|g"
+          find "$MANIFESTS_TMP" -name "*.yml" -o -name "*.yaml" | xargs sed -i \
+            "s|SCRAPER_IMAGE_PLACEHOLDER|${SCRAPER_IMAGE_TAG}|g"
+          find "$MANIFESTS_TMP" -name "*.yml" -o -name "*.yaml" | xargs sed -i \
+            "s|SANDBOX_IMAGE_PLACEHOLDER|${SANDBOX_IMAGE_TAG}|g"
           find "$MANIFESTS_TMP" -name "*.yml" -o -name "*.yaml" | xargs sed -i \
             "s|IMAGE_PLACEHOLDER|${API_IMAGE_TAG}|g"
           find "$MANIFESTS_TMP" -name "*.yml" -o -name "*.yaml" | xargs sed -i \
