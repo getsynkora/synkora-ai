@@ -20,6 +20,7 @@ from sqlalchemy.orm import joinedload
 
 # Import SessionLocal to create independent sessions for streams
 from src.config.settings import get_settings
+from src.controllers.agents.index import convert_s3_uri_to_presigned_url
 from src.core.database import get_async_db
 from src.middleware.auth_middleware import get_current_tenant_id
 from src.middleware.widget_auth import WidgetAuthMiddleware
@@ -28,7 +29,6 @@ from src.models.agent_widget import AgentWidget, WidgetAnalytics
 from src.models.conversation import Conversation, ConversationStatus
 from src.models.message import Message
 from src.models.widget_agent_route import WidgetAgentRoute
-from src.controllers.agents.index import convert_s3_uri_to_presigned_url
 from src.services.security.advanced_prompt_scanner import advanced_prompt_scanner
 
 logger = logging.getLogger(__name__)
