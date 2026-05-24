@@ -61,6 +61,7 @@ WORKDIR /app/api
 # Install runtime dependencies: Node.js (npx for MCP servers), SAML/xmlsec libs
 # Playwright/Chromium now lives in synkora-scraper; those libs removed here.
 RUN apt-get update \
+    && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
         curl \
         postgresql-client \
