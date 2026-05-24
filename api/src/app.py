@@ -4,6 +4,7 @@ FastAPI application factory.
 Creates and configures the FastAPI application instance.
 """
 
+
 import logging
 import os
 from contextlib import asynccontextmanager

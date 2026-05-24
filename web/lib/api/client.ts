@@ -1,6 +1,7 @@
 /**
  * API Client Barrel Export
  *
+
  * This file provides backwards-compatible exports for the refactored API client.
  * The monolithic APIClient has been split into domain-specific modules.
  *

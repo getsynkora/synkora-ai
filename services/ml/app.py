@@ -1,6 +1,7 @@
 """
 ML Microservice — sentence-transformers + FAISS
 
+
 Endpoints:
   POST /v1/embed              - generate text embeddings
   POST /v1/rerank             - cross-encoder reranking

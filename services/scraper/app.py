@@ -1,6 +1,7 @@
 """
 Scraper Microservice — Playwright browser automation + crawl4ai
 
+
 Endpoints:
   POST /v1/scrape/google-play          - scrape Google Play reviews
   POST /v1/scrape/apple                - scrape Apple App Store reviews
