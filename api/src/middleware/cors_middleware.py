@@ -122,8 +122,15 @@ class DynamicCORSMiddleware:
         Returns:
             Preflight response with CORS headers
         """
-        # Check if origin is allowed
-        allowed_origin = await self._get_allowed_origin(request, origin) if origin else None
+        # Widget preflights don't carry the API key value — the browser only declares
+        # it intends to send X-Widget-API-Key via Access-Control-Request-Headers.
+        # Allow the preflight from any origin; the real API key validation happens
+        # on the subsequent actual request.
+        requested_headers = request.headers.get("access-control-request-headers", "")
+        if origin and "x-widget-api-key" in requested_headers.lower():
+            allowed_origin = origin
+        else:
+            allowed_origin = await self._get_allowed_origin(request, origin) if origin else None
 
         if not allowed_origin:
             # Origin not allowed
