@@ -182,6 +182,10 @@ const nextConfig = {
             value: 'Content-Type',
           },
           {
+            key: 'Cross-Origin-Resource-Policy',
+            value: 'cross-origin',
+          },
+          {
             key: 'Cache-Control',
             // No caching in development so changes are instant.
             // In production, bump the ?v= query param on deploy to bust CDN cache.
