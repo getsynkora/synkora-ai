@@ -1,6 +1,7 @@
 """
 synkora-sandbox — secure code execution microservice.
 
+
 All agents share this service. Each agent gets an isolated workspace directory:
     /workspaces/{tenant_id}/{agent_id}/
 
