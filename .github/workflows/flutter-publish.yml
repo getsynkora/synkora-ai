@@ -33,7 +33,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
       - name: Set up Flutter
-        uses: subosito/flutter-action@e938fdf56512cc96ef2f93b5c07b5571f23ce0ad  # v2.18.0
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2  # v2
         with:
           flutter-version: "3.22.x"
           channel: stable

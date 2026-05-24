@@ -98,13 +98,13 @@ jobs:
           echo "$SERVICE_ACCOUNT_JSON" > /tmp/svc.json
 
           # Upload new zip
-          npx chrome-webstore-upload-cli@4 upload \
+          npx chrome-webstore-upload-cli@3 upload \
             --source "extension/${{ steps.zip.outputs.path }}" \
             --extension-id "$EXTENSION_ID" \
             --service-account-credentials /tmp/svc.json
 
           # Publish to store
-          npx chrome-webstore-upload-cli@4 publish \
+          npx chrome-webstore-upload-cli@3 publish \
             --extension-id "$EXTENSION_ID" \
             --service-account-credentials /tmp/svc.json
 
