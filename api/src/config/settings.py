@@ -2,7 +2,7 @@
 Application configuration settings.
 
 This module provides a centralized configuration management system using Pydantic Settings.
-All configuration values are loaded from environment variables with validation.
+All configuration values are loaded from environment variables with validation and defaults.
 """
 
 from functools import lru_cache
