@@ -121,6 +121,7 @@ async def list_data_sources(config: dict[str, Any] | None = None) -> dict[str, A
         # --- System 1: database_connections table (UUID IDs) ---
         try:
             from uuid import UUID as StdUUID
+
             from src.models.database_connection import DatabaseConnection, DatabaseConnectionType
 
             _db_type_to_query_tool = {
