@@ -111,8 +111,16 @@ async def list_data_sources(config: dict[str, Any] | None = None) -> dict[str, A
 
         sources: list[dict[str, Any]] = []
 
+        # Collect allowed connection IDs from runtime context (set per-agent)
+        allowed_connection_ids: list[str] | None = None
+        if runtime_context is not None:
+            allowed = getattr(runtime_context, "allowed_database_connections", None)
+            if allowed:
+                allowed_connection_ids = [str(c) for c in allowed]
+
         # --- System 1: database_connections table (UUID IDs) ---
         try:
+            from uuid import UUID as StdUUID
             from src.models.database_connection import DatabaseConnection, DatabaseConnectionType
 
             _db_type_to_query_tool = {
@@ -121,13 +129,20 @@ async def list_data_sources(config: dict[str, Any] | None = None) -> dict[str, A
                 DatabaseConnectionType.DOCKER: "query_docker_logs",
             }
             analysis_db_types = set(_db_type_to_query_tool.keys())
+            filters = [
+                DatabaseConnection.tenant_id == tenant_id,
+                DatabaseConnection.status == "active",
+                DatabaseConnection.database_type.in_([t.value for t in analysis_db_types]),
+            ]
+            if allowed_connection_ids:
+                try:
+                    uuid_list = [StdUUID(c) for c in allowed_connection_ids]
+                    filters.append(DatabaseConnection.id.in_(uuid_list))
+                except (ValueError, AttributeError):
+                    pass  # malformed IDs — skip filter, log nothing sensitive
             db_stmt = (
                 select(DatabaseConnection)
-                .where(
-                    DatabaseConnection.tenant_id == tenant_id,
-                    DatabaseConnection.status == "active",
-                    DatabaseConnection.database_type.in_([t.value for t in analysis_db_types]),
-                )
+                .where(*filters)
                 .order_by(DatabaseConnection.database_type, DatabaseConnection.name)
             )
             db_result = await db_session.execute(db_stmt)

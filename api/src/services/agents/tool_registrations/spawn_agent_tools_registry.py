@@ -41,7 +41,7 @@ def register_spawn_agent_tools(registry):
                 result = await db.execute(select(Agent).filter(Agent.id == runtime_context.agent_id))
                 agent = result.scalar_one_or_none()
                 if agent:
-                    parent_agent_name = agent.agent_name
+                    parent_agent_name = agent.slug
             except Exception as e:
                 logger.warning(f"Could not load parent agent: {e}")
 
@@ -74,14 +74,17 @@ def register_spawn_agent_tools(registry):
 
     registry.register_tool(
         name="spawn_agent",
-        description="""Spawn a LOCAL sub-agent (same server, Celery worker) to handle a task in parallel.
+        description="""Spawn a LOCAL sub-agent to handle a task. Multiple spawns in the same iteration run concurrently.
 
-ASYNC by default when run_in_background=true: returns a task_id immediately — the result is NOT available yet.
-You MUST poll with check_task(task_id) until status='completed' to get the result.
+DEFAULT (run_in_background=false): runs synchronously — blocks until complete and returns the result directly.
+Use this for almost everything. Multiple synchronous spawns run in PARALLEL automatically.
 
-Use for fan-out / parallel work on the SAME Synkora instance:
-- Parallelise multiple independent research or analysis sub-tasks
-- Run a long task without blocking other work
+BACKGROUND (run_in_background=true): only use when a task will take longer than 5 minutes.
+Returns a task_id — use check_task(task_id) to poll for the result later.
+
+Use for fan-out / parallel work:
+- Analyse multiple services or data sources in parallel
+- Run independent sub-tasks concurrently
 
 Do NOT use for calling a remote agent at an external URL — use call_remote_agent instead.""",
         parameters={
@@ -93,7 +96,7 @@ Do NOT use for calling a remote agent at an external URL — use call_remote_age
                 },
                 "run_in_background": {
                     "type": "boolean",
-                    "description": "If true, task runs asynchronously via Celery and returns a task_id. Use check_task to get results later.",
+                    "description": "Default false (synchronous, result returned directly). Set true ONLY for tasks longer than 5 minutes.",
                     "default": False,
                 },
             },

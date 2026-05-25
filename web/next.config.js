@@ -16,11 +16,6 @@ const nextConfig = {
   // Transpile ESM-only packages
   transpilePackages: ['remark-gfm', 'chart.js', 'react-chartjs-2', 'mermaid'],
   
-  // Environment variables
-  env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || '',
-  },
-
   // Image optimization
   images: {
     remotePatterns: [
@@ -201,10 +196,12 @@ const nextConfig = {
 
   // Rewrites for API proxy in development
   async rewrites() {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL
+    if (!apiUrl) return []
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL}/api/:path*`,
+        destination: `${apiUrl}/api/:path*`,
       },
     ]
   },
