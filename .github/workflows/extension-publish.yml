@@ -93,25 +93,16 @@ jobs:
         if: ${{ startsWith(github.ref, 'refs/tags/extension/v') || inputs.dry_run == 'false' }}
         env:
           EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
-          PUBLISHER_ID: ${{ secrets.CHROME_PUBLISHER_ID }}
-          SERVICE_ACCOUNT_JSON: ${{ secrets.CHROME_SERVICE_ACCOUNT_JSON }}
+          CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
         run: |
-          echo "$SERVICE_ACCOUNT_JSON" > /tmp/svc.json
-
-          # Upload new zip
           npx chrome-webstore-upload-cli@4 upload \
             --source "extension/${{ steps.zip.outputs.path }}" \
-            --extension-id "$EXTENSION_ID" \
-            --publisher-id "$PUBLISHER_ID" \
-            --service-account-credentials /tmp/svc.json
+            --extension-id "$EXTENSION_ID"
 
-          # Publish to store
           npx chrome-webstore-upload-cli@4 publish \
-            --extension-id "$EXTENSION_ID" \
-            --publisher-id "$PUBLISHER_ID" \
-            --service-account-credentials /tmp/svc.json
-
-          rm -f /tmp/svc.json
+            --extension-id "$EXTENSION_ID"
 
       - name: Summary
         run: |
