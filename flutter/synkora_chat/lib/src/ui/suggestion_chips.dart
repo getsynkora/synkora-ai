@@ -65,9 +65,7 @@ class _ChipCard extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: const Color(0xFFFFFAF1),
-          border: Border.all(
-            color: primaryColor.withValues(alpha: 0.18),
-          ),
+          border: Border.all(color: primaryColor.withValues(alpha: 0.18)),
           boxShadow: const [
             BoxShadow(
               color: Color(0x12000000),

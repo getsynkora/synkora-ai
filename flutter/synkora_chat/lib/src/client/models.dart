@@ -18,11 +18,11 @@ class SuggestionPrompt {
   });
 
   factory SuggestionPrompt.fromJson(Map<String, dynamic> j) => SuggestionPrompt(
-        title: j['title'] as String? ?? '',
-        description: j['description'] as String? ?? '',
-        icon: j['icon'] as String? ?? '',
-        prompt: j['prompt'] as String? ?? '',
-      );
+    title: j['title'] as String? ?? '',
+    description: j['description'] as String? ?? '',
+    icon: j['icon'] as String? ?? '',
+    prompt: j['prompt'] as String? ?? '',
+  );
 }
 
 class WidgetTheme {
@@ -44,7 +44,10 @@ class WidgetTheme {
     if (hex != null && hex.isNotEmpty) {
       try {
         final cleaned = hex.replaceFirst('#', '');
-        final value = int.parse(cleaned.length == 6 ? 'FF$cleaned' : cleaned, radix: 16);
+        final value = int.parse(
+          cleaned.length == 6 ? 'FF$cleaned' : cleaned,
+          radix: 16,
+        );
         primary = Color(value);
       } catch (_) {}
     }
@@ -57,11 +60,11 @@ class WidgetTheme {
   }
 
   static WidgetTheme get defaults => const WidgetTheme(
-        primaryColor: Color(0xFF79DFBC),
-        welcomeMessage: '',
-        placeholder: 'Type a message...',
-        title: '',
-      );
+    primaryColor: Color(0xFF79DFBC),
+    welcomeMessage: '',
+    placeholder: 'Type a message...',
+    title: '',
+  );
 }
 
 class WidgetConfig {
@@ -82,7 +85,8 @@ class WidgetConfig {
   });
 
   factory WidgetConfig.fromJson(Map<String, dynamic> j) {
-    final prompts = (j['suggestion_prompts'] as List<dynamic>?)
+    final prompts =
+        (j['suggestion_prompts'] as List<dynamic>?)
             ?.map((e) => SuggestionPrompt.fromJson(e as Map<String, dynamic>))
             .toList() ??
         [];
@@ -129,17 +133,13 @@ class ChatMessage {
     this.isStreaming = false,
   });
 
-  ChatMessage copyWith({
-    String? content,
-    bool? isStreaming,
-  }) =>
-      ChatMessage(
-        id: id,
-        role: role,
-        content: content ?? this.content,
-        timestamp: timestamp,
-        isStreaming: isStreaming ?? this.isStreaming,
-      );
+  ChatMessage copyWith({String? content, bool? isStreaming}) => ChatMessage(
+    id: id,
+    role: role,
+    content: content ?? this.content,
+    timestamp: timestamp,
+    isStreaming: isStreaming ?? this.isStreaming,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -186,17 +186,12 @@ class WidgetUser {
   final String? email;
   final String? orgId;
 
-  const WidgetUser({
-    required this.id,
-    this.name,
-    this.email,
-    this.orgId,
-  });
+  const WidgetUser({required this.id, this.name, this.email, this.orgId});
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        if (name != null) 'name': name,
-        if (email != null) 'email': email,
-        if (orgId != null) 'org_id': orgId,
-      };
+    'id': id,
+    if (name != null) 'name': name,
+    if (email != null) 'email': email,
+    if (orgId != null) 'org_id': orgId,
+  };
 }

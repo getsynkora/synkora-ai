@@ -13,19 +13,16 @@ class SynkoraClient {
 
   late final Dio _dio;
 
-  SynkoraClient({
-    required this.widgetKey,
-    required String baseUrl,
-  }) : baseUrl = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl {
+  SynkoraClient({required this.widgetKey, required String baseUrl})
+    : baseUrl = baseUrl.endsWith('/')
+          ? baseUrl.substring(0, baseUrl.length - 1)
+          : baseUrl {
     _dio = Dio(
       BaseOptions(
         baseUrl: this.baseUrl,
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 60),
-        headers: {
-          'X-Widget-API-Key': widgetKey,
-          'Accept': 'application/json',
-        },
+        headers: {'X-Widget-API-Key': widgetKey, 'Accept': 'application/json'},
       ),
     );
   }
@@ -36,7 +33,9 @@ class SynkoraClient {
 
   Future<WidgetConfig> loadConfig() async {
     try {
-      final response = await _dio.get<Map<String, dynamic>>('/api/v1/widgets/config');
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/api/v1/widgets/config',
+      );
       return WidgetConfig.fromJson(response.data!);
     } on DioException catch (e) {
       throw Exception(_describeDioError(e));
@@ -165,8 +164,10 @@ class SynkoraClient {
         );
       case 'done':
         // conversation_id may be top-level or inside metadata
-        final convId = json['conversation_id'] as String? ??
-            (json['metadata'] as Map<String, dynamic>?)?['conversation_id'] as String?;
+        final convId =
+            json['conversation_id'] as String? ??
+            (json['metadata'] as Map<String, dynamic>?)?['conversation_id']
+                as String?;
         return DoneEvent(convId);
       case 'error':
         return ErrorEvent(json['message'] as String? ?? 'Unknown error');
@@ -251,10 +252,16 @@ class SynkoraClient {
 
   ChatMessage _messageFromJson(Map<String, dynamic> j) {
     return ChatMessage(
-      id: j['id'] as String? ?? j['message_id'] as String? ?? DateTime.now().millisecondsSinceEpoch.toString(),
-      role: (j['role'] as String?) == 'user' ? MessageRole.user : MessageRole.assistant,
+      id:
+          j['id'] as String? ??
+          j['message_id'] as String? ??
+          DateTime.now().millisecondsSinceEpoch.toString(),
+      role: (j['role'] as String?) == 'user'
+          ? MessageRole.user
+          : MessageRole.assistant,
       content: j['content'] as String? ?? '',
-      timestamp: DateTime.tryParse(j['created_at'] as String? ?? '') ?? DateTime.now(),
+      timestamp:
+          DateTime.tryParse(j['created_at'] as String? ?? '') ?? DateTime.now(),
     );
   }
 

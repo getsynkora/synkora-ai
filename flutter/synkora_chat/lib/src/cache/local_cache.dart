@@ -13,7 +13,10 @@ class LocalCache {
   // Load
   // ---------------------------------------------------------------------------
 
-  Future<List<ChatMessage>> loadMessages(String widgetKey, {String? convId}) async {
+  Future<List<ChatMessage>> loadMessages(
+    String widgetKey, {
+    String? convId,
+  }) async {
     final query = _db.select(_db.messages)
       ..where((t) => t.widgetKey.equals(widgetKey))
       ..orderBy([(t) => OrderingTerm.asc(t.ts)]);
@@ -30,7 +33,11 @@ class LocalCache {
   // Save / upsert
   // ---------------------------------------------------------------------------
 
-  Future<void> upsertMessages(String widgetKey, List<ChatMessage> messages, {String? convId}) async {
+  Future<void> upsertMessages(
+    String widgetKey,
+    List<ChatMessage> messages, {
+    String? convId,
+  }) async {
     await _db.batch((batch) {
       for (final msg in messages) {
         batch.insert(
@@ -50,8 +57,14 @@ class LocalCache {
     });
   }
 
-  Future<void> upsertMessage(String widgetKey, ChatMessage msg, {String? convId}) async {
-    await _db.into(_db.messages).insertOnConflictUpdate(
+  Future<void> upsertMessage(
+    String widgetKey,
+    ChatMessage msg, {
+    String? convId,
+  }) async {
+    await _db
+        .into(_db.messages)
+        .insertOnConflictUpdate(
           MessagesCompanion(
             id: Value(msg.id),
             widgetKey: Value(widgetKey),
@@ -70,13 +83,15 @@ class LocalCache {
 
   /// Removes messages left in streaming state (app was killed mid-stream).
   Future<void> cleanupIncomplete(String widgetKey) async {
-    await (_db.delete(_db.messages)
-          ..where((t) => t.widgetKey.equals(widgetKey) & t.isStreaming.equals(true)))
+    await (_db.delete(_db.messages)..where(
+          (t) => t.widgetKey.equals(widgetKey) & t.isStreaming.equals(true),
+        ))
         .go();
   }
 
   Future<void> clearMessages(String widgetKey, {String? convId}) async {
-    final query = _db.delete(_db.messages)..where((t) => t.widgetKey.equals(widgetKey));
+    final query = _db.delete(_db.messages)
+      ..where((t) => t.widgetKey.equals(widgetKey));
     if (convId != null) {
       query.where((t) => t.convId.equals(convId));
     }
@@ -88,12 +103,12 @@ class LocalCache {
   // ---------------------------------------------------------------------------
 
   ChatMessage _rowToMessage(Message row) => ChatMessage(
-        id: row.id,
-        role: row.role == 'user' ? MessageRole.user : MessageRole.assistant,
-        content: row.content,
-        timestamp: row.ts,
-        isStreaming: row.isStreaming,
-      );
+    id: row.id,
+    role: row.role == 'user' ? MessageRole.user : MessageRole.assistant,
+    content: row.content,
+    timestamp: row.ts,
+    isStreaming: row.isStreaming,
+  );
 
   Future<void> close() => _db.close();
 }
