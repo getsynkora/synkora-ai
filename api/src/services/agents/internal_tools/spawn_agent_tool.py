@@ -234,6 +234,17 @@ async def internal_list_background_tasks(
         return {"success": False, "error": str(e)}
 
 
+_WORKER_SYSTEM_PROMPT = """You are a task execution agent. Your job is to complete the specific task given to you using your available tools.
+
+Execute the task directly and thoroughly:
+- Use your tools to gather information, perform actions, and complete the work
+- Be specific and detailed in your findings
+- Report clearly what you did and what you found
+- Do NOT spawn sub-agents or delegate — complete the task yourself
+
+When finished, provide a clear summary of what you accomplished."""
+
+
 async def _execute_sub_agent(
     task_description: str,
     parent_agent_name: str | None,
@@ -252,10 +263,11 @@ async def _execute_sub_agent(
     from src.services.agents.chat_service import ChatService
     from src.services.agents.chat_stream_service import ChatStreamService
 
-    # Use provided db or create a new session
-    should_close_db = db is None
-    if db is None:
-        db = get_async_session_factory()()
+    # Always create a fresh session — never reuse the parent's active session.
+    # spawn_agent is called concurrently (asyncio.gather) for parallel sub-agents;
+    # sharing one AsyncSession across concurrent coroutines causes immediate failures.
+    db = get_async_session_factory()()
+    should_close_db = True
 
     try:
         # Sanitize task_description: cap length and wrap in delimiters to prevent
@@ -290,6 +302,8 @@ Complete this task thoroughly and provide your findings. Be comprehensive but co
                 attachments=None,
                 llm_config_id=None,
                 db=db,
+                override_system_prompt=_WORKER_SYSTEM_PROMPT,
+                override_agentic_config={"parallel_tools": True},
             ):
                 # Parse SSE events
                 if sse_event.startswith("data: "):
