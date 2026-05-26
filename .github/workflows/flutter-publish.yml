@@ -62,7 +62,7 @@ jobs:
 
       - name: Dry-run publish (always)
         working-directory: flutter/synkora_chat
-        run: dart pub publish --dry-run --force
+        run: dart pub publish --dry-run --ignore-warnings
 
       # ── pub.dev publish via OIDC ─────────────────────────────────────────
       # No credentials or secrets needed — GitHub's OIDC token is used.
