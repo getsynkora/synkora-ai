@@ -42,7 +42,12 @@ void main() {
         'agent_description': 'A helpful agent',
         'agent_avatar': 'https://example.com/avatar.png',
         'suggestion_prompts': [
-          {'title': 'Help', 'description': 'Get help', 'icon': '🆘', 'prompt': 'I need help'},
+          {
+            'title': 'Help',
+            'description': 'Get help',
+            'icon': '🆘',
+            'prompt': 'I need help',
+          },
         ],
         'theme': {'primary_color': '#FF5733'},
       });
@@ -98,7 +103,12 @@ void main() {
 
   group('WidgetUser.toJson', () {
     test('includes all non-null fields', () {
-      final user = WidgetUser(id: 'u1', name: 'Alice', email: 'alice@test.com', orgId: 'org1');
+      final user = WidgetUser(
+        id: 'u1',
+        name: 'Alice',
+        email: 'alice@test.com',
+        orgId: 'org1',
+      );
       final json = user.toJson();
       expect(json['id'], 'u1');
       expect(json['name'], 'Alice');

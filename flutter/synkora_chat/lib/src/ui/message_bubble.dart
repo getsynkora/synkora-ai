@@ -22,7 +22,8 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final userFg = ThemeData.estimateBrightnessForColor(primaryColor) == Brightness.dark
+    final userFg =
+        ThemeData.estimateBrightnessForColor(primaryColor) == Brightness.dark
         ? Colors.white
         : const Color(0xFF11231D);
 
@@ -30,7 +31,9 @@ class MessageBubble extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
-        mainAxisAlignment: _isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: _isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         children: [
           if (!_isUser) ...[
             _AgentAvatar(avatarUrl: agentAvatarUrl, primaryColor: primaryColor),
@@ -44,28 +47,37 @@ class MessageBubble extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: _isUser ? primaryColor : _warmSurface,
-                border: _isUser ? null : Border.all(color: const Color(0x1A171717)),
+                border: _isUser
+                    ? null
+                    : Border.all(color: const Color(0x1A171717)),
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(18),
                   topRight: const Radius.circular(18),
-                  bottomLeft: _isUser ? const Radius.circular(18) : const Radius.circular(4),
-                  bottomRight: _isUser ? const Radius.circular(4) : const Radius.circular(18),
+                  bottomLeft: _isUser
+                      ? const Radius.circular(18)
+                      : const Radius.circular(4),
+                  bottomRight: _isUser
+                      ? const Radius.circular(4)
+                      : const Radius.circular(18),
                 ),
               ),
               child: message.isStreaming && message.content.isEmpty
                   ? const _TypingDots()
                   : _isUser
-                      ? Text(
-                          message.content,
-                          style: TextStyle(
-                            color: userFg,
-                            fontSize: 15,
-                            height: 1.4,
-                          ),
-                        )
-                      : MarkdownBody(
-                          data: message.content,
-                          styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+                  ? Text(
+                      message.content,
+                      style: TextStyle(
+                        color: userFg,
+                        fontSize: 15,
+                        height: 1.4,
+                      ),
+                    )
+                  : MarkdownBody(
+                      data: message.content,
+                      styleSheet:
+                          MarkdownStyleSheet.fromTheme(
+                            Theme.of(context),
+                          ).copyWith(
                             p: const TextStyle(
                               color: _ink,
                               fontSize: 15,
@@ -81,8 +93,8 @@ class MessageBubble extends StatelessWidget {
                               fontSize: 13,
                             ),
                           ),
-                          shrinkWrap: true,
-                        ),
+                      shrinkWrap: true,
+                    ),
             ),
           ),
           if (_isUser) const SizedBox(width: 4),
@@ -110,7 +122,11 @@ class _AgentAvatar extends StatelessWidget {
     return CircleAvatar(
       radius: 14,
       backgroundColor: primaryColor.withValues(alpha: 0.15),
-      child: Icon(Icons.smart_toy_outlined, size: 16, color: const Color(0xFF171717)),
+      child: Icon(
+        Icons.smart_toy_outlined,
+        size: 16,
+        color: const Color(0xFF171717),
+      ),
     );
   }
 }
@@ -122,14 +138,17 @@ class _TypingDots extends StatefulWidget {
   State<_TypingDots> createState() => _TypingDotsState();
 }
 
-class _TypingDotsState extends State<_TypingDots> with SingleTickerProviderStateMixin {
+class _TypingDotsState extends State<_TypingDots>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))
-      ..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat();
   }
 
   @override
@@ -156,7 +175,9 @@ class _TypingDotsState extends State<_TypingDots> with SingleTickerProviderState
                   width: 7,
                   height: 7,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.5),
                     shape: BoxShape.circle,
                   ),
                 ),

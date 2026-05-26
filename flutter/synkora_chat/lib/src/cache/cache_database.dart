@@ -30,7 +30,8 @@ class Messages extends Table {
 
 @DriftDatabase(tables: [Messages])
 class CacheDatabase extends _$CacheDatabase {
-  CacheDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
+  CacheDatabase([QueryExecutor? executor])
+    : super(executor ?? _openConnection());
 
   @override
   int get schemaVersion => 1;
