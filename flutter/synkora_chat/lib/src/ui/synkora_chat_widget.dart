@@ -91,8 +91,10 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
     } else {
       _ownsController = true;
       _controller = SynkoraChatController(
-        client:
-            SynkoraClient(widgetKey: widget.widgetKey, baseUrl: widget.baseUrl),
+        client: SynkoraClient(
+          widgetKey: widget.widgetKey,
+          baseUrl: widget.baseUrl,
+        ),
         userId: widget.user?.id ?? widget.userId,
         sessionId: widget.sessionId,
         user: widget.user,
@@ -251,7 +253,8 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
       listenable: _controller,
       builder: (context, _) {
         final config = _controller.config;
-        final hasInitError = !_controller.isLoading &&
+        final hasInitError =
+            !_controller.isLoading &&
             config == null &&
             _controller.error != null;
         final hasConversationContent = _controller.hasConversationContent;
@@ -265,7 +268,9 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
             toolbarHeight: 72,
             leading: widget.onClose != null
                 ? IconButton(
-                    icon: const Icon(Icons.close), onPressed: widget.onClose)
+                    icon: const Icon(Icons.close),
+                    onPressed: widget.onClose,
+                  )
                 : null,
             automaticallyImplyLeading: false,
             title: Row(
@@ -297,8 +302,8 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
                         _activeView == _ChatSurfaceView.home
                             ? 'Welcome'
                             : hasConversationContent
-                                ? 'Conversation in progress'
-                                : 'Ready to chat',
+                            ? 'Conversation in progress'
+                            : 'Ready to chat',
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 12,
@@ -379,9 +384,7 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
                           decoration: BoxDecoration(
                             color: const Color(0x17FFFFFF),
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: const Color(0x26FFFFFF),
-                            ),
+                            border: Border.all(color: const Color(0x26FFFFFF)),
                           ),
                           child: const Icon(
                             Icons.more_horiz_rounded,
@@ -406,17 +409,24 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
                         color: const Color(0xFFFFF2EC),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                           child: Row(
                             children: [
-                              const Icon(Icons.error_outline,
-                                  color: Color(0xFFC45F34), size: 16),
+                              const Icon(
+                                Icons.error_outline,
+                                color: Color(0xFFC45F34),
+                                size: 16,
+                              ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
                                   _controller.error!,
                                   style: const TextStyle(
-                                      color: Color(0xFF8B3F1E), fontSize: 13),
+                                    color: Color(0xFF8B3F1E),
+                                    fontSize: 13,
+                                  ),
                                 ),
                               ),
                               TextButton(
@@ -424,7 +434,8 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
                                 style: TextButton.styleFrom(
                                   foregroundColor: _brandInk,
                                   textStyle: const TextStyle(
-                                      fontWeight: FontWeight.w600),
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                                 child: const Text('Retry'),
                               ),
@@ -509,10 +520,7 @@ class _MenuRow extends StatelessWidget {
   final IconData icon;
   final String label;
 
-  const _MenuRow({
-    required this.icon,
-    required this.label,
-  });
+  const _MenuRow({required this.icon, required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -562,8 +570,8 @@ class _HomeScreen extends StatelessWidget {
     final subtitle = parts.length > 1
         ? parts.skip(1).join('\n').trim()
         : (config?.agentDescription.isNotEmpty ?? false)
-            ? config!.agentDescription
-            : 'Start with a suggestion or open the chat to continue the conversation.';
+        ? config!.agentDescription
+        : 'Start with a suggestion or open the chat to continue the conversation.';
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 20),
@@ -640,7 +648,8 @@ class _HomeScreen extends StatelessWidget {
                       foregroundColor: _brandInk,
                       minimumSize: const Size.fromHeight(48),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18)),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
                     ),
                     icon: const Icon(Icons.chat_bubble_outline_rounded),
                     label: const Text('Continue conversation'),
@@ -654,7 +663,8 @@ class _HomeScreen extends StatelessWidget {
                         side: const BorderSide(color: _brandBorder),
                         minimumSize: const Size.fromHeight(44),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(18)),
+                          borderRadius: BorderRadius.circular(18),
+                        ),
                       ),
                       icon: const Icon(Icons.delete_outline_rounded),
                       label: const Text('Start fresh local chat'),
@@ -668,7 +678,8 @@ class _HomeScreen extends StatelessWidget {
                       foregroundColor: _brandInk,
                       minimumSize: const Size.fromHeight(48),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18)),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
                     ),
                     icon: const Icon(Icons.arrow_forward_rounded),
                     label: const Text('Open chat'),
@@ -694,9 +705,7 @@ class _HomeScreen extends StatelessWidget {
 class _ChatEmptyState extends StatelessWidget {
   final VoidCallback onOpenHome;
 
-  const _ChatEmptyState({
-    required this.onOpenHome,
-  });
+  const _ChatEmptyState({required this.onOpenHome});
 
   @override
   Widget build(BuildContext context) {
@@ -718,11 +727,7 @@ class _ChatEmptyState extends StatelessWidget {
             const Text(
               'Open the home screen to start with a suggested prompt or begin a fresh conversation.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: _brandMuted,
-                fontSize: 14,
-                height: 1.5,
-              ),
+              style: TextStyle(color: _brandMuted, fontSize: 14, height: 1.5),
             ),
             const SizedBox(height: 16),
             FilledButton(
@@ -1003,8 +1008,10 @@ class _ConnectionErrorState extends StatelessWidget {
                     color: const Color(0xFFFFF2EC),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Icon(Icons.wifi_off_rounded,
-                      color: Color(0xFFC45F34)),
+                  child: const Icon(
+                    Icons.wifi_off_rounded,
+                    color: Color(0xFFC45F34),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 const Text(
@@ -1050,7 +1057,8 @@ class _ConnectionErrorState extends StatelessWidget {
                     foregroundColor: _brandInk,
                     minimumSize: const Size.fromHeight(48),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18)),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
                   ),
                   child: const Text('Retry connection'),
                 ),
@@ -1117,13 +1125,16 @@ class _InputBar extends StatelessWidget {
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(24),
                     borderSide: BorderSide(
-                        color: primaryColor.withValues(alpha: 0.55),
-                        width: 1.2),
+                      color: primaryColor.withValues(alpha: 0.55),
+                      width: 1.2,
+                    ),
                   ),
                   filled: true,
                   fillColor: _brandPanel,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                 ),
               ),
             ),
@@ -1137,12 +1148,15 @@ class _InputBar extends StatelessWidget {
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: primaryColor),
+                          strokeWidth: 2,
+                          color: primaryColor,
+                        ),
                       )
                     : const Icon(Icons.send_rounded, color: Color(0xFF171717)),
                 style: IconButton.styleFrom(
-                  backgroundColor:
-                      isStreaming ? Colors.transparent : primaryColor,
+                  backgroundColor: isStreaming
+                      ? Colors.transparent
+                      : primaryColor,
                   shape: const CircleBorder(),
                 ),
               ),
@@ -1175,8 +1189,9 @@ class _LoadingSkeletonState extends State<_LoadingSkeleton>
   void initState() {
     super.initState();
     _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1200))
-      ..repeat(reverse: true);
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
     _anim = Tween<double>(begin: 0.3, end: 0.7).animate(_ctrl);
   }
 
@@ -1195,20 +1210,22 @@ class _LoadingSkeletonState extends State<_LoadingSkeleton>
           padding: const EdgeInsets.all(16),
           children: [
             _SkeletonBubble(
-                width: 200,
-                color: _brandSurface.withValues(alpha: _anim.value)),
+              width: 200,
+              color: _brandSurface.withValues(alpha: _anim.value),
+            ),
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerRight,
               child: _SkeletonBubble(
-                  width: 140,
-                  color:
-                      widget.primaryColor.withValues(alpha: _anim.value * 0.3)),
+                width: 140,
+                color: widget.primaryColor.withValues(alpha: _anim.value * 0.3),
+              ),
             ),
             const SizedBox(height: 12),
             _SkeletonBubble(
-                width: 260,
-                color: _brandSurface.withValues(alpha: _anim.value)),
+              width: 260,
+              color: _brandSurface.withValues(alpha: _anim.value),
+            ),
           ],
         );
       },
@@ -1223,11 +1240,11 @@ class _SkeletonBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: width,
-        height: 40,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(18),
-        ),
-      );
+    width: width,
+    height: 40,
+    decoration: BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(18),
+    ),
+  );
 }

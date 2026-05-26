@@ -47,7 +47,8 @@ class SynkoraChatController extends ChangeNotifier {
   String? get conversationId => _conversationId;
   WidgetConfig? get config => _config;
   String? get error => _error;
-  bool get hasConversationContent => _messages.any((m) => m.content.trim().isNotEmpty);
+  bool get hasConversationContent =>
+      _messages.any((m) => m.content.trim().isNotEmpty);
 
   // ---------------------------------------------------------------------------
   // Init: load config + local cache + server history in parallel
@@ -88,8 +89,13 @@ class SynkoraChatController extends ChangeNotifier {
         for (final m in serverMessages) {
           byId[m.id] = m;
         }
-        _messages = byId.values.toList()..sort((a, b) => a.timestamp.compareTo(b.timestamp));
-        await _cache.upsertMessages(_client.widgetKey, _messages, convId: _conversationId);
+        _messages = byId.values.toList()
+          ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
+        await _cache.upsertMessages(
+          _client.widgetKey,
+          _messages,
+          convId: _conversationId,
+        );
       }
     } catch (e) {
       _error = e.toString();
@@ -116,7 +122,11 @@ class SynkoraChatController extends ChangeNotifier {
       timestamp: DateTime.now(),
     );
     _messages = [..._messages, userMsg];
-    await _cache.upsertMessage(_client.widgetKey, userMsg, convId: _conversationId);
+    await _cache.upsertMessage(
+      _client.widgetKey,
+      userMsg,
+      convId: _conversationId,
+    );
 
     // Add streaming placeholder for assistant
     final streamingId = 'streaming_${DateTime.now().millisecondsSinceEpoch}';
@@ -222,7 +232,9 @@ class SynkoraChatController extends ChangeNotifier {
     if (clean.isEmpty) return;
 
     final last = _messages.isNotEmpty ? _messages.last : null;
-    if (last != null && last.role == MessageRole.assistant && last.content == clean) {
+    if (last != null &&
+        last.role == MessageRole.assistant &&
+        last.content == clean) {
       return;
     }
 
