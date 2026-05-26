@@ -153,6 +153,19 @@ const nextConfig = {
           }] : []),
         ],
       },
+      // Extension auth page — Chrome's launchWebAuthFlow loads this in an internal
+      // HTTPS window that enforces X-Frame-Options. Remove the framing restriction
+      // only for this route; all other pages remain protected.
+      {
+        source: '/extension-auth',
+        headers: [
+          { key: 'X-Frame-Options', value: '' },
+          {
+            key: 'Content-Security-Policy',
+            value: cspDirectives.filter(d => !d.startsWith('frame-ancestors')).join('; '),
+          },
+        ],
+      },
       // Public agent landing pages — relax COEP so YouTube/Vimeo iframes work
       {
         source: '/a/:path*',
