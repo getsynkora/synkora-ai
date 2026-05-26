@@ -1,3 +1,9 @@
+## 1.13.3
+
+- Agent Lens support and UI improvements
+- Voice widget integration
+- Performance and stability improvements
+
 ## 1.0.0
 
 - Initial release
