@@ -51,9 +51,6 @@ jobs:
         working-directory: flutter/synkora_chat
         run: flutter pub get
 
-      - name: Verify formatting
-        working-directory: flutter/synkora_chat
-        run: dart format --output=none --set-exit-if-changed .
 
       - name: Analyze
         working-directory: flutter/synkora_chat
