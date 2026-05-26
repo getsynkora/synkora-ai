@@ -51,7 +51,6 @@ jobs:
         working-directory: flutter/synkora_chat
         run: flutter pub get
 
-
       - name: Analyze
         working-directory: flutter/synkora_chat
         run: flutter analyze --fatal-infos
@@ -59,10 +58,6 @@ jobs:
       - name: Run tests
         working-directory: flutter/synkora_chat
         run: flutter test
-
-      - name: Dry-run publish (always)
-        working-directory: flutter/synkora_chat
-        run: dart pub publish --dry-run --ignore-warnings
 
       # ── pub.dev publish via OIDC ─────────────────────────────────────────
       # No credentials or secrets needed — GitHub's OIDC token is used.
