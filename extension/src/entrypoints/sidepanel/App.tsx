@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, LogOut } from 'lucide-react';
 import {
   loadAccessToken, loadSynkoraUrl, storeSynkoraUrl,
-  buildAuthUrl, exchangeCodeForTokens, storeApiUrl,
+  buildAuthUrl, exchangeCodeForTokens, storeApiUrl, clearTokens,
 } from '@/lib/auth';
 import { useExtensionStore } from '@/store/extension';
 import { useAgents } from '@/hooks/useAgents';
@@ -116,6 +116,11 @@ export default function App() {
 
   const selectedAgent = agents.find((a) => a.id === selectedAgentId) ?? null;
 
+  const handleDisconnect = async () => {
+    await clearTokens();
+    setConnected(false);
+  };
+
   if (initializing) {
     return (
       <div className="flex flex-col h-screen bg-brand-canvas items-center justify-center">
@@ -216,13 +221,24 @@ export default function App() {
     <div className="flex flex-col h-screen bg-brand-canvas font-sans">
       {/* Header */}
       <div className="border-b border-brand-line bg-brand-canvas/95 backdrop-blur-sm px-1 pt-1.5 pb-1 flex-shrink-0">
-        <AgentPicker
-          agents={agents}
-          selectedAgentId={selectedAgentId}
-          defaultAgentId={defaultAgentId}
-          onSelect={selectAgent}
-          onSetDefault={setDefaultAgent}
-        />
+        <div className="flex items-center gap-1">
+          <div className="flex-1 min-w-0">
+            <AgentPicker
+              agents={agents}
+              selectedAgentId={selectedAgentId}
+              defaultAgentId={defaultAgentId}
+              onSelect={selectAgent}
+              onSetDefault={setDefaultAgent}
+            />
+          </div>
+          <button
+            onClick={handleDisconnect}
+            title="Disconnect"
+            className="flex-shrink-0 p-2 rounded-xl text-brand-muted hover:text-[#8b3f1e] hover:bg-[#fff2ec] transition-colors mr-1"
+          >
+            <LogOut size={14} />
+          </button>
+        </div>
         <div className="px-3 pb-1.5">
           <ContextBadge pageUrl={pageUrl} contextAvailable={contextAvailable} />
         </div>
