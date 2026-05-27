@@ -62,6 +62,7 @@ class UpdateWidgetRequest(BaseModel):
     is_active: bool | None = Field(None, description="Whether the widget is active")
     identity_verification_required: bool | None = Field(None, description="Require HMAC identity verification")
     enable_agent_routing: bool | None = Field(None, description="Enable org-based agent routing")
+    mobile_allowed: bool | None = Field(None, description="Allow Flutter/mobile SDK requests without Origin header")
 
 
 class WidgetResponse(BaseModel):
@@ -478,6 +479,8 @@ async def update_widget(
             widget.identity_verification_required = request.identity_verification_required
         if request.enable_agent_routing is not None:
             widget.enable_agent_routing = request.enable_agent_routing
+        if request.mobile_allowed is not None:
+            widget.mobile_allowed = request.mobile_allowed
 
         await db.commit()
         await db.refresh(widget)
