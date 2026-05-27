@@ -178,9 +178,14 @@ class DynamicCORSMiddleware:
         if api_key:
             # Widget request - validate against widget's allowed domains
             return await self._validate_widget_origin(api_key, origin)
-        else:
-            # Dashboard request - validate against dashboard origins
-            return self._validate_dashboard_origin(origin)
+
+        # Chrome extensions send origin: chrome-extension://<id>. They enforce
+        # their own security via host_permissions and Bearer tokens — allow them.
+        if origin.startswith("chrome-extension://"):
+            return origin
+
+        # Dashboard request - validate against dashboard origins
+        return self._validate_dashboard_origin(origin)
 
     async def _validate_widget_origin(self, api_key: str, origin: str) -> str | None:
         """

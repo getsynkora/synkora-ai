@@ -124,8 +124,9 @@ export async function streamChat(
   });
 
   if (!resp.ok) {
-    const err = await resp.json().catch(() => ({})) as { detail?: string };
-    throw new Error(err.detail ?? `Chat stream failed: ${resp.status}`);
+    const err = await resp.json().catch(() => ({})) as { detail?: unknown };
+    const detail = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail);
+    throw new Error(detail ?? `Chat stream failed: ${resp.status}`);
   }
 
   if (!resp.body) throw new Error('No response body from chat stream');
