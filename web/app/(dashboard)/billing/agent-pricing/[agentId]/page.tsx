@@ -83,9 +83,9 @@ export default function AgentPricingPage() {
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Earnings</p>
+                <p className="text-sm font-medium text-gray-600">Your Earnings (30d)</p>
                 <p className="mt-2 text-xl sm:text-3xl font-bold text-gray-900">
-                  ${Number(earnings.total_earnings ?? 0).toFixed(2)}
+                  ${Number(earnings.creator_earnings_usd ?? 0).toFixed(2)}
                 </p>
               </div>
               <div className="rounded-full bg-primary-100 p-3">
@@ -97,9 +97,9 @@ export default function AgentPricingPage() {
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">This Month</p>
+                <p className="text-sm font-medium text-gray-600">Total Revenue (30d)</p>
                 <p className="mt-2 text-xl sm:text-3xl font-bold text-gray-900">
-                  ${(earnings.current_period || 0).toFixed(2)}
+                  ${Number(earnings.total_revenue_usd ?? 0).toFixed(2)}
                 </p>
               </div>
               <div className="rounded-full bg-blue-100 p-3">
@@ -111,9 +111,9 @@ export default function AgentPricingPage() {
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Uses</p>
+                <p className="text-sm font-medium text-gray-600">Total Uses (30d)</p>
                 <p className="mt-2 text-xl sm:text-3xl font-bold text-gray-900">
-                  {earnings.total_uses || 0}
+                  {earnings.total_transactions || 0}
                 </p>
               </div>
               <div className="rounded-full bg-purple-100 p-3">

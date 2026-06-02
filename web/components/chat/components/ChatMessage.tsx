@@ -58,11 +58,20 @@ interface ToolStatus {
 
 function sanitizeSvg(svgContent: string): string {
   if (typeof window === 'undefined') return ''
-  return DOMPurify.sanitize(svgContent, {
+  const clean = DOMPurify.sanitize(svgContent, {
     USE_PROFILES: { svg: true, svgFilters: true },
     ADD_TAGS: ['use'],
     FORBID_ATTR: ['xlink:href'],
   })
+  // Keep SVG responsive inside a capped-width chat container.
+  return clean
+    .replace(/<svg([^>]*)>/, (_match, attrs: string) => {
+      const withoutDims = attrs
+        .replace(/\s+width="[^"]*"/g, '')
+        .replace(/\s+height="[^"]*"/g, '')
+        .replace(/\s+style="[^"]*"/g, '')
+      return `<svg${withoutDims} width="100%" style="display:block;max-width:100%;height:auto;margin:0 auto">`
+    })
 }
 
 /**
@@ -825,30 +834,24 @@ export const ChatMessage = memo(function ChatMessage({
 
         {/* Infographics */}
         {message.metadata?.infographics && message.metadata.infographics.length > 0 && (
-          <div className="mt-3 space-y-3">
+          <div className="mt-3 space-y-4">
             {message.metadata.infographics.map((infographic: any, index: number) => (
-              <div key={infographic.id || index} className="rounded-lg overflow-hidden border border-gray-200 bg-gray-900">
-                {infographic.title && (
-                  <div className="px-4 py-2 text-xs font-medium text-gray-400 border-b border-gray-700">
-                    {infographic.title}
-                  </div>
-                )}
+              <div key={infographic.id || index} className="mx-auto w-full max-w-[860px]">
                 {infographic.svg_content ? (
-                  <div
-                    className="w-full overflow-auto"
-                    dangerouslySetInnerHTML={{ __html: sanitizeSvg(infographic.svg_content) }}
-                  />
+                  <div className="overflow-x-auto" dangerouslySetInnerHTML={{ __html: sanitizeSvg(infographic.svg_content) }} />
                 ) : infographic.png_url ? (
                   <img
                     src={infographic.png_url}
                     alt={infographic.title || 'Infographic'}
-                    className="w-full h-auto"
+                    className="block h-auto w-full mx-auto"
+                    loading="lazy"
                   />
                 ) : infographic.svg_url ? (
                   <img
                     src={infographic.svg_url}
                     alt={infographic.title || 'Infographic'}
-                    className="w-full h-auto"
+                    className="block h-auto w-full mx-auto"
+                    loading="lazy"
                   />
                 ) : null}
               </div>

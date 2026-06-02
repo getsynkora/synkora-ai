@@ -1,19 +1,25 @@
-import 'package:flutter/material.dart';
+import 'dart:math' as math;
 
+import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:lottie/lottie.dart';
+
+import '../assets/illustrations/robot_chat.dart';
+import '../assets/illustrations/robot_wave.dart';
 import '../client/models.dart';
 import '../client/synkora_client.dart';
 import '../controller/synkora_chat_controller.dart';
 import 'message_bubble.dart';
 import 'suggestion_chips.dart';
 
-const _brandBg = Color(0xFFF7F2E7);
-const _brandPanel = Color(0xFFFFFAF1);
-const _brandSurface = Color(0xFFF2EBDE);
-const _brandBorder = Color(0x1A171717);
-const _brandInk = Color(0xFF171717);
-const _brandMuted = Color(0xFF6D675F);
+const _brandBg = Color(0xFFF8FAFC);
+const _brandPanel = Color(0xFFFFFFFF);
+const _brandSurface = Color(0xFFF1F5F9);
+const _brandBorder = Color(0x14000000);
+const _brandInk = Color(0xFF0F172A);
+const _brandMuted = Color(0xFF64748B);
 
-enum _ChatSurfaceView { home, chat }
+enum _ChatSurfaceView { home, chat, sessions, preChatForm }
 
 enum _HeaderMenuAction { home, newChat }
 
@@ -56,6 +62,11 @@ class SynkoraChatWidget extends StatefulWidget {
   /// Replace the suggestion chips with a custom empty state widget.
   final Widget? emptyStateWidget;
 
+  /// Called when the user taps a link inside an agent message.
+  /// [href] is the raw URL or deep-link string from the markdown.
+  /// Use this to handle in-app navigation, open a browser, etc.
+  final void Function(String href)? onLinkTap;
+
   const SynkoraChatWidget({
     super.key,
     required this.widgetKey,
@@ -68,6 +79,7 @@ class SynkoraChatWidget extends StatefulWidget {
     this.primaryColor,
     this.onClose,
     this.emptyStateWidget,
+    this.onLinkTap,
   });
 
   @override
@@ -108,9 +120,17 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
   void _onControllerUpdate() {
     if (!_resolvedInitialView && !_controller.isLoading) {
       _resolvedInitialView = true;
-      _activeView = _controller.hasConversationContent
-          ? _ChatSurfaceView.chat
-          : _ChatSurfaceView.home;
+      final uid = widget.user?.id ?? widget.userId;
+      if (uid != null) {
+        // Identified user: always show sessions list first so the user can
+        // pick a session or start a new one. Do NOT skip to chat even if
+        // cached messages exist — the user wants to choose deliberately.
+        _activeView = _ChatSurfaceView.sessions;
+      } else {
+        _activeView = _controller.hasConversationContent
+            ? _ChatSurfaceView.chat
+            : _ChatSurfaceView.home;
+      }
       if (mounted) {
         setState(() {});
       }
@@ -142,12 +162,22 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
   void _send() {
     final text = _inputController.text.trim();
     if (text.isEmpty || _controller.isStreaming) return;
+    // Show pre-chat form before the first message if required
+    if (_controller.shouldShowPreChatForm) {
+      _pendingSendText = text;
+      _inputController.clear();
+      setState(() => _activeView = _ChatSurfaceView.preChatForm);
+      return;
+    }
     if (_activeView != _ChatSurfaceView.chat) {
       setState(() => _activeView = _ChatSurfaceView.chat);
     }
     _inputController.clear();
     _controller.send(text);
   }
+
+  // Pending text held while the pre-chat form is shown
+  String? _pendingSendText;
 
   void _openChat() {
     if (_activeView != _ChatSurfaceView.chat) {
@@ -159,6 +189,27 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
     if (_activeView != _ChatSurfaceView.home) {
       setState(() => _activeView = _ChatSurfaceView.home);
     }
+  }
+
+  void _openSessions() {
+    _controller.loadSessions();
+    setState(() => _activeView = _ChatSurfaceView.sessions);
+  }
+
+  Future<void> _openSession(WidgetSession session) async {
+    setState(() => _activeView = _ChatSurfaceView.chat);
+    await _controller.resumeSession(session.id);
+  }
+
+  Future<void> _newSession() async {
+    await _controller.startNewSession();
+    setState(() => _activeView = _ChatSurfaceView.chat);
+  }
+
+  Future<void> _closeSession(WidgetSession session) async {
+    await _controller.closeSession(session.id);
+    // Refresh list after close
+    await _controller.loadSessions();
   }
 
   Future<void> _sendPrompt(String prompt) async {
@@ -266,7 +317,13 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
             foregroundColor: const Color(0xFFF7F2E7),
             elevation: 0,
             toolbarHeight: 72,
-            leading: widget.onClose != null
+            leading: _activeView == _ChatSurfaceView.chat &&
+                    _controller.sessions.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: _openSessions,
+                  )
+                : widget.onClose != null
                 ? IconButton(
                     icon: const Icon(Icons.close),
                     onPressed: widget.onClose,
@@ -301,6 +358,10 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
                       Text(
                         _activeView == _ChatSurfaceView.home
                             ? 'Welcome'
+                            : _activeView == _ChatSurfaceView.sessions
+                            ? 'Your conversations'
+                            : _activeView == _ChatSurfaceView.preChatForm
+                            ? 'Before we start'
                             : hasConversationContent
                             ? 'Conversation in progress'
                             : 'Ready to chat',
@@ -318,12 +379,12 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
             actions: hasInitError || _controller.isLoading
                 ? null
                 : [
-                    if (hasConversationContent)
+                    if (widget.user?.id != null || widget.userId != null)
                       Padding(
                         padding: const EdgeInsets.only(right: 4),
                         child: IconButton(
-                          tooltip: 'History',
-                          onPressed: _showHistorySheet,
+                          tooltip: 'Sessions',
+                          onPressed: _openSessions,
                           icon: Container(
                             width: 36,
                             height: 36,
@@ -395,76 +456,85 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
                     ),
                   ],
           ),
-          body: hasInitError
-              ? _ConnectionErrorState(
-                  message: _controller.error!,
-                  baseUrl: widget.baseUrl,
-                  onRetry: _controller.retry,
-                )
-              : Column(
-                  children: [
-                    // Error banner
-                    if (_controller.error != null)
-                      Material(
-                        color: const Color(0xFFFFF2EC),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
+          body: Stack(
+            children: [
+              // Artistic mesh gradient background
+              Positioned.fill(
+                child: _MeshGradientBackground(primaryColor: _primaryColor),
+              ),
+              hasInitError
+                  ? _ConnectionErrorState(
+                      message: _controller.error!,
+                      baseUrl: widget.baseUrl,
+                      onRetry: _controller.retry,
+                    )
+                  : Column(
+                      children: [
+                        // Error banner
+                        if (_controller.error != null)
+                          Material(
+                            color: const Color(0xFFFFF2EC),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.error_outline,
+                                    color: Color(0xFFC45F34),
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      _controller.error!,
+                                      style: const TextStyle(
+                                        color: Color(0xFF8B3F1E),
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: _controller.retry,
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: _brandInk,
+                                      textStyle: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    child: const Text('Retry'),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.error_outline,
-                                color: Color(0xFFC45F34),
-                                size: 16,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _controller.error!,
-                                  style: const TextStyle(
-                                    color: Color(0xFF8B3F1E),
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: _controller.retry,
-                                style: TextButton.styleFrom(
-                                  foregroundColor: _brandInk,
-                                  textStyle: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                child: const Text('Retry'),
-                              ),
-                            ],
+
+                        // Message list or loading skeleton
+                        Expanded(
+                          child: _buildContentView(
+                            config: config,
+                            hasConversationContent: hasConversationContent,
                           ),
                         ),
-                      ),
 
-                    // Message list or loading skeleton
-                    Expanded(
-                      child: _buildContentView(
-                        config: config,
-                        hasConversationContent: hasConversationContent,
-                      ),
+                        // Input bar — hidden for sessions view and closed sessions
+                        if (_activeView == _ChatSurfaceView.chat &&
+                            !_controller.isCurrentSessionClosed)
+                          _InputBar(
+                            controller: _inputController,
+                            focusNode: _focusNode,
+                            placeholder:
+                                config?.theme.placeholder ?? 'Type a message...',
+                            primaryColor: _primaryColor,
+                            isStreaming: _controller.isStreaming,
+                            onSend: _send,
+                          ),
+                      ],
                     ),
-
-                    // Input bar
-                    if (_activeView == _ChatSurfaceView.chat)
-                      _InputBar(
-                        controller: _inputController,
-                        focusNode: _focusNode,
-                        placeholder:
-                            config?.theme.placeholder ?? 'Type a message...',
-                        primaryColor: _primaryColor,
-                        isStreaming: _controller.isStreaming,
-                        onSend: _send,
-                      ),
-                  ],
-                ),
+            ],
+          ),
         );
       },
     );
@@ -475,7 +545,7 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
     required bool hasConversationContent,
   }) {
     if (_controller.isLoading) {
-      return _LoadingSkeleton(primaryColor: _primaryColor);
+      return _AiLoadingIndicator(primaryColor: _primaryColor);
     }
 
     switch (_activeView) {
@@ -491,9 +561,72 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
             _sendPrompt(prompt);
           },
         );
+
+      case _ChatSurfaceView.sessions:
+        return _SessionsScreen(
+          sessions: _controller.sessions,
+          isLoading: _controller.sessionsLoading,
+          primaryColor: _primaryColor,
+          onSessionTap: _openSession,
+          onNewSession: _newSession,
+          onSessionClose: _closeSession,
+        );
+
+      case _ChatSurfaceView.preChatForm:
+        return _PreChatFormScreen(
+          config: _controller.config!.preChatForm,
+          primaryColor: _primaryColor,
+          onSubmit: ({String? name, String? email, String? phone}) {
+            _controller.submitPreChatForm(name: name, email: email, phone: phone);
+            final pending = _pendingSendText;
+            _pendingSendText = null;
+            setState(() => _activeView = _ChatSurfaceView.chat);
+            if (pending != null) _controller.send(pending);
+          },
+          onSkip: () {
+            _controller.submitPreChatForm();
+            final pending = _pendingSendText;
+            _pendingSendText = null;
+            setState(() => _activeView = _ChatSurfaceView.chat);
+            if (pending != null) _controller.send(pending);
+          },
+        );
+
       case _ChatSurfaceView.chat:
+        if (_controller.isCurrentSessionClosed) {
+          // Read-only banner + messages
+          return Column(
+            children: [
+              _SessionEndedBanner(primaryColor: _primaryColor),
+              Expanded(
+                child: ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.only(top: 8, bottom: 8),
+                  itemCount: _controller.messages.length,
+                  itemBuilder: (context, i) {
+                    final msgs = _controller.messages;
+                    final msg = msgs[i];
+                    if (msg.content.isEmpty && !msg.isStreaming) {
+                      return const SizedBox.shrink();
+                    }
+                    final next = i + 1 < msgs.length ? msgs[i + 1] : null;
+                    final isLastInGroup = next == null || next.role != msg.role;
+                    return MessageBubble(
+                      message: msg,
+                      primaryColor: _primaryColor,
+                      agentAvatarUrl: config?.agentAvatarUrl,
+                      showAvatar: msg.role == MessageRole.assistant && isLastInGroup,
+                      onLinkTap: widget.onLinkTap,
+                    );
+                  },
+                ),
+              ),
+            ],
+          );
+        }
+
         if (_controller.messages.isEmpty) {
-          return _ChatEmptyState(onOpenHome: _openHome);
+          return _ChatEmptyState(onOpenHome: _openHome, primaryColor: _primaryColor);
         }
 
         return ListView.builder(
@@ -501,14 +634,19 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
           padding: const EdgeInsets.only(top: 8, bottom: 8),
           itemCount: _controller.messages.length,
           itemBuilder: (context, i) {
-            final msg = _controller.messages[i];
+            final msgs = _controller.messages;
+            final msg = msgs[i];
             if (msg.content.isEmpty && !msg.isStreaming) {
               return const SizedBox.shrink();
             }
+            final next = i + 1 < msgs.length ? msgs[i + 1] : null;
+            final isLastInGroup = next == null || next.role != msg.role;
             return MessageBubble(
               message: msg,
               primaryColor: _primaryColor,
               agentAvatarUrl: config?.agentAvatarUrl,
+              showAvatar: msg.role == MessageRole.assistant && isLastInGroup,
+              onLinkTap: widget.onLinkTap,
             );
           },
         );
@@ -541,6 +679,377 @@ class _MenuRow extends StatelessWidget {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Sessions list screen
+// ---------------------------------------------------------------------------
+
+class _SessionsScreen extends StatelessWidget {
+  final List<WidgetSession> sessions;
+  final bool isLoading;
+  final Color primaryColor;
+  final Future<void> Function(WidgetSession) onSessionTap;
+  final VoidCallback onNewSession;
+  final Future<void> Function(WidgetSession) onSessionClose;
+
+  const _SessionsScreen({
+    required this.sessions,
+    required this.isLoading,
+    required this.primaryColor,
+    required this.onSessionTap,
+    required this.onNewSession,
+    required this.onSessionClose,
+  });
+
+  String _relativeTime(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays == 1) return 'Yesterday';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return '${dt.day}/${dt.month}/${dt.year}';
+  }
+
+  /// Returns the bucket label for a given date.
+  String _bucket(DateTime dt) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final d = DateTime(dt.year, dt.month, dt.day);
+    final diff = today.difference(d).inDays;
+    if (diff == 0) return 'Today';
+    if (diff == 1) return 'Yesterday';
+    if (diff < 7) return 'This week';
+    if (diff < 30) return 'This month';
+    return 'Older';
+  }
+
+  /// Build the flat list of items: header strings and WidgetSession objects interleaved.
+  List<Object> _buildItems() {
+    final items = <Object>[];
+    String? lastBucket;
+    for (final s in sessions) {
+      final b = _bucket(s.lastActivityAt);
+      if (b != lastBucket) {
+        items.add(b); // header
+        lastBucket = b;
+      }
+      items.add(s);
+    }
+    return items;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = _buildItems();
+    return Stack(
+      children: [
+        if (isLoading)
+          const Center(child: CircularProgressIndicator())
+        else if (sessions.isEmpty)
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.chat_bubble_outline, size: 48, color: _brandMuted),
+                const SizedBox(height: 16),
+                const Text(
+                  'No previous sessions',
+                  style: TextStyle(
+                    color: _brandMuted,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Start a new chat to begin',
+                  style: TextStyle(color: _brandMuted, fontSize: 12),
+                ),
+              ],
+            ),
+          )
+        else
+          ListView.builder(
+            padding: const EdgeInsets.only(top: 4, bottom: 80),
+            itemCount: items.length,
+            itemBuilder: (context, i) {
+              final item = items[i];
+
+              // Section header
+              if (item is String) {
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
+                  child: Text(
+                    item,
+                    style: TextStyle(
+                      color: primaryColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                );
+              }
+
+              // Session row
+              final session = item as WidgetSession;
+              final isActive = session.isActive;
+              final isLast = i == items.length - 1 || items[i + 1] is String;
+              return Column(
+                children: [
+                  ListTile(
+                    onTap: () => onSessionTap(session),
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                    leading: Container(
+                      width: 9,
+                      height: 9,
+                      margin: const EdgeInsets.only(top: 4),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isActive
+                            ? const Color(0xFF4CAF50)
+                            : const Color(0xFFBDBDBD),
+                      ),
+                    ),
+                    title: Text(
+                      session.firstMessage ?? 'Session',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _brandInk,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    subtitle: Text(
+                      _relativeTime(session.lastActivityAt),
+                      style: const TextStyle(color: _brandMuted, fontSize: 11),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        PopupMenuButton<String>(
+                          icon: const Icon(Icons.more_horiz, color: _brandMuted, size: 18),
+                          splashRadius: 18,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          color: _brandPanel,
+                          itemBuilder: (_) => [
+                            if (isActive)
+                              const PopupMenuItem(
+                                value: 'close',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.stop_circle_outlined, size: 16, color: Color(0xFFE53935)),
+                                    SizedBox(width: 8),
+                                    Text('End session', style: TextStyle(fontSize: 13, color: Color(0xFFE53935))),
+                                  ],
+                                ),
+                              ),
+                          ],
+                          onSelected: (value) {
+                            if (value == 'close') onSessionClose(session);
+                          },
+                        ),
+                        const Icon(Icons.chevron_right, color: _brandMuted, size: 18),
+                      ],
+                    ),
+                  ),
+                  if (!isLast)
+                    const Divider(height: 1, indent: 16, endIndent: 16),
+                ],
+              );
+            },
+          ),
+
+        // New session FAB
+        Positioned(
+          bottom: 16,
+          right: 16,
+          child: FloatingActionButton.extended(
+            onPressed: onNewSession,
+            backgroundColor: primaryColor,
+            foregroundColor: _brandInk,
+            icon: const Icon(Icons.add, size: 20),
+            label: const Text(
+              'New chat',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Pre-chat form screen
+// ---------------------------------------------------------------------------
+
+class _PreChatFormScreen extends StatefulWidget {
+  final PreChatFormConfig config;
+  final Color primaryColor;
+  final void Function({String? name, String? email, String? phone}) onSubmit;
+  final VoidCallback onSkip;
+
+  const _PreChatFormScreen({
+    required this.config,
+    required this.primaryColor,
+    required this.onSubmit,
+    required this.onSkip,
+  });
+
+  @override
+  State<_PreChatFormScreen> createState() => _PreChatFormScreenState();
+}
+
+class _PreChatFormScreenState extends State<_PreChatFormScreen> {
+  final _nameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _emailCtrl.dispose();
+    _phoneCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cfg = widget.config;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Before we start',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: _brandInk,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Share a bit about yourself so we can help you better. All fields are optional.',
+            style: TextStyle(fontSize: 13, color: _brandMuted),
+          ),
+          const SizedBox(height: 24),
+          if (cfg.showName) ...[
+            _FormField(label: 'Name', controller: _nameCtrl, hint: 'Your name', primaryColor: widget.primaryColor),
+            const SizedBox(height: 14),
+          ],
+          if (cfg.showEmail) ...[
+            _FormField(
+              label: 'Email',
+              controller: _emailCtrl,
+              hint: 'you@example.com',
+              keyboardType: TextInputType.emailAddress,
+              primaryColor: widget.primaryColor,
+            ),
+            const SizedBox(height: 14),
+          ],
+          if (cfg.showPhone) ...[
+            _FormField(
+              label: 'Phone',
+              controller: _phoneCtrl,
+              hint: '+1 555 000 0000',
+              keyboardType: TextInputType.phone,
+              primaryColor: widget.primaryColor,
+            ),
+            const SizedBox(height: 14),
+          ],
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => widget.onSubmit(
+                name: _nameCtrl.text,
+                email: _emailCtrl.text,
+                phone: _phoneCtrl.text,
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: widget.primaryColor,
+                foregroundColor: _brandInk,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                elevation: 0,
+              ),
+              child: const Text('Start chatting', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+            ),
+          ),
+          if (cfg.skippable) ...[
+            const SizedBox(height: 10),
+            Center(
+              child: TextButton(
+                onPressed: widget.onSkip,
+                child: Text(
+                  'Skip',
+                  style: TextStyle(color: _brandMuted, fontSize: 13),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _FormField extends StatelessWidget {
+  final String label;
+  final TextEditingController controller;
+  final String hint;
+  final TextInputType? keyboardType;
+  final Color primaryColor;
+
+  const _FormField({
+    required this.label,
+    required this.controller,
+    required this.hint,
+    this.keyboardType,
+    required this.primaryColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _brandInk)),
+        const SizedBox(height: 6),
+        TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          style: const TextStyle(fontSize: 14, color: _brandInk),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(color: _brandMuted, fontSize: 14),
+            filled: true,
+            fillColor: _brandSurface,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: _brandBorder),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: _brandBorder),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: primaryColor, width: 1.5),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _HomeScreen extends StatelessWidget {
   final WidgetConfig? config;
   final Color primaryColor;
@@ -562,6 +1071,10 @@ class _HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final btnFg = ThemeData.estimateBrightnessForColor(primaryColor) == Brightness.dark
+        ? Colors.white
+        : _brandInk;
+
     final greeting = (config?.theme.welcomeMessage.isNotEmpty ?? false)
         ? config!.theme.welcomeMessage
         : 'Hi there\nHow can we help?';
@@ -594,32 +1107,21 @@ class _HomeScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: primaryColor.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(22),
+                if (config?.agentAvatarUrl?.isNotEmpty ?? false)
+                  CircleAvatar(
+                    radius: 36,
+                    backgroundImage: NetworkImage(config!.agentAvatarUrl!),
+                  )
+                else
+                  SizedBox(
+                    width: 120,
+                    height: 120,
+                    child: Lottie.asset(
+                      'packages/synkora_chat/lib/src/assets/animations/choose_your_colors.json',
+                      repeat: true,
+                      animate: true,
+                    ),
                   ),
-                  clipBehavior: Clip.antiAlias,
-                  child: (config?.agentAvatarUrl?.isNotEmpty ?? false)
-                      ? Image.network(
-                          config!.agentAvatarUrl!,
-                          fit: BoxFit.cover,
-                        )
-                      : Center(
-                          child: Text(
-                            (config?.agentName.isNotEmpty ?? false)
-                                ? config!.agentName[0].toUpperCase()
-                                : 'A',
-                            style: const TextStyle(
-                              color: _brandInk,
-                              fontSize: 28,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                ),
                 const SizedBox(height: 16),
                 Text(
                   title,
@@ -645,29 +1147,32 @@ class _HomeScreen extends StatelessWidget {
                     onPressed: onContinue,
                     style: FilledButton.styleFrom(
                       backgroundColor: primaryColor,
-                      foregroundColor: _brandInk,
+                      foregroundColor: btnFg,
                       minimumSize: const Size.fromHeight(48),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                     ),
                     icon: const Icon(Icons.chat_bubble_outline_rounded),
-                    label: const Text('Continue conversation'),
+                    label: const Text(
+                      'Continue conversation',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
                   ),
                   if (onClear != null) ...[
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     OutlinedButton.icon(
                       onPressed: onClear,
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: _brandInk,
+                        foregroundColor: _brandMuted,
                         side: const BorderSide(color: _brandBorder),
-                        minimumSize: const Size.fromHeight(44),
+                        minimumSize: const Size.fromHeight(42),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
+                          borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      icon: const Icon(Icons.delete_outline_rounded),
-                      label: const Text('Start fresh local chat'),
+                      icon: const Icon(Icons.add_comment_outlined, size: 18),
+                      label: const Text('Start new chat'),
                     ),
                   ],
                 ] else
@@ -675,14 +1180,17 @@ class _HomeScreen extends StatelessWidget {
                     onPressed: onContinue,
                     style: FilledButton.styleFrom(
                       backgroundColor: primaryColor,
-                      foregroundColor: _brandInk,
+                      foregroundColor: btnFg,
                       minimumSize: const Size.fromHeight(48),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                     ),
                     icon: const Icon(Icons.arrow_forward_rounded),
-                    label: const Text('Open chat'),
+                    label: const Text(
+                      'Start chatting',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
                   ),
               ],
             ),
@@ -704,39 +1212,55 @@ class _HomeScreen extends StatelessWidget {
 
 class _ChatEmptyState extends StatelessWidget {
   final VoidCallback onOpenHome;
+  final Color primaryColor;
 
-  const _ChatEmptyState({required this.onOpenHome});
+  const _ChatEmptyState({
+    required this.onOpenHome,
+    required this.primaryColor,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final hex = '#${primaryColor.value.toRadixString(16).substring(2)}';
+    final btnFg = ThemeData.estimateBrightnessForColor(primaryColor) == Brightness.dark
+        ? Colors.white
+        : _brandInk;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            SvgPicture.string(
+              robotChatSvg(hex),
+              width: 180,
+            ),
+            const SizedBox(height: 20),
             const Text(
-              'No messages yet',
+              'Ask me anything',
               style: TextStyle(
                 color: _brandInk,
-                fontSize: 18,
+                fontSize: 20,
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 8),
             const Text(
-              'Open the home screen to start with a suggested prompt or begin a fresh conversation.',
+              'Type a message below or go back to browse suggested prompts.',
               textAlign: TextAlign.center,
               style: TextStyle(color: _brandMuted, fontSize: 14, height: 1.5),
             ),
-            const SizedBox(height: 16),
-            FilledButton(
+            const SizedBox(height: 20),
+            OutlinedButton(
               onPressed: onOpenHome,
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF79DFBC),
-                foregroundColor: _brandInk,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: primaryColor,
+                side: BorderSide(color: primaryColor.withValues(alpha: 0.4)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              child: const Text('Open home'),
+              child: const Text('Browse suggestions'),
             ),
           ],
         ),
@@ -1096,70 +1620,81 @@ class _InputBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        decoration: const BoxDecoration(
           color: _brandPanel,
-          border: const Border(top: BorderSide(color: _brandBorder)),
+          border: Border(top: BorderSide(color: _brandBorder)),
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Expanded(
               child: TextField(
                 controller: controller,
                 focusNode: focusNode,
                 minLines: 1,
-                maxLines: 4,
+                maxLines: 5,
                 textInputAction: TextInputAction.send,
                 onSubmitted: (_) => onSend(),
+                style: const TextStyle(fontSize: 15, color: _brandInk),
                 decoration: InputDecoration(
                   hintText: placeholder,
-                  hintStyle: const TextStyle(color: _brandMuted),
+                  hintStyle: const TextStyle(
+                    color: _brandMuted,
+                    fontSize: 15,
+                  ),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide.none,
+                    borderRadius: BorderRadius.circular(22),
+                    borderSide: const BorderSide(color: _brandBorder),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(22),
                     borderSide: const BorderSide(color: _brandBorder),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(22),
                     borderSide: BorderSide(
-                      color: primaryColor.withValues(alpha: 0.55),
-                      width: 1.2,
+                      color: primaryColor.withValues(alpha: 0.5),
+                      width: 1.5,
                     ),
                   ),
                   filled: true,
-                  fillColor: _brandPanel,
+                  fillColor: _brandSurface,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
-                    vertical: 10,
+                    vertical: 11,
                   ),
                 ),
               ),
             ),
             const SizedBox(width: 8),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              child: IconButton(
-                onPressed: isStreaming ? null : onSend,
-                icon: isStreaming
-                    ? SizedBox(
+            SizedBox(
+              width: 40,
+              height: 40,
+              child: isStreaming
+                  ? Center(
+                      child: SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
                           color: primaryColor,
                         ),
-                      )
-                    : const Icon(Icons.send_rounded, color: Color(0xFF171717)),
-                style: IconButton.styleFrom(
-                  backgroundColor: isStreaming
-                      ? Colors.transparent
-                      : primaryColor,
-                  shape: const CircleBorder(),
-                ),
-              ),
+                      ),
+                    )
+                  : Material(
+                      color: primaryColor,
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: onSend,
+                        child: const Icon(
+                          Icons.arrow_upward_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
+                    ),
             ),
           ],
         ),
@@ -1247,4 +1782,225 @@ class _SkeletonBubble extends StatelessWidget {
       borderRadius: BorderRadius.circular(18),
     ),
   );
+}
+
+// ---------------------------------------------------------------------------
+// Mesh gradient background
+// ---------------------------------------------------------------------------
+
+class _MeshGradientBackground extends StatelessWidget {
+  final Color primaryColor;
+  const _MeshGradientBackground({required this.primaryColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _MeshPainter(primaryColor: primaryColor),
+      child: const SizedBox.expand(),
+    );
+  }
+}
+
+class _MeshPainter extends CustomPainter {
+  final Color primaryColor;
+  const _MeshPainter({required this.primaryColor});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Base fill
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()..color = const Color(0xFFF8FAFC),
+    );
+
+    // Blob 1 — top-left, primaryColor tinted
+    _drawBlob(
+      canvas,
+      center: Offset(size.width * 0.1, size.height * 0.08),
+      radius: size.width * 0.55,
+      color: primaryColor.withValues(alpha: 0.07),
+    );
+
+    // Blob 2 — top-right
+    _drawBlob(
+      canvas,
+      center: Offset(size.width * 0.92, size.height * 0.05),
+      radius: size.width * 0.4,
+      color: primaryColor.withValues(alpha: 0.05),
+    );
+
+    // Blob 3 — bottom-left, cool blue accent
+    _drawBlob(
+      canvas,
+      center: Offset(size.width * 0.05, size.height * 0.85),
+      radius: size.width * 0.45,
+      color: const Color(0xFF6366F1).withValues(alpha: 0.04),
+    );
+
+    // Blob 4 — bottom-right
+    _drawBlob(
+      canvas,
+      center: Offset(size.width * 0.95, size.height * 0.9),
+      radius: size.width * 0.5,
+      color: primaryColor.withValues(alpha: 0.06),
+    );
+  }
+
+  void _drawBlob(Canvas canvas, {
+    required Offset center,
+    required double radius,
+    required Color color,
+  }) {
+    final paint = Paint()
+      ..shader = RadialGradient(
+        colors: [color, color.withValues(alpha: 0)],
+      ).createShader(Rect.fromCircle(center: center, radius: radius));
+    canvas.drawCircle(center, radius, paint);
+  }
+
+  @override
+  bool shouldRepaint(_MeshPainter old) => old.primaryColor != primaryColor;
+}
+
+// ---------------------------------------------------------------------------
+// AI loading indicator
+// ---------------------------------------------------------------------------
+
+class _AiLoadingIndicator extends StatefulWidget {
+  final Color primaryColor;
+  const _AiLoadingIndicator({required this.primaryColor});
+
+  @override
+  State<_AiLoadingIndicator> createState() => _AiLoadingIndicatorState();
+}
+
+class _AiLoadingIndicatorState extends State<_AiLoadingIndicator>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: AnimatedBuilder(
+        animation: _ctrl,
+        builder: (context, _) {
+          return SizedBox(
+            width: 80,
+            height: 80,
+            child: Stack(
+              alignment: Alignment.center,
+              children: List.generate(3, (i) {
+                final delay = i * 0.33;
+                final t = (_ctrl.value - delay).clamp(0.0, 1.0);
+                final scale = 0.3 + 0.7 * t;
+                final opacity = (1.0 - t).clamp(0.0, 1.0);
+                return Opacity(
+                  opacity: opacity,
+                  child: Transform.scale(
+                    scale: scale,
+                    child: Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: widget.primaryColor.withValues(
+                            alpha: opacity * 0.6,
+                          ),
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              })
+                ..add(
+                  Container(
+                    width: 16,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: widget.primaryColor,
+                    ),
+                    child: const Icon(
+                      Icons.auto_awesome,
+                      size: 10,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Session ended banner with robot wave illustration
+// ---------------------------------------------------------------------------
+
+class _SessionEndedBanner extends StatelessWidget {
+  final Color primaryColor;
+  const _SessionEndedBanner({required this.primaryColor});
+
+  @override
+  Widget build(BuildContext context) {
+    final hex = '#${primaryColor.value.toRadixString(16).substring(2)}';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF0FDF4),
+        border: Border(
+          bottom: BorderSide(color: Color(0xFFBBF7D0)),
+        ),
+      ),
+      child: Row(
+        children: [
+          SvgPicture.string(
+            robotWaveSvg(hex),
+            width: 48,
+            height: 48,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Session ended',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF15803D),
+                  ),
+                ),
+                const Text(
+                  'This conversation is read-only.',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF166534)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

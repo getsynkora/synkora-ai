@@ -1255,9 +1255,11 @@ class FunctionCallingHandler:
                     "drop_params": True,  # Silently drop unsupported params (e.g. temperature for gpt-5)
                 }
 
-                # Add base URL if provided
+                # Add base URL if provided; force OpenAI-compatible routing so LiteLLM
+                # SDK sends the bare model name to the proxy without intercepting it.
                 if self.llm_client.config.api_base:
                     completion_params["api_base"] = self.llm_client.config.api_base
+                    completion_params["custom_llm_provider"] = "openai"
 
                 response = await self._litellm_stream_and_collect(completion_params)
             else:
@@ -1356,7 +1358,7 @@ class FunctionCallingHandler:
             import litellm
 
             completion_params = {
-                "model": self.llm_client.config.model_name,
+                "model": self.llm_client._prepare_litellm_model_name(self.llm_client.config.model_name),
                 "max_tokens": max_tokens or 4096,
                 "temperature": temperature,
                 "messages": messages,
@@ -1367,9 +1369,11 @@ class FunctionCallingHandler:
                 "drop_params": True,  # Silently drop unsupported params (e.g. temperature for gpt-5)
             }
 
-            # Add base URL if provided
+            # Add base URL if provided; force OpenAI-compatible routing so LiteLLM
+            # SDK sends the bare model name to the proxy without intercepting it.
             if self.llm_client.config.api_base:
                 completion_params["api_base"] = self.llm_client.config.api_base
+                completion_params["custom_llm_provider"] = "openai"
 
             response = await self._litellm_stream_and_collect(completion_params)
         else:

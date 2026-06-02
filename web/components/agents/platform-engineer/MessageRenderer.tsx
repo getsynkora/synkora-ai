@@ -32,7 +32,7 @@ export function MessageRenderer({ message, onConfirm, onCancelAction }: Props) {
         )}
 
         {/* Action card (agent creation confirmation) */}
-        {message.actionCard && message.actionCard.status !== 'created' && (
+        {message.actionCard && message.actionCard.status !== 'created' && message.actionCard.status !== 'cancelled' && (
           <ActionConfirmCard
             config={message.actionCard.config}
             status={message.actionCard.status}
@@ -56,6 +56,7 @@ export function MessageRenderer({ message, onConfirm, onCancelAction }: Props) {
             message={message.integrationCard.message}
             connect_url={message.integrationCard.connect_url}
             type={message.integrationCard.type}
+            compact
           />
         )}
       </div>

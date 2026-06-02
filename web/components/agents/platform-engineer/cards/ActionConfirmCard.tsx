@@ -41,9 +41,7 @@ export function ActionConfirmCard({ config, status, onConfirm, onCancel }: Props
 
   if (status === 'cancelled') {
     return (
-      <div className="rounded-[1.45rem] border border-[#ddd2c3] bg-[linear-gradient(180deg,_rgba(255,255,255,0.9),_rgba(247,242,233,0.96))] p-4 text-sm italic text-[#7a736a] shadow-[0_20px_44px_-36px_rgba(34,24,16,0.34)]">
-        Agent creation cancelled.
-      </div>
+      <p className="text-sm italic text-[#9a8f84]">Agent creation cancelled.</p>
     )
   }
 

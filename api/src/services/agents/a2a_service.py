@@ -85,7 +85,7 @@ async def _collect_agent_response(agent, message: str, conversation_id: str | No
 
     chunks: list[str] = []
     async for sse_event in stream_service.stream_agent_response(
-        agent_name=agent.agent_name,
+        agent_name=agent.slug,
         message=message,
         conversation_history=None,
         conversation_id=conversation_id,
@@ -260,7 +260,7 @@ class A2AService:
 
         try:
             async for sse_event in stream_service.stream_agent_response(
-                agent_name=agent.agent_name,
+                agent_name=agent.slug,
                 message=message_text,
                 conversation_history=None,
                 conversation_id=task.context_id,

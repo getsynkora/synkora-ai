@@ -425,12 +425,34 @@ class DataAnalysisService:
 
             connector = DBDatadogConnector(database_connection=connection)
 
-            # Convert ISO-8601 strings to Unix timestamps expected by the Datadog API
+            # Convert time strings to Unix timestamps expected by the Datadog API.
+            # Supports ISO-8601 (e.g. '2024-01-01T00:00:00Z') and relative strings
+            # (e.g. 'now', 'now-24h', 'now-1d', 'now-30m', 'now-1w').
+            def _to_unix(t: str) -> int:
+                import re
+                from datetime import UTC, timedelta
+
+                t = t.strip()
+                if t == "now":
+                    return int(datetime.now(UTC).timestamp())
+                m = re.fullmatch(r"now-(\d+)([smhdw])", t)
+                if m:
+                    n, unit = int(m.group(1)), m.group(2)
+                    delta = {
+                        "s": timedelta(seconds=n),
+                        "m": timedelta(minutes=n),
+                        "h": timedelta(hours=n),
+                        "d": timedelta(days=n),
+                        "w": timedelta(weeks=n),
+                    }[unit]
+                    return int((datetime.now(UTC) - delta).timestamp())
+                return int(datetime.fromisoformat(t.replace("Z", "+00:00")).timestamp())
+
             params: dict[str, Any] = {}
             if from_time:
-                params["from"] = int(datetime.fromisoformat(from_time.replace("Z", "+00:00")).timestamp())
+                params["from"] = _to_unix(from_time)
             if to_time:
-                params["to"] = int(datetime.fromisoformat(to_time.replace("Z", "+00:00")).timestamp())
+                params["to"] = _to_unix(to_time)
 
             return await connector.execute_query(query=query, params=params or None)
 

@@ -44,6 +44,15 @@ export function ChatScreen({ agentName = 'platform_engineer_agent' }: Props) {
   const sendMessage = async (content: string) => {
     if (!content.trim() || isStreaming) return
 
+    // Dismiss any pending action card from a previous response
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.actionCard?.status === 'pending'
+          ? { ...m, actionCard: { ...m.actionCard!, status: 'cancelled' } }
+          : m
+      )
+    )
+
     const userMsg: ParsedMessage = {
       role: 'user',
       content,

@@ -1651,6 +1651,31 @@ class ChatStreamService:
         if enhanced_system_prompt:
             prompt_parts.append(enhanced_system_prompt)
 
+        # Inject available database connection names so the agent knows the exact names to pass to database tools
+        allowed_db_ids = (db_agent.agent_metadata or {}).get("allowed_database_connections")
+        if allowed_db_ids:
+            try:
+                from src.models.database_connection import DatabaseConnection
+
+                _result = await db.execute(
+                    select(DatabaseConnection).where(
+                        DatabaseConnection.id.in_(allowed_db_ids),
+                        DatabaseConnection.tenant_id == db_agent.tenant_id,
+                        DatabaseConnection.deleted_at.is_(None),
+                    )
+                )
+                _connections = list(_result.scalars().all())
+                if _connections:
+                    conn_lines = "\n".join(
+                        f'- "{c.name}" (type: {c.database_type}, status: {c.status})' for c in _connections
+                    )
+                    prompt_parts.append(
+                        f"# Configured Database Connections\n"
+                        f"Use these exact connection names when calling database tools:\n{conn_lines}"
+                    )
+            except Exception as _e:
+                logger.warning("Failed to inject database connection context: %s", _e)
+
         if context_text:
             prompt_parts.append(context_text)
             prompt_parts.append(
@@ -1949,6 +1974,7 @@ class ChatStreamService:
             db_session=db,
             db_session_factory=session_factory,
             llm_client=agent.llm_client,
+            agent_slug=db_agent.slug,
             conversation_id=conversation_uuid,
             message_id=user_message_id,
             user_id=user_uuid,

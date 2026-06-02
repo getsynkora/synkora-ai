@@ -7,28 +7,38 @@ class MessageBubble extends StatelessWidget {
   final ChatMessage message;
   final Color primaryColor;
   final String? agentAvatarUrl;
+  /// Show avatar on this bubble (false = last-in-group collapsed).
+  final bool showAvatar;
+  /// Called when the user taps a link inside the agent's message.
+  final void Function(String href)? onLinkTap;
 
   const MessageBubble({
     super.key,
     required this.message,
     required this.primaryColor,
     this.agentAvatarUrl,
+    this.showAvatar = true,
+    this.onLinkTap,
   });
 
   bool get _isUser => message.role == MessageRole.user;
-  static const _warmSurface = Color(0xFFF2EBDE);
-  static const _warmPanel = Color(0xFFFFFAF1);
-  static const _ink = Color(0xFF171717);
+
+  // Agent bubble — cool slate, clearly distinct from any primaryColor
+  static const _agentSurface = Color(0xFFF1F5F9);
+  static const _agentText = Color(0xFF0F172A);
 
   @override
   Widget build(BuildContext context) {
+    // User text: white on dark primaryColor, near-black on light primaryColor
     final userFg =
         ThemeData.estimateBrightnessForColor(primaryColor) == Brightness.dark
         ? Colors.white
-        : const Color(0xFF11231D);
+        : const Color(0xFF0F172A);
 
+    // Tighter gap within a group, looser gap between groups
+    final verticalPad = showAvatar || _isUser ? 6.0 : 2.0;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: EdgeInsets.fromLTRB(16, 2, 16, verticalPad),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         mainAxisAlignment: _isUser
@@ -36,69 +46,157 @@ class MessageBubble extends StatelessWidget {
             : MainAxisAlignment.start,
         children: [
           if (!_isUser) ...[
-            _AgentAvatar(avatarUrl: agentAvatarUrl, primaryColor: primaryColor),
+            if (showAvatar)
+              _AgentAvatar(avatarUrl: agentAvatarUrl, primaryColor: primaryColor)
+            else
+              const SizedBox(width: 32), // same width as avatar diameter
             const SizedBox(width: 8),
           ],
           Flexible(
             child: Container(
               constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.72,
+                maxWidth: MediaQuery.of(context).size.width * 0.75,
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
               decoration: BoxDecoration(
-                color: _isUser ? primaryColor : _warmSurface,
-                border: _isUser
-                    ? null
-                    : Border.all(color: const Color(0x1A171717)),
+                color: _isUser ? primaryColor : _agentSurface,
                 borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(18),
-                  topRight: const Radius.circular(18),
+                  topLeft: const Radius.circular(20),
+                  topRight: const Radius.circular(20),
                   bottomLeft: _isUser
-                      ? const Radius.circular(18)
-                      : const Radius.circular(4),
+                      ? const Radius.circular(20)
+                      : const Radius.circular(5),
                   bottomRight: _isUser
-                      ? const Radius.circular(4)
-                      : const Radius.circular(18),
+                      ? const Radius.circular(5)
+                      : const Radius.circular(20),
                 ),
               ),
               child: message.isStreaming && message.content.isEmpty
-                  ? const _TypingDots()
+                  ? _TypingDots(color: primaryColor)
                   : _isUser
                   ? Text(
                       message.content,
                       style: TextStyle(
                         color: userFg,
                         fontSize: 15,
-                        height: 1.4,
+                        height: 1.45,
+                        letterSpacing: 0.1,
                       ),
                     )
-                  : MarkdownBody(
-                      data: message.content,
-                      styleSheet:
-                          MarkdownStyleSheet.fromTheme(
-                            Theme.of(context),
-                          ).copyWith(
-                            p: const TextStyle(
-                              color: _ink,
-                              fontSize: 15,
-                              height: 1.4,
-                            ),
-                            strong: const TextStyle(
-                              color: _ink,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            code: const TextStyle(
-                              backgroundColor: _warmPanel,
-                              fontSize: 13,
-                            ),
-                          ),
-                      shrinkWrap: true,
+                  : _MarkdownContent(
+                      content: message.content,
+                      primaryColor: primaryColor,
+                      onLinkTap: onLinkTap,
                     ),
             ),
           ),
-          if (_isUser) const SizedBox(width: 4),
+          if (_isUser) ...[
+            const SizedBox(width: 8),
+            const _UserAvatar(),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+/// Renders markdown with horizontally scrollable tables and link tap support.
+class _MarkdownContent extends StatelessWidget {
+  final String content;
+  final Color primaryColor;
+  final void Function(String href)? onLinkTap;
+
+  static const _ink = Color(0xFF0F172A);
+  static const _tableBorder = Color(0x1E0F172A);
+  static const _tableHeader = Color(0xFFE2E8F0);
+  static const _tableRow = Color(0x080F172A);
+
+  const _MarkdownContent({
+    required this.content,
+    required this.primaryColor,
+    this.onLinkTap,
+  });
+
+  bool get _hasTable => content.contains('|');
+
+  @override
+  Widget build(BuildContext context) {
+    final styleSheet = MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+      p: const TextStyle(color: _ink, fontSize: 15, height: 1.4),
+      strong: const TextStyle(color: _ink, fontSize: 15, fontWeight: FontWeight.w600),
+      em: const TextStyle(color: _ink, fontSize: 15, fontStyle: FontStyle.italic),
+      code: TextStyle(
+        backgroundColor: const Color(0xFFE2E8F0),
+        fontSize: 13,
+        color: primaryColor,
+        fontFamily: 'monospace',
+      ),
+      codeblockDecoration: BoxDecoration(
+        color: const Color(0xFFF3F4F6),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      // Table styles
+      tableBorder: TableBorder.all(color: _tableBorder, width: 1),
+      tableHead: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        color: _ink,
+      ),
+      tableBody: const TextStyle(fontSize: 13, color: _ink, height: 1.3),
+      tableHeadAlign: TextAlign.left,
+      tableCellsPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      tableColumnWidth: const FlexColumnWidth(),
+      tableCellsDecoration: const BoxDecoration(color: _tableRow),
+      a: TextStyle(
+        color: primaryColor,
+        decoration: TextDecoration.underline,
+        decorationColor: primaryColor,
+      ),
+    );
+
+    final body = MarkdownBody(
+      data: content,
+      styleSheet: styleSheet,
+      shrinkWrap: true,
+      onTapLink: (text, href, title) {
+        if (href != null && onLinkTap != null) {
+          onLinkTap!(href);
+        }
+      },
+    );
+
+    // Wrap in horizontal scroll only when a table is present so normal
+    // messages stay at natural width without unnecessary scroll physics.
+    if (_hasTable) {
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: ConstrainedBox(
+          // Minimum width = bubble width; expands as wide as needed for table
+          constraints: BoxConstraints(
+            minWidth: 0,
+            maxWidth: MediaQuery.of(context).size.width * 1.5,
+          ),
+          child: body,
+        ),
+      );
+    }
+
+    return body;
+  }
+}
+
+class _UserAvatar extends StatelessWidget {
+  const _UserAvatar();
+
+  @override
+  Widget build(BuildContext context) {
+    return CircleAvatar(
+      radius: 16,
+      backgroundColor: const Color(0xFFE2E8F0),
+      child: const Icon(
+        Icons.person,
+        size: 17,
+        color: Color(0xFF64748B),
       ),
     );
   }
@@ -114,25 +212,26 @@ class _AgentAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     if (avatarUrl != null && avatarUrl!.isNotEmpty) {
       return CircleAvatar(
-        radius: 14,
+        radius: 16,
         backgroundImage: NetworkImage(avatarUrl!),
         backgroundColor: primaryColor.withValues(alpha: 0.12),
       );
     }
     return CircleAvatar(
-      radius: 14,
-      backgroundColor: primaryColor.withValues(alpha: 0.15),
-      child: Icon(
-        Icons.smart_toy_outlined,
-        size: 16,
-        color: const Color(0xFF171717),
+      radius: 16,
+      backgroundColor: primaryColor,
+      child: const Icon(
+        Icons.auto_awesome,
+        size: 15,
+        color: Colors.white,
       ),
     );
   }
 }
 
 class _TypingDots extends StatefulWidget {
-  const _TypingDots();
+  final Color color;
+  const _TypingDots({required this.color});
 
   @override
   State<_TypingDots> createState() => _TypingDotsState();
@@ -175,9 +274,7 @@ class _TypingDotsState extends State<_TypingDots>
                   width: 7,
                   height: 7,
                   decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.5),
+                    color: widget.color.withValues(alpha: 0.6),
                     shape: BoxShape.circle,
                   ),
                 ),

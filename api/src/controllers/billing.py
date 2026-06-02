@@ -52,6 +52,14 @@ class AgentPricingUpsertRequest(BaseModel):
     email_subscription_trial_emails: int | None = None
 
 
+def _clean_dict(obj) -> dict:
+    """Return obj.__dict__ without SQLAlchemy internal state."""
+    return {k: v for k, v in obj.__dict__.items() if not k.startswith("_")}
+
+
+_CREDIT_VALUE_USD = 0.02  # 1 credit = $0.02 (matches AgentPricingService.CREDIT_VALUE_USD)
+
+
 @router.get("/agents/{agent_id}/pricing")
 async def get_billing_agent_pricing(
     agent_id: UUID,
@@ -64,7 +72,7 @@ async def get_billing_agent_pricing(
     pricing = await AgentPricingService.get_agent_pricing(agent_id, db)
     if pricing is None:
         return {"pricing": None}
-    return {"pricing": pricing.__dict__}
+    return {"pricing": _clean_dict(pricing)}
 
 
 @router.put("/agents/{agent_id}/pricing")
@@ -89,7 +97,8 @@ async def upsert_billing_agent_pricing(
     pricing_result = await db.execute(_select(AgentPricing).where(AgentPricing.agent_id == agent_id))
     pricing = pricing_result.scalar_one_or_none()
 
-    # Fields to update
+    # Fields to update — always apply all fields sent by the client so that
+    # switching pricing model clears stale tier-specific values.
     updateable = {
         "pricing_model": body.pricing_model,
         "credits_per_use": body.credits_per_use,
@@ -119,7 +128,7 @@ async def upsert_billing_agent_pricing(
 
     await db.commit()
     await db.refresh(pricing)
-    return {"pricing": pricing.__dict__}
+    return {"pricing": _clean_dict(pricing)}
 
 
 @router.get("/agents/{agent_id}/revenue")
@@ -144,7 +153,22 @@ async def get_billing_agent_revenue(
         .limit(100)
     )
     records = result.scalars().all()
-    return {"revenue": [r.__dict__ for r in records]}
+
+    def _serialize_revenue(r: AgentRevenue) -> dict:
+        d = _clean_dict(r)
+        credits_used = int(d.get("total_credits") or 0)
+        creator_credits = int(d.pop("creator_credits", 0) or 0)
+        platform_credits = int(d.pop("platform_credits", 0) or 0)
+        d.pop("total_credits", None)
+        d["credits_used"] = credits_used
+        d["revenue_amount"] = round(credits_used * _CREDIT_VALUE_USD, 2)
+        d["creator_earnings"] = round(creator_credits * _CREDIT_VALUE_USD, 2)
+        d["platform_fee"] = round(platform_credits * _CREDIT_VALUE_USD, 2)
+        d["status"] = str(d.get("status") or "PENDING").lower()
+        d["payout_date"] = None  # stored as payout_reference (not a date)
+        return d
+
+    return {"revenue": [_serialize_revenue(r) for r in records]}
 
 
 @router.get("/agents/{agent_id}/earnings")

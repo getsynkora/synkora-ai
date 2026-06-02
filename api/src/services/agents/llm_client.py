@@ -447,20 +447,42 @@ class MultiProviderLLMClient:
         """
         Prepare model name for LiteLLM by adding provider prefix if needed.
 
-        LiteLLM requires model names in the format 'provider/model-name' for most providers.
-        This method detects the provider from the model name and adds the prefix if missing.
+        When api_base is set (proxy mode — e.g. a self-hosted LiteLLM proxy), the proxy
+        routes requests by plain model name using its own internal config.  Adding a
+        provider prefix (e.g. "google/gemini-2.5-flash") in proxy mode causes the LiteLLM
+        Python SDK to switch to the provider's native SDK (Vertex AI, Cohere SDK, etc.)
+        which sends the request in a non-OpenAI-compatible format that the proxy cannot
+        handle.  Only "openai/" and "anthropic/" prefixes are safe because those providers
+        speak OpenAI-compatible or Anthropic-compatible protocols that LiteLLM proxies
+        explicitly support.
+
+        Without api_base (direct SDK mode), provider prefixes are required so LiteLLM
+        knows which backend SDK to invoke.
 
         Args:
             model_name: The model name (e.g., 'claude-sonnet-4.5' or 'anthropic/claude-sonnet-4.5')
 
         Returns:
-            Properly formatted model name with provider prefix
+            Properly formatted model name with provider prefix (direct mode) or plain
+            model name (proxy mode).
         """
         # If model already has a provider prefix, return as-is
         if "/" in model_name:
             return model_name
 
-        # Detect provider from model name patterns
+        # Proxy mode: api_base is set (self-hosted LiteLLM proxy or similar).
+        # Return the bare model name — do NOT add a provider prefix.
+        # The LiteLLM SDK is told to use OpenAI-compatible routing via
+        # custom_llm_provider="openai" in the completion call, which sends the
+        # request as-is to api_base/v1/chat/completions without touching the
+        # model name.  Adding "openai/" here was causing proxies that register
+        # models by plain name (e.g. "llama-4-maverick") to reject requests for
+        # "openai/llama-4-maverick" with a 400.
+        # NOTE: this only runs for provider=litellm.
+        if self.config.api_base:
+            return model_name
+
+        # Direct SDK mode: add provider prefix so LiteLLM picks the right backend.
         model_lower = model_name.lower()
 
         # Anthropic/Claude models
@@ -468,11 +490,11 @@ class MultiProviderLLMClient:
             return f"anthropic/{model_name}"
 
         # OpenAI models
-        elif any(prefix in model_lower for prefix in ["gpt-", "o1-", "o3-"]):
+        elif any(prefix in model_lower for prefix in ["gpt-", "o1-", "o3-", "o4-", "chatgpt", "codex"]):
             return f"openai/{model_name}"
 
         # Google models
-        elif any(prefix in model_lower for prefix in ["gemini", "palm"]):
+        elif any(prefix in model_lower for prefix in ["gemini", "gemma", "palm"]):
             return f"google/{model_name}"
 
         # Cohere models
@@ -912,9 +934,12 @@ class MultiProviderLLMClient:
             "drop_params": True,  # Silently drop unsupported params (e.g. temperature for gpt-5)
         }
 
-        # Add base URL if provided
+        # Add base URL if provided; also force OpenAI-compatible routing so LiteLLM
+        # SDK does not try to detect the provider from the model name (which would send
+        # gemini-* to Vertex AI or fail for unknown names like "llama-4-maverick").
         if self.config.api_base:
             completion_params["api_base"] = self.config.api_base
+            completion_params["custom_llm_provider"] = "openai"
 
         # Add any additional kwargs
         completion_params.update(kwargs)
@@ -1211,6 +1236,7 @@ class MultiProviderLLMClient:
 
         if self.config.api_base:
             completion_params["api_base"] = self.config.api_base
+            completion_params["custom_llm_provider"] = "openai"
 
         completion_params.update(kwargs)
 

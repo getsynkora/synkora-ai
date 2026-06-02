@@ -103,6 +103,14 @@ class Agent(BaseModel, StatusMixin, TenantMixin):
 
     success_count = Column(Integer, nullable=False, default=0, comment="Number of successful executions")
 
+    created_by = Column(
+        UUID,
+        ForeignKey("accounts.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        comment="Account that created this agent",
+    )
+
     # Role-based agent fields
     role_id = Column(
         UUID,

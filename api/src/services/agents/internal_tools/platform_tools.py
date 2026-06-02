@@ -967,6 +967,818 @@ async def platform_update_agent(
         return {"success": False, "message": str(e)}
 
 
+async def platform_list_database_connections(
+    connection_type: str | None = None,
+    agent_name: str | None = None,
+    runtime_context: Any = None,
+) -> dict:
+    """
+    List active database connections for the current tenant.
+
+    Optionally filter by database type and/or annotate which connections are
+    already attached to a target agent.
+    """
+    if not runtime_context or not runtime_context.tenant_id:
+        return {"success": False, "message": "No tenant context available"}
+
+    try:
+        from src.models.database_connection import DatabaseConnection
+
+        db = runtime_context.db_session
+        tenant_id = runtime_context.tenant_id
+        normalized_type = connection_type.strip().upper() if connection_type else None
+
+        stmt = select(DatabaseConnection).where(
+            DatabaseConnection.tenant_id == tenant_id,
+            DatabaseConnection.status == "active",
+        )
+        if normalized_type:
+            stmt = stmt.where(DatabaseConnection.database_type == normalized_type)
+
+        result = await db.execute(stmt)
+        connections = list(result.scalars().all())
+
+        attached_ids: set[str] = set()
+        if agent_name:
+            agent = await _resolve_target_agent(db, agent_name, tenant_id)
+            if not agent:
+                return {"success": False, "message": f"Agent '{agent_name}' not found"}
+            attached_ids = set((agent.agent_metadata or {}).get("allowed_database_connections", []))
+
+        formatted_connections = [
+            {
+                "id": str(conn.id),
+                "name": conn.name,
+                "type": conn.database_type,
+                "host": conn.host,
+                "port": conn.port,
+                "database": conn.database_name,
+                "database_path": conn.database_path,
+                "attached": str(conn.id) in attached_ids,
+            }
+            for conn in connections
+        ]
+
+        return {
+            "success": True,
+            "connections": formatted_connections,
+            "count": len(formatted_connections),
+            "connection_type": normalized_type,
+            "agent_name": agent_name,
+        }
+    except Exception as e:
+        logger.exception("Error listing database connections for platform engineer")
+        return {"success": False, "message": str(e)}
+
+
+async def platform_attach_database_connections(
+    agent_name: str,
+    connection_ids: list[str] | None = None,
+    connection_type: str | None = None,
+    replace: bool = False,
+    runtime_context: Any = None,
+) -> dict:
+    """
+    Attach one or more active tenant database connections to an agent.
+
+    Connections can be selected either explicitly by UUID or implicitly by
+    database type (e.g. ELASTICSEARCH).
+    """
+    if not runtime_context or not runtime_context.tenant_id:
+        return {"success": False, "message": "No tenant context available"}
+
+    if not connection_ids and not connection_type:
+        return {"success": False, "message": "Provide connection_ids or connection_type"}
+
+    try:
+        from uuid import UUID
+
+        from sqlalchemy.orm.attributes import flag_modified
+
+        from src.models.database_connection import DatabaseConnection
+        from src.services.cache import get_agent_cache
+
+        db = runtime_context.db_session
+        tenant_id = runtime_context.tenant_id
+
+        agent = await _resolve_target_agent(db, agent_name, tenant_id)
+        if not agent:
+            return {"success": False, "message": f"Agent '{agent_name}' not found"}
+
+        normalized_type = connection_type.strip().upper() if connection_type else None
+        stmt = select(DatabaseConnection).where(
+            DatabaseConnection.tenant_id == tenant_id,
+            DatabaseConnection.status == "active",
+        )
+
+        if connection_ids:
+            try:
+                parsed_ids = [UUID(cid) for cid in connection_ids]
+            except ValueError:
+                return {"success": False, "message": "One or more connection_ids are invalid UUIDs"}
+            stmt = stmt.where(DatabaseConnection.id.in_(parsed_ids))
+        elif normalized_type:
+            stmt = stmt.where(DatabaseConnection.database_type == normalized_type)
+
+        result = await db.execute(stmt)
+        connections = list(result.scalars().all())
+
+        if not connections:
+            if normalized_type:
+                return {
+                    "success": False,
+                    "message": f"No active {normalized_type} database connections found for this tenant",
+                }
+            return {"success": False, "message": "No matching active database connections found"}
+
+        if connection_ids and len(connections) != len(connection_ids):
+            return {"success": False, "message": "One or more connection_ids are invalid for this tenant"}
+
+        current_ids = set((agent.agent_metadata or {}).get("allowed_database_connections", []))
+        target_ids = {str(conn.id) for conn in connections}
+        updated_ids = target_ids if replace else current_ids | target_ids
+
+        metadata = dict(agent.agent_metadata or {})
+        metadata["allowed_database_connections"] = sorted(updated_ids)
+        agent.agent_metadata = metadata
+        flag_modified(agent, "agent_metadata")
+        await db.commit()
+
+        cache = get_agent_cache()
+        await cache.invalidate_agent(
+            slug=agent.slug or agent.agent_name,
+            agent_id=str(agent.id),
+            tenant_id=str(tenant_id),
+        )
+
+        return {
+            "success": True,
+            "agent_name": agent.agent_name,
+            "attached_connection_ids": sorted(target_ids),
+            "attached_connections": [
+                {
+                    "id": str(conn.id),
+                    "name": conn.name,
+                    "type": conn.database_type,
+                }
+                for conn in connections
+            ],
+            "total_attached_count": len(updated_ids),
+            "replace": replace,
+        }
+    except Exception as e:
+        logger.exception("Error attaching database connections to agent")
+        try:
+            await runtime_context.db_session.rollback()
+        except Exception:
+            pass
+        return {"success": False, "message": str(e)}
+
+
+async def platform_list_knowledge_bases(
+    status: str | None = None,
+    agent_name: str | None = None,
+    runtime_context: Any = None,
+) -> dict:
+    """List tenant knowledge bases and optionally annotate which are attached to an agent."""
+    if not runtime_context or not runtime_context.tenant_id:
+        return {"success": False, "message": "No tenant context available"}
+
+    try:
+        from src.models.agent_knowledge_base import AgentKnowledgeBase
+        from src.models.knowledge_base import KnowledgeBase
+
+        db = runtime_context.db_session
+        tenant_id = runtime_context.tenant_id
+        normalized_status = status.strip().upper() if status else None
+
+        stmt = select(KnowledgeBase).where(KnowledgeBase.tenant_id == tenant_id)
+        if normalized_status:
+            stmt = stmt.where(KnowledgeBase.status == normalized_status)
+
+        result = await db.execute(stmt)
+        knowledge_bases = list(result.scalars().all())
+
+        attached_ids: set[int] = set()
+        if agent_name:
+            agent = await _resolve_target_agent(db, agent_name, tenant_id)
+            if not agent:
+                return {"success": False, "message": f"Agent '{agent_name}' not found"}
+
+            kb_result = await db.execute(
+                select(AgentKnowledgeBase.knowledge_base_id).where(
+                    AgentKnowledgeBase.agent_id == agent.id,
+                    AgentKnowledgeBase.is_active.is_(True),
+                )
+            )
+            attached_ids = set(kb_result.scalars().all())
+
+        return {
+            "success": True,
+            "knowledge_bases": [
+                {
+                    "id": kb.id,
+                    "name": kb.name,
+                    "description": kb.description,
+                    "status": str(kb.status),
+                    "vector_db_provider": str(kb.vector_db_provider),
+                    "embedding_provider": str(kb.embedding_provider),
+                    "document_count": kb.total_documents,
+                    "total_chunks": kb.total_chunks,
+                    "attached": kb.id in attached_ids,
+                }
+                for kb in knowledge_bases
+            ],
+            "count": len(knowledge_bases),
+            "agent_name": agent_name,
+        }
+    except Exception as e:
+        logger.exception("Error listing knowledge bases for platform engineer")
+        return {"success": False, "message": str(e)}
+
+
+async def platform_create_knowledge_base(
+    name: str,
+    description: str | None = None,
+    embedding_provider: str = "SENTENCE_TRANSFORMERS",
+    embedding_model: str = "all-MiniLM-L6-v2",
+    embedding_config: dict[str, Any] | None = None,
+    vector_db_provider: str = "QDRANT",
+    vector_db_config: dict[str, Any] | None = None,
+    chunking_strategy: str = "SEMANTIC",
+    chunk_size: int = 1500,
+    chunk_overlap: int = 150,
+    min_chunk_size: int = 500,
+    max_chunk_size: int = 3000,
+    chunking_config: dict[str, Any] | None = None,
+    runtime_context: Any = None,
+) -> dict:
+    """Create a knowledge base for the current tenant."""
+    if not runtime_context or not runtime_context.tenant_id:
+        return {"success": False, "message": "No tenant context available"}
+
+    try:
+        from src.models.knowledge_base import (
+            ChunkingStrategy,
+            EmbeddingProvider,
+            KnowledgeBase,
+            KnowledgeBaseStatus,
+            VectorDBProvider,
+        )
+
+        db = runtime_context.db_session
+
+        try:
+            embedding_provider_enum = EmbeddingProvider(embedding_provider.strip().upper())
+        except ValueError:
+            return {"success": False, "message": f"Invalid embedding provider: {embedding_provider}"}
+
+        try:
+            vector_db_provider_enum = VectorDBProvider(vector_db_provider.strip().upper())
+        except ValueError:
+            return {"success": False, "message": f"Invalid vector DB provider: {vector_db_provider}"}
+
+        try:
+            chunking_strategy_enum = ChunkingStrategy(chunking_strategy.strip().upper())
+        except ValueError:
+            return {"success": False, "message": f"Invalid chunking strategy: {chunking_strategy}"}
+
+        kb = KnowledgeBase(
+            name=name,
+            description=description,
+            tenant_id=runtime_context.tenant_id,
+            embedding_provider=embedding_provider_enum,
+            embedding_model=embedding_model,
+            vector_db_provider=vector_db_provider_enum,
+            chunking_strategy=chunking_strategy_enum,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            min_chunk_size=min_chunk_size,
+            max_chunk_size=max_chunk_size,
+            chunking_config=chunking_config or {},
+            status=KnowledgeBaseStatus.ACTIVE,
+        )
+        kb.set_embedding_config_encrypted(embedding_config or {})
+        kb.set_vector_db_config_encrypted(vector_db_config or {})
+
+        db.add(kb)
+        await db.commit()
+        await db.refresh(kb)
+
+        return {
+            "success": True,
+            "knowledge_base_id": kb.id,
+            "name": kb.name,
+            "status": str(kb.status),
+            "vector_db_provider": str(kb.vector_db_provider),
+            "embedding_provider": str(kb.embedding_provider),
+            "message": f"Knowledge base '{kb.name}' created successfully.",
+        }
+    except Exception as e:
+        logger.exception("Error creating knowledge base")
+        try:
+            await runtime_context.db_session.rollback()
+        except Exception:
+            pass
+        return {"success": False, "message": str(e)}
+
+
+async def platform_attach_knowledge_base(
+    agent_name: str,
+    knowledge_base_id: int,
+    retrieval_config: dict[str, Any] | None = None,
+    runtime_context: Any = None,
+) -> dict:
+    """Attach a knowledge base to an agent."""
+    if not runtime_context or not runtime_context.tenant_id:
+        return {"success": False, "message": "No tenant context available"}
+
+    try:
+        from src.models.agent_knowledge_base import AgentKnowledgeBase
+        from src.models.knowledge_base import KnowledgeBase
+
+        db = runtime_context.db_session
+        tenant_id = runtime_context.tenant_id
+
+        agent = await _resolve_target_agent(db, agent_name, tenant_id)
+        if not agent:
+            return {"success": False, "message": f"Agent '{agent_name}' not found"}
+
+        kb = (
+            await db.execute(
+                select(KnowledgeBase).where(
+                    KnowledgeBase.id == knowledge_base_id,
+                    KnowledgeBase.tenant_id == tenant_id,
+                )
+            )
+        ).scalar_one_or_none()
+        if not kb:
+            return {"success": False, "message": f"Knowledge base '{knowledge_base_id}' not found"}
+
+        existing = (
+            await db.execute(
+                select(AgentKnowledgeBase).where(
+                    AgentKnowledgeBase.agent_id == agent.id,
+                    AgentKnowledgeBase.knowledge_base_id == knowledge_base_id,
+                )
+            )
+        ).scalar_one_or_none()
+
+        if existing:
+            existing.retrieval_config = retrieval_config or {}
+            existing.is_active = True
+        else:
+            db.add(
+                AgentKnowledgeBase(
+                    agent_id=agent.id,
+                    knowledge_base_id=knowledge_base_id,
+                    retrieval_config=retrieval_config or {},
+                    is_active=True,
+                )
+            )
+
+        await db.commit()
+        return {
+            "success": True,
+            "agent_name": agent.agent_name,
+            "knowledge_base_id": kb.id,
+            "knowledge_base_name": kb.name,
+            "message": f"Knowledge base '{kb.name}' attached to agent '{agent.agent_name}'.",
+        }
+    except Exception as e:
+        logger.exception("Error attaching knowledge base to agent")
+        try:
+            await runtime_context.db_session.rollback()
+        except Exception:
+            pass
+        return {"success": False, "message": str(e)}
+
+
+async def platform_list_mcp_servers(
+    status: str | None = None,
+    agent_name: str | None = None,
+    runtime_context: Any = None,
+) -> dict:
+    """List tenant MCP servers and optionally annotate which are attached to an agent."""
+    if not runtime_context or not runtime_context.tenant_id:
+        return {"success": False, "message": "No tenant context available"}
+
+    try:
+        from src.models.agent_mcp_server import AgentMCPServer
+        from src.models.mcp_server import MCPServer
+
+        db = runtime_context.db_session
+        tenant_id = runtime_context.tenant_id
+        normalized_status = status.strip().upper() if status else None
+
+        stmt = select(MCPServer).where(MCPServer.tenant_id == tenant_id)
+        if normalized_status:
+            stmt = stmt.where(MCPServer.status == normalized_status)
+
+        result = await db.execute(stmt)
+        servers = list(result.scalars().all())
+
+        attached_ids: set[str] = set()
+        if agent_name:
+            agent = await _resolve_target_agent(db, agent_name, tenant_id)
+            if not agent:
+                return {"success": False, "message": f"Agent '{agent_name}' not found"}
+            mcp_result = await db.execute(
+                select(AgentMCPServer.mcp_server_id).where(
+                    AgentMCPServer.agent_id == agent.id,
+                    AgentMCPServer.is_active.is_(True),
+                )
+            )
+            attached_ids = {str(mcp_id) for mcp_id in mcp_result.scalars().all()}
+
+        return {
+            "success": True,
+            "mcp_servers": [
+                {
+                    "id": str(server.id),
+                    "name": server.name,
+                    "description": server.description,
+                    "transport_type": server.transport_type,
+                    "server_type": server.server_type,
+                    "auth_type": server.auth_type,
+                    "status": server.status,
+                    "url": server.url,
+                    "attached": str(server.id) in attached_ids,
+                }
+                for server in servers
+            ],
+            "count": len(servers),
+            "agent_name": agent_name,
+        }
+    except Exception as e:
+        logger.exception("Error listing MCP servers for platform engineer")
+        return {"success": False, "message": str(e)}
+
+
+async def platform_create_mcp_server(
+    name: str,
+    description: str,
+    transport_type: str = "http",
+    url: str | None = None,
+    command: str | None = None,
+    args: list[str] | None = None,
+    env_vars: dict[str, Any] | None = None,
+    server_type: str = "http",
+    auth_type: str = "none",
+    auth_config: dict[str, Any] | None = None,
+    headers: dict[str, Any] | None = None,
+    capabilities: dict[str, Any] | None = None,
+    server_metadata: dict[str, Any] | None = None,
+    runtime_context: Any = None,
+) -> dict:
+    """Create an MCP server for the current tenant."""
+    if not runtime_context or not runtime_context.tenant_id:
+        return {"success": False, "message": "No tenant context available"}
+
+    try:
+        from src.models.mcp_server import MCPServer
+
+        db = runtime_context.db_session
+        normalized_transport = transport_type.strip().lower()
+
+        if normalized_transport not in {"http", "stdio"}:
+            return {"success": False, "message": "Transport type must be 'http' or 'stdio'"}
+        if normalized_transport == "http" and not url:
+            return {"success": False, "message": "URL is required for HTTP transport"}
+        if normalized_transport == "stdio" and not command:
+            return {"success": False, "message": "Command is required for stdio transport"}
+
+        server = MCPServer(
+            tenant_id=runtime_context.tenant_id,
+            name=name,
+            url=url,
+            description=description,
+            transport_type=normalized_transport,
+            command=command,
+            args=args,
+            env_vars=env_vars,
+            server_type=server_type,
+            auth_type=auth_type,
+            auth_config=auth_config,
+            headers=headers,
+            capabilities=capabilities,
+            server_metadata=server_metadata or {},
+            status="ACTIVE",
+        )
+
+        db.add(server)
+        await db.commit()
+        await db.refresh(server)
+
+        return {
+            "success": True,
+            "mcp_server_id": str(server.id),
+            "name": server.name,
+            "transport_type": server.transport_type,
+            "status": server.status,
+            "message": f"MCP server '{server.name}' created successfully.",
+        }
+    except Exception as e:
+        logger.exception("Error creating MCP server")
+        try:
+            await runtime_context.db_session.rollback()
+        except Exception:
+            pass
+        return {"success": False, "message": str(e)}
+
+
+async def platform_attach_mcp_server(
+    agent_name: str,
+    mcp_server_id: str,
+    mcp_config: dict[str, Any] | None = None,
+    runtime_context: Any = None,
+) -> dict:
+    """Attach an MCP server to an agent."""
+    if not runtime_context or not runtime_context.tenant_id:
+        return {"success": False, "message": "No tenant context available"}
+
+    try:
+        from uuid import UUID
+
+        from src.models.agent_mcp_server import AgentMCPServer
+        from src.models.mcp_server import MCPServer
+
+        db = runtime_context.db_session
+        tenant_id = runtime_context.tenant_id
+
+        agent = await _resolve_target_agent(db, agent_name, tenant_id)
+        if not agent:
+            return {"success": False, "message": f"Agent '{agent_name}' not found"}
+
+        try:
+            mcp_uuid = UUID(mcp_server_id)
+        except ValueError:
+            return {"success": False, "message": "Invalid MCP server ID format"}
+
+        server = (
+            await db.execute(
+                select(MCPServer).where(
+                    MCPServer.id == mcp_uuid,
+                    MCPServer.tenant_id == tenant_id,
+                )
+            )
+        ).scalar_one_or_none()
+        if not server:
+            return {"success": False, "message": f"MCP server '{mcp_server_id}' not found"}
+
+        existing = (
+            await db.execute(
+                select(AgentMCPServer).where(
+                    AgentMCPServer.agent_id == agent.id,
+                    AgentMCPServer.mcp_server_id == mcp_uuid,
+                )
+            )
+        ).scalar_one_or_none()
+
+        if existing:
+            existing.mcp_config = mcp_config or {}
+            existing.is_active = True
+        else:
+            db.add(
+                AgentMCPServer(
+                    agent_id=agent.id,
+                    mcp_server_id=mcp_uuid,
+                    mcp_config=mcp_config or {},
+                    is_active=True,
+                )
+            )
+
+        await db.commit()
+        return {
+            "success": True,
+            "agent_name": agent.agent_name,
+            "mcp_server_id": str(server.id),
+            "mcp_server_name": server.name,
+            "message": f"MCP server '{server.name}' attached to agent '{agent.agent_name}'.",
+        }
+    except Exception as e:
+        logger.exception("Error attaching MCP server to agent")
+        try:
+            await runtime_context.db_session.rollback()
+        except Exception:
+            pass
+        return {"success": False, "message": str(e)}
+
+
+async def platform_get_agent_autonomous(
+    agent_name: str,
+    runtime_context: Any = None,
+) -> dict:
+    """Return the current autonomous configuration for an agent."""
+    if not runtime_context or not runtime_context.tenant_id:
+        return {"success": False, "message": "No tenant context available"}
+
+    try:
+        from src.models.scheduled_task import ScheduledTask
+
+        db = runtime_context.db_session
+        tenant_id = runtime_context.tenant_id
+        agent = await _resolve_target_agent(db, agent_name, tenant_id)
+        if not agent:
+            return {"success": False, "message": f"Agent '{agent_name}' not found"}
+
+        task = (
+            await db.execute(
+                select(ScheduledTask).where(
+                    ScheduledTask.config["agent_id"].as_string() == str(agent.id),
+                    ScheduledTask.task_type == "autonomous_agent",
+                    ScheduledTask.tenant_id == tenant_id,
+                )
+            )
+        ).scalar_one_or_none()
+
+        if not task:
+            return {
+                "success": True,
+                "agent_name": agent.agent_name,
+                "enabled": bool(agent.autonomous_enabled),
+                "configured": False,
+            }
+
+        cfg = task.config or {}
+        schedule = task.cron_expression or task.interval_seconds
+        return {
+            "success": True,
+            "agent_name": agent.agent_name,
+            "enabled": bool(agent.autonomous_enabled),
+            "configured": True,
+            "task_id": str(task.id),
+            "goal": cfg.get("goal"),
+            "schedule": schedule,
+            "schedule_type": task.schedule_type,
+            "max_steps": cfg.get("max_steps", 20),
+            "is_active": task.is_active,
+            "require_approval": cfg.get("require_approval", False),
+            "approval_mode": cfg.get("approval_mode", "smart"),
+            "approval_channel": cfg.get("approval_channel"),
+        }
+    except Exception as e:
+        logger.exception("Error getting autonomous config for agent")
+        return {"success": False, "message": str(e)}
+
+
+async def platform_set_agent_autonomous(
+    agent_name: str,
+    goal: str,
+    schedule: str,
+    max_steps: int = 20,
+    is_active: bool = True,
+    require_approval: bool = False,
+    approval_mode: str = "smart",
+    require_approval_tools: list[str] | None = None,
+    approval_channel: str | None = None,
+    approval_channel_config: dict[str, Any] | None = None,
+    approval_timeout_minutes: int = 60,
+    runtime_context: Any = None,
+) -> dict:
+    """Create or update an agent's autonomous configuration."""
+    if not runtime_context or not runtime_context.tenant_id:
+        return {"success": False, "message": "No tenant context available"}
+    if not runtime_context.user_id:
+        return {"success": False, "message": "No user context available"}
+
+    try:
+        import uuid
+
+        from src.models.scheduled_task import ScheduledTask
+        from src.schemas.autonomous_agent import parse_schedule
+
+        db = runtime_context.db_session
+        tenant_id = runtime_context.tenant_id
+        agent = await _resolve_target_agent(db, agent_name, tenant_id)
+        if not agent:
+            return {"success": False, "message": f"Agent '{agent_name}' not found"}
+
+        sched = parse_schedule(schedule)
+        task = (
+            await db.execute(
+                select(ScheduledTask).where(
+                    ScheduledTask.config["agent_id"].as_string() == str(agent.id),
+                    ScheduledTask.task_type == "autonomous_agent",
+                    ScheduledTask.tenant_id == tenant_id,
+                )
+            )
+        ).scalar_one_or_none()
+
+        cfg = {
+            "agent_id": str(agent.id),
+            "goal": goal,
+            "max_steps": max_steps,
+            "autonomous_conversation_id": (task.config or {}).get("autonomous_conversation_id") if task else None,
+            "require_approval": require_approval,
+            "approval_mode": approval_mode,
+            "require_approval_tools": require_approval_tools or [],
+            "approval_channel": approval_channel,
+            "approval_channel_config": approval_channel_config or {},
+            "approval_timeout_minutes": approval_timeout_minutes,
+        }
+
+        if task:
+            task.description = goal[:255]
+            task.schedule_type = sched["schedule_type"]
+            task.cron_expression = sched.get("cron_expression")
+            task.interval_seconds = sched.get("interval_seconds")
+            task.is_active = is_active
+            task.config = cfg
+        else:
+            task = ScheduledTask(
+                id=uuid.uuid4(),
+                tenant_id=tenant_id,
+                name=f"[Autonomous] {agent.agent_name}",
+                description=goal[:255],
+                task_type="autonomous_agent",
+                schedule_type=sched["schedule_type"],
+                cron_expression=sched.get("cron_expression"),
+                interval_seconds=sched.get("interval_seconds"),
+                is_active=is_active,
+                created_by=runtime_context.user_id,
+                config=cfg,
+            )
+            db.add(task)
+
+        agent.autonomous_enabled = is_active
+        await db.commit()
+        await db.refresh(task)
+
+        return {
+            "success": True,
+            "agent_name": agent.agent_name,
+            "task_id": str(task.id),
+            "goal": goal,
+            "schedule": task.cron_expression or task.interval_seconds,
+            "schedule_type": task.schedule_type,
+            "max_steps": max_steps,
+            "is_active": task.is_active,
+            "enabled": bool(agent.autonomous_enabled),
+            "message": f"Autonomous mode configured for agent '{agent.agent_name}'.",
+        }
+    except Exception as e:
+        logger.exception("Error setting autonomous config for agent")
+        try:
+            await runtime_context.db_session.rollback()
+        except Exception:
+            pass
+        return {"success": False, "message": str(e)}
+
+
+async def platform_disable_agent_autonomous(
+    agent_name: str,
+    delete_task: bool = True,
+    runtime_context: Any = None,
+) -> dict:
+    """Disable an agent's autonomous configuration."""
+    if not runtime_context or not runtime_context.tenant_id:
+        return {"success": False, "message": "No tenant context available"}
+
+    try:
+        from src.models.scheduled_task import ScheduledTask
+
+        db = runtime_context.db_session
+        tenant_id = runtime_context.tenant_id
+        agent = await _resolve_target_agent(db, agent_name, tenant_id)
+        if not agent:
+            return {"success": False, "message": f"Agent '{agent_name}' not found"}
+
+        task = (
+            await db.execute(
+                select(ScheduledTask).where(
+                    ScheduledTask.config["agent_id"].as_string() == str(agent.id),
+                    ScheduledTask.task_type == "autonomous_agent",
+                    ScheduledTask.tenant_id == tenant_id,
+                )
+            )
+        ).scalar_one_or_none()
+
+        if task:
+            if delete_task:
+                await db.delete(task)
+            else:
+                task.is_active = False
+
+        agent.autonomous_enabled = False
+        await db.commit()
+
+        action = "deleted" if task and delete_task else "disabled"
+        return {
+            "success": True,
+            "agent_name": agent.agent_name,
+            "enabled": False,
+            "message": f"Autonomous mode {action} for agent '{agent.agent_name}'.",
+        }
+    except Exception as e:
+        logger.exception("Error disabling autonomous config for agent")
+        try:
+            await runtime_context.db_session.rollback()
+        except Exception:
+            pass
+        return {"success": False, "message": str(e)}
+
+
 # ---------------------------------------------------------------------------
 # Channel management helpers
 # ---------------------------------------------------------------------------

@@ -7,6 +7,9 @@ import '../cache/local_cache.dart';
 import '../client/models.dart';
 import '../client/synkora_client.dart';
 
+/// How long before an inactive session is automatically closed.
+const _kInactivityDuration = Duration(hours: 1);
+
 /// Public state API for the chat. Extend ChangeNotifier so any Flutter
 /// widget can listen with ListenableBuilder or AnimatedBuilder.
 class SynkoraChatController extends ChangeNotifier {
@@ -41,6 +44,22 @@ class SynkoraChatController extends ChangeNotifier {
   String? _error;
   String? _lastMessage; // for retry
 
+  // Sessions list
+  List<WidgetSession> _sessions = [];
+  bool _sessionsLoading = false;
+
+  // When true, the next send() creates a new session instead of resuming
+  bool _forceNewOnNextSend = false;
+
+  // Pre-chat form collected values (name, email, phone)
+  String? _preChatName;
+  String? _preChatEmail;
+  String? _preChatPhone;
+  bool _preChatSubmitted = false;
+
+  // Inactivity timer
+  Timer? _inactivityTimer;
+
   List<ChatMessage> get messages => List.unmodifiable(_messages);
   bool get isStreaming => _isStreaming;
   bool get isLoading => _isLoading;
@@ -49,6 +68,34 @@ class SynkoraChatController extends ChangeNotifier {
   String? get error => _error;
   bool get hasConversationContent =>
       _messages.any((m) => m.content.trim().isNotEmpty);
+
+  /// Whether the pre-chat form should be shown.
+  /// True when: form is enabled in config, user is not already identified,
+  /// and the form hasn't been submitted/skipped yet in this session.
+  bool get shouldShowPreChatForm {
+    if (_preChatSubmitted) return false;
+    final formConfig = _config?.preChatForm;
+    if (formConfig == null || !formConfig.enabled) return false;
+    // If user is already identified via userId/user, skip the form
+    if (userId != null || user != null) return false;
+    return true;
+  }
+
+  bool get preChatSubmitted => _preChatSubmitted;
+
+  List<WidgetSession> get sessions => List.unmodifiable(_sessions);
+  bool get sessionsLoading => _sessionsLoading;
+
+  /// True when the current conversation is closed (read-only).
+  bool get isCurrentSessionClosed {
+    if (_conversationId == null) return false;
+    try {
+      final session = _sessions.firstWhere((s) => s.id == _conversationId);
+      return !session.isActive;
+    } catch (_) {
+      return false;
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // Init: load config + local cache + server history in parallel
@@ -68,12 +115,14 @@ class SynkoraChatController extends ChangeNotifier {
       _messages = List.from(cached);
       notifyListeners();
 
-      // Fetch config + server history in parallel
+      // Fetch config + session list + server history in parallel
       final historyUserId = user?.id ?? userId;
-      final results = await Future.wait([
+      final futures = <Future>[
         _client.loadConfig(),
         _client.loadHistoryBundle(userId: historyUserId, sessionId: sessionId),
-      ]);
+        if (historyUserId != null) _client.listSessions(userId: historyUserId),
+      ];
+      final results = await Future.wait(futures);
 
       _config = results[0] as WidgetConfig;
 
@@ -97,6 +146,19 @@ class SynkoraChatController extends ChangeNotifier {
           convId: _conversationId,
         );
       }
+
+      // Populate sessions list
+      if (historyUserId != null && results.length > 2) {
+        _sessions = results[2] as List<WidgetSession>;
+        // Auto-open the most recent active session if we don't have a conversation yet
+        if (_conversationId == null && _sessions.isNotEmpty) {
+          final mostRecent = _sessions.first;
+          if (mostRecent.isActive) {
+            _conversationId = mostRecent.id;
+            _resetInactivityTimer();
+          }
+        }
+      }
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -113,6 +175,7 @@ class SynkoraChatController extends ChangeNotifier {
     if (_isStreaming || text.trim().isEmpty) return;
     _lastMessage = text;
     _error = null;
+    _resetInactivityTimer();
 
     // Optimistic: add user message immediately
     final userMsg = ChatMessage(
@@ -144,12 +207,25 @@ class SynkoraChatController extends ChangeNotifier {
     final buffer = StringBuffer();
 
     try {
-      final stream = _client.sendMessage(
+      // If only userId is provided (no WidgetUser), synthesise a minimal user
+    // context so the API stamps external_user_id + source on the conversation.
+    // If pre-chat form was filled, include name from form.
+    final effectiveUser = user ?? (userId != null
+        ? WidgetUser(id: userId!, name: _preChatName)
+        : null);
+
+    final shouldForceNew = _forceNewOnNextSend;
+    _forceNewOnNextSend = false;
+
+    final stream = _client.sendMessage(
         text,
         conversationId: _conversationId,
         sessionId: sessionId,
-        user: user,
+        user: effectiveUser,
         userHash: userHash,
+        forceNew: shouldForceNew,
+        userEmail: _preChatEmail,
+        userPhone: _preChatPhone,
       );
 
       await for (final event in stream) {
@@ -157,8 +233,14 @@ class SynkoraChatController extends ChangeNotifier {
           buffer.write(event.content);
           _updateStreamingMessage(streamingId, buffer.toString());
         } else if (event is DoneEvent) {
+          final isNewConversation = event.conversationId != null && event.conversationId != _conversationId;
           _conversationId = event.conversationId ?? _conversationId;
+          _resetInactivityTimer();
           _finalizeStreamingMessage(streamingId, buffer.toString());
+          if (isNewConversation) {
+            // Refresh session list so the new session appears immediately
+            unawaited(loadSessions());
+          }
           await _cache.upsertMessage(
             _client.widgetKey,
             _messages.firstWhere((m) => m.id == streamingId),
@@ -181,6 +263,15 @@ class SynkoraChatController extends ChangeNotifier {
       _isStreaming = false;
       notifyListeners();
     }
+  }
+
+  /// Called when the user submits or skips the pre-chat form.
+  void submitPreChatForm({String? name, String? email, String? phone}) {
+    _preChatName = name?.trim().isEmpty == true ? null : name?.trim();
+    _preChatEmail = email?.trim().isEmpty == true ? null : email?.trim();
+    _preChatPhone = phone?.trim().isEmpty == true ? null : phone?.trim();
+    _preChatSubmitted = true;
+    notifyListeners();
   }
 
   void retry() {
@@ -250,11 +341,118 @@ class SynkoraChatController extends ChangeNotifier {
   }
 
   // ---------------------------------------------------------------------------
+  // Sessions
+  // ---------------------------------------------------------------------------
+
+  /// Load sessions list from the server. Requires userId / user to be set.
+  Future<void> loadSessions() async {
+    final uid = user?.id ?? userId;
+    if (uid == null) return;
+
+    _sessionsLoading = true;
+    notifyListeners();
+
+    try {
+      final fetched = await _client.listSessions(userId: uid);
+      _sessions = fetched;
+    } catch (_) {
+      // Non-fatal — leave existing list intact
+    } finally {
+      _sessionsLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Close the current session (or a specific session by ID).
+  Future<void> closeSession([String? sessionId]) async {
+    final uid = user?.id ?? userId;
+    if (uid == null) return;
+
+    final target = sessionId ?? _conversationId;
+    if (target == null) return;
+
+    _inactivityTimer?.cancel();
+    _inactivityTimer = null;
+
+    await _client.closeSession(sessionId: target, userId: uid);
+
+    // Update local sessions list
+    _sessions = _sessions.map((s) {
+      if (s.id == target) {
+        return WidgetSession(
+          id: s.id,
+          firstMessage: s.firstMessage,
+          lastActivityAt: s.lastActivityAt,
+          status: 'closed',
+          createdAt: s.createdAt,
+        );
+      }
+      return s;
+    }).toList();
+    notifyListeners();
+  }
+
+  /// Resume an existing session: sets conversation ID and loads its messages.
+  Future<void> resumeSession(String conversationId) async {
+    _conversationId = conversationId;
+    _messages = [];
+    _error = null;
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final bundle = await _client.loadHistoryBundle(
+        conversationId: conversationId,
+      );
+      // Prefer the bundle's conversation_id, but fall back to what we set
+      if (bundle.conversationId != null) {
+        _conversationId = bundle.conversationId;
+      }
+      _messages = bundle.messages;
+      await _cache.upsertMessages(
+        _client.widgetKey,
+        _messages,
+        convId: _conversationId,
+      );
+    } catch (_) {
+      // Non-fatal — show empty chat, user can still send messages
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    _resetInactivityTimer();
+  }
+
+  /// Start a fresh session (clears current messages and conversation ID).
+  Future<void> startNewSession() async {
+    if (_isStreaming) return;
+    _inactivityTimer?.cancel();
+    _inactivityTimer = null;
+    _messages = [];
+    _conversationId = null;
+    _error = null;
+    _lastMessage = null;
+    _forceNewOnNextSend = true;
+    await _cache.clearMessages(_client.widgetKey);
+    notifyListeners();
+  }
+
+  void _resetInactivityTimer() {
+    _inactivityTimer?.cancel();
+    _inactivityTimer = Timer(_kInactivityDuration, () async {
+      if (_conversationId != null) {
+        await closeSession(_conversationId);
+      }
+    });
+  }
+
+  // ---------------------------------------------------------------------------
   // Dispose
   // ---------------------------------------------------------------------------
 
   @override
   void dispose() {
+    _inactivityTimer?.cancel();
     _client.dispose();
     _cache.close();
     super.dispose();

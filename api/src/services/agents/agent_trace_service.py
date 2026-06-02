@@ -74,6 +74,19 @@ async def _index_event(event: dict) -> None:
         logger.warning("ES index event failed (non-critical): %s", e)
 
 
+async def _safe_es_search(es, index: str, body: dict) -> dict:
+    """Wrap es.search; raises HTTP 503 when Elasticsearch is unavailable."""
+    from elasticsearch import ApiError
+    from elasticsearch import ConnectionError as ESConnectionError
+    from fastapi import HTTPException
+
+    try:
+        return await es.search(index=index, body=body)
+    except (ApiError, ESConnectionError, Exception) as exc:
+        logger.warning("Elasticsearch search failed: %s", exc)
+        raise HTTPException(status_code=503, detail="Analytics service temporarily unavailable (Elasticsearch)")
+
+
 def _truncate_to_preview(value) -> str | None:
     """Return a valid JSON string preview capped at _PREVIEW_MAX_BYTES chars."""
     if value is None:
@@ -397,7 +410,7 @@ async def get_overview(
         },
     }
 
-    resp = await es.search(index=settings.agent_trace_index, body=body)
+    resp = await _safe_es_search(es, index=settings.agent_trace_index, body=body)
     aggs = resp["aggregations"]
     llm = aggs["llm_stats"]
     tool = aggs["tool_stats"]
@@ -495,7 +508,7 @@ async def get_sessions(
         },
     }
 
-    resp = await es.search(index=settings.agent_trace_index, body=body)
+    resp = await _safe_es_search(es, index=settings.agent_trace_index, body=body)
     aggs = resp["aggregations"]
     total = int(aggs["total_sessions"]["value"])
     buckets = aggs["by_conversation"]["buckets"]
@@ -583,7 +596,7 @@ async def get_token_distribution(
         },
     }
 
-    resp = await es.search(index=settings.agent_trace_index, body=body)
+    resp = await _safe_es_search(es, index=settings.agent_trace_index, body=body)
     aggs = resp["aggregations"]
 
     by_model = []
@@ -652,7 +665,7 @@ async def get_tool_analytics(
         },
     }
 
-    resp = await es.search(index=settings.agent_trace_index, body=body)
+    resp = await _safe_es_search(es, index=settings.agent_trace_index, body=body)
     aggs = resp["aggregations"]
 
     tools = []
@@ -712,7 +725,7 @@ async def get_session_detail(
         "sort": [{"timestamp": {"order": "asc"}}, {"sequence": {"order": "asc"}}],
     }
 
-    resp = await es.search(index=settings.agent_trace_index, body=body)
+    resp = await _safe_es_search(es, index=settings.agent_trace_index, body=body)
     hits = resp["hits"]["hits"]
     if not hits:
         return None
@@ -892,7 +905,7 @@ async def get_compaction_analytics(
         },
     }
 
-    resp = await es.search(index=settings.agent_trace_index, body=body)
+    resp = await _safe_es_search(es, index=settings.agent_trace_index, body=body)
     aggs = resp["aggregations"]
     pr = aggs["pruning_events"]
 
@@ -1002,7 +1015,7 @@ async def get_cache_analytics(
         },
     }
 
-    resp = await es.search(index=settings.agent_trace_index, body=body)
+    resp = await _safe_es_search(es, index=settings.agent_trace_index, body=body)
     aggs = resp["aggregations"]
 
     total_calls = int(aggs["total_llm_calls"]["value"])

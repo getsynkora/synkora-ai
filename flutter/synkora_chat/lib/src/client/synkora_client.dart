@@ -52,6 +52,9 @@ class SynkoraClient {
     String? sessionId,
     WidgetUser? user,
     String? userHash,
+    bool forceNew = false,
+    String? userEmail,
+    String? userPhone,
   }) {
     final controller = StreamController<SseEvent>();
 
@@ -61,6 +64,9 @@ class SynkoraClient {
       sessionId: sessionId,
       user: user,
       userHash: userHash,
+      forceNew: forceNew,
+      userEmail: userEmail,
+      userPhone: userPhone,
       controller: controller,
     );
 
@@ -74,6 +80,9 @@ class SynkoraClient {
     String? sessionId,
     WidgetUser? user,
     String? userHash,
+    bool forceNew = false,
+    String? userEmail,
+    String? userPhone,
   }) async {
     final cancelToken = CancelToken();
 
@@ -83,10 +92,14 @@ class SynkoraClient {
     try {
       final body = <String, dynamic>{
         'message': message,
+        'source': 'flutter',
         if (conversationId != null) 'conversation_id': conversationId,
         if (sessionId != null) 'session_id': sessionId,
         if (user != null) 'user': user.toJson(),
         if (userHash != null) 'user_hash': userHash,
+        if (forceNew) 'force_new': true,
+        if (userEmail != null) 'user_email': userEmail,
+        if (userPhone != null) 'user_phone': userPhone,
       };
 
       final response = await _dio.post<ResponseBody>(
@@ -183,13 +196,15 @@ class SynkoraClient {
   Future<WidgetChatHistory> loadHistoryBundle({
     String? userId,
     String? sessionId,
+    String? conversationId,
     int limit = 50,
   }) async {
     try {
       final queryParams = <String, dynamic>{
         'limit': limit,
-        if (userId != null) 'external_user_id': userId,
-        if (sessionId != null) 'session_id': sessionId,
+        if (conversationId != null) 'conversation_id': conversationId,
+        if (conversationId == null && userId != null) 'external_user_id': userId,
+        if (conversationId == null && sessionId != null) 'session_id': sessionId,
       };
 
       final response = await _dio.get<Map<String, dynamic>>(
@@ -225,6 +240,53 @@ class SynkoraClient {
     return history.messages;
   }
 
+  // ---------------------------------------------------------------------------
+  // Sessions
+  // ---------------------------------------------------------------------------
+
+  Future<List<WidgetSession>> listSessions({
+    required String userId,
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/api/v1/widgets/sessions',
+        queryParameters: {'page': page, 'page_size': pageSize},
+        options: Options(headers: {
+          'X-Widget-API-Key': widgetKey,
+          'X-Widget-User-Id': userId,
+        }),
+      );
+      final root = response.data ?? const <String, dynamic>{};
+      final payload = (root['data'] as Map<String, dynamic>?) ?? root;
+      final list = payload['sessions'] as List<dynamic>? ?? [];
+      return list
+          .map((e) => WidgetSession.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<bool> closeSession({
+    required String sessionId,
+    required String userId,
+  }) async {
+    try {
+      await _dio.post<void>(
+        '/api/v1/widgets/sessions/$sessionId/close',
+        options: Options(headers: {
+          'X-Widget-API-Key': widgetKey,
+          'X-Widget-User-Id': userId,
+        }),
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   String _describeDioError(DioException error) {
     final statusCode = error.response?.statusCode;
     final normalizedBase = baseUrl.replaceFirst(RegExp(r'^https?://'), '');
@@ -256,7 +318,7 @@ class SynkoraClient {
           j['id'] as String? ??
           j['message_id'] as String? ??
           DateTime.now().millisecondsSinceEpoch.toString(),
-      role: (j['role'] as String?) == 'user'
+      role: (j['role'] as String?)?.toLowerCase() == 'user'
           ? MessageRole.user
           : MessageRole.assistant,
       content: j['content'] as String? ?? '',

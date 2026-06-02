@@ -94,7 +94,7 @@ export default function CreateProxyConfigPage() {
 
   if (showApiKey && createdApiKey) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-primary-50/30 p-4 md:p-6">
         <div className="max-w-2xl mx-auto">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -143,7 +143,7 @@ export default function CreateProxyConfigPage() {
                   <div>
                     <span className="text-gray-600">OpenAI:</span>{' '}
                     <code className="bg-white px-2 py-1 rounded border text-xs">
-                      https://proxy.synkora.com/v1/chat/completions
+                      {process.env.NEXT_PUBLIC_API_URL}/proxy/v1/chat/completions
                     </code>
                   </div>
                 )}
@@ -151,7 +151,7 @@ export default function CreateProxyConfigPage() {
                   <div>
                     <span className="text-gray-600">Anthropic:</span>{' '}
                     <code className="bg-white px-2 py-1 rounded border text-xs">
-                      https://proxy.synkora.com/v1/messages
+                      {process.env.NEXT_PUBLIC_API_URL}/proxy/v1/messages
                     </code>
                   </div>
                 )}
@@ -159,7 +159,7 @@ export default function CreateProxyConfigPage() {
                   <div>
                     <span className="text-gray-600">Google:</span>{' '}
                     <code className="bg-white px-2 py-1 rounded border text-xs">
-                      https://proxy.synkora.com/v1/models/gemini-pro:generateContent
+                      {process.env.NEXT_PUBLIC_API_URL}/proxy/v1/models/gemini-pro:generateContent
                     </code>
                   </div>
                 )}
@@ -191,7 +191,7 @@ export default function CreateProxyConfigPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-primary-50/30 p-4 md:p-6">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="mb-8">

@@ -18,6 +18,8 @@ dependencies:
   path_provider: ^2.1.0
   path: ^1.9.0
   flutter_markdown: ^0.7.0
+  lottie: ^3.1.0
+  flutter_svg: ^2.0.0
 
 dev_dependencies:
   flutter_test:
@@ -28,4 +30,5 @@ dev_dependencies:
   mocktail: ^1.0.4
 
 flutter:
-  # No assets or fonts needed — pure Dart/Flutter UI
+  assets:
+    - lib/src/assets/animations/choose_your_colors.json

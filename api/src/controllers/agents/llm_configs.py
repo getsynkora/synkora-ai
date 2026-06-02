@@ -34,7 +34,7 @@ router = APIRouter()
 providers_router = APIRouter(prefix="/api/v1", tags=["llm-providers"])
 
 
-def invalidate_agent_llm_cache(agent_name: str, tenant_id: str = ""):
+def invalidate_agent_llm_cache(agent_name: str, tenant_id: str = "", provider: str = "", model_name: str = ""):
     """Invalidate agent cache and remove from memory when LLM configs change.
 
     Args:
@@ -42,6 +42,8 @@ def invalidate_agent_llm_cache(agent_name: str, tenant_id: str = ""):
         tenant_id: Tenant whose cache entry should be deleted.  Must be supplied
                    so the correct tenant-scoped key is removed; without it the
                    deletion targets a key that does not exist and becomes a no-op.
+        provider: LLM provider of the updated config (used to evict pool entry).
+        model_name: Model name of the updated config (used to evict pool entry).
     """
     logger.info(f"Starting cache invalidation for agent '{agent_name}' (tenant={tenant_id or 'unscoped'})...")
 
@@ -82,6 +84,17 @@ def invalidate_agent_llm_cache(agent_name: str, tenant_id: str = ""):
             logger.info(f"Agent '{agent_name}' not in memory registry, no need to remove")
     except Exception as e:
         logger.warning(f"Failed to remove agent from memory (non-critical): {e}")
+
+    # Step 3: Evict the LLM client pool entry so the next request creates a fresh
+    # client with the updated settings (temperature, max_tokens, top_p, etc.)
+    if provider and model_name:
+        try:
+            from src.services.performance.llm_client_pool import get_llm_client_pool
+
+            pool = get_llm_client_pool()
+            pool.evict_by_model(provider, model_name)
+        except Exception as e:
+            logger.warning(f"Failed to evict LLM client pool entry (non-critical): {e}")
 
     logger.info(f"Cache invalidation complete for agent '{agent_name}'")
 
@@ -444,8 +457,8 @@ async def update_llm_config(
         await db.commit()
         await db.refresh(config)
 
-        # Invalidate cache after updating LLM config
-        invalidate_agent_llm_cache(agent.slug, str(tenant_id))
+        # Invalidate cache after updating LLM config (also evicts the LLM client pool entry)
+        invalidate_agent_llm_cache(agent.slug, str(tenant_id), provider=config.provider, model_name=config.model_name)
 
         return AgentLLMConfigResponse(
             id=config.id,

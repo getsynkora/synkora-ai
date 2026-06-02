@@ -67,6 +67,38 @@ class WidgetTheme {
   );
 }
 
+class PreChatFormConfig {
+  final bool enabled;
+  final bool showName;
+  final bool showEmail;
+  final bool showPhone;
+  final bool skippable;
+
+  const PreChatFormConfig({
+    required this.enabled,
+    required this.showName,
+    required this.showEmail,
+    required this.showPhone,
+    required this.skippable,
+  });
+
+  factory PreChatFormConfig.fromJson(Map<String, dynamic> j) => PreChatFormConfig(
+    enabled: j['enabled'] as bool? ?? false,
+    showName: j['show_name'] as bool? ?? true,
+    showEmail: j['show_email'] as bool? ?? true,
+    showPhone: j['show_phone'] as bool? ?? false,
+    skippable: j['skippable'] as bool? ?? true,
+  );
+
+  static PreChatFormConfig get disabled => const PreChatFormConfig(
+    enabled: false,
+    showName: false,
+    showEmail: false,
+    showPhone: false,
+    skippable: true,
+  );
+}
+
 class WidgetConfig {
   final String widgetId;
   final String agentName;
@@ -74,6 +106,7 @@ class WidgetConfig {
   final String? agentAvatarUrl;
   final WidgetTheme theme;
   final List<SuggestionPrompt> suggestionPrompts;
+  final PreChatFormConfig preChatForm;
 
   const WidgetConfig({
     required this.widgetId,
@@ -82,6 +115,7 @@ class WidgetConfig {
     this.agentAvatarUrl,
     required this.theme,
     required this.suggestionPrompts,
+    required this.preChatForm,
   });
 
   factory WidgetConfig.fromJson(Map<String, dynamic> j) {
@@ -91,6 +125,7 @@ class WidgetConfig {
             .toList() ??
         [];
     final themeJson = j['theme'] as Map<String, dynamic>? ?? {};
+    final preChatJson = j['pre_chat_form'] as Map<String, dynamic>? ?? {};
     return WidgetConfig(
       widgetId: j['widget_id'] as String? ?? '',
       agentName: j['agent_name'] as String? ?? 'AI Assistant',
@@ -98,6 +133,7 @@ class WidgetConfig {
       agentAvatarUrl: j['agent_avatar'] as String?,
       theme: WidgetTheme.fromJson(themeJson),
       suggestionPrompts: prompts,
+      preChatForm: PreChatFormConfig.fromJson(preChatJson),
     );
   }
 }
@@ -184,14 +220,51 @@ class WidgetUser {
   final String id;
   final String? name;
   final String? email;
+  final String? phone;
   final String? orgId;
 
-  const WidgetUser({required this.id, this.name, this.email, this.orgId});
+  const WidgetUser({required this.id, this.name, this.email, this.phone, this.orgId});
 
   Map<String, dynamic> toJson() => {
     'id': id,
     if (name != null) 'name': name,
     if (email != null) 'email': email,
+    if (phone != null) 'phone': phone,
     if (orgId != null) 'org_id': orgId,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Widget session (from GET /api/v1/widgets/sessions)
+// ---------------------------------------------------------------------------
+
+class WidgetSession {
+  final String id;
+  final String? firstMessage;
+  final DateTime lastActivityAt;
+  final String status; // "active" | "closed"
+  final DateTime createdAt;
+
+  const WidgetSession({
+    required this.id,
+    this.firstMessage,
+    required this.lastActivityAt,
+    required this.status,
+    required this.createdAt,
+  });
+
+  bool get isActive => status == 'active';
+
+  factory WidgetSession.fromJson(Map<String, dynamic> j) {
+    return WidgetSession(
+      id: j['id'] as String,
+      firstMessage: j['first_message'] as String?,
+      lastActivityAt:
+          DateTime.tryParse(j['last_activity_at'] as String? ?? '') ??
+          DateTime.now(),
+      status: j['status'] as String? ?? 'active',
+      createdAt:
+          DateTime.tryParse(j['created_at'] as String? ?? '') ?? DateTime.now(),
+    );
+  }
 }
