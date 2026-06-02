@@ -272,6 +272,7 @@ async def get_widget_config(http_request: Request, db: AsyncSession = Depends(ge
 
         theme = widget.theme_config or {}
 
+        pre_chat = theme.get("pre_chat_form") or {}
         return {
             "widget_id": str(widget.id),
             "widget_name": widget.widget_name,
@@ -290,6 +291,13 @@ async def get_widget_config(http_request: Request, db: AsyncSession = Depends(ge
                 "branding_text": theme.get("branding_text"),
                 "branding_url": theme.get("branding_url") or "",
             },
+            "pre_chat_form": {
+                "enabled": bool(pre_chat.get("enabled", False)),
+                "show_name": bool(pre_chat.get("show_name", True)),
+                "show_email": bool(pre_chat.get("show_email", True)),
+                "show_phone": bool(pre_chat.get("show_phone", False)),
+                "skippable": bool(pre_chat.get("skippable", True)),
+            },
         }
 
     except HTTPException:
@@ -304,6 +312,7 @@ async def get_widget_chat_history(
     http_request: Request,
     session_id: str | None = None,
     external_user_id: str | None = None,
+    conversation_id: str | None = None,
     limit: int = 50,
     db: AsyncSession = Depends(get_async_db),
 ):
@@ -316,9 +325,10 @@ async def get_widget_chat_history(
         if not widget:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or inactive widget API key")
 
-        if not session_id and not external_user_id:
+        if not session_id and not external_user_id and not conversation_id:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Either session_id or external_user_id is required"
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Either session_id, external_user_id, or conversation_id is required",
             )
 
         # Collect all agent IDs this widget can route to (default + all routed agents)
@@ -338,8 +348,19 @@ async def get_widget_chat_history(
         if not valid_agent_ids:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
 
-        # Scope by external_user_id for identified users, else by session_id
-        if external_user_id:
+        # Scope by conversation_id (direct lookup), external_user_id, or session_id
+        if conversation_id:
+            try:
+                conv_uuid = uuid.UUID(conversation_id)
+            except ValueError:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid conversation_id format")
+            conversation_result = await db.execute(
+                select(Conversation).filter(
+                    Conversation.id == conv_uuid,
+                    Conversation.agent_id.in_(valid_agent_ids),
+                )
+            )
+        elif external_user_id:
             conversation_result = await db.execute(
                 select(Conversation)
                 .filter(
@@ -392,6 +413,196 @@ async def get_widget_chat_history(
     except Exception as e:
         logger.error(f"Failed to get chat history: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to get chat history")
+
+
+# NOTE: /widgets/sessions and /widgets/sessions/{id}/close MUST be defined before
+# /widgets/{widget_id} so FastAPI doesn't swallow them as widget_id="sessions".
+
+
+@widgets_router.get("/widgets/sessions")
+async def list_widget_sessions(
+    http_request: Request,
+    page: int = 1,
+    page_size: int = 20,
+    session_status: str | None = None,
+    db: AsyncSession = Depends(get_async_db),
+):
+    """
+    List sessions for an identified widget user.
+    Authenticated via X-Widget-API-Key header. Requires user context (external_user_id).
+    """
+    from datetime import UTC, datetime
+
+    from sqlalchemy import or_
+
+    api_key = http_request.headers.get("X-Widget-API-Key")
+    if not api_key:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Widget API key is required")
+
+    widget = await WidgetAuthMiddleware.validate_api_key(api_key, db)
+    if not widget:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or inactive widget API key")
+
+    external_user_id = http_request.headers.get("X-Widget-User-Id")
+    if not external_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="X-Widget-User-Id header is required to list sessions",
+        )
+
+    # Build base filter: conversations for this user on this agent
+    stmt = (
+        select(Conversation)
+        .filter(
+            Conversation.agent_id == widget.agent_id,
+            Conversation.external_user_id == external_user_id,
+            Conversation.deleted_at.is_(None),
+        )
+        .order_by(Conversation.last_activity_at.desc().nullslast())
+    )
+
+    if session_status == "active":
+        stmt = stmt.filter(Conversation.status == ConversationStatus.ACTIVE, Conversation.closed_at.is_(None))
+    elif session_status == "closed":
+        stmt = stmt.filter(or_(Conversation.status != ConversationStatus.ACTIVE, Conversation.closed_at.isnot(None)))
+
+    offset = (page - 1) * page_size
+    result = await db.execute(stmt.offset(offset).limit(page_size))
+    conversations = result.scalars().all()
+
+    from src.models.message import Message
+
+    sessions = []
+    for conv in conversations:
+        first_msg_result = await db.execute(
+            select(Message)
+            .filter(Message.conversation_id == conv.id, Message.role == "USER")
+            .order_by(Message.created_at.asc())
+            .limit(1)
+        )
+        first_msg = first_msg_result.scalar_one_or_none()
+
+        # Skip conversations with no user messages (empty sessions)
+        if not first_msg:
+            continue
+
+        first_message_preview = first_msg.content[:80] if first_msg.content else None
+
+        is_closed = conv.closed_at is not None or conv.status != ConversationStatus.ACTIVE
+        sessions.append(
+            {
+                "id": str(conv.id),
+                "first_message": first_message_preview,
+                "last_activity_at": (
+                    conv.last_activity_at.isoformat() if conv.last_activity_at else conv.created_at.isoformat()
+                ),
+                "status": "closed" if is_closed else "active",
+                "created_at": conv.created_at.isoformat(),
+            }
+        )
+
+    return WidgetResponse(
+        success=True,
+        message=f"Found {len(sessions)} sessions",
+        data={"sessions": sessions, "page": page, "page_size": page_size},
+    )
+
+
+@widgets_router.post("/widgets/sessions/{session_id}/close")
+async def close_widget_session(
+    session_id: str,
+    http_request: Request,
+    db: AsyncSession = Depends(get_async_db),
+):
+    """
+    Close a widget session. Sets closed_at and archives the conversation.
+    Accepts either X-Widget-API-Key (widget/Flutter clients) or Bearer token (dashboard admins).
+    """
+    from datetime import UTC, datetime
+
+    try:
+        session_uuid = uuid.UUID(session_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid session ID format")
+
+    api_key = http_request.headers.get("X-Widget-API-Key")
+    bearer = http_request.headers.get("Authorization", "")
+
+    if api_key:
+        # Widget/Flutter client path — verify API key and scope to widget's agent
+        widget = await WidgetAuthMiddleware.validate_api_key(api_key, db)
+        if not widget:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or inactive widget API key")
+
+        external_user_id = http_request.headers.get("X-Widget-User-Id")
+        filters = [
+            Conversation.id == session_uuid,
+            Conversation.agent_id == widget.agent_id,
+            Conversation.deleted_at.is_(None),
+        ]
+        if external_user_id:
+            filters.append(Conversation.external_user_id == external_user_id)
+
+    elif bearer.startswith("Bearer "):
+        # Dashboard admin path — verify JWT and scope to tenant
+        from src.middleware.auth_middleware import get_current_account, get_current_tenant_id
+        from src.models.tenant import TenantAccountJoin
+
+        token = bearer[7:]
+        try:
+            from src.services.auth_service import AuthService
+
+            payload = AuthService.decode_token(token)
+            tenant_id = uuid.UUID(payload["tenant_id"])
+            account_id = uuid.UUID(payload["sub"])
+        except Exception:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+        # Verify membership and admin/owner role
+        membership = await db.execute(
+            select(TenantAccountJoin).filter(
+                TenantAccountJoin.tenant_id == tenant_id,
+                TenantAccountJoin.account_id == account_id,
+            )
+        )
+        join = membership.scalar_one_or_none()
+        if not join or not join.is_admin:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
+
+        # Scope conversation to tenant via agent join
+        from src.models.agent import Agent as AgentModel
+
+        filters = [
+            Conversation.id == session_uuid,
+            Conversation.deleted_at.is_(None),
+            AgentModel.tenant_id == tenant_id,
+        ]
+        # Rewrite to use join below
+        result = await db.execute(
+            select(Conversation).join(AgentModel, Conversation.agent_id == AgentModel.id).filter(*filters)
+        )
+        conversation = result.scalar_one_or_none()
+        if not conversation:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+
+        conversation.closed_at = datetime.now(UTC)
+        conversation.status = ConversationStatus.ARCHIVED
+        await db.commit()
+        return WidgetResponse(success=True, message="Session closed", data={"id": session_id})
+
+    else:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
+
+    result = await db.execute(select(Conversation).filter(*filters))
+    conversation = result.scalar_one_or_none()
+    if not conversation:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+
+    conversation.closed_at = datetime.now(UTC)
+    conversation.status = ConversationStatus.ARCHIVED
+    await db.commit()
+
+    return WidgetResponse(success=True, message="Session closed", data={"id": session_id})
 
 
 @widgets_router.get("/widgets/{widget_id}", response_model=WidgetResponse)
@@ -904,6 +1115,13 @@ class WidgetChatRequest(BaseModel):
     conversation_id: str | None = Field(None, description="Conversation ID if continuing existing chat")
     user: WidgetUserContext | None = Field(None, description="Identified user context from SaaS platform")
     user_hash: str | None = Field(None, description="HMAC-SHA256(identity_secret, user.id) for identity verification")
+    source: str | None = Field(None, description="Channel source: flutter | widget | chrome (defaults to widget)")
+    force_new: bool = Field(
+        False, description="When true, always create a new conversation instead of resuming the latest active one"
+    )
+    # Pre-chat form collected fields (optional, passed on first message)
+    user_email: str | None = Field(None, description="Email collected from pre-chat form")
+    user_phone: str | None = Field(None, description="Phone collected from pre-chat form")
 
 
 class PushRegisterRequest(BaseModel):
@@ -1135,8 +1353,9 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
             )
 
         # ── Conversation find-or-create ───────────────────────────────────────────
-        # For identified users, reuse existing active conversation for continuity.
-        # If conversation_id supplied, verify ownership before using it.
+        # If conversation_id is supplied, verify ownership then use it.
+        # Otherwise always create a new conversation — callers that want to resume
+        # must pass conversation_id explicitly (Flutter does this via _conversationId tracking).
         resolved_conversation_id = request.conversation_id
 
         if request.user:
@@ -1153,39 +1372,30 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
                     resolved_conversation_id = None  # Strip invalid/spoofed ID
 
             if not resolved_conversation_id:
-                # Find existing active conversation for this user (most recent first)
-                existing_result = await db.execute(
-                    select(Conversation)
-                    .filter(
-                        Conversation.agent_id == agent.id,
-                        Conversation.external_user_id == request.user.id,
-                        Conversation.status == ConversationStatus.ACTIVE,
-                    )
-                    .order_by(Conversation.updated_at.desc())
-                    .limit(1)
+                # Always create a new conversation for this user
+                _widget_source = request.source if request.source in ("flutter", "widget", "chrome") else "widget"
+                new_conv = Conversation(
+                    agent_id=agent.id,
+                    external_user_id=request.user.id,
+                    external_org_id=request.user.org_id,
+                    external_user_name=request.user.name,
+                    external_user_email=request.user_email,
+                    external_user_phone=request.user_phone,
+                    session_id=f"eu_{request.user.id}_{uuid.uuid4().hex[:8]}",
+                    name=request.message[:60].strip()
+                    if request.message
+                    else f"Chat with {request.user.name or request.user.id}",
+                    status=ConversationStatus.ACTIVE,
+                    source=_widget_source,
                 )
-                existing = existing_result.scalar_one_or_none()
-                if existing:
-                    resolved_conversation_id = str(existing.id)
-                else:
-                    # Create new conversation scoped to this user
-                    new_conv = Conversation(
-                        agent_id=agent.id,
-                        external_user_id=request.user.id,
-                        external_org_id=request.user.org_id,
-                        external_user_name=request.user.name,
-                        session_id=f"eu_{request.user.id}",
-                        name=f"Chat with {request.user.name or request.user.id}",
-                        status=ConversationStatus.ACTIVE,
-                    )
-                    db.add(new_conv)
-                    try:
-                        await db.commit()
-                        await db.refresh(new_conv)
-                        resolved_conversation_id = str(new_conv.id)
-                    except Exception as e:
-                        await db.rollback()
-                        logger.warning(f"Could not create conversation for user {request.user.id}: {e}")
+                db.add(new_conv)
+                try:
+                    await db.commit()
+                    await db.refresh(new_conv)
+                    resolved_conversation_id = str(new_conv.id)
+                except Exception as e:
+                    await db.rollback()
+                    logger.warning(f"Could not create conversation for user {request.user.id}: {e}")
 
         # Generate session ID if not provided
         session_id = request.session_id or str(uuid.uuid4())

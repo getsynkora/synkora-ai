@@ -296,7 +296,13 @@ class CreditService:
             await self.db.commit()
 
     async def deduct_credits_idempotent(
-        self, tenant_id: UUID, user_id: UUID | None, agent_id: UUID, action_type: "ActionType", metadata: dict
+        self,
+        tenant_id: UUID,
+        user_id: UUID | None,
+        agent_id: UUID,
+        action_type: "ActionType",
+        metadata: dict,
+        extra_credits: int = 0,
     ) -> CreditTransaction | None:
         """
         Deduct credits with idempotency check.
@@ -334,10 +340,10 @@ class CreditService:
             # No idempotency key available, proceed without check
             idempotency_key = None
 
-        # Get credit cost for this action
+        # Get credit cost for this action (base + any per-use pricing markup)
         from src.models.credit_transaction import ActionType as ActionTypeModel
 
-        credit_cost = ActionTypeModel.get_credit_cost(action_type)
+        credit_cost = ActionTypeModel.get_credit_cost(action_type) + max(0, extra_credits)
 
         # SECURITY: Use row-level locking to prevent race condition
         # The lock MUST be acquired BEFORE the idempotency check to prevent TOCTOU
@@ -386,7 +392,7 @@ class CreditService:
             description=f"Credit deduction for {action_type.value}",
             reference_id=agent_id,
             reference_type="agent",
-            transaction_metadata=str(metadata),
+            transaction_metadata=__import__("json").dumps(metadata),
             idempotency_key=idempotency_key,
             balance_after=balance.available_credits,  # Add balance_after field
         )

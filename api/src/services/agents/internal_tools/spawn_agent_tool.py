@@ -257,68 +257,69 @@ async def _execute_sub_agent(
     This uses the existing ChatStreamService infrastructure to run the agent
     with the same configuration as the parent.
     """
-    from src.core.database import get_async_session_factory
     from src.services.agents.agent_loader_service import AgentLoaderService
     from src.services.agents.agent_manager import AgentManager
     from src.services.agents.chat_service import ChatService
     from src.services.agents.chat_stream_service import ChatStreamService
 
-    # Always create a fresh session — never reuse the parent's active session.
-    # spawn_agent is called concurrently (asyncio.gather) for parallel sub-agents;
-    # sharing one AsyncSession across concurrent coroutines causes immediate failures.
-    db = get_async_session_factory()()
-    should_close_db = True
+    # Sanitize task_description: cap length and wrap in delimiters to prevent
+    # prompt injection from user-controlled content reaching the sub-agent.
+    sandboxed_desc = f"--- BEGIN SUB-TASK ---\n{task_description[:4000]}\n--- END SUB-TASK ---"
 
-    try:
-        # Sanitize task_description: cap length and wrap in delimiters to prevent
-        # prompt injection from user-controlled content reaching the sub-agent.
-        sandboxed_desc = f"--- BEGIN SUB-TASK ---\n{task_description[:4000]}\n--- END SUB-TASK ---"
-
-        # Build the focused sub-task prompt
-        full_prompt = f"""## Sub-Task
+    # Build the focused sub-task prompt
+    full_prompt = f"""## Sub-Task
 
 {sandboxed_desc}
 
 Complete this task thoroughly and provide your findings. Be comprehensive but concise."""
 
-        if parent_agent_name:
-            agent_manager = AgentManager()
-            agent_loader = AgentLoaderService(agent_manager)
-            chat_service = ChatService()
-            chat_stream_service = ChatStreamService(
-                agent_loader=agent_loader,
-                chat_service=chat_service,
-            )
+    if parent_agent_name:
+        agent_manager = AgentManager()
+        agent_loader = AgentLoaderService(agent_manager)
+        chat_service = ChatService()
+        chat_stream_service = ChatStreamService(
+            agent_loader=agent_loader,
+            chat_service=chat_service,
+        )
 
-            # Stream the response and collect chunks
-            response_chunks = []
+        # Stream the response and collect chunks
+        response_chunks: list[str] = []
+        error_messages: list[str] = []
 
-            async for sse_event in chat_stream_service.stream_agent_response(
-                agent_name=parent_agent_name,
-                tenant_id=tenant_id,
-                message=full_prompt,
-                conversation_history=None,
-                conversation_id=None,
-                attachments=None,
-                llm_config_id=None,
-                db=db,
-                override_system_prompt=_WORKER_SYSTEM_PROMPT,
-                override_agentic_config={"parallel_tools": True},
-            ):
-                # Parse SSE events
-                if sse_event.startswith("data: "):
-                    try:
-                        event_data = json.loads(sse_event[6:])
-                        if event_data.get("type") == "chunk":
-                            response_chunks.append(event_data.get("content", ""))
-                    except json.JSONDecodeError:
-                        pass
+        async for sse_event in chat_stream_service.stream_agent_response(
+            agent_name=parent_agent_name,
+            tenant_id=tenant_id,
+            message=full_prompt,
+            conversation_history=None,
+            conversation_id=None,
+            attachments=None,
+            llm_config_id=None,
+            db=None,
+            override_system_prompt=_WORKER_SYSTEM_PROMPT,
+            override_agentic_config={"parallel_tools": True},
+        ):
+            # Parse SSE events
+            if sse_event.startswith("data: "):
+                try:
+                    event_data = json.loads(sse_event[6:])
+                    event_type = event_data.get("type")
+                    if event_type == "chunk":
+                        content = event_data.get("content")
+                        if content:  # Skip empty strings
+                            response_chunks.append(content)
+                    elif event_type == "error":
+                        error_msg = event_data.get("error", "Unknown error")
+                        error_messages.append(error_msg)
+                        logger.warning(f"Sub-agent error event: {error_msg}")
+                except json.JSONDecodeError:
+                    pass
 
-            return "".join(response_chunks) or "Sub-agent completed but returned no response."
+        result = "".join(response_chunks)
+        if result:
+            return result
+        if error_messages:
+            return f"Sub-agent encountered errors: {'; '.join(error_messages)}"
+        return "Sub-agent completed but returned no response."
 
-        else:
-            return "Error: parent_agent_name is required for sub-agent execution."
-
-    finally:
-        if should_close_db:
-            await db.close()
+    else:
+        return "Error: parent_agent_name is required for sub-agent execution."

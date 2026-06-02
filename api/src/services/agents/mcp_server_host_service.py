@@ -63,7 +63,7 @@ async def _collect_agent_response(
 
     chunks: list[str] = []
     async for sse_event in stream_service.stream_agent_response(
-        agent_name=agent.agent_name,
+        agent_name=agent.slug,
         message=message,
         conversation_history=None,
         conversation_id=conversation_id,
@@ -209,7 +209,7 @@ class MCPServerHostService:
         req_id = str(uuid.uuid4())
 
         async for sse_event in stream_service.stream_agent_response(
-            agent_name=agent.agent_name,
+            agent_name=agent.slug,
             message=message,
             conversation_history=None,
             conversation_id=conversation_id,

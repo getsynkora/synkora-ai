@@ -49,6 +49,7 @@ class RuntimeContext:
     db_session: AsyncSession | None
     db_session_factory: Callable[[], Any] | None = None
     llm_client: Any | None = None
+    agent_slug: str | None = None  # Cached slug — avoids DB lookups in spawn_agent tools
     conversation_id: uuid.UUID | None = None
     message_id: uuid.UUID | None = None
     user_id: uuid.UUID | None = None
@@ -152,6 +153,7 @@ class RuntimeContext:
             db_session=self.db_session,
             db_session_factory=self.db_session_factory,
             llm_client=self.llm_client,
+            # child_agent_id differs, so agent_slug is not inherited
             conversation_id=self.conversation_id,
             message_id=self.message_id,
             user_id=self.user_id,
@@ -171,6 +173,7 @@ class RuntimeContext:
             db_session=db_session,
             db_session_factory=self.db_session_factory,
             llm_client=self.llm_client,
+            agent_slug=self.agent_slug,
             conversation_id=self.conversation_id,
             message_id=self.message_id,
             user_id=self.user_id,

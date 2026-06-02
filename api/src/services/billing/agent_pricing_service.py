@@ -153,7 +153,7 @@ class AgentPricingService:
         # Let's stick to the simple revenue share on the total credits for now as per model.
 
         creator_share_pct = pricing.revenue_share_percentage
-        creator_credits = int(credits_used * (creator_share_pct / Decimal("100.00")))
+        creator_credits = round(credits_used * float(creator_share_pct) / 100)
         platform_credits = credits_used - creator_credits
 
         # Create revenue record

@@ -72,6 +72,8 @@ export default function AgentMCPServersPage() {
   const [selectedServerTools, setSelectedServerTools] = useState<MCPTool[]>([])
   const [loadingTools, setLoadingTools] = useState(false)
   const [savingTools, setSavingTools] = useState(false)
+  const [toolSearch, setToolSearch] = useState('')
+  const [expandedTools, setExpandedTools] = useState<Set<string>>(new Set())
   const [attachConfig, setAttachConfig] = useState({
     enabled_tools: [] as string[],
     timeout: 30,
@@ -571,17 +573,32 @@ export default function AgentMCPServersPage() {
 
       {/* Tools Modal */}
       {showToolsModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-5">
-              <h2 className="text-xl font-bold text-gray-900">Available Tools</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(28,22,16,0.28)] p-4 backdrop-blur-[8px]">
+          <div className="flex max-h-[88vh] w-full max-w-3xl flex-col rounded-[1.7rem] border border-[#ddd3c5] bg-[linear-gradient(180deg,_rgba(250,247,241,0.98),_rgba(241,236,229,0.98))] shadow-[0_36px_96px_-40px_rgba(17,14,10,0.45)]">
+            {/* Header */}
+            <div className="flex flex-shrink-0 items-start justify-between border-b border-[#e7ded2] px-5 py-5 sm:px-6">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8d6c51]">
+                  MCP Server
+                </p>
+                <h2 className="mt-1 text-[1.9rem] font-semibold tracking-[-0.04em] text-gray-950">
+                  Available Tools
+                </h2>
+                {!loadingTools && selectedServerTools.length > 0 && (
+                  <p className="mt-0.5 text-sm text-[#9a8570]">
+                    {selectedServerTools.length} tool{selectedServerTools.length !== 1 ? 's' : ''} available
+                  </p>
+                )}
+              </div>
               <button
                 onClick={() => {
                   setShowToolsModal(false)
                   setSelectedServerId(null)
                   setSelectedServerTools([])
+                  setToolSearch('')
+                  setExpandedTools(new Set())
                 }}
-                className="text-gray-400 hover:text-gray-600"
+                className="rounded-full p-2 text-[#9a8f81] transition-colors hover:bg-white/80 hover:text-[#5f564c]"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -589,77 +606,141 @@ export default function AgentMCPServersPage() {
               </button>
             </div>
 
-            {loadingTools ? (
-              <div className="flex items-center justify-center py-12">
-                <LoadingSpinner size="lg" />
-              </div>
-            ) : selectedServerTools.length === 0 ? (
-              <EmptyState
-                icon={
-                  <svg
-                    className="mx-auto h-10 w-10 text-red-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-                    />
+            {/* Search */}
+            {!loadingTools && selectedServerTools.length > 0 && (
+              <div className="flex-shrink-0 px-5 pt-4 sm:px-6">
+                <div className="relative">
+                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a89880]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
-                }
-                title="No tools available"
-                description="This MCP server doesn't provide any tools or failed to connect."
-              />
-            ) : (
-              <div className="space-y-3">
-                {selectedServerTools.map((tool, index) => (
-                  <div
-                    key={index}
-                    className="border border-gray-200 rounded-lg p-4 hover:border-red-300 transition-colors"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <h3 className="text-base font-semibold text-gray-900">{tool.name}</h3>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                        Tool
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-600 mb-2">{tool.description}</p>
-                    
-                    {tool.inputSchema && tool.inputSchema.properties && (
-                      <div className="bg-red-50 rounded p-3">
-                        <p className="text-xs font-medium text-gray-700 mb-2">Parameters:</p>
-                        <div className="space-y-1">
-                          {Object.entries(tool.inputSchema.properties).map(([key, value]: [string, any]) => (
-                            <div key={key} className="text-xs">
-                              <span className="font-mono text-red-600">{key}</span>
-                              <span className="text-gray-500"> ({value.type})</span>
-                              {tool.inputSchema.required?.includes(key) && (
-                                <span className="ml-1 text-red-500">*</span>
-                              )}
-                              {value.description && (
-                                <p className="text-gray-600 ml-4 mt-0.5">{value.description}</p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  <input
+                    type="text"
+                    placeholder="Search tools..."
+                    value={toolSearch}
+                    onChange={(e) => setToolSearch(e.target.value)}
+                    className="w-full rounded-[1rem] border border-[#ddd3c5] bg-white/70 py-2.5 pl-9 pr-4 text-sm text-gray-900 placeholder-[#b8a898] transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#c8a882]"
+                  />
+                </div>
               </div>
             )}
 
-            <div className="mt-5">
+            {/* Tool list */}
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
+              {loadingTools ? (
+                <div className="flex items-center justify-center py-16">
+                  <LoadingSpinner size="lg" />
+                </div>
+              ) : selectedServerTools.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#f0e8dc]">
+                    <svg className="h-6 w-6 text-[#b8997a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                    </svg>
+                  </div>
+                  <p className="mt-4 text-sm font-semibold text-gray-800">No tools available</p>
+                  <p className="mt-1 text-xs text-[#9a8570]">This MCP server doesn't provide any tools or failed to connect.</p>
+                </div>
+              ) : (() => {
+                const filtered = selectedServerTools.filter(t =>
+                  !toolSearch || t.name.toLowerCase().includes(toolSearch.toLowerCase()) || t.description?.toLowerCase().includes(toolSearch.toLowerCase())
+                )
+                if (filtered.length === 0) return (
+                  <div className="py-10 text-center text-sm text-[#9a8570]">No tools match &ldquo;{toolSearch}&rdquo;</div>
+                )
+                return (
+                  <div className="space-y-2">
+                    {filtered.map((tool) => {
+                      const hasParams = tool.inputSchema?.properties && Object.keys(tool.inputSchema.properties).length > 0
+                      const isExpanded = expandedTools.has(tool.name)
+                      const requiredParams = tool.inputSchema?.required || []
+                      return (
+                        <div
+                          key={tool.name}
+                          className="overflow-hidden rounded-[1.15rem] border border-[#e6ddd1] bg-white/60 transition-all hover:border-[#d4c4b0]"
+                        >
+                          {/* Tool header row */}
+                          <div className="flex items-center gap-3 px-4 py-3">
+                            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[0.65rem] bg-[#f1e9dc]">
+                              <svg className="h-3.5 w-3.5 text-[#8d6c4e]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono text-sm font-semibold text-gray-900">{tool.name}</span>
+                                {hasParams && (
+                                  <span className="rounded-full bg-[#f0e8dc] px-2 py-0.5 text-[10px] font-semibold text-[#8d6c4e]">
+                                    {Object.keys(tool.inputSchema.properties).length} param{Object.keys(tool.inputSchema.properties).length !== 1 ? 's' : ''}
+                                  </span>
+                                )}
+                              </div>
+                              {tool.description && (
+                                <p className="mt-0.5 text-xs leading-relaxed text-[#6b5e52] line-clamp-2">{tool.description}</p>
+                              )}
+                            </div>
+                            {hasParams && (
+                              <button
+                                onClick={() => setExpandedTools(prev => {
+                                  const next = new Set(prev)
+                                  if (next.has(tool.name)) next.delete(tool.name)
+                                  else next.add(tool.name)
+                                  return next
+                                })}
+                                className="ml-2 flex-shrink-0 rounded-full p-1.5 text-[#a08870] transition-colors hover:bg-[#f0e8dc] hover:text-[#6b5040]"
+                                title={isExpanded ? 'Collapse parameters' : 'Expand parameters'}
+                              >
+                                <svg className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Expandable params */}
+                          {hasParams && isExpanded && (
+                            <div className="border-t border-[#ece3d8] bg-[#faf6f0] px-4 py-3">
+                              <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#a08870]">Parameters</p>
+                              <div className="space-y-2">
+                                {Object.entries(tool.inputSchema.properties).map(([key, val]: [string, any]) => {
+                                  const isRequired = requiredParams.includes(key)
+                                  return (
+                                    <div key={key} className="flex items-start gap-2.5">
+                                      <div className="flex items-center gap-1.5 pt-0.5">
+                                        <span className="font-mono text-xs font-semibold text-[#b05c3a]">{key}</span>
+                                        <span className="rounded bg-[#ede8e0] px-1.5 py-0.5 text-[10px] text-[#7a6a5a]">{val.type || 'any'}</span>
+                                        {isRequired && (
+                                          <span className="rounded bg-[#fde8df] px-1.5 py-0.5 text-[10px] font-semibold text-[#c0502a]">required</span>
+                                        )}
+                                      </div>
+                                      {val.description && (
+                                        <p className="text-xs text-[#7a6a58] leading-relaxed">{val.description}</p>
+                                      )}
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })()}
+            </div>
+
+            {/* Footer */}
+            <div className="flex-shrink-0 border-t border-[#e6ddd2] px-5 py-4 sm:px-6">
               <button
                 onClick={() => {
                   setShowToolsModal(false)
                   setSelectedServerId(null)
                   setSelectedServerTools([])
+                  setToolSearch('')
+                  setExpandedTools(new Set())
                 }}
-                className="w-full px-5 py-2.5 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-red-50 hover:border-red-300 transition-colors font-medium"
+                className="inline-flex w-full items-center justify-center rounded-[1rem] border border-[#ddd7ce] bg-white px-4 py-2.5 text-sm font-semibold text-[#5f564c] transition-colors hover:bg-[#fcfaf5]"
               >
                 Close
               </button>
@@ -670,17 +751,32 @@ export default function AgentMCPServersPage() {
 
       {/* Manage Tools Modal */}
       {showManageToolsModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-5">
-              <h2 className="text-xl font-bold text-gray-900">Manage Tools</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(28,22,16,0.28)] p-4 backdrop-blur-[8px]">
+          <div className="flex max-h-[88vh] w-full max-w-3xl flex-col rounded-[1.7rem] border border-[#ddd3c5] bg-[linear-gradient(180deg,_rgba(250,247,241,0.98),_rgba(241,236,229,0.98))] shadow-[0_36px_96px_-40px_rgba(17,14,10,0.45)]">
+            {/* Header */}
+            <div className="flex flex-shrink-0 items-start justify-between border-b border-[#e7ded2] px-5 py-5 sm:px-6">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8d6c51]">
+                  MCP Server
+                </p>
+                <h2 className="mt-1 text-[1.9rem] font-semibold tracking-[-0.04em] text-gray-950">
+                  Manage Tools
+                </h2>
+                {!loadingTools && selectedServerTools.length > 0 && (
+                  <p className="mt-0.5 text-sm text-[#9a8570]">
+                    {manageToolsConfig.enabled_tools.length === 0
+                      ? 'All tools enabled by default'
+                      : `${manageToolsConfig.enabled_tools.length} of ${selectedServerTools.length} tools enabled`}
+                  </p>
+                )}
+              </div>
               <button
                 onClick={() => {
                   setShowManageToolsModal(false)
                   setSelectedServerId(null)
                   setSelectedServerTools([])
                 }}
-                className="text-gray-400 hover:text-gray-600"
+                className="rounded-full p-2 text-[#9a8f81] transition-colors hover:bg-white/80 hover:text-[#5f564c]"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -689,135 +785,133 @@ export default function AgentMCPServersPage() {
             </div>
 
             {loadingTools ? (
-              <div className="flex items-center justify-center py-12">
+              <div className="flex flex-1 items-center justify-center py-16">
                 <LoadingSpinner size="lg" />
               </div>
             ) : (
               <>
-                {/* Configuration Section */}
-                <div className="mb-5 space-y-3">
-                  <h3 className="text-base font-semibold text-gray-900">Configuration</h3>
-                  
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Timeout (seconds)
-                      </label>
-                      <input
-                        type="number"
-                        value={manageToolsConfig.timeout}
-                        onChange={(e) => setManageToolsConfig({ ...manageToolsConfig, timeout: parseInt(e.target.value) })}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                        min="1"
-                        max="300"
-                      />
-                    </div>
+                {/* Scrollable body */}
+                <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6 space-y-5">
 
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Max Retries
-                      </label>
-                      <input
-                        type="number"
-                        value={manageToolsConfig.max_retries}
-                        onChange={(e) => setManageToolsConfig({ ...manageToolsConfig, max_retries: parseInt(e.target.value) })}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                        min="0"
-                        max="10"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Tools Selection */}
-                <div className="mb-5">
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-base font-semibold text-gray-900">
-                      Select Tools ({manageToolsConfig.enabled_tools.length} of {selectedServerTools.length} enabled)
-                    </h3>
-                    <button
-                      onClick={handleToggleAllTools}
-                      className="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                    >
-                      {manageToolsConfig.enabled_tools.length === selectedServerTools.length ? 'Deselect All' : 'Select All'}
-                    </button>
-                  </div>
-
-                  <p className="text-xs text-gray-600 mb-3">
-                    {manageToolsConfig.enabled_tools.length === 0 
-                      ? 'No tools selected. All tools will be available by default.' 
-                      : 'Only selected tools will be available to the agent.'}
-                  </p>
-
-                  {selectedServerTools.length === 0 ? (
-                    <EmptyState
-                      icon={
-                        <svg
-                          className="mx-auto h-10 w-10 text-red-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-                          />
-                        </svg>
-                      }
-                      title="No tools available"
-                      description="This MCP server doesn't provide any tools or failed to connect."
-                    />
-                  ) : (
-                    <div className="space-y-2">
-                      {selectedServerTools.map((tool) => (
-                        <label
-                          key={tool.name}
-                          className="flex items-start p-3 border border-gray-200 rounded-lg hover:bg-red-50 hover:border-red-200 cursor-pointer transition-colors"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={manageToolsConfig.enabled_tools.includes(tool.name)}
-                            onChange={() => handleToggleTool(tool.name)}
-                            className="mt-1 h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
-                          />
-                          <div className="ml-3 flex-1">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-900">{tool.name}</span>
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
-                                Tool
-                              </span>
-                            </div>
-                            <p className="text-xs text-gray-600 mt-1">{tool.description}</p>
-                            {tool.inputSchema && tool.inputSchema.properties && (
-                              <div className="mt-1 text-xs text-gray-500">
-                                Parameters: {Object.keys(tool.inputSchema.properties).join(', ')}
-                              </div>
-                            )}
-                          </div>
+                  {/* Configuration row */}
+                  <div className="rounded-[1.3rem] border border-[#e4dbcf] bg-white/55 p-4">
+                    <h3 className="mb-3 text-sm font-semibold text-gray-900">Connection Settings</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="mb-1.5 block text-xs font-semibold text-gray-700">
+                          Timeout (seconds)
                         </label>
-                      ))}
+                        <input
+                          type="number"
+                          value={manageToolsConfig.timeout}
+                          onChange={(e) => setManageToolsConfig({ ...manageToolsConfig, timeout: parseInt(e.target.value) })}
+                          className="w-full rounded-[1rem] border border-black/10 bg-[#fcfaf5] px-4 py-2.5 text-sm text-gray-900 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#c8a882]"
+                          min="1"
+                          max="300"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-xs font-semibold text-gray-700">
+                          Max Retries
+                        </label>
+                        <input
+                          type="number"
+                          value={manageToolsConfig.max_retries}
+                          onChange={(e) => setManageToolsConfig({ ...manageToolsConfig, max_retries: parseInt(e.target.value) })}
+                          className="w-full rounded-[1rem] border border-black/10 bg-[#fcfaf5] px-4 py-2.5 text-sm text-gray-900 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#c8a882]"
+                          min="0"
+                          max="10"
+                        />
+                      </div>
                     </div>
-                  )}
+                  </div>
+
+                  {/* Tools selection */}
+                  <div>
+                    <div className="mb-3 flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-semibold text-gray-900">Enabled Tools</h3>
+                        <p className="mt-0.5 text-xs text-[#9a8570]">
+                          {manageToolsConfig.enabled_tools.length === 0
+                            ? 'All tools will be available to the agent.'
+                            : 'Only checked tools will be available to the agent.'}
+                        </p>
+                      </div>
+                      {selectedServerTools.length > 0 && (
+                        <button
+                          onClick={handleToggleAllTools}
+                          className="rounded-[0.75rem] border border-[#ddd3c5] bg-white/70 px-3 py-1.5 text-xs font-semibold text-[#6b5040] transition-colors hover:bg-[#f5ede2]"
+                        >
+                          {manageToolsConfig.enabled_tools.length === selectedServerTools.length ? 'Deselect All' : 'Select All'}
+                        </button>
+                      )}
+                    </div>
+
+                    {selectedServerTools.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-10 text-center">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f0e8dc]">
+                          <svg className="h-5 w-5 text-[#b8997a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                          </svg>
+                        </div>
+                        <p className="mt-3 text-sm font-semibold text-gray-800">No tools available</p>
+                        <p className="mt-1 text-xs text-[#9a8570]">This MCP server doesn't provide any tools or failed to connect.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {selectedServerTools.map((tool) => {
+                          const checked = manageToolsConfig.enabled_tools.includes(tool.name)
+                          const paramCount = tool.inputSchema?.properties ? Object.keys(tool.inputSchema.properties).length : 0
+                          return (
+                            <label
+                              key={tool.name}
+                              className={`flex cursor-pointer items-center gap-3 rounded-[1.1rem] border px-4 py-3 transition-all ${
+                                checked
+                                  ? 'border-[#d4b896] bg-[linear-gradient(180deg,_rgba(252,245,238,0.9),_rgba(247,239,231,0.9))] shadow-[0_2px_12px_-4px_rgba(135,85,42,0.18)]'
+                                  : 'border-[#e6ddd1] bg-white/50 hover:border-[#d8ccbf] hover:bg-white/70'
+                              }`}
+                            >
+                              {/* Custom checkbox */}
+                              <div className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-[0.4rem] border-2 transition-all ${
+                                checked
+                                  ? 'border-[#b07040] bg-[#c07840]'
+                                  : 'border-[#c8b8a4] bg-white/80'
+                              }`}>
+                                {checked && (
+                                  <svg className="h-3 w-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                              </div>
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => handleToggleTool(tool.name)}
+                                className="sr-only"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono text-sm font-semibold text-gray-900">{tool.name}</span>
+                                  {paramCount > 0 && (
+                                    <span className="rounded-full bg-[#f0e8dc] px-2 py-0.5 text-[10px] font-semibold text-[#8d6c4e]">
+                                      {paramCount}p
+                                    </span>
+                                  )}
+                                </div>
+                                {tool.description && (
+                                  <p className="mt-0.5 text-xs text-[#7a6a58] line-clamp-1">{tool.description}</p>
+                                )}
+                              </div>
+                            </label>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Actions */}
-                <div className="flex gap-3 pt-5 border-t border-gray-200">
-                  <button
-                    onClick={handleSaveToolConfig}
-                    disabled={savingTools}
-                    className="flex-1 px-5 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white text-sm rounded-lg hover:from-red-600 hover:to-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2 shadow-sm"
-                  >
-                    {savingTools ? (
-                      <>
-                        <LoadingSpinner size="sm" />
-                        Saving...
-                      </>
-                    ) : (
-                      'Save Configuration'
-                    )}
-                  </button>
+                {/* Footer actions */}
+                <div className="flex flex-shrink-0 flex-col-reverse gap-3 border-t border-[#e6ddd2] px-5 py-4 sm:flex-row sm:items-center sm:px-6">
                   <button
                     onClick={() => {
                       setShowManageToolsModal(false)
@@ -825,9 +919,23 @@ export default function AgentMCPServersPage() {
                       setSelectedServerTools([])
                     }}
                     disabled={savingTools}
-                    className="px-5 py-2.5 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-red-50 hover:border-red-300 transition-colors font-medium disabled:opacity-50"
+                    className="inline-flex min-w-[8rem] items-center justify-center rounded-[1rem] border border-[#ddd7ce] bg-white px-4 py-2.5 text-sm font-semibold text-[#5f564c] transition-colors hover:bg-[#fcfaf5] disabled:opacity-50"
                   >
                     Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveToolConfig}
+                    disabled={savingTools}
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-[1rem] bg-[#171717] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {savingTools ? (
+                      <>
+                        <LoadingSpinner size="sm" />
+                        Saving…
+                      </>
+                    ) : (
+                      'Save Configuration'
+                    )}
                   </button>
                 </div>
               </>

@@ -191,6 +191,23 @@ class LLMClientPool:
                 "max_clients": self.max_clients,
             }
 
+    def evict_by_model(self, provider: str, model: str) -> int:
+        """Evict all pool entries for a given provider/model.
+
+        Called after an LLM config update so the next request creates a fresh
+        client with the updated settings (temperature, max_tokens, etc.).
+        """
+        with self._lock:
+            keys_to_remove = [
+                k for k in self._clients if self._clients[k].provider == provider and self._clients[k].model == model
+            ]
+            for k in keys_to_remove:
+                del self._clients[k]
+                self._stats["evictions"] += 1
+            if keys_to_remove:
+                logger.info(f"Evicted {len(keys_to_remove)} pool entries for {provider}/{model}")
+            return len(keys_to_remove)
+
     def clear(self):
         """Clear all cached clients."""
         with self._lock:

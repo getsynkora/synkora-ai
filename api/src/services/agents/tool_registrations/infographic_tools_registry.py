@@ -19,7 +19,9 @@ def register_infographic_tools(registry) -> None:
             "Use this after querying the knowledge base or Slack to produce a visual report "
             "(CEO briefing, weekly digest, channel activity summary, etc.).\n\n"
             "━━ THEMES ━━\n"
-            "Named presets (pass as string): aurora | midnight | carbon | sunset | emerald\n"
+            "Named presets (pass as string): aurora | midnight | carbon | sunset | emerald | daylight\n"
+            "Legacy aliases also work: dark → midnight, light → daylight, glass → aurora.\n"
+            "daylight — clean light background, editorial typography, pastel palette. Use for lifestyle, health, habits, and editorial infographics.\n"
             'Custom dict: {"bg":"#0B0B0D","palette":["#F97316","#3B82F6"],"card_bg":"#131316",...}\n'
             'Partial override: {"preset":"midnight","palette":["#custom1","#custom2"]}\n\n'
             "━━ SECTION TYPES ━━\n\n"
@@ -48,10 +50,43 @@ def register_infographic_tools(registry) -> None:
             '  {"type":"divider"} or {"type":"divider","label":"This Week"}\n\n'
             "text — Plain paragraph\n"
             '  {"type":"text","content":"Free-form text shown as a paragraph."}\n\n'
+            "sustainability_dashboard — Full clean editorial ESG dashboard matching the sustainability-report reference style.\n"
+            '  {"type":"sustainability_dashboard","brand":"EcoFuture","report_label":"Sustainability Report 2024",'
+            '   "title":"Building a Sustainable Tomorrow","subtitle":"Our 2024 highlights...",'
+            '   "stats":[{"label":"Trees Planted","value":"1.2M","icon_name":"leaf"}],'
+            '   "impacts":[{"title":"Environmental Stewardship","value":92,"icon_name":"leaf"}],'
+            '   "emissions":{"value":"18,754","series":[5000,10800,13200,16700,20700],"x_labels":["2020","2021","2022","2023","2024"]}}\n\n'
+            "assessment_scorecard — Compact flat assessment certificate by default; use layout:'classic' for the older card-heavy scorecard.\n"
+            '  {"type":"assessment_scorecard","badge":"AI Threat Certificate","title":"AI Threat Assessment",'
+            '   "score":84,"max_score":100,"status":"Critical","risk_label":"High Risk",'
+            '   "risk_items":[{"title":"Test case execution","value":95,"status":"Critical"}],'
+            '   "risk_drivers":[{"label":"Test execution","value":95}],"tools":["Testim","Mabl","Applitools"],'
+            '   "summary_cards":[{"value":"84","label":"Replacement Score"}],'
+            '   "recommendation":{"title":"Shift into higher judgment work","icon_name":"target"}}\n'
+            '  Legacy layout: {"type":"assessment_scorecard","layout":"classic","title":"AI Readiness Assessment",'
+            '   "score":87,"status":"Excellent","categories":[{"title":"Infrastructure","value":92,"status":"Excellent"}]}\n\n'
+            "showcase_dashboard — Colorful multi-card executive dashboard matching the vivid six-panel reference style.\n"
+            '  {"type":"showcase_dashboard","cards":[\n'
+            '    {"variant":"business_performance","title":"Q2 Business Performance","overall":{"value":"87%","status":"Excellent"}},\n'
+            '    {"variant":"sustainability_impact","title":"Sustainability Impact Report 2024"},\n'
+            '    {"variant":"customer_satisfaction","title":"Customer Satisfaction Overview","score":{"value":"4.7","max":5}},\n'
+            '    {"variant":"project_roadmap","title":"Project Roadmap","progress":{"value":76}},\n'
+            '    {"variant":"financial_highlights","title":"Financial Highlights"},\n'
+            '    {"variant":"employee_engagement","title":"Employee Engagement","score":{"value":89,"max":100}}\n'
+            "  ]}\n\n"
             "process_flow — Numbered step cards connected by arrows (max 4 per row)\n"
             '  {"type":"process_flow","items":[{"title":"Sign Up","body":"Create account"},{"title":"Connect","body":"Link tools"}]}\n\n'
-            "circular_flow — Items arranged around a circle with curved arrows\n"
-            '  {"type":"circular_flow","center_label":"Core","items":[{"title":"Plan"},{"title":"Build"},{"title":"Ship"},{"title":"Review"}]}\n\n'
+            "circular_flow — Editorial orbital layout: pastel bubbles around a thin orbit ring, vector line icons, a large center card, and optional side/footer callouts.\n"
+            '  {"type":"circular_flow","center_label":"Better habits,\\nbetter you.","center_icon_name":"leaf",\n'
+            '   "side_note":{"title":"Consistency is everything.","body":"Small steps every day lead to big results.","icon_name":"heart"},\n'
+            '   "footer_panel":{"title":"Progress, not perfection.","body":"Focus on showing up for yourself every day.","icon_name":"mountain",\n'
+            '     "steps":[{"label":"Start small","icon_name":"plant"},{"label":"Stay consistent","icon_name":"leaf"},{"label":"See the change","icon_name":"tree"}]},\n'
+            '   "quote":"Take care of your body. It\'s the only place you have to live.","quote_icon_name":"heart",\n'
+            '   "items":[{"title":"Hydrate","body":"Drink enough water throughout the day.","icon_name":"glass"},\n'
+            '             {"title":"Mindfulness","body":"Take a few minutes to breathe and reset.","icon_name":"mindfulness"},\n'
+            '             {"title":"Move","body":"Physical activity improves your energy.","icon_name":"shoe"}]}\n'
+            "  Prefer icon_name for clean vector icons. Supported names include: glass, mindfulness, shoe, sun, book, sleep, leaf, heart, mountain, plant, tree.\n"
+            "  center_icon / items[].icon / quote_icon may still be emoji when needed.\n\n"
             "staircase — Ascending colour steps, bottom-aligned\n"
             '  {"type":"staircase","items":[{"label":"Awareness","value":"1x"},{"label":"Interest","value":"2x"},{"label":"Decision"}]}\n\n'
             "pyramid — Layered trapezoid (narrowest top, widest bottom)\n"
@@ -83,7 +118,7 @@ def register_infographic_tools(registry) -> None:
             '  "title": "Daily Ops Briefing",\n'
             '  "subtitle": "Engineering · Sales · Support",\n'
             '  "date": "Apr 16, 2026",\n'
-            '  "theme": "dark",\n'
+            '  "theme": "midnight",\n'
             '  "sections": [\n'
             '    {"type":"kpi_row","items":[\n'
             '      {"label":"Messages","value":342,"change":"+12%","trend":"up"},\n'
@@ -137,6 +172,8 @@ def register_infographic_tools(registry) -> None:
             "2. Aggregate: message counts per channel, top discussions, key decisions\n"
             "3. Call this tool with the aggregated data\n"
             "4. Post the returned png_url to Slack via internal_slack_send_message or blocks\n\n"
+            "theme: daylight is the clean editorial preset for lifestyle/wellness infographics. "
+            "Legacy aliases are accepted: dark → midnight, light → daylight, glass → aurora.\n\n"
             'kpis format:        \'[{"label":"Messages","value":342,"change":"+12%","trend":"up"}]\'\n'
             'bar_chart_data:     \'[{"label":"#engineering","value":120}]\'\n'
             'stories format:     \'[{"headline":"...","body":"...","channel":"#eng","author":"Alice"}]\'\n'
@@ -171,8 +208,8 @@ def register_infographic_tools(registry) -> None:
                 },
                 "theme": {
                     "type": "string",
-                    "enum": ["dark", "light", "glass"],
-                    "default": "dark",
+                    "enum": ["aurora", "midnight", "carbon", "sunset", "emerald", "daylight", "dark", "light", "glass"],
+                    "default": "midnight",
                 },
                 "heatmap_data": {
                     "type": "string",

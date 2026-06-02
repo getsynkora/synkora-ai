@@ -124,30 +124,40 @@ export interface CreditTopup {
 export interface AgentPricing {
   id: string;
   agent_id: string;
-  is_monetized: boolean;
-  pricing_model: 'free' | 'per_use' | 'subscription';
-  base_credit_cost: number;
+  tenant_id: string;
+  pricing_model: 'FREE' | 'PER_USE' | 'SUBSCRIPTION' | 'SESSION' | 'DAILY' | 'WEEKLY' | 'MONTHLY';
+  credits_per_use: number | null;
+  session_credits: number | null;
+  daily_credits: number | null;
+  weekly_credits: number | null;
+  monthly_subscription_credits: number | null;
+  trial_messages: number | null;
   revenue_share_percentage: number;
-  min_credits_per_use: number;
-  subscription_price_monthly: number | null;
-  is_public: boolean;
+  is_active: boolean;
+  total_uses: number;
+  total_revenue_credits: number;
+  email_subscription_model: string;
+  email_subscription_price_cents: number | null;
+  email_subscription_trial_emails: number;
   created_at: string;
   updated_at: string;
 }
 
 export interface AgentRevenue {
   id: string;
-  agent_id: string;
-  creator_id: string;
+  agent_pricing_id: string;
   tenant_id: string;
   transaction_id: string | null;
   credits_used: number;
   revenue_amount: number;
   platform_fee: number;
   creator_earnings: number;
-  status: 'pending' | 'paid' | 'failed';
+  revenue_share_percentage: number;
+  status: 'pending' | 'processing' | 'paid' | 'failed';
   payout_date: string | null;
+  payout_reference: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 export interface UsageAnalytics {
@@ -236,12 +246,18 @@ export interface TopupCreditsResponse {
 }
 
 export interface SetAgentPricingRequest {
-  is_monetized: boolean;
-  pricing_model: 'free' | 'per_use' | 'subscription';
-  base_credit_cost?: number;
-  revenue_share_percentage?: number;
-  subscription_price_monthly?: number;
-  is_public?: boolean;
+  agent_id: string;
+  pricing_model: 'FREE' | 'PER_USE' | 'SUBSCRIPTION' | 'SESSION' | 'DAILY' | 'WEEKLY' | 'MONTHLY';
+  credits_per_use?: number | null;
+  session_credits?: number | null;
+  daily_credits?: number | null;
+  weekly_credits?: number | null;
+  monthly_subscription_credits?: number | null;
+  trial_messages?: number | null;
+  revenue_share_percentage?: number | null;
+  email_subscription_model?: string | null;
+  email_subscription_price_cents?: number | null;
+  email_subscription_trial_emails?: number | null;
 }
 
 // Filter Types

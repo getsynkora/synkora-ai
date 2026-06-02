@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useAuthStore } from '@/lib/store/authStore'
 import {
   ChatMessages,
@@ -43,21 +43,43 @@ interface ChatConfig {
 interface Conversation {
   id: string
   name: string
+  status?: string
+  source?: string
   created_at: string
   updated_at: string
   message_count?: number
+  external_user_id?: string
+  external_user_name?: string
+  external_user_email?: string
+  external_user_phone?: string
 }
+
+type PlatformSource = 'web' | 'flutter' | 'widget' | 'whatsapp' | 'slack' | 'chrome'
+
+const PLATFORM_TABS: { label: string; value: PlatformSource }[] = [
+  { label: 'Web', value: 'web' },
+  { label: 'Flutter', value: 'flutter' },
+  { label: 'Widget', value: 'widget' },
+  { label: 'WhatsApp', value: 'whatsapp' },
+  { label: 'Slack', value: 'slack' },
+  { label: 'Chrome', value: 'chrome' },
+]
 
 export default function AdvancedChatPage() {
   const params = useParams()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const agentName = decodeURIComponent(params.agentName as string)
 
   // Get user from auth store
   const { user } = useAuthStore()
-  
+
   // State
   const [agentId, setAgentId] = useState<string | null>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])
+  const [selectedSource, setSelectedSource] = useState<PlatformSource>(
+    () => (searchParams.get('source') as PlatformSource) || 'web'
+  )
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [agent, setAgent] = useState<Agent | null>(null)
@@ -148,7 +170,7 @@ export default function AdvancedChatPage() {
             {
               label: 'Success Rate',
               value: lensStats
-                ? `${Math.round((1 - lensStats.stats.failure_rate) * 100)}%`
+                ? `${((1 - lensStats.stats.failure_rate) * 100).toFixed(1)}%`
                 : 'N/A'
             },
             {
@@ -156,15 +178,13 @@ export default function AdvancedChatPage() {
               value: lensStats
                 ? lensStats.stats.avg_latency_ms >= 1000
                   ? `${(lensStats.stats.avg_latency_ms / 1000).toFixed(1)}s`
-                  : `${Math.round(lensStats.stats.avg_latency_ms)}ms`
+                  : `${lensStats.stats.avg_latency_ms.toFixed(1)}ms`
                 : 'N/A'
             },
             {
               label: 'Total Cost',
               value: lensStats
-                ? lensStats.stats.total_cost_usd < 0.01
-                  ? `$${lensStats.stats.total_cost_usd.toFixed(4)}`
-                  : `$${lensStats.stats.total_cost_usd.toFixed(2)}`
+                ? `$${lensStats.stats.total_cost_usd.toFixed(1)}`
                 : 'N/A'
             },
           ]
@@ -303,11 +323,11 @@ export default function AdvancedChatPage() {
     isStreamingRef.current = isStreaming
   }, [isStreaming])
 
-  const loadConversations = useCallback(async () => {
+  const loadConversations = useCallback(async (source?: PlatformSource) => {
     if (!agentId) return
 
     try {
-      const convs = await apiClient.getAgentConversations(agentId, 50)
+      const convs = await apiClient.getAgentConversations(agentId, 50, source || selectedSource)
       setConversations(convs)
 
       // Calculate total messages across all conversations
@@ -493,6 +513,23 @@ export default function AdvancedChatPage() {
       Promise.all([loadConversations(), fetchChatConfig(agentId)])
     }
   }, [agentId, loadConversations, fetchChatConfig])
+
+  // Reload conversations when source tab changes
+  useEffect(() => {
+    if (agentId) {
+      loadConversations(selectedSource)
+      setCurrentConversation(null)
+      setMessages([])
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSource])
+
+  const handleSourceChange = (source: PlatformSource) => {
+    setSelectedSource(source)
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('source', source)
+    router.replace(`?${params.toString()}`, { scroll: false })
+  }
 
   // Note: Messages are loaded by the useEffect at line 280-285 that watches currentConversation?.id
   // Removed duplicate useEffect here to prevent race conditions with streaming
@@ -1255,6 +1292,7 @@ export default function AdvancedChatPage() {
             
             {/* Expanded State - Show Full Sidebar */}
             {(isSidebarExpanded || isMobileSidebarOpen) && (
+              <>
               <ChatSidebar
                 sessions={conversations.map(conv => ({
                   id: conv.id,
@@ -1271,12 +1309,13 @@ export default function AdvancedChatPage() {
                     setCurrentConversation(conv)
                   }
                 }}
-                onNewChat={handleNewChat}
+                onNewChat={selectedSource === 'web' ? handleNewChat : undefined}
                 onShareSession={(sessionId) => setShareConvId(sessionId)}
                 chatConfig={chatConfig}
                 agentName={agent?.agent_name}
                 agentAvatar={agent?.avatar}
               />
+              </>
             )}
           </div>
         </div>
@@ -1332,6 +1371,18 @@ export default function AdvancedChatPage() {
                     </div>
                   </div>
                   <div className="flex flex-shrink-0 items-center gap-1.5">
+                    <select
+                      value={selectedSource}
+                      onChange={(e) => handleSourceChange(e.target.value as PlatformSource)}
+                      className="hidden max-w-[120px] rounded-lg border border-black/10 bg-white/85 px-2 py-1 text-[11px] font-medium focus:outline-none focus:ring-2 sm:block"
+                      style={{ '--tw-ring-color': '#8a445c' } as React.CSSProperties}
+                    >
+                      {PLATFORM_TABS.map((tab) => (
+                        <option key={tab.value} value={tab.value}>
+                          {tab.label}
+                        </option>
+                      ))}
+                    </select>
                     {llmConfigs && llmConfigs.length > 0 && (
                       <select
                         value={selectedModelId || ''}
@@ -1368,6 +1419,24 @@ export default function AdvancedChatPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                         </svg>
                         <span className="text-[11px] font-medium">Share</span>
+                      </button>
+                    )}
+                    {currentConversation && selectedSource !== 'web' && currentConversation.status !== 'CLOSED' && currentConversation.status !== 'ARCHIVED' && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            await apiClient.request('POST', `/api/v1/widgets/sessions/${currentConversation.id}/close`, {})
+                            setCurrentConversation({ ...currentConversation, status: 'CLOSED' })
+                            await loadConversations(selectedSource)
+                          } catch {}
+                        }}
+                        className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-gray-600 transition-colors hover:bg-red-50 hover:text-red-600"
+                        title="Close session"
+                      >
+                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        <span className="text-[11px] font-medium">Close session</span>
                       </button>
                     )}
                   </div>

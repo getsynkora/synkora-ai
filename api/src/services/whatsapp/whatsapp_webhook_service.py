@@ -250,7 +250,10 @@ class WhatsAppWebhookService:
 
         # Create new conversation
         conversation = Conversation(
-            agent_id=bot.agent_id, name=f"WhatsApp conversation with {user_phone}", status=ConversationStatus.ACTIVE
+            agent_id=bot.agent_id,
+            name=f"WhatsApp conversation with {user_phone}",
+            status=ConversationStatus.ACTIVE,
+            source="whatsapp",
         )
         self.db_session.add(conversation)
         await self.db_session.commit()

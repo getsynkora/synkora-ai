@@ -543,7 +543,10 @@ class SlackMessageHandler:
 
         # Create new conversation
         conversation = Conversation(
-            agent_id=slack_bot.agent_id, name=f"Slack conversation with {user_id}", status=ConversationStatus.ACTIVE
+            agent_id=slack_bot.agent_id,
+            name=f"Slack conversation with {user_id}",
+            status=ConversationStatus.ACTIVE,
+            source="slack",
         )
         self.db_session.add(conversation)
         await self.db_session.commit()

@@ -126,6 +126,7 @@ def create_super_admin(email: str, password: str, name: str, tenant_name: str, d
             id=uuid4(),
             tenant_id=tenant.id,
             account_id=account.id,
+            role=AccountRole.OWNER,
             role_id=platform_owner_role.id,
         )
         db.add(tenant_account_join)

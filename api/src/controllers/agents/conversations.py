@@ -95,6 +95,7 @@ async def create_conversation(
             session_id=request.session_id,
             name=request.name,
             account_id=current_account.id,  # Associate with current user
+            source="web",
         )
 
         return AgentResponse(success=True, message="Conversation created successfully", data=conversation.to_dict())
@@ -110,6 +111,7 @@ async def create_conversation(
 async def list_agent_conversations(
     agent_id: str,
     limit: int = 50,
+    source: str | None = None,
     current_account: Account = Depends(get_current_account),
     tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
@@ -120,6 +122,9 @@ async def list_agent_conversations(
     Args:
         agent_id: UUID of the agent
         limit: Maximum number of conversations to return
+        source: Filter by channel source (web/flutter/widget/whatsapp/slack/chrome).
+                The 'web' tab shows conversations with source='web' OR source IS NULL.
+                Other tabs use exact match. Omit to return all conversations.
         current_account: Current authenticated user
         tenant_id: Tenant ID from JWT token
         db: Database session
@@ -145,17 +150,40 @@ async def list_agent_conversations(
         if not agent:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent with ID '{agent_id}' not found")
 
-        # Get conversations - SECURITY: Only get conversations for the current USER (account_id)
         from src.models.conversation import Conversation
 
-        result = await db.execute(
-            select(Conversation)
-            .filter(
+        # Build base filter depending on source
+        valid_sources = {"web", "flutter", "widget", "whatsapp", "slack", "chrome"}
+        if source and source in valid_sources and source != "web":
+            # Non-web channels: conversations don't have account_id; filter by agent only
+            base_filter = [
                 Conversation.agent_id == agent_uuid,
-                Conversation.account_id == current_account.id,  # Only show current user's conversations
+                Conversation.source == source,
+            ]
+        elif source == "web" or source is None:
+            if source == "web":
+                # Web tab: source='web' OR source IS NULL (legacy rows)
+                base_filter = [
+                    Conversation.agent_id == agent_uuid,
+                    or_(Conversation.source == "web", Conversation.source.is_(None)),
+                    Conversation.account_id == current_account.id,
+                ]
+            else:
+                # No source filter: show all conversations for this user
+                base_filter = [
+                    Conversation.agent_id == agent_uuid,
+                    Conversation.account_id == current_account.id,
+                ]
+        else:
+            # Unknown source value — return empty
+            return AgentResponse(
+                success=True,
+                message="Found 0 conversations",
+                data={"conversations": []},
             )
-            .order_by(Conversation.updated_at.desc())
-            .limit(limit)
+
+        result = await db.execute(
+            select(Conversation).filter(*base_filter).order_by(Conversation.updated_at.desc()).limit(limit)
         )
         conversations = result.scalars().all()
 
@@ -372,6 +400,7 @@ async def get_conversation_messages(
     conversation_id: str,
     limit: int | None = None,
     current_account: Account = Depends(get_current_account),
+    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
@@ -396,15 +425,46 @@ async def get_conversation_messages(
         except ValueError:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid conversation ID format")
 
-        # SECURITY: Verify conversation belongs to current USER (account_id)
+        # SECURITY: Allow if conversation belongs to this user (web conversations)
         result = await db.execute(
             select(Conversation).filter(
                 Conversation.id == conversation_uuid,
-                Conversation.account_id
-                == current_account.id,  # SECURITY: Only allow access to user's own conversations
+                Conversation.account_id == current_account.id,
             )
         )
         conversation = result.scalar_one_or_none()
+
+        if not conversation:
+            # Fallback for widget/flutter/slack/whatsapp conversations (no account_id):
+            # Allowed if: tenant owner/admin OR the account that created the agent.
+            from src.models.tenant import AccountRole, TenantAccountJoin
+
+            membership = await db.execute(
+                select(TenantAccountJoin).filter(
+                    TenantAccountJoin.tenant_id == tenant_id,
+                    TenantAccountJoin.account_id == current_account.id,
+                )
+            )
+            join = membership.scalar_one_or_none()
+            is_admin = join and join.is_admin
+
+            from sqlalchemy import or_
+
+            stmt = (
+                select(Conversation)
+                .join(Agent, Conversation.agent_id == Agent.id)
+                .filter(
+                    Conversation.id == conversation_uuid,
+                    Agent.tenant_id == tenant_id,
+                )
+            )
+            # Admins/owners see all conversations; others only see agents they created
+            if not is_admin:
+                stmt = stmt.filter(Agent.created_by == current_account.id)
+
+            result = await db.execute(stmt)
+            conversation = result.scalar_one_or_none()
+
         if not conversation:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail=f"Conversation with ID '{conversation_id}' not found"

@@ -64,13 +64,13 @@ class _ChipCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFAF1),
-          border: Border.all(color: primaryColor.withValues(alpha: 0.18)),
+          color: Colors.white,
+          border: Border.all(color: const Color(0x14000000)),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x12000000),
-              blurRadius: 14,
-              offset: Offset(0, 6),
+              color: Color(0x0A000000),
+              blurRadius: 8,
+              offset: Offset(0, 2),
             ),
           ],
           borderRadius: BorderRadius.circular(16),
@@ -81,33 +81,33 @@ class _ChipCard extends StatelessWidget {
           children: [
             if (prompt.icon.isNotEmpty)
               Container(
-                width: 28,
-                height: 28,
+                width: 32,
+                height: 32,
                 decoration: BoxDecoration(
-                  color: primaryColor.withValues(alpha: 0.1),
+                  color: primaryColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 alignment: Alignment.center,
-                child: Text(prompt.icon, style: const TextStyle(fontSize: 15)),
+                child: Text(prompt.icon, style: const TextStyle(fontSize: 16)),
               ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               prompt.title,
               style: const TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
-                color: Color(0xFF171717),
+                color: Color(0xFF0F172A),
               ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
             if (prompt.description.isNotEmpty) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: 3),
               Text(
                 prompt.description,
                 style: const TextStyle(
                   fontSize: 11,
-                  color: Color(0xFF6D675F),
+                  color: Color(0xFF64748B),
                   height: 1.35,
                 ),
                 maxLines: 2,

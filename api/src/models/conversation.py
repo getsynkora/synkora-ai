@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import DateTime, Enum, ForeignKey, Index, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, SoftDeleteMixin, TimestampMixin, UUIDMixin
@@ -57,10 +57,23 @@ class Conversation(Base, UUIDMixin, TimestampMixin, SoftDeleteMixin):
         default=ConversationStatus.ACTIVE,
     )
 
+    # Source channel — set at conversation creation, immutable
+    source: Mapped[str | None] = mapped_column(String(20), nullable=True, default="web", index=True)
+
+    # Session lifecycle
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_activity_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        server_default=func.now(),
+    )
+
     # Widget identity fields — set when an identified user chats via widget
     external_user_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     external_org_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     external_user_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    external_user_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    external_user_phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     # Metrics
     message_count: Mapped[int] = mapped_column(default=0)
@@ -116,6 +129,9 @@ class Conversation(Base, UUIDMixin, TimestampMixin, SoftDeleteMixin):
             "summary_updated_at": self.summary_updated_at.isoformat() if self.summary_updated_at else None,
             "summary_message_count": self.summary_message_count,
             "total_tokens_estimated": self.total_tokens_estimated,
+            "source": self.source or "web",
+            "closed_at": self.closed_at.isoformat() if self.closed_at else None,
+            "last_activity_at": self.last_activity_at.isoformat() if self.last_activity_at else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
@@ -131,7 +147,7 @@ class Conversation(Base, UUIDMixin, TimestampMixin, SoftDeleteMixin):
 
     def increment_message_count(self) -> None:
         """
-        Increment message count atomically.
+        Increment message count atomically and refresh last_activity_at.
 
         Uses SQL expression to avoid race conditions under concurrent requests.
         The actual increment happens at flush/commit time via SQL:
@@ -140,5 +156,7 @@ class Conversation(Base, UUIDMixin, TimestampMixin, SoftDeleteMixin):
         Without this, two concurrent requests reading message_count=5 would both
         write 6. With SQL expression, the DB handles: 5+1=6, then 6+1=7.
         """
-        # Use SQL expression for atomic increment
+        from datetime import UTC
+
         self.message_count = Conversation.message_count + 1
+        self.last_activity_at = datetime.now(UTC)

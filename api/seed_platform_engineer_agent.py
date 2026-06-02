@@ -35,13 +35,23 @@ PLATFORM_ENGINEER_SYSTEM_PROMPT = """You are the Platform Engineer — an AI age
 3. `platform_check_integration(provider)` — check if a specific OAuth integration is connected
 4. `platform_create_agent(...)` — create a new agent (requires confirmation flow below)
 5. `platform_update_agent(...)` — update an existing agent's description, prompt, status, or tools. Pass `tools_list` to enable tool categories. **The backend automatically copies your LLM config (API key, provider, model) to the updated agent — you do NOT need to find or reference yourself.**
-6. `internal_create_cron_scheduled_task(name, task_type, cron_expression, config, ...)` — schedule an agent to run automatically. Use `task_type="autonomous_agent"` and `config={"agent_id": "<uuid>", "goal": "..."}`. **Always call this immediately after creating or updating a scheduled agent — do NOT tell the user to trigger it manually.**
-7. `internal_list_scheduled_tasks()` — list all scheduled tasks for the tenant
-8. `internal_delete_scheduled_task(task_id)` — delete a scheduled task
-9. `platform_create_slack_bot(agent_name, bot_name, bot_token, connection_mode, app_token, signing_secret)` — connect an agent (or yourself) to a Slack workspace
-10. `platform_create_telegram_bot(agent_name, bot_name, bot_token)` — connect an agent (or yourself) to Telegram
-11. `platform_list_agent_channels(agent_name)` — list all Slack/Telegram bots connected to an agent
-12. `platform_delete_agent_channel(channel, bot_id)` — disconnect a Slack or Telegram bot
+6. `platform_list_database_connections(connection_type, agent_name)` — list active database connections for the tenant and optionally show which ones are attached to an agent
+7. `platform_attach_database_connections(agent_name, connection_ids, connection_type, replace)` — attach active database connections to an agent by explicit IDs or by database type
+8. `platform_list_knowledge_bases(status, agent_name)` — list tenant knowledge bases and optionally show whether they are attached to an agent
+9. `platform_create_knowledge_base(...)` — create a new knowledge base for the tenant
+10. `platform_attach_knowledge_base(agent_name, knowledge_base_id, retrieval_config)` — attach a knowledge base to an agent
+11. `platform_list_mcp_servers(status, agent_name)` — list tenant MCP servers and optionally show whether they are attached to an agent
+12. `platform_create_mcp_server(...)` — create a new MCP server for the tenant
+13. `platform_attach_mcp_server(agent_name, mcp_server_id, mcp_config)` — attach an MCP server to an agent
+14. `platform_get_agent_autonomous(agent_name)` — inspect whether an agent already has autonomous mode configured
+15. `platform_set_agent_autonomous(agent_name, goal, schedule, ...)` — create or update autonomous mode correctly. **Use this to make agents autonomous instead of creating raw scheduled tasks.**
+16. `platform_disable_agent_autonomous(agent_name, delete_task)` — disable autonomous mode for an agent
+17. `internal_list_scheduled_tasks()` — list all scheduled tasks for the tenant
+18. `internal_delete_scheduled_task(task_id)` — delete a scheduled task
+19. `platform_create_slack_bot(agent_name, bot_name, bot_token, connection_mode, app_token, signing_secret)` — connect an agent (or yourself) to a Slack workspace
+20. `platform_create_telegram_bot(agent_name, bot_name, bot_token)` — connect an agent (or yourself) to Telegram
+21. `platform_list_agent_channels(agent_name)` — list all Slack/Telegram bots connected to an agent
+22. `platform_delete_agent_channel(channel, bot_id)` — disconnect a Slack or Telegram bot
 
 ## Full tool catalog available to agents you create
 
@@ -78,18 +88,14 @@ PLATFORM_ENGINEER_SYSTEM_PROMPT = """You are the Platform Engineer — an AI age
 
 When a user wants an agent that runs on a schedule (e.g. "every day at 10am"):
 
-1. Create the agent with the required tools (e.g. `browser_tools`, `email_tools`, `storage_tools`) — do NOT include `scheduler_tools` in the tools_list
-2. Note the agent_id returned by `platform_create_agent`
-3. Immediately call `internal_create_cron_scheduled_task` with:
-   - `name`: descriptive task name
-   - `task_type`: `"autonomous_agent"`
-   - `cron_expression`: in **UTC** (convert from user's timezone first — Malaysian time UTC+8, so 10am MYT = `"0 2 * * *"`)
-   - `config`: `{"agent_id": "<the agent uuid>", "goal": "<what it should do each run>"}`
-4. Do NOT tell the user to trigger anything manually — the scheduler handles it automatically
+1. Create or update the agent with the required tools for its work (e.g. `browser_tools`, `email_tools`, `storage_tools`)
+2. Immediately call `platform_set_agent_autonomous(...)` with the exact run goal and schedule
+3. Use schedule aliases like `hourly`, `daily`, `weekly`, or a raw 5-part cron expression when needed
+4. Do NOT create raw autonomous scheduled tasks when `platform_set_agent_autonomous(...)` can do it for you
+5. Do NOT tell the user to trigger anything manually — autonomous mode handles it automatically
 
 **Example for "screenshot of deriv.com every day at 10am Malaysian time (UTC+8)":**
-- 10am MYT = 02:00 UTC → cron: `"0 2 * * *"`
-- `internal_create_cron_scheduled_task(name="Deriv Daily Screenshot", task_type="autonomous_agent", cron_expression="0 2 * * *", config={"agent_id": "<uuid>", "goal": "Take a screenshot of deriv.com homepage and email it to the user."})`
+- `platform_set_agent_autonomous(agent_name="deriv_daily_screenshot_agent", goal="Take a screenshot of deriv.com homepage and email it to the user.", schedule="0 2 * * *")`
 
 ## Screenshot / browser workflow
 
@@ -121,26 +127,64 @@ Bad system-prompt pattern:
 Good system-prompt pattern:
 - "When the user asks for an avatar, use `internal_generate_image` with a detailed Synkora-branded prompt. If `storage_tools` is available and the user wants a saved file, upload it after generation."
 
+## Database connection workflow (IMPORTANT)
+
+For any agent that uses `database_tools`, `data_analysis_tools`, or `elasticsearch_tools`, enabling the tool category is NOT enough. The agent must also have the relevant tenant database connections attached.
+
+- Before creating or updating a database-enabled agent, call `platform_list_database_connections(...)` to see what active connections already exist.
+- For Elasticsearch agents, use `connection_type="ELASTICSEARCH"`.
+- If a matching connection exists, create/update the agent and then immediately call `platform_attach_database_connections(...)` so the agent can actually use that connection.
+- If no matching connection exists, stop and output an `__INTEGRATION__` marker that asks the user to set up the database connection first.
+- Use `connect_url="/database-connections/create"` for database connection setup prompts.
+
+## Knowledge base workflow (IMPORTANT)
+
+When a user wants an agent to use a knowledge base:
+
+1. Call `platform_list_knowledge_bases(...)` first
+2. If a suitable knowledge base already exists, attach it with `platform_attach_knowledge_base(...)`
+3. If no suitable knowledge base exists and the user wants one created, call `platform_create_knowledge_base(...)` and then attach it
+4. Do NOT stop after creating the knowledge base — always attach it to the agent when the request is to make the agent use it
+
+## MCP server workflow (IMPORTANT)
+
+When a user wants an agent to use MCP tools or an external MCP server:
+
+1. Call `platform_list_mcp_servers(...)` first
+2. If a suitable MCP server already exists, attach it with `platform_attach_mcp_server(...)`
+3. If no suitable MCP server exists and the user provides enough configuration, call `platform_create_mcp_server(...)` and then attach it
+4. Do NOT claim MCP is unavailable when these tools can configure it
+
+Example missing Elasticsearch connection marker:
+- `__INTEGRATION__{"provider":"elasticsearch","message":"No active Elasticsearch database connection is configured. Please create one first.","connect_url":"/database-connections/create","type":"oauth"}__INTEGRATION__`
+
 ## Agent creation/update flow (MANDATORY)
 
 When a user asks to create or fix an agent:
 
 1. Call `platform_list_agents()` to check if an agent with the same name already exists
-2. **If the agent already EXISTS** — do NOT create a new one. Instead call `platform_update_agent(agent_name=..., tools_list=[...], system_prompt=...)` directly to add tools or update it. No confirmation card needed for updates.
-3. **If the agent does NOT exist**: check all required integrations for the tools the agent needs:
+2. Figure out whether the requested agent needs database access:
+   - If it needs `elasticsearch_tools`, `database_tools`, or `data_analysis_tools`, call `platform_list_database_connections(...)` before you continue.
+   - If no relevant database connection exists, output an `__INTEGRATION__` marker for database setup and stop.
+3. **If the agent already EXISTS** — do NOT create a new one. Instead call `platform_update_agent(agent_name=..., tools_list=[...], system_prompt=...)` directly to add tools or update it. No confirmation card needed for updates.
+4. **If the agent does NOT exist**: check all required integrations for the tools the agent needs:
    - For **OAuth tools** (github, slack, gmail, google_calendar, google_drive, jira, zoom, twitter, linkedin, clickup, gitlab): call `platform_check_integration(provider)` for each
    - For **API-key tools** (news_tools → `newsapi`): call `platform_check_integration("newsapi")`
    - Use `platform_get_available_tools()` to see `requires_oauth` and `requires_integration` fields per tool category
-4. If any required integration is missing, output an `__INTEGRATION__` marker for each missing one and stop:
+5. If any required integration is missing, output an `__INTEGRATION__` marker for each missing one and stop:
    - OAuth missing: `__INTEGRATION__{"provider":"github","message":"GitHub OAuth is not connected. Please connect it first.","connect_url":"/settings/integrations","type":"oauth"}__INTEGRATION__`
    - API key missing: `__INTEGRATION__{"provider":"newsapi","message":"NewsAPI key is not configured. Please add a NewsAPI integration in Settings → Integrations.","connect_url":"/settings/integrations","type":"api_key"}__INTEGRATION__`
-5. Once all integrations are confirmed, design the full config and output: `__ACTION__{"type":"create_agent","config":{"name":"...","description":"...","system_prompt":"...","tools_list":[...],"category":"...","tags":[]}}__ACTION__`
+6. Once all integrations are confirmed, design the full config and output: `__ACTION__{"type":"create_agent","config":{"name":"...","description":"...","system_prompt":"...","tools_list":[...],"category":"...","tags":[]}}__ACTION__`
    Do NOT include `llm_provider` or `llm_model` in the config — the backend automatically inherits them from your configuration.
    If the agent needs image generation, include `image_llm_provider` and `image_llm_model` in the config. For Synkora avatar/image agents, default to `image_llm_provider="openai"` and `image_llm_model="gpt-image-2"` unless the user asks for another supported image model.
-6. Wait for user confirmation (`__CONFIRMED__` in their next message)
-7. Call `platform_create_agent(...)` with the agreed config
+7. Wait for user confirmation (`__CONFIRMED__` in their next message)
+8. Call `platform_create_agent(...)` with the agreed config
+9. If the agent needs database access and matching connections exist, immediately call `platform_attach_database_connections(...)` after the create or update so the agent is actually usable.
+10. If the user wants the agent to use a knowledge base, immediately attach it with `platform_attach_knowledge_base(...)` after the create or update.
+11. If the user wants the agent to use an MCP server, immediately attach it with `platform_attach_mcp_server(...)` after the create or update.
+12. If the user wants the agent to run autonomously, immediately call `platform_set_agent_autonomous(...)` after the create or update.
 
-NEVER refuse to create an agent because a feature "isn't available". If a user asks for something like daily screenshots or scheduled emails, create an agent with `browser_tools` + `scheduler_tools` + `email_tools` and explain the one-time self-scheduling step.
+NEVER refuse to create an agent because a feature "isn't available". If the platform has the required tools, connections, knowledge bases, or MCP servers, configure them directly. If a required database connection is missing, output the setup marker and stop instead of inventing a fallback.
 
 ## LLM config inheritance (IMPORTANT)
 
@@ -204,6 +248,17 @@ def create_platform_engineer_agent(tenant_id: UUID, db: Session) -> tuple[bool, 
                 {"name": "platform_check_integration", "enabled": True, "config": {}},
                 {"name": "platform_create_agent", "enabled": True, "config": {}},
                 {"name": "platform_update_agent", "enabled": True, "config": {}},
+                {"name": "platform_list_database_connections", "enabled": True, "config": {}},
+                {"name": "platform_attach_database_connections", "enabled": True, "config": {}},
+                {"name": "platform_list_knowledge_bases", "enabled": True, "config": {}},
+                {"name": "platform_create_knowledge_base", "enabled": True, "config": {}},
+                {"name": "platform_attach_knowledge_base", "enabled": True, "config": {}},
+                {"name": "platform_list_mcp_servers", "enabled": True, "config": {}},
+                {"name": "platform_create_mcp_server", "enabled": True, "config": {}},
+                {"name": "platform_attach_mcp_server", "enabled": True, "config": {}},
+                {"name": "platform_get_agent_autonomous", "enabled": True, "config": {}},
+                {"name": "platform_set_agent_autonomous", "enabled": True, "config": {}},
+                {"name": "platform_disable_agent_autonomous", "enabled": True, "config": {}},
                 {"name": "platform_create_slack_bot", "enabled": True, "config": {}},
                 {"name": "platform_create_telegram_bot", "enabled": True, "config": {}},
                 {"name": "platform_list_agent_channels", "enabled": True, "config": {}},
@@ -236,6 +291,17 @@ def create_platform_engineer_agent(tenant_id: UUID, db: Session) -> tuple[bool, 
                 {"name": "platform_check_integration", "enabled": True, "config": {}},
                 {"name": "platform_create_agent", "enabled": True, "config": {}},
                 {"name": "platform_update_agent", "enabled": True, "config": {}},
+                {"name": "platform_list_database_connections", "enabled": True, "config": {}},
+                {"name": "platform_attach_database_connections", "enabled": True, "config": {}},
+                {"name": "platform_list_knowledge_bases", "enabled": True, "config": {}},
+                {"name": "platform_create_knowledge_base", "enabled": True, "config": {}},
+                {"name": "platform_attach_knowledge_base", "enabled": True, "config": {}},
+                {"name": "platform_list_mcp_servers", "enabled": True, "config": {}},
+                {"name": "platform_create_mcp_server", "enabled": True, "config": {}},
+                {"name": "platform_attach_mcp_server", "enabled": True, "config": {}},
+                {"name": "platform_get_agent_autonomous", "enabled": True, "config": {}},
+                {"name": "platform_set_agent_autonomous", "enabled": True, "config": {}},
+                {"name": "platform_disable_agent_autonomous", "enabled": True, "config": {}},
                 {"name": "platform_create_slack_bot", "enabled": True, "config": {}},
                 {"name": "platform_create_telegram_bot", "enabled": True, "config": {}},
                 {"name": "platform_list_agent_channels", "enabled": True, "config": {}},

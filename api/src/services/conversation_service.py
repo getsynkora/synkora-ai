@@ -29,6 +29,7 @@ class ConversationService:
         account_id: UUID | None = None,
         session_id: str | None = None,
         name: str = "New Conversation",
+        source: str = "web",
     ) -> Conversation:
         """
         Create a new conversation.
@@ -40,6 +41,7 @@ class ConversationService:
             account_id: Account ID (optional)
             session_id: Session ID for tracking (optional)
             name: Conversation name
+            source: Channel that created the conversation (web/flutter/widget/whatsapp/slack/chrome)
 
         Returns:
             Created conversation
@@ -51,6 +53,7 @@ class ConversationService:
             session_id=session_id,
             name=name,
             status=ConversationStatus.ACTIVE,
+            source=source,
         )
         db.add(conversation)
         await db.commit()

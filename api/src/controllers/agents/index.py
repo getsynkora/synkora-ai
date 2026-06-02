@@ -185,6 +185,7 @@ async def create_agent(
         # Save to database
         db_agent = Agent(
             tenant_id=tenant_id,
+            created_by=current_account.id,
             agent_name=request.config.name,
             agent_type=request.agent_type.lower(),
             description=request.config.description,

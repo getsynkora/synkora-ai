@@ -84,6 +84,13 @@ export default function WidgetEditPage() {
   const [fcmServerKey, setFcmServerKey] = useState("");
   const [showFcmKey, setShowFcmKey] = useState(false);
 
+  // Pre-chat form
+  const [preChatEnabled, setPreChatEnabled] = useState(false);
+  const [preChatShowName, setPreChatShowName] = useState(true);
+  const [preChatShowEmail, setPreChatShowEmail] = useState(true);
+  const [preChatShowPhone, setPreChatShowPhone] = useState(false);
+  const [preChatSkippable, setPreChatSkippable] = useState(true);
+
   // Agent routing
   const [enableAgentRouting, setEnableAgentRouting] = useState(false);
   const [newOrgId, setNewOrgId] = useState("");
@@ -113,6 +120,12 @@ export default function WidgetEditPage() {
       setEnableAgentRouting(widgetData.enable_agent_routing ?? false);
       setMobileAllowed(widgetData.mobile_allowed ?? false);
       setFcmServerKey("");
+      const preChatCfg = (widgetData.theme_config as any)?.pre_chat_form || {};
+      setPreChatEnabled(preChatCfg.enabled ?? false);
+      setPreChatShowName(preChatCfg.show_name ?? true);
+      setPreChatShowEmail(preChatCfg.show_email ?? true);
+      setPreChatShowPhone(preChatCfg.show_phone ?? false);
+      setPreChatSkippable(preChatCfg.skippable ?? true);
 
       const agentList: Agent[] = Array.isArray(agentsData) ? agentsData : agentsData?.agents_list || [];
       setAgents(agentList);
@@ -154,6 +167,13 @@ export default function WidgetEditPage() {
           chat_primary_color: primaryColor,
           chat_welcome_message: welcomeMessage,
           chat_placeholder: chatPlaceholder,
+          pre_chat_form: {
+            enabled: preChatEnabled,
+            show_name: preChatShowName,
+            show_email: preChatShowEmail,
+            show_phone: preChatShowPhone,
+            skippable: preChatSkippable,
+          },
         },
       });
       toast.success("Widget settings saved");
@@ -491,6 +511,49 @@ export default function WidgetEditPage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* ── Pre-chat Form ─────────────────────────────────────────────────── */}
+          <div className={sectionClass}>
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <svg className="h-5 w-5 text-[#2d8b69]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <h2 className="text-lg font-semibold text-gray-900">Pre-chat Form</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreChatEnabled(!preChatEnabled)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${preChatEnabled ? 'bg-[#2d8b69]' : 'bg-gray-200'}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${preChatEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">
+              Show a short form before the first message to collect user info. Applies to anonymous users only — identified users skip it automatically.
+            </p>
+            {preChatEnabled && (
+              <div className="space-y-3">
+                {[
+                  { label: 'Show Name field', value: preChatShowName, set: setPreChatShowName },
+                  { label: 'Show Email field', value: preChatShowEmail, set: setPreChatShowEmail },
+                  { label: 'Show Phone field', value: preChatShowPhone, set: setPreChatShowPhone },
+                  { label: 'Allow users to skip the form', value: preChatSkippable, set: setPreChatSkippable },
+                ].map(({ label, value, set }) => (
+                  <label key={label} className="flex items-center justify-between cursor-pointer">
+                    <span className="text-sm text-gray-700">{label}</span>
+                    <button
+                      type="button"
+                      onClick={() => set(!value)}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${value ? 'bg-[#2d8b69]' : 'bg-gray-200'}`}
+                    >
+                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${value ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                    </button>
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* ── Identity Verification ─────────────────────────────────────────── */}

@@ -100,13 +100,25 @@ def deduct_credits_async(self, tenant_id: str, user_id: str | None, agent_id: st
                 # Initialize credit service
                 credit_service = CreditService(db)
 
-                # Deduct credits with idempotency check
+                # Look up any per-use pricing markup for this agent
+                extra_credits = 0
+                try:
+                    from src.models.agent_pricing import PricingModel
+
+                    pricing = await AgentPricingService.get_agent_pricing(agent_uuid, db)
+                    if pricing and pricing.pricing_model == PricingModel.PER_USE and pricing.credits_per_use:
+                        extra_credits = int(pricing.credits_per_use)
+                except Exception as pricing_err:
+                    logger.warning(f"Could not fetch agent pricing markup (non-fatal): {pricing_err}")
+
+                # Deduct credits with idempotency check (base cost + per-use markup)
                 transaction = await credit_service.deduct_credits_idempotent(
                     tenant_id=tenant_uuid,
                     user_id=user_uuid,
                     agent_id=agent_uuid,
                     action_type=action_enum,
                     metadata=metadata,
+                    extra_credits=extra_credits,
                 )
 
                 if transaction:

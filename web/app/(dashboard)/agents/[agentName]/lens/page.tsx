@@ -706,8 +706,7 @@ export default function LensOverviewPage() {
       title="Agent Lens"
       description="Usage analytics, tool performance, ROI, and alerting for this agent."
       icon={Activity}
-      backHref={`/agents/${agentSlug}/view`}
-      backLabel="Back to Agent"
+
       badge="Analytics"
       maxWidthClassName="max-w-[88rem]"
       actions={

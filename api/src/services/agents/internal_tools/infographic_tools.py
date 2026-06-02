@@ -16,7 +16,7 @@ reference.  Quick example::
       "title":    "Daily Operations Briefing",
       "subtitle": "Engineering · Sales · Ops",
       "date":     "Apr 16, 2026",
-      "theme":    "dark",
+      "theme":    "midnight",
       "sections": [
         {
           "type": "kpi_row",
@@ -64,6 +64,18 @@ logger = logging.getLogger(__name__)
 # Maximum spec size accepted (prevents runaway SVG generation)
 _MAX_SPEC_BYTES = 256 * 1024  # 256 KB
 
+_THEME_ALIASES = {
+    "dark": "midnight",
+    "light": "daylight",
+    "glass": "aurora",
+}
+
+
+def _normalize_infographic_theme(theme: str | None) -> str:
+    if not theme:
+        return "midnight"
+    return _THEME_ALIASES.get(theme.strip().lower(), theme)
+
 
 async def internal_generate_infographic(
     spec: str,
@@ -106,6 +118,16 @@ async def internal_generate_infographic(
 
     if not spec_dict.get("title"):
         return {"success": False, "error": "Spec must include a 'title' field"}
+
+    if not spec_dict.get("width"):
+        sections = spec_dict.get("sections") or []
+        if (
+            len(sections) == 1
+            and isinstance(sections[0], dict)
+            and sections[0].get("type") == "assessment_scorecard"
+            and sections[0].get("layout") != "classic"
+        ):
+            spec_dict["width"] = 820
 
     # 3. Render SVG
     try:
@@ -156,13 +178,14 @@ async def internal_generate_infographic(
             logger.warning(f"PNG conversion failed: {exc}")
 
     # 6. Return result
-    # Inline SVG content only when small enough to be useful in a response
-    inline_svg = svg_content if len(svg_content) < 64_000 else None
+    # Keep more SVGs inline so chat renders the exact vector output instead of
+    # falling back to a raster/image tag for medium-complexity infographics.
+    inline_svg = svg_content if len(svg_content) < 160_000 else None
 
     return {
         "success": True,
         "title": spec_dict.get("title"),
-        "theme": spec_dict.get("theme", "dark"),
+        "theme": spec_dict.get("theme", "midnight"),
         "svg_url": svg_url,
         "png_url": png_url,
         "svg_content": inline_svg,
@@ -181,7 +204,7 @@ async def internal_generate_slack_infographic(
     bar_chart_title: str,
     bar_chart_data: str,
     stories: str,
-    theme: str = "dark",
+    theme: str = "midnight",
     heatmap_data: str | None = None,
     config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -213,7 +236,9 @@ async def internal_generate_slack_infographic(
                 [{"headline": "...", "body": "...", "channel": "#eng", "author": "Alice"}]
 
         theme:
-            ``"dark"`` (default) · ``"light"`` · ``"glass"``.
+            Named preset. Recommended: ``"midnight"`` for briefings and
+            ``"daylight"`` for clean editorial/lifestyle infographics.
+            Legacy aliases ``"dark"``, ``"light"``, and ``"glass"`` still work.
         heatmap_data:
             Optional JSON array of 7 arrays (days) × 24 ints (hours) for an
             activity heatmap section.
@@ -255,7 +280,7 @@ async def internal_generate_slack_infographic(
     spec_dict = {
         "title": title,
         "date": date,
-        "theme": theme,
+        "theme": _normalize_infographic_theme(theme),
         "sections": sections,
     }
 

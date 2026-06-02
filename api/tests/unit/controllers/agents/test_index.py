@@ -198,7 +198,15 @@ class TestCreateAgent:
             mock_agent_instance.id = uuid4()
             mock_agent_class.return_value = mock_agent_instance
 
-            result = await create_agent(request=sample_create_request, tenant_id=mock_tenant_id, db=mock_db)
+            mock_account = Mock()
+            mock_account.id = uuid4()
+
+            result = await create_agent(
+                request=sample_create_request,
+                tenant_id=mock_tenant_id,
+                current_account=mock_account,
+                db=mock_db,
+            )
 
             assert result.success is True
             assert "created successfully" in result.message

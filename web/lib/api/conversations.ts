@@ -17,9 +17,13 @@ export async function deleteConversation(id: string): Promise<void> {
 }
 
 // Agent Conversations (New API)
-export async function getAgentConversations(agentId: string, limit: number = 50): Promise<any[]> {
+export async function getAgentConversations(
+  agentId: string,
+  limit: number = 50,
+  source?: string
+): Promise<any[]> {
   const { data } = await apiClient.axios.get(`/api/v1/agents/${agentId}/conversations`, {
-    params: { limit }
+    params: { limit, ...(source ? { source } : {}) }
   })
   return data.data?.conversations || []
 }

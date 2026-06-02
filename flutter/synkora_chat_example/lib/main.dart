@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:synkora_chat/synkora_chat.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 void main() {
   runApp(const ExampleApp());
@@ -277,6 +278,12 @@ class ChatScreen extends StatelessWidget {
       baseUrl: baseUrl,
       userId: userId,
       onClose: () => Navigator.pop(context),
+      onLinkTap: (href) async {
+        final uri = Uri.tryParse(href);
+        if (uri != null && await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+      },
     );
   }
 }
