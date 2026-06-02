@@ -1,3 +1,10 @@
+## 1.13.4
+
+- New UI/UX improvements
+- History tab refactored
+- Session close/end support
+- Optional email and full name entry
+
 ## 1.13.3
 
 - Agent Lens support and UI improvements
