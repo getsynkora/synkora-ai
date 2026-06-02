@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lottie/lottie.dart';
@@ -251,37 +249,6 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
         setState(() => _activeView = _ChatSurfaceView.home);
       }
     }
-  }
-
-  Future<void> _showHistorySheet() async {
-    if (_controller.messages.isEmpty) return;
-
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => FractionallySizedBox(
-        heightFactor: 0.84,
-        child: _HistorySheet(
-          messages: _controller.messages,
-          primaryColor: _primaryColor,
-          onOpenChat: () {
-            Navigator.of(context).pop();
-            _openChat();
-          },
-          onOpenHome: () {
-            Navigator.of(context).pop();
-            _openHome();
-          },
-          onNewChat: _controller.hasConversationContent
-              ? () async {
-                  Navigator.of(context).pop();
-                  await _clearSession();
-                }
-              : null,
-        ),
-      ),
-    );
   }
 
   Color get _primaryColor =>
@@ -1221,10 +1188,7 @@ class _ChatEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hex = '#${primaryColor.value.toRadixString(16).substring(2)}';
-    final btnFg = ThemeData.estimateBrightnessForColor(primaryColor) == Brightness.dark
-        ? Colors.white
-        : _brandInk;
+    final hex = '#${primaryColor.toARGB32().toRadixString(16).substring(2)}';
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -1962,7 +1926,7 @@ class _SessionEndedBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hex = '#${primaryColor.value.toRadixString(16).substring(2)}';
+    final hex = '#${primaryColor.toARGB32().toRadixString(16).substring(2)}';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

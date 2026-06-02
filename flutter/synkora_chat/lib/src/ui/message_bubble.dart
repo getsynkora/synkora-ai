@@ -25,7 +25,6 @@ class MessageBubble extends StatelessWidget {
 
   // Agent bubble — cool slate, clearly distinct from any primaryColor
   static const _agentSurface = Color(0xFFF1F5F9);
-  static const _agentText = Color(0xFF0F172A);
 
   @override
   Widget build(BuildContext context) {
@@ -108,7 +107,6 @@ class _MarkdownContent extends StatelessWidget {
 
   static const _ink = Color(0xFF0F172A);
   static const _tableBorder = Color(0x1E0F172A);
-  static const _tableHeader = Color(0xFFE2E8F0);
   static const _tableRow = Color(0x080F172A);
 
   const _MarkdownContent({
