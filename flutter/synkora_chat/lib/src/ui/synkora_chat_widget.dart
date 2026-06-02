@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lottie/lottie.dart';
@@ -251,37 +249,6 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
         setState(() => _activeView = _ChatSurfaceView.home);
       }
     }
-  }
-
-  Future<void> _showHistorySheet() async {
-    if (_controller.messages.isEmpty) return;
-
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => FractionallySizedBox(
-        heightFactor: 0.84,
-        child: _HistorySheet(
-          messages: _controller.messages,
-          primaryColor: _primaryColor,
-          onOpenChat: () {
-            Navigator.of(context).pop();
-            _openChat();
-          },
-          onOpenHome: () {
-            Navigator.of(context).pop();
-            _openHome();
-          },
-          onNewChat: _controller.hasConversationContent
-              ? () async {
-                  Navigator.of(context).pop();
-                  await _clearSession();
-                }
-              : null,
-        ),
-      ),
-    );
   }
 
   Color get _primaryColor =>
@@ -1221,10 +1188,7 @@ class _ChatEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hex = '#${primaryColor.value.toRadixString(16).substring(2)}';
-    final btnFg = ThemeData.estimateBrightnessForColor(primaryColor) == Brightness.dark
-        ? Colors.white
-        : _brandInk;
+    final hex = '#${primaryColor.toARGB32().toRadixString(16).substring(2)}';
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -1264,226 +1228,6 @@ class _ChatEmptyState extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _HistorySheet extends StatelessWidget {
-  final List<ChatMessage> messages;
-  final Color primaryColor;
-  final VoidCallback onOpenChat;
-  final VoidCallback onOpenHome;
-  final VoidCallback? onNewChat;
-
-  const _HistorySheet({
-    required this.messages,
-    required this.primaryColor,
-    required this.onOpenChat,
-    required this.onOpenHome,
-    required this.onNewChat,
-  });
-
-  String _formatTime(DateTime timestamp) {
-    final hour = timestamp.hour % 12 == 0 ? 12 : timestamp.hour % 12;
-    final minute = timestamp.minute.toString().padLeft(2, '0');
-    final meridiem = timestamp.hour >= 12 ? 'PM' : 'AM';
-    return '$hour:$minute $meridiem';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (messages.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Container(
-      decoration: const BoxDecoration(
-        color: _brandPanel,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-      ),
-      child: Column(
-        children: [
-          const SizedBox(height: 10),
-          Container(
-            width: 42,
-            height: 5,
-            decoration: BoxDecoration(
-              color: const Color(0x22171717),
-              borderRadius: BorderRadius.circular(999),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
-            child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: primaryColor.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Icon(Icons.history_rounded, color: _brandInk),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Conversation history',
-                        style: TextStyle(
-                          color: _brandInk,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${messages.length} messages in the current session',
-                        style: const TextStyle(
-                          color: _brandMuted,
-                          fontSize: 13,
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.close_rounded, color: _brandInk),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 0, 18, 14),
-            child: Row(
-              children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: onOpenChat,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: primaryColor,
-                      foregroundColor: _brandInk,
-                      minimumSize: const Size.fromHeight(46),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                    ),
-                    icon: const Icon(Icons.chat_bubble_outline_rounded),
-                    label: const Text('Back to chat'),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                OutlinedButton(
-                  onPressed: onOpenHome,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: _brandInk,
-                    side: const BorderSide(color: _brandBorder),
-                    minimumSize: const Size(0, 46),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                  ),
-                  child: const Text('Home'),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-              children: [
-                ...messages
-                    .where((message) => message.content.trim().isNotEmpty)
-                    .map(
-                      (message) => Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: message.role == MessageRole.user
-                                ? _brandSurface
-                                : Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: _brandBorder),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 6,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: message.role == MessageRole.user
-                                          ? primaryColor.withValues(alpha: 0.24)
-                                          : const Color(0x17171717),
-                                      borderRadius: BorderRadius.circular(999),
-                                    ),
-                                    child: Text(
-                                      message.role == MessageRole.user
-                                          ? 'You'
-                                          : 'Assistant',
-                                      style: const TextStyle(
-                                        color: _brandInk,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  Text(
-                                    _formatTime(message.timestamp.toLocal()),
-                                    style: const TextStyle(
-                                      color: _brandMuted,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                message.content,
-                                style: const TextStyle(
-                                  color: _brandInk,
-                                  fontSize: 14,
-                                  height: 1.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                if (onNewChat != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: OutlinedButton.icon(
-                      onPressed: onNewChat,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: _brandInk,
-                        side: const BorderSide(color: _brandBorder),
-                        minimumSize: const Size.fromHeight(48),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                      ),
-                      icon: const Icon(Icons.delete_outline_rounded),
-                      label: const Text('Clear current conversation'),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1962,7 +1706,7 @@ class _SessionEndedBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hex = '#${primaryColor.value.toRadixString(16).substring(2)}';
+    final hex = '#${primaryColor.toARGB32().toRadixString(16).substring(2)}';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

@@ -88,6 +88,8 @@ const nextConfig = {
         'https://www.youtube.com',
         'https://www.youtube-nocookie.com',
         'https://player.vimeo.com',
+        'https://*.s3.amazonaws.com',
+        'https://*.s3.*.amazonaws.com',
         isDev ? 'http://localhost:9000' : '',
         process.env.NEXT_PUBLIC_MINIO_PUBLIC_URL || '',
       ].filter(Boolean).join(' '),
@@ -175,6 +177,15 @@ const nextConfig = {
             value: 'unsafe-none',
           },
         ],
+      },
+      // Explicit MIME types for static assets — prevents CDN/proxy from serving as text/plain
+      {
+        source: '/_next/static/:path*.css',
+        headers: [{ key: 'Content-Type', value: 'text/css; charset=utf-8' }],
+      },
+      {
+        source: '/_next/static/:path*.js',
+        headers: [{ key: 'Content-Type', value: 'application/javascript; charset=utf-8' }],
       },
       // CORS headers for widget.js to allow embedding on external sites
       {
