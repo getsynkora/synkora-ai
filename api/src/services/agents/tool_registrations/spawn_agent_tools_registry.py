@@ -17,6 +17,7 @@ def register_spawn_agent_tools(registry):
     """
     Register all spawn agent tools with the ADK tool registry.
 
+
     Args:
         registry: ADKToolRegistry instance
     """
@@ -74,17 +75,32 @@ def register_spawn_agent_tools(registry):
 
     registry.register_tool(
         name="spawn_agent",
-        description="""Spawn a LOCAL sub-agent to handle a task. Multiple spawns in the same iteration run concurrently.
+        description="""Spawn a LOCAL sub-agent to handle a task in parallel with other sub-agents.
+
+
+ONLY use spawn_agent when you have 2 or more INDEPENDENT tasks that can genuinely run at the same time.
+Do NOT use spawn_agent for a single task — just do it yourself directly with your tools.
+Do NOT use spawn_agent just because a task has multiple steps — sequential steps belong in your own loop.
+
+
+GOOD — spawn when you have true fan-out:
+- Query 5 different data sources in parallel
+- Run independent analyses on separate datasets simultaneously
+
+
+BAD — do NOT spawn for:
+- A single query or lookup (use internal_query_database directly)
+- A task you can complete in a few tool calls yourself
+- Sequential steps where each depends on the previous result
+
 
 DEFAULT (run_in_background=false): runs synchronously — blocks until complete and returns the result directly.
-Use this for almost everything. Multiple synchronous spawns run in PARALLEL automatically.
+
 
 BACKGROUND (run_in_background=true): only use when a task will take longer than 5 minutes.
 Returns a task_id — use check_task(task_id) to poll for the result later.
 
-Use for fan-out / parallel work:
-- Analyse multiple services or data sources in parallel
-- Run independent sub-tasks concurrently
+
 
 Do NOT use for calling a remote agent at an external URL — use call_remote_agent instead.""",
         parameters={
@@ -109,7 +125,9 @@ Do NOT use for calling a remote agent at an external URL — use call_remote_age
         name="check_task",
         description="""Check the status and result of a background task.
 
+
 Use this to retrieve results from tasks spawned with run_in_background=true.
+
 
 Returns:
 - status: 'pending', 'running', 'completed', 'failed', 'retrying', 'cancelled'
@@ -131,6 +149,7 @@ Returns:
     registry.register_tool(
         name="list_background_tasks",
         description="""Get information about checking background task status.
+
 
 Note: Track task_ids from spawn_agent responses and use check_task to check their status.""",
         parameters={
