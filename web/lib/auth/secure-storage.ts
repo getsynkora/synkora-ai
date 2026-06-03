@@ -135,16 +135,24 @@ export function initializeSecureStorage(): void {
   // Proactively refresh when the tab regains focus if the access token is near expiry.
   // We can't check if the HttpOnly cookie exists from JS — just attempt the refresh;
   // it succeeds silently if the cookie is present, fails gracefully if not.
+  let refreshInterval: ReturnType<typeof setInterval> | null = null
+
   const checkAndRefresh = () => {
-    if (secureStorage.isTokenExpired()) {
-      secureStorage.refreshAccessToken().catch(() => {
-        secureStorage.clearTokens()
+    if (!secureStorage.isTokenExpired()) return
+    secureStorage.refreshAccessToken().then((success) => {
+      if (!success) {
+        // Refresh token is expired/invalid — stop polling and redirect to login.
+        // refreshAccessToken() already calls clearTokens() before returning false.
+        if (refreshInterval !== null) {
+          clearInterval(refreshInterval)
+          refreshInterval = null
+        }
         window.location.href = '/signin'
-      })
-    }
+      }
+    })
   }
 
-  setInterval(checkAndRefresh, 5 * 60 * 1000)
+  refreshInterval = setInterval(checkAndRefresh, 5 * 60 * 1000)
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) checkAndRefresh()
   })
