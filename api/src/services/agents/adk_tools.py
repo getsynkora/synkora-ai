@@ -1082,6 +1082,86 @@ Supports: Git, GitHub CLI, npm, pip, Docker, file operations (ls, cat, mkdir, et
             function=internal_list_database_connections_wrapper,
         )
 
+        # query_database_to_s3 — pipeline tool that queries a DB and saves results to S3
+        async def query_database_to_s3_wrapper(
+            connection_id: str,
+            query: str,
+            output_s3_key: str | None = None,
+            filter_from_s3_url: str | None = None,
+            filter_column: str | None = None,
+            batch_size: int = 500,
+            config: dict[str, Any] | None = None,
+        ):
+            return await query_database_to_s3(
+                connection_id=connection_id,
+                query=query,
+                output_s3_key=output_s3_key,
+                filter_from_s3_url=filter_from_s3_url,
+                filter_column=filter_column,
+                batch_size=batch_size,
+                config=config,
+            )
+
+        self.register_tool(
+            name="query_database_to_s3",
+            description=(
+                "Query a database and save ALL results directly to S3 as a CSV — no row truncation, no fabrication.\n\n"
+                "TWO MODES:\n\n"
+                "1. DIRECT QUERY (no filter file):\n"
+                "   Run any SQL and save the full result to S3.\n"
+                "   Use when you already know the criteria.\n\n"
+                "2. BATCH FILTER MODE (cross-reference an uploaded file with a database):\n"
+                "   Reads a column of values from an uploaded S3 CSV/file, splits them into\n"
+                "   batches, and runs the query once per batch — substituting {values} in the SQL\n"
+                "   with each batch's values as a SQL IN-list.\n"
+                "   Use when a user has uploaded a file (e.g. 25k user IDs) and you need to look\n"
+                "   those values up in BigQuery, Supabase, Postgres, etc.\n\n"
+                "EXAMPLE (batch mode):\n"
+                "  connection_id: '<bigquery-connection-uuid>'\n"
+                "  query: 'SELECT user_id, currency, SUM(balance) AS total FROM accounts WHERE user_id IN ({values}) AND balance > 0 GROUP BY 1,2'\n"
+                "  filter_from_s3_url: 's3://synkora-storage/data-uploads/.../users.csv'\n"
+                "  filter_column: 'user_id'\n"
+                "  output_s3_key: 'analysis/balances_2026_06_03.csv'\n\n"
+                "Returns a presigned download URL valid for 7 days. Share this URL directly with the user."
+            ),
+            parameters={
+                "type": "object",
+                "properties": {
+                    "connection_id": {
+                        "type": "string",
+                        "description": "UUID of the database connection (use internal_list_database_connections to find it)",
+                    },
+                    "query": {
+                        "type": "string",
+                        "description": (
+                            "SQL query to execute. "
+                            "For batch mode, include WHERE col IN ({values}) — the tool replaces {values} per batch. "
+                            "For direct mode, write the full SQL as-is."
+                        ),
+                    },
+                    "output_s3_key": {
+                        "type": "string",
+                        "description": "S3 key for the output CSV, e.g. 'analysis/results_2026_06_03.csv'. Auto-generated if not provided.",
+                    },
+                    "filter_from_s3_url": {
+                        "type": "string",
+                        "description": "S3 URL of the uploaded file containing filter values (batch mode only), e.g. 's3://synkora-storage/data-uploads/.../file.csv'",
+                    },
+                    "filter_column": {
+                        "type": "string",
+                        "description": "Column name in the uploaded file whose values are used as the IN-list filter (batch mode only)",
+                    },
+                    "batch_size": {
+                        "type": "integer",
+                        "description": "Number of values per batch (default 500, max 2000). Tune down if DB struggles with large IN lists.",
+                        "default": 500,
+                    },
+                },
+                "required": ["connection_id", "query"],
+            },
+            function=query_database_to_s3_wrapper,
+        )
+
         self.register_tool(
             name="internal_get_database_schema",
             description="Get schema information for a database connection. Returns tables/indices, columns, and data types to help understand the database structure.",

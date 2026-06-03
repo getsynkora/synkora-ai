@@ -1,11 +1,13 @@
 """
 Internal Tools for Synkora Agents.
 
+
 Built-in tools that are available by default without requiring external MCP servers.
 All internal tools are prefixed with "internal_" to distinguish them from MCP and custom tools.
 """
 
 from src.services.agents.internal_tools.command_tools import internal_run_command
+from src.services.agents.internal_tools.data_pipeline_tools import query_database_to_s3
 from src.services.agents.internal_tools.database_tools import (
     internal_generate_chart,
     internal_get_database_schema,
@@ -231,6 +233,7 @@ __all__ = [
     "internal_get_database_schema",
     "internal_generate_chart",
     "internal_query_and_chart",
+    "query_database_to_s3",
     "internal_fetch_repository_files",
     "internal_identify_abstractions",
     "internal_analyze_relationships",

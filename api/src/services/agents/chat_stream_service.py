@@ -1667,11 +1667,12 @@ class ChatStreamService:
                 _connections = list(_result.scalars().all())
                 if _connections:
                     conn_lines = "\n".join(
-                        f'- "{c.name}" (type: {c.database_type}, status: {c.status})' for c in _connections
+                        f'- connection_id: "{c.id}" | name: "{c.name}" (type: {c.database_type}, status: {c.status})'
+                        for c in _connections
                     )
                     prompt_parts.append(
                         f"# Configured Database Connections\n"
-                        f"Use these exact connection names when calling database tools:\n{conn_lines}"
+                        f"IMPORTANT: Use the connection_id (UUID) when calling database tools, NOT the name:\n{conn_lines}"
                     )
             except Exception as _e:
                 logger.warning("Failed to inject database connection context: %s", _e)
