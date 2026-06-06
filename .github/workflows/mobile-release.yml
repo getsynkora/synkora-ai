@@ -24,7 +24,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  FLUTTER_VERSION: "3.24.5"
+  FLUTTER_VERSION: "3.44.1"
   MOBILE_API_URL: ${{ vars.MOBILE_API_URL || vars.NEXT_PUBLIC_API_URL || 'https://api.synkora.ai' }}
   IOS_APP_BUNDLE_ID: ${{ vars.IOS_APP_BUNDLE_ID }}
   IOS_APPLE_TEAM_ID: ${{ vars.IOS_APPLE_TEAM_ID }}
