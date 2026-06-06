@@ -8,7 +8,7 @@ Create Date: 2026-06-06
 from alembic import op
 
 revision = "20260606_0001"
-down_revision = "20260602_0003_add_external_user_email_phone"
+down_revision = "20260602_0003"
 branch_labels = None
 depends_on = None
 

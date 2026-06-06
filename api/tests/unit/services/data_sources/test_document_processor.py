@@ -159,13 +159,13 @@ class TestDocumentProcessor:
 
                 # Mock execute calls in order:
                 # 1. DataSourceDocument check → scalar_one_or_none → None (new doc)
-                # 2. Document/KB doc check → scalar_one_or_none → None (new doc)
+                # 2. Document/KB doc check → scalars().all() → [] (no existing docs)
                 # 3. Post-loop count query → scalar_one → 1 (for KB stats update)
                 mock_result_none = MagicMock()
                 mock_result_none.scalar_one_or_none.return_value = None
 
                 mock_result_none2 = MagicMock()
-                mock_result_none2.scalar_one_or_none.return_value = None
+                mock_result_none2.scalars.return_value.all.return_value = []
 
                 mock_result_count = MagicMock()
                 mock_result_count.scalar_one.return_value = 1
