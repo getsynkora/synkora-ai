@@ -323,9 +323,7 @@ async def create_agent(
         if llm_config_data.get("api_key"):
             llm_config_data["api_key"] = encrypt_value(llm_config_data["api_key"])
 
-        normalized_tool_names, normalized_tool_payloads = _normalize_requested_tools(
-            request.config.tools or []
-        )
+        normalized_tool_names, normalized_tool_payloads = _normalize_requested_tools(request.config.tools or [])
         matched_tool_names = _resolve_requested_agent_tools(normalized_tool_names)
         effective_llm_config = await _resolve_primary_llm_config(
             db=db,

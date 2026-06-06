@@ -97,7 +97,9 @@ class AgentRegistry:
                 except RuntimeError:
                     # No running event loop (e.g. sync test context) — call directly.
                     try:
-                        redis_registry.unregister_runtime(tenant_id=tenant_id, agent_name=agent_name, runtime_id=runtime_id)
+                        redis_registry.unregister_runtime(
+                            tenant_id=tenant_id, agent_name=agent_name, runtime_id=runtime_id
+                        )
                     except Exception as exc:
                         logger.warning("Failed to unregister evicted runtime from Redis: %s", exc)
             logger.info(
@@ -258,7 +260,9 @@ class AgentRegistry:
         result: dict[str, dict[str, Any]] = {}
         for (tenant_id, name, runtime_id), agent in self._agents.items():
             if tenant_id:
-                label = f"{tenant_id}:{name}" if runtime_id == DEFAULT_RUNTIME_ID else f"{tenant_id}:{name}:{runtime_id}"
+                label = (
+                    f"{tenant_id}:{name}" if runtime_id == DEFAULT_RUNTIME_ID else f"{tenant_id}:{name}:{runtime_id}"
+                )
             else:
                 label = name if runtime_id == DEFAULT_RUNTIME_ID else f"{name}:{runtime_id}"
             result[label] = agent.get_stats()

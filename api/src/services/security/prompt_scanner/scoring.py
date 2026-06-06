@@ -49,9 +49,7 @@ class ConservativeScoringEngine:
 
         layers_triggered = len({detection.layer for detection in adjusted})
         should_block = explicit_block or (
-            total_risk_score >= self.block_threshold
-            and substantive_hits >= 2
-            and bool(adjusted)
+            total_risk_score >= self.block_threshold and substantive_hits >= 2 and bool(adjusted)
         )
 
         threat_level = self._calculate_threat_level(total_risk_score)
@@ -60,7 +58,9 @@ class ConservativeScoringEngine:
 
         recommendation = self._recommendation(threat_level, total_risk_score, should_block)
         mitigation_actions = [
-            detection.mitigation for detection in adjusted if detection.severity in [ThreatLevel.HIGH, ThreatLevel.CRITICAL]
+            detection.mitigation
+            for detection in adjusted
+            if detection.severity in [ThreatLevel.HIGH, ThreatLevel.CRITICAL]
         ]
 
         return ScanDecision(

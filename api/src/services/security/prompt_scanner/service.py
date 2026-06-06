@@ -35,7 +35,9 @@ class PromptScannerService:
             benign_context_score_factor=self.rule_config.benign_context_score_factor,
         )
 
-    def scan(self, text: str, user_id: str | None = None, ip_address: str | None = None, context: str | None = None) -> dict:
+    def scan(
+        self, text: str, user_id: str | None = None, ip_address: str | None = None, context: str | None = None
+    ) -> dict:
         """Run the synchronous detector pipeline."""
         if not text or not text.strip():
             result = self.safe_result()
@@ -85,7 +87,9 @@ class PromptScannerService:
         """Create the normalized request for detector execution."""
         normalized_text = normalize_text(text, max_chars=self.rule_config.max_scan_chars)
         benign_hits = tuple(
-            pattern.pattern for pattern in self.rule_config.benign_context_patterns if pattern.search(text) or pattern.search(normalized_text)
+            pattern.pattern
+            for pattern in self.rule_config.benign_context_patterns
+            if pattern.search(text) or pattern.search(normalized_text)
         )
         return ScanRequest(
             text=text[: self.rule_config.max_scan_chars],
@@ -133,7 +137,9 @@ class PromptScannerService:
         if ip_address:
             self.reputation_store.increment_violations(f"ip_{ip_address}")
 
-    async def update_reputation_async(self, user_id: str | None, ip_address: str | None, threat_level: ThreatLevel) -> None:
+    async def update_reputation_async(
+        self, user_id: str | None, ip_address: str | None, threat_level: ThreatLevel
+    ) -> None:
         """Persist reputation penalties asynchronously."""
         if threat_level not in [ThreatLevel.MEDIUM, ThreatLevel.HIGH, ThreatLevel.CRITICAL]:
             return

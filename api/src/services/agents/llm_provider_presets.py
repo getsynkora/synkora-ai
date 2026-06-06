@@ -2901,7 +2901,6 @@ ALL_PROVIDER_PRESETS: dict[str, ProviderPreset] = {
 }
 
 
-
 @cache
 def _get_model_comparison_data() -> dict[str, dict[str, Any]]:
     """Load the comparison metadata only when model enrichment is requested."""

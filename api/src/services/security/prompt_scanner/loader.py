@@ -64,7 +64,9 @@ def load_rule_config() -> RuleConfig:
     with rules_path.open("r", encoding="utf-8") as handle:
         raw = yaml.safe_load(handle)
 
-    benign_patterns = tuple(re.compile(pattern, re.IGNORECASE | re.MULTILINE | re.DOTALL) for pattern in raw["benign_context_patterns"])
+    benign_patterns = tuple(
+        re.compile(pattern, re.IGNORECASE | re.MULTILINE | re.DOTALL) for pattern in raw["benign_context_patterns"]
+    )
     mitigation_map = dict(raw["mitigations"])
 
     return RuleConfig(

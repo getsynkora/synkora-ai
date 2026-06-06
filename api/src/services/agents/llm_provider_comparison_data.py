@@ -784,4 +784,3 @@ MODEL_COMPARISON_DATA: dict[str, dict[str, Any]] = {
         "tags": ["open-source", "coding", "reasoning"],
     },
 }
-

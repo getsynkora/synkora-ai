@@ -1315,7 +1315,9 @@ async def reprocess_document(
         # Get the data source to pass to the Celery task
         data_source_id = doc.data_source_id
         if not data_source_id:
-            raise HTTPException(status_code=422, detail="Document has no associated data source and cannot be reprocessed")
+            raise HTTPException(
+                status_code=422, detail="Document has no associated data source and cannot be reprocessed"
+            )
 
         doc.status = DocumentStatus.PENDING
         doc.error = None

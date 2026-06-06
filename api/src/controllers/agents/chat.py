@@ -195,11 +195,13 @@ async def chat_stream(
             f"IP: {client_ip}, User-Agent: {user_agent[:100]}"
         )
 
-        _error_event = json.dumps({
-            "type": "error",
-            "error": "Your message was flagged by the security filter. Please rephrase and try again.",
-            "error_type": "security_violation",
-        })
+        _error_event = json.dumps(
+            {
+                "type": "error",
+                "error": "Your message was flagged by the security filter. Please rephrase and try again.",
+                "error_type": "security_violation",
+            }
+        )
         return Response(
             content=f"data: {_error_event}\n\n",
             media_type="text/event-stream",

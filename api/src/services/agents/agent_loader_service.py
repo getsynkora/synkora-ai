@@ -312,7 +312,6 @@ class AgentLoaderService:
         """Cache agent configuration."""
         from src.models.agent_llm_config import AgentLLMConfig
 
-
         is_platform_agent = str(db_agent.tenant_id) == _PLATFORM_TENANT_ID
 
         # For platform-shared agents scope the LLM config lookup to the requesting tenant
@@ -642,7 +641,6 @@ class AgentLoaderService:
             Tuple of (ModelConfig, api_key, error_message)
         """
         from src.models.agent_llm_config import AgentLLMConfig
-
 
         is_platform_agent = str(db_agent.tenant_id) == _PLATFORM_TENANT_ID
 

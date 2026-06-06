@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import re
+from dataclasses import dataclass, field
 from typing import Protocol
 
 from .models import Detection, Rule, ScanRequest
@@ -111,7 +111,9 @@ class BehavioralDetector:
                         mitigation=rule.mitigation,
                         layer=rule.layer,
                         category=rule.category,
-                        score=min(rule.max_score or rule.score, rule.score + (len(matched_patterns) - rule.min_matches) * 4),
+                        score=min(
+                            rule.max_score or rule.score, rule.score + (len(matched_patterns) - rule.min_matches) * 4
+                        ),
                         block_on_match=rule.block_on_match,
                         safe_when_benign=rule.safe_when_benign,
                     )

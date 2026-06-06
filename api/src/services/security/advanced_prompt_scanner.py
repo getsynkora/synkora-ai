@@ -90,7 +90,9 @@ class AdvancedPromptScanner:
         """Decode common obfuscation techniques."""
         return decode_obfuscations(text)
 
-    def _locate_text_span(self, original_text: str, matched_text: str, fallback: tuple[int, int] | None = None) -> tuple[int, int]:
+    def _locate_text_span(
+        self, original_text: str, matched_text: str, fallback: tuple[int, int] | None = None
+    ) -> tuple[int, int]:
         """Best-effort mapping of normalized text back to the original span."""
         return locate_text_span(original_text, matched_text, fallback=fallback)
 
@@ -178,7 +180,9 @@ class AdvancedPromptScanner:
         """Update reputation for synchronous scans."""
         self.service.update_reputation(user_id, ip_address, threat_level)
 
-    async def _update_reputation_async(self, user_id: str | None, ip_address: str | None, threat_level: ThreatLevel) -> None:
+    async def _update_reputation_async(
+        self, user_id: str | None, ip_address: str | None, threat_level: ThreatLevel
+    ) -> None:
         """Update reputation for asynchronous scans."""
         await self.service.update_reputation_async(user_id, ip_address, threat_level)
 
