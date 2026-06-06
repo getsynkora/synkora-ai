@@ -602,6 +602,8 @@ class ChatStreamService:
 
                 post_db = session_factory() if managed_db_session else db
                 try:
+                    from src.services.agents.llm_client import _llm_reasoning_ctx
+
                     assistant_message = await self.chat_service.save_assistant_message(
                         conversation_id=conversation_uuid,
                         content=assistant_content,
@@ -618,8 +620,10 @@ class ChatStreamService:
                             "output_tokens": state.total_output_tokens,
                             "total_tokens": total_input_tokens + state.total_output_tokens,
                         },
+                        reasoning_content=_llm_reasoning_ctx.get(),
                         db=post_db,
                     )
+                    _llm_reasoning_ctx.set(None)
                 finally:
                     if managed_db_session and post_db is not None:
                         await post_db.close()

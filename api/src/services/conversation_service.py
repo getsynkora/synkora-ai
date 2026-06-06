@@ -274,13 +274,17 @@ class ConversationService:
 
         # Convert to simple dict format — normalize role to lowercase so it matches
         # the "user" / "assistant" filter in _build_prompt (MessageRole enum uses uppercase)
-        messages = [
-            {
-                "role": (msg.role.value if hasattr(msg.role, "value") else str(msg.role)).lower(),
-                "content": msg.content,
-            }
-            for msg in db_messages
-        ]
+        messages = []
+        for msg in db_messages:
+            role = (msg.role.value if hasattr(msg.role, "value") else str(msg.role)).lower()
+            entry: dict = {"role": role, "content": msg.content}
+            # DeepSeek reasoning models require reasoning_content to be echoed back
+            # in subsequent turns. Include it when stored in message metadata.
+            if role == "assistant" and msg.message_metadata:
+                rc = msg.message_metadata.get("reasoning_content")
+                if rc:
+                    entry["reasoning_content"] = rc
+            messages.append(entry)
 
         # Cache for future requests
         if messages:
