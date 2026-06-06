@@ -238,7 +238,7 @@ if settings.celery_result_backend:
         result_backend_transport_options={
             # Use same env var as get_redis() for consistency
             "master_name": _os.getenv("REDIS_MASTER_NAME", "mymaster"),
-            "visibility_timeout": 3600,
+            "visibility_timeout": 7200,  # 2× task_time_limit — prevents re-delivery while task still runs
         },
     )
 
@@ -258,7 +258,7 @@ if settings.celery_broker_url_str.startswith("sentinel://"):
         result_backend_transport_options={
             "master_name": _os.getenv("REDIS_MASTER_NAME", "mymaster"),
             "sentinel_kwargs": {"password": _sentinel_pwd},
-            "visibility_timeout": 3600,
+            "visibility_timeout": 7200,  # 2× task_time_limit
         },
     )
 
