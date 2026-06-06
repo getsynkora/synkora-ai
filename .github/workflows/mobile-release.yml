@@ -122,7 +122,7 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Set up Flutter
-        uses: subosito/flutter-action@e938fdf56512cc96ef2f93b5c07b5571f23ce0ad
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2  # v2.23.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
@@ -215,7 +215,7 @@ jobs:
           done
 
       - name: Set up Flutter
-        uses: subosito/flutter-action@e938fdf56512cc96ef2f93b5c07b5571f23ce0ad
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2  # v2.23.0
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
