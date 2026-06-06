@@ -1291,7 +1291,7 @@ class MultiProviderLLMClient:
                 delta = chunk.choices[0].delta
                 # Capture DeepSeek reasoning_content (thinking mode)
                 rc = getattr(delta, "reasoning_content", None)
-                if rc:
+                if isinstance(rc, str) and rc:
                     reasoning_parts.append(rc)
                 if delta.content:
                     yield delta.content
