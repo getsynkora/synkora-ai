@@ -132,11 +132,12 @@ jobs:
         run: flutter pub get
 
       - name: Prepare Android signing
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
-          python3 -c "import base64, os, pathlib; pathlib.Path('/tmp/synkora-mobile.keystore').write_bytes(base64.b64decode(os.environ['ANDROID_KEYSTORE_BASE64']))"
+          if [ -n "${ANDROID_KEYSTORE_BASE64}" ]; then
+            python3 -c "import base64, os, pathlib; pathlib.Path('/tmp/synkora-mobile.keystore').write_bytes(base64.b64decode(os.environ['ANDROID_KEYSTORE_BASE64']))"
+          fi
 
       - name: Build APK and App Bundle
         env:

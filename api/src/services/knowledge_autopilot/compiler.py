@@ -291,7 +291,6 @@ class KnowledgeCompiler:
             return llm_config
 
         from src.models.agent_llm_config import AgentLLMConfig
-        from src.models.knowledge_base import KnowledgeBase
         from src.services.agents.security import decrypt_value
 
         if not llm_config_id:
@@ -310,25 +309,10 @@ class KnowledgeCompiler:
         temperature = agent_config.temperature or 0.7
         max_tokens = agent_config.max_tokens
 
-        # Use KB's embedding_config API key (user updates this via KB edit page).
-        # If the KB has no key of its own, use the selected agent LLM config's key.
-        api_key = ""
-        kb_result = await self.db.execute(select(KnowledgeBase).filter(KnowledgeBase.id == knowledge_base_id))
-        kb = kb_result.scalar_one_or_none()
-
-        if kb and kb.embedding_config and kb.embedding_config.get("api_key"):
-            try:
-                kb_api_key = decrypt_value(kb.embedding_config["api_key"])
-                if kb_api_key and kb_api_key.strip():
-                    api_key = kb_api_key
-                    if not api_base and kb.embedding_config.get("api_base"):
-                        api_base = kb.embedding_config["api_base"]
-                    logger.info("Using KB embedding API key for compilation")
-            except Exception as e:
-                raise ValueError(f"Failed to decrypt knowledge base API key: {e}") from e
-
-        if not api_key or not api_key.strip():
-            api_key = decrypt_value(agent_config.api_key) if agent_config.api_key else ""
+        # Use the selected AgentLLMConfig's own credentials. The KB's embedding_config
+        # is for the embedding provider only (e.g. OpenAI text-embedding) and must not
+        # override credentials for a different LLM provider (e.g. DeepSeek, Anthropic).
+        api_key = decrypt_value(agent_config.api_key) if agent_config.api_key else ""
 
         if not api_key or not api_key.strip():
             raise ValueError(
