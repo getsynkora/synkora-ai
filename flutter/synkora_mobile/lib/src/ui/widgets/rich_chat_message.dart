@@ -110,10 +110,7 @@ class RichChatMessage extends StatelessWidget {
               ),
             ),
           ),
-          if (_isUser) ...[
-            const SizedBox(width: 10),
-            const _UserAvatar(),
-          ],
+          if (_isUser) ...[const SizedBox(width: 10), const _UserAvatar()],
         ],
       ),
     );
@@ -132,13 +129,12 @@ class _MarkdownMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final styleSheet = MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-      p: Theme.of(context).textTheme.bodyLarge?.copyWith(
-        color: textColor,
-        height: 1.55,
-      ),
-      h1: Theme.of(context).textTheme.headlineMedium?.copyWith(
-        color: textColor,
-      ),
+      p: Theme.of(
+        context,
+      ).textTheme.bodyLarge?.copyWith(color: textColor, height: 1.55),
+      h1: Theme.of(
+        context,
+      ).textTheme.headlineMedium?.copyWith(color: textColor),
       h2: Theme.of(context).textTheme.titleLarge?.copyWith(color: textColor),
       h3: Theme.of(context).textTheme.titleMedium?.copyWith(
         color: textColor,
@@ -176,10 +172,9 @@ class _MarkdownMessage extends StatelessWidget {
         color: SynkoraColors.ink,
         fontWeight: FontWeight.w700,
       ),
-      tableBody: Theme.of(context).textTheme.bodyMedium?.copyWith(
-        color: SynkoraColors.ink,
-        height: 1.4,
-      ),
+      tableBody: Theme.of(
+        context,
+      ).textTheme.bodyMedium?.copyWith(color: SynkoraColors.ink, height: 1.4),
       tableCellsPadding: const EdgeInsets.symmetric(
         horizontal: 12,
         vertical: 10,
@@ -238,10 +233,7 @@ class _AttachmentGrid extends StatelessWidget {
           .map(
             (attachment) => Padding(
               padding: const EdgeInsets.only(bottom: 10),
-              child: _AttachmentCard(
-                attachment: attachment,
-                isUser: isUser,
-              ),
+              child: _AttachmentCard(attachment: attachment, isUser: isUser),
             ),
           )
           .toList(),

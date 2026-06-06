@@ -79,7 +79,8 @@ class _AgentDetailScreenState extends State<AgentDetailScreen> {
                               borderRadius: BorderRadius.circular(24),
                             ),
                             clipBehavior: Clip.antiAlias,
-                            child: agent.avatarUrl != null &&
+                            child:
+                                agent.avatarUrl != null &&
                                     agent.avatarUrl!.isNotEmpty
                                 ? Image.network(
                                     agent.avatarUrl!,
@@ -253,17 +254,17 @@ class _ActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = switch (label) {
       'Talk' => (
-          background: [const Color(0xFFEFFCF6), SynkoraColors.primary],
-          foreground: SynkoraColors.primaryDeep,
-        ),
+        background: [const Color(0xFFEFFCF6), SynkoraColors.primary],
+        foreground: SynkoraColors.primaryDeep,
+      ),
       'Scan' => (
-          background: [const Color(0xFFFFF4E7), SynkoraColors.accentWarm],
-          foreground: const Color(0xFF8A4A12),
-        ),
+        background: [const Color(0xFFFFF4E7), SynkoraColors.accentWarm],
+        foreground: const Color(0xFF8A4A12),
+      ),
       _ => (
-          background: [Colors.white, const Color(0xFFF4FBF8)],
-          foreground: SynkoraColors.ink,
-        ),
+        background: [Colors.white, const Color(0xFFF4FBF8)],
+        foreground: SynkoraColors.ink,
+      ),
     };
 
     return TweenAnimationBuilder<double>(

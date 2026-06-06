@@ -126,9 +126,13 @@ class _BootScreenState extends State<_BootScreen>
                 child: AnimatedBuilder(
                   animation: _controller,
                   builder: (context, _) {
-                    final pulse = 0.96 + ((1 + math.sin(_controller.value * math.pi * 2)) * 0.03);
+                    final pulse =
+                        0.96 +
+                        ((1 + math.sin(_controller.value * math.pi * 2)) *
+                            0.03);
                     final orbitRotation = _controller.value * math.pi * 2;
-                    final drift = math.sin(_controller.value * math.pi * 2) * 10;
+                    final drift =
+                        math.sin(_controller.value * math.pi * 2) * 10;
 
                     return Column(
                       mainAxisSize: MainAxisSize.min,
@@ -159,14 +163,19 @@ class _BootScreenState extends State<_BootScreen>
                                     height: 124,
                                     padding: const EdgeInsets.all(18),
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.12),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.12,
+                                      ),
                                       borderRadius: BorderRadius.circular(36),
                                       border: Border.all(
-                                        color: Colors.white.withValues(alpha: 0.24),
+                                        color: Colors.white.withValues(
+                                          alpha: 0.24,
+                                        ),
                                       ),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: SynkoraColors.primary.withValues(alpha: 0.18),
+                                          color: SynkoraColors.primary
+                                              .withValues(alpha: 0.18),
                                           blurRadius: 32,
                                           offset: const Offset(0, 18),
                                         ),
@@ -265,7 +274,9 @@ class _SplashLoader extends StatelessWidget {
                 borderRadius: BorderRadius.circular(999),
                 boxShadow: [
                   BoxShadow(
-                    color: SynkoraColors.primary.withValues(alpha: 0.18 * intensity),
+                    color: SynkoraColors.primary.withValues(
+                      alpha: 0.18 * intensity,
+                    ),
                     blurRadius: 12,
                     offset: const Offset(0, 6),
                   ),

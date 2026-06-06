@@ -84,10 +84,7 @@ class SynkoraAgentService {
 
     final response = await _client.postMultipart(
       '/api/v1/agents/chat/upload-attachment',
-      data: FormData.fromMap({
-        'conversation_id': conversationId,
-        'file': file,
-      }),
+      data: FormData.fromMap({'conversation_id': conversationId, 'file': file}),
     );
     final data = (response['data'] as Map<String, dynamic>?) ?? response;
     final attachment =

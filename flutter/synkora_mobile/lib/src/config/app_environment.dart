@@ -63,7 +63,6 @@ class AppEnvironment {
   static bool _isLocalHost(String host) =>
       host == 'localhost' || host == '127.0.0.1' || host == '0.0.0.0';
 
-  static String _normalize(String url) => url.endsWith('/')
-      ? url.substring(0, url.length - 1)
-      : url;
+  static String _normalize(String url) =>
+      url.endsWith('/') ? url.substring(0, url.length - 1) : url;
 }

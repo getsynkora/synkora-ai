@@ -197,7 +197,8 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
 
       setState(() {
         _draftAttachments = _mergeDraftAttachments([attachment]);
-        _voiceHint = 'Scan attached. Add instructions and send it to the agent.';
+        _voiceHint =
+            'Scan attached. Add instructions and send it to the agent.';
       });
       _showSnackBar('Scan attached. Add instructions and send.');
     } catch (error) {
@@ -829,9 +830,9 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
             Text(widget.agent.name),
             Text(
               _activeConversation?.name ?? 'Fresh conversation',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: SynkoraColors.muted,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: SynkoraColors.muted),
             ),
           ],
         ),
@@ -848,11 +849,12 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
           const Positioned.fill(child: MeshBackground()),
           Column(
             children: [
-              if (_conversations.isNotEmpty) _ConversationRail(
-                conversations: _conversations,
-                activeConversationId: _activeConversation?.id,
-                onSelect: _selectConversation,
-              ),
+              if (_conversations.isNotEmpty)
+                _ConversationRail(
+                  conversations: _conversations,
+                  activeConversationId: _activeConversation?.id,
+                  onSelect: _selectConversation,
+                ),
               if (_toolStatuses.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
@@ -869,9 +871,7 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.78),
                               borderRadius: BorderRadius.circular(18),
-                              border: Border.all(
-                                color: SynkoraColors.border,
-                              ),
+                              border: Border.all(color: SynkoraColors.border),
                             ),
                             child: Row(
                               children: [
@@ -889,9 +889,7 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
                                     style: Theme.of(context)
                                         .textTheme
                                         .bodyMedium
-                                        ?.copyWith(
-                                          color: SynkoraColors.ink,
-                                        ),
+                                        ?.copyWith(color: SynkoraColors.ink),
                                   ),
                                 ),
                               ],
@@ -1012,9 +1010,7 @@ class _ConversationRail extends StatelessWidget {
                     : Colors.white.withValues(alpha: 0.8),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: isActive
-                      ? Colors.transparent
-                      : SynkoraColors.border,
+                  color: isActive ? Colors.transparent : SynkoraColors.border,
                 ),
               ),
               child: Column(
@@ -1195,13 +1191,17 @@ class _ComposerCard extends StatelessWidget {
                                 ]
                               : [
                                   Colors.white.withValues(alpha: 0.76),
-                                  const Color(0xFFF8FAFC).withValues(alpha: 0.9),
+                                  const Color(
+                                    0xFFF8FAFC,
+                                  ).withValues(alpha: 0.9),
                                 ],
                         ),
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(
                           color: isListening
-                              ? SynkoraColors.primaryDeep.withValues(alpha: 0.18)
+                              ? SynkoraColors.primaryDeep.withValues(
+                                  alpha: 0.18,
+                                )
                               : const Color(0x160F172A),
                         ),
                       ),
@@ -1220,14 +1220,15 @@ class _ComposerCard extends StatelessWidget {
                           Expanded(
                             child: Text(
                               voiceHint!,
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: isListening
-                                    ? SynkoraColors.primaryDeep
-                                    : SynkoraColors.muted,
-                                fontWeight: isListening
-                                    ? FontWeight.w700
-                                    : FontWeight.w600,
-                              ),
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: isListening
+                                        ? SynkoraColors.primaryDeep
+                                        : SynkoraColors.muted,
+                                    fontWeight: isListening
+                                        ? FontWeight.w700
+                                        : FontWeight.w600,
+                                  ),
                             ),
                           ),
                         ],
@@ -1243,7 +1244,9 @@ class _ComposerCard extends StatelessWidget {
                         color: Colors.white.withValues(alpha: 0.72),
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(
-                          color: SynkoraColors.primaryDeep.withValues(alpha: 0.12),
+                          color: SynkoraColors.primaryDeep.withValues(
+                            alpha: 0.12,
+                          ),
                         ),
                       ),
                       child: _VoiceLevelMeter(level: soundLevel),
@@ -1253,7 +1256,9 @@ class _ComposerCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: _ComposerFeatureButton(
-                        icon: isListening ? Icons.mic_rounded : Icons.mic_none_rounded,
+                        icon: isListening
+                            ? Icons.mic_rounded
+                            : Icons.mic_none_rounded,
                         label: isListening ? 'Listening' : 'Talk',
                         tooltip: isListening ? 'Stop voice input' : 'Talk',
                         onPressed: isSending ? null : onToggleTalk,
@@ -1339,7 +1344,9 @@ class _ComposerCard extends StatelessWidget {
                               ? const SizedBox(
                                   width: 18,
                                   height: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 )
                               : const Icon(Icons.arrow_upward_rounded),
                         ),
@@ -1361,9 +1368,8 @@ class _ComposerCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             'Add a message so the agent knows what to do with your attachments.',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: SynkoraColors.muted,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: SynkoraColors.muted),
                           ),
                         ),
                       ],
@@ -1444,19 +1450,21 @@ class _ComposerFeatureButtonState extends State<_ComposerFeatureButton>
   Widget build(BuildContext context) {
     final scheme = switch (widget.tone) {
       _ComposerFeatureTone.mint => (
-          background: [
-            const Color(0xFFEFFCF6),
-            SynkoraColors.primary.withValues(alpha: widget.isActive ? 0.82 : 0.48),
-          ],
-          foreground: SynkoraColors.primaryDeep,
-        ),
+        background: [
+          const Color(0xFFEFFCF6),
+          SynkoraColors.primary.withValues(
+            alpha: widget.isActive ? 0.82 : 0.48,
+          ),
+        ],
+        foreground: SynkoraColors.primaryDeep,
+      ),
       _ComposerFeatureTone.gold => (
-          background: [
-            const Color(0xFFFFF4E7),
-            SynkoraColors.accentWarm.withValues(alpha: 0.9),
-          ],
-          foreground: const Color(0xFF8A4A12),
-        ),
+        background: [
+          const Color(0xFFFFF4E7),
+          SynkoraColors.accentWarm.withValues(alpha: 0.9),
+        ],
+        foreground: const Color(0xFF8A4A12),
+      ),
     };
 
     return Tooltip(
@@ -1525,7 +1533,9 @@ class _ComposerFeatureButtonState extends State<_ComposerFeatureButton>
                                         gradient: LinearGradient(
                                           colors: [
                                             Colors.white.withValues(alpha: 0),
-                                            Colors.white.withValues(alpha: 0.26),
+                                            Colors.white.withValues(
+                                              alpha: 0.26,
+                                            ),
                                             Colors.white.withValues(alpha: 0),
                                           ],
                                         ),
@@ -1561,10 +1571,11 @@ class _ComposerFeatureButtonState extends State<_ComposerFeatureButton>
                               widget.label,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: scheme.foreground,
-                                fontWeight: FontWeight.w800,
-                              ),
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    color: scheme.foreground,
+                                    fontWeight: FontWeight.w800,
+                                  ),
                             ),
                           ),
                           Icon(
@@ -1620,9 +1631,7 @@ class _ComposerIconButton extends StatelessWidget {
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0x140F172A),
-            ),
+            border: Border.all(color: const Color(0x140F172A)),
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFF0F172A).withValues(alpha: 0.05),
@@ -1631,10 +1640,7 @@ class _ComposerIconButton extends StatelessWidget {
               ),
             ],
           ),
-          child: Icon(
-            icon,
-            color: SynkoraColors.ink,
-          ),
+          child: Icon(icon, color: SynkoraColors.ink),
         ),
       ),
     );
@@ -1717,17 +1723,15 @@ class _DraftAttachmentCard extends StatelessWidget {
                               ? Image.file(
                                   File(attachment.path!),
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) => _DraftFallback(
-                                    attachment: attachment,
-                                  ),
+                                  errorBuilder: (_, _, _) =>
+                                      _DraftFallback(attachment: attachment),
                                 )
                               : attachment.bytes != null
                               ? Image.memory(
                                   attachment.bytes!,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) => _DraftFallback(
-                                    attachment: attachment,
-                                  ),
+                                  errorBuilder: (_, _, _) =>
+                                      _DraftFallback(attachment: attachment),
                                 )
                               : _DraftFallback(attachment: attachment),
                         ),
@@ -1774,11 +1778,7 @@ class _DraftAttachmentCard extends StatelessWidget {
                   color: SynkoraColors.ink.withValues(alpha: 0.88),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
-                  Icons.close,
-                  size: 14,
-                  color: Colors.white,
-                ),
+                child: const Icon(Icons.close, size: 14, color: Colors.white),
               ),
             ),
           ),
@@ -1811,9 +1811,9 @@ class _DraftAttachmentMeta extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           '${attachment.label} • ${formatByteSize(attachment.sizeBytes)}',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: SynkoraColors.muted,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: SynkoraColors.muted),
         ),
       ],
     );
@@ -1912,9 +1912,7 @@ class _EmptyConversationState extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 prompt,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyLarge
+                                style: Theme.of(context).textTheme.bodyLarge
                                     ?.copyWith(fontWeight: FontWeight.w600),
                               ),
                             ),
@@ -1950,7 +1948,8 @@ class _DraftAttachment {
   final String? mimeType;
 
   bool get isImage =>
-      mimeType?.startsWith('image/') ?? _guessMimeType(fileName)?.startsWith('image/') == true;
+      mimeType?.startsWith('image/') ??
+      _guessMimeType(fileName)?.startsWith('image/') == true;
 
   String get label {
     final type = mimeType ?? _guessMimeType(fileName) ?? 'file';
