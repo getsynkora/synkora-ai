@@ -434,7 +434,7 @@ async def platform_create_agent(
         description: Short description of what the agent does
         system_prompt: The agent's system instructions
         agent_type: One of LLM, research, code (default: LLM)
-        llm_provider: LLM provider name (openai, anthropic, google, groq)
+        llm_provider: LLM provider name (openai, anthropic, google, groq, deepseek)
         llm_model: Model identifier (e.g. gpt-4o, claude-3-5-sonnet-20241022)
         api_key: Provider API key (stored encrypted)
         tools_list: List of tool category names to enable

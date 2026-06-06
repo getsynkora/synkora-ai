@@ -5,6 +5,7 @@ Handles login, registration, token refresh, and logout.
 """
 
 import logging
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
@@ -78,6 +79,12 @@ class RefreshRequest(BaseModel):
     tenant_id: str | None = None  # Optional tenant ID to preserve context
 
 
+class SwitchTenantRequest(BaseModel):
+    """Switch the active tenant for the current session."""
+
+    tenant_id: str = Field(..., description="Tenant UUID to switch into")
+
+
 @router.post("/login")
 async def login(request: Request, data: LoginRequest, db: AsyncSession = Depends(get_async_db)):
     """
@@ -122,8 +129,7 @@ async def login(request: Request, data: LoginRequest, db: AsyncSession = Depends
             _result = await db.execute(_select(_Account).filter_by(email=data.email))
             _acct = _result.scalar_one_or_none()
             if _acct:
-                _log_svc = ActivityLogService(db)
-                await _log_svc.log_activity(
+                ActivityLogService.queue_activity(
                     tenant_id=None,
                     account_id=_acct.id,
                     action="login_failed",
@@ -314,8 +320,7 @@ async def login(request: Request, data: LoginRequest, db: AsyncSession = Depends
                         if _mfa_mem:
                             _mfa_fail_tenant_id = _mfa_mem.tenant_id
 
-                        _mfa_svc = ActivityLogService(db)
-                        await _mfa_svc.log_activity(
+                        ActivityLogService.queue_activity(
                             tenant_id=_mfa_fail_tenant_id,
                             account_id=account.id,
                             action="mfa_failed",
@@ -418,11 +423,10 @@ async def login(request: Request, data: LoginRequest, db: AsyncSession = Depends
 
     # Audit: log successful login (best-effort — don't fail the response)
     try:
-        _log_svc = ActivityLogService(db)
         _tenant_id_for_log = tenants[0]["tenant_id"] if tenants else None
         import uuid as _uuid
 
-        await _log_svc.log_activity(
+        ActivityLogService.queue_activity(
             tenant_id=_uuid.UUID(_tenant_id_for_log) if _tenant_id_for_log else None,
             account_id=account.id,
             action="login_success",
@@ -654,8 +658,7 @@ async def logout(
         from src.services.activity.activity_log_service import ActivityLogService
         from src.utils.ip_utils import get_client_ip
 
-        _log_svc = ActivityLogService(db)
-        await _log_svc.log_activity(
+        ActivityLogService.queue_activity(
             tenant_id=None,
             account_id=current_account.id,
             action="logout",
@@ -762,6 +765,45 @@ async def get_current_user(
             pass
 
     return result
+
+
+@router.post("/switch-tenant")
+async def switch_tenant(
+    data: SwitchTenantRequest,
+    current_account: Account = Depends(get_current_account),
+    db: AsyncSession = Depends(get_async_db),
+):
+    """
+    Switch the active tenant for the current authenticated account.
+
+    Returns a fresh access token scoped to the selected tenant. The existing
+    refresh token remains valid and can continue to be used for rotation.
+    """
+    try:
+        tenant_id = uuid.UUID(data.tenant_id)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid tenant ID format",
+        ) from e
+
+    try:
+        session_data = await SessionService.switch_tenant(db, current_account.id, tenant_id)
+        response = JSONResponse(
+            content={
+                "success": True,
+                "data": session_data,
+                "message": "Tenant switched successfully",
+            }
+        )
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["Pragma"] = "no-cache"
+        return response
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        ) from e
 
 
 class ForgotPasswordRequest(BaseModel):

@@ -42,11 +42,15 @@ class TestAgentRegistryRegister:
         mock_redis = MagicMock()
         with patch("src.services.agents.registry._get_redis_registry", return_value=mock_redis):
             self.registry.register(_make_agent("synced-agent"))
-        mock_redis.register_config.assert_called_once()
+        mock_redis.register_runtime.assert_called_once()
+        _, kwargs = mock_redis.register_runtime.call_args
+        assert kwargs["tenant_id"] == ""
+        assert kwargs["agent_name"] == "synced-agent"
+        assert kwargs["runtime_id"] == registry_mod.DEFAULT_RUNTIME_ID
 
     def test_register_tolerates_redis_failure(self):
         mock_redis = MagicMock()
-        mock_redis.register_config.side_effect = RuntimeError("Redis down")
+        mock_redis.register_runtime.side_effect = RuntimeError("Redis down")
         with patch("src.services.agents.registry._get_redis_registry", return_value=mock_redis):
             # Should not raise
             self.registry.register(_make_agent("tolerant"))
@@ -77,12 +81,16 @@ class TestAgentRegistryUnregister:
         mock_redis = MagicMock()
         with patch("src.services.agents.registry._get_redis_registry", return_value=mock_redis):
             self.registry.unregister("redis-agent")
-        mock_redis.unregister.assert_called_once_with("redis-agent")
+        mock_redis.unregister_runtime.assert_called_once_with(
+            tenant_id="",
+            agent_name="redis-agent",
+            runtime_id=registry_mod.DEFAULT_RUNTIME_ID,
+        )
 
     def test_unregister_tolerates_redis_failure(self):
         self.registry.register(_make_agent("fragile"))
         mock_redis = MagicMock()
-        mock_redis.unregister.side_effect = RuntimeError("boom")
+        mock_redis.unregister_runtime.side_effect = RuntimeError("boom")
         with patch("src.services.agents.registry._get_redis_registry", return_value=mock_redis):
             self.registry.unregister("fragile")
         assert "fragile" not in self.registry
@@ -128,6 +136,13 @@ class TestAgentRegistryListAndStats:
         self.registry.register(agent)
         stats = self.registry.get_all_stats()
         assert "stat-agent" in stats
+        agent.get_stats.assert_called_once()
+
+    def test_get_all_stats_includes_runtime_label_for_non_default_runtime(self):
+        agent = _make_agent("stat-agent")
+        self.registry.register(agent, tenant_id="tenant-1", runtime_id="config-2")
+        stats = self.registry.get_all_stats()
+        assert "tenant-1:stat-agent:config-2" in stats
         agent.get_stats.assert_called_once()
 
     def test_get_all_stats_empty_registry(self):

@@ -288,13 +288,13 @@ def register_platform_tools(registry) -> None:
                 },
                 "llm_provider": {
                     "type": "string",
-                    "enum": ["openai", "anthropic", "google", "groq"],
+                    "enum": ["openai", "anthropic", "google", "groq", "deepseek"],
                     "description": "LLM provider (default: openai)",
                     "default": "openai",
                 },
                 "llm_model": {
                     "type": "string",
-                    "description": "Model identifier, e.g. gpt-4o, claude-3-5-sonnet-20241022, gemini-2.0-flash-exp",
+                    "description": "Model identifier, e.g. gpt-4o, claude-3-5-sonnet-20241022, gemini-2.0-flash-exp, deepseek-v4-flash",
                     "default": "gpt-4o",
                 },
                 "api_key": {

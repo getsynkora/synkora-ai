@@ -55,11 +55,30 @@ export interface ProviderPreset {
   models?: ModelPreset[];
 }
 
+let providersCache: ProviderPreset[] | null = null;
+let providersPromise: Promise<ProviderPreset[]> | null = null;
+const providerModelsCache = new Map<string, ModelPreset[]>();
+const providerModelsPromises = new Map<string, Promise<ModelPreset[]>>();
+
 /**
  * Get all available LLM provider presets
  */
 export async function getLLMProviders(): Promise<ProviderPreset[]> {
-  return await apiClient.request('GET', '/api/v1/llm-providers');
+  if (providersCache) {
+    return providersCache;
+  }
+  if (!providersPromise) {
+    providersPromise = apiClient
+      .request('GET', '/api/v1/llm-providers')
+      .then((data: ProviderPreset[]) => {
+        providersCache = data;
+        return data;
+      })
+      .finally(() => {
+        providersPromise = null;
+      });
+  }
+  return await providersPromise;
 }
 
 /**
@@ -73,7 +92,24 @@ export async function getLLMProvider(providerId: string): Promise<ProviderPreset
  * Get models for a specific provider
  */
 export async function getProviderModels(providerId: string): Promise<ModelPreset[]> {
-  return await apiClient.request('GET', `/api/v1/llm-providers/${providerId}/models`);
+  if (providerModelsCache.has(providerId)) {
+    return providerModelsCache.get(providerId)!;
+  }
+  if (!providerModelsPromises.has(providerId)) {
+    providerModelsPromises.set(
+      providerId,
+      apiClient
+        .request('GET', `/api/v1/llm-providers/${providerId}/models`)
+        .then((data: ModelPreset[]) => {
+          providerModelsCache.set(providerId, data);
+          return data;
+        })
+        .finally(() => {
+          providerModelsPromises.delete(providerId);
+        })
+    );
+  }
+  return await providerModelsPromises.get(providerId)!;
 }
 
 export type ComparisonFilter = 'open_source' | 'cheap' | 'fast' | 'quality' | undefined;

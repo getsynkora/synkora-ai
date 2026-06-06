@@ -142,7 +142,7 @@ export default function AgentViewPage() {
     return (
       <div className="min-h-full px-4 py-4 md:px-8 md:py-6 xl:px-10">
         <div className="mx-auto flex min-h-[70vh] max-w-[90rem] items-center justify-center">
-          <div className="dashboard-surface rounded-[2rem] px-10 py-12 text-center">
+          <div className="dashboard-surface px-10 py-12 text-center">
           <div className="relative">
               <div className="mx-auto h-14 w-14 animate-spin rounded-full border-[3px] border-black/10 border-t-[#181818]"></div>
               <Sparkles className="absolute left-1/2 top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 text-[#ff5f8f]" />
@@ -158,15 +158,15 @@ export default function AgentViewPage() {
     return (
       <div className="min-h-full px-4 py-4 md:px-8 md:py-6 xl:px-10">
         <div className="mx-auto flex min-h-[70vh] max-w-[90rem] items-center justify-center">
-          <div className="dashboard-surface w-full max-w-md rounded-[2rem] p-8 text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#ffe1ea]">
+          <div className="dashboard-surface w-full max-w-md p-8 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-[0.35rem] bg-[#ffe1ea]">
               <XCircle className="h-7 w-7 text-red-600" />
           </div>
             <h3 className="mb-2 text-[1.15rem] font-semibold text-[#171717]">Error Loading Agent</h3>
             <p className="mb-6 text-[14px] text-[#5b564e]">{error || 'Agent not found'}</p>
             <button
               onClick={() => router.push('/agents')}
-              className="rounded-full bg-[#181818] px-6 py-3 text-[14px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5"
+              className="rounded-[0.35rem] bg-[#181818] px-6 py-3 text-[14px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5"
             >
               Back to Agents
             </button>
@@ -183,15 +183,15 @@ export default function AgentViewPage() {
   return (
     <div className="min-h-full px-4 py-4 md:px-8 md:py-6 xl:px-10">
       <div className="mx-auto max-w-[90rem]">
-        <div className="dashboard-surface mb-6 rounded-[2rem] p-5 md:p-6 xl:p-7">
+        <div className="dashboard-surface mb-6 p-5 md:p-6 xl:p-7">
           <div className="mb-6 flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0 flex-1">
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6e675d]">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/70 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6e675d]">
                 <Sparkles className="h-3 w-3 text-[#ff5f8f]" />
                 Agent Detail
               </div>
               <div className="flex items-start gap-4">
-                <div className="relative flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-[1.35rem] border border-white/80 bg-[#faf7f0] shadow-[0_18px_40px_rgba(0,0,0,0.06)]">
+                <div className="relative flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-[0.45rem] border border-white/80 bg-[#faf7f0] shadow-[0_18px_40px_rgba(0,0,0,0.06)]">
                   {agent.avatar ? (
                     agent.avatar.startsWith('http://') || agent.avatar.startsWith('https://') ? (
                       <img
@@ -216,7 +216,7 @@ export default function AgentViewPage() {
                     {agent.agent_name}
                   </h1>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <span className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${
+                    <span className={`inline-flex items-center rounded-[0.35rem] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${
                       agent.status === 'active'
                         ? 'bg-[#def4eb] text-[#171717]'
                         : 'bg-white/70 text-[#5b564e] border border-black/[0.08]'
@@ -226,10 +226,10 @@ export default function AgentViewPage() {
                       }`}></span>
                       {agent.status}
                     </span>
-                    <span className="dashboard-chip rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]">
+                    <span className="dashboard-chip px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]">
                       {agent.agent_type}
                     </span>
-                    <span className="dashboard-chip rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]">
+                    <span className="dashboard-chip px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]">
                       Updated {new Date(agent.updated_at).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
@@ -247,7 +247,7 @@ export default function AgentViewPage() {
             <div className="flex flex-wrap gap-2 xl:justify-end">
               <button
                 onClick={() => router.push(`/agents/${agentName}/edit`)}
-                className="inline-flex items-center gap-2 rounded-full bg-[#181818] px-5 py-3 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 md:text-[14px]"
+                className="inline-flex items-center gap-2 rounded-[0.35rem] bg-[#181818] px-5 py-3 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 md:text-[14px]"
               >
                 <Edit className="h-4 w-4" />
                 Edit
@@ -255,7 +255,7 @@ export default function AgentViewPage() {
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="inline-flex items-center gap-2 rounded-full bg-[#ffe1ea] px-5 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-[#ffd5e2] disabled:opacity-50 md:text-[14px]"
+                className="inline-flex items-center gap-2 rounded-[0.35rem] bg-[#ffe1ea] px-5 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-[#ffd5e2] disabled:opacity-50 md:text-[14px]"
               >
                 <Trash2 className="h-4 w-4" />
                 {deleting ? 'Deleting...' : 'Delete'}
@@ -266,7 +266,7 @@ export default function AgentViewPage() {
           <div className="flex flex-wrap items-center gap-2.5">
             <button
               onClick={() => router.push(`/agents/${agentName}/chat`)}
-              className="inline-flex items-center gap-2 rounded-full bg-[#181818] px-5 py-3 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 md:text-[14px]"
+              className="inline-flex items-center gap-2 rounded-[0.35rem] bg-[#181818] px-5 py-3 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 md:text-[14px]"
             >
               <MessageSquare className="h-4 w-4" />
               Chat
@@ -274,7 +274,7 @@ export default function AgentViewPage() {
 
             <button
               onClick={() => router.push(`/agents/${agentName}/landing-page`)}
-              className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white md:text-[14px]"
+              className="inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white md:text-[14px]"
             >
               <Globe className="h-4 w-4 text-[#ff5f8f]" />
               Landing Page
@@ -285,7 +285,7 @@ export default function AgentViewPage() {
                 href={`/a/${publicSlug}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white md:text-[14px]"
+                className="inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white md:text-[14px]"
               >
                 <DollarSign className="h-4 w-4 text-[#d9a441]" />
                 View Public Page
@@ -294,7 +294,7 @@ export default function AgentViewPage() {
 
             <button
               onClick={() => router.push(`/agents/${agentName}/knowledge-bases`)}
-              className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white md:text-[14px]"
+              className="inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white md:text-[14px]"
             >
               <Database className="h-4 w-4 text-[#7d68c9]" />
               Knowledge
@@ -302,7 +302,7 @@ export default function AgentViewPage() {
 
             <button
               onClick={() => router.push(`/agents/${agentName}/tools`)}
-              className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white md:text-[14px]"
+              className="inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white md:text-[14px]"
             >
               <Settings className="h-4 w-4 text-[#2d8b69]" />
               Tools
@@ -310,7 +310,7 @@ export default function AgentViewPage() {
 
             <button
               onClick={() => router.push(`/agents/${agentName}/llm-configs`)}
-              className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white md:text-[14px]"
+              className="inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white md:text-[14px]"
             >
               <Cpu className="h-4 w-4 text-[#4a67cc]" />
               AI Model
@@ -318,7 +318,7 @@ export default function AgentViewPage() {
 
             <button
               onClick={() => router.push(`/agents/${agentName}/autonomous`)}
-              className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white md:text-[14px]"
+              className="inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white md:text-[14px]"
             >
               <Bot className="h-4 w-4 text-[#ff5f8f]" />
               Autonomous
@@ -326,7 +326,7 @@ export default function AgentViewPage() {
 
             <button
               onClick={() => setShowMoreActions(!showMoreActions)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-[#5b564e] transition-colors hover:bg-white hover:text-[#171717] md:text-[14px]"
+              className="inline-flex items-center gap-1.5 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-[#5b564e] transition-colors hover:bg-white hover:text-[#171717] md:text-[14px]"
             >
               More
               <ChevronDown className={`h-4 w-4 transition-transform ${showMoreActions ? 'rotate-180' : ''}`} />
@@ -334,7 +334,7 @@ export default function AgentViewPage() {
           </div>
 
           {showMoreActions && (
-            <div className="dashboard-panel mt-5 rounded-[1.7rem] p-4 md:p-5">
+            <div className="dashboard-panel mt-5 p-4 md:p-5">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 {/* Integrations */}
                 <div>
@@ -342,7 +342,7 @@ export default function AgentViewPage() {
                   <div className="space-y-1">
                     <button
                       onClick={() => router.push(`/agents/${agentName}/slack-bots`)}
-                      className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
                     >
                       <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                         <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" fill="#E01E5A"/>
@@ -351,14 +351,14 @@ export default function AgentViewPage() {
                     </button>
                     <button
                       onClick={() => router.push(`/agents/${agentName}/messaging-bots`)}
-                      className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
                     >
                       <MessageCircle className="w-4 h-4 text-green-600" />
                       Messaging Bots
                     </button>
                     <button
                       onClick={() => router.push(`/agents/${agentName}/telegram-bots`)}
-                      className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
                     >
                       <svg className="w-4 h-4" viewBox="0 0 24 24" fill="#0088cc">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
@@ -367,28 +367,28 @@ export default function AgentViewPage() {
                     </button>
                     <button
                       onClick={() => router.push(`/agents/${agentName}/webhooks`)}
-                      className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
                     >
                       <Webhook className="w-4 h-4 text-teal-600" />
                       Webhooks
                     </button>
                     <button
                       onClick={() => router.push(`/agents/${agentName}/database-connections`)}
-                      className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
                     >
                       <Database className="w-4 h-4 text-blue-600" />
                       Database Connections
                     </button>
                     <button
                       onClick={() => router.push(`/agents/${agentName}/compute`)}
-                      className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
                     >
                       <Server className="w-4 h-4 text-violet-600" />
                       Compute
                     </button>
                     <button
                       onClick={() => router.push(`/agents/${agentName}/voice`)}
-                      className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
                     >
                       <Mic className="w-4 h-4 text-cyan-600" />
                       Voice
@@ -402,28 +402,28 @@ export default function AgentViewPage() {
                   <div className="space-y-1">
                     <button
                       onClick={() => router.push(`/agents/${agentName}/widgets`)}
-                      className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
                     >
                       <Code className="w-4 h-4 text-orange-600" />
                       Widgets
                     </button>
                     <button
                       onClick={() => router.push(`/agents/${agentName}/domains`)}
-                      className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
                     >
                       <Globe className="w-4 h-4 text-blue-600" />
                       Domains
                     </button>
                     <button
                       onClick={() => router.push(`/agents/${agentName}/api-keys`)}
-                      className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
                     >
                       <Key className="w-4 h-4 text-amber-600" />
                       API Keys
                     </button>
                     <button
                       onClick={() => router.push(`/agents/${agentName}/subscriptions`)}
-                      className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
                     >
                       <Bell className="w-4 h-4 text-red-500" />
                       Subscriptions
@@ -486,7 +486,7 @@ export default function AgentViewPage() {
 
         {/* Stats Cards — sourced from Elasticsearch via Lens API (last 30 days) */}
         <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="dashboard-panel rounded-[1.6rem] p-5 transition-all duration-300 hover:-translate-y-1">
+          <div className="dashboard-panel p-5 transition-all duration-300 hover:-translate-y-1">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#ffe1ea]">
                 <Activity className="h-4 w-4 text-[#171717]" />
@@ -499,13 +499,13 @@ export default function AgentViewPage() {
             </p>
           </div>
 
-          <div className="dashboard-panel rounded-[1.6rem] p-5 transition-all duration-300 hover:-translate-y-1">
+          <div className="dashboard-panel p-5 transition-all duration-300 hover:-translate-y-1">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#def4eb]">
                 <CheckCircle className="h-4 w-4 text-[#171717]" />
               </div>
               {lensStats && (
-                <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                <span className={`rounded-[0.35rem] px-2.5 py-1 text-[11px] font-semibold ${
                   successRate >= 90 ? 'bg-[#def4eb] text-[#171717]' : successRate >= 70 ? 'bg-[#fff0d9] text-[#171717]' : 'bg-[#ffe1ea] text-[#171717]'
                 }`}>
                   {successRate}%
@@ -518,7 +518,7 @@ export default function AgentViewPage() {
             </p>
           </div>
 
-          <div className="dashboard-panel rounded-[1.6rem] p-5 transition-all duration-300 hover:-translate-y-1">
+          <div className="dashboard-panel p-5 transition-all duration-300 hover:-translate-y-1">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#fff0d9]">
                 <Clock className="h-4 w-4 text-[#171717]" />
@@ -534,7 +534,7 @@ export default function AgentViewPage() {
             </p>
           </div>
 
-          <div className="dashboard-panel rounded-[1.6rem] p-5 transition-all duration-300 hover:-translate-y-1">
+          <div className="dashboard-panel p-5 transition-all duration-300 hover:-translate-y-1">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f0f9ff]">
                 <DollarSign className="h-4 w-4 text-[#171717]" />
@@ -556,7 +556,7 @@ export default function AgentViewPage() {
         {/* Secondary stats row */}
         {lensStats && (lensStats.stats.total_tokens > 0 || lensStats.stats.total_tool_calls > 0) && (
           <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div className="dashboard-panel rounded-[1.6rem] p-5">
+            <div className="dashboard-panel p-5">
               <div className="mb-2 flex items-center gap-2">
                 <BarChart2 className="h-4 w-4 text-[#4a67cc]" />
                 <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#8a8378]">Tokens Used</p>
@@ -572,7 +572,7 @@ export default function AgentViewPage() {
                 {lensStats.stats.input_tokens.toLocaleString()} in · {lensStats.stats.output_tokens.toLocaleString()} out
               </p>
             </div>
-            <div className="dashboard-panel rounded-[1.6rem] p-5">
+            <div className="dashboard-panel p-5">
               <div className="mb-2 flex items-center gap-2">
                 <Zap className="h-4 w-4 text-[#d9a441]" />
                 <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#8a8378]">Tool Calls</p>
@@ -586,7 +586,7 @@ export default function AgentViewPage() {
                   : 'all successful'}
               </p>
             </div>
-            <div className="dashboard-panel rounded-[1.6rem] p-5">
+            <div className="dashboard-panel p-5">
               <div className="mb-2 flex items-center gap-2">
                 <DollarSign className="h-4 w-4 text-[#2d8b69]" />
                 <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#8a8378]">Cost per Session</p>
@@ -608,7 +608,7 @@ export default function AgentViewPage() {
         {/* Configuration Details */}
         <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
           {/* AI Model Configuration */}
-          <div className="dashboard-panel rounded-[1.8rem] p-5">
+          <div className="dashboard-panel p-5">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#ffe1ea]">
@@ -616,7 +616,7 @@ export default function AgentViewPage() {
                 </div>
                 <h2 className="text-[1rem] font-semibold text-[#171717] md:text-[1.1rem]">Default AI Model</h2>
               </div>
-              <span className="rounded-full bg-[#ffe1ea] px-2.5 py-1 text-[11px] font-medium text-[#171717]">
+              <span className="rounded-[0.35rem] bg-[#ffe1ea] px-2.5 py-1 text-[11px] font-medium text-[#171717]">
                 Default Model
               </span>
             </div>
@@ -657,7 +657,7 @@ export default function AgentViewPage() {
           </div>
 
           {/* System Prompt */}
-          <div className="dashboard-panel rounded-[1.8rem] p-5">
+          <div className="dashboard-panel p-5">
             <div className="mb-4 flex items-center gap-2">
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#fff0d9]">
                   <MessageSquare className="h-4.5 w-4.5 text-[#171717]" />
@@ -674,7 +674,7 @@ export default function AgentViewPage() {
 
         {/* Tools Configuration */}
         {agent.tools_config && agent.tools_config.tools && agent.tools_config.tools.length > 0 && (
-          <div className="dashboard-panel mb-4 rounded-[1.8rem] p-5">
+          <div className="dashboard-panel mb-4 p-5">
             <div className="mb-3 flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#ffe1ea]">
                   <Settings className="h-4 w-4 text-[#171717]" />
@@ -694,7 +694,7 @@ export default function AgentViewPage() {
                   <div className="mb-2 flex items-start justify-between gap-3">
                     <h3 className="text-[13px] font-semibold text-[#171717] md:text-[14px]">{tool.name}</h3>
                     <span
-                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                  className={`rounded-[0.35rem] px-2.5 py-1 text-[11px] font-semibold ${
                         tool.enabled
                           ? 'bg-[#def4eb] text-[#171717]'
                           : 'bg-white/70 text-[#6c655c]'
@@ -711,7 +711,7 @@ export default function AgentViewPage() {
         )}
 
         {/* Metadata */}
-        <div className="dashboard-panel rounded-[1.8rem] p-5">
+        <div className="dashboard-panel p-5">
           <div className="mb-3 flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f1eadc]">
               <Calendar className="h-4 w-4 text-[#5b564e]" />

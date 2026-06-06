@@ -9,9 +9,6 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseDownload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.data_source import DataSource
@@ -66,6 +63,9 @@ class GoogleDriveConnector(BaseConnector):
                 raise ValueError("No OAuth token found for Google Drive")
 
             # Create credentials
+            from google.oauth2.credentials import Credentials
+            from googleapiclient.discovery import build
+
             credentials = Credentials(
                 token=oauth_token.access_token,
                 refresh_token=oauth_token.refresh_token,
@@ -260,6 +260,8 @@ class GoogleDriveConnector(BaseConnector):
                 request = self.service.files().get_media(fileId=file_id)
 
             # Download content
+            from googleapiclient.http import MediaIoBaseDownload
+
             fh = io.BytesIO()
             downloader = MediaIoBaseDownload(fh, request)
             done = False

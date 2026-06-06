@@ -511,6 +511,7 @@ body {
 .dashboard-app .dashboard-surface {
   background-color: rgba(255, 255, 255, 0.66);
   border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.5rem;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.08);
   backdrop-filter: blur(14px);
 }
@@ -518,12 +519,14 @@ body {
 .dashboard-app .dashboard-panel {
   background-color: rgba(255, 250, 241, 0.96);
   border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.5rem;
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.06);
 }
 
 .dashboard-app .dashboard-chip {
   background-color: rgba(255, 255, 255, 0.7);
   border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.35rem;
   color: #595248;
 }
 

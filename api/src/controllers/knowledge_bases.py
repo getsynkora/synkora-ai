@@ -1288,6 +1288,104 @@ async def delete_document(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/{kb_id}/documents/{doc_id}/reprocess", status_code=202)
+async def reprocess_document(
+    kb_id: int,
+    doc_id: str,
+    tenant_id: UUID = Depends(get_current_tenant_id),
+    db: AsyncSession = Depends(get_async_db),
+):
+    """Re-queue a PENDING or ERROR document for processing."""
+    try:
+        result = await db.execute(
+            select(KnowledgeBase).filter(KnowledgeBase.id == kb_id, KnowledgeBase.tenant_id == tenant_id)
+        )
+        kb = result.scalar_one_or_none()
+        if not kb:
+            raise HTTPException(status_code=404, detail="Knowledge base not found")
+
+        result = await db.execute(select(Document).filter(Document.id == doc_id, Document.knowledge_base_id == kb_id))
+        doc = result.scalar_one_or_none()
+        if not doc:
+            raise HTTPException(status_code=404, detail="Document not found")
+
+        if doc.status not in (DocumentStatus.PENDING, DocumentStatus.ERROR):
+            raise HTTPException(status_code=409, detail="Only PENDING or ERROR documents can be reprocessed")
+
+        # Get the data source to pass to the Celery task
+        data_source_id = doc.data_source_id
+        if not data_source_id:
+            raise HTTPException(
+                status_code=422, detail="Document has no associated data source and cannot be reprocessed"
+            )
+
+        doc.status = DocumentStatus.PENDING
+        doc.error = None
+        await db.commit()
+
+        documents = [
+            {
+                "id": doc.external_id or doc.name,
+                "text": doc.content or "",
+                "metadata": {
+                    **(doc.doc_metadata or {}),
+                    "title": doc.name,
+                    "s3_url": doc.s3_url or "",
+                },
+            }
+        ]
+        process_kb_documents.delay(data_source_id, str(tenant_id), documents)
+
+        logger.info(f"Reprocessing queued for document {doc.id} in KB {kb_id}")
+        return {"message": "Document queued for reprocessing"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error reprocessing document: {e}")
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{kb_id}/documents/{doc_id}/cancel", status_code=200)
+async def cancel_document_processing(
+    kb_id: int,
+    doc_id: str,
+    tenant_id: UUID = Depends(get_current_tenant_id),
+    db: AsyncSession = Depends(get_async_db),
+):
+    """Cancel a PROCESSING document by marking it as ERROR."""
+    try:
+        result = await db.execute(
+            select(KnowledgeBase).filter(KnowledgeBase.id == kb_id, KnowledgeBase.tenant_id == tenant_id)
+        )
+        kb = result.scalar_one_or_none()
+        if not kb:
+            raise HTTPException(status_code=404, detail="Knowledge base not found")
+
+        result = await db.execute(select(Document).filter(Document.id == doc_id, Document.knowledge_base_id == kb_id))
+        doc = result.scalar_one_or_none()
+        if not doc:
+            raise HTTPException(status_code=404, detail="Document not found")
+
+        if doc.status != DocumentStatus.PROCESSING:
+            raise HTTPException(status_code=409, detail="Only PROCESSING documents can be cancelled")
+
+        doc.status = DocumentStatus.ERROR
+        doc.error = "Cancelled by user"
+        await db.commit()
+
+        logger.info(f"Processing cancelled for document {doc.id} in KB {kb_id}")
+        return {"message": "Document processing cancelled"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error cancelling document: {e}")
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/{kb_id}/documents/bulk-delete", status_code=204)
 async def bulk_delete_documents(
     kb_id: int,

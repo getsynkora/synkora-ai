@@ -54,8 +54,7 @@ async def _audit_log(
     try:
         from src.services.activity.activity_log_service import ActivityLogService
 
-        svc = ActivityLogService(db)
-        await svc.log_activity(
+        ActivityLogService.queue_activity(
             tenant_id=tenant_id,
             account_id=account_id,
             action=action,

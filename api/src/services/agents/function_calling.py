@@ -1415,8 +1415,8 @@ class FunctionCallingHandler:
         """Extract function calls from provider response."""
         if self.provider in ["google", "gemini"]:
             return self._extract_google_function_calls(response)
-        elif self.provider in ["openai", "litellm", "mock"]:
-            # OpenAI, LiteLLM, and mock all use the same response format
+        elif self.provider in ["openai", "litellm", "deepseek", "mock"]:
+            # OpenAI, LiteLLM, DeepSeek, and mock all use the same response format
             return self._extract_openai_function_calls(response)
         elif self.provider in ["anthropic", "claude"]:
             return self._extract_anthropic_function_calls(response)
@@ -1482,8 +1482,10 @@ class FunctionCallingHandler:
         """Extract text from provider response."""
         if self.provider in ["google", "gemini"]:
             return response.text if hasattr(response, "text") else str(response)
-        elif self.provider in ["openai", "litellm", "mock"]:
-            # OpenAI, LiteLLM, and mock all use the same response format
+        elif self.provider in ["openai", "litellm", "deepseek", "mock"]:
+            # OpenAI, LiteLLM, DeepSeek, and mock all use the same response format.
+            # For DeepSeek reasoning models, message.content holds the final answer;
+            # reasoning_content holds the chain-of-thought and is intentionally ignored here.
             if hasattr(response, "choices") and response.choices:
                 message = response.choices[0].message
                 return message.content or ""

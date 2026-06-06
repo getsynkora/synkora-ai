@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import {
@@ -42,6 +42,7 @@ const PROVIDER_ICONS: Record<string, string> = {
   anthropic: '🧠',
   google: '✨',
   gemini: '✨',
+  deepseek: '🐋',
   groq: '⚡',
   openrouter: '🔀',
   minimax: '🔶',
@@ -680,44 +681,68 @@ function Step2AIModel({ formData, setFormData }: any) {
 
   // Load providers on mount
   useEffect(() => {
+    let cancelled = false
+
     const loadProviders = async () => {
       try {
         setLoadingProviders(true)
         const data = await getLLMProviders()
-        setProviders(data)
-
-        // If provider already selected, load its models
-        if (formData.llm_provider) {
-          await loadModelsForProvider(formData.llm_provider)
+        if (!cancelled) {
+          setProviders(data)
         }
       } catch (error) {
-        console.error('Failed to load providers:', error)
-        toast.error('Failed to load LLM providers')
+        if (!cancelled) {
+          console.error('Failed to load providers:', error)
+          toast.error('Failed to load LLM providers')
+        }
       } finally {
-        setLoadingProviders(false)
+        if (!cancelled) {
+          setLoadingProviders(false)
+        }
       }
     }
 
     loadProviders()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
-  // Load models when provider changes
-  const loadModelsForProvider = async (providerId: string) => {
-    if (!providerId) return
-
-    try {
-      setLoadingModels(true)
-      const providerModels = await getProviderModels(providerId)
-      setModels(providerModels)
-    } catch (error) {
-      console.error('Failed to load models:', error)
-      toast.error('Failed to load models')
-    } finally {
+  useEffect(() => {
+    if (!formData.llm_provider) {
+      setModels([])
       setLoadingModels(false)
+      return
     }
-  }
 
-  const handleProviderSelect = async (providerId: string) => {
+    let cancelled = false
+
+    const loadModels = async () => {
+      try {
+        setLoadingModels(true)
+        const providerModels = await getProviderModels(formData.llm_provider)
+        if (!cancelled) {
+          setModels(providerModels)
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to load models:', error)
+          toast.error('Failed to load models')
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingModels(false)
+        }
+      }
+    }
+
+    loadModels()
+    return () => {
+      cancelled = true
+    }
+  }, [formData.llm_provider])
+
+  const handleProviderSelect = (providerId: string) => {
     const provider = providers.find(p => p.provider_id === providerId)
     setFormData((prev: any) => ({
       ...prev,
@@ -727,9 +752,6 @@ function Step2AIModel({ formData, setFormData }: any) {
     }))
     setModels([])
     setModelSearch('') // Clear model search when provider changes
-    if (providerId) {
-      await loadModelsForProvider(providerId)
-    }
   }
 
   const handleModelSelect = (modelName: string) => {

@@ -1,0 +1,19 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="brandMint" x1="44" y1="40" x2="204" y2="214" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#79DFBC"/>
+      <stop offset="1" stop-color="#145C4B"/>
+    </linearGradient>
+    <linearGradient id="brandWarm" x1="66" y1="198" x2="212" y2="68" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F6C794"/>
+      <stop offset="1" stop-color="#79DFBC"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="28" y="28" width="200" height="200" rx="54" fill="#FFFFFF" fill-opacity="0.94"/>
+  <rect x="28" y="28" width="200" height="200" rx="54" stroke="#0F172A" stroke-opacity="0.08" stroke-width="4"/>
+  <path d="M74 106C74 84.4609 91.4609 67 113 67H163C173.493 67 182 75.5066 182 86C182 96.4934 173.493 105 163 105H118C111.373 105 106 110.373 106 117C106 123.627 111.373 129 118 129H148C172.301 129 192 148.699 192 173C192 197.301 172.301 217 148 217H92C81.5066 217 73 208.493 73 198C73 187.507 81.5066 179 92 179H146C153.18 179 159 173.18 159 166C159 158.82 153.18 153 146 153H113C91.4609 153 74 135.539 74 114V106Z" fill="url(#brandMint)"/>
+  <path d="M180 65L151 94" stroke="url(#brandWarm)" stroke-width="14" stroke-linecap="round"/>
+  <path d="M191 104L160 135" stroke="url(#brandWarm)" stroke-width="10" stroke-linecap="round" stroke-opacity="0.76"/>
+  <circle cx="177" cy="79" r="10" fill="#F6C794"/>
+</svg>

@@ -38,6 +38,7 @@ jobs:
     outputs:
       api-changed: ${{ steps.changes.outputs.api }}
       web-changed: ${{ steps.changes.outputs.web }}
+      mobile-changed: ${{ steps.changes.outputs.mobile }}
       migration-changed: ${{ steps.changes.outputs.migration }}
       docker-changed: ${{ steps.changes.outputs.docker }}
     steps:
@@ -53,6 +54,10 @@ jobs:
             web:
               - 'web/**'
               - '.github/workflows/web-tests.yml'
+            mobile:
+              - 'flutter/synkora_mobile/**'
+              - '.github/workflows/mobile-ci.yml'
+              - '.github/workflows/mobile-release.yml'
             migration:
               - 'api/migrations/**'
               - '.github/workflows/db-migration-test.yml'
@@ -80,6 +85,12 @@ jobs:
     needs: [check-changes, style-check]
     if: needs.check-changes.outputs.web-changed == 'true'
     uses: ./.github/workflows/web-tests.yml
+
+  mobile-tests:
+    name: Mobile Tests
+    needs: [check-changes, style-check]
+    if: needs.check-changes.outputs.mobile-changed == 'true'
+    uses: ./.github/workflows/mobile-ci.yml
 
   db-migration-test:
     name: DB Migration Test

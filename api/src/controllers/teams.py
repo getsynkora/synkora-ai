@@ -467,8 +467,7 @@ async def generate_member_reset_link(
 
     # Audit log — records the admin action for compliance
     try:
-        activity_service = ActivityLogService(db)
-        await activity_service.log_activity(
+        ActivityLogService.queue_activity(
             tenant_id=tenant_id,
             account_id=current_account.id,
             action="admin_generated_password_reset_link",

@@ -396,6 +396,16 @@ async def async_client(async_db_session) -> AsyncGenerator[AsyncClient, None]:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
             yield ac
     finally:
+        # Cancel any pending background audit tasks spawned by ActivityLogService.queue_activity()
+        # so they don't keep the event loop alive after the test ends.
+        from src.services.activity.activity_log_service import _audit_bg_tasks
+
+        for task in list(_audit_bg_tasks):
+            task.cancel()
+        if _audit_bg_tasks:
+            await asyncio.gather(*list(_audit_bg_tasks), return_exceptions=True)
+        _audit_bg_tasks.clear()
+
         # Reset engine after test to clean up connections
         reset_async_engine()
 

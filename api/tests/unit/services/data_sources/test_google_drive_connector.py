@@ -1,7 +1,19 @@
+import sys
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
+
+# Mock heavy Google API dependencies before importing the module under test.
+# test_adk_tools.py runs first (alphabetical order) and sets sys.modules["googleapiclient"]
+# to a MagicMock that Python's import system can't traverse as a package.
+# Register all sub-modules we need so lazy imports inside the connector resolve correctly.
+if "googleapiclient" not in sys.modules:
+    sys.modules["googleapiclient"] = MagicMock()
+sys.modules.setdefault("googleapiclient.discovery", MagicMock())
+sys.modules.setdefault("googleapiclient.http", MagicMock())
+sys.modules.setdefault("google.oauth2", MagicMock())
+sys.modules.setdefault("google.oauth2.credentials", MagicMock())
 
 from src.models.data_source import DataSource
 from src.services.data_sources.google_drive_connector import GoogleDriveConnector
@@ -38,8 +50,8 @@ class TestGoogleDriveConnector:
 
         with (
             patch.object(connector, "_get_oauth_token", return_value=mock_token),
-            patch("src.services.data_sources.google_drive_connector.Credentials") as mock_creds,
-            patch("src.services.data_sources.google_drive_connector.build") as mock_build,
+            patch("google.oauth2.credentials.Credentials") as mock_creds,
+            patch("googleapiclient.discovery.build") as mock_build,
         ):
             result = await connector.connect()
 
@@ -90,7 +102,7 @@ class TestGoogleDriveConnector:
         connector.service.files.return_value.export_media.return_value = mock_request
 
         # Mock downloader
-        with patch("src.services.data_sources.google_drive_connector.MediaIoBaseDownload") as MockDownloader:
+        with patch("googleapiclient.http.MediaIoBaseDownload") as MockDownloader:
             instance = MockDownloader.return_value
             instance.next_chunk.return_value = (None, True)
 
@@ -115,7 +127,7 @@ class TestGoogleDriveConnector:
         connector.service = MagicMock()
         connector.service.files.return_value.get_media.return_value = mock_request
 
-        with patch("src.services.data_sources.google_drive_connector.MediaIoBaseDownload") as MockDownloader:
+        with patch("googleapiclient.http.MediaIoBaseDownload") as MockDownloader:
             instance = MockDownloader.return_value
             instance.next_chunk.return_value = (None, True)
             MockDownloader.side_effect = lambda fh, req: instance

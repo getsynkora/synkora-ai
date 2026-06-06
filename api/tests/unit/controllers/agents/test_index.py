@@ -76,12 +76,15 @@ def sample_agent(mock_tenant_id):
 @pytest.fixture
 def sample_create_request():
     """Create sample agent creation request."""
+    from src.services.agents.config import ModelConfig
+
     request = Mock()
     request.agent_type = "llm"
     request.api_key = "test-api-key"
     request.is_public = False
     request.category = "productivity"
     request.tags = ["test"]
+    request.slug = None
     # These must be None or valid UUID strings, not Mock objects
     request.role_id = None
     request.human_contact_id = None
@@ -93,10 +96,8 @@ def sample_create_request():
     config.system_prompt = "You are helpful"
     config.suggestion_prompts = []
     config.tools = []
-
-    llm_config = Mock()
-    llm_config.model_dump = Mock(return_value={"provider": "openai", "model": "gpt-4"})
-    config.llm_config = llm_config
+    config.metadata = {}
+    config.llm_config = ModelConfig(provider="openai", model_name="gpt-4", api_key="test-llm-key")
 
     request.config = config
     return request
