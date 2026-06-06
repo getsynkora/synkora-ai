@@ -20,6 +20,7 @@ const PROVIDER_COLORS: Record<string, string> = {
   anthropic: 'bg-orange-100 text-orange-800',
   gemini: 'bg-blue-100 text-blue-800',
   google: 'bg-blue-100 text-blue-800',
+  deepseek: 'bg-cyan-100 text-cyan-800',
   ollama: 'bg-purple-100 text-purple-800',
   huggingface: 'bg-yellow-100 text-yellow-800',
   together_ai: 'bg-indigo-100 text-indigo-800',

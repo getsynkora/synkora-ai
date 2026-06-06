@@ -40,6 +40,7 @@ class AgentManager:
         api_key: str | None = None,
         observability_config: dict[str, Any] | None = None,
         tenant_id: str = "",
+        runtime_id: str | None = None,
     ) -> BaseAgent:
         """
         Create and register a new agent.
@@ -57,7 +58,7 @@ class AgentManager:
         Raises:
             ValueError: If agent already exists
         """
-        if self.registry.contains(config.name, tenant_id):
+        if self.registry.contains(config.name, tenant_id, runtime_id=runtime_id):
             raise ValueError(f"Agent '{config.name}' already exists")
 
         # Encrypt API key if provided
@@ -85,7 +86,7 @@ class AgentManager:
             logger.warning(f"⚠️  No API key provided for agent '{config.name}', LLM client will not be initialized")
 
         # Register agent (tenant-scoped)
-        self.registry.register(agent, tenant_id=tenant_id)
+        self.registry.register(agent, tenant_id=tenant_id, runtime_id=runtime_id)
 
         logger.info(f"Created and registered agent: {config.name} (tenant={tenant_id})")
         return agent

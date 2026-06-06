@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { ExternalLink, Info, AlertCircle, Check, Zap, ChevronDown, ChevronUp } from 'lucide-react'
 import toast from 'react-hot-toast'
 import {
@@ -20,6 +20,7 @@ function isReasoningModel(modelName: string): boolean {
 
 const PROVIDER_ICONS: Record<string, string> = {
   openai: '🤖', anthropic: '🧠', google: '🔮', gemini: '🔮',
+  deepseek: '🐋',
   ollama: '🦙', huggingface: '🤗', together_ai: '🔗', cohere: '📊',
   mistral: '🌪️', groq: '⚡', perplexity: '🔍', litellm: '🔗',
   openrouter: '🛣️', azure_openai: '☁️', bedrock: '🪨', vertex_ai: '🔺',
@@ -69,56 +70,83 @@ export default function LLMConfigForm({
     config?.routing_weight?.toString() || '1.0'
   )
 
-  // Load providers on mount
   useEffect(() => {
+    let cancelled = false
+
     const loadProviders = async () => {
       try {
         setLoadingProviders(true)
         const data = await getLLMProviders()
-        setProviders(data)
-        
-        // If editing, find the provider and load its models
-        if (config?.provider) {
-          const provider = data.find((p: ProviderPreset) => p.provider_id === config.provider)
-          if (provider) {
-            setSelectedProvider(provider)
-            await loadModelsForProvider(config.provider)
-          }
+        if (!cancelled) {
+          setProviders(data)
         }
       } catch (error) {
-        console.error('Failed to load providers:', error)
-        toast.error('Failed to load LLM providers')
+        if (!cancelled) {
+          console.error('Failed to load providers:', error)
+          toast.error('Failed to load LLM providers')
+        }
       } finally {
-        setLoadingProviders(false)
+        if (!cancelled) {
+          setLoadingProviders(false)
+        }
       }
     }
 
     loadProviders()
-  }, [config])
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
-  // Load models when provider changes
-  const loadModelsForProvider = async (providerId: string) => {
-    if (!providerId) return
+  useEffect(() => {
+    const provider = providers.find((p: ProviderPreset) => p.provider_id === formData.provider) || null
+    setSelectedProvider(provider)
+  }, [providers, formData.provider])
 
-    try {
-      setLoadingModels(true)
-      const providerModels = await getProviderModels(providerId)
-      setModels(providerModels)
-      
-      // If editing and model exists, select it
-      if (config?.model_name) {
-        const model = providerModels.find((m: ModelPreset) => m.model_name === config.model_name)
-        if (model) {
-          setSelectedModel(model)
+  useEffect(() => {
+    if (!formData.provider) {
+      setModels([])
+      setSelectedModel(null)
+      setLoadingModels(false)
+      return
+    }
+
+    let cancelled = false
+
+    const loadModels = async () => {
+      try {
+        setLoadingModels(true)
+        const providerModels = await getProviderModels(formData.provider)
+        if (!cancelled) {
+          setModels(providerModels)
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Failed to load models:', error)
+          toast.error('Failed to load models for provider')
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingModels(false)
         }
       }
-    } catch (error) {
-      console.error('Failed to load models:', error)
-      toast.error('Failed to load models for provider')
-    } finally {
-      setLoadingModels(false)
     }
-  }
+
+    loadModels()
+    return () => {
+      cancelled = true
+    }
+  }, [formData.provider])
+
+  useEffect(() => {
+    if (!formData.model_name) {
+      setSelectedModel(null)
+      return
+    }
+
+    const model = models.find((item: ModelPreset) => item.model_name === formData.model_name) || null
+    setSelectedModel(model)
+  }, [models, formData.model_name])
 
   // Handle provider change
   const handleProviderChange = (providerId: string) => {
@@ -132,12 +160,7 @@ export default function LLMConfigForm({
     }))
     setSelectedModel(null)
     setModelSearch('')
-
-    if (providerId) {
-      loadModelsForProvider(providerId)
-    } else {
-      setModels([])
-    }
+    setModels([])
   }
 
   // Handle model change

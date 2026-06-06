@@ -120,6 +120,74 @@ class TestConversationsController:
 
             assert response.status_code == status.HTTP_404_NOT_FOUND
 
+    def test_create_conversation_uses_valid_source(self, client):
+        """Test creation preserves supported conversation sources."""
+        test_client, mock_db_session, mock_tenant_id, mock_account = client
+        agent_id = uuid.uuid4()
+
+        mock_agent = MagicMock()
+        mock_agent.id = agent_id
+        setup_db_execute_mock(mock_db_session, mock_agent)
+
+        mock_conversation = MagicMock()
+        mock_conversation.to_dict.return_value = {
+            "id": str(uuid.uuid4()),
+            "agent_id": str(agent_id),
+            "source": "flutter",
+        }
+
+        with (
+            patch("src.services.billing.ChatBillingService") as MockBillingService,
+            patch("src.services.conversation_service.ConversationService") as mock_service,
+        ):
+            mock_billing_instance = MockBillingService.return_value
+            mock_billing_result = MagicMock()
+            mock_billing_result.is_valid = True
+            mock_billing_instance.validate_conversation_creation = AsyncMock(return_value=mock_billing_result)
+            mock_service.create_conversation = AsyncMock(return_value=mock_conversation)
+
+            response = test_client.post(
+                "/conversations",
+                json={"agent_id": str(agent_id), "name": "Mobile", "source": "flutter"},
+            )
+
+            assert response.status_code == status.HTTP_201_CREATED
+            assert mock_service.create_conversation.await_args.kwargs["source"] == "flutter"
+
+    def test_create_conversation_falls_back_to_web_for_invalid_source(self, client):
+        """Test creation defaults unsupported sources to web."""
+        test_client, mock_db_session, mock_tenant_id, mock_account = client
+        agent_id = uuid.uuid4()
+
+        mock_agent = MagicMock()
+        mock_agent.id = agent_id
+        setup_db_execute_mock(mock_db_session, mock_agent)
+
+        mock_conversation = MagicMock()
+        mock_conversation.to_dict.return_value = {
+            "id": str(uuid.uuid4()),
+            "agent_id": str(agent_id),
+            "source": "web",
+        }
+
+        with (
+            patch("src.services.billing.ChatBillingService") as MockBillingService,
+            patch("src.services.conversation_service.ConversationService") as mock_service,
+        ):
+            mock_billing_instance = MockBillingService.return_value
+            mock_billing_result = MagicMock()
+            mock_billing_result.is_valid = True
+            mock_billing_instance.validate_conversation_creation = AsyncMock(return_value=mock_billing_result)
+            mock_service.create_conversation = AsyncMock(return_value=mock_conversation)
+
+            response = test_client.post(
+                "/conversations",
+                json={"agent_id": str(agent_id), "name": "Mobile", "source": "desktop-app"},
+            )
+
+            assert response.status_code == status.HTTP_201_CREATED
+            assert mock_service.create_conversation.await_args.kwargs["source"] == "web"
+
     def test_list_agent_conversations(self, client):
         """Test listing conversations."""
         test_client, mock_db_session, mock_tenant_id, mock_account = client

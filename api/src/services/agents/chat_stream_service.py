@@ -3,7 +3,7 @@ import re
 import time
 from collections.abc import AsyncGenerator
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,7 +28,7 @@ from src.helpers.streaming_helpers import (
     generate_tool_status_event,
     is_expected_llm_error,
 )
-from src.services.agents.adk_tools import tool_registry as default_tool_registry
+from src.services.agents.adk_tools import ADKToolRegistry, get_tool_registry
 from src.services.agents.agent_loader_service import AgentLoaderService
 from src.services.agents.chat_service import ChatService
 from src.services.agents.context_manager import ContextConfig, ContextManager, ContextStrategy
@@ -75,12 +75,12 @@ class ChatStreamService:
         self,
         agent_loader: AgentLoaderService,
         chat_service: ChatService,
-        tool_registry=default_tool_registry,
+        tool_registry: ADKToolRegistry | None = None,
         output_sanitizer=default_output_sanitizer,
     ) -> None:
         self.agent_loader = agent_loader
         self.chat_service = chat_service
-        self.tool_registry = tool_registry
+        self.tool_registry = tool_registry or get_tool_registry()
         self.output_sanitizer = output_sanitizer
 
     async def stream_agent_response(
@@ -1443,10 +1443,13 @@ class ChatStreamService:
                 )
             return True
 
-        mcp_result, _ = await asyncio.gather(
-            load_mcp_tools(),
-            load_custom_tools(),
-            return_exceptions=True,
+        mcp_result, _ = cast(
+            tuple[list[str] | Exception, bool | Exception],
+            await asyncio.gather(
+                load_mcp_tools(),
+                load_custom_tools(),
+                return_exceptions=True,
+            ),
         )
 
         mcp_tool_names: list[str] = []

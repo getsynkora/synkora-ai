@@ -29,6 +29,15 @@ class TestMultiProviderLLMClient:
             assert client.provider == "openai"  # Provider is normalized to lowercase
             MockClient.assert_called_once_with(api_key="test-key")
 
+    def test_init_deepseek(self, mock_config):
+        mock_config.provider = "deepseek"
+        mock_config.model_name = "deepseek-v4-flash"
+        mock_config.api_base = None
+        with patch("openai.AsyncOpenAI") as MockClient:
+            client = MultiProviderLLMClient(mock_config)
+            assert client.provider == "deepseek"
+            MockClient.assert_called_once_with(api_key="test-key", base_url="https://api.deepseek.com")
+
     def test_init_anthropic(self, mock_config):
         mock_config.provider = "anthropic"
         with patch("anthropic.AsyncAnthropic") as MockClient:

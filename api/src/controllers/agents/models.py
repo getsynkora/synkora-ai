@@ -135,6 +135,7 @@ class CreateConversationRequest(BaseModel):
     agent_id: str = Field(..., description="UUID of the agent")
     name: str = Field(default="New Conversation", description="Conversation name")
     session_id: str | None = Field(None, description="Session ID for tracking")
+    source: str = Field(default="web", description="Conversation source (web/flutter/widget/whatsapp/slack/chrome)")
 
 
 class AttachMCPServerRequest(BaseModel):

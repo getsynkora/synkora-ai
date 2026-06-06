@@ -1,0 +1,60 @@
+name: Run Mobile Tests
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+concurrency:
+  group: mobile-ci-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Mobile CI
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: flutter/synkora_mobile
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@e938fdf56512cc96ef2f93b5c07b5571f23ce0ad
+        with:
+          flutter-version: "3.24.5"
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+
+      - name: Run tests
+        run: flutter test
+
+      - name: Build Android release APK
+        run: flutter build apk --release --dart-define=SYNKORA_API_URL=https://api.example.com
+
+      - name: Upload Android artifact
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+        with:
+          name: synkora-mobile-apk
+          path: flutter/synkora_mobile/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 14

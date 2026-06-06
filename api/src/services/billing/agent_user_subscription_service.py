@@ -177,8 +177,9 @@ class AgentUserSubscriptionService:
             "EMAIL_MONTHLY": pricing.email_subscription_price_cents,
         }
         amount_cents = price_map.get(tier)
-        if not amount_cents:
+        if amount_cents is None:
             raise ValueError(f"No price configured for tier '{tier}'")
+        unit_amount = int(amount_cents)
 
         session = stripe.checkout.Session.create(
             payment_method_types=["card"],
@@ -186,7 +187,7 @@ class AgentUserSubscriptionService:
                 {
                     "price_data": {
                         "currency": "usd",
-                        "unit_amount": amount_cents,
+                        "unit_amount": unit_amount,
                         "product_data": {
                             "name": f"Agent Access — {tier}",
                         },
@@ -204,7 +205,7 @@ class AgentUserSubscriptionService:
                 "pricing_id": str(pricing_id),
                 "tier": tier,
                 "guest_email": guest_email,
-                "amount_cents": str(amount_cents),
+                "amount_cents": str(unit_amount),
             },
         )
         return session["url"]

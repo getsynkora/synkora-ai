@@ -98,7 +98,7 @@ const DropdownMenu = ({
     <div
       ref={menuRef}
       style={style}
-      className="rounded-[1.4rem] border border-black/[0.08] bg-[rgba(255,255,255,0.84)] py-1.5 shadow-[0_18px_40px_rgba(0,0,0,0.12)] backdrop-blur-xl"
+      className="rounded-[0.45rem] border border-black/[0.08] bg-[rgba(255,255,255,0.84)] py-1.5 shadow-[0_18px_40px_rgba(0,0,0,0.12)] backdrop-blur-xl"
     >
       <button
         onClick={() => { router.push(`/agents/${agent.slug}/edit`); onClose() }}
@@ -172,28 +172,33 @@ const AgentCard = ({
   }
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-[2rem] border border-black/10 bg-white/60 shadow-[0_18px_40px_rgba(0,0,0,0.05)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_56px_rgba(0,0,0,0.08)]">
-      <div className={`relative flex min-h-[11.5rem] items-center justify-center overflow-hidden border-b border-black/10 pt-10 pb-12 ${hasAvatar ? 'bg-[#f7f6f2]' : 'bg-[#efe7d8]'}`}>
+    <div className="flex flex-col overflow-hidden rounded-[0.5rem] border border-black/10 bg-white/60 shadow-[0_18px_40px_rgba(0,0,0,0.05)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_56px_rgba(0,0,0,0.08)]">
+      <div className="relative flex min-h-[16rem] items-center justify-center overflow-hidden border-b border-black/10 bg-[linear-gradient(180deg,#efe7d8_0%,#f3ecdf_100%)] md:min-h-[18.5rem]">
         {hasAvatar ? (
           <>
             <img
               src={agent.avatar || undefined}
               alt={agent.agent_name}
-              className="absolute inset-0 h-full w-full object-contain object-center p-2"
+              className="absolute inset-0 h-full w-full object-cover object-center"
             />
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(247,246,242,0.12),rgba(247,246,242,0.28))]" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_24%,rgba(255,255,255,0.22),transparent_42%)]" />
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(243,236,223,0.08),rgba(243,236,223,0.04)_45%,rgba(255,255,255,0.1))]" />
           </>
         ) : (
-          <div className="relative z-10 flex h-24 w-24 items-center justify-center rounded-[1.7rem] bg-white shadow-[0_18px_32px_rgba(0,0,0,0.12)]">
-            <Sparkles className="h-12 w-12 text-[#2d8b69]" />
-          </div>
+          <>
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_26%,rgba(255,255,255,0.78),transparent_32%)]" />
+            <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(90deg,rgba(189,164,125,0.08)_0,rgba(189,164,125,0.08)_8%,transparent_8%,transparent_16%)] [background-size:160px_100%]" />
+            <div className="relative z-10 flex h-[7.75rem] w-[7.75rem] items-center justify-center rounded-[0.4rem] border border-white/90 bg-[#fcfbf8] shadow-[0_22px_40px_rgba(109,84,55,0.16)] md:h-[9.25rem] md:w-[9.25rem]">
+              <Sparkles className="h-10 w-10 text-[#2d8b69] md:h-12 md:w-12" />
+            </div>
+          </>
         )}
 
         <div className="absolute right-5 top-5 z-20">
           <button
             ref={btnRef}
             onClick={handleMenuToggle}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-black/10 bg-white/88 shadow-[0_8px_20px_rgba(0,0,0,0.08)] transition-colors hover:bg-white"
+            className="flex h-10 w-10 items-center justify-center rounded-[0.35rem] border border-black/10 bg-white/88 shadow-[0_8px_20px_rgba(0,0,0,0.08)] transition-colors hover:bg-white"
           >
             <MoreVertical className="h-4 w-4 text-gray-500" />
           </button>
@@ -253,7 +258,7 @@ const AgentCard = ({
         <div className="mt-auto flex items-center gap-3">
           <button
             onClick={() => router.push(`/agents/${agent.slug}/chat`)}
-            className="flex-1 rounded-full border border-black/15 bg-white/70 px-5 py-2.5 text-center text-sm font-semibold uppercase tracking-[0.14em] text-[#171717] transition-colors hover:bg-white"
+            className="flex-1 rounded-[0.35rem] border border-black/15 bg-white/70 px-5 py-2.5 text-center text-sm font-semibold uppercase tracking-[0.14em] text-[#171717] transition-colors hover:bg-white"
           >
             Start Chat
           </button>
@@ -267,7 +272,7 @@ const AgentCard = ({
             href={`/a/${agent.public_slug || slugify(agent.agent_name)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-black/10 bg-white/70 text-[#7a736a] transition-colors hover:bg-white hover:text-[#171717]"
+            className="flex h-10 w-10 items-center justify-center rounded-[0.35rem] border border-black/10 bg-white/70 text-[#7a736a] transition-colors hover:bg-white hover:text-[#171717]"
             title="View public page"
           >
             <Globe className="h-4 w-4" />
@@ -357,10 +362,10 @@ export default function AgentsPage() {
   return (
     <div className="min-h-full px-4 py-4 md:px-8 md:py-6 xl:px-10">
       <div className="mx-auto max-w-[90rem]">
-        <div className="dashboard-surface mb-6 rounded-[2rem] p-5 md:p-6 xl:p-7">
+        <div className="dashboard-surface mb-6 p-5 md:p-6 xl:p-7">
           <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
             <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6e675d]">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/70 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6e675d]">
                 <Sparkles className="h-3 w-3 text-[#ff5f8f]" />
                 Agent Library
               </div>
@@ -373,7 +378,7 @@ export default function AgentsPage() {
             </div>
             <button
               onClick={() => router.push('/agents/create')}
-              className="inline-flex flex-shrink-0 items-center gap-2 rounded-full bg-[#181818] px-5 py-3 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 md:text-[14px]"
+              className="inline-flex flex-shrink-0 items-center gap-2 rounded-[0.35rem] bg-[#181818] px-5 py-3 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 md:text-[14px]"
             >
               <Plus size={18} />
               <span className="hidden sm:inline">New Agent</span>
@@ -382,10 +387,10 @@ export default function AgentsPage() {
           </div>
 
           <div className="mt-5 flex flex-wrap gap-3">
-            <div className="dashboard-chip rounded-full px-4 py-2 text-[13px] font-medium">{parentAgentCount} total</div>
-            <div className="dashboard-chip rounded-full px-4 py-2 text-[13px] font-medium">{activeCount} active</div>
-            <div className="dashboard-chip rounded-full px-4 py-2 text-[13px] font-medium">{workflowCount} workflows</div>
-            <div className="dashboard-chip rounded-full px-4 py-2 text-[13px] font-medium">{publicCount} public</div>
+            <div className="dashboard-chip px-4 py-2 text-[13px] font-medium">{parentAgentCount} total</div>
+            <div className="dashboard-chip px-4 py-2 text-[13px] font-medium">{activeCount} active</div>
+            <div className="dashboard-chip px-4 py-2 text-[13px] font-medium">{workflowCount} workflows</div>
+            <div className="dashboard-chip px-4 py-2 text-[13px] font-medium">{publicCount} public</div>
           </div>
 
           <div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
@@ -396,7 +401,7 @@ export default function AgentsPage() {
                 placeholder="Search agents..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-full border border-black/10 bg-white/[0.72] py-3 pl-11 pr-4 text-[13px] text-[#171717] outline-none transition-all focus:border-[#ff5f8f] focus:ring-2 focus:ring-[#ff5f8f]/20 md:text-[14px]"
+                className="w-full rounded-[0.35rem] border border-black/10 bg-white/[0.72] py-3 pl-11 pr-4 text-[13px] text-[#171717] outline-none transition-all focus:border-[#ff5f8f] focus:ring-2 focus:ring-[#ff5f8f]/20 md:text-[14px]"
               />
             </label>
 
@@ -404,7 +409,7 @@ export default function AgentsPage() {
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value as any)}
-                className="w-full appearance-none rounded-full border border-black/10 bg-white/[0.72] px-4 py-3 pr-12 text-[13px] text-[#171717] outline-none transition-all focus:border-[#ff5f8f] focus:ring-2 focus:ring-[#ff5f8f]/20 md:text-[14px]"
+                className="w-full appearance-none rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-3 pr-12 text-[13px] text-[#171717] outline-none transition-all focus:border-[#ff5f8f] focus:ring-2 focus:ring-[#ff5f8f]/20 md:text-[14px]"
               >
                 <option value="all">All</option>
                 <option value="active">Active</option>
@@ -420,9 +425,9 @@ export default function AgentsPage() {
         {loading ? (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="animate-pulse overflow-hidden rounded-[2rem] border border-black/10 bg-white/60 shadow-[0_18px_40px_rgba(0,0,0,0.05)]">
+              <div key={i} className="animate-pulse overflow-hidden rounded-[0.5rem] border border-black/10 bg-white/60 shadow-[0_18px_40px_rgba(0,0,0,0.05)]">
                 <div className="flex items-center justify-center border-b border-black/10 bg-[#efe7d8] pt-10 pb-12">
-                  <div className="h-24 w-24 rounded-[1.7rem] bg-white shadow-lg" />
+                  <div className="h-24 w-24 rounded-[0.45rem] bg-white shadow-lg" />
                 </div>
                 <div className="p-6">
                   <div className="mb-2 h-5 w-40 rounded bg-black/10" />
@@ -447,17 +452,17 @@ export default function AgentsPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="h-10 flex-1 rounded-full bg-black/5" />
-                    <div className="h-10 w-24 rounded-full bg-black/5" />
-                    <div className="h-10 w-10 rounded-full bg-black/5" />
+                    <div className="h-10 flex-1 rounded-[0.35rem] bg-black/5" />
+                    <div className="h-10 w-24 rounded-[0.35rem] bg-black/5" />
+                    <div className="h-10 w-10 rounded-[0.35rem] bg-black/5" />
                   </div>
                 </div>
               </div>
             ))}
           </div>
         ) : filteredAgents.length === 0 ? (
-          <div className="dashboard-surface rounded-[2rem] py-20 text-center">
-            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-[#ffe1ea]">
+          <div className="dashboard-surface py-20 text-center">
+            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-[0.45rem] bg-[#ffe1ea]">
               <Bot className="h-10 w-10 text-[#171717]" />
             </div>
             <h3 className="mb-2 text-[1.05rem] font-semibold text-[#171717] md:text-[1.35rem]">
@@ -471,7 +476,7 @@ export default function AgentsPage() {
             {!searchQuery && filterType === 'all' && (
               <button
                 onClick={() => router.push('/agents/create')}
-                className="inline-flex items-center gap-2 rounded-full bg-[#181818] px-6 py-3 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 md:text-[14px]"
+                className="inline-flex items-center gap-2 rounded-[0.35rem] bg-[#181818] px-6 py-3 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 md:text-[14px]"
               >
                 <Plus size={20} />
                 Create Agent
@@ -494,11 +499,11 @@ export default function AgentsPage() {
             </div>
 
             {totalPages > 1 && (
-              <div className="dashboard-surface mt-8 flex items-center justify-center gap-4 rounded-full px-4 py-3">
+              <div className="dashboard-surface mt-8 flex items-center justify-center gap-4 px-4 py-3">
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="rounded-full px-4 py-2 text-[13px] font-medium text-[#5b564e] transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-[0.35rem] px-4 py-2 text-[13px] font-medium text-[#5b564e] transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Previous
                 </button>
@@ -508,7 +513,7 @@ export default function AgentsPage() {
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="rounded-full px-4 py-2 text-[13px] font-medium text-[#5b564e] transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-[0.35rem] px-4 py-2 text-[13px] font-medium text-[#5b564e] transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Next
                 </button>
@@ -521,8 +526,8 @@ export default function AgentsPage() {
       {/* Delete Modal */}
       {showDeleteModal && agentToDelete && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="dashboard-surface w-full max-w-sm rounded-[2rem] p-6">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#ffe1ea]">
+          <div className="dashboard-surface w-full max-w-sm p-6">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[0.35rem] bg-[#ffe1ea]">
               <Trash2 className="w-6 h-6 text-red-600" />
             </div>
             <h3 className="mb-2 text-center text-[1rem] font-semibold text-[#171717] md:text-[1.1rem]">
@@ -534,13 +539,13 @@ export default function AgentsPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => { setShowDeleteModal(false); setAgentToDelete(null) }}
-                className="flex-1 rounded-full bg-white/70 px-4 py-2 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white"
+                className="flex-1 rounded-[0.35rem] bg-white/70 px-4 py-2 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteAgent}
-                className="flex-1 rounded-full bg-[#181818] px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-black"
+                className="flex-1 rounded-[0.35rem] bg-[#181818] px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-black"
               >
                 Delete
               </button>

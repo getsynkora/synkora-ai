@@ -9,6 +9,7 @@ SECURITY: Validates redirect URLs and URL-encodes error messages.
 
 import logging
 import uuid
+from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
@@ -495,7 +496,7 @@ async def initiate_oauth(
             oauth = TwitterOAuth(client_id=client_id, client_secret=client_secret, redirect_uri=redirect_uri)
             scopes = oauth_app.scopes or ["tweet.read", "tweet.write", "users.read", "offline.access"]
             code_verifier: str
-            auth_url, code_verifier = oauth.get_authorization_url(state=state, scopes=scopes)
+            auth_url, code_verifier = cast(tuple[str, str], oauth.get_authorization_url(state=state, scopes=scopes))
             # Store code_verifier in state for PKCE verification
             from ...services.security.oauth_state_service import update_oauth_state
 

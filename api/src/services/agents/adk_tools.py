@@ -8,15 +8,13 @@ Supports both built-in tools and external MCP (Model Context Protocol) servers.
 import logging
 import os
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
-import httpx
-from bs4 import BeautifulSoup
-from github import Github
-from googleapiclient.discovery import build
 from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
+
+_tool_registry: "ADKToolRegistry | None" = None
 
 
 class ADKToolRegistry:
@@ -2219,6 +2217,9 @@ async def web_search(query: str, num_results: int = 5, config: dict[str, Any] | 
 async def web_crawl(url: str, extract_links: bool = False, config: dict[str, Any] | None = None) -> dict[str, Any]:
     """Crawl a web page and extract content."""
     try:
+        import httpx
+        from bs4 import BeautifulSoup
+
         async with httpx.AsyncClient() as client:
             response = await client.get(url, follow_redirects=True, timeout=10.0)
             response.raise_for_status()
@@ -2260,6 +2261,8 @@ async def github_search_repos(
     Requires GITHUB_OAUTH_TOKEN from oauth_apps table.
     """
     try:
+        from github import Github
+
         config = config or {}
 
         # Get OAuth token from config (loaded from oauth_apps table)
@@ -2300,6 +2303,8 @@ async def github_get_repo(owner: str, repo: str, config: dict[str, Any] | None =
     Requires GITHUB_OAUTH_TOKEN from oauth_apps table.
     """
     try:
+        from github import Github
+
         config = config or {}
 
         # Get OAuth token from config (loaded from oauth_apps table)
@@ -2354,6 +2359,8 @@ async def github_list_issues(
     Requires GITHUB_OAUTH_TOKEN from oauth_apps table.
     """
     try:
+        from github import Github
+
         config = config or {}
 
         # Get OAuth token from config (loaded from oauth_apps table)
@@ -2411,6 +2418,8 @@ async def github_create_issue(
     Requires GITHUB_OAUTH_TOKEN from oauth_apps table.
     """
     try:
+        from github import Github
+
         config = config or {}
         labels = labels or []
 
@@ -2450,6 +2459,8 @@ async def github_list_pull_requests(
     Requires GITHUB_OAUTH_TOKEN from oauth_apps table.
     """
     try:
+        from github import Github
+
         config = config or {}
 
         # Get OAuth token from config (loaded from oauth_apps table)
@@ -2506,6 +2517,8 @@ async def github_get_user(username: str, config: dict[str, Any] | None = None) -
     Requires GITHUB_OAUTH_TOKEN from oauth_apps table.
     """
     try:
+        from github import Github
+
         config = config or {}
 
         # Get OAuth token from config (loaded from oauth_apps table)
@@ -2553,6 +2566,8 @@ async def github_get_user(username: str, config: dict[str, Any] | None = None) -
 async def youtube_search(query: str, max_results: int = 5, config: dict[str, Any] | None = None) -> dict[str, Any]:
     """Search YouTube videos."""
     try:
+        from googleapiclient.discovery import build
+
         config = config or {}
         api_key = config.get("YOUTUBE_API_KEY") or os.getenv("YOUTUBE_API_KEY")
         if not api_key:
@@ -2584,6 +2599,8 @@ async def youtube_search(query: str, max_results: int = 5, config: dict[str, Any
 async def youtube_get_video_info(video_id: str, config: dict[str, Any] | None = None) -> dict[str, Any]:
     """Get detailed information about a YouTube video."""
     try:
+        from googleapiclient.discovery import build
+
         config = config or {}
         api_key = config.get("YOUTUBE_API_KEY") or os.getenv("YOUTUBE_API_KEY")
         if not api_key:
@@ -2623,6 +2640,8 @@ async def github_list_my_repos(limit: int = 10, config: dict[str, Any] | None = 
     Requires GITHUB_OAUTH_TOKEN from oauth_apps table.
     """
     try:
+        from github import Github
+
         config = config or {}
 
         # Get OAuth token from config (loaded from oauth_apps table)
@@ -2836,5 +2855,22 @@ async def transfer_to_agent(agent_name: str, task: str, config: dict[str, Any] |
         return {"error": str(e)}
 
 
-# Global tool registry instance
-tool_registry = ADKToolRegistry()
+def get_tool_registry() -> ADKToolRegistry:
+    """Return the shared tool registry, constructing it on first use."""
+    global _tool_registry
+    if _tool_registry is None:
+        _tool_registry = ADKToolRegistry()
+    return _tool_registry
+
+
+class _LazyToolRegistryProxy:
+    """Preserve the historic module-level tool_registry API without eager construction."""
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(get_tool_registry(), name)
+
+    def __dir__(self) -> list[str]:
+        return dir(get_tool_registry())
+
+
+tool_registry = cast(ADKToolRegistry, _LazyToolRegistryProxy())

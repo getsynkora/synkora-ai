@@ -75,8 +75,8 @@ class TestWebTools:
     @pytest.mark.asyncio
     async def test_web_crawl(self):
         with (
-            patch("src.services.agents.adk_tools.httpx.AsyncClient") as MockClient,
-            patch("src.services.agents.adk_tools.BeautifulSoup") as MockBS,
+            patch("httpx.AsyncClient") as MockClient,
+            patch("bs4.BeautifulSoup") as MockBS,
         ):
             mock_client_instance = MockClient.return_value
             mock_client_instance.__aenter__.return_value.get.return_value.text = "<html></html>"
@@ -94,7 +94,7 @@ class TestWebTools:
 class TestGitHubTools:
     @pytest.fixture
     def mock_github(self):
-        with patch("src.services.agents.adk_tools.Github") as MockGithub:
+        with patch("github.Github") as MockGithub:
             yield MockGithub
 
     @pytest.mark.asyncio
@@ -169,12 +169,12 @@ class TestGitHubTools:
 class TestGoogleTools:
     @pytest.fixture
     def mock_build(self):
-        with patch("src.services.agents.adk_tools.build") as mock:
+        with patch("googleapiclient.discovery.build") as mock:
             yield mock
 
     @pytest.fixture
     def mock_creds(self):
-        with patch("src.services.agents.adk_tools.Credentials") as mock:
+        with patch("google.oauth2.credentials.Credentials") as mock:
             yield mock
 
     # Gmail tests removed - functions moved to internal_tools/gmail_tools.py with internal_gmail_* prefix

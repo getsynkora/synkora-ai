@@ -8,8 +8,6 @@ import logging
 from datetime import UTC
 from typing import Any
 
-from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from sqlalchemy import select
 
@@ -149,6 +147,9 @@ async def _get_gmail_service(runtime_context: Any) -> Any:
         raise ValueError("No Gmail access token available. Please connect Gmail OAuth.")
 
     # Build credentials and service
+    from google.oauth2.credentials import Credentials
+    from googleapiclient.discovery import build
+
     creds = Credentials(
         token=access_token,
         refresh_token=refresh_token,

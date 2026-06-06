@@ -433,7 +433,7 @@ export default function EditAgentPage() {
     return (
       <div className="agent-workspace min-h-full px-4 py-4 md:px-8 md:py-6 xl:px-10">
         <div className="mx-auto flex min-h-[70vh] max-w-[90rem] items-center justify-center">
-          <div className="dashboard-surface rounded-[2rem] px-10 py-12 text-center">
+          <div className="dashboard-surface px-10 py-12 text-center">
             <div className="mx-auto h-12 w-12 animate-spin rounded-full border-[3px] border-black/10 border-t-[#181818]"></div>
             <p className="mt-4 text-[14px] text-[#5b564e]">Loading agent details...</p>
           </div>
@@ -447,9 +447,9 @@ export default function EditAgentPage() {
       <div className="mx-auto max-w-[90rem]">
         {/* Header */}
         <div className="mb-6">
-          <div className="dashboard-surface flex flex-col gap-4 rounded-[2rem] p-5 md:p-6 xl:flex-row xl:items-center xl:justify-between xl:p-7">
+          <div className="dashboard-surface flex flex-col gap-4 p-5 md:p-6 xl:flex-row xl:items-center xl:justify-between xl:p-7">
             <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6e675d]">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/70 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6e675d]">
                 <Sparkles className="h-3 w-3 text-[#ff5f8f]" />
                 Agent Editor
               </div>
@@ -463,14 +463,14 @@ export default function EditAgentPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push(`/agents/${agentName}/view`)}
-                className="rounded-full border border-black/10 bg-white/[0.72] px-5 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white"
+                className="rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-5 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={saving || !formData.name}
-                className="rounded-full bg-[#181818] px-5 py-3 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-[0.35rem] bg-[#181818] px-5 py-3 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {saving ? (
                   <span className="flex items-center gap-2">
@@ -486,7 +486,7 @@ export default function EditAgentPage() {
         </div>
 
         {/* Modern Tabs */}
-        <div className="dashboard-panel overflow-hidden rounded-[2rem]">
+        <div className="dashboard-panel overflow-hidden">
           <div className="border-b border-black/[0.08] bg-[#f1eadc]">
             <nav className="flex flex-wrap gap-1 p-2">
               {tabs.map((tab) => {
@@ -580,7 +580,7 @@ export default function EditAgentPage() {
             )}
             {activeTab === 'landing-page' && (
               <div className="space-y-4 py-4">
-                <div className="dashboard-surface rounded-[1.5rem] p-6 flex items-start gap-4">
+                <div className="dashboard-surface p-6 flex items-start gap-4">
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-100 mt-1">
                     <Globe className="h-5 w-5 text-primary-600" />
                   </div>
@@ -591,14 +591,14 @@ export default function EditAgentPage() {
                     </p>
                     <a
                       href={`/agents/${agentName}/landing-page`}
-                      className="inline-flex items-center gap-2 rounded-full bg-[#181818] px-4 py-2.5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5"
+                      className="inline-flex items-center gap-2 rounded-[0.35rem] bg-[#181818] px-4 py-2.5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5"
                     >
                       <Globe className="h-4 w-4" />
                       Open editor
                     </a>
                   </div>
                 </div>
-                <div className="dashboard-surface rounded-[1.5rem] p-6 flex items-start gap-4">
+                <div className="dashboard-surface p-6 flex items-start gap-4">
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#fff0d9] mt-1">
                     <DollarSign className="h-5 w-5 text-[#d9a441]" />
                   </div>
@@ -610,7 +610,7 @@ export default function EditAgentPage() {
                     {agentId ? (
                       <a
                         href={`/billing/agent-pricing/${agentId}?from=${agentName}`}
-                        className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/[0.72] px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-white"
+                        className="inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-white"
                       >
                         <DollarSign className="h-4 w-4" />
                         Configure pricing
@@ -620,7 +620,7 @@ export default function EditAgentPage() {
                     )}
                   </div>
                 </div>
-                <div className="dashboard-surface rounded-[1.5rem] p-6 flex items-start gap-4">
+                <div className="dashboard-surface p-6 flex items-start gap-4">
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-100 mt-1">
                     <Tag className="h-5 w-5 text-[#ff5f8f]" />
                   </div>
@@ -631,14 +631,14 @@ export default function EditAgentPage() {
                     </p>
                     <a
                       href={`/agents/${agentName}/discount-codes`}
-                      className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/[0.72] px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-white"
+                      className="inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-white"
                     >
                       <Tag className="h-4 w-4" />
                       Manage codes
                     </a>
                   </div>
                 </div>
-                <div className="dashboard-surface rounded-[1.5rem] p-6 flex items-start gap-4">
+                <div className="dashboard-surface p-6 flex items-start gap-4">
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-100 mt-1">
                     <Users className="h-5 w-5 text-primary-600" />
                   </div>
@@ -649,7 +649,7 @@ export default function EditAgentPage() {
                     </p>
                     <a
                       href={`/agents/${agentName}/subscribers`}
-                      className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/[0.72] px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-white"
+                      className="inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-white"
                     >
                       <Users className="h-4 w-4" />
                       View subscribers
@@ -755,14 +755,14 @@ export default function EditAgentPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => router.push(`/agents/${agentName}/view`)}
-                className="rounded-full border border-black/10 bg-white/[0.72] px-6 py-2.5 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white"
+                className="rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-6 py-2.5 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={saving || !formData.name}
-                className="rounded-full bg-[#181818] px-6 py-2.5 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-[0.35rem] bg-[#181818] px-6 py-2.5 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>

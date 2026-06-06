@@ -510,7 +510,7 @@ async def generate_security_block_stream(details: dict[str, Any] | None = None) 
     import uuid
 
     security_response = {
-        "content": "Your message has been blocked due to security policy violations. Please rephrase your request to comply with our usage guidelines.",
+        "error": "Your message was flagged by the security filter. Please rephrase and try again. If this keeps happening, contact your workspace admin.",
         "error_type": "security_violation",
         "violation_id": f"CHAT_{uuid.uuid4().hex[:8]}",
     }

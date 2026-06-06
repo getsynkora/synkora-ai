@@ -134,6 +134,8 @@ interface ExtendedAPIClient extends APIClient {
   getKnowledgeBaseDocument: typeof knowledgeBases.getKnowledgeBaseDocument
   deleteKnowledgeBaseDocument: typeof knowledgeBases.deleteKnowledgeBaseDocument
   bulkDeleteKnowledgeBaseDocuments: typeof knowledgeBases.bulkDeleteKnowledgeBaseDocuments
+  reprocessKnowledgeBaseDocument: typeof knowledgeBases.reprocessKnowledgeBaseDocument
+  cancelKnowledgeBaseDocument: typeof knowledgeBases.cancelKnowledgeBaseDocument
   downloadKnowledgeBaseDocument: typeof knowledgeBases.downloadKnowledgeBaseDocument
   addTextContent: typeof knowledgeBases.addTextContent
   crawlWebsite: typeof knowledgeBases.crawlWebsite
@@ -366,6 +368,8 @@ export const apiClient: ExtendedAPIClient = Object.assign(_apiClient, {
   getKnowledgeBaseDocument: knowledgeBases.getKnowledgeBaseDocument,
   deleteKnowledgeBaseDocument: knowledgeBases.deleteKnowledgeBaseDocument,
   bulkDeleteKnowledgeBaseDocuments: knowledgeBases.bulkDeleteKnowledgeBaseDocuments,
+  reprocessKnowledgeBaseDocument: knowledgeBases.reprocessKnowledgeBaseDocument,
+  cancelKnowledgeBaseDocument: knowledgeBases.cancelKnowledgeBaseDocument,
   downloadKnowledgeBaseDocument: knowledgeBases.downloadKnowledgeBaseDocument,
   addTextContent: knowledgeBases.addTextContent,
   crawlWebsite: knowledgeBases.crawlWebsite,

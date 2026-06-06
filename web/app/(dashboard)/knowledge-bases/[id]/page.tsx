@@ -700,6 +700,8 @@ export default function KnowledgeBaseDetailsPage() {
                     onDeleteDocument={(docId) => apiClient.deleteKnowledgeBaseDocument(id, docId)}
                     onBulkDelete={(docIds) => apiClient.bulkDeleteKnowledgeBaseDocuments(id, docIds)}
                     onDownloadDocument={(docId) => apiClient.downloadKnowledgeBaseDocument(id, docId)}
+                    onReprocessDocument={(docId) => apiClient.reprocessKnowledgeBaseDocument(id, docId)}
+                    onCancelDocument={(docId) => apiClient.cancelKnowledgeBaseDocument(id, docId)}
                   />
                 </div>
               </div>

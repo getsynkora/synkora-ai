@@ -56,10 +56,11 @@ def invalidate_agent_llm_cache(agent_name: str, tenant_id: str = "", provider: s
         if sync_redis:
             # Tenant-scoped config key — matches what _cache_agent stores
             config_key = cache._agent_config_key(agent_name, tenant_id)
-            # Routing LLM-configs cache is not tenant-scoped (no API keys, just metadata)
-            llm_configs_key = cache._build_key("llm_configs", agent_name)
-            deleted = sync_redis.delete(config_key, llm_configs_key)
-            logger.info(f"Deleted Redis cache keys '{config_key}', '{llm_configs_key}' (deleted: {deleted})")
+            llm_configs_pattern = cache._build_key("llm_configs", f"*:{agent_name}")
+            llm_config_keys = list(sync_redis.scan_iter(llm_configs_pattern))
+            delete_keys = [config_key, *llm_config_keys]
+            deleted = sync_redis.delete(*delete_keys) if delete_keys else 0
+            logger.info("Deleted Redis cache keys %s (deleted: %s)", delete_keys, deleted)
         else:
             logger.warning("Redis not available, skipping cache invalidation")
     except Exception as e:

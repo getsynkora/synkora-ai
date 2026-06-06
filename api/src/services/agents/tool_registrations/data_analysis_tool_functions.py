@@ -3,12 +3,10 @@
 import logging
 from typing import Any
 
-import pandas as pd
-
 logger = logging.getLogger(__name__)
 
 
-def _parse_data_to_dataframe(data_str: str) -> pd.DataFrame | None:
+def _parse_data_to_dataframe(data_str: str) -> Any:
     """
     Parse string data into a pandas DataFrame.
 
@@ -27,6 +25,8 @@ def _parse_data_to_dataframe(data_str: str) -> pd.DataFrame | None:
     import csv
     import io
     import json
+
+    import pandas as pd
 
     # Try JSON first
     try:

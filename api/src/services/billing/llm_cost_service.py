@@ -2,7 +2,7 @@
 LLM Cost Service
 
 Calculates, records, and aggregates LLM API costs using existing pricing sources
-(DB routing_rules, _BUILTIN_COSTS, MODEL_COMPARISON_DATA).
+(DB routing_rules, _BUILTIN_COSTS, llm_provider_comparison_data.MODEL_COMPARISON_DATA).
 
 No new hardcoded pricing dicts — all resolution flows through existing sources.
 """
@@ -34,7 +34,7 @@ def _resolve_pricing(
     Priority:
     1. routing_rules["cost_per_1k_input/output"]  — DB, per-config override
     2. model_router._BUILTIN_COSTS / _BUILTIN_OUTPUT_COSTS — exact-match tables
-    3. llm_provider_presets.MODEL_COMPARISON_DATA  — prefix-match, convert 1M -> 1k
+    3. llm_provider_comparison_data.MODEL_COMPARISON_DATA — prefix-match, convert 1M -> 1k
     4. None, None                                  — unknown model, cost not tracked
     """
     # 1. DB override wins
@@ -48,10 +48,14 @@ def _resolve_pricing(
     normalized = re.sub(r"-\d{8}$", "", model_name.lower())
 
     try:
-        from src.services.agents.llm_provider_presets import MODEL_COMPARISON_DATA
         from src.services.agents.routing.model_router import _BUILTIN_COSTS, _BUILTIN_OUTPUT_COSTS
     except ImportError:
         return None, None
+
+    try:
+        from src.services.agents.llm_provider_comparison_data import MODEL_COMPARISON_DATA
+    except ImportError:
+        MODEL_COMPARISON_DATA = {}
 
     builtin_inp: float | None = None
     builtin_out: float | None = None

@@ -1,0 +1,400 @@
+name: Build And Release Mobile Apps
+
+on:
+  push:
+    tags:
+      - "mobile/v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version in semver format, for example 1.2.3"
+        required: true
+        type: string
+      submit_to_app_store:
+        description: "Submit the uploaded iOS build for App Store review"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mobile-release-${{ github.ref_name || github.run_id }}
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: "3.24.5"
+  MOBILE_API_URL: ${{ vars.MOBILE_API_URL || vars.NEXT_PUBLIC_API_URL || 'https://api.synkora.ai' }}
+  IOS_APP_BUNDLE_ID: ${{ vars.IOS_APP_BUNDLE_ID }}
+  IOS_APPLE_TEAM_ID: ${{ vars.IOS_APPLE_TEAM_ID }}
+  IOS_APP_STORE_APP_ID: ${{ vars.IOS_APP_STORE_APP_ID }}
+  IOS_AUTO_SUBMIT_TO_APP_STORE: ${{ vars.IOS_AUTO_SUBMIT_TO_APP_STORE || 'false' }}
+  IOS_AUTO_RELEASE_ON_APPROVAL: ${{ vars.IOS_AUTO_RELEASE_ON_APPROVAL || 'false' }}
+
+jobs:
+  prepare:
+    name: Prepare Release Metadata
+    runs-on: ubuntu-latest
+    outputs:
+      build_name: ${{ steps.meta.outputs.build_name }}
+      build_number: ${{ steps.meta.outputs.build_number }}
+      release_tag: ${{ steps.meta.outputs.release_tag }}
+      submit_to_app_store: ${{ steps.meta.outputs.submit_to_app_store }}
+    steps:
+      - name: Resolve version and release behavior
+        id: meta
+        env:
+          DISPATCH_VERSION: ${{ inputs.version }}
+          DISPATCH_SUBMIT_TO_APP_STORE: ${{ inputs.submit_to_app_store }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            build_name="${DISPATCH_VERSION}"
+            release_tag="mobile/v${build_name}"
+            submit_to_app_store="${DISPATCH_SUBMIT_TO_APP_STORE}"
+          else
+            build_name="${GITHUB_REF_NAME#mobile/v}"
+            release_tag="${GITHUB_REF_NAME}"
+            submit_to_app_store="${IOS_AUTO_SUBMIT_TO_APP_STORE}"
+          fi
+
+          if [[ ! "${build_name}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release version must use semver, for example 1.2.3"
+            exit 1
+          fi
+
+          build_number=$((GITHUB_RUN_NUMBER * 100 + GITHUB_RUN_ATTEMPT))
+
+          echo "build_name=${build_name}" >> "${GITHUB_OUTPUT}"
+          echo "build_number=${build_number}" >> "${GITHUB_OUTPUT}"
+          echo "release_tag=${release_tag}" >> "${GITHUB_OUTPUT}"
+          echo "submit_to_app_store=${submit_to_app_store}" >> "${GITHUB_OUTPUT}"
+
+      - name: Summarize release inputs
+        run: |
+          {
+            echo "## Mobile Release"
+            echo "- Version: ${{ steps.meta.outputs.build_name }}"
+            echo "- Build number: ${{ steps.meta.outputs.build_number }}"
+            echo "- Tag: ${{ steps.meta.outputs.release_tag }}"
+            echo "- Submit to App Store: ${{ steps.meta.outputs.submit_to_app_store }}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  release:
+    name: Create GitHub Release
+    needs: prepare
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare.outputs.release_tag }}
+          name: ${{ needs.prepare.outputs.release_tag }}
+          generate_release_notes: true
+          make_latest: true
+
+  android:
+    name: Build Android Release
+    needs: prepare
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: flutter/synkora_mobile
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@e938fdf56512cc96ef2f93b5c07b5571f23ce0ad
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Prepare Android signing
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          python3 -c "import base64, os, pathlib; pathlib.Path('/tmp/synkora-mobile.keystore').write_bytes(base64.b64decode(os.environ['ANDROID_KEYSTORE_BASE64']))"
+
+      - name: Build APK and App Bundle
+        env:
+          ANDROID_KEYSTORE_PATH: /tmp/synkora-mobile.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          flutter build apk \
+            --release \
+            --build-name="${{ needs.prepare.outputs.build_name }}" \
+            --build-number="${{ needs.prepare.outputs.build_number }}" \
+            --dart-define=SYNKORA_API_URL="${{ env.MOBILE_API_URL }}"
+          flutter build appbundle \
+            --release \
+            --build-name="${{ needs.prepare.outputs.build_name }}" \
+            --build-number="${{ needs.prepare.outputs.build_number }}" \
+            --dart-define=SYNKORA_API_URL="${{ env.MOBILE_API_URL }}"
+
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+        with:
+          name: synkora-mobile-android
+          path: |
+            flutter/synkora_mobile/build/app/outputs/flutter-apk/app-release.apk
+            flutter/synkora_mobile/build/app/outputs/bundle/release/app-release.aab
+          retention-days: 30
+
+      - name: Attach Android artifacts to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare.outputs.release_tag }}
+          files: |
+            flutter/synkora_mobile/build/app/outputs/flutter-apk/app-release.apk
+            flutter/synkora_mobile/build/app/outputs/bundle/release/app-release.aab
+
+  ios:
+    name: Build iOS Archive And Publish
+    needs: prepare
+    runs-on: macos-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: flutter/synkora_mobile
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Validate iOS release configuration
+        env:
+          IOS_APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.IOS_APP_STORE_CONNECT_API_KEY_BASE64 }}
+          IOS_APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.IOS_APP_STORE_CONNECT_API_KEY_ID }}
+          IOS_APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.IOS_APP_STORE_CONNECT_ISSUER_ID }}
+          IOS_DISTRIBUTION_CERT_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERT_BASE64 }}
+          IOS_DISTRIBUTION_CERT_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERT_PASSWORD }}
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          set -euo pipefail
+          for key in IOS_APP_BUNDLE_ID IOS_APPLE_TEAM_ID IOS_APP_STORE_APP_ID; do
+            if [[ -z "${!key:-}" ]]; then
+              echo "Missing required GitHub variable: ${key}"
+              exit 1
+            fi
+          done
+          for key in \
+            IOS_APP_STORE_CONNECT_API_KEY_BASE64 \
+            IOS_APP_STORE_CONNECT_API_KEY_ID \
+            IOS_APP_STORE_CONNECT_ISSUER_ID \
+            IOS_DISTRIBUTION_CERT_BASE64 \
+            IOS_DISTRIBUTION_CERT_PASSWORD \
+            IOS_PROVISIONING_PROFILE_BASE64; do
+            if [[ -z "${!key:-}" ]]; then
+              echo "Missing required GitHub secret: ${key}"
+              exit 1
+            fi
+          done
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@e938fdf56512cc96ef2f93b5c07b5571f23ce0ad
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+
+      - name: Install iOS release tooling
+        working-directory: flutter/synkora_mobile/ios
+        run: |
+          bundle config set path vendor/bundle
+          bundle install --jobs 4 --retry 3
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Install CocoaPods dependencies
+        working-directory: flutter/synkora_mobile/ios
+        run: pod install
+
+      - name: Decode App Store Connect API key
+        env:
+          IOS_APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.IOS_APP_STORE_CONNECT_API_KEY_BASE64 }}
+          IOS_APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.IOS_APP_STORE_CONNECT_API_KEY_ID }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/appstoreconnect
+          export IOS_APP_STORE_CONNECT_API_KEY_PATH="/tmp/appstoreconnect/AuthKey_${IOS_APP_STORE_CONNECT_API_KEY_ID}.p8"
+          python3 -c "import base64, os, pathlib; pathlib.Path(os.environ['IOS_APP_STORE_CONNECT_API_KEY_PATH']).write_bytes(base64.b64decode(os.environ['IOS_APP_STORE_CONNECT_API_KEY_BASE64']))"
+          echo "IOS_APP_STORE_CONNECT_API_KEY_PATH=${IOS_APP_STORE_CONNECT_API_KEY_PATH}" >> "${GITHUB_ENV}"
+
+      - name: Import distribution certificate
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.IOS_DISTRIBUTION_CERT_BASE64 }}
+          p12-password: ${{ secrets.IOS_DISTRIBUTION_CERT_PASSWORD }}
+
+      - name: Install provisioning profile
+        env:
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          set -euo pipefail
+          mkdir -p "${HOME}/Library/MobileDevice/Provisioning Profiles"
+          profile_path="/tmp/synkora.mobileprovision"
+          python3 -c "import base64, os, pathlib; pathlib.Path('${profile_path}').write_bytes(base64.b64decode(os.environ['IOS_PROVISIONING_PROFILE_BASE64']))"
+          security cms -D -i "${profile_path}" > /tmp/synkora-provisioning-profile.plist
+          profile_uuid="$(/usr/libexec/PlistBuddy -c 'Print UUID' /tmp/synkora-provisioning-profile.plist)"
+          profile_name="$(/usr/libexec/PlistBuddy -c 'Print Name' /tmp/synkora-provisioning-profile.plist)"
+          cp "${profile_path}" "${HOME}/Library/MobileDevice/Provisioning Profiles/${profile_uuid}.mobileprovision"
+          echo "IOS_PROFILE_UUID=${profile_uuid}" >> "${GITHUB_ENV}"
+          echo "IOS_PROFILE_NAME=${profile_name}" >> "${GITHUB_ENV}"
+
+      - name: Build Flutter iOS artifacts
+        run: |
+          flutter build ios \
+            --release \
+            --no-codesign \
+            --build-name="${{ needs.prepare.outputs.build_name }}" \
+            --build-number="${{ needs.prepare.outputs.build_number }}" \
+            --dart-define=SYNKORA_API_URL="${{ env.MOBILE_API_URL }}"
+
+      - name: Create export options plist
+        run: |
+          cat > ios/ExportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "https://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>compileBitcode</key>
+            <false/>
+            <key>destination</key>
+            <string>export</string>
+            <key>method</key>
+            <string>app-store</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>${IOS_APP_BUNDLE_ID}</key>
+              <string>${IOS_PROFILE_NAME}</string>
+            </dict>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>stripSwiftSymbols</key>
+            <true/>
+            <key>teamID</key>
+            <string>${IOS_APPLE_TEAM_ID}</string>
+            <key>uploadBitcode</key>
+            <false/>
+            <key>uploadSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          EOF
+
+      - name: Archive iOS app
+        run: |
+          set -euo pipefail
+          mkdir -p build/ios/archive
+          xcodebuild \
+            -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination generic/platform=iOS \
+            -archivePath build/ios/archive/Runner.xcarchive \
+            archive \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM="${IOS_APPLE_TEAM_ID}" \
+            PRODUCT_BUNDLE_IDENTIFIER="${IOS_APP_BUNDLE_ID}" \
+            PROVISIONING_PROFILE_SPECIFIER="${IOS_PROFILE_NAME}"
+
+      - name: Export IPA
+        run: |
+          set -euo pipefail
+          mkdir -p build/ios/ipa
+          xcodebuild \
+            -exportArchive \
+            -archivePath build/ios/archive/Runner.xcarchive \
+            -exportPath build/ios/ipa \
+            -exportOptionsPlist ios/ExportOptions.plist
+          ipa_path="$(find build/ios/ipa -maxdepth 1 -name '*.ipa' -print -quit)"
+          if [[ -z "${ipa_path}" ]]; then
+            echo "IPA export failed"
+            exit 1
+          fi
+          echo "IOS_IPA_PATH=${ipa_path}" >> "${GITHUB_ENV}"
+
+      - name: Upload iOS artifacts
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+        with:
+          name: synkora-mobile-ios
+          path: |
+            flutter/synkora_mobile/build/ios/ipa/*.ipa
+            flutter/synkora_mobile/build/ios/archive/Runner.xcarchive
+          retention-days: 30
+
+      - name: Attach iOS artifact to release
+        if: ${{ github.event_name == 'push' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare.outputs.release_tag }}
+          files: flutter/synkora_mobile/build/ios/ipa/*.ipa
+
+      - name: Upload build to TestFlight
+        working-directory: flutter/synkora_mobile/ios
+        env:
+          IOS_APP_BUNDLE_ID: ${{ env.IOS_APP_BUNDLE_ID }}
+          IOS_BUILD_NAME: ${{ needs.prepare.outputs.build_name }}
+          IOS_BUILD_NUMBER: ${{ needs.prepare.outputs.build_number }}
+          IOS_IPA_PATH: ${{ env.IOS_IPA_PATH }}
+          IOS_RELEASE_NOTES: Synkora AI ${{ needs.prepare.outputs.build_name }} (${{ needs.prepare.outputs.build_number }})
+          IOS_WAIT_FOR_PROCESSING: ${{ needs.prepare.outputs.submit_to_app_store }}
+          IOS_APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.IOS_APP_STORE_CONNECT_API_KEY_ID }}
+          IOS_APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.IOS_APP_STORE_CONNECT_ISSUER_ID }}
+          IOS_APP_STORE_CONNECT_API_KEY_PATH: ${{ env.IOS_APP_STORE_CONNECT_API_KEY_PATH }}
+        run: bundle exec fastlane ios upload_testflight ipa:"${IOS_IPA_PATH}"
+
+      - name: Submit TestFlight build to App Store
+        if: ${{ needs.prepare.outputs.submit_to_app_store == 'true' }}
+        working-directory: flutter/synkora_mobile/ios
+        env:
+          IOS_APP_BUNDLE_ID: ${{ env.IOS_APP_BUNDLE_ID }}
+          IOS_APP_STORE_APP_ID: ${{ env.IOS_APP_STORE_APP_ID }}
+          IOS_BUILD_NAME: ${{ needs.prepare.outputs.build_name }}
+          IOS_BUILD_NUMBER: ${{ needs.prepare.outputs.build_number }}
+          IOS_AUTO_RELEASE_ON_APPROVAL: ${{ env.IOS_AUTO_RELEASE_ON_APPROVAL }}
+          IOS_APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.IOS_APP_STORE_CONNECT_API_KEY_ID }}
+          IOS_APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.IOS_APP_STORE_CONNECT_ISSUER_ID }}
+          IOS_APP_STORE_CONNECT_API_KEY_PATH: ${{ env.IOS_APP_STORE_CONNECT_API_KEY_PATH }}
+        run: bundle exec fastlane ios submit_app_store
+
+      - name: Summarize iOS publish
+        run: |
+          {
+            echo "## iOS Distribution"
+            echo "- Bundle ID: ${IOS_APP_BUNDLE_ID}"
+            echo "- App Store app ID: ${IOS_APP_STORE_APP_ID}"
+            echo "- TestFlight upload: complete"
+            echo "- App Store submission: ${{ needs.prepare.outputs.submit_to_app_store }}"
+          } >> "${GITHUB_STEP_SUMMARY}"

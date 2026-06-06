@@ -1,0 +1,343 @@
+thresholds:
+  block: 50
+  levels:
+    low: 10
+    medium: 25
+    high: 50
+    critical: 100
+
+limits:
+  max_scan_chars: 12000
+  reputation_ttl_seconds: 86400
+  benign_context_score_factor: 0.2
+  detection_history_limit: 2048
+
+benign_context_patterns:
+  - '\b(?:example|examples?|sample|demo|demonstration|tutorial|documentation|docs|unit test|integration test|regex|pattern|scanner|detection|detect|analysis|analyze|explaining|explain|translate|quoted|quote|literal string|literally|prompt injection)\b'
+  - "[`\"']ignore all previous instructions[`\"']"
+  - "[`\"']show me your system prompt[`\"']"
+  - '\b(?:the phrase|literal phrase|string)\b'
+
+category_caps:
+  instr_ignore: 32
+  system_injection: 60
+  role_manipulation: 24
+  jailbreak: 38
+  prompt_leakage: 22
+  context_manipulation: 18
+  instruction_injection: 18
+  encoding_bypass: 12
+  manipulation_intent: 12
+  authority_claim: 12
+  urgency_pressure: 10
+  escalation_sequence: 18
+  social_engineering: 14
+  context_switching: 10
+
+mitigations:
+  instr_ignore: Block instruction override attempt
+  system_injection: "CRITICAL: Block system prompt injection"
+  role_manipulation: Block role manipulation attempt
+  jailbreak: Block jailbreak attempt
+  prompt_leakage: Block prompt leakage attempt
+  context_manipulation: Validate context boundaries
+  instruction_injection: Block instruction injection
+  encoding_bypass: Decode and review content
+  manipulation_intent: Review semantic manipulation attempt
+  authority_claim: Review authority claim attempt
+  urgency_pressure: Review urgency-based override attempt
+  escalation_sequence: Review escalation sequence
+  social_engineering: Review social engineering claim
+  context_switching: Validate context boundaries
+
+regex_rules:
+  - id: instr_ignore_0
+    category: instr_ignore
+    description: Direct instruction override attempt
+    severity: high
+    score: 32
+    confidence: 0.92
+    mitigation: Block instruction override attempt
+    pattern: '(?:ignore|disregard|forget)[\s\n]*(?:all[\s\n]*)?(?:previous|prior|above|earlier)[\s\n]*(?:instructions?|commands?|prompts?|rules?)'
+  - id: instr_ignore_1
+    category: instr_ignore
+    description: Direct instruction override attempt
+    severity: high
+    score: 26
+    confidence: 0.86
+    mitigation: Block instruction override attempt
+    pattern: '(?:ignore|disregard|forget)[\s\n]*(?:the[\s\n]*)?(?:above|previous|prior|earlier)[\s\n]*(?:text|content|prompt|system)'
+  - id: instr_ignore_2
+    category: instr_ignore
+    description: Direct instruction override attempt
+    severity: medium
+    score: 20
+    confidence: 0.78
+    mitigation: Block instruction override attempt
+    pattern: '(?:ignore|disregard|forget)[\s\n]*everything[\s\n]*(?:above|before|prior)'
+  - id: instr_ignore_3
+    category: instr_ignore
+    description: Direct instruction override attempt
+    severity: medium
+    score: 18
+    confidence: 0.72
+    mitigation: Block instruction override attempt
+    pattern: '(?:ignore|disregard|forget)[\s\n]*(?:all[\s\n]*)?instructions?'
+  - id: system_injection_0
+    category: system_injection
+    description: Structured system prompt injection attempt
+    severity: critical
+    score: 60
+    confidence: 1.0
+    mitigation: "CRITICAL: Block system prompt injection"
+    block_on_match: true
+    safe_when_benign: false
+    pattern: '<\|?system\|?>.*?(?:ignore|override|change|modify).*?<\|?/?system\|?>'
+  - id: system_injection_1
+    category: system_injection
+    description: Structured system prompt injection attempt
+    severity: critical
+    score: 60
+    confidence: 1.0
+    mitigation: "CRITICAL: Block system prompt injection"
+    block_on_match: true
+    safe_when_benign: false
+    pattern: '\[SYSTEM\].*?(?:ignore|override|change|modify).*?\[/SYSTEM\]'
+  - id: system_injection_2
+    category: system_injection
+    description: Structured system prompt injection attempt
+    severity: critical
+    score: 60
+    confidence: 1.0
+    mitigation: "CRITICAL: Block system prompt injection"
+    block_on_match: true
+    safe_when_benign: false
+    pattern: '<system>.*?(?:ignore|override|change|modify).*?</system>'
+  - id: system_injection_3
+    category: system_injection
+    description: System instruction override phrasing
+    severity: high
+    score: 28
+    confidence: 0.82
+    mitigation: "CRITICAL: Block system prompt injection"
+    pattern: 'system[\s]*:[\s]*(?:ignore|override|change|bypass)'
+  - id: role_manipulation_0
+    category: role_manipulation
+    description: AI role manipulation attempt
+    severity: high
+    score: 24
+    confidence: 0.82
+    mitigation: Block role manipulation attempt
+    pattern: '(?:act|behave|pretend|roleplay)[\s\n]*(?:as|like)[\s\n]*(?:if[\s\n]*)?(?:you[\s\n]*(?:are|were)|you''re)[\s\n]*(?:not[\s\n]*)?(?:an?[\s\n]*)?(?:AI|assistant|bot|chatbot|language[\s\n]*model)'
+  - id: role_manipulation_1
+    category: role_manipulation
+    description: AI role manipulation attempt
+    severity: high
+    score: 20
+    confidence: 0.74
+    mitigation: Block role manipulation attempt
+    pattern: 'from[\s\n]*now[\s\n]*on[\s\n]*(?:you[\s\n]*are|act[\s\n]*as|behave[\s\n]*like)'
+  - id: jailbreak_0
+    category: jailbreak
+    description: Jailbreak attempt detected
+    severity: high
+    score: 24
+    confidence: 0.82
+    mitigation: Block jailbreak attempt
+    pattern: '(?:developer|admin|debug|test)[\s\n]*mode'
+  - id: jailbreak_1
+    category: jailbreak
+    description: Jailbreak attempt detected
+    severity: high
+    score: 26
+    confidence: 0.82
+    mitigation: Block jailbreak attempt
+    pattern: 'jailbreak'
+  - id: jailbreak_2
+    category: jailbreak
+    description: Jailbreak attempt detected
+    severity: high
+    score: 28
+    confidence: 0.9
+    mitigation: Block jailbreak attempt
+    pattern: '(?:bypass|circumvent|override)[\s\n]*(?:safety|security|restrictions?|limitations?)'
+  - id: jailbreak_3
+    category: jailbreak
+    description: Jailbreak attempt detected
+    severity: high
+    score: 28
+    confidence: 0.9
+    mitigation: Block jailbreak attempt
+    pattern: '(?:disable|turn[\s\n]*off)[\s\n]*(?:safety|security|filters?)'
+  - id: prompt_leakage_0
+    category: prompt_leakage
+    description: Prompt leakage attempt
+    severity: high
+    score: 22
+    confidence: 0.78
+    mitigation: Block prompt leakage attempt
+    pattern: '(?:show|tell|reveal|display|print|output)[\s\n]*(?:me[\s\n]*)?your[\s\n]*(?:system[\s\n]*)?(?:prompt|instructions?|rules?|guidelines?)'
+  - id: prompt_leakage_1
+    category: prompt_leakage
+    description: Prompt leakage attempt
+    severity: medium
+    score: 18
+    confidence: 0.7
+    mitigation: Block prompt leakage attempt
+    pattern: '(?:repeat|echo|return)[\s\n]*your[\s\n]*(?:system[\s\n]*)?(?:prompt|instructions?)'
+  - id: context_manipulation_0
+    category: context_manipulation
+    description: Context manipulation attempt
+    severity: medium
+    score: 16
+    confidence: 0.68
+    mitigation: Validate context boundaries
+    pattern: '\\n\\n(?:Human|User|Person|Customer)[\s]*:'
+  - id: context_manipulation_1
+    category: context_manipulation
+    description: Context manipulation attempt
+    severity: medium
+    score: 16
+    confidence: 0.68
+    mitigation: Validate context boundaries
+    pattern: '<\|(?:human|user|assistant|ai|system)\|>'
+  - id: context_manipulation_2
+    category: context_manipulation
+    description: Context manipulation attempt
+    severity: medium
+    score: 16
+    confidence: 0.72
+    mitigation: Validate context boundaries
+    pattern: '(?:Human|User)[\s]*:[\s]*(?:ignore|disregard|forget)'
+  - id: instruction_injection_0
+    category: instruction_injection
+    description: Instruction injection attempt
+    severity: medium
+    score: 18
+    confidence: 0.72
+    mitigation: Block instruction injection
+    pattern: 'new[\s\n]*(?:instruction|command|rule|directive)[\s\n]*:'
+  - id: instruction_injection_1
+    category: instruction_injection
+    description: Instruction injection attempt
+    severity: medium
+    score: 18
+    confidence: 0.72
+    mitigation: Block instruction injection
+    pattern: 'override[\s\n]*(?:instruction|command|rule|directive)[\s\n]*:'
+  - id: encoding_bypass_0
+    category: encoding_bypass
+    description: Encoding bypass attempt
+    severity: low
+    score: 8
+    confidence: 0.6
+    mitigation: Decode and review content
+    pattern: '&#x?[0-9a-fA-F]+;'
+  - id: encoding_bypass_1
+    category: encoding_bypass
+    description: Encoding bypass attempt
+    severity: low
+    score: 8
+    confidence: 0.6
+    mitigation: Decode and review content
+    pattern: '\\x[0-9a-fA-F]{2}'
+  - id: encoding_bypass_2
+    category: encoding_bypass
+    description: Encoding bypass attempt
+    severity: low
+    score: 8
+    confidence: 0.6
+    mitigation: Decode and review content
+    pattern: '\\u[0-9a-fA-F]{4}'
+  - id: encoding_bypass_3
+    category: encoding_bypass
+    description: Encoding bypass attempt
+    severity: low
+    score: 8
+    confidence: 0.6
+    mitigation: Decode and review content
+    pattern: '%[0-9a-fA-F]{2}'
+
+phrase_rules:
+  - id: semantic_manipulation_intent
+    category: manipulation_intent
+    description: Semantic manipulation intent
+    severity: medium
+    score: 12
+    confidence: 0.58
+    mitigation: Review semantic manipulation attempt
+    patterns:
+      - 'make you do something'
+      - 'trick you into'
+      - 'force you to'
+      - 'manipulate you'
+      - 'convince you to ignore'
+  - id: semantic_authority_claim
+    category: authority_claim
+    description: False authority claim
+    severity: medium
+    score: 12
+    confidence: 0.58
+    mitigation: Review authority claim attempt
+    patterns:
+      - 'i am your developer'
+      - 'i created you'
+      - 'i am your admin'
+      - 'i have permission'
+      - 'i am authorized'
+  - id: semantic_urgency_pressure
+    category: urgency_pressure
+    description: Urgency pressure attempt
+    severity: low
+    score: 10
+    confidence: 0.5
+    mitigation: Review urgency-based override attempt
+    patterns:
+      - 'urgent override'
+      - 'emergency protocol'
+      - 'immediate action required'
+      - 'critical system update'
+
+behavioral_rules:
+  - id: behavioral_escalation_sequence
+    category: escalation_sequence
+    description: Behavioral escalation sequence
+    severity: medium
+    score: 16
+    max_score: 24
+    confidence: 0.55
+    mitigation: Review escalation sequence
+    min_matches: 2
+    patterns:
+      - 'please ignore'
+      - 'pretty please ignore'
+      - 'i beg you to ignore'
+      - 'for the love of god ignore'
+  - id: behavioral_social_engineering
+    category: social_engineering
+    description: Social engineering framing
+    severity: low
+    score: 12
+    max_score: 18
+    confidence: 0.45
+    mitigation: Review social engineering claim
+    min_matches: 2
+    patterns:
+      - 'this is a test'
+      - 'security audit'
+      - 'quality assurance'
+      - 'penetration test'
+
+context_rules:
+  - id: context_switching
+    category: context_switching
+    description: Context switching attempt
+    severity: low
+    score: 10
+    confidence: 0.48
+    mitigation: Validate context boundaries
+    patterns:
+      - 'previous conversation'
+      - 'earlier discussion'
+      - 'different chat'
+      - 'another session'

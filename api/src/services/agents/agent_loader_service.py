@@ -17,12 +17,15 @@ from src.services.agents.agent_manager import AgentManager
 from src.services.agents.config import AgentConfig, ModelConfig, ToolConfig
 from src.services.agents.implementations import ClaudeCodeAgent, CodeAgent, LLMAgent, ResearchAgent
 from src.services.agents.llm_provider_presets import get_model_preset
+from src.services.agents.registry import DEFAULT_RUNTIME_ID
 from src.services.agents.routing.intent_classifier import classify_query
 from src.services.agents.routing.model_router import RoutingDecision, get_router
 from src.services.agents.security import decrypt_value
 from src.services.cache import get_agent_cache
 
 logger = logging.getLogger(__name__)
+
+_PLATFORM_TENANT_ID = "00000000-0000-0000-0000-000000000000"
 
 
 class AgentLoadResult:
@@ -55,6 +58,18 @@ class AgentLoaderService:
     def __init__(self, agent_manager: AgentManager):
         self.agent_manager = agent_manager
         self.cache = get_agent_cache()
+
+    @staticmethod
+    def _resolve_runtime_tenant_id(db_agent: Agent, requesting_tenant_id: str = "") -> str:
+        """Use the requesting tenant for platform-shared agents with tenant-specific configs."""
+        agent_tenant_id = str(db_agent.tenant_id) if db_agent.tenant_id else ""
+        if agent_tenant_id == _PLATFORM_TENANT_ID and requesting_tenant_id:
+            return requesting_tenant_id
+        return agent_tenant_id
+
+    @staticmethod
+    def _runtime_cache_id(llm_config_id: str | None) -> str:
+        return llm_config_id or DEFAULT_RUNTIME_ID
 
     @staticmethod
     def _get_max_tokens_with_preset_default(
@@ -160,7 +175,11 @@ class AgentLoaderService:
         #   - llm_config_id is set (needs fresh DB config)
         #   - query is set (routing may select a different config)
         if not llm_config_id and not query:
-            in_memory_agent = self.agent_manager.registry.get(agent_slug, tenant_id)
+            in_memory_agent = self.agent_manager.registry.get(
+                agent_slug,
+                tenant_id,
+                runtime_id=DEFAULT_RUNTIME_ID,
+            )
             if in_memory_agent and in_memory_agent.llm_client:
                 cached_data = await self.cache.get_agent_config(agent_slug, tenant_id=tenant_id)
                 if cached_data:
@@ -222,6 +241,7 @@ class AgentLoaderService:
                 query=query,
                 conversation_history=conversation_history,
                 db=db,
+                requesting_tenant_id=tenant_id,
             )
 
         # Load regular agent into memory
@@ -264,8 +284,6 @@ class AgentLoaderService:
         """
         from uuid import UUID
 
-        _PLATFORM_TENANT_ID = UUID("00000000-0000-0000-0000-000000000000")
-
         filters = [Agent.slug == agent_slug]
         tid = None
         if tenant_id:
@@ -281,9 +299,10 @@ class AgentLoaderService:
 
         # Fall back to the platform-shared agent (zero UUID tenant) when not found under current tenant.
         # Platform agents are looked up by agent_name since they are seeded without slugs.
-        if agent is None and tenant_id and tid != _PLATFORM_TENANT_ID:
+        _platform_uuid = UUID(_PLATFORM_TENANT_ID)
+        if agent is None and tenant_id and tid != _platform_uuid:
             result = await db.execute(
-                select(Agent).filter(Agent.agent_name == agent_slug, Agent.tenant_id == _PLATFORM_TENANT_ID)
+                select(Agent).filter(Agent.agent_name == agent_slug, Agent.tenant_id == _platform_uuid)
             )
             agent = result.scalar_one_or_none()
 
@@ -293,7 +312,7 @@ class AgentLoaderService:
         """Cache agent configuration."""
         from src.models.agent_llm_config import AgentLLMConfig
 
-        _PLATFORM_TENANT_ID = "00000000-0000-0000-0000-000000000000"
+
         is_platform_agent = str(db_agent.tenant_id) == _PLATFORM_TENANT_ID
 
         # For platform-shared agents scope the LLM config lookup to the requesting tenant
@@ -367,7 +386,7 @@ class AgentLoaderService:
 
         # For platform-shared agents (zero UUID tenant), also cache under the requesting tenant's
         # key so subsequent requests from that tenant hit the cache directly.
-        _PLATFORM_TENANT_ID = "00000000-0000-0000-0000-000000000000"
+
         if (
             cache_tenant_id == _PLATFORM_TENANT_ID
             and requesting_tenant_id
@@ -389,20 +408,31 @@ class AgentLoaderService:
         requesting_tenant_id: str = "",
     ) -> Any:
         """Load agent into memory with LLM client."""
-        _tenant_id = str(db_agent.tenant_id) if db_agent.tenant_id else ""
+        runtime_tenant_id = self._resolve_runtime_tenant_id(db_agent, requesting_tenant_id)
+        runtime_id = self._runtime_cache_id(llm_config_id)
 
-        # Check if already in memory (tenant-scoped).
-        agent = self.agent_manager.registry.get(agent_name, _tenant_id)
+        # Check if already in memory for the exact runtime variant.
+        agent = self.agent_manager.registry.get(agent_name, runtime_tenant_id, runtime_id=runtime_id)
 
-        if agent and agent.llm_client and not llm_config_id:
-            logger.info(f"Agent '{agent_name}' already in memory with LLM client")
+        if agent and agent.llm_client:
+            logger.info(
+                "Agent runtime '%s' already in memory (tenant=%s, runtime=%s)",
+                agent_name,
+                runtime_tenant_id,
+                runtime_id,
+            )
             return agent
 
         # Remove broken agent from memory if exists (no llm_client means init failed)
         if agent and not agent.llm_client:
-            logger.warning(f"Agent '{agent_name}' in memory but LLM client not initialized, reloading...")
+            logger.warning(
+                "Agent runtime '%s' in memory without an initialized client, reloading (tenant=%s, runtime=%s)",
+                agent_name,
+                runtime_tenant_id,
+                runtime_id,
+            )
             try:
-                await self.agent_manager.delete_agent(agent_name, _tenant_id)
+                self.agent_manager.registry.unregister(agent_name, runtime_tenant_id, runtime_id=runtime_id)
             except Exception as e:
                 logger.warning(f"Failed to remove broken agent: {e}")
             agent = None
@@ -441,40 +471,23 @@ class AgentLoaderService:
         }
         agent_class = agent_class_map.get(db_agent.agent_type.lower() if db_agent.agent_type else "llm", LLMAgent)
 
-        # When routing selected a specific config (llm_config_id is set) and the agent is
-        # already registered with the default model, build a temporary agent instance for
-        # this request only — do NOT register it, so the default agent stays cached.
-        if llm_config_id and agent:
-            try:
-                from src.services.agents.security import get_api_key_manager
-
-                key_manager = get_api_key_manager()
-                encrypted_key = key_manager.encrypt_api_key(api_key) if api_key else None
-                if encrypted_key:
-                    config.llm_config.api_key = encrypted_key
-                routed_agent = agent_class(config, observability_config=db_agent.observability_config or {})
-                if api_key:
-                    routed_agent.initialize_client(api_key)
-                logger.info(
-                    f"[routing] Built temporary agent for '{agent_name}' with model "
-                    f"'{llm_config.model_name}' (config_id={llm_config_id})"
-                )
-                return routed_agent
-            except Exception as e:
-                logger.warning(f"[routing] Failed to build routed agent, falling back to registered: {e}")
-                return agent
-
-        # Create and register agent (tenant-scoped registry entry)
+        # Create and register the exact runtime variant (tenant + config-specific).
         try:
             new_agent = await self.agent_manager.create_agent(
                 config=config,
                 agent_class=agent_class,
                 api_key=api_key,
                 observability_config=db_agent.observability_config or {},
-                tenant_id=_tenant_id,
+                tenant_id=runtime_tenant_id,
+                runtime_id=runtime_id,
             )
 
-            logger.info(f"Agent '{agent_name}' loaded into memory")
+            logger.info(
+                "Agent runtime '%s' loaded into memory (tenant=%s, runtime=%s)",
+                agent_name,
+                runtime_tenant_id,
+                runtime_id,
+            )
             return new_agent
 
         except Exception as e:
@@ -487,6 +500,7 @@ class AgentLoaderService:
         query: str,
         conversation_history: list[dict[str, Any]] | None,
         db: AsyncSession,
+        requesting_tenant_id: str = "",
     ) -> tuple[RoutingDecision | None, str | None, list[str]]:
         """
         Classify the query and pick the best LLM config using the model router.
@@ -501,7 +515,7 @@ class AgentLoaderService:
         from src.models.agent_llm_config import AgentLLMConfig
 
         try:
-            all_configs = await self._load_llm_configs_cached(db_agent, db)
+            all_configs = await self._load_llm_configs_cached(db_agent, db, requesting_tenant_id=requesting_tenant_id)
 
             if not all_configs:
                 return None, None, []
@@ -528,10 +542,15 @@ class AgentLoaderService:
             return decision, decision.primary_config_id, decision.fallback_config_ids
 
         except Exception as e:
-            logger.warning(f"[routing] Failed for agent '{db_agent.agent_name}', using default: {e}")
-            return None, None, []
+            logger.error(f"[routing] Failed for agent '{db_agent.agent_name}': {e}")
+            raise
 
-    async def _load_llm_configs_cached(self, db_agent: Agent, db: AsyncSession) -> list:
+    async def _load_llm_configs_cached(
+        self,
+        db_agent: Agent,
+        db: AsyncSession,
+        requesting_tenant_id: str = "",
+    ) -> list:
         """
         Return all enabled AgentLLMConfig rows for the agent.
 
@@ -547,7 +566,9 @@ class AgentLoaderService:
 
         # Key consistent with AgentCacheService._build_key so invalidation works
         # Use slug when available; fall back to agent_name for platform agents without slugs
-        cache_key = self.cache._build_key("llm_configs", db_agent.slug or db_agent.agent_name)
+        runtime_tenant_id = self._resolve_runtime_tenant_id(db_agent, requesting_tenant_id)
+        cache_identifier = f"{runtime_tenant_id}:{db_agent.slug or db_agent.agent_name}"
+        cache_key = self.cache._build_key("llm_configs", cache_identifier)
 
         # ── Redis fast path ──────────────────────────────────────────────────
         redis = self.cache._get_redis()
@@ -566,7 +587,11 @@ class AgentLoaderService:
         # ── DB slow path ─────────────────────────────────────────────────────
         stmt = (
             select(AgentLLMConfig)
-            .where(AgentLLMConfig.agent_id == db_agent.id, AgentLLMConfig.enabled)
+            .where(
+                AgentLLMConfig.agent_id == db_agent.id,
+                AgentLLMConfig.enabled,
+                AgentLLMConfig.tenant_id == uuid.UUID(runtime_tenant_id),
+            )
             .order_by(AgentLLMConfig.display_order, AgentLLMConfig.created_at)
         )
         result = await db.execute(stmt)
@@ -618,7 +643,7 @@ class AgentLoaderService:
         """
         from src.models.agent_llm_config import AgentLLMConfig
 
-        _PLATFORM_TENANT_ID = "00000000-0000-0000-0000-000000000000"
+
         is_platform_agent = str(db_agent.tenant_id) == _PLATFORM_TENANT_ID
 
         cached_llm = cached_data.get("default_llm_config") if cached_data else None

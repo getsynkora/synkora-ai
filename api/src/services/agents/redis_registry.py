@@ -7,6 +7,7 @@ enabling multiple application instances to share agent configurations.
 
 import json
 import logging
+import os
 import threading
 from typing import Any
 
@@ -28,6 +29,7 @@ class RedisAgentRegistry:
 
     KEY_PREFIX = "agent_registry"
     AGENT_SET_KEY = f"{KEY_PREFIX}:agents"
+    RUNTIME_SET_KEY = f"{KEY_PREFIX}:runtimes"
     CONFIG_PREFIX = f"{KEY_PREFIX}:config"
     STATS_PREFIX = f"{KEY_PREFIX}:stats"
     DEFAULT_TTL = 86400  # 24 hours
@@ -44,6 +46,7 @@ class RedisAgentRegistry:
         self._ttl = ttl
         self._local_cache: dict[str, Any] = {}
         self._lock = threading.RLock()
+        self._pod_id = os.getenv("HOSTNAME", os.getenv("POD_NAME", f"pod-{os.getpid()}"))
 
         logger.info(f"Redis agent registry initialized with TTL={ttl}s")
 
@@ -64,9 +67,79 @@ class RedisAgentRegistry:
         """Get Redis key for agent config."""
         return f"{self.CONFIG_PREFIX}:{agent_name}"
 
+    def _runtime_key(self, tenant_id: str, agent_name: str, runtime_id: str) -> str:
+        """Stable runtime identifier for one agent runtime on this pod."""
+        return f"{self._pod_id}:{tenant_id}:{agent_name}:{runtime_id}"
+
+    def _pod_runtime_set_key(self) -> str:
+        return f"{self.KEY_PREFIX}:pod:{self._pod_id}:runtimes"
+
     def _stats_key(self, agent_name: str) -> str:
         """Get Redis key for agent stats."""
         return f"{self.STATS_PREFIX}:{agent_name}"
+
+    def register_runtime(
+        self,
+        tenant_id: str,
+        agent_name: str,
+        runtime_id: str,
+        config: dict[str, Any],
+        metadata: dict[str, Any] | None = None,
+    ) -> bool:
+        """Register one in-process runtime instance for this pod."""
+        redis = self._get_redis()
+        if not redis:
+            return False
+
+        runtime_key = self._runtime_key(tenant_id, agent_name, runtime_id)
+        try:
+            safe_config = self._sanitize_config(config)
+            data = {
+                "pod_id": self._pod_id,
+                "tenant_id": tenant_id,
+                "agent_name": agent_name,
+                "runtime_id": runtime_id,
+                "config": safe_config,
+                "metadata": metadata or {},
+            }
+            pipe = redis.pipeline()
+            pipe.sadd(self.RUNTIME_SET_KEY, runtime_key)
+            pipe.sadd(self._pod_runtime_set_key(), runtime_key)
+            pipe.setex(self._config_key(runtime_key), self._ttl, json.dumps(data))
+            pipe.execute()
+            return True
+        except Exception as e:
+            logger.error(f"Failed to register agent runtime in Redis: {e}")
+            return False
+
+    def unregister_runtime(self, tenant_id: str, agent_name: str, runtime_id: str | None = None) -> bool:
+        """Unregister one runtime, or all runtimes for an agent on this pod."""
+        redis = self._get_redis()
+        if not redis:
+            return False
+
+        try:
+            runtime_keys = set(redis.smembers(self._pod_runtime_set_key()) or [])
+            prefix = self._runtime_key(tenant_id, agent_name, "")
+            keys_to_remove = [
+                key
+                for key in runtime_keys
+                if key.startswith(prefix) and (runtime_id is None or key.endswith(f":{runtime_id}"))
+            ]
+            if not keys_to_remove:
+                return False
+
+            pipe = redis.pipeline()
+            for key in keys_to_remove:
+                pipe.srem(self.RUNTIME_SET_KEY, key)
+                pipe.srem(self._pod_runtime_set_key(), key)
+                pipe.delete(self._config_key(key))
+                pipe.delete(self._stats_key(key))
+            pipe.execute()
+            return True
+        except Exception as e:
+            logger.error(f"Failed to unregister agent runtime from Redis: {e}")
+            return False
 
     def register_config(
         self,

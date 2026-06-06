@@ -41,7 +41,7 @@ class TestAgentManager:
 
             mock_agent_class.assert_called_once()
             agent.initialize_client.assert_called_with("secret_key")
-            mock_registry.register.assert_called_once_with(agent, tenant_id="")
+            mock_registry.register.assert_called_once_with(agent, tenant_id="", runtime_id=None)
             assert mock_agent_config.llm_config.api_key == "encrypted_key"
 
     @pytest.mark.asyncio

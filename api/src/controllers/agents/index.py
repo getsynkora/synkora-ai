@@ -6,7 +6,10 @@ Handles basic agent creation, listing, retrieval, update, delete, and reset oper
 
 import logging
 import os
+import re
 import uuid
+from dataclasses import dataclass
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
@@ -32,6 +35,7 @@ from src.services.cache import get_agent_cache
 from src.services.storage.s3_storage import S3StorageService
 
 logger = logging.getLogger(__name__)
+PLATFORM_TENANT_ID = uuid.UUID("00000000-0000-0000-0000-000000000000")
 
 # Create router
 agents_index_router = APIRouter()
@@ -80,6 +84,176 @@ def convert_s3_uri_to_presigned_url(s3_uri: str) -> str:
     return s3_uri
 
 
+@dataclass(frozen=True)
+class _ResolvedPrimaryLLMConfig:
+    provider: str
+    model_name: str
+    encrypted_api_key: str
+    api_base: str | None
+    temperature: float | None
+    max_tokens: int | None
+    top_p: float | None
+    additional_params: dict[str, Any]
+
+
+def _build_agent_slug(name: str, provided_slug: str | None) -> str:
+    """Return a normalized slug for the agent."""
+    if provided_slug:
+        return provided_slug
+
+    base_slug = re.sub(r"[^a-z0-9-]", "-", name.lower())
+    return re.sub(r"-+", "-", base_slug).strip("-") or "agent"
+
+
+def _normalize_requested_tools(tools: list[Any]) -> tuple[list[str], list[dict[str, Any]]]:
+    """Normalize tool categories once so DB state and tool assignment stay aligned."""
+    if not tools:
+        return [], []
+
+    from src.services.agents.internal_tools.platform_tools import normalize_tool_categories
+
+    normalized_tool_names = normalize_tool_categories([tool.name for tool in tools])
+    normalized_tool_payloads: list[dict[str, Any]] = []
+    seen_tool_names: set[str] = set()
+
+    for tool in tools:
+        normalized_values = normalize_tool_categories([tool.name])
+        normalized_name = normalized_values[0] if normalized_values else tool.name
+        if normalized_name in seen_tool_names:
+            continue
+        seen_tool_names.add(normalized_name)
+
+        tool_payload = tool.model_dump()
+        tool_payload["name"] = normalized_name
+        if tool_payload.get("description") == tool.name.replace("_", " "):
+            tool_payload["description"] = normalized_name.replace("_", " ")
+        normalized_tool_payloads.append(tool_payload)
+
+    return normalized_tool_names, normalized_tool_payloads
+
+
+def _resolve_requested_agent_tools(normalized_tool_names: list[str]) -> list[str]:
+    """Expand requested tool categories into concrete tool names deterministically."""
+    if not normalized_tool_names:
+        return []
+
+    import fnmatch
+
+    from src.services.agents.adk_tools import tool_registry
+    from src.services.agents.internal_tools.platform_tools import TOOL_CATEGORY_TO_PATTERNS
+
+    available_tool_names = [tool["name"] for tool in tool_registry.list_tools()]
+    matched_tools: set[str] = set()
+
+    for category in normalized_tool_names:
+        for pattern in TOOL_CATEGORY_TO_PATTERNS.get(category, []):
+            for tool_name in available_tool_names:
+                if fnmatch.fnmatch(tool_name, pattern):
+                    matched_tools.add(tool_name)
+
+    return sorted(matched_tools)
+
+
+async def _load_platform_engineer_llm_config(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+):
+    """Load the inherited Platform Engineer LLM config for this tenant when available."""
+    from src.models.agent_llm_config import AgentLLMConfig
+
+    pe_agent_row = (
+        await db.execute(
+            select(Agent).where(
+                Agent.agent_name == "platform_engineer_agent",
+                Agent.tenant_id == PLATFORM_TENANT_ID,
+            )
+        )
+    ).scalar_one_or_none()
+    if pe_agent_row is None:
+        return None
+
+    return (
+        await db.execute(
+            select(AgentLLMConfig)
+            .where(
+                AgentLLMConfig.agent_id == pe_agent_row.id,
+                AgentLLMConfig.tenant_id == tenant_id,
+            )
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+
+
+async def _resolve_primary_llm_config(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    agent_name: str,
+    llm_config,
+) -> _ResolvedPrimaryLLMConfig:
+    """Resolve the primary persisted LLM configuration or fail the request cleanly."""
+    from src.services.agents.security import encrypt_value
+
+    if llm_config.api_key:
+        return _ResolvedPrimaryLLMConfig(
+            provider=llm_config.provider,
+            model_name=llm_config.model_name,
+            encrypted_api_key=encrypt_value(llm_config.api_key),
+            api_base=llm_config.api_base,
+            temperature=llm_config.temperature,
+            max_tokens=llm_config.max_tokens,
+            top_p=llm_config.top_p,
+            additional_params=llm_config.additional_params or {},
+        )
+
+    inherited_config = await _load_platform_engineer_llm_config(db=db, tenant_id=tenant_id)
+    if inherited_config and inherited_config.api_key:
+        logger.info(
+            "Agent '%s': inherited LLM config from platform_engineer_agent (%s/%s)",
+            agent_name,
+            inherited_config.provider,
+            inherited_config.model_name,
+        )
+        return _ResolvedPrimaryLLMConfig(
+            provider=inherited_config.provider,
+            model_name=inherited_config.model_name,
+            encrypted_api_key=inherited_config.api_key,
+            api_base=inherited_config.api_base,
+            temperature=inherited_config.temperature,
+            max_tokens=inherited_config.max_tokens,
+            top_p=inherited_config.top_p,
+            additional_params=inherited_config.additional_params or {},
+        )
+
+    raise HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        detail=(
+            "No API key provided and no Platform Engineer LLM configuration found. "
+            "Supply an api_key or configure the Platform Engineer agent's LLM settings first."
+        ),
+    )
+
+
+async def _log_agent_created(
+    tenant_id: uuid.UUID,
+    account_id: uuid.UUID,
+    agent: Agent,
+) -> None:
+    """Queue the audit log without affecting the successful creation transaction."""
+    from src.services.activity.activity_log_service import ActivityLogService
+
+    try:
+        ActivityLogService.queue_activity(
+            tenant_id=tenant_id,
+            account_id=account_id,
+            action="agent.created",
+            resource_type="agent",
+            resource_id=agent.id,
+            details={"agent_name": agent.agent_name, "agent_type": agent.agent_type},
+        )
+    except Exception:
+        logger.warning("Failed to write agent creation audit log for agent %s", agent.id, exc_info=True)
+
+
 # Endpoints
 @agents_index_router.post("/", response_model=AgentResponse, status_code=status.HTTP_201_CREATED)
 async def create_agent(
@@ -109,16 +283,8 @@ async def create_agent(
         except PlanRestrictionError as e:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
 
-        # Determine agent class
-        agent_class_map = {
-            "llm": LLMAgent,
-            "research": ResearchAgent,
-            "code": CodeAgent,
-            "claude_code": ClaudeCodeAgent,
-        }
-
-        agent_class = agent_class_map.get(request.agent_type.lower())
-        if not agent_class:
+        agent_type = request.agent_type.lower()
+        if agent_type not in {"llm", "research", "code", "claude_code"}:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Unknown agent type: {request.agent_type}. Valid types: llm, research, code, claude_code",
@@ -131,7 +297,7 @@ async def create_agent(
             scan_result = advanced_prompt_scanner.scan_comprehensive(
                 text=request.config.system_prompt,
                 user_id=f"tenant_{tenant_id}",
-                context={"source": "agent_creation", "agent_name": request.config.name},
+                context="agent_creation",
             )
 
             if not scan_result["is_safe"]:
@@ -150,44 +316,37 @@ async def create_agent(
 
         sanitized_suggestion_prompts = sanitize_suggestion_prompts(getattr(request.config, "suggestion_prompts", []))
 
-        # Create agent in memory (tenant-scoped)
-        if request.api_key:
-            await agent_manager.create_agent(
-                config=request.config, agent_class=agent_class, api_key=request.api_key, tenant_id=str(tenant_id)
-            )
-
         # Prepare llm_config with encrypted API key
-        from src.services.agents.internal_tools.platform_tools import normalize_tool_categories
         from src.services.agents.security import encrypt_value
 
         llm_config_data = request.config.llm_config.model_dump()
         if llm_config_data.get("api_key"):
             llm_config_data["api_key"] = encrypt_value(llm_config_data["api_key"])
 
-        normalized_tool_names = (
-            normalize_tool_categories([tool.name for tool in request.config.tools]) if request.config.tools else []
+        normalized_tool_names, normalized_tool_payloads = _normalize_requested_tools(
+            request.config.tools or []
         )
-        normalized_tool_payloads: list[dict[str, object]] = []
-        if request.config.tools:
-            seen_tool_names: set[str] = set()
-            for tool in request.config.tools:
-                normalized_values = normalize_tool_categories([tool.name])
-                normalized_name = normalized_values[0] if normalized_values else tool.name
-                if normalized_name in seen_tool_names:
-                    continue
-                seen_tool_names.add(normalized_name)
-                tool_payload = tool.model_dump()
-                tool_payload["name"] = normalized_name
-                if tool_payload.get("description") == tool.name.replace("_", " "):
-                    tool_payload["description"] = normalized_name.replace("_", " ")
-                normalized_tool_payloads.append(tool_payload)
+        matched_tool_names = _resolve_requested_agent_tools(normalized_tool_names)
+        effective_llm_config = await _resolve_primary_llm_config(
+            db=db,
+            tenant_id=tenant_id,
+            agent_name=request.config.name,
+            llm_config=request.config.llm_config,
+        )
+
+        from src.models.agent_llm_config import AgentLLMConfig
+        from src.models.agent_tool import AgentTool
+        from src.services.agents.internal_tools.platform_tools import (
+            resolve_image_generation_config,
+            upsert_image_generation_llm_config,
+        )
 
         # Save to database
         db_agent = Agent(
             tenant_id=tenant_id,
             created_by=current_account.id,
             agent_name=request.config.name,
-            agent_type=request.agent_type.lower(),
+            agent_type=agent_type,
             description=request.config.description,
             avatar=request.config.avatar,
             system_prompt=request.config.system_prompt,
@@ -203,185 +362,66 @@ async def create_agent(
             human_contact_id=uuid.UUID(request.human_contact_id) if request.human_contact_id else None,
         )
 
-        import re as _re
-
         db.add(db_agent)
-        # Set slug: use provided slug if valid, otherwise auto-generate from agent name
-        if request.slug:
-            db_agent.slug = request.slug
-        else:
-            _base_slug = _re.sub(r"[^a-z0-9-]", "-", request.config.name.lower())
-            _base_slug = _re.sub(r"-+", "-", _base_slug).strip("-") or "agent"
-            db_agent.slug = _base_slug
+        db_agent.slug = _build_agent_slug(request.config.name, request.slug)
+        await db.flush()
+
+        for tool_name in matched_tool_names:
+            db.add(AgentTool(agent_id=db_agent.id, tool_name=tool_name, config={}, enabled=True))
+
+        llm_config_entry = AgentLLMConfig(
+            tenant_id=tenant_id,
+            agent_id=db_agent.id,
+            name=f"Primary {effective_llm_config.model_name}",
+            provider=effective_llm_config.provider,
+            model_name=effective_llm_config.model_name,
+            api_key=effective_llm_config.encrypted_api_key,
+            api_base=effective_llm_config.api_base,
+            temperature=effective_llm_config.temperature,
+            max_tokens=effective_llm_config.max_tokens,
+            top_p=effective_llm_config.top_p,
+            additional_params=effective_llm_config.additional_params,
+            is_default=True,
+            display_order=0,
+            enabled=True,
+        )
+        db.add(llm_config_entry)
+        await db.flush()
+
+        image_metadata = request.config.metadata or {}
+        image_config = resolve_image_generation_config(
+            tools_list=normalized_tool_names,
+            image_llm_provider=image_metadata.get("image_generation_provider"),
+            image_llm_model=image_metadata.get("image_generation_model"),
+            fallback_provider=effective_llm_config.provider,
+        )
+        if image_config:
+            await upsert_image_generation_llm_config(
+                db_session=db,
+                agent=db_agent,
+                tenant_id=tenant_id,
+                encrypted_api_key=effective_llm_config.encrypted_api_key,
+                api_base=effective_llm_config.api_base,
+                additional_params=effective_llm_config.additional_params,
+                provider=image_config["provider"],
+                model_name=image_config["model"],
+            )
+
         await db.commit()
         await db.refresh(db_agent)
 
-        # Enable AgentTool records for any tool categories in the request
-        # (direct per-category patterns — avoids enabling unrelated tools in the same capability group)
-        if request.config.tools:
-            try:
-                import fnmatch
-
-                from src.models.agent_tool import AgentTool
-                from src.services.agents.adk_tools import tool_registry
-                from src.services.agents.internal_tools.platform_tools import TOOL_CATEGORY_TO_PATTERNS
-
-                available_tool_names = [t["name"] for t in tool_registry.list_tools()]
-                requested_categories = normalized_tool_names
-
-                matched_tools: set[str] = set()
-                for cat in requested_categories:
-                    patterns = TOOL_CATEGORY_TO_PATTERNS.get(cat, [])
-                    for tool_name in available_tool_names:
-                        if any(fnmatch.fnmatch(tool_name, p) for p in patterns):
-                            matched_tools.add(tool_name)
-
-                for tool_name in matched_tools:
-                    db.add(AgentTool(agent_id=db_agent.id, tool_name=tool_name, config={}, enabled=True))
-
-                await db.commit()
-            except Exception as tool_err:
-                await db.rollback()
-                logger.warning(f"Failed to enable AgentTool records: {tool_err}")
-
-        # Also create an entry in the agent_llm_configs table for the LLM config
-        # This is required because the edit page and chat use that table
+        # Cache invalidation is post-commit and must not misreport a successful creation as failed.
         try:
-            from sqlalchemy import select as sa_select
-
-            from src.models.agent_llm_config import AgentLLMConfig
-            from src.services.agents.security import encrypt_value
-
-            llm_data = request.config.llm_config
-
-            # --- Inherit full LLM config from Platform Engineer when no API key provided ---
-            pe_cfg_inherited: AgentLLMConfig | None = None
-            if not llm_data.api_key:
-                platform_tenant_id = uuid.UUID("00000000-0000-0000-0000-000000000000")
-                pe_agent_row = (
-                    await db.execute(
-                        sa_select(Agent).where(
-                            Agent.agent_name == "platform_engineer_agent",
-                            Agent.tenant_id == platform_tenant_id,
-                        )
-                    )
-                ).scalar_one_or_none()
-                if pe_agent_row:
-                    _pe_cfg = (
-                        await db.execute(
-                            sa_select(AgentLLMConfig)
-                            .where(
-                                AgentLLMConfig.agent_id == pe_agent_row.id,
-                                AgentLLMConfig.tenant_id == tenant_id,
-                            )
-                            .limit(1)
-                        )
-                    ).scalar_one_or_none()
-                    if _pe_cfg and _pe_cfg.api_key:
-                        pe_cfg_inherited = _pe_cfg
-                        logger.info(
-                            f"Agent '{request.config.name}': inherited LLM config from platform_engineer_agent"
-                            f" ({_pe_cfg.provider}/{_pe_cfg.model_name})"
-                        )
-
-            if llm_data.api_key:
-                # User supplied a key — encrypt it and use request values as-is
-                encrypted_api_key = encrypt_value(llm_data.api_key)
-                effective_provider = llm_data.provider
-                effective_model = llm_data.model_name
-                effective_api_base = llm_data.api_base
-                effective_temperature = llm_data.temperature
-                effective_max_tokens = llm_data.max_tokens
-                effective_top_p = llm_data.top_p
-                effective_additional_params = llm_data.additional_params or {}
-            elif pe_cfg_inherited:
-                # No key supplied — copy everything from PE config
-                encrypted_api_key = pe_cfg_inherited.api_key
-                effective_provider = pe_cfg_inherited.provider
-                effective_model = pe_cfg_inherited.model_name
-                effective_api_base = pe_cfg_inherited.api_base
-                effective_temperature = pe_cfg_inherited.temperature
-                effective_max_tokens = pe_cfg_inherited.max_tokens
-                effective_top_p = pe_cfg_inherited.top_p
-                effective_additional_params = pe_cfg_inherited.additional_params or {}
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail=(
-                        "No API key provided and no Platform Engineer LLM configuration found. "
-                        "Supply an api_key or configure the Platform Engineer agent's LLM settings first."
-                    ),
-                )
-
-            llm_config_entry = AgentLLMConfig(
-                tenant_id=tenant_id,
-                agent_id=db_agent.id,
-                name=f"Primary {effective_model}",
-                provider=effective_provider,
-                model_name=effective_model,
-                api_key=encrypted_api_key,
-                api_base=effective_api_base,
-                temperature=effective_temperature,
-                max_tokens=effective_max_tokens,
-                top_p=effective_top_p,
-                additional_params=effective_additional_params,
-                is_default=True,
-                display_order=0,
-                enabled=True,
-            )
-            db.add(llm_config_entry)
-            await db.flush()
-
-            from src.services.agents.internal_tools.platform_tools import (
-                resolve_image_generation_config,
-                upsert_image_generation_llm_config,
-            )
-
-            requested_categories = normalized_tool_names
-            image_metadata = request.config.metadata or {}
-            image_config = resolve_image_generation_config(
-                tools_list=requested_categories,
-                image_llm_provider=image_metadata.get("image_generation_provider"),
-                image_llm_model=image_metadata.get("image_generation_model"),
-                fallback_provider=effective_provider,
-            )
-            if image_config:
-                await upsert_image_generation_llm_config(
-                    db_session=db,
-                    agent=db_agent,
-                    tenant_id=tenant_id,
-                    encrypted_api_key=encrypted_api_key,
-                    api_base=effective_api_base,
-                    additional_params=effective_additional_params,
-                    provider=image_config["provider"],
-                    model_name=image_config["model"],
-                )
-
-            await db.commit()
-            logger.info(f"Created LLM config entry for agent '{request.config.name}'")
-        except Exception as llm_err:
-            logger.warning(f"Failed to create LLM config entry: {llm_err}")
-            # Don't fail agent creation if LLM config entry fails
-
-        # PERFORMANCE: Invalidate agents list cache for this tenant
-        cache = get_agent_cache()
-        await cache.invalidate_agents_list(str(tenant_id))
-
-        # Audit: log agent creation (best-effort)
-        try:
-            from src.services.activity.activity_log_service import ActivityLogService
-
-            _log_svc = ActivityLogService(db)
-            await _log_svc.log_activity(
-                tenant_id=tenant_id,
-                account_id=current_account.id,
-                action="agent.created",
-                resource_type="agent",
-                resource_id=db_agent.id,
-                details={"agent_name": db_agent.agent_name, "agent_type": db_agent.agent_type},
-            )
+            cache = get_agent_cache()
+            await cache.invalidate_agents_list(str(tenant_id))
         except Exception:
-            pass
+            logger.warning("Failed to invalidate agents cache for tenant %s", tenant_id, exc_info=True)
+
+        await _log_agent_created(
+            tenant_id=tenant_id,
+            account_id=current_account.id,
+            agent=db_agent,
+        )
 
         return AgentResponse(
             success=True,
@@ -847,10 +887,16 @@ async def get_agent(
         if not is_own_agent and not db_agent.is_public:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_slug}' not found")
 
-        # Get runtime stats if agent is in memory (tenant-scoped lookup)
+        # Get runtime stats if agent is in memory (tenant-scoped lookup).
+        # Use try/except rather than a contains() pre-check: contains() matches any
+        # runtime_id but get_agent_stats() uses the default runtime_id, so a pre-check
+        # can return True while the actual lookup returns None → KeyError.
         stats = {}
-        if is_own_agent and agent_manager.registry.contains(agent_slug, str(tenant_id)):
-            stats = agent_manager.get_agent_stats(agent_slug, str(tenant_id))
+        if is_own_agent:
+            try:
+                stats = agent_manager.get_agent_stats(agent_slug, str(tenant_id))
+            except KeyError:
+                pass
 
         # Convert S3 URI to presigned URL for avatar display
         avatar_url = convert_s3_uri_to_presigned_url(db_agent.avatar) if db_agent.avatar else None
@@ -1097,7 +1143,7 @@ async def update_agent(
             scan_result = advanced_prompt_scanner.scan_comprehensive(
                 text=request.system_prompt,
                 user_id=f"tenant_{tenant_id}",
-                context={"source": "system_prompt_update", "agent_name": agent_slug},
+                context="system_prompt_update",
             )
 
             if not scan_result["is_safe"]:
@@ -1305,8 +1351,7 @@ async def delete_agent(
         try:
             from src.services.activity.activity_log_service import ActivityLogService
 
-            _log_svc = ActivityLogService(db)
-            await _log_svc.log_activity(
+            ActivityLogService.queue_activity(
                 tenant_id=tenant_id,
                 account_id=current_account.id,
                 action="agent.deleted",

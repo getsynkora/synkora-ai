@@ -84,6 +84,14 @@ export async function bulkDeleteKnowledgeBaseDocuments(kbId: string, docIds: num
   await apiClient.axios.post(`/api/v1/knowledge-bases/${kbId}/documents/bulk-delete`, docIds)
 }
 
+export async function reprocessKnowledgeBaseDocument(kbId: string, docId: string): Promise<void> {
+  await apiClient.axios.post(`/api/v1/knowledge-bases/${kbId}/documents/${docId}/reprocess`)
+}
+
+export async function cancelKnowledgeBaseDocument(kbId: string, docId: string): Promise<void> {
+  await apiClient.axios.post(`/api/v1/knowledge-bases/${kbId}/documents/${docId}/cancel`)
+}
+
 export async function downloadKnowledgeBaseDocument(kbId: string, docId: string): Promise<Blob> {
   const { data } = await apiClient.axios.get(
     `/api/v1/knowledge-bases/${kbId}/documents/${docId}/download`,

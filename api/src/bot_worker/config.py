@@ -3,8 +3,8 @@
 import os
 import uuid
 
-from pydantic import ConfigDict, Field
-from pydantic_settings import BaseSettings
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class BotWorkerConfig(BaseSettings):
@@ -63,4 +63,4 @@ class BotWorkerConfig(BaseSettings):
         description="Maximum time to wait for graceful shutdown in seconds",
     )
 
-    model_config = ConfigDict(env_prefix="BOT_WORKER_")
+    model_config = SettingsConfigDict(env_prefix="BOT_WORKER_")

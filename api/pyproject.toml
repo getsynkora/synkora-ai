@@ -29,6 +29,7 @@ dependencies = [
     "orjson>=3.10.0,<4.0.0",
     # Authentication & Security
     "pyjwt>=2.13.0,<3.0.0",
+    "pyyaml>=6.0.3,<7.0.0",
     "bcrypt>=4.2.0,<5.0.0",
     "cryptography>=46.0.7",  # CVE-2026-26007, CVE-2026-34073, CVE-2026-39892 fixed in 46.0.7
     "pyotp>=2.9.0,<3.0.0",
@@ -198,6 +199,9 @@ vector = [
 [build-system]
 requires = ["setuptools>=68.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.package-data]
+"src.services.security.prompt_scanner" = ["rules/*.yaml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

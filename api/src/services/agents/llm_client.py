@@ -159,7 +159,7 @@ class MultiProviderLLMClient:
             self._initialize_mock()
         elif self.provider in ["google", "gemini"]:
             self._initialize_google()
-        elif self.provider in ["openai", "lm_studio", "vllm"]:
+        elif self.provider in ["openai", "deepseek", "lm_studio", "vllm"]:
             self._initialize_openai()
         elif self.provider in ["anthropic", "claude"]:
             self._initialize_anthropic()
@@ -192,13 +192,17 @@ class MultiProviderLLMClient:
             raise ImportError("google-genai package not installed. Install with: pip install google-genai")
 
     def _initialize_openai(self):
-        """Initialize OpenAI-compatible client (also used for LM Studio and vLLM)."""
+        """Initialize an OpenAI-compatible client."""
         try:
             from openai import AsyncOpenAI
 
             kwargs: dict = {"api_key": self.config.api_key or "not-required"}
-            if self.config.api_base:
-                kwargs["base_url"] = self.config.api_base
+            default_base_urls = {
+                "deepseek": "https://api.deepseek.com",
+            }
+            base_url = self.config.api_base or default_base_urls.get(self.provider)
+            if base_url:
+                kwargs["base_url"] = base_url
             self._client = AsyncOpenAI(**kwargs)
             logger.info(
                 f"Initialized OpenAI-compatible client (provider={self.provider}) with model: {self.config.model_name}"
@@ -613,7 +617,7 @@ class MultiProviderLLMClient:
                     return await self._generate_mock(prompt, temp, max_tok, **kwargs)
                 elif self.provider in ["google", "gemini"]:
                     return await self._generate_google(prompt, temp, max_tok, **kwargs)
-                elif self.provider in ["openai", "openrouter", "minimax", "groq"]:
+                elif self.provider in ["openai", "deepseek", "openrouter", "minimax", "groq"]:
                     return await self._generate_openai(prompt, temp, max_tok, **kwargs)
                 elif self.provider in ["anthropic", "claude"]:
                     return await self._generate_anthropic(prompt, temp, max_tok, **kwargs)
@@ -990,7 +994,7 @@ class MultiProviderLLMClient:
             elif self.provider in ["google", "gemini"]:
                 async for chunk in self._generate_google_stream(prompt, temp, max_tok, **kwargs):
                     yield chunk
-            elif self.provider in ["openai", "openrouter", "minimax", "groq"]:
+            elif self.provider in ["openai", "deepseek", "openrouter", "minimax", "groq"]:
                 async for chunk in self._generate_openai_stream(prompt, temp, max_tok, **kwargs):
                     yield chunk
             elif self.provider in ["anthropic", "claude"]:
@@ -1076,7 +1080,7 @@ class MultiProviderLLMClient:
             elif self.provider in ["google", "gemini"]:
                 async for chunk in self._generate_google_stream_with_messages(messages, temp, max_tok, **kwargs):
                     yield chunk
-            elif self.provider in ["openai", "openrouter", "minimax"]:
+            elif self.provider in ["openai", "deepseek", "openrouter", "minimax", "groq"]:
                 async for chunk in self._generate_openai_stream_with_messages(messages, temp, max_tok, **kwargs):
                     yield chunk
             elif self.provider in ["anthropic", "claude"]:

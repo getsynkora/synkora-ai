@@ -206,8 +206,8 @@ export default function DashboardPage() {
   return (
     <div className="min-h-full px-4 py-4 md:px-8 md:py-6 xl:px-10">
       <div className="mx-auto max-w-[90rem] py-1">
-        <div className="dashboard-surface mb-6 rounded-[2rem] p-5 md:p-6 xl:p-7">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6e675d]">
+        <div className="dashboard-surface mb-6 p-5 md:p-6 xl:p-7">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/70 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6e675d]">
             <Sparkles className="h-3 w-3 text-[#ff5f8f]" />
             Workspace Overview
           </div>
@@ -219,13 +219,13 @@ export default function DashboardPage() {
             Here&apos;s what&apos;s happening with your AI platform today.
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
-            <div className="dashboard-chip rounded-full px-4 py-2 text-[13px] font-medium">
+            <div className="dashboard-chip px-4 py-2 text-[13px] font-medium">
               {stats.totalAgents} agents
             </div>
-            <div className="dashboard-chip rounded-full px-4 py-2 text-[13px] font-medium">
+            <div className="dashboard-chip px-4 py-2 text-[13px] font-medium">
               {stats.knowledgeBases} knowledge bases
             </div>
-            <div className="dashboard-chip rounded-full px-4 py-2 text-[13px] font-medium">
+            <div className="dashboard-chip px-4 py-2 text-[13px] font-medium">
               {stats.dataSources} data sources
             </div>
           </div>
@@ -237,10 +237,10 @@ export default function DashboardPage() {
             <Link
               key={stat.name}
               href={stat.href}
-              className="dashboard-panel relative rounded-[1.6rem] p-5 transition-all duration-300 hover:-translate-y-1"
+              className="dashboard-panel relative p-5 transition-all duration-300 hover:-translate-y-1"
             >
               <div className="mb-3 flex items-start justify-between">
-                <div className={`${stat.lightColor} rounded-full p-2.5`}>
+                <div className={`${stat.lightColor} rounded-[0.35rem] p-2.5`}>
                   <div className={`${stat.textColor} h-5 w-5`}>
                     {stat.icon}
                   </div>
@@ -261,14 +261,14 @@ export default function DashboardPage() {
               <Link
                 key={action.name}
                 href={action.href}
-                className={`rounded-[1.6rem] p-5 transition-all duration-300 hover:-translate-y-1 ${
+                className={`rounded-[0.5rem] p-5 transition-all duration-300 hover:-translate-y-1 ${
                   action.featured
                     ? 'bg-[#181818] text-[#f7f2e7] shadow-[0_24px_60px_rgba(0,0,0,0.16)]'
                     : 'dashboard-panel text-[#171717]'
                 }`}
               >
                 <div className="mb-3">
-                  <div className={`inline-flex rounded-full p-2.5 ${action.featured ? 'bg-white/10' : 'bg-[#ffe1ea]'}`}>
+                  <div className={`inline-flex rounded-[0.35rem] p-2.5 ${action.featured ? 'bg-white/10' : 'bg-[#ffe1ea]'}`}>
                     {action.icon}
                   </div>
                 </div>
@@ -280,7 +280,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Activity */}
-        <div className="dashboard-surface overflow-hidden rounded-[1.8rem]">
+        <div className="dashboard-surface overflow-hidden">
           <div className="border-b border-black/[0.08] px-4 py-4 md:px-5">
             <h2 className="text-[1.05rem] font-semibold text-[#171717] md:text-[1.45rem]">Recent Activity</h2>
           </div>
@@ -299,7 +299,7 @@ export default function DashboardPage() {
                 return (
                   <div key={index} className="p-4 transition-colors duration-200 hover:bg-white/[0.45] md:px-5 md:py-4">
                     <div className="flex items-center gap-3">
-                      <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full ${colors.bg}`}>
+                      <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[0.35rem] ${colors.bg}`}>
                         <Icon className={`h-4.5 w-4.5 ${colors.text}`} />
                       </div>
                       <div className="flex-1 min-w-0">

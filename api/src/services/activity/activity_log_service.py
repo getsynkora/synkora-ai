@@ -1,17 +1,43 @@
 """Activity logging service."""
 
 import asyncio
+import inspect
+import logging
 import os
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from uuid import UUID
-
-# Strong refs prevent GC before SIEM forwarding tasks complete.
-_siem_bg_tasks: set[asyncio.Task] = set()
 
 from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ...core.database import get_async_session_factory
 from ...models import ActivityLog
+
+logger = logging.getLogger(__name__)
+
+# Strong refs prevent GC before background tasks complete.
+_siem_bg_tasks: set[asyncio.Task] = set()
+_audit_bg_tasks: set[asyncio.Task] = set()
+
+
+async def _resolve_sync_or_async(value: Any) -> Any:
+    """Handle SQLAlchemy result accessors and AsyncMock-based test doubles uniformly."""
+    if inspect.isawaitable(value):
+        return await value
+    return value
+
+
+def _finalize_background_task(task: asyncio.Task, task_set: set[asyncio.Task], label: str) -> None:
+    """Drop task refs and log unexpected background failures."""
+    task_set.discard(task)
+    try:
+        exc = task.exception()
+    except asyncio.CancelledError:
+        return
+
+    if exc is not None:
+        logger.exception("Background %s task failed", label, exc_info=exc)
 
 
 class ActivityLogService:
@@ -25,7 +51,7 @@ class ActivityLogService:
         """
         self.db = db
 
-    async def log_activity(
+    async def _prepare_log_entry(
         self,
         tenant_id: UUID | None,
         account_id: UUID,
@@ -36,21 +62,7 @@ class ActivityLogService:
         ip_address: str | None = None,
         user_agent: str | None = None,
     ) -> ActivityLog:
-        """Log a user activity.
-
-        Args:
-            tenant_id: Tenant ID (None for platform-level actions)
-            account_id: Account ID performing the action
-            action: Action performed (e.g., "create", "update", "delete")
-            resource_type: Type of resource (e.g., "agent", "team_member")
-            resource_id: ID of the resource affected
-            details: Additional details about the action
-            ip_address: IP address of the user
-            user_agent: User agent string
-
-        Returns:
-            Created activity log entry
-        """
+        """Create an audit entry inside the current transaction."""
         # Import ActivityType here to avoid circular imports if any
         from ...models.activity_log import ActivityType
 
@@ -93,7 +105,8 @@ class ActivityLogService:
                 .order_by(ActivityLog.created_at.desc())
                 .limit(1)
             )
-            prev_hash = prev_result.scalar() or ("0" * 64)  # Genesis hash for first entry
+            prev_hash = await _resolve_sync_or_async(prev_result.scalar())
+            prev_hash = prev_hash or ("0" * 64)  # Genesis hash for first entry
 
             # Prefer AUDIT_CHAIN_SECRET; fall back to SECRET_KEY so existing
             # deployments that have not yet set AUDIT_CHAIN_SECRET still get chain hashes.
@@ -111,10 +124,50 @@ class ActivityLogService:
         except Exception:
             pass  # Hash computation failure must not block the audit write
 
-        await self.db.commit()
-        await self.db.refresh(log_entry)
+        return log_entry
 
-        # Fire-and-forget SIEM forwarding — never blocks the audit write.
+    async def log_activity(
+        self,
+        tenant_id: UUID | None,
+        account_id: UUID,
+        action: str,
+        resource_type: str,
+        resource_id: UUID | None = None,
+        details: dict | None = None,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+        *,
+        commit: bool = True,
+        refresh: bool = False,
+        forward_to_siem: bool | None = None,
+    ) -> ActivityLog:
+        """Log a user activity, optionally committing within this call."""
+        log_entry = await self._prepare_log_entry(
+            tenant_id=tenant_id,
+            account_id=account_id,
+            action=action,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            details=details,
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
+
+        if commit:
+            await self.db.commit()
+            if refresh:
+                await self.db.refresh(log_entry)
+
+        if forward_to_siem is None:
+            forward_to_siem = commit
+        if forward_to_siem:
+            self._schedule_siem_forwarding(log_entry)
+
+        return log_entry
+
+    @staticmethod
+    def _schedule_siem_forwarding(log_entry: ActivityLog) -> None:
+        """Fire-and-forget SIEM forwarding — never blocks the audit write."""
         try:
             from .siem_service import get_siem_service
 
@@ -131,11 +184,45 @@ class ActivityLogService:
             }
             task = asyncio.create_task(get_siem_service().stream_event(siem_event))
             _siem_bg_tasks.add(task)
-            task.add_done_callback(_siem_bg_tasks.discard)
+            task.add_done_callback(lambda completed: _finalize_background_task(completed, _siem_bg_tasks, "SIEM"))
         except Exception:
             pass  # SIEM forwarding failure must never affect the audit write
 
-        return log_entry
+    @classmethod
+    def queue_activity(
+        cls,
+        *,
+        tenant_id: UUID | None,
+        account_id: UUID,
+        action: str,
+        resource_type: str,
+        resource_id: UUID | None = None,
+        details: dict | None = None,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+    ) -> None:
+        """Persist an audit event using a background task and an isolated DB session."""
+
+        async def _runner() -> None:
+            session_factory = get_async_session_factory()
+            async with session_factory() as db:
+                service = cls(db)
+                await service.log_activity(
+                    tenant_id=tenant_id,
+                    account_id=account_id,
+                    action=action,
+                    resource_type=resource_type,
+                    resource_id=resource_id,
+                    details=details,
+                    ip_address=ip_address,
+                    user_agent=user_agent,
+                    commit=True,
+                    refresh=False,
+                )
+
+        task = asyncio.create_task(_runner())
+        _audit_bg_tasks.add(task)
+        task.add_done_callback(lambda completed: _finalize_background_task(completed, _audit_bg_tasks, "audit"))
 
     async def list_logs(
         self,

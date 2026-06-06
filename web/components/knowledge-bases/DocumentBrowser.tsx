@@ -1,16 +1,18 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { 
-  FileText, 
-  Search, 
-  Download, 
-  Trash2, 
+import {
+  FileText,
+  Search,
+  Download,
+  Trash2,
   Image as ImageIcon,
   ChevronLeft,
   ChevronRight,
   Loader2,
-  Eye
+  Eye,
+  RefreshCw,
+  XCircle
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import DocumentViewer from './DocumentViewer'
@@ -36,6 +38,8 @@ interface DocumentBrowserProps {
   onDeleteDocument: (docId: string) => Promise<void>
   onBulkDelete: (docIds: number[]) => Promise<void>
   onDownloadDocument: (docId: string) => Promise<Blob>
+  onReprocessDocument?: (docId: string) => Promise<void>
+  onCancelDocument?: (docId: string) => Promise<void>
 }
 
 export default function DocumentBrowser({
@@ -44,6 +48,8 @@ export default function DocumentBrowser({
   onDeleteDocument,
   onBulkDelete,
   onDownloadDocument,
+  onReprocessDocument,
+  onCancelDocument,
 }: DocumentBrowserProps) {
   const [documents, setDocuments] = useState<Document[]>([])
   const [loading, setLoading] = useState(true)
@@ -126,6 +132,28 @@ export default function DocumentBrowser({
       fetchDocuments()
     } catch {
       toast.error('Failed to delete documents')
+    }
+  }
+
+  const handleReprocess = async (docId: number) => {
+    if (!onReprocessDocument) return
+    try {
+      await onReprocessDocument(docId.toString())
+      toast.success('Document queued for reprocessing')
+      fetchDocuments()
+    } catch {
+      toast.error('Failed to reprocess document')
+    }
+  }
+
+  const handleCancel = async (docId: number) => {
+    if (!onCancelDocument) return
+    try {
+      await onCancelDocument(docId.toString())
+      toast.success('Document processing cancelled')
+      fetchDocuments()
+    } catch {
+      toast.error('Failed to cancel document processing')
     }
   }
 
@@ -344,13 +372,33 @@ export default function DocumentBrowser({
                     </td>
                     <td className="px-4 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => setViewingDoc(doc)}
-                          className="rounded-full p-2 text-gray-400 transition-colors hover:bg-[#eef7f1] hover:text-[#2d8b69]"
-                          title="View"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
+                        {doc.status === 'PROCESSING' && onCancelDocument && (
+                          <button
+                            onClick={() => handleCancel(doc.id)}
+                            className="rounded-full p-2 text-gray-400 transition-colors hover:bg-amber-50 hover:text-amber-600"
+                            title="Cancel processing"
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </button>
+                        )}
+                        {(doc.status === 'PENDING' || doc.status === 'ERROR') && onReprocessDocument && (
+                          <button
+                            onClick={() => handleReprocess(doc.id)}
+                            className="rounded-full p-2 text-gray-400 transition-colors hover:bg-[#eef7f1] hover:text-[#2d8b69]"
+                            title="Reprocess document"
+                          >
+                            <RefreshCw className="w-4 h-4" />
+                          </button>
+                        )}
+                        {doc.status === 'COMPLETED' && (
+                          <button
+                            onClick={() => setViewingDoc(doc)}
+                            className="rounded-full p-2 text-gray-400 transition-colors hover:bg-[#eef7f1] hover:text-[#2d8b69]"
+                            title="View"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                        )}
                         <button
                           onClick={() => handleDownload(doc)}
                           className="rounded-full p-2 text-gray-400 transition-colors hover:bg-[#f7f2e7] hover:text-[#171717]"

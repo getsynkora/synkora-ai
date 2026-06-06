@@ -44,15 +44,19 @@ const PreBuiltAgentCard = ({ agent }: { agent: PublicAgent }) => {
   return (
     <Link href={`/a/${agent.slug || slugify(agent.agent_name)}`}>
       <div className="flex flex-col overflow-hidden rounded-[2rem] border border-black/10 bg-white/60 shadow-[0_18px_40px_rgba(0,0,0,0.05)] transition-shadow duration-300 hover:shadow-[0_24px_56px_rgba(0,0,0,0.08)]">
-        <div className="relative flex items-center justify-center border-b border-black/10 bg-[#efe7d8] pt-10 pb-12">
+        <div className="relative flex min-h-[16rem] items-center justify-center overflow-hidden border-b border-black/10 bg-[linear-gradient(180deg,#efe7d8_0%,#f3ecdf_100%)] md:min-h-[18.5rem]">
           {agent.avatar ? (
-            <img
-              src={agent.avatar}
-              alt={agent.agent_name}
-              className="w-24 h-24 rounded-2xl object-cover shadow-lg bg-white"
-            />
+            <>
+              <img
+                src={agent.avatar}
+                alt={agent.agent_name}
+                className="absolute inset-0 h-full w-full object-cover object-center"
+              />
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_24%,rgba(255,255,255,0.22),transparent_42%)]" />
+              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(243,236,223,0.08),rgba(243,236,223,0.04)_45%,rgba(255,255,255,0.1))]" />
+            </>
           ) : (
-            <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-white shadow-lg">
+            <div className="relative z-10 flex h-[7.75rem] w-[7.75rem] items-center justify-center rounded-[0.4rem] border border-white/90 bg-[#fcfbf8] shadow-[0_22px_40px_rgba(109,84,55,0.16)] md:h-[9.25rem] md:w-[9.25rem]">
               <Sparkles className="h-12 w-12 text-[#2d8b69]" />
             </div>
           )}
@@ -102,8 +106,8 @@ const PreBuiltAgentCard = ({ agent }: { agent: PublicAgent }) => {
 
 const AgentCardSkeleton = () => (
   <div className="animate-pulse overflow-hidden rounded-[2rem] border border-black/10 bg-white/60 shadow-[0_18px_40px_rgba(0,0,0,0.05)]">
-    <div className="flex items-center justify-center border-b border-black/10 bg-[#efe7d8] pt-10 pb-12">
-      <div className="h-24 w-24 rounded-2xl bg-white shadow-lg" />
+    <div className="flex min-h-[16rem] items-center justify-center border-b border-black/10 bg-[#efe7d8] md:min-h-[18.5rem]">
+      <div className="h-[7.75rem] w-[7.75rem] rounded-[0.4rem] bg-white shadow-lg md:h-[9.25rem] md:w-[9.25rem]" />
     </div>
     <div className="p-6">
       <div className="mb-2 h-5 w-32 rounded bg-black/10" />
@@ -233,8 +237,8 @@ export default function AgentsSectionClient() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {staticAgents.map((agent, i) => (
               <div key={i} className="flex flex-col overflow-hidden rounded-[2rem] border border-black/10 bg-white/60 shadow-[0_18px_40px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_24px_56px_rgba(0,0,0,0.08)]">
-                <div className="flex items-center justify-center border-b border-black/10 bg-[#efe7d8] pt-10 pb-12">
-                  <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-white shadow-lg">
+                <div className="flex min-h-[16rem] items-center justify-center border-b border-black/10 bg-[#efe7d8] md:min-h-[18.5rem]">
+                  <div className="flex h-[7.75rem] w-[7.75rem] items-center justify-center rounded-[0.4rem] border border-white/90 bg-white shadow-[0_22px_40px_rgba(109,84,55,0.16)] md:h-[9.25rem] md:w-[9.25rem]">
                     <Sparkles className="h-12 w-12 text-[#2d8b69]" />
                   </div>
                 </div>

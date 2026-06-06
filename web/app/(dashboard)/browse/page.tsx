@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import {
   Search,
   Sparkles,
@@ -115,35 +114,6 @@ const formatPricing = (pricing?: AgentPricing | null): { label: string; sub: str
   }
 }
 
-const renderAgentAvatar = (agent: PublicAgent, sizeClasses: string, iconSize: number) => {
-  if (agent.avatar) {
-    return (
-      <div className={`relative overflow-hidden rounded-[1.7rem] bg-white shadow-[0_18px_32px_rgba(0,0,0,0.12)] ${sizeClasses}`}>
-        {agent.avatar.startsWith('http://') || agent.avatar.startsWith('https://') ? (
-          <img
-            src={agent.avatar}
-            alt={agent.agent_name}
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <Image
-            src={agent.avatar}
-            alt={agent.agent_name}
-            fill
-            className="object-cover"
-          />
-        )}
-      </div>
-    )
-  }
-
-  return (
-    <div className={`flex items-center justify-center rounded-[1.7rem] bg-white text-[#2d8b69] shadow-[0_18px_32px_rgba(0,0,0,0.12)] ${sizeClasses}`}>
-      {getCategoryIcon(agent.category, iconSize)}
-    </div>
-  )
-}
-
 // Main categories from agent creation
 const mainCategories = [
   'Productivity',
@@ -171,51 +141,51 @@ export default function BrowsePage() {
   const itemsPerPage = 9
 
   useEffect(() => {
-    fetchCategories()
-    fetchAgents()
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/v1/agents/categories`)
+        const data = await response.json()
+        if (data.success) {
+          const normalized = (data.data.categories || []).map((c: any) => ({
+            category: c.category || c.name,
+            count: c.count ?? 0,
+          }))
+          setCategories(normalized)
+        }
+      } catch (error) {
+        console.error('Failed to fetch categories:', error)
+      }
+    }
+
+    const fetchAgents = async () => {
+      setLoading(true)
+      try {
+        const params = new URLSearchParams()
+        if (selectedCategory) params.append('category', selectedCategory)
+        if (searchQuery) params.append('search', searchQuery)
+        if (sortBy) params.append('sort_by', sortBy)
+        params.append('limit', '50')
+
+        const response = await fetch(`${API_URL}/api/v1/agents/public?${params}`)
+        const data = await response.json()
+        if (data.success) {
+          setAgents(data.data.agents)
+        }
+      } catch (error) {
+        console.error('Failed to fetch agents:', error)
+        toast.error('Failed to load agents')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    void fetchCategories()
+    void fetchAgents()
   }, [selectedCategory, sortBy, searchQuery])
 
   useEffect(() => {
     setCurrentPage(1)
   }, [selectedCategory, sortBy, searchQuery, selectedTags])
-
-  const fetchCategories = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/v1/agents/categories`)
-      const data = await response.json()
-      if (data.success) {
-        const normalized = (data.data.categories || []).map((c: any) => ({
-          category: c.category || c.name,
-          count: c.count ?? 0,
-        }))
-        setCategories(normalized)
-      }
-    } catch (error) {
-      console.error('Failed to fetch categories:', error)
-    }
-  }
-
-  const fetchAgents = async () => {
-    setLoading(true)
-    try {
-      const params = new URLSearchParams()
-      if (selectedCategory) params.append('category', selectedCategory)
-      if (searchQuery) params.append('search', searchQuery)
-      if (sortBy) params.append('sort_by', sortBy)
-      params.append('limit', '50')
-
-      const response = await fetch(`${API_URL}/api/v1/agents/public?${params}`)
-      const data = await response.json()
-      if (data.success) {
-        setAgents(data.data.agents)
-      }
-    } catch (error) {
-      console.error('Failed to fetch agents:', error)
-      toast.error('Failed to load agents')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const clearAllFilters = () => {
     setSelectedCategory('')
@@ -267,7 +237,7 @@ export default function BrowsePage() {
   return (
     <div className="dashboard-app min-h-full px-4 py-4 md:px-8 md:py-6 xl:px-10">
       <div className="mx-auto max-w-[90rem]">
-        <div className="dashboard-surface mb-4 rounded-full px-5 py-3">
+        <div className="dashboard-surface mb-4 px-5 py-3">
           <nav className="flex items-center gap-2 text-sm text-[#7a736a]">
             <button onClick={() => router.push('/')} className="transition-colors hover:text-[#171717]">
               Home
@@ -285,10 +255,10 @@ export default function BrowsePage() {
           </nav>
         </div>
 
-        <div className="dashboard-surface mb-6 rounded-[2rem] p-5 md:p-6 xl:p-7">
+        <div className="dashboard-surface mb-6 p-5 md:p-6 xl:p-7">
           <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
             <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6e675d]">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/70 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6e675d]">
                 <Sparkles className="h-3 w-3 text-[#2d8b69]" />
                 Marketplace Access
               </div>
@@ -310,7 +280,7 @@ export default function BrowsePage() {
 
             <button
               onClick={clearAllFilters}
-              className="inline-flex flex-shrink-0 items-center gap-2 rounded-full border border-black/10 bg-white/[0.78] px-5 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white md:text-[14px]"
+              className="inline-flex flex-shrink-0 items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.78] px-5 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white md:text-[14px]"
             >
               <SlidersHorizontal size={16} />
               Clear Filters
@@ -318,10 +288,10 @@ export default function BrowsePage() {
           </div>
 
           <div className="mt-5 flex flex-wrap gap-3">
-            <div className="dashboard-chip rounded-full px-4 py-2 text-[13px] font-medium">{filteredAgents.length} visible</div>
-            <div className="dashboard-chip rounded-full px-4 py-2 text-[13px] font-medium">{displayCategories.length} categories</div>
-            <div className="dashboard-chip rounded-full px-4 py-2 text-[13px] font-medium">{availableTags.length} tags</div>
-            <div className="dashboard-chip rounded-full px-4 py-2 text-[13px] font-medium">{viewMode === 'grid' ? 'Grid view' : 'List view'}</div>
+            <div className="dashboard-chip px-4 py-2 text-[13px] font-medium">{filteredAgents.length} visible</div>
+            <div className="dashboard-chip px-4 py-2 text-[13px] font-medium">{displayCategories.length} categories</div>
+            <div className="dashboard-chip px-4 py-2 text-[13px] font-medium">{availableTags.length} tags</div>
+            <div className="dashboard-chip px-4 py-2 text-[13px] font-medium">{viewMode === 'grid' ? 'Grid view' : 'List view'}</div>
           </div>
 
           <div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_auto]">
@@ -332,7 +302,7 @@ export default function BrowsePage() {
                 placeholder="Search agents, tools, or use cases..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-full border border-black/10 bg-white/[0.78] py-3 pl-11 pr-4 text-[13px] text-[#171717] outline-none transition-all focus:border-[#ff5f8f] focus:ring-2 focus:ring-[#ff5f8f]/20 md:text-[14px]"
+                className="w-full rounded-[0.35rem] border border-black/10 bg-white/[0.78] py-3 pl-11 pr-4 text-[13px] text-[#171717] outline-none transition-all focus:border-[#ff5f8f] focus:ring-2 focus:ring-[#ff5f8f]/20 md:text-[14px]"
               />
             </label>
 
@@ -341,7 +311,7 @@ export default function BrowsePage() {
                 aria-label="Sort by"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="w-full appearance-none rounded-full border border-black/10 bg-white/[0.78] px-4 py-3 pr-12 text-[13px] text-[#171717] outline-none transition-all focus:border-[#ff5f8f] focus:ring-2 focus:ring-[#ff5f8f]/20 md:text-[14px]"
+                className="w-full appearance-none rounded-[0.35rem] border border-black/10 bg-white/[0.78] px-4 py-3 pr-12 text-[13px] text-[#171717] outline-none transition-all focus:border-[#ff5f8f] focus:ring-2 focus:ring-[#ff5f8f]/20 md:text-[14px]"
               >
                 <option value="popular">Most Popular</option>
                 <option value="recent">Recently Added</option>
@@ -351,10 +321,10 @@ export default function BrowsePage() {
               <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#5b564e]" />
             </label>
 
-            <div className="flex items-center rounded-full border border-black/10 bg-white/[0.78] p-1">
+            <div className="flex items-center rounded-[0.35rem] border border-black/10 bg-white/[0.78] p-1">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
+                className={`flex h-10 w-10 items-center justify-center rounded-[0.35rem] transition-colors ${
                   viewMode === 'grid' ? 'bg-[#181818] text-[#f7f2e7]' : 'text-[#6f685e] hover:bg-black/5'
                 }`}
                 aria-label="Grid view"
@@ -363,7 +333,7 @@ export default function BrowsePage() {
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${
+                className={`flex h-10 w-10 items-center justify-center rounded-[0.35rem] transition-colors ${
                   viewMode === 'list' ? 'bg-[#181818] text-[#f7f2e7]' : 'text-[#6f685e] hover:bg-black/5'
                 }`}
                 aria-label="List view"
@@ -375,7 +345,7 @@ export default function BrowsePage() {
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[248px_minmax(0,1fr)]">
-          <aside className="dashboard-surface rounded-[1.75rem] p-3 md:p-4 xl:sticky xl:top-24 xl:h-fit">
+          <aside className="dashboard-surface p-3 md:p-4 xl:sticky xl:top-24 xl:h-fit">
             <div className="mb-4">
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8a8378]">Categories</p>
               <div className="space-y-1">
@@ -385,16 +355,16 @@ export default function BrowsePage() {
                     <button
                       key={cat}
                       onClick={() => setSelectedCategory(isActive ? '' : cat)}
-                      className={`relative flex w-full items-center gap-2 overflow-hidden rounded-[0.95rem] px-2 py-2 text-left transition-all ${
+                      className={`relative flex w-full items-center gap-2 overflow-hidden rounded-[0.35rem] px-2 py-2 text-left transition-all ${
                         isActive
                           ? 'border border-black/10 bg-white/[0.82] text-[#171717] shadow-sm'
                           : 'text-[#5b564e] hover:bg-white/[0.62] hover:text-[#171717]'
                       }`}
                     >
                       {isActive && (
-                        <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-[#63dfbe]" aria-hidden="true" />
+                        <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-[0.35rem] bg-[#63dfbe]" aria-hidden="true" />
                       )}
-                      <span className={`flex h-7 w-7 items-center justify-center rounded-full ${isActive ? 'bg-[#181818] text-[#f7f2e7]' : 'bg-white/80 text-[#8a8378]'}`}>
+                      <span className={`flex h-7 w-7 items-center justify-center rounded-[0.35rem] ${isActive ? 'bg-[#181818] text-[#f7f2e7]' : 'bg-white/80 text-[#8a8378]'}`}>
                         {getCategoryIcon(cat, 14)}
                       </span>
                       <span className="flex-1 text-[13px] font-medium leading-none">{cat}</span>
@@ -419,7 +389,7 @@ export default function BrowsePage() {
                         <button
                           key={tag}
                           onClick={() => toggleTag(tag)}
-                          className={`rounded-full px-2.5 py-1.5 text-[11px] font-medium transition-colors ${
+                          className={`rounded-[0.35rem] px-2.5 py-1.5 text-[11px] font-medium transition-colors ${
                             isSelected
                               ? 'bg-[#181818] text-[#f7f2e7]'
                               : 'border border-black/10 bg-white/70 text-[#5b564e] hover:bg-white'
@@ -448,17 +418,17 @@ export default function BrowsePage() {
               {hasActiveFilters && (
                 <div className="flex flex-wrap gap-2">
                   {selectedCategory && (
-                    <span className="rounded-full border border-black/10 bg-white/70 px-3 py-2 text-xs font-medium text-[#171717]">
+                    <span className="rounded-[0.35rem] border border-black/10 bg-white/70 px-3 py-2 text-xs font-medium text-[#171717]">
                       {selectedCategory}
                     </span>
                   )}
                   {selectedTags.map((tag) => (
-                    <span key={tag} className="rounded-full border border-black/10 bg-white/70 px-3 py-2 text-xs font-medium text-[#171717]">
+                    <span key={tag} className="rounded-[0.35rem] border border-black/10 bg-white/70 px-3 py-2 text-xs font-medium text-[#171717]">
                       {tag}
                     </span>
                   ))}
                   {searchQuery && (
-                    <span className="rounded-full border border-black/10 bg-white/70 px-3 py-2 text-xs font-medium text-[#171717]">
+                    <span className="rounded-[0.35rem] border border-black/10 bg-white/70 px-3 py-2 text-xs font-medium text-[#171717]">
                       {searchQuery}
                     </span>
                   )}
@@ -469,9 +439,9 @@ export default function BrowsePage() {
             {loading ? (
               <div className={viewMode === 'grid' ? 'grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3' : 'space-y-4'}>
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="dashboard-panel animate-pulse overflow-hidden rounded-[2rem]">
+                  <div key={i} className="dashboard-panel animate-pulse overflow-hidden">
                     <div className="border-b border-black/10 bg-[#efe7d8] pt-10 pb-12">
-                      <div className="mx-auto h-24 w-24 rounded-[1.7rem] bg-white shadow-lg" />
+                      <div className="mx-auto h-24 w-24 rounded-[0.45rem] bg-white shadow-lg" />
                     </div>
                     <div className="p-5">
                       <div className="mb-2 h-5 w-40 rounded bg-black/10" />
@@ -484,14 +454,14 @@ export default function BrowsePage() {
                           <div className="h-8 w-12 rounded bg-black/10" />
                         </div>
                       </div>
-                      <div className="h-10 w-32 rounded-full bg-black/5" />
+                      <div className="h-10 w-32 rounded-[0.35rem] bg-black/5" />
                     </div>
                   </div>
                 ))}
               </div>
             ) : paginatedAgents.length === 0 ? (
-              <div className="dashboard-surface rounded-[2rem] py-20 text-center">
-                <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-[#f1eadc] text-[#171717]">
+              <div className="dashboard-surface py-20 text-center">
+                <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-[0.45rem] bg-[#f1eadc] text-[#171717]">
                   <Search className="h-8 w-8" />
                 </div>
                 <h3 className="mb-2 text-[1.05rem] font-semibold text-[#171717] md:text-[1.35rem]">No matching agents</h3>
@@ -500,7 +470,7 @@ export default function BrowsePage() {
                 </p>
                 <button
                   onClick={clearAllFilters}
-                  className="inline-flex items-center gap-2 rounded-full bg-[#181818] px-6 py-3 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 md:text-[14px]"
+                  className="inline-flex items-center gap-2 rounded-[0.35rem] bg-[#181818] px-6 py-3 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 md:text-[14px]"
                 >
                   Reset Filters
                 </button>
@@ -517,16 +487,34 @@ export default function BrowsePage() {
                       <div
                         key={agent.id}
                         onClick={() => router.push(`/browse/${agent.id}`)}
-                        className="dashboard-panel flex cursor-pointer flex-col gap-5 rounded-[2rem] p-5 transition-all duration-300 hover:-translate-y-1 md:flex-row md:items-center"
+                        className="dashboard-panel flex cursor-pointer flex-col gap-5 p-5 transition-all duration-300 hover:-translate-y-1 md:flex-row md:items-center"
                       >
-                        <div className="flex h-36 items-center justify-center rounded-[1.8rem] bg-[#efe7d8] px-6 md:w-48">
-                          {renderAgentAvatar(agent, 'h-24 w-24 md:h-28 md:w-28', 36)}
+                        <div className="relative flex h-40 items-center justify-center overflow-hidden rounded-[0.45rem] border border-black/10 bg-[linear-gradient(180deg,#efe7d8_0%,#f3ecdf_100%)] md:h-48 md:w-56">
+                          {agent.avatar ? (
+                            <>
+                              <img
+                                src={agent.avatar}
+                                alt={agent.agent_name}
+                                className="absolute inset-0 h-full w-full object-cover object-center"
+                              />
+                              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_24%,rgba(255,255,255,0.22),transparent_42%)]" />
+                              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(243,236,223,0.08),rgba(243,236,223,0.04)_45%,rgba(255,255,255,0.1))]" />
+                            </>
+                          ) : (
+                            <>
+                              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_26%,rgba(255,255,255,0.78),transparent_32%)]" />
+                              <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(90deg,rgba(189,164,125,0.08)_0,rgba(189,164,125,0.08)_8%,transparent_8%,transparent_16%)] [background-size:160px_100%]" />
+                              <div className="relative z-10 flex h-24 w-24 items-center justify-center rounded-[0.4rem] border border-white/90 bg-[#fcfbf8] shadow-[0_22px_40px_rgba(109,84,55,0.16)]">
+                                {getCategoryIcon(agent.category, 36)}
+                              </div>
+                            </>
+                          )}
                         </div>
 
                         <div className="min-w-0 flex-1">
                           <div className="mb-2 flex flex-wrap items-center gap-2">
                             {badge && (
-                              <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${
+                              <span className={`inline-flex items-center gap-1 rounded-[0.35rem] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${
                                 badge.type === 'top_rated'
                                   ? 'bg-[#fff0d9] text-[#171717]'
                                   : 'bg-[rgba(99,223,190,0.18)] text-[#171717]'
@@ -536,7 +524,7 @@ export default function BrowsePage() {
                                 {badge.label}
                               </span>
                             )}
-                            <span className="rounded-full border border-black/10 bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#5b564e]">
+                            <span className="rounded-[0.35rem] border border-black/10 bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#5b564e]">
                               {agent.category || 'General'}
                             </span>
                           </div>
@@ -580,7 +568,7 @@ export default function BrowsePage() {
                               </div>
                             </div>
 
-                            <button className="rounded-full bg-[#181818] px-5 py-2.5 text-sm font-semibold uppercase tracking-[0.14em] text-[#f7f2e7] transition-transform hover:-translate-y-0.5">
+                            <button className="rounded-[0.35rem] bg-[#181818] px-5 py-2.5 text-sm font-semibold uppercase tracking-[0.14em] text-[#f7f2e7] transition-transform hover:-translate-y-0.5">
                               View Details
                             </button>
                           </div>
@@ -593,11 +581,11 @@ export default function BrowsePage() {
                     <div
                       key={agent.id}
                       onClick={() => router.push(`/browse/${agent.id}`)}
-                      className="dashboard-panel group flex cursor-pointer flex-col overflow-hidden rounded-[2rem] transition-all duration-300 hover:-translate-y-1"
+                      className="dashboard-panel group flex cursor-pointer flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1"
                     >
-                      <div className="relative flex items-center justify-center border-b border-black/10 bg-[#efe7d8] pt-10 pb-12">
+                      <div className="relative flex min-h-[16rem] items-center justify-center overflow-hidden border-b border-black/10 bg-[linear-gradient(180deg,#efe7d8_0%,#f3ecdf_100%)] md:min-h-[18.5rem]">
                         {badge && (
-                          <span className={`absolute left-4 top-4 inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${
+                          <span className={`absolute left-4 top-4 inline-flex items-center gap-1 rounded-[0.35rem] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${
                             badge.type === 'top_rated'
                               ? 'bg-[#fff0d9] text-[#171717]'
                               : 'bg-[rgba(99,223,190,0.18)] text-[#171717]'
@@ -608,12 +596,30 @@ export default function BrowsePage() {
                           </span>
                         )}
 
-                        <div className="absolute right-4 top-4 rounded-full border border-black/10 bg-white/78 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#171717]">
+                        <div className="absolute right-4 top-4 rounded-[0.35rem] border border-black/10 bg-white/78 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#171717]">
                           {price.label}
                           {price.sub && <span className="ml-1 font-medium text-[#7a736a]">{price.sub}</span>}
                         </div>
 
-                        {renderAgentAvatar(agent, 'h-24 w-24', 34)}
+                        {agent.avatar ? (
+                          <>
+                            <img
+                              src={agent.avatar}
+                              alt={agent.agent_name}
+                              className="absolute inset-0 h-full w-full object-cover object-center"
+                            />
+                            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_24%,rgba(255,255,255,0.22),transparent_42%)]" />
+                            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(243,236,223,0.08),rgba(243,236,223,0.04)_45%,rgba(255,255,255,0.1))]" />
+                          </>
+                        ) : (
+                          <>
+                            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_26%,rgba(255,255,255,0.78),transparent_32%)]" />
+                            <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(90deg,rgba(189,164,125,0.08)_0,rgba(189,164,125,0.08)_8%,transparent_8%,transparent_16%)] [background-size:160px_100%]" />
+                            <div className="relative z-10 flex h-[7.75rem] w-[7.75rem] items-center justify-center rounded-[0.4rem] border border-white/90 bg-[#fcfbf8] shadow-[0_22px_40px_rgba(109,84,55,0.16)] md:h-[9.25rem] md:w-[9.25rem]">
+                              {getCategoryIcon(agent.category, 34)}
+                            </div>
+                          </>
+                        )}
                       </div>
 
                       <div className="flex flex-1 flex-col p-5">
@@ -640,7 +646,7 @@ export default function BrowsePage() {
                         {agent.tags?.length > 0 && (
                           <div className="mb-4 flex flex-wrap gap-2">
                             {agent.tags.slice(0, 2).map((tag) => (
-                              <span key={tag} className="rounded-full border border-black/10 bg-white/70 px-3 py-1 text-[11px] font-medium text-[#5b564e]">
+                              <span key={tag} className="rounded-[0.35rem] border border-black/10 bg-white/70 px-3 py-1 text-[11px] font-medium text-[#5b564e]">
                                 {tag}
                               </span>
                             ))}
@@ -660,7 +666,7 @@ export default function BrowsePage() {
                           </div>
                         </div>
 
-                        <button className="mt-auto rounded-full border border-black/15 bg-white/70 px-5 py-2.5 text-center text-sm font-semibold uppercase tracking-[0.14em] text-[#171717] transition-colors hover:bg-white">
+                        <button className="mt-auto rounded-[0.35rem] border border-black/15 bg-white/70 px-5 py-2.5 text-center text-sm font-semibold uppercase tracking-[0.14em] text-[#171717] transition-colors hover:bg-white">
                           View Details
                         </button>
                       </div>
@@ -671,11 +677,11 @@ export default function BrowsePage() {
             )}
 
             {totalPages > 1 && (
-              <div className="dashboard-surface mt-8 flex items-center justify-center gap-3 rounded-full px-4 py-3">
+              <div className="dashboard-surface mt-8 flex items-center justify-center gap-3 px-4 py-3">
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="flex h-10 w-10 items-center justify-center rounded-full text-[#5b564e] transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-10 w-10 items-center justify-center rounded-[0.35rem] text-[#5b564e] transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
                   aria-label="Previous page"
                 >
                   <ChevronLeft size={18} />
@@ -697,7 +703,7 @@ export default function BrowsePage() {
                     <button
                       key={pageNum}
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold transition-colors ${
+                      className={`flex h-10 w-10 items-center justify-center rounded-[0.35rem] text-sm font-semibold transition-colors ${
                         currentPage === pageNum
                           ? 'bg-[#181818] text-[#f7f2e7]'
                           : 'text-[#5b564e] hover:bg-black/5'
@@ -713,7 +719,7 @@ export default function BrowsePage() {
                     <span className="text-[#8a8378]">...</span>
                     <button
                       onClick={() => setCurrentPage(totalPages)}
-                      className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-[#5b564e] transition-colors hover:bg-black/5"
+                      className="flex h-10 w-10 items-center justify-center rounded-[0.35rem] text-sm font-semibold text-[#5b564e] transition-colors hover:bg-black/5"
                     >
                       {totalPages}
                     </button>
@@ -723,7 +729,7 @@ export default function BrowsePage() {
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="flex h-10 w-10 items-center justify-center rounded-full text-[#5b564e] transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-10 w-10 items-center justify-center rounded-[0.35rem] text-[#5b564e] transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
                   aria-label="Next page"
                 >
                   <ChevronRight size={18} />

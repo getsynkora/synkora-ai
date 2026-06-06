@@ -7,6 +7,7 @@ CRITICAL: All chat interactions are protected with prompt injection scanning.
 
 import asyncio
 import hashlib
+import json
 import logging
 import uuid
 from collections.abc import AsyncGenerator
@@ -24,7 +25,7 @@ from fastapi import (
     WebSocketDisconnect,
     status,
 )
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response, StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -32,7 +33,15 @@ from src.config.redis import get_redis_async
 from src.controllers.agents.models import AgentResponse, ChatRequest
 from src.core.database import get_async_db, get_async_session_factory
 from src.helpers.chat_helpers import validate_conversation_id
-from src.helpers.streaming_helpers import generate_security_block_stream
+from src.helpers.streaming_helpers import (
+    generate_chunk_event,
+    generate_done_event,
+    generate_error_event,
+    generate_first_token_event,
+    generate_start_event,
+    generate_status_event,
+    generate_tool_status_event,
+)
 from src.middleware.auth_middleware import get_current_account, get_current_tenant_id
 from src.models import AccountStatus
 from src.models.tenant import Account
@@ -186,18 +195,16 @@ async def chat_stream(
             f"IP: {client_ip}, User-Agent: {user_agent[:100]}"
         )
 
-        return StreamingResponse(
-            generate_security_block_stream(
-                details={
-                    "threat_level": scan_result["threat_level"],
-                    "risk_score": scan_result["risk_score"],
-                    "detections": len(scan_result["detections"]),
-                }
-            ),
+        _error_event = json.dumps({
+            "type": "error",
+            "error": "Your message was flagged by the security filter. Please rephrase and try again.",
+            "error_type": "security_violation",
+        })
+        return Response(
+            content=f"data: {_error_event}\n\n",
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
-                "Connection": "keep-alive",
                 "X-Accel-Buffering": "no",
                 "X-Security-Status": "blocked",
                 "X-Threat-Level": scan_result["threat_level"],

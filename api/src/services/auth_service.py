@@ -989,8 +989,7 @@ class AuthService:
             if membership:
                 tenant_id = membership.tenant_id
 
-            svc = ActivityLogService(db)
-            await svc.log_activity(
+            ActivityLogService.queue_activity(
                 tenant_id=tenant_id,
                 account_id=account_id,
                 action="mfa_backup_code_used",

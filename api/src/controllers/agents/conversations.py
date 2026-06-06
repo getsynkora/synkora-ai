@@ -87,6 +87,9 @@ async def create_conversation(
                 status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent with ID '{request.agent_id}' not found"
             )
 
+        valid_sources = {"web", "flutter", "widget", "whatsapp", "slack", "chrome"}
+        source = request.source if request.source in valid_sources else "web"
+
         # Create conversation with current user's account_id
         conversation = await ConversationService.create_conversation(
             db=db,
@@ -95,7 +98,7 @@ async def create_conversation(
             session_id=request.session_id,
             name=request.name,
             account_id=current_account.id,  # Associate with current user
-            source="web",
+            source=source,
         )
 
         return AgentResponse(success=True, message="Conversation created successfully", data=conversation.to_dict())
