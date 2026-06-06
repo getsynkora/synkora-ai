@@ -35,14 +35,28 @@ def _run_async(coro: Coroutine[Any, Any, Any]) -> Any:
 
     def _in_thread() -> Any:
         loop = asyncio.new_event_loop()
+
+        # Suppress "Event loop is closed" noise from httpx/asyncpg connection-pool
+        # teardown tasks that are created during GC after run_until_complete() returns.
+        def _suppress_closed_loop(loop: asyncio.AbstractEventLoop, context: dict) -> None:
+            msg = context.get("message", "")
+            if "Event loop is closed" in msg or "Task exception was never retrieved" in msg:
+                return
+            loop.default_exception_handler(context)
+
+        loop.set_exception_handler(_suppress_closed_loop)
+
         try:
             asyncio.set_event_loop(loop)
             return loop.run_until_complete(coro)
         finally:
             try:
+                # Drain tasks that are already scheduled
                 pending = asyncio.all_tasks(loop)
                 if pending:
                     loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+                # One extra tick so GC-triggered finalizers (httpx aclose) can fire
+                loop.run_until_complete(asyncio.sleep(0))
             except Exception:
                 pass
             loop.close()
@@ -137,10 +151,37 @@ async def _compile_all_wikis():
 
 
 async def _compile_single_wiki(kb_id: int, tenant_id: str, llm_config_id: str | None = None):
+    from sqlalchemy import select
+
     from src.core.database import create_celery_async_session
+    from src.models.wiki_article import WikiCompilationJob
     from src.services.knowledge_autopilot.compiler import KnowledgeCompiler
 
     async with create_celery_async_session()() as db:
+        # Auto-triggered calls (e.g. after document processing) don't carry an
+        # llm_config_id. Fall back to the last successful job's config so the
+        # compiler doesn't raise "No LLM configuration selected".
+        if not llm_config_id:
+            job_result = await db.execute(
+                select(WikiCompilationJob)
+                .filter(
+                    WikiCompilationJob.knowledge_base_id == kb_id,
+                    WikiCompilationJob.status == "completed",
+                )
+                .order_by(WikiCompilationJob.completed_at.desc())
+                .limit(1)
+            )
+            last_job = job_result.scalar_one_or_none()
+            if last_job and last_job.compilation_metadata:
+                llm_config_id = last_job.compilation_metadata.get("llm_config_id")
+
+        if not llm_config_id:
+            logger.warning(
+                f"KB {kb_id}: no llm_config_id available for auto-recompile — skipping. "
+                "Run a manual compilation from the UI first."
+            )
+            return
+
         compiler = KnowledgeCompiler(db)
         result = await compiler.compile(knowledge_base_id=kb_id, tenant_id=tenant_id, llm_config_id=llm_config_id)
         logger.info(f"On-demand compilation KB {kb_id}: {result.get('status')}")

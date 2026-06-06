@@ -670,6 +670,21 @@ async def upload_documents(
                 # Detect MIME type
                 mime = magic.from_buffer(content, mime=True)
 
+                # libmagic does content-based detection and misidentifies markdown files
+                # containing code blocks (e.g. Python snippets) as text/x-script.python.
+                # For plain-text formats, trust the file extension over magic detection.
+                ext = (file.filename or "").rsplit(".", 1)[-1].lower()
+                ext_mime_override = {
+                    "md": "text/markdown",
+                    "markdown": "text/markdown",
+                    "txt": "text/plain",
+                    "csv": "text/csv",
+                    "html": "text/html",
+                    "htm": "text/html",
+                }
+                if ext in ext_mime_override:
+                    mime = ext_mime_override[ext]
+
                 # Validate file type
                 if mime not in ALLOWED_MIME_TYPES:
                     failed_files.append({"filename": file.filename, "error": f"Unsupported file type: {mime}"})

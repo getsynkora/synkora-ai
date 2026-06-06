@@ -25,6 +25,9 @@ logger = logging.getLogger(__name__)
 # Using ContextVar instead of instance state avoids race conditions when the
 # same MultiProviderLLMClient is shared across concurrent requests in a pool.
 _llm_usage_ctx: ContextVar[dict | None] = ContextVar("llm_usage", default=None)
+# Stores reasoning_content from DeepSeek-R1 / thinking-mode models so callers
+# can persist it and echo it back in subsequent turns (required by the API).
+_llm_reasoning_ctx: ContextVar[str | None] = ContextVar("llm_reasoning", default=None)
 
 # Anthropic models that support prompt caching
 _ANTHROPIC_CACHEABLE_PREFIXES = ("claude-3", "claude-sonnet", "claude-haiku", "claude-opus")
@@ -1282,9 +1285,16 @@ class MultiProviderLLMClient:
             **kwargs,
         )
 
+        reasoning_parts: list[str] = []
         async for chunk in stream:
-            if chunk.choices and chunk.choices[0].delta.content:
-                yield chunk.choices[0].delta.content
+            if chunk.choices:
+                delta = chunk.choices[0].delta
+                # Capture DeepSeek reasoning_content (thinking mode)
+                rc = getattr(delta, "reasoning_content", None)
+                if isinstance(rc, str) and rc:
+                    reasoning_parts.append(rc)
+                if delta.content:
+                    yield delta.content
             # Final chunk carries usage when stream_options was set
             if getattr(chunk, "usage", None) and chunk.usage:
                 cached = 0
@@ -1298,6 +1308,8 @@ class MultiProviderLLMClient:
                         "cached_input_tokens": cached,
                     }
                 )
+        if reasoning_parts:
+            _llm_reasoning_ctx.set("".join(reasoning_parts))
 
     async def _generate_anthropic_stream_with_messages(
         self, messages: list[dict[str, Any]], temperature: float, max_tokens: int | None, **kwargs

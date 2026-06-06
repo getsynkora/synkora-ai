@@ -238,15 +238,20 @@ class DocumentProcessor:
                         or f"{data_source.name} - {doc['id']}"
                     )
 
-                    # Upsert document: reuse stub created during upload if present
-                    existing_kb_doc = None
+                    # Upsert document: reuse stub created during upload if present.
+                    # Use scalars().all() instead of scalar_one_or_none() to handle
+                    # duplicates created by previous retries without crashing.
                     existing_result = await self.db.execute(
                         select(Document).filter(
                             Document.knowledge_base_id == kb.id,
                             Document.external_id == doc["id"],
                         )
                     )
-                    existing_kb_doc = existing_result.scalar_one_or_none()
+                    existing_docs = existing_result.scalars().all()
+                    # Delete any duplicates, keep one canonical record
+                    for dup in existing_docs[1:]:
+                        await self.db.delete(dup)
+                    existing_kb_doc = existing_docs[0] if existing_docs else None
 
                     if existing_kb_doc:
                         kb_doc = existing_kb_doc

@@ -20,8 +20,9 @@ spec:
   triggers:
     - type: redis
       metadata:
-        # Address of Redis service inside the cluster
-        address: redis-service:6379
+        # Fully-qualified service name required — KEDA runs in the 'keda' namespace
+        # so a short name like 'synkora-redis' won't resolve across namespaces.
+        address: synkora-redis.synkora-production.svc.cluster.local:6379
         # Celery queue key for the agents queue
         listName: agents
         # Scale 1 pod per 2 queued tasks

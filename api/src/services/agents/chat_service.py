@@ -99,6 +99,7 @@ class ChatService:
         workflow_state: dict[str, Any] | None = None,
         timing: dict[str, float] | None = None,
         usage: dict[str, int] | None = None,
+        reasoning_content: str | None = None,
         db: AsyncSession | None = None,
     ) -> Message | None:
         """
@@ -141,6 +142,8 @@ class ChatService:
                 timing=timing,
                 usage=usage,
             )
+            if reasoning_content:
+                metadata["reasoning_content"] = reasoning_content
 
             assistant_message = Message(
                 conversation_id=conversation_id,
