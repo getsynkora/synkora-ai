@@ -995,6 +995,7 @@ class FunctionCallingHandler:
             # _generate_openai_with_tools sets _llm_reasoning_ctx when it captures it;
             # include it here so the next iteration's history passes validation.
             from src.services.agents.llm_client import _llm_reasoning_ctx as _rc_ctx
+
             _iter_rc = _rc_ctx.get()
             if isinstance(_iter_rc, str) and _iter_rc:
                 assistant_message["reasoning_content"] = _iter_rc
@@ -1314,6 +1315,7 @@ class FunctionCallingHandler:
                 _rc = getattr(response.choices[0].message, "reasoning_content", None)
                 if isinstance(_rc, str) and _rc:
                     from src.services.agents.llm_client import _llm_reasoning_ctx
+
                     _llm_reasoning_ctx.set(_rc)
 
             # Create Langfuse generation if tracing is enabled (after getting response)

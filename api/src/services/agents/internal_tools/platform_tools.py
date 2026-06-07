@@ -653,9 +653,13 @@ async def platform_create_agent(
                             )
                         )
                         kb_results.append(kb.name)
-                        logger.info(f"platform_create_agent: attached KB '{kb.name}' (id={kb_id}) to agent '{agent_name_slug}'")
+                        logger.info(
+                            f"platform_create_agent: attached KB '{kb.name}' (id={kb_id}) to agent '{agent_name_slug}'"
+                        )
                     else:
-                        logger.warning(f"platform_create_agent: KB id={kb_id} not found for tenant {tenant_id}, skipping")
+                        logger.warning(
+                            f"platform_create_agent: KB id={kb_id} not found for tenant {tenant_id}, skipping"
+                        )
                 except Exception as kb_err:
                     logger.warning(f"platform_create_agent: failed to attach KB id={kb_id}: {kb_err}")
             if kb_results:

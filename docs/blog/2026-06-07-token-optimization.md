@@ -1,4 +1,3 @@
-
 ---
 slug: token-optimization
 title: "The Hidden Cost of Memory: How We Keep Agent Conversations From Getting Expensive"

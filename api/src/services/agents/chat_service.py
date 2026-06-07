@@ -205,11 +205,7 @@ class ChatService:
                 message["reasoning_content"] = reasoning_content
             # Run cache update in background; store a strong ref so GC
             # cannot collect the task before it completes.
-            task = asyncio.create_task(
-                cache_service.append_message(
-                    conversation_id=conversation_id, message=message
-                )
-            )
+            task = asyncio.create_task(cache_service.append_message(conversation_id=conversation_id, message=message))
             _bg_cache_tasks.add(task)
             task.add_done_callback(_bg_cache_tasks.discard)
         except Exception as e:
