@@ -112,6 +112,27 @@ Most systems treat all of this the same. Everything goes into the same flat arra
 We separated them into **tiers**. Permanent memory always goes in. Summary replaces old messages once they accumulate. Retrieved context flows in and out based on what the current query actually needs. Recent messages stay detailed. Everything else compresses.
 
 
+The configuration that controls this is explicit — not buried in a prompt:
+
+```python
+# api/src/services/agents/context_manager.py
+
+@dataclass
+class ContextConfig:
+    strategy: ContextStrategy = ContextStrategy.COMBINED
+    max_tokens: int = 180000
+
+    sliding_window_size: int = 15        # keep last N messages in full
+    keep_recent_messages: int = 15       # messages preserved during summarization
+
+    auto_summarize: bool = True
+    summarize_threshold_messages: int = 25   # summarize after 25 messages
+    summarize_threshold_tokens: int = 30000  # or after 30k tokens
+
+    summary_max_tokens: int = 1500       # target size for each summary
+    incremental_threshold_messages: int = 5  # re-summarize after 5 new messages
+```
+
 The result is a context that scales horizontally. A two-hundred-message conversation does not cost twenty times more than a ten-message one. The history has been folded into a fraction of its original size.
 
 
@@ -136,8 +157,32 @@ When five new messages arrive, the system does not discard the existing summary 
 And it never drops **pending work**.
 
 
-If the user asked for something three summaries ago and it was not done yet, that task stays in the summary, marked as **pending**, preserved across every incremental update until it is actually completed.
+If the user asked for something three summaries ago and it was not done yet, that task stays in the summary, marked as pending, preserved across every incremental update until it is actually completed. This is the prompt that drives it:
 
+```python
+# api/src/services/agents/context_summarizer.py
+
+"incremental": """Update the existing summary with new information.
+
+Previous Summary:
+{existing_summary}
+
+New Messages to Incorporate:
+{messages}
+
+Create an updated summary that:
+1. PRESERVE ALL PENDING REQUESTS — Keep any unfulfilled user requests
+   from the previous summary unless they were completed in new messages
+2. Mark completed tasks as DONE and move them from pending
+3. Add new requests, decisions, facts, or state changes
+4. Remove only information that is truly outdated or superseded
+5. Stays within {max_length} words
+
+CRITICAL: If a user request was pending and still not completed,
+it MUST remain in the summary.
+
+Updated Summary:"""
+```
 
 The context stays small. The continuity stays intact.
 
@@ -163,22 +208,80 @@ An agent that queries a database might get back **a hundred rows**. An agent tha
 Every one of those goes into the message history. Every one of those gets resent on every subsequent turn.
 
 
-We built a **pruner** that handles this specifically.
+We built a pruner that handles this specifically. Its configuration makes the strategy explicit:
 
+```python
+# api/src/services/agents/context_pruning.py
+
+@dataclass
+class PruningSettings:
+    keep_last_results: int = 3     # always keep last N tool results intact
+    max_result_chars: int = 5000   # trim results larger than this
+    head_chars: int = 1500         # keep first N chars when trimming
+    tail_chars: int = 1500         # keep last N chars when trimming
+
+    # Tools that return real data (SQL rows, file contents) get head+tail
+    # trimming instead of being collapsed to a 1-liner.
+    protect_data_tools: tuple[str, ...] = (
+        "internal_execute_",
+        "internal_query_",
+        "internal_read_",
+        "internal_fetch_",
+        "internal_list_",
+        "internal_search_",
+        "internal_database_",
+        "internal_sql_",
+    )
+```
 
 The **last three tool results** stay in full — they are fresh, the model probably still needs them. Everything older goes through a pass that extracts the minimum useful representation.
 
 
-For tools that return data the model might still need — **database rows**, **file contents**, **query results** — we trim to a head-and-tail view. The model sees the beginning and end of the data with an indicator for what was in the middle.
+For tools that return data the model might still need — **database rows**, **file contents**, **query results** — we trim to a head-and-tail view. The model sees the beginning and end of the data with an indicator for what was in the middle:
 
+```python
+def _trim_content(content: str, settings: PruningSettings) -> str:
+    head = content[: settings.head_chars]
+    tail = content[-settings.tail_chars :]
+    trimmed_chars = len(content) - settings.head_chars - settings.tail_chars
 
-For tools that returned **status**, **confirmations**, **IDs**, or **counts** — we replace the entire result with a single informative line. Something like: `returned 47 rows`. Or: `ticket #4217 created`. Or: `message sent successfully`.
+    return (
+        f"{head}\n\n"
+        f"[... {trimmed_chars:,} characters trimmed for context efficiency ...]\n\n"
+        f"{tail}"
+    )
+```
 
+For tools that returned **status**, **confirmations**, **IDs**, or **counts** — we replace the entire result with a single informative line. The model can still reason about what happened without holding the full payload:
 
-The model can still reason about what happened. It just does not need to hold the full payload in memory to do it.
+```python
+def _extract_result_summary(tool_name: str, content: Any) -> str:
+    # List at top level
+    if isinstance(data, list):
+        return f"[pruned: {tool_name}: returned {len(data)} items]"
 
+    # Row counts
+    if "rows" in data and isinstance(data["rows"], list):
+        return f"[pruned: {tool_name}: returned {len(data['rows'])} rows]"
 
-And before any of this, in the very first pass, we strip **base64**. Unconditionally. If a tool result has an embedded image or screenshot, that base64 blob goes. Replaced with a placeholder that says what it was and how large. **Screenshots alone** can save a hundred thousand characters per tool call.
+    # Created resource
+    if "id" in data:
+        return f"[pruned: {tool_name}: id={data['id']}]"
+
+    # Confirmation
+    if data.get("success") is True:
+        return f"[pruned: {tool_name}: succeeded]"
+```
+
+And before any of this, in the very first pass, we strip **base64**. Unconditionally. If a tool result has an embedded image or screenshot, that base64 blob goes — replaced with a note describing what it was and how large. Screenshots alone can save a hundred thousand characters per tool call:
+
+```python
+# Catches screenshots, images, and any base64 blob by key name or content pattern
+if key.lower() in ("screenshot", "image", "image_data", "base64", "data"):
+    if len(value) > 1000 and _looks_like_base64(value):
+        size_kb = len(value) * 3 / 4 / 1024
+        result[key] = f"[BASE64_REMOVED: ~{size_kb:.1f}KB - use image_url instead]"
+```
 
 
 ## The Safety Net
@@ -190,19 +293,49 @@ Even with all of this, edge cases exist.
 A very long system prompt. A model with a small context window. An unusual conversation that compresses badly. An agent running a genuinely complex multi-step task that needs everything.
 
 
-For those cases, the **context guard** monitors token usage before every request and signals the appropriate response.
+For those cases, the **context guard** monitors token usage before every request:
 
+```python
+# api/src/services/agents/context_window_guard.py
 
-If usage is above **sixty percent** of the model's limit, it warns.
+class ContextWindowGuard:
+    WARN_THRESHOLD = 0.40      # warn when 40% remaining
+    SUMMARIZE_THRESHOLD = 0.25 # trigger summarization at 25% remaining
+    BLOCK_THRESHOLD = 1000     # hard block at 1,000 tokens remaining
 
+    def evaluate(self, model: str, current_tokens: int) -> ContextGuardResult:
+        max_tokens = self.get_model_limit(model)
+        remaining = max_tokens - current_tokens
+        remaining_pct = remaining / max_tokens
 
-If it climbs above **seventy-five percent**, it triggers compression automatically.
+        if remaining <= self.BLOCK_THRESHOLD:
+            return ContextGuardResult(action=ContextGuardAction.BLOCK, ...)
 
+        if remaining_pct <= self.SUMMARIZE_THRESHOLD:
+            return ContextGuardResult(action=ContextGuardAction.SUMMARIZE, ...)
 
-If fewer than **a thousand tokens** remain, it blocks the request entirely and surfaces a message to the user rather than letting it fail silently inside the model.
+        if remaining_pct <= self.WARN_THRESHOLD:
+            return ContextGuardResult(action=ContextGuardAction.WARN, ...)
 
+        return ContextGuardResult(action=ContextGuardAction.OK, ...)
+```
 
-The guard knows the context windows for **sixty-plus model variants**. Claude, GPT, Gemini, reasoning models. It applies the right limits without the developer having to think about it.
+The guard knows the context windows for sixty-plus model variants. Claude, GPT, Gemini, reasoning models. No developer configuration required:
+
+```python
+MODEL_CONTEXT_LIMITS = {
+    "claude-sonnet-4-6": 180000,
+    "gpt-4.1":           1000000,
+    "gpt-4.1-mini":      1000000,
+    "gemini-2.5-pro":    1000000,
+    "gemini-2.5-flash":  1000000,
+    "o3":                180000,
+    "o4-mini":           180000,
+    # ... 60+ entries
+}
+```
+
+If usage climbs above the warn threshold, it logs. If it hits the summarize threshold, compression fires automatically. If fewer than a thousand tokens remain, the request is blocked and the user sees a clear message rather than a silent failure inside the model.
 
 
 ## What This Looks Like in Practice
@@ -249,4 +382,4 @@ lean context is a product quality
 :::
 
 
-If you want to see the implementation, it lives in `api/src/services/agents/` — the context manager, the window guard, the pruner, the summarizer. All of it is in the open-source repo. MIT license. No magic, just decisions made explicit.
+If you want to see the full implementation, it lives in `api/src/services/agents/` — `context_manager.py`, `context_window_guard.py`, `context_pruning.py`, `context_summarizer.py`. MIT license. No magic, just decisions made explicit.
