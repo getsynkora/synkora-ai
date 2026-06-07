@@ -691,7 +691,7 @@ class EmailService:
 
                 /* Header */
                 .header {{
-                    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+                    background: linear-gradient(135deg, #2d8b69 0%, #1f6d52 100%);
                     padding: 48px 40px 40px;
                     text-align: center;
                 }}
@@ -742,21 +742,21 @@ class EmailService:
                 .button {{
                     display: inline-block;
                     padding: 18px 48px;
-                    background-color: #ef4444;
-                    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+                    background-color: #2d8b69;
+                    background: linear-gradient(135deg, #2d8b69 0%, #1f6d52 100%);
                     color: #ffffff !important;
                     text-decoration: none;
                     border-radius: 12px;
                     font-size: 16px;
                     font-weight: 700;
                     letter-spacing: 0.3px;
-                    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+                    box-shadow: 0 4px 14px rgba(45, 139, 105, 0.3);
                     mso-padding-alt: 0;
                 }}
 
                 /* MSO button fallback */
                 .button-td {{
-                    background-color: #ef4444;
+                    background-color: #2d8b69;
                     border-radius: 12px;
                 }}
 
@@ -778,7 +778,7 @@ class EmailService:
                 .verification-link {{
                     word-break: break-all;
                     font-size: 12px;
-                    color: #dc2626;
+                    color: #2d8b69;
                     background-color: #ffffff;
                     padding: 12px 16px;
                     border-radius: 8px;
@@ -820,7 +820,7 @@ class EmailService:
                 }}
 
                 .footer-link {{
-                    color: #ef4444;
+                    color: #2d8b69;
                     text-decoration: none;
                     font-weight: 500;
                 }}
@@ -848,7 +848,7 @@ class EmailService:
                 }}
 
                 .social-links a:hover {{
-                    color: #ef4444;
+                    color: #2d8b69;
                 }}
 
                 /* Mobile responsive */
@@ -909,7 +909,7 @@ class EmailService:
 
                         <div class="button-container">
                             <!--[if mso]>
-                            <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{verification_url}" style="height:54px;v-text-anchor:middle;width:220px;" arcsize="22%" strokecolor="#dc2626" fillcolor="#ef4444">
+                            <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{verification_url}" style="height:54px;v-text-anchor:middle;width:220px;" arcsize="22%" strokecolor="#1f6d52" fillcolor="#2d8b69">
                                 <w:anchorlock/>
                                 <center style="color:#ffffff;font-family:sans-serif;font-size:16px;font-weight:bold;">Verify Email</center>
                             </v:roundrect>
@@ -1036,7 +1036,7 @@ class EmailService:
                 }}
 
                 .header {{
-                    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+                    background: linear-gradient(135deg, #2d8b69 0%, #1f6d52 100%);
                     padding: 48px 40px;
                     text-align: center;
                 }}
@@ -1088,7 +1088,7 @@ class EmailService:
                 }}
 
                 .feature-card {{
-                    background: linear-gradient(135deg, #fef2f2 0%, #fff7ed 100%);
+                    background: linear-gradient(135deg, #edf8f3 0%, #f0faf6 100%);
                     border-radius: 12px;
                     padding: 20px;
                     margin-bottom: 16px;
@@ -1121,14 +1121,14 @@ class EmailService:
                 .button {{
                     display: inline-block;
                     padding: 18px 48px;
-                    background-color: #ef4444;
-                    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+                    background-color: #2d8b69;
+                    background: linear-gradient(135deg, #2d8b69 0%, #1f6d52 100%);
                     color: #ffffff !important;
                     text-decoration: none;
                     border-radius: 12px;
                     font-size: 16px;
                     font-weight: 700;
-                    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+                    box-shadow: 0 4px 14px rgba(45, 139, 105, 0.3);
                 }}
 
                 .secondary-link {{
@@ -1140,7 +1140,7 @@ class EmailService:
                 }}
 
                 .secondary-link:hover {{
-                    color: #ef4444;
+                    color: #2d8b69;
                 }}
 
                 .tips-section {{
@@ -1169,7 +1169,7 @@ class EmailService:
                     content: "→";
                     position: absolute;
                     left: 0;
-                    color: #ef4444;
+                    color: #2d8b69;
                 }}
 
                 .footer {{
@@ -1276,7 +1276,7 @@ class EmailService:
                         <!-- CTA -->
                         <div class="cta-section">
                             <!--[if mso]>
-                            <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{dashboard_url}" style="height:54px;v-text-anchor:middle;width:240px;" arcsize="22%" strokecolor="#dc2626" fillcolor="#ef4444">
+                            <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{dashboard_url}" style="height:54px;v-text-anchor:middle;width:240px;" arcsize="22%" strokecolor="#1f6d52" fillcolor="#2d8b69">
                                 <w:anchorlock/>
                                 <center style="color:#ffffff;font-family:sans-serif;font-size:16px;font-weight:bold;">Go to Dashboard</center>
                             </v:roundrect>
@@ -1404,7 +1404,7 @@ class EmailService:
                     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
                 }}
                 .header {{
-                    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+                    background: linear-gradient(135deg, #2d8b69 0%, #1f6d52 100%);
                     padding: 40px 40px 30px;
                     text-align: center;
                 }}
@@ -1455,7 +1455,7 @@ class EmailService:
                 .button {{
                     display: inline-block;
                     padding: 16px 32px;
-                    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+                    background: linear-gradient(135deg, #2d8b69 0%, #1f6d52 100%);
                     color: #ffffff;
                     text-decoration: none;
                     border-radius: 8px;
@@ -1471,7 +1471,7 @@ class EmailService:
                 .invitation-link {{
                     word-break: break-all;
                     font-size: 13px;
-                    color: #dc2626;
+                    color: #2d8b69;
                     background-color: #fef2f2;
                     padding: 12px 16px;
                     border-radius: 6px;
@@ -1480,7 +1480,7 @@ class EmailService:
                 }}
                 .expiry-notice {{
                     background-color: #fef2f2;
-                    border-left: 4px solid #ef4444;
+                    border-left: 4px solid #2d8b69;
                     padding: 12px 16px;
                     margin: 24px 0;
                     border-radius: 4px;
@@ -1499,7 +1499,7 @@ class EmailService:
                     margin: 0 0 16px 0;
                 }}
                 .footer-link {{
-                    color: #ef4444;
+                    color: #2d8b69;
                     text-decoration: none;
                 }}
             </style>
@@ -1615,7 +1615,7 @@ class EmailService:
                     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
                 }}
                 .header {{
-                    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+                    background: linear-gradient(135deg, #2d8b69 0%, #1f6d52 100%);
                     padding: 40px 40px 30px;
                     text-align: center;
                 }}
@@ -1646,7 +1646,7 @@ class EmailService:
                 .button {{
                     display: inline-block;
                     padding: 16px 32px;
-                    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+                    background: linear-gradient(135deg, #2d8b69 0%, #1f6d52 100%);
                     color: #ffffff;
                     text-decoration: none;
                     border-radius: 8px;
@@ -1663,7 +1663,7 @@ class EmailService:
                 .reset-link {{
                     word-break: break-all;
                     font-size: 13px;
-                    color: #dc2626;
+                    color: #2d8b69;
                     background-color: #fef2f2;
                     padding: 12px 16px;
                     border-radius: 6px;
@@ -1674,7 +1674,7 @@ class EmailService:
                 }}
                 .expiry-notice {{
                     background-color: #fef2f2;
-                    border-left: 4px solid #ef4444;
+                    border-left: 4px solid #2d8b69;
                     padding: 12px 16px;
                     margin: 24px 0;
                     border-radius: 4px;
@@ -1693,7 +1693,7 @@ class EmailService:
                     margin: 0 0 16px 0;
                 }}
                 .footer-link {{
-                    color: #ef4444;
+                    color: #2d8b69;
                     text-decoration: none;
                 }}
             </style>
