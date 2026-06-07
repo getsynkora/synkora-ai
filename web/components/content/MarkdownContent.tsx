@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import ReactMarkdown from 'react-markdown'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
 import remarkGfm from 'remark-gfm'
 
 export default function MarkdownContent({ content }: { content: string }) {
@@ -107,33 +109,41 @@ const markdownComponents = {
       </a>
     )
   },
-  pre: ({ children }: { children?: ReactNode }) => (
-    <pre className="overflow-x-auto rounded-2xl border border-black/10 bg-[#161412] p-4 text-[13px] leading-6 text-[#f5f0e8]">
-      {children}
-    </pre>
-  ),
+  // Let the code component handle its own pre wrapper so SyntaxHighlighter
+  // doesn't produce a nested pre > pre structure.
+  pre: ({ children }: { children?: ReactNode }) => <>{children}</>,
   code: ({
     className,
     children,
-    ...props
   }: {
     className?: string
     children?: ReactNode
   }) => {
-    const isInline = !className
-    if (isInline) {
+    const language = className?.replace('language-', '')
+    if (language) {
       return (
-        <code
-          {...props}
-          className="rounded-md bg-black/[0.06] px-1.5 py-0.5 text-[0.95em] text-[#1f1d19]"
+        <SyntaxHighlighter
+          language={language}
+          style={oneDark}
+          customStyle={{
+            background: '#161412',
+            borderRadius: '1rem',
+            border: '1px solid rgba(0,0,0,0.1)',
+            padding: '1.25rem 1.5rem',
+            fontSize: '13px',
+            lineHeight: '1.75',
+            margin: '1.5rem 0',
+            overflowX: 'auto',
+          }}
+          codeTagProps={{ style: { fontFamily: 'inherit' } }}
         >
-          {children}
-        </code>
+          {String(children).replace(/\n$/, '')}
+        </SyntaxHighlighter>
       )
     }
 
     return (
-      <code {...props} className={className}>
+      <code className="rounded-md bg-black/[0.06] px-1.5 py-0.5 text-[0.95em] text-[#1f1d19]">
         {children}
       </code>
     )

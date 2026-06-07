@@ -140,14 +140,10 @@ export function initializeSecureStorage(): void {
   const checkAndRefresh = () => {
     if (!secureStorage.isTokenExpired()) return
     secureStorage.refreshAccessToken().then((success) => {
-      if (!success) {
-        // Refresh token is expired/invalid — stop polling and redirect to login.
-        // refreshAccessToken() already calls clearTokens() before returning false.
-        if (refreshInterval !== null) {
-          clearInterval(refreshInterval)
-          refreshInterval = null
-        }
-        window.location.href = '/signin'
+      if (!success && refreshInterval !== null) {
+        // No refresh cookie — stop polling. Dashboard layout handles per-route auth guards.
+        clearInterval(refreshInterval)
+        refreshInterval = null
       }
     })
   }
