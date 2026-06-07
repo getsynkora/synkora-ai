@@ -17,6 +17,11 @@ export interface IntegrationCard {
   type?: 'oauth' | 'api_key'
 }
 
+export interface AgentCreatedInfo {
+  name: string
+  slug?: string
+}
+
 export interface ParsedMessage {
   role: 'user' | 'assistant'
   content: string
@@ -29,10 +34,12 @@ export function parseActionMarkers(text: string): {
   displayText: string
   actionCard: ActionCard | null
   integrationCard: IntegrationCard | null
+  agentCreated: AgentCreatedInfo | null
 } {
   let displayText = text
   let actionCard: ActionCard | null = null
   let integrationCard: IntegrationCard | null = null
+  let agentCreated: AgentCreatedInfo | null = null
 
   // Parse __ACTION__....__ACTION__
   const actionMatch = text.match(/__ACTION__([\s\S]*?)__ACTION__/)
@@ -71,5 +78,19 @@ export function parseActionMarkers(text: string): {
     displayText = displayText.replace(/__INTEGRATION__[\s\S]*?__INTEGRATION__/g, '').trim()
   }
 
-  return { displayText, actionCard, integrationCard }
+  // Parse __AGENT_CREATED__....__AGENT_CREATED__
+  const createdMatch = text.match(/__AGENT_CREATED__([\s\S]*?)__AGENT_CREATED__/)
+  if (createdMatch) {
+    try {
+      const parsed = JSON.parse(createdMatch[1].trim())
+      if (parsed.name) {
+        agentCreated = { name: parsed.name, slug: parsed.slug }
+      }
+    } catch {
+      // ignore malformed JSON
+    }
+    displayText = displayText.replace(/__AGENT_CREATED__[\s\S]*?__AGENT_CREATED__/g, '').trim()
+  }
+
+  return { displayText, actionCard, integrationCard, agentCreated }
 }

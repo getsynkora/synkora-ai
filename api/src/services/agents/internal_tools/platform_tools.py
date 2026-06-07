@@ -419,6 +419,7 @@ async def platform_create_agent(
     tags: list[str] | None = None,
     image_llm_provider: str | None = None,
     image_llm_model: str | None = None,
+    knowledge_base_ids: list[int] | None = None,
     runtime_context: Any = None,
 ) -> dict:
     """
@@ -626,11 +627,51 @@ async def platform_create_agent(
 
         await db.commit()
 
+        # Attach knowledge bases if provided
+        kb_results: list[str] = []
+        if knowledge_base_ids:
+            from src.models.agent_knowledge_base import AgentKnowledgeBase
+            from src.models.knowledge_base import KnowledgeBase
+
+            for kb_id in knowledge_base_ids:
+                try:
+                    kb = (
+                        await db.execute(
+                            select(KnowledgeBase).where(
+                                KnowledgeBase.id == kb_id,
+                                KnowledgeBase.tenant_id == tenant_id,
+                            )
+                        )
+                    ).scalar_one_or_none()
+                    if kb:
+                        db.add(
+                            AgentKnowledgeBase(
+                                agent_id=agent.id,
+                                knowledge_base_id=kb_id,
+                                retrieval_config={},
+                                is_active=True,
+                            )
+                        )
+                        kb_results.append(kb.name)
+                        logger.info(
+                            f"platform_create_agent: attached KB '{kb.name}' (id={kb_id}) to agent '{agent_name_slug}'"
+                        )
+                    else:
+                        logger.warning(
+                            f"platform_create_agent: KB id={kb_id} not found for tenant {tenant_id}, skipping"
+                        )
+                except Exception as kb_err:
+                    logger.warning(f"platform_create_agent: failed to attach KB id={kb_id}: {kb_err}")
+            if kb_results:
+                await db.commit()
+
+        attached_msg = f" Knowledge bases attached: {', '.join(kb_results)}." if kb_results else ""
         return {
             "success": True,
             "agent_name": agent_name_slug,
             "agent_id": str(agent.id),
-            "message": f"Agent '{agent_name_slug}' created successfully.",
+            "message": f"Agent '{agent_name_slug}' created successfully.{attached_msg}",
+            "knowledge_bases_attached": kb_results,
         }
 
     except Exception as e:
@@ -1150,7 +1191,13 @@ async def platform_list_knowledge_bases(
 
         db = runtime_context.db_session
         tenant_id = runtime_context.tenant_id
+        _VALID_KB_STATUSES = {"ACTIVE", "INACTIVE", "ERROR"}
+        _KB_STATUS_ALIASES = {"READY": "ACTIVE", "ENABLED": "ACTIVE", "DISABLED": "INACTIVE"}
         normalized_status = status.strip().upper() if status else None
+        if normalized_status:
+            normalized_status = _KB_STATUS_ALIASES.get(normalized_status, normalized_status)
+            if normalized_status not in _VALID_KB_STATUSES:
+                normalized_status = None  # ignore unknown values rather than crashing
 
         stmt = select(KnowledgeBase).where(KnowledgeBase.tenant_id == tenant_id)
         if normalized_status:

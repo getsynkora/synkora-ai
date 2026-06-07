@@ -163,7 +163,10 @@ class ChatService:
 
             # Append to conversation cache
             ChatService._append_message_to_cache(
-                conversation_id=str(conversation_id), role="assistant", content=content
+                conversation_id=str(conversation_id),
+                role="assistant",
+                content=content,
+                reasoning_content=reasoning_content,
             )
 
             # Update conversation metadata cache
@@ -183,7 +186,9 @@ class ChatService:
             return None
 
     @staticmethod
-    def _append_message_to_cache(conversation_id: str, role: str, content: str) -> None:
+    def _append_message_to_cache(
+        conversation_id: str, role: str, content: str, reasoning_content: str | None = None
+    ) -> None:
         """
         Append a message to the conversation cache.
 
@@ -191,16 +196,16 @@ class ChatService:
             conversation_id: Conversation ID string
             role: Message role (user/assistant)
             content: Message content
+            reasoning_content: DeepSeek reasoning_content to echo back on subsequent turns
         """
         try:
             cache_service = get_conversation_cache()
+            message: dict = {"role": role, "content": content}
+            if reasoning_content:
+                message["reasoning_content"] = reasoning_content
             # Run cache update in background; store a strong ref so GC
             # cannot collect the task before it completes.
-            task = asyncio.create_task(
-                cache_service.append_message(
-                    conversation_id=conversation_id, message={"role": role, "content": content}
-                )
-            )
+            task = asyncio.create_task(cache_service.append_message(conversation_id=conversation_id, message=message))
             _bg_cache_tasks.add(task)
             task.add_done_callback(_bg_cache_tasks.discard)
         except Exception as e:
