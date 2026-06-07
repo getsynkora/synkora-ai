@@ -359,7 +359,13 @@ class FunctionCallingHandler:
                 role = msg.get("role", "user")
                 content = msg.get("content", "")
                 if role in ["user", "assistant"] and content:
-                    conversation_history.append({"role": role, "content": content})
+                    entry: dict = {"role": role, "content": content}
+                    # DeepSeek reasoning models require reasoning_content to be echoed back
+                    if role == "assistant":
+                        rc = msg.get("reasoning_content")
+                        if isinstance(rc, str) and rc:
+                            entry["reasoning_content"] = rc
+                    conversation_history.append(entry)
             logger.info(f"📝 Using structured conversation: {len(messages)} messages passed to LLM")
         else:
             conversation_history = [{"role": "user", "content": prompt + pii_system_note}]
@@ -973,7 +979,7 @@ class FunctionCallingHandler:
             # each get their own ID and their own result message.
             call_ids = [f"call_{uuid.uuid4().hex[:8]}" for _ in function_calls]
 
-            assistant_message = {
+            assistant_message: dict[str, Any] = {
                 "role": "assistant",
                 "content": None,
                 "tool_calls": [
@@ -985,6 +991,13 @@ class FunctionCallingHandler:
                     for i, fc in enumerate(function_calls)
                 ],
             }
+            # DeepSeek reasoning models require reasoning_content echoed back on every turn.
+            # _generate_openai_with_tools sets _llm_reasoning_ctx when it captures it;
+            # include it here so the next iteration's history passes validation.
+            from src.services.agents.llm_client import _llm_reasoning_ctx as _rc_ctx
+            _iter_rc = _rc_ctx.get()
+            if isinstance(_iter_rc, str) and _iter_rc:
+                assistant_message["reasoning_content"] = _iter_rc
             conversation_history.append(assistant_message)
 
             # Add tool results — matched by index (not name) so each call gets its own result
@@ -1105,6 +1118,20 @@ class FunctionCallingHandler:
         stream = await litellm.acompletion(**completion_params)
         chunks = [chunk async for chunk in stream]
 
+        # Accumulate DeepSeek reasoning_content from raw chunks before stream_chunk_builder
+        # discards non-standard delta fields. The delta.reasoning_content field is set on
+        # each chunk; join them into a single string for echo-back in subsequent turns.
+        reasoning_parts: list[str] = []
+        for _chunk in chunks:
+            try:
+                _delta = _chunk.choices[0].delta if _chunk.choices else None
+                if _delta is not None:
+                    _rc = getattr(_delta, "reasoning_content", None)
+                    if isinstance(_rc, str) and _rc:
+                        reasoning_parts.append(_rc)
+            except Exception:
+                pass
+
         # stream_chunk_builder_async was removed in litellm ≥ 1.55.
         # Wrap the synchronous builder in a coroutine to preserve the async
         # interface without spinning up a thread (it's pure in-memory work).
@@ -1115,6 +1142,15 @@ class FunctionCallingHandler:
             )
 
         response = await _build()
+
+        # Attach accumulated reasoning_content to the built response message so callers
+        # can detect and echo it back to DeepSeek on the next turn.
+        if reasoning_parts and hasattr(response, "choices") and response.choices:
+            try:
+                response.choices[0].message.reasoning_content = "".join(reasoning_parts)
+            except Exception:
+                pass
+
         logger.debug("LiteLLM streaming acompletion completed for model: %s", completion_params.get("model"))
         return response
 
@@ -1271,6 +1307,14 @@ class FunctionCallingHandler:
                     tool_choice="auto",
                     timeout=LLM_FUNCTION_CALLING_TIMEOUT,
                 )
+
+            # Capture DeepSeek reasoning_content from the response (both LiteLLM and direct
+            # client paths). _litellm_stream_and_collect now attaches it from raw chunks.
+            if hasattr(response, "choices") and response.choices:
+                _rc = getattr(response.choices[0].message, "reasoning_content", None)
+                if isinstance(_rc, str) and _rc:
+                    from src.services.agents.llm_client import _llm_reasoning_ctx
+                    _llm_reasoning_ctx.set(_rc)
 
             # Create Langfuse generation if tracing is enabled (after getting response)
             if should_trace and self.trace_id:
@@ -1804,8 +1848,13 @@ class FunctionCallingHandler:
             elif msg["role"] == "assistant":
                 # Check if this is a function call message
                 if "tool_calls" in msg:
-                    # When assistant makes tool calls, content must be None or empty string
-                    messages.append({"role": "assistant", "content": None, "tool_calls": msg["tool_calls"]})
+                    # When assistant makes tool calls, content must be None or empty string.
+                    # DeepSeek also requires reasoning_content echoed back when present.
+                    _tc_entry: dict = {"role": "assistant", "content": None, "tool_calls": msg["tool_calls"]}
+                    _tc_rc = msg.get("reasoning_content")
+                    if isinstance(_tc_rc, str) and _tc_rc:
+                        _tc_entry["reasoning_content"] = _tc_rc
+                    messages.append(_tc_entry)
                 elif "function_calls" in msg:
                     # Legacy format - skip this message as it's handled differently
                     continue
@@ -1815,7 +1864,12 @@ class FunctionCallingHandler:
                     # Ensure content is a string, not an object
                     if isinstance(content, dict):
                         content = json.dumps(content)
-                    messages.append({"role": "assistant", "content": content})
+                    entry: dict = {"role": "assistant", "content": content}
+                    # DeepSeek reasoning models require reasoning_content to be echoed back
+                    rc = msg.get("reasoning_content")
+                    if isinstance(rc, str) and rc:
+                        entry["reasoning_content"] = rc
+                    messages.append(entry)
             elif msg["role"] == "tool":
                 # Tool response message
                 messages.append({"role": "tool", "tool_call_id": msg["tool_call_id"], "content": msg["content"]})

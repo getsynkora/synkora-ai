@@ -162,14 +162,17 @@ export function ChatScreen({ agentName = 'platform_engineer_agent' }: Props) {
         }
         return next
       })
+
     } catch (err: any) {
       const errMsg = err?.message || 'Failed to get response'
       setMessages((prev) => {
         const next = [...prev]
         const last = next[next.length - 1]
-        if (last.role === 'assistant') {
+        if (last?.role === 'assistant') {
           const existing = last.content ? `${last.content}\n\n` : ''
           next[next.length - 1] = { ...last, content: `${existing}⚠ ${errMsg}` }
+        } else {
+          next.push({ role: 'assistant', content: `⚠ ${errMsg}`, timestamp: new Date() })
         }
         return next
       })
@@ -179,67 +182,152 @@ export function ChatScreen({ agentName = 'platform_engineer_agent' }: Props) {
     }
   }
 
-  const handleConfirm = async (config: AgentCreateConfig) => {
-    // Optimistic: set card to creating
-    setMessages((prev) =>
-      prev.map((m) =>
-        m.actionCard?.status === 'pending'
-          ? { ...m, actionCard: { ...m.actionCard!, status: 'creating' } }
-          : m
-      )
-    )
+  // Send __CONFIRMED__ back to the PE agent so it calls platform_create_agent and
+  // platform_attach_knowledge_base as real tool calls. We stream the response into a
+  // new assistant message (showing tool progress) and watch for __AGENT_CREATED__ to
+  // flip the action card to 'created'.
+  const streamConfirmed = async () => {
+    setIsStreaming(true)
+
+    // Add an assistant placeholder so tool-status text streams in visibly
+    setMessages((prev) => [
+      ...prev,
+      { role: 'assistant', content: '', timestamp: new Date() },
+    ])
 
     try {
-      const response = await apiClient.axios.post('/api/v1/agents', {
-        config: {
-          name: config.name,
-          description: config.description,
-          system_prompt: config.system_prompt,
-          agent_type: 'llm_agent',
-          llm_config: {
-            provider: '',
-            model_name: '',
-            temperature: 0.7,
-            max_tokens: 4096,
-            api_key: '',
-          },
-          tools: (config.tools_list || []).map((t) => ({ name: t, enabled: true, config: {} })),
-          metadata: {},
+      const token = secureStorage.getAccessToken()
+      const response = await fetch(`${API_URL}/api/v1/agents/chat/stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
-        agent_type: 'llm',
-        is_public: false,
-        category: config.category,
-        tags: config.tags,
+        body: JSON.stringify({
+          agent_slug: agentName,
+          message: '__CONFIRMED__',
+          conversation_id: conversationId,
+          conversation_history: messages.slice(-10).map((m) => {
+            // Reconstruct __ACTION__ marker so the LLM can read back the agent config
+            if (m.actionCard && m.role === 'assistant') {
+              const marker = `__ACTION__${JSON.stringify({ type: 'create_agent', config: m.actionCard.config })}__ACTION__`
+              return { role: m.role, content: m.content ? `${m.content}\n${marker}` : marker }
+            }
+            return { role: m.role, content: m.content }
+          }),
+        }),
       })
 
-      const createdName = response.data?.agent_name || config.name
-      const createdSlug = response.data?.slug
-
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.actionCard?.status === 'creating'
-            ? {
-                ...m,
-                actionCard: {
-                  ...m.actionCard!,
-                  status: 'created',
-                  createdAgentName: createdName,
-                  createdAgentSlug: createdSlug,
-                },
-              }
-            : m
-        )
-      )
-
-      // Append follow-up message
-      const followUp: ParsedMessage = {
-        role: 'assistant',
-        content: `Agent "${createdName}" is ready! You can view it or start chatting right away.`,
-        timestamp: new Date(),
+      if (!response.ok || !response.body) {
+        throw new Error(`HTTP ${response.status}`)
       }
-      setMessages((prev) => [...prev, followUp])
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      let fullResponse = ''
+      let agentWasCreated = false
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (!line.trim() || !line.startsWith('data: ')) continue
+          const jsonStr = line.slice(6).trim()
+          if (jsonStr === '[DONE]') continue
+
+          let data: Record<string, unknown>
+          try {
+            data = JSON.parse(jsonStr)
+          } catch {
+            continue
+          }
+
+          if (data.type === 'error') {
+            throw new Error((data.error as string) || 'Something went wrong')
+          }
+
+          if (data.type === 'chunk') {
+            fullResponse += data.content
+            const { displayText, agentCreated } = parseActionMarkers(fullResponse)
+
+            if (agentCreated && !agentWasCreated) {
+              agentWasCreated = true
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.actionCard?.status === 'creating'
+                    ? {
+                        ...m,
+                        actionCard: {
+                          ...m.actionCard!,
+                          status: 'created',
+                          createdAgentName: agentCreated.name,
+                          createdAgentSlug: agentCreated.slug,
+                        },
+                      }
+                    : m
+                )
+              )
+            }
+
+            setMessages((prev) => {
+              const next = [...prev]
+              const last = next[next.length - 1]
+              if (last.role === 'assistant') {
+                next[next.length - 1] = { ...last, content: displayText }
+              }
+              return next
+            })
+          }
+        }
+      }
+
+      // Final parse
+      const { displayText, agentCreated } = parseActionMarkers(fullResponse)
+      if (agentCreated && !agentWasCreated) {
+        agentWasCreated = true
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.actionCard?.status === 'creating'
+              ? {
+                  ...m,
+                  actionCard: {
+                    ...m.actionCard!,
+                    status: 'created',
+                    createdAgentName: agentCreated.name,
+                    createdAgentSlug: agentCreated.slug,
+                  },
+                }
+              : m
+          )
+        )
+      }
+      setMessages((prev) => {
+        const next = [...prev]
+        const last = next[next.length - 1]
+        if (last.role === 'assistant') {
+          next[next.length - 1] = { ...last, content: displayText }
+        }
+        return next
+      })
+
+      // LLM didn't output __AGENT_CREATED__ — reset so user can retry
+      if (!agentWasCreated) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.actionCard?.status === 'creating'
+              ? { ...m, actionCard: { ...m.actionCard!, status: 'pending' } }
+              : m
+          )
+        )
+      }
     } catch (err: any) {
-      const detail = err?.response?.data?.detail || err?.message || 'Agent creation failed'
+      const errMsg = err?.message || 'Agent creation failed'
       setMessages((prev) =>
         prev.map((m) =>
           m.actionCard?.status === 'creating'
@@ -247,8 +335,29 @@ export function ChatScreen({ agentName = 'platform_engineer_agent' }: Props) {
             : m
         )
       )
-      toast.error(detail)
+      setMessages((prev) => {
+        const next = [...prev]
+        const last = next[next.length - 1]
+        if (last?.role === 'assistant') {
+          next[next.length - 1] = { ...last, content: `⚠ ${errMsg}` }
+        }
+        return next
+      })
+      toast.error(errMsg)
+    } finally {
+      setIsStreaming(false)
     }
+  }
+
+  const handleConfirm = (_config: AgentCreateConfig) => {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.actionCard?.status === 'pending'
+          ? { ...m, actionCard: { ...m.actionCard!, status: 'creating' } }
+          : m
+      )
+    )
+    streamConfirmed()
   }
 
   const handleCancelAction = () => {

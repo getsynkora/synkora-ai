@@ -76,6 +76,7 @@ def register_platform_tools(registry) -> None:
             tags=kwargs.get("tags"),
             image_llm_provider=kwargs.get("image_llm_provider"),
             image_llm_model=kwargs.get("image_llm_model"),
+            knowledge_base_ids=kwargs.get("knowledge_base_ids"),
             runtime_context=runtime_context,
         )
 
@@ -320,6 +321,11 @@ def register_platform_tools(registry) -> None:
                     "type": "array",
                     "items": {"type": "string"},
                     "description": "List of tags for discovery",
+                },
+                "knowledge_base_ids": {
+                    "type": "array",
+                    "items": {"type": "integer"},
+                    "description": "List of knowledge base IDs to attach to this agent immediately after creation.",
                 },
             },
             "required": ["name", "description", "system_prompt"],
