@@ -264,7 +264,7 @@ def send_password_reset_email_task(
                 join = join_result.scalar_one_or_none()
                 tenant_id = str(join.tenant_id) if join else None
 
-                email_service = EmailService(db, tenant_id=tenant_id)
+                email_service = EmailService(db)
 
                 result = await email_service.send_password_reset_email(
                     to_email=email, reset_token=reset_token, base_url=base_url

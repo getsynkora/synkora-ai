@@ -186,7 +186,7 @@ async def internal_send_email(
             # Send email synchronously
             email_service = EmailService(db)
 
-            result = email_service.send_email(
+            result = await email_service.send_email(
                 to_email=to_email,
                 subject=subject,
                 html_content=html_content,
