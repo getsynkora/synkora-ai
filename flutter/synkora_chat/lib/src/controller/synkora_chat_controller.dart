@@ -51,6 +51,12 @@ class SynkoraChatController extends ChangeNotifier {
   // When true, the next send() creates a new session instead of resuming
   bool _forceNewOnNextSend = false;
 
+  // Handoff / approval state
+  bool _isHandoffActive = false;
+  ApprovalRequiredEvent? _pendingApproval;
+  Timer? _handoffPollTimer;
+  final Set<String> _seenOperatorMsgIds = {};
+
   // Pre-chat form collected values (name, email, phone)
   String? _preChatName;
   String? _preChatEmail;
@@ -66,6 +72,8 @@ class SynkoraChatController extends ChangeNotifier {
   String? get conversationId => _conversationId;
   WidgetConfig? get config => _config;
   String? get error => _error;
+  bool get isHandoffActive => _isHandoffActive;
+  ApprovalRequiredEvent? get pendingApproval => _pendingApproval;
   bool get hasConversationContent =>
       _messages.any((m) => m.content.trim().isNotEmpty);
 
@@ -253,6 +261,38 @@ class SynkoraChatController extends ChangeNotifier {
           _isStreaming = false;
           notifyListeners();
           return;
+        } else if (event is ApprovalRequiredEvent) {
+          _removeMessage(streamingId);
+          _pendingApproval = event;
+          _isStreaming = false;
+          notifyListeners();
+          return;
+        } else if (event is HandoffInitiatedEvent) {
+          _isHandoffActive = true;
+          // Finalize any partial streaming content before handoff message
+          if (buffer.isNotEmpty) {
+            _finalizeStreamingMessage(streamingId, buffer.toString());
+          } else {
+            _removeMessage(streamingId);
+          }
+          _appendSystemMessage(
+            'handoff_${DateTime.now().millisecondsSinceEpoch}',
+            event.summary.isNotEmpty ? event.summary : 'Connected to support',
+            MessageRole.operator,
+          );
+          _isStreaming = false;
+          notifyListeners();
+          _startHandoffPolling();
+          return;
+        } else if (event is HandoffResolvedEvent) {
+          _isHandoffActive = false;
+          _stopHandoffPolling();
+          _appendSystemMessage(
+            'handoff_resolved_${DateTime.now().millisecondsSinceEpoch}',
+            'Support session ended',
+            MessageRole.operator,
+          );
+          notifyListeners();
         }
       }
     } catch (e) {
@@ -316,6 +356,38 @@ class SynkoraChatController extends ChangeNotifier {
 
   void _removeMessage(String id) {
     _messages = _messages.where((m) => m.id != id).toList();
+  }
+
+  void _appendSystemMessage(String id, String content, MessageRole role) {
+    _messages = [
+      ..._messages,
+      ChatMessage(
+        id: id,
+        role: role,
+        content: content,
+        timestamp: DateTime.now(),
+      ),
+    ];
+  }
+
+  /// Dismiss the pending approval (e.g. after user approves/rejects via a
+  /// different channel, or the approval times out).
+  void dismissApproval() {
+    _pendingApproval = null;
+    notifyListeners();
+  }
+
+  /// Respond to a pending approval request. [decision] is 'approved' or 'rejected'.
+  /// Calls the widget API endpoint, then clears the pending approval locally.
+  Future<void> respondApproval(String approvalId, String decision) async {
+    try {
+      await _client.respondApproval(approvalId: approvalId, decision: decision);
+    } catch (_) {
+      // Non-fatal — still clear local state so the UI doesn't get stuck
+    } finally {
+      _pendingApproval = null;
+      notifyListeners();
+    }
   }
 
   void _appendAssistantErrorMessage(String message) {
@@ -447,12 +519,50 @@ class SynkoraChatController extends ChangeNotifier {
   }
 
   // ---------------------------------------------------------------------------
+  // Handoff polling — fetches new operator messages every 4 seconds
+  // ---------------------------------------------------------------------------
+
+  void _startHandoffPolling() {
+    _handoffPollTimer?.cancel();
+    _handoffPollTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      _pollForOperatorMessages();
+    });
+  }
+
+  void _stopHandoffPolling() {
+    _handoffPollTimer?.cancel();
+    _handoffPollTimer = null;
+    _seenOperatorMsgIds.clear();
+  }
+
+  Future<void> _pollForOperatorMessages() async {
+    final convId = _conversationId;
+    if (convId == null) return;
+    try {
+      final bundle = await _client.loadHistoryBundle(conversationId: convId);
+      for (final msg in bundle.messages) {
+        if (msg.role != MessageRole.operator) continue;
+        if (_seenOperatorMsgIds.contains(msg.id)) continue;
+        _seenOperatorMsgIds.add(msg.id);
+        // Only append if not already in _messages
+        if (!_messages.any((m) => m.id == msg.id)) {
+          _messages = [..._messages, msg];
+          notifyListeners();
+        }
+      }
+    } catch (_) {
+      // Non-fatal — polling will retry on next tick
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Dispose
   // ---------------------------------------------------------------------------
 
   @override
   void dispose() {
     _inactivityTimer?.cancel();
+    _handoffPollTimer?.cancel();
     _client.dispose();
     _cache.close();
     super.dispose();

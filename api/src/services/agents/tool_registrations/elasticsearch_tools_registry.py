@@ -24,9 +24,165 @@ def register_elasticsearch_tools(registry):
         internal_elasticsearch_search,
     )
 
+    BACKGROUND_HIT_THRESHOLD = 100  # auto-defer when ES total hits exceed this
+
+    def _build_es_query_clause(query_str: str) -> dict:
+        """Return an ES query clause for the given search string.
+        Wildcard/empty queries fall back to match_all; others use multi_match."""
+        _WILDCARD = {"", "*", "**", "all", "all records", "everything"}
+        if not query_str or query_str.strip().lower() in _WILDCARD:
+            return {"match_all": {}}
+        return {"multi_match": {"query": query_str, "fields": ["*"], "type": "best_fields"}}
+
     # Elasticsearch tools - create wrappers that inject runtime_context
     async def internal_elasticsearch_search_wrapper(config: dict[str, Any] | None = None, **kwargs):
         runtime_context = config.get("_runtime_context") if config else None
+        background = kwargs.get("background", False)
+
+        # Background deferral: build an ES DSL query and defer to Celery
+        if background and runtime_context:
+            try:
+                from src.services.agents.adk_tools import _maybe_defer_to_background
+
+                tenant_id = getattr(runtime_context, "tenant_id", None)
+                db_session = getattr(runtime_context, "db_session", None)
+                connection_name = kwargs.get("connection_name", "")
+                index_pattern = kwargs.get("index_pattern", "*")
+                query_str = kwargs.get("query", "")
+                limit = kwargs.get("limit", 10)
+                filters = kwargs.get("filters") or {}
+
+                # Resolve connection_id from name or UUID
+                import uuid as _uuid
+
+                from sqlalchemy import or_, select
+
+                from src.models.database_connection import DatabaseConnection
+
+                def _is_uuid(val):
+                    try:
+                        _uuid.UUID(str(val))
+                        return True
+                    except Exception:
+                        return False
+
+                id_f = DatabaseConnection.id == connection_name if _is_uuid(connection_name) else None
+                name_f = DatabaseConnection.name == connection_name
+                combined = or_(id_f, name_f) if id_f is not None else name_f
+                res = await db_session.execute(
+                    select(DatabaseConnection.id).filter(
+                        combined,
+                        DatabaseConnection.tenant_id == tenant_id,
+                        DatabaseConnection.deleted_at.is_(None),
+                    )
+                )
+                conn_id = res.scalar_one_or_none()
+
+                if conn_id:
+                    # Build ES DSL from the search params
+                    import json as _json
+
+                    dsl: dict = {"query": _build_es_query_clause(query_str), "size": limit}
+                    if filters.get("date_range"):
+                        dr = filters["date_range"]
+                        dsl["query"] = {
+                            "bool": {
+                                "must": [dsl["query"]],
+                                "filter": [{"range": {dr["field"]: {"gte": dr.get("gte"), "lte": dr.get("lte")}}}],
+                            }
+                        }
+                    if index_pattern and index_pattern != "*":
+                        dsl["index"] = index_pattern
+                    deferred = await _maybe_defer_to_background(
+                        connection_id=str(conn_id),
+                        query=_json.dumps(dsl),
+                        config={"background": True, "_runtime_context": runtime_context},
+                        tenant_id=str(tenant_id),
+                        db_session=db_session,
+                    )
+                    if deferred:
+                        return deferred
+            except Exception as _e:
+                logger.warning("Background deferral failed, running inline: %s", _e)
+
+        # Auto-deferral: if total hits would exceed threshold, run in background
+        if not background and runtime_context:
+            try:
+                from src.services.agents.adk_tools import _maybe_defer_to_background
+
+                tenant_id = getattr(runtime_context, "tenant_id", None)
+                db_session = getattr(runtime_context, "db_session", None)
+                connection_name = kwargs.get("connection_name", "")
+                index_pattern = kwargs.get("index_pattern", "*")
+                query_str = kwargs.get("query", "")
+                limit = kwargs.get("limit", 10)
+
+                if tenant_id and db_session:
+                    import uuid as _uuid
+
+                    from sqlalchemy import or_, select
+
+                    from src.models.database_connection import DatabaseConnection
+
+                    def _is_uuid2(val):
+                        try:
+                            _uuid.UUID(str(val))
+                            return True
+                        except Exception:
+                            return False
+
+                    id_f2 = DatabaseConnection.id == connection_name if _is_uuid2(connection_name) else None
+                    name_f2 = DatabaseConnection.name == connection_name
+                    combined2 = or_(id_f2, name_f2) if id_f2 is not None else name_f2
+                    res2 = await db_session.execute(
+                        select(DatabaseConnection).filter(
+                            combined2,
+                            DatabaseConnection.tenant_id == tenant_id,
+                            DatabaseConnection.deleted_at.is_(None),
+                        )
+                    )
+                    conn2 = res2.scalar_one_or_none()
+
+                    if conn2:
+                        from src.services.search.elasticsearch_service import ElasticsearchService
+
+                        password2 = None
+                        if conn2.password_encrypted:
+                            try:
+                                password2 = conn2.get_password()
+                            except Exception:
+                                pass
+                        es2 = ElasticsearchService(
+                            {
+                                "host": conn2.host,
+                                "port": conn2.port,
+                                "username": conn2.username,
+                                "password": password2,
+                                "connection_params": conn2.connection_params or {},
+                            }
+                        )
+                        stats_result = await es2.get_index_stats(index_pattern)
+                        await es2.close()
+                        total_hits = stats_result.get("document_count", 0) if stats_result.get("success") else 0
+
+                        if total_hits > BACKGROUND_HIT_THRESHOLD:
+                            import json as _json
+
+                            dsl = {"query": _build_es_query_clause(query_str), "size": limit}
+                            if index_pattern and index_pattern != "*":
+                                dsl["index"] = index_pattern
+                            deferred = await _maybe_defer_to_background(
+                                connection_id=str(conn2.id),
+                                query=_json.dumps(dsl),
+                                config={"background": True, "_runtime_context": runtime_context},
+                                tenant_id=str(tenant_id),
+                                db_session=db_session,
+                            )
+                            if deferred:
+                                return {**deferred, "auto_deferred": True, "total_hits": total_hits}
+            except Exception as _auto_e:
+                logger.warning("Auto-background check failed, running inline: %s", _auto_e)
+
         return await internal_elasticsearch_search(
             connection_name=kwargs.get("connection_name"),
             index_pattern=kwargs.get("index_pattern"),
@@ -119,6 +275,10 @@ def register_elasticsearch_tools(registry):
                     "default": 10,
                     "minimum": 1,
                     "maximum": 100,
+                },
+                "background": {
+                    "type": "boolean",
+                    "description": "If true, run this search as a background job and post the result back to the conversation when done. Use for large or slow queries, or when the user asks to 'run in background'.",
                 },
             },
             "required": ["connection_name", "index_pattern", "query"],

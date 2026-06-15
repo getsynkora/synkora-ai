@@ -458,6 +458,72 @@ class MCPClientManager:
             finally:
                 del self._clients[agent_id]
 
+    async def get_agent_client_with_user_token(
+        self, agent_id: UUID, db: AsyncSession, user_token: str
+    ) -> MCPClient | None:
+        """
+        Create a fresh, non-cached MCP client for a single request, injecting a
+        per-request Bearer token that overrides the static auth_config token.
+
+        Used when a widget user's identity JWT needs to be forwarded to the MCP
+        server so it can extract user context from the Authorization header.
+
+        The client is NOT stored in the cache — callers must call disconnect()
+        themselves (or use it as an async context manager).
+
+        Args:
+            agent_id: Agent ID
+            db: Async database session
+            user_token: Short-lived JWT to use as Bearer token (overrides static config)
+
+        Returns:
+            Connected MCP client or None if no servers configured
+        """
+        from sqlalchemy.orm import selectinload
+
+        result = await db.execute(
+            select(AgentMCPServer)
+            .options(selectinload(AgentMCPServer.mcp_server))
+            .filter(AgentMCPServer.agent_id == agent_id, AgentMCPServer.is_active)
+        )
+        associations = list(result.scalars().all())
+
+        if not associations:
+            return None
+
+        # Build patched server list — override Bearer token with the per-request JWT.
+        # Use SimpleNamespace instead of copying the SQLAlchemy model to avoid
+        # corrupting shared _sa_instance_state.
+        import types
+
+        patched_servers: list[Any] = []
+        for assoc in associations:
+            server = assoc.mcp_server
+            transport_type = getattr(server, "transport_type", "http")
+            if transport_type != "http":
+                # stdio transport doesn't use HTTP headers; pass through unchanged
+                patched_servers.append(server)
+                continue
+
+            patched_servers.append(
+                types.SimpleNamespace(
+                    name=server.name,
+                    url=server.url,
+                    auth_type="bearer",
+                    auth_config={**(server.auth_config or {}), "token": user_token},
+                    headers=server.headers,
+                    transport_type="http",
+                )
+            )
+
+        try:
+            client = MCPClient(servers=patched_servers, timeout=30, max_retries=3)
+            await client.connect()
+            return client
+        except Exception as e:
+            logger.error(f"Failed to create per-request MCP client for agent {agent_id}: {e}")
+            return None
+
     async def close_all(self) -> None:
         """Close all MCP clients."""
         for agent_id in list(self._clients.keys()):

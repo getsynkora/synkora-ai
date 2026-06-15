@@ -481,6 +481,41 @@ class TracingConfig(BaseSettings):
         validation_alias="AGENT_TRACE_RETENTION_DAYS",
         description="Days to retain agent session events in Elasticsearch",
     )
+    agent_feedback_index: str = Field(
+        default="agent-feedback",
+        validation_alias="AGENT_FEEDBACK_INDEX",
+        description="Elasticsearch index name for per-message user feedback",
+    )
+    agent_outcomes_index: str = Field(
+        default="agent-outcomes",
+        validation_alias="AGENT_OUTCOMES_INDEX",
+        description="Elasticsearch index name for session outcome documents",
+    )
+    agent_eval_datasets_index: str = Field(
+        default="agent-eval-datasets",
+        validation_alias="AGENT_EVAL_DATASETS_INDEX",
+        description="Elasticsearch index name for eval datasets and cases",
+    )
+    agent_eval_runs_index: str = Field(
+        default="agent-eval-runs",
+        validation_alias="AGENT_EVAL_RUNS_INDEX",
+        description="Elasticsearch index name for eval run results",
+    )
+    eval_judge_model: str = Field(
+        default="gpt-4o-mini",
+        validation_alias="EVAL_JUDGE_MODEL",
+        description="LLM model used for the on-demand eval judge",
+    )
+    eval_judge_max_tokens: int = Field(
+        default=512,
+        validation_alias="EVAL_JUDGE_MAX_TOKENS",
+        description="Max tokens for eval judge LLM responses",
+    )
+    eval_judge_llm_config_id: str | None = Field(
+        default=None,
+        validation_alias="EVAL_JUDGE_LLM_CONFIG_ID",
+        description="UUID of an AgentLLMConfig row to use as the judge's LLM for standalone eval/regression tests",
+    )
 
 
 class AWSConfig(BaseSettings):

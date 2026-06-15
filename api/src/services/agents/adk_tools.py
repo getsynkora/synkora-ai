@@ -17,6 +17,106 @@ logger = logging.getLogger(__name__)
 _tool_registry: "ADKToolRegistry | None" = None
 
 
+async def _create_analysis_job(
+    tenant_id: str,
+    agent_id: str,
+    conversation_id: str,
+    connection_id: str,
+    query: str,
+    source_type: str,
+    db_session,
+) -> "Any":
+    """Insert an AnalysisJob row and return its id."""
+    import uuid as _uuid
+
+    from src.models.analysis_job import AnalysisJob, JobStatus, JobType
+
+    job = AnalysisJob(
+        tenant_id=_uuid.UUID(str(tenant_id)),
+        agent_id=_uuid.UUID(str(agent_id)),
+        conversation_id=_uuid.UUID(str(conversation_id)),
+        connection_id=_uuid.UUID(str(connection_id)) if connection_id else None,
+        status=JobStatus.PENDING,
+        job_type=JobType.READ,
+        source_type=source_type.upper() if source_type else None,
+        query=query,
+        analysis_spec={},
+    )
+    db_session.add(job)
+    await db_session.commit()
+    await db_session.refresh(job)
+    return job.id
+
+
+async def _maybe_defer_to_background(
+    connection_id: str,
+    query: str,
+    config: dict,
+    tenant_id: str,
+    db_session,
+) -> "dict | None":
+    """
+    Check if this query should be deferred to a background job.
+
+    Returns a deferred-response dict if config["background"] is True,
+    or None if the query should run inline.
+    """
+    if not config or not config.get("background"):
+        return None
+
+    runtime_context = config.get("_runtime_context")
+    if not runtime_context:
+        return None
+
+    agent_id = getattr(runtime_context, "agent_id", None)
+    conversation_id = getattr(runtime_context, "conversation_id", None)
+
+    if not agent_id or not conversation_id:
+        logger.warning("[DB Tool] background=True but missing agent_id or conversation_id — running inline")
+        return None
+
+    # Determine source type from the connection
+    source_type = "UNKNOWN"
+    try:
+        from src.models.database_connection import DatabaseConnection
+
+        stmt = select(DatabaseConnection.database_type).where(
+            DatabaseConnection.id == connection_id,
+            DatabaseConnection.tenant_id == tenant_id,
+        )
+        result = await db_session.execute(stmt)
+        db_type = result.scalar_one_or_none()
+        if db_type:
+            source_type = str(db_type).upper()
+    except Exception:
+        pass
+
+    job_id = await _create_analysis_job(
+        tenant_id=str(tenant_id),
+        agent_id=str(agent_id),
+        conversation_id=str(conversation_id),
+        connection_id=connection_id,
+        query=query,
+        source_type=source_type,
+        db_session=db_session,
+    )
+
+    from src.celery_app import celery_app as _celery_app
+
+    _celery_app.send_task("tasks.run_analysis_job", args=[str(job_id)])
+
+    logger.info("[DB Tool] Deferred query to background job %s (conversation=%s)", job_id, conversation_id)
+
+    return {
+        "success": True,
+        "deferred": True,
+        "job_id": str(job_id),
+        "message": (
+            f"This analysis is running in the background (job {job_id}). I'll post the results here when it's ready."
+        ),
+    }
+
+
 class ADKToolRegistry:
     """Registry for Google ADK tools."""
 
@@ -47,6 +147,7 @@ class ADKToolRegistry:
             internal_search_files,
             internal_web_fetch,
             internal_write_file,
+            query_database_to_s3,
         )
 
         # Google Drive tools - use modular registry
@@ -168,6 +269,16 @@ class ADKToolRegistry:
         from src.services.agents.tool_registrations.jira_tools_registry import register_jira_tools
 
         register_jira_tools(self)
+
+        # Zendesk tools - use modular registry
+        from src.services.agents.tool_registrations.zendesk_tools_registry import register_zendesk_tools
+
+        register_zendesk_tools(self)
+
+        # Zoho CRM tools - use modular registry
+        from src.services.agents.tool_registrations.zoho_crm_tools_registry import register_zoho_crm_tools
+
+        register_zoho_crm_tools(self)
 
         # Micromobility tools - use modular registry
         from src.services.agents.tool_registrations.micromobility_tools_registry import (
@@ -360,6 +471,11 @@ class ADKToolRegistry:
         from src.services.agents.tool_registrations.kb_ingest_tools_registry import register_kb_ingest_tools
 
         register_kb_ingest_tools(self)
+
+        # Human handoff tool
+        from src.services.agents.tool_registrations.handoff_tools_registry import register_handoff_tools
+
+        register_handoff_tools(self)
 
         # Multi-agent transfer tool
         self.register_tool(
@@ -790,7 +906,9 @@ Supports: Git, GitHub CLI, npm, pip, Docker, file operations (ls, cat, mkdir, et
         register_git_commit_tools(self)
 
         # Internal database tools - create wrappers that extract tenant_id and db_session from _runtime_context
-        async def internal_query_database_wrapper(connection_id: str, query: str, config: dict[str, Any] | None = None):
+        async def internal_query_database_wrapper(
+            connection_id: str, query: str, background: bool = False, config: dict[str, Any] | None = None
+        ):
             logger.info(f"[DB Tool] query_database_wrapper called with connection_id={connection_id}")
             logger.debug(f"[DB Tool] Config keys: {list(config.keys()) if config else 'None'}")
 
@@ -831,6 +949,23 @@ Supports: Git, GitHub CLI, npm, pip, Docker, file operations (ls, cat, mkdir, et
                     "error": f"Database connection '{connection_id}' is not attached to this agent. "
                     "Use internal_list_database_connections to see available connections.",
                 }
+
+            # Merge explicit background flag into config
+            if background:
+                if config is None:
+                    config = {}
+                config["background"] = True
+
+            # Background deferral: if config["background"] is True, queue a job
+            deferred = await _maybe_defer_to_background(
+                connection_id=connection_id,
+                query=query,
+                config=config,
+                tenant_id=str(tenant_id),
+                db_session=db_session,
+            )
+            if deferred is not None:
+                return deferred
 
             return await internal_query_database(
                 connection_id=connection_id, query=query, tenant_id=tenant_id, db_session=db_session, config=config
@@ -1065,6 +1200,14 @@ Supports: Git, GitHub CLI, npm, pip, Docker, file operations (ls, cat, mkdir, et
                             "SQL query to execute. Must use aggregation (GROUP BY / COUNT / SUM / AVG) "
                             "for large tables. Add LIMIT ≤ 1000 when fetching raw rows. "
                             "Elasticsearch connections accept DSL JSON instead of SQL."
+                        ),
+                    },
+                    "background": {
+                        "type": "boolean",
+                        "description": (
+                            "If true, run this query as a background job and post the result back "
+                            "to the conversation when done. Use for queries that may take 30+ seconds "
+                            "or when the user asks to 'run in background'."
                         ),
                     },
                 },
@@ -1833,7 +1976,7 @@ Supports: Git, GitHub CLI, npm, pip, Docker, file operations (ls, cat, mkdir, et
 
         return schema
 
-    async def load_agent_mcp_tools(self, agent_id: str, db: Any):
+    async def load_agent_mcp_tools(self, agent_id: str, db: Any, shared_state: dict[str, Any] | None = None):
         """
         Load tools from MCP servers attached to an agent.
 
@@ -1843,6 +1986,10 @@ Supports: Git, GitHub CLI, npm, pip, Docker, file operations (ls, cat, mkdir, et
         Args:
             agent_id: Agent ID (UUID as string)
             db: Database session
+            shared_state: Optional mutable shared state dict. When it contains
+                ``mcp_user_token`` at tool-execution time the wrapper will open a
+                fresh per-request MCP client with that token as the Bearer
+                credential instead of the static server token.
         """
         try:
             from uuid import UUID
@@ -1917,19 +2064,67 @@ Supports: Git, GitHub CLI, npm, pip, Docker, file operations (ls, cat, mkdir, et
 
                     # Register filtered tools
                     for tool_def in tools_to_register:
+                        import re as _re
+
                         # FastMCP returns Tool objects with attributes
                         tool_name = tool_def.name if hasattr(tool_def, "name") else str(tool_def)
                         tool_description = tool_def.description if hasattr(tool_def, "description") else ""
                         tool_input_schema = tool_def.inputSchema if hasattr(tool_def, "inputSchema") else {}
 
-                        # Create a wrapper function that captures the client and tool name
-                        def create_mcp_tool_wrapper(mcp_client, mcp_tool_name, mcp_server_name):
+                        # OpenAI / Anthropic require tool names to match ^[a-zA-Z0-9_-]+$.
+                        # FastMCP may prefix tools with the server name (e.g. a server named
+                        # "my server" produces "my server_tool_name"). Characters like spaces
+                        # are accepted in the tools list on the first LLM call but rejected
+                        # when the name appears in tool_calls in conversation history on
+                        # subsequent calls, causing a 400 Bad Request.
+                        # Sanitize for the registry (what the LLM sees) while keeping the
+                        # original FastMCP name for the actual call_tool() invocation.
+                        sanitized_tool_name = _re.sub(r"[^a-zA-Z0-9_-]", "_", tool_name)
+
+                        # Create a wrapper function that captures the client and tool name.
+                        # ``_shared_state`` is the mutable dict from stream_agent_response —
+                        # checked at execution time (not registration time) so the
+                        # per-request ``mcp_user_token`` set by the widget handler is visible.
+                        def create_mcp_tool_wrapper(mcp_client, mcp_tool_name, mcp_server_name, _shared_state):
                             async def mcp_tool_wrapper(config: dict[str, Any] | None = None, **kwargs):
                                 try:
-                                    # Use the tool name as-is when calling MCP server
-                                    result = await mcp_client.execute_tool(
-                                        tool_name=mcp_tool_name, arguments=kwargs, server_name=mcp_server_name
-                                    )
+                                    # If the caller injected a per-request user token (e.g. widget
+                                    # identity JWT), open a fresh client with that token so the
+                                    # MCP server receives the correct Authorization header.
+                                    _user_token = (_shared_state or {}).get("mcp_user_token")
+                                    if _user_token:
+                                        from uuid import UUID as _UUID
+
+                                        from src.core.database import get_async_session_factory as _gsf
+                                        from src.services.mcp import mcp_client_manager
+
+                                        _agent_uuid = _UUID(agent_id)
+                                        _per_req_client = None
+                                        async with _gsf()() as _db:
+                                            _per_req_client = await mcp_client_manager.get_agent_client_with_user_token(
+                                                agent_id=_agent_uuid,
+                                                db=_db,
+                                                user_token=_user_token,
+                                            )
+                                        if _per_req_client:
+                                            try:
+                                                result = await _per_req_client.execute_tool(
+                                                    tool_name=mcp_tool_name,
+                                                    arguments=kwargs,
+                                                    server_name=mcp_server_name,
+                                                )
+                                            finally:
+                                                await _per_req_client.disconnect()
+                                        else:
+                                            # Fall back to cached client if per-request setup failed
+                                            result = await mcp_client.execute_tool(
+                                                tool_name=mcp_tool_name, arguments=kwargs, server_name=mcp_server_name
+                                            )
+                                    else:
+                                        # Normal path — use the cached shared client
+                                        result = await mcp_client.execute_tool(
+                                            tool_name=mcp_tool_name, arguments=kwargs, server_name=mcp_server_name
+                                        )
 
                                     # Extract content from CallToolResult object
                                     # FastMCP returns CallToolResult with content array
@@ -1965,14 +2160,17 @@ Supports: Git, GitHub CLI, npm, pip, Docker, file operations (ls, cat, mkdir, et
 
                             return mcp_tool_wrapper
 
-                        # Register the tool with the name as discovered (no prefix)
+                        # Register with sanitized name (LLM-visible, valid identifier).
+                        # The wrapper still uses the original tool_name for call_tool().
+                        if sanitized_tool_name != tool_name:
+                            logger.debug(f"MCP tool name sanitized: '{tool_name}' → '{sanitized_tool_name}'")
                         self.register_tool(
-                            name=tool_name,
+                            name=sanitized_tool_name,
                             description=tool_description,
                             parameters=tool_input_schema,
-                            function=create_mcp_tool_wrapper(client, tool_name, server_name),
+                            function=create_mcp_tool_wrapper(client, tool_name, server_name, shared_state),
                         )
-                        registered_tool_names.append(tool_name)
+                        registered_tool_names.append(sanitized_tool_name)
 
                     if enabled_tools:
                         logger.info(
@@ -2069,6 +2267,14 @@ _ACTION_TOOL_NAMES: frozenset[str] = frozenset(
         "internal_jira_create_issue",
         "internal_jira_update_issue",
         "internal_jira_add_comment",
+        # Zendesk
+        "internal_create_zendesk_ticket",
+        "internal_update_zendesk_ticket",
+        "internal_add_zendesk_comment",
+        # Zoho CRM
+        "internal_create_zoho_crm_record",
+        "internal_update_zoho_crm_record",
+        "internal_add_zoho_crm_note",
         # Git
         "internal_git_commit_and_push",
         # WhatsApp
@@ -2133,9 +2339,17 @@ async def _check_approval_gate(
         return None
 
     # Check if this exact call was already pre-approved via Redis token
-    task_id = approval_config.get("task_id", "")
     args_hash = hashlib.sha256(_json.dumps(arguments, sort_keys=True).encode()).hexdigest()
-    token_key = f"approval_token:{task_id}:{tool_name}:{args_hash}"
+
+    # Determine if this is a chat session (no task_id, uses conversation_id)
+    is_chat_session = approval_config.get("session_type") == "chat" or approval_config.get("task_id") is None
+    conversation_id = approval_config.get("conversation_id", "")
+    task_id_str = approval_config.get("task_id", "") or ""
+
+    if is_chat_session:
+        token_key = f"approval_token:chat:{conversation_id}:{tool_name}:{args_hash}"
+    else:
+        token_key = f"approval_token:{task_id_str}:{tool_name}:{args_hash}"
 
     from src.config.redis import get_redis_async
 
@@ -2148,7 +2362,8 @@ async def _check_approval_gate(
         return None
 
     # No token → create approval request and block execution
-    logger.info(f"HITL: gating tool '{tool_name}' for task {task_id} — requesting approval")
+    _session_label = f"chat:{conversation_id}" if is_chat_session else f"task:{task_id_str}"
+    logger.info(f"HITL: gating tool '{tool_name}' for {_session_label} — requesting approval")
 
     try:
         from src.core.database import create_celery_async_session, reset_async_engine
@@ -2161,7 +2376,8 @@ async def _check_approval_gate(
 
             svc = HumanApprovalService(db)
             result = await svc.create_and_notify(
-                task_id=UUID(str(task_id)),
+                task_id=None if is_chat_session else UUID(str(task_id_str)),
+                conversation_id=UUID(str(conversation_id)) if is_chat_session and conversation_id else None,
                 agent_id=UUID(str(approval_config.get("agent_id", "00000000-0000-0000-0000-000000000000"))),
                 tenant_id=UUID(str(approval_config.get("tenant_id", "00000000-0000-0000-0000-000000000000"))),
                 agent_name=approval_config.get("agent_name", ""),
@@ -2171,9 +2387,23 @@ async def _check_approval_gate(
                 channel_config=approval_config.get("approval_channel_config", {}),
                 timeout_minutes=approval_config.get("approval_timeout_minutes", 60),
             )
+            # Signal to the caller that this run is pending approval
+            if runtime_context and runtime_context.shared_state is not None:
+                runtime_context.shared_state["approval_triggered"] = True
+                # For chat sessions: store approval info in shared_state for SSE emission
+                if is_chat_session:
+                    runtime_context.shared_state["chat_approval_pending"] = {
+                        "approval_id": result.get("approval_id"),
+                        "tool_name": tool_name,
+                        "tool_args": arguments,
+                        "expires_at": result.get("expires_at"),
+                        "message": result.get("message", ""),
+                    }
             return result
     except Exception as exc:
         logger.error(f"HITL gate error for tool '{tool_name}': {exc}", exc_info=True)
+        if runtime_context and runtime_context.shared_state is not None:
+            runtime_context.shared_state["approval_triggered"] = True
         # Fail open with an informational message rather than crashing
         return {
             "approval_required": True,

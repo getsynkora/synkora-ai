@@ -189,6 +189,20 @@ const MapboxIcon = () => (
   </svg>
 )
 
+const ZendeskIcon = () => (
+  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="#03363D">
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm-1.5 17.25L4.5 9h13l-6 8.25zm1.5-9.75c-2.07 0-3.75-1.68-3.75-3.75S9.93 0 12 0s3.75 1.68 3.75 3.75S14.07 7.5 12 7.5z"/>
+  </svg>
+)
+
+const ZohoCRMIcon = () => (
+  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
+    <rect width="24" height="24" rx="4" fill="#E42527"/>
+    <path d="M4 16l5-8h6l-5 8H4z" fill="white"/>
+    <path d="M11 16l5-8h4l-5 8h-4z" fill="white" fillOpacity="0.6"/>
+  </svg>
+)
+
 const PROVIDERS = [
   {
     value: 'github',
@@ -535,6 +549,33 @@ const PROVIDERS = [
     supportsApiToken: true,
     apiTokenDescription: 'Use a Mapbox public access token (pk.*) from your Mapbox account',
   },
+  {
+    value: 'zendesk',
+    label: 'Zendesk',
+    icon: <ZendeskIcon />,
+    color: 'text-[#03363D]',
+    bgColor: 'bg-green-50',
+    description: 'Tickets, users, and support conversations',
+    defaultScopes: ['read', 'write'],
+    redirectUri: `${API_URL}/api/v1/oauth/zendesk/callback`,
+    setupGuide: 'https://developer.zendesk.com/documentation/live-chat/getting-started/oauth-authentication/',
+    supportsOAuth: true,
+    supportsApiToken: true,
+    apiTokenDescription: 'Use a Zendesk API token with your email address for direct API access',
+  },
+  {
+    value: 'zoho_crm',
+    label: 'Zoho CRM',
+    icon: <ZohoCRMIcon />,
+    color: 'text-[#E42527]',
+    bgColor: 'bg-red-50',
+    description: 'Contacts, leads, deals, and CRM data',
+    defaultScopes: ['ZohoCRM.modules.ALL', 'ZohoCRM.settings.ALL', 'ZohoCRM.users.READ', 'ZohoCRM.org.READ', 'offline_access'],
+    redirectUri: `${API_URL}/api/v1/oauth/zoho/callback`,
+    setupGuide: 'https://www.zoho.com/crm/developer/docs/api/v6/oauth-overview.html',
+    supportsOAuth: true,
+    supportsApiToken: false,
+  },
 ]
 
 const COMMON_TAGS = [
@@ -591,6 +632,7 @@ export default function CreateOAuthAppPage() {
         auth_method: authMethod,
         config: {},
       })
+      setStep(2)
     }
   }
 
@@ -616,6 +658,7 @@ export default function CreateOAuthAppPage() {
     }
   }
 
+  const [step, setStep] = useState<1 | 2>(1)
   const [createdApp, setCreatedApp] = useState<any>(null)
   const [showSuccessModal, setShowSuccessModal] = useState(false)
 
@@ -674,33 +717,47 @@ export default function CreateOAuthAppPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Provider Selection */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-            <h2 className="text-base font-semibold text-gray-900 mb-3">Select Provider</h2>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              {PROVIDERS.map((provider) => (
-                <button
-                  key={provider.value}
-                  type="button"
-                  onClick={() => handleProviderChange(provider.value)}
-                  className={`p-4 rounded-xl border-2 transition-all text-left hover:shadow-md ${
-                    formData.provider === provider.value
-                      ? 'border-[#ff444f] bg-red-50 shadow-md'
-                      : 'border-gray-200 hover:border-gray-300 bg-white'
-                  }`}
-                >
-                  <div className={`w-12 h-12 ${provider.bgColor} rounded-lg flex items-center justify-center mb-3 ${provider.color}`}>
-                    {provider.icon}
-                  </div>
-                  <div className="font-semibold text-gray-900 text-sm">{provider.label}</div>
-                  <div className="text-xs text-gray-500 mt-1 line-clamp-2">{provider.description}</div>
-                </button>
-              ))}
+          {step === 1 ? (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+              <h2 className="text-base font-semibold text-gray-900 mb-1">Select a Provider</h2>
+              <p className="text-sm text-gray-500 mb-4">Choose the service you want to connect</p>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                {PROVIDERS.map((provider) => (
+                  <button
+                    key={provider.value}
+                    type="button"
+                    onClick={() => handleProviderChange(provider.value)}
+                    className="p-4 rounded-xl border-2 border-gray-200 hover:border-gray-300 bg-white transition-all text-left hover:shadow-md"
+                  >
+                    <div className={`w-12 h-12 ${provider.bgColor} rounded-lg flex items-center justify-center mb-3 ${provider.color}`}>
+                      {provider.icon}
+                    </div>
+                    <div className="font-semibold text-gray-900 text-sm">{provider.label}</div>
+                    <div className="text-xs text-gray-500 mt-1 line-clamp-2">{provider.description}</div>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-
-          {formData.provider && (
+          ) : (
             <>
+              {/* Back button + selected provider indicator */}
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Change Provider
+                </button>
+                {selectedProvider && (
+                  <span className="text-sm text-gray-600">
+                    Configuring: <span className={`font-semibold ${selectedProvider.color}`}>{selectedProvider.label}</span>
+                  </span>
+                )}
+              </div>
               {/* Basic Information */}
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
                 <h2 className="text-base font-semibold text-gray-900 mb-3">Connection Details</h2>
@@ -993,6 +1050,55 @@ export default function CreateOAuthAppPage() {
                         </p>
                       </div>
                     )}
+
+                    {/* Zendesk subdomain field for OAuth */}
+                    {formData.provider === 'zendesk' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          Zendesk Subdomain *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={formData.config.subdomain || ''}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            config: { ...formData.config, subdomain: e.target.value.trim() }
+                          })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-sm"
+                          placeholder="mycompany"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          The part before .zendesk.com in your URL (e.g. <code className="bg-gray-100 px-1 rounded">mycompany</code> from mycompany.zendesk.com)
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Zoho CRM data center field for OAuth */}
+                    {formData.provider === 'zoho_crm' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          Data Center
+                        </label>
+                        <select
+                          value={formData.config.data_center || 'com'}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            config: { ...formData.config, data_center: e.target.value }
+                          })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent text-sm"
+                        >
+                          <option value="com">Global (.com)</option>
+                          <option value="eu">Europe (.eu)</option>
+                          <option value="in">India (.in)</option>
+                          <option value="com.au">Australia (.com.au)</option>
+                          <option value="jp">Japan (.jp)</option>
+                        </select>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Choose the region where your Zoho account is hosted
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -1059,6 +1165,50 @@ export default function CreateOAuthAppPage() {
                           />
                           <p className="text-xs text-gray-500 mt-1">
                             Optional webhook secret for verifying webhook events from Recall.ai
+                          </p>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Zendesk-specific fields for API token */}
+                    {formData.provider === 'zendesk' && (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                            Zendesk Subdomain *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={formData.config.subdomain || ''}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              config: { ...formData.config, subdomain: e.target.value.trim() }
+                            })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-sm"
+                            placeholder="mycompany"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            The part before .zendesk.com in your URL
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                            Email Address *
+                          </label>
+                          <input
+                            type="email"
+                            required
+                            value={formData.config.email || ''}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              config: { ...formData.config, email: e.target.value }
+                            })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent text-sm"
+                            placeholder="you@example.com"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Your Zendesk account email address
                           </p>
                         </div>
                       </>

@@ -17,7 +17,7 @@ export default function AuthLayout({
       secureStorage.migrateFromLocalStorage()
       fetchUser()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [])
 
   return <>{children}</>

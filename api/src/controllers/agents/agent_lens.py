@@ -23,7 +23,10 @@ from src.schemas.agent_lens import (
     AlertUpdateBody,
     LensCacheAnalyticsResponse,
     LensCompactionAnalyticsResponse,
+    LensEvalHistoryResponse,
+    LensEvalRunRow,
     LensOverviewResponse,
+    LensQualityResponse,
     LensSessionDetailResponse,
     LensSessionGraphResponse,
     LensSessionsResponse,
@@ -410,3 +413,92 @@ async def delete_lens_alert(
     deleted = await delete_alert(db, tenant_id, alert_id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Alert not found")
+
+
+# ---------------------------------------------------------------------------
+# Quality dashboard
+# ---------------------------------------------------------------------------
+
+
+@router.get("/{agent_slug}/lens/quality", response_model=LensQualityResponse)
+async def lens_quality(
+    agent_slug: str,
+    range: str = Query(default="7d"),
+    tenant_id: UUID = Depends(get_current_tenant_id),
+    db: AsyncSession = Depends(get_async_db),
+):
+    """Return satisfaction rate, session outcome breakdown, and top disliked tools."""
+    if range not in _VALID_RANGES:
+        range = "7d"
+    agent = await _get_agent(agent_slug, tenant_id, db)
+    start_date, end_date = _parse_range(range)
+
+    from src.schemas.agent_lens import (
+        LensDislikedTool,
+        LensOutcomeStats,
+        LensQualityChannelBreakdown,
+        LensSatisfactionStats,
+    )
+    from src.services.eval.quality_query import get_quality_stats
+
+    data = await get_quality_stats(tenant_id, agent.id, start_date, end_date)
+
+    satisfaction = LensSatisfactionStats(
+        total_rated=data["satisfaction"]["total_rated"],
+        thumbs_up=data["satisfaction"]["thumbs_up"],
+        thumbs_down=data["satisfaction"]["thumbs_down"],
+        satisfaction_rate=data["satisfaction"]["satisfaction_rate"],
+        by_channel=[LensQualityChannelBreakdown(**c) for c in data["satisfaction"]["by_channel"]],
+    )
+    outcomes = LensOutcomeStats(**data["outcomes"])
+    top_disliked = [LensDislikedTool(**t) for t in data["top_disliked_tools"]]
+
+    return LensQualityResponse(
+        period_start=data["period_start"],
+        period_end=data["period_end"],
+        satisfaction=satisfaction,
+        outcomes=outcomes,
+        top_disliked_tools=top_disliked,
+    )
+
+
+@router.get("/{agent_slug}/lens/eval-history", response_model=LensEvalHistoryResponse)
+async def lens_eval_history(
+    agent_slug: str,
+    tenant_id: UUID = Depends(get_current_tenant_id),
+    db: AsyncSession = Depends(get_async_db),
+):
+    """Return recent eval run history with pass rates."""
+    agent = await _get_agent(agent_slug, tenant_id, db)
+
+    from src.services.eval.dataset_service import get_dataset
+    from src.services.eval.judge_service import list_runs
+
+    runs = await list_runs(agent_id=agent.id, tenant_id=tenant_id)
+
+    rows: list[LensEvalRunRow] = []
+    for run in runs:
+        dataset_name = None
+        try:
+            ds = await get_dataset(dataset_id=run["dataset_id"], tenant_id=tenant_id)
+            if ds:
+                dataset_name = ds.get("name")
+        except Exception:
+            pass
+        rows.append(
+            LensEvalRunRow(
+                run_id=run["run_id"],
+                dataset_id=run["dataset_id"],
+                dataset_name=dataset_name,
+                ran_at=run.get("ran_at"),
+                status=run.get("status", "unknown"),
+                total_cases=run.get("total_cases", 0),
+                passed=run.get("passed", 0),
+                failed=run.get("failed", 0),
+                pass_rate=run.get("pass_rate", 0.0),
+                avg_score=run.get("avg_score", 0.0),
+                avg_latency_ms=run.get("avg_latency_ms", 0),
+            )
+        )
+
+    return LensEvalHistoryResponse(runs=rows, total=len(rows))

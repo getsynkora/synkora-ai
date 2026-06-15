@@ -48,6 +48,7 @@ def register_spawn_agent_tools(registry):
 
         return await internal_spawn_agent(
             task_description=kwargs.get("task_description", ""),
+            agent_name=kwargs.get("agent_name"),
             run_in_background=kwargs.get("run_in_background", False),
             db=db,
             tenant_id=tenant_id,
@@ -75,32 +76,27 @@ def register_spawn_agent_tools(registry):
 
     registry.register_tool(
         name="spawn_agent",
-        description="""Spawn a LOCAL sub-agent to handle a task in parallel with other sub-agents.
+        description="""Spawn a sub-agent to handle a task.
 
+TWO MODES:
+
+1. REGISTERED SUB-AGENT (agent_name provided):
+   Delegates to a specific specialist agent configured for this orchestrator.
+   That agent runs with its own system prompt, tools, and LLM config.
+   Use when you want a specialist to handle a focused domain (e.g. 'security-reviewer').
+
+2. SELF-CLONE (no agent_name):
+   Runs the same agent again with only the task description changing.
+   Use for true fan-out: running the SAME logic across many independent inputs in parallel.
+   No need to create sub-agents for this — you can spawn yourself 10 times with different tasks.
 
 ONLY use spawn_agent when you have 2 or more INDEPENDENT tasks that can genuinely run at the same time.
 Do NOT use spawn_agent for a single task — just do it yourself directly with your tools.
-Do NOT use spawn_agent just because a task has multiple steps — sequential steps belong in your own loop.
+Sequential steps where each depends on the previous result belong in your own loop.
 
-
-GOOD — spawn when you have true fan-out:
-- Query 5 different data sources in parallel
-- Run independent analyses on separate datasets simultaneously
-
-
-BAD — do NOT spawn for:
-- A single query or lookup (use internal_query_database directly)
-- A task you can complete in a few tool calls yourself
-- Sequential steps where each depends on the previous result
-
-
-DEFAULT (run_in_background=false): runs synchronously — blocks until complete and returns the result directly.
-
-
+DEFAULT (run_in_background=false): runs synchronously — blocks until complete and returns result directly.
 BACKGROUND (run_in_background=true): only use when a task will take longer than 5 minutes.
 Returns a task_id — use check_task(task_id) to poll for the result later.
-
-
 
 Do NOT use for calling a remote agent at an external URL — use call_remote_agent instead.""",
         parameters={
@@ -109,6 +105,10 @@ Do NOT use for calling a remote agent at an external URL — use call_remote_age
                 "task_description": {
                     "type": "string",
                     "description": "Clear, detailed description of what the sub-agent should accomplish. Be specific about expected outputs.",
+                },
+                "agent_name": {
+                    "type": "string",
+                    "description": "Optional: name or slug of a registered sub-agent to delegate to. If omitted, the current agent runs itself with a focused prompt (self-clone mode).",
                 },
                 "run_in_background": {
                     "type": "boolean",

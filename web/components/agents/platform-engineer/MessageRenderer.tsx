@@ -31,22 +31,23 @@ export function MessageRenderer({ message, onConfirm, onCancelAction }: Props) {
           </div>
         )}
 
-        {/* Action card (agent creation confirmation) */}
-        {message.actionCard && message.actionCard.status !== 'created' && message.actionCard.status !== 'cancelled' && (
-          <ActionConfirmCard
-            config={message.actionCard.config}
-            status={message.actionCard.status}
-            onConfirm={onConfirm}
-            onCancel={onCancelAction}
-          />
-        )}
-
-        {/* Success card (after agent created) */}
-        {message.actionCard?.status === 'created' && message.actionCard.createdAgentName && (
-          <AgentCreatedCard
-            agentName={message.actionCard.createdAgentName}
-            agentSlug={message.actionCard.createdAgentSlug}
-          />
+        {/* Action cards (agent creation confirmations) */}
+        {message.actionCards?.map((card, i) =>
+          card.status === 'created' && card.createdAgentName ? (
+            <AgentCreatedCard
+              key={i}
+              agentName={card.createdAgentName}
+              agentSlug={card.createdAgentSlug}
+            />
+          ) : (
+            <ActionConfirmCard
+              key={i}
+              config={card.config}
+              status={card.status}
+              onConfirm={onConfirm}
+              onCancel={onCancelAction}
+            />
+          )
         )}
 
         {/* Integration required card */}

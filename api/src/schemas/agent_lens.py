@@ -28,6 +28,9 @@ class LensStatCard(BaseModel):
     total_tool_calls: int
     failed_tool_calls: int
     avg_tool_duration_ms: int
+    satisfaction_rate: float | None = None
+    session_success_rate: float | None = None
+    latest_eval_pass_rate: float | None = None
 
 
 class LensOverviewResponse(BaseModel):
@@ -210,9 +213,75 @@ class LensToolROIResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+class LensQualityChannelBreakdown(BaseModel):
+    channel: str
+    satisfaction_rate: float
+    rated_count: int
+
+
+class LensSatisfactionStats(BaseModel):
+    total_rated: int
+    thumbs_up: int
+    thumbs_down: int
+    satisfaction_rate: float
+    by_channel: list[LensQualityChannelBreakdown]
+
+
+class LensOutcomeStats(BaseModel):
+    total_sessions: int
+    success: int
+    partial: int
+    failure: int
+    unknown: int
+    success_rate: float
+    explicit_rate: float
+    implicit_rate: float
+
+
+class LensDislikedTool(BaseModel):
+    tool_name: str
+    dislike_rate: float
+    dislike_count: int
+
+
+class LensQualityResponse(BaseModel):
+    period_start: str
+    period_end: str
+    satisfaction: LensSatisfactionStats
+    outcomes: LensOutcomeStats
+    top_disliked_tools: list[LensDislikedTool]
+
+
+class LensEvalRunRow(BaseModel):
+    run_id: str
+    dataset_id: str
+    dataset_name: str | None = None
+    ran_at: str | None = None
+    status: str
+    total_cases: int
+    passed: int
+    failed: int
+    pass_rate: float
+    avg_score: float
+    avg_latency_ms: int
+
+
+class LensEvalHistoryResponse(BaseModel):
+    runs: list[LensEvalRunRow]
+    total: int
+
+
 class AlertCreateBody(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
-    metric: Literal["failure_rate", "cost_per_session", "avg_latency_ms", "total_cost_usd", "token_count"]
+    metric: Literal[
+        "failure_rate",
+        "cost_per_session",
+        "avg_latency_ms",
+        "total_cost_usd",
+        "token_count",
+        "satisfaction_rate",
+        "session_success_rate",
+    ]
     condition: Literal["gt", "lt"]
     threshold: float
     window_minutes: int = Field(default=60, ge=1, le=10080)
@@ -223,7 +292,18 @@ class AlertCreateBody(BaseModel):
 
 class AlertUpdateBody(BaseModel):
     name: str | None = None
-    metric: Literal["failure_rate", "cost_per_session", "avg_latency_ms", "total_cost_usd", "token_count"] | None = None
+    metric: (
+        Literal[
+            "failure_rate",
+            "cost_per_session",
+            "avg_latency_ms",
+            "total_cost_usd",
+            "token_count",
+            "satisfaction_rate",
+            "session_success_rate",
+        ]
+        | None
+    ) = None
     condition: Literal["gt", "lt"] | None = None
     threshold: float | None = None
     window_minutes: int | None = None

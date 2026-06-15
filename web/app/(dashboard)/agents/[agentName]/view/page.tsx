@@ -477,6 +477,13 @@ export default function AgentViewPage() {
                       <BarChart2 className="w-4 h-4 text-indigo-600" />
                       Lens
                     </button>
+                    <button
+                      onClick={() => router.push(`/agents/${agentName}/handoffs`)}
+                      className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                    >
+                      <MessageCircle className="w-4 h-4 text-amber-600" />
+                      Handoffs
+                    </button>
                   </div>
                 </div>
               </div>

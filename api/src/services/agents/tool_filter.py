@@ -63,6 +63,9 @@ ALWAYS_INCLUDE_TOOLS = [
     "spawn_agent",
     "check_task",
     "list_background_tasks",
+    # Human handoff — always available so any agent can escalate to a human
+    # without requiring explicit tool configuration per agent.
+    "handoff_to_human",
 ]
 
 

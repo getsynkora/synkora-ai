@@ -353,7 +353,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   // Close mobile sidebar on route change
   useEffect(() => {
     onMobileClose?.()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [pathname])
 
   const handleMouseEnter = () => {
@@ -389,7 +389,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         prefetch={false}
         className={cn(
           'relative flex items-center gap-3 overflow-hidden rounded-[1.2rem] transition-all',
-          isChild ? 'px-3 py-2.5' : showLabels ? 'px-4 py-3.5' : 'mx-auto w-16 justify-center px-0 py-4',
+          isChild ? 'px-3 py-1.5' : showLabels ? 'px-4 py-3.5' : 'mx-auto w-16 justify-center px-0 py-4',
           isActive
             ? 'border border-white/10 bg-white/[0.12] text-[#f7f2e7] shadow-[0_14px_30px_rgba(0,0,0,0.22)]'
             : 'text-[#b7afa2] hover:bg-white/[0.06] hover:text-[#f7f2e7]'
@@ -399,7 +399,8 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           <span className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-[#7de5c1]" aria-hidden="true" />
         )}
         <div className={cn(
-          'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full transition-colors',
+          'flex flex-shrink-0 items-center justify-center rounded-full transition-colors',
+          isChild ? 'h-7 w-7' : 'h-10 w-10',
           isActive ? 'bg-white/[0.1] text-[#f7f2e7]' : 'text-current'
         )}>
           {item.icon}
@@ -587,7 +588,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                     prefetch={false}
                     className={cn(
                       'relative flex items-center gap-3 overflow-hidden rounded-[1.2rem] transition-all',
-                      showLabels ? 'px-4 py-2' : 'mx-auto w-16 justify-center px-0 py-4',
+                      showLabels ? 'px-4 py-1.5' : 'mx-auto w-16 justify-center px-0 py-4',
                       isActive
                         ? 'border border-white/10 bg-white/[0.12] text-[#f7f2e7] shadow-[0_14px_30px_rgba(0,0,0,0.22)]'
                         : 'text-[#b7afa2] hover:bg-white/[0.06] hover:text-[#f7f2e7]'
@@ -597,7 +598,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                       <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-[#7de5c1]" aria-hidden="true" />
                     )}
                     <div className={cn(
-                      'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full transition-colors',
+                      'flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full transition-colors',
                       isActive ? 'bg-white/[0.1] text-[#f7f2e7]' : 'text-current'
                     )}>
                       {item.icon}

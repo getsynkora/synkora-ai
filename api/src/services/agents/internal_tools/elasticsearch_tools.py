@@ -94,9 +94,24 @@ async def internal_elasticsearch_search(
             return {"success": False, "error": "No database session in runtime context"}
 
         try:
+            import uuid as _uuid
+
+            def _is_uuid(val: str) -> bool:
+                try:
+                    _uuid.UUID(val)
+                    return True
+                except ValueError:
+                    return False
+
+            from sqlalchemy import or_
+
+            id_filter = DatabaseConnection.id == connection_name if _is_uuid(connection_name) else None
+            name_filter = DatabaseConnection.name == connection_name
+            combined = or_(id_filter, name_filter) if id_filter is not None else name_filter
+
             result = await db.execute(
                 select(DatabaseConnection).filter(
-                    DatabaseConnection.name == connection_name,
+                    combined,
                     DatabaseConnection.database_type == "ELASTICSEARCH",
                     DatabaseConnection.tenant_id == tenant_id,
                     DatabaseConnection.deleted_at.is_(None),
@@ -199,9 +214,24 @@ async def internal_elasticsearch_list_indices(
             return {"success": False, "error": "No database session in runtime context"}
 
         try:
+            import uuid as _uuid
+
+            from sqlalchemy import or_
+
+            def _is_uuid(val: str) -> bool:
+                try:
+                    _uuid.UUID(val)
+                    return True
+                except ValueError:
+                    return False
+
+            id_filter = DatabaseConnection.id == connection_name if _is_uuid(connection_name) else None
+            name_filter = DatabaseConnection.name == connection_name
+            combined = or_(id_filter, name_filter) if id_filter is not None else name_filter
+
             result = await db.execute(
                 select(DatabaseConnection).filter(
-                    DatabaseConnection.name == connection_name,
+                    combined,
                     DatabaseConnection.database_type == "ELASTICSEARCH",
                     DatabaseConnection.tenant_id == tenant_id,
                     DatabaseConnection.deleted_at.is_(None),
@@ -294,9 +324,24 @@ async def internal_elasticsearch_get_index_stats(
             return {"success": False, "error": "No database session in runtime context"}
 
         try:
+            import uuid as _uuid
+
+            from sqlalchemy import or_
+
+            def _is_uuid(val: str) -> bool:
+                try:
+                    _uuid.UUID(val)
+                    return True
+                except ValueError:
+                    return False
+
+            id_filter = DatabaseConnection.id == connection_name if _is_uuid(connection_name) else None
+            name_filter = DatabaseConnection.name == connection_name
+            combined = or_(id_filter, name_filter) if id_filter is not None else name_filter
+
             result = await db.execute(
                 select(DatabaseConnection).filter(
-                    DatabaseConnection.name == connection_name,
+                    combined,
                     DatabaseConnection.database_type == "ELASTICSEARCH",
                     DatabaseConnection.tenant_id == tenant_id,
                     DatabaseConnection.deleted_at.is_(None),

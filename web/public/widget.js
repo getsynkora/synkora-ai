@@ -690,6 +690,26 @@
     }
     .snkr-pioneer-close:hover { opacity: 1; }
 
+    /* ── HITL: Approval card ─────────── */
+    .snkr-approval-card{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px;margin:8px 0;}
+    .snkr-approval-header{font-size:12px;font-weight:600;color:#92400e;margin-bottom:6px;}
+    .snkr-approval-header code{background:#fef3c7;padding:1px 4px;border-radius:4px;}
+    .snkr-approval-args{font-size:11px;background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:8px;overflow:auto;max-height:120px;margin-bottom:8px;color:#374151;}
+    .snkr-approval-actions{display:flex;gap:8px;}
+    .snkr-approval-btn{padding:5px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:500;}
+    .snkr-approve{background:#16a34a;color:#fff;}
+    .snkr-approve:hover{background:#15803d;}
+    .snkr-approve:disabled{background:#86efac;cursor:not-allowed;}
+    .snkr-reject{background:#ef4444;color:#fff;}
+    .snkr-reject:hover{background:#dc2626;}
+    .snkr-reject:disabled{background:#fca5a5;cursor:not-allowed;}
+    .snkr-approval-done{font-size:12px;color:#6b7280;font-style:italic;}
+
+    /* ── HITL: Handoff banner ─────────── */
+    .snkr-handoff-banner{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 14px;margin:8px 0;font-size:13px;color:#166534;display:flex;align-items:center;gap:8px;}
+    .snkr-handoff-icon{font-size:16px;}
+    .snkr-system-note{font-size:12px;color:#6b7280;text-align:center;padding:8px;font-style:italic;}
+
     /* ── Ambient probe bubble ────────── */
     #snkr-probe {
       position: fixed; bottom: 108px; right: 28px; z-index: 2147483645;
@@ -976,6 +996,9 @@
     this._pioneerKey    = "snkr_pioneer_" + (cfg.widgetId || "default");
     this._historyKey    = "snkr_hist_"    + (cfg.widgetId || "default");
     this._visHandler    = null;       // Feature 5: stored visibility handler
+    this._handoffBanner = null;       // HITL: active handoff banner element
+    this._handoffPollInterval = null; // HITL: polling timer during active handoff
+    this._seenHandoffMsgIds = {};     // HITL: dedup operator messages during polling
     this._cfg = {
       agentName: "AI Assistant",
       agentAvatar: "",
@@ -1564,11 +1587,18 @@
         // Populate messages from server
         while (self._messages.firstChild) { self._messages.removeChild(self._messages.firstChild); }
         msgs.forEach(function (m) {
-          // DB roles are uppercase enum values: USER, ASSISTANT
+          // DB roles are uppercase enum values: USER, ASSISTANT, OPERATOR
           var roleRaw = (m.role && m.role.value) ? m.role.value : String(m.role || "");
-          var isUser = roleRaw.toUpperCase() === "USER";
-          var bubble = self._row(isUser ? "user" : "agent");
-          bubble.innerHTML = isUser ? esc(m.content || "") : mdParse(m.content || "", false);
+          var roleUp = roleRaw.toUpperCase();
+          var isUser = roleUp === "USER";
+          var isOperator = roleUp === "OPERATOR";
+          if (isOperator) {
+            var opBubble = self._row("agent");
+            opBubble.innerHTML = "<strong style=\"font-size:11px;color:#6b7280;display:block;margin-bottom:3px;\">Support</strong>" + mdParse(m.content || "", false);
+          } else {
+            var bubble = self._row(isUser ? "user" : "agent");
+            bubble.innerHTML = isUser ? esc(m.content || "") : mdParse(m.content || "", false);
+          }
         });
 
         // Persist to localStorage so "Recent chats" shows this conversation
@@ -2668,6 +2698,12 @@
       } else {
         this._addError(msg);
       }
+    } else if (evt.type === "approval_required") {
+      this._showApprovalCard(evt);
+    } else if (evt.type === "handoff_initiated") {
+      this._showHandoffBanner(evt);
+    } else if (evt.type === "handoff_resolved") {
+      this._hideHandoffBanner();
     }
   };
 
@@ -2735,6 +2771,138 @@
     // Persist the completed turn (user + agent) to localStorage so history
     // is always up-to-date, even if the user never closes the widget.
     this._saveToHistory();
+  };
+
+  // ─── HITL: Approval + Handoff ─────────────────────────────────────────────────
+
+  Widget.prototype._showApprovalCard = function (evt) {
+    var self = this;
+    var approvalId = evt.approval_id;
+    var toolName = evt.tool_name || "action";
+    var toolArgs = evt.tool_args || {};
+
+    // Build card HTML
+    var argsText = JSON.stringify(toolArgs, null, 2);
+    var card = document.createElement("div");
+    card.className = "snkr-approval-card";
+    card.setAttribute("data-approval-id", approvalId);
+    card.innerHTML =
+      '<div class="snkr-approval-header">Approval required: <code>' + esc(toolName) + '</code></div>' +
+      '<pre class="snkr-approval-args">' + esc(argsText) + '</pre>' +
+      '<div class="snkr-approval-actions">' +
+      '<button class="snkr-approval-btn snkr-approve">Approve</button>' +
+      '<button class="snkr-approval-btn snkr-reject">Reject</button>' +
+      '</div>';
+
+    this._messages.appendChild(card);
+    this._scroll();
+
+    // Wire buttons
+    card.querySelector(".snkr-approve").addEventListener("click", function () {
+      self._respondApproval(approvalId, "approved", card);
+    });
+    card.querySelector(".snkr-reject").addEventListener("click", function () {
+      self._respondApproval(approvalId, "rejected", card);
+    });
+  };
+
+  Widget.prototype._respondApproval = function (approvalId, decision, card) {
+    var self = this;
+    // Disable buttons immediately to prevent double-clicks
+    var btns = card.querySelectorAll(".snkr-approval-btn");
+    btns.forEach(function (b) { b.disabled = true; });
+
+    fetch(this.apiUrl + "/widgets/chat/approvals/" + encodeURIComponent(approvalId) + "/respond", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Widget-API-Key": self.apiKey,
+      },
+      body: JSON.stringify({ decision: decision }),
+    }).then(function () {
+      card.innerHTML = '<div class="snkr-approval-done">' +
+        (decision === "approved" ? "\u2713 Approved \u2014 action will proceed." : "\u2717 Rejected.") +
+        "</div>";
+    }).catch(function () {
+      card.innerHTML = '<div class="snkr-approval-done">Request failed.</div>';
+    });
+  };
+
+  Widget.prototype._showHandoffBanner = function (evt) {
+    if (this._handoffBanner) return; // already shown
+    var self = this;
+    var banner = document.createElement("div");
+    banner.className = "snkr-handoff-banner";
+    banner.innerHTML =
+      '<span class="snkr-handoff-icon">\uD83D\uDC64</span> ' +
+      '<span>Connected to support. A human agent will respond shortly.</span>';
+    this._messages.appendChild(banner);
+    this._handoffBanner = banner;
+    this._scroll();
+    // Disable input while in handoff
+    if (this._input) this._input.disabled = true;
+    if (this._sendBtn) this._sendBtn.disabled = true;
+    // Poll for operator replies every 4 seconds
+    this._startHandoffPolling();
+  };
+
+  Widget.prototype._hideHandoffBanner = function () {
+    this._stopHandoffPolling();
+    if (this._handoffBanner) {
+      var el = this._handoffBanner;
+      el.style.opacity = "0";
+      el.style.transition = "opacity 0.4s";
+      setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 400);
+      this._handoffBanner = null;
+    }
+    // Re-enable input
+    if (this._input) this._input.disabled = false;
+    if (this._sendBtn) this._sendBtn.disabled = false;
+    // Show "Support session ended" message
+    var note = document.createElement("div");
+    note.className = "snkr-system-note";
+    note.textContent = "Support session ended. You are now chatting with the AI assistant again.";
+    if (this._messages) { this._messages.appendChild(note); this._scroll(); }
+  };
+
+  // Track the last-seen message ID to avoid re-rendering existing messages
+  Widget.prototype._startHandoffPolling = function () {
+    var self = this;
+    if (this._handoffPollInterval) return;
+    this._handoffPollInterval = setInterval(function () {
+      var convId = self.conversationId;
+      if (!convId) return;
+      fetch(self.apiUrl + "/widgets/chat/history?conversation_id=" + encodeURIComponent(convId), {
+        headers: { "X-Widget-API-Key": self.apiKey },
+      })
+        .then(function (res) { return res.ok ? res.json() : null; })
+        .then(function (data) {
+          // WidgetResponse wraps payload in .data; fall back to top-level .messages
+          var msgs = (data && data.data && Array.isArray(data.data.messages))
+            ? data.data.messages
+            : (data && Array.isArray(data.messages) ? data.messages : null);
+          if (!msgs) return;
+          // Find operator messages newer than last known
+          msgs.forEach(function (m) {
+            var roleRaw = (m.role && m.role.value) ? m.role.value : String(m.role || "");
+            if (roleRaw.toUpperCase() !== "OPERATOR") return;
+            var msgId = m.id || m.message_id || "";
+            if (!msgId || self._seenHandoffMsgIds[msgId]) return;
+            self._seenHandoffMsgIds[msgId] = true;
+            var opBubble = self._row("agent");
+            opBubble.innerHTML = "<strong style=\"font-size:11px;color:#6b7280;display:block;margin-bottom:3px;\">Support</strong>" + (m.content || "");
+          });
+        })
+        .catch(function () {});
+    }, 4000);
+  };
+
+  Widget.prototype._stopHandoffPolling = function () {
+    if (this._handoffPollInterval) {
+      clearInterval(this._handoffPollInterval);
+      this._handoffPollInterval = null;
+    }
+    this._seenHandoffMsgIds = {};
   };
 
   // ─── Public API ────────────────────────────────────────────────────────────────

@@ -3,7 +3,7 @@
 import { memo, useState, useMemo, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
-import { Copy, Check, RefreshCw, Sparkles, FileText, Image as ImageIcon, Download, File, Trash2 } from 'lucide-react'
+import { Copy, Check, RefreshCw, Sparkles, FileText, Image as ImageIcon, Download, File, Trash2, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Message, Attachment, GeneratedImageData, FormDefinition } from '../types'
 import ReactMarkdown from 'react-markdown'
@@ -13,6 +13,7 @@ import { SourcesList } from './SourceCard'
 import { VoicePlayer } from './VoicePlayer'
 import { ToolStatusDisplay } from './ToolStatusDisplay'
 import { InteractiveFormCard } from './InteractiveFormCard'
+import toast from 'react-hot-toast'
 
 const ChartRenderer = dynamic(
   () => import('@/components/charts/ChartRenderer').then((mod) => mod.ChartRenderer),
@@ -207,6 +208,7 @@ interface ChatMessageProps {
   onCopy?: (content: string, messageId: string) => void
   onRetry?: (messageId: string) => void
   onDelete?: (messageId: string) => void
+  onFeedback?: (messageId: string, rating: 1 | -1) => void
   onActionClick?: (text: string) => void
   className?: string
   chatConfig?: ChatConfig | null
@@ -351,6 +353,7 @@ export const ChatMessage = memo(function ChatMessage({
   onCopy,
   onRetry,
   onDelete,
+  onFeedback,
   onActionClick,
   className,
   chatConfig,
@@ -364,6 +367,33 @@ export const ChatMessage = memo(function ChatMessage({
 }: ChatMessageProps) {
   const [copied, setCopied] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
+  // Use the real DB UUID as the stable key for feedback persistence. Falls back
+  // to message.id when the message was loaded fresh (where id IS the DB UUID).
+  // Use the real DB UUID as the stable key for feedback persistence. Falls back
+  // to message.id when the message was loaded fresh (where id IS the DB UUID).
+  const feedbackKey = message.role === 'assistant' ? `feedback:${message.dbId || message.id}` : null
+  const [feedbackRating, setFeedbackRating] = useState<1 | -1 | null>(() => {
+    if (!feedbackKey || typeof window === 'undefined') return null
+    const stored = localStorage.getItem(feedbackKey)
+    return stored === '1' ? 1 : stored === '-1' ? -1 : null
+  })
+  // When dbId arrives (ephemeral→real UUID swap), migrate any rating stored under
+  // the ephemeral key to the stable DB UUID key.
+  useEffect(() => {
+    if (!message.dbId || typeof window === 'undefined') return
+    const ephemeralStored = localStorage.getItem(`feedback:${message.id}`)
+    const stableKey = `feedback:${message.dbId}`
+    if (ephemeralStored && !localStorage.getItem(stableKey)) {
+      localStorage.setItem(stableKey, ephemeralStored)
+      localStorage.removeItem(`feedback:${message.id}`)
+    }
+    // Also sync in-memory state from the stable key in case it was set elsewhere
+    const stableStored = localStorage.getItem(stableKey)
+    if (stableStored) {
+      setFeedbackRating(stableStored === '1' ? 1 : -1)
+    }
+   
+  }, [message.dbId])
   const [isCollapsed, setIsCollapsed] = useState(true)
   const [isOverflowing, setIsOverflowing] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
@@ -505,7 +535,7 @@ export const ChatMessage = memo(function ChatMessage({
         )}
       </div>
 
-      <div ref={contentRef} className="pl-6 sm:pl-8 min-w-0 w-full overflow-x-hidden" style={{ fontFamily }}>
+      <div ref={contentRef} className="pl-6 sm:pl-8 min-w-0 w-full" style={{ fontFamily }}>
         {/* Collapsible content wrapper */}
         <div
           className="relative"
@@ -565,18 +595,6 @@ export const ChatMessage = memo(function ChatMessage({
           </div>
         )}
 
-        {/* Tool Status Display - Fixed height todo-list style */}
-        {(toolStatus || recentTools.length > 0) && !message.content && (
-          <ToolStatusDisplay
-            currentTool={toolStatus ?? null}
-            recentTools={recentTools}
-            primaryColor={primaryColor}
-            isStreaming={isStreaming}
-            streamStartTime={streamStartTime}
-            className="mb-3"
-          />
-        )}
-
         {/* Error Message */}
         {message.isError && (
           <div className="flex items-start gap-2 px-3 py-2.5 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 mb-2">
@@ -588,7 +606,7 @@ export const ChatMessage = memo(function ChatMessage({
         )}
 
         {/* Message Content */}
-        <div className="prose prose-sm max-w-none prose-gray" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
+        <div className="prose prose-sm max-w-none prose-gray [&_th]:whitespace-nowrap [&_th]:break-normal [&_td]:break-normal" style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
           {!message.isError && thinkingStatus && !message.content && !toolStatus && recentTools.length === 0 ? (
             <div className="flex items-center gap-2.5 py-1">
               <span className="inline-flex items-end gap-[3px]" style={{ height: '18px' }} aria-hidden>
@@ -765,7 +783,18 @@ export const ChatMessage = memo(function ChatMessage({
             </ReactMarkdown>
           ) : null}
 
-          {isStreaming && !(!message.content && !toolStatus && recentTools.length === 0 && thinkingStatus) && (
+          {isStreaming && (toolStatus || recentTools.length > 0) && (
+            <ToolStatusDisplay
+              currentTool={toolStatus ?? null}
+              recentTools={recentTools}
+              primaryColor={primaryColor}
+              isStreaming={isStreaming}
+              streamStartTime={streamStartTime}
+              className={message.content ? 'mt-3' : ''}
+            />
+          )}
+
+          {isStreaming && !(!message.content && !toolStatus && recentTools.length === 0 && thinkingStatus) && !(toolStatus || recentTools.length > 0) && (
             <span
               className="inline-flex items-end gap-[3px] ml-1.5 align-middle"
               style={{ height: '18px' }}
@@ -1368,6 +1397,55 @@ export const ChatMessage = memo(function ChatMessage({
             </button>
 
             <VoicePlayer text={message.content} className="flex-shrink-0" compact />
+
+            {onFeedback && !isStreaming && feedbackKey && (
+              <>
+                <button
+                  onClick={() => {
+                    const newRating: 1 | null = feedbackRating === 1 ? null : 1
+                    setFeedbackRating(newRating)
+                    if (newRating !== null) {
+                      localStorage.setItem(feedbackKey, '1')
+                      onFeedback(message.dbId || message.id, 1)
+                      toast.success('Thanks for the feedback!')
+                    } else {
+                      localStorage.removeItem(feedbackKey)
+                    }
+                  }}
+                  className={cn(
+                    'p-1.5 rounded-lg transition-colors',
+                    feedbackRating === 1
+                      ? 'text-green-600 bg-green-50'
+                      : 'text-gray-400 hover:text-green-600 hover:bg-green-50',
+                  )}
+                  title="Helpful"
+                >
+                  <ThumbsUp size={12} />
+                </button>
+                <button
+                  onClick={() => {
+                    const newRating: -1 | null = feedbackRating === -1 ? null : -1
+                    setFeedbackRating(newRating)
+                    if (newRating !== null) {
+                      localStorage.setItem(feedbackKey, '-1')
+                      onFeedback(message.dbId || message.id, -1)
+                      toast.success('Thanks for the feedback!')
+                    } else {
+                      localStorage.removeItem(feedbackKey)
+                    }
+                  }}
+                  className={cn(
+                    'p-1.5 rounded-lg transition-colors',
+                    feedbackRating === -1
+                      ? 'text-red-600 bg-red-50'
+                      : 'text-gray-400 hover:text-red-500 hover:bg-red-50',
+                  )}
+                  title="Not helpful"
+                >
+                  <ThumbsDown size={12} />
+                </button>
+              </>
+            )}
 
             {onRetry && (
               <button

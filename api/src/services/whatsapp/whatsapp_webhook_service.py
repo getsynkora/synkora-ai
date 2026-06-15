@@ -116,6 +116,32 @@ class WhatsAppWebhookService:
                 logger.debug(f"No text content in WhatsApp message type {message_type}")
                 return
 
+            # Feedback: intercept 👍/👎 as per-message satisfaction signal
+            _stripped = text.strip()
+            if _stripped in ("👍", "👎", ":thumbsup:", ":thumbsdown:", "+1", "-1"):
+                try:
+                    from sqlalchemy import select
+
+                    from src.models.message import Message
+                    from src.services.eval.feedback_service import record_feedback
+
+                    _msg_result = await self.db_session.execute(
+                        select(Message).filter(Message.role == "assistant").order_by(Message.created_at.desc()).limit(1)
+                    )
+                    _last_msg = _msg_result.scalar_one_or_none()
+                    if _last_msg:
+                        _rating = 1 if _stripped in ("👍", ":thumbsup:", "+1") else -1
+                        record_feedback(
+                            message_id=str(_last_msg.id),
+                            agent_id=bot.agent_id,
+                            tenant_id=bot.tenant_id,
+                            channel="whatsapp",
+                            rating=_rating,
+                        )
+                except Exception as _fb_err:
+                    logger.debug("WhatsApp feedback intercept failed: %s", _fb_err)
+                return
+
             # HITL: Check if this message is a reply to a pending approval request
             from src.config.redis import get_redis_async
             from src.services.human_approval_service import HumanApprovalService
@@ -140,6 +166,15 @@ class WhatsAppWebhookService:
 
             # Get or create conversation
             conversation = await self._get_or_create_conversation(bot, from_number)
+
+            # Block AI while a human operator is handling this conversation
+            if getattr(conversation, "handoff_status", None) == "active":
+                await self._send_message(
+                    bot,
+                    from_number,
+                    "A human support agent is currently handling your request. They will respond shortly.",
+                )
+                return
 
             # Save user message
             user_message = Message(

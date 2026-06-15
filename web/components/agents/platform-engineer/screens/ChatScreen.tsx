@@ -44,13 +44,14 @@ export function ChatScreen({ agentName = 'platform_engineer_agent' }: Props) {
   const sendMessage = async (content: string) => {
     if (!content.trim() || isStreaming) return
 
-    // Dismiss any pending action card from a previous response
+    // Dismiss any pending action cards from a previous response
     setMessages((prev) =>
-      prev.map((m) =>
-        m.actionCard?.status === 'pending'
-          ? { ...m, actionCard: { ...m.actionCard!, status: 'cancelled' } }
-          : m
-      )
+      prev.map((m) => ({
+        ...m,
+        actionCards: m.actionCards?.map((c) =>
+          c.status === 'pending' ? { ...c, status: 'cancelled' as const } : c
+        ),
+      }))
     )
 
     const userMsg: ParsedMessage = {
@@ -123,18 +124,25 @@ export function ChatScreen({ agentName = 'platform_engineer_agent' }: Props) {
 
           if (data.type === 'chunk') {
             fullResponse += data.content
-            const { displayText, actionCard, integrationCard } = parseActionMarkers(fullResponse)
-            const enrichedCard = actionCard
-              ? { ...actionCard, config: { ...actionCard.config, llm_provider: peProvider, llm_model: peModelName } }
-              : undefined
+            const { displayText, actionCards, integrationCard } = parseActionMarkers(fullResponse)
+            const enrichedCards = actionCards.map((ac) => ({
+              ...ac,
+              config: { ...ac.config, llm_provider: peProvider, llm_model: peModelName },
+            }))
             setMessages((prev) => {
               const next = [...prev]
               const last = next[next.length - 1]
               if (last.role === 'assistant') {
+                const merged = enrichedCards.map((ac, i) => ({
+                  ...ac,
+                  status: last.actionCards?.[i]?.status ?? ('pending' as const),
+                  createdAgentName: last.actionCards?.[i]?.createdAgentName,
+                  createdAgentSlug: last.actionCards?.[i]?.createdAgentSlug,
+                }))
                 next[next.length - 1] = {
                   ...last,
                   content: displayText,
-                  actionCard: enrichedCard ?? last.actionCard,
+                  actionCards: merged.length > 0 ? merged : last.actionCards,
                   integrationCard: integrationCard ?? last.integrationCard,
                 }
               }
@@ -145,18 +153,33 @@ export function ChatScreen({ agentName = 'platform_engineer_agent' }: Props) {
       }
 
       // Final parse after stream ends
-      const { displayText, actionCard, integrationCard } = parseActionMarkers(fullResponse)
-      const enrichedFinalCard = actionCard
-        ? { ...actionCard, config: { ...actionCard.config, llm_provider: peProvider, llm_model: peModelName } }
-        : undefined
+      const { displayText, actionCards, integrationCard } = parseActionMarkers(fullResponse)
+      const enrichedFinalCards = actionCards.map((ac) => ({
+        ...ac,
+        config: { ...ac.config, llm_provider: peProvider, llm_model: peModelName },
+      }))
       setMessages((prev) => {
         const next = [...prev]
         const last = next[next.length - 1]
         if (last.role === 'assistant') {
+          // If stream ended with no content (abrupt close before any chunks), show fallback error
+          if (!displayText && !last.content && actionCards.length === 0 && !integrationCard) {
+            next[next.length - 1] = {
+              ...last,
+              content: '⚠ An error occurred while processing your request. Please try again.',
+            }
+            return next
+          }
+          const merged = enrichedFinalCards.map((ac, i) => ({
+            ...ac,
+            status: last.actionCards?.[i]?.status ?? ('pending' as const),
+            createdAgentName: last.actionCards?.[i]?.createdAgentName,
+            createdAgentSlug: last.actionCards?.[i]?.createdAgentSlug,
+          }))
           next[next.length - 1] = {
             ...last,
             content: displayText,
-            actionCard: enrichedFinalCard ?? last.actionCard,
+            actionCards: merged.length > 0 ? merged : last.actionCards,
             integrationCard: integrationCard ?? last.integrationCard,
           }
         }
@@ -208,10 +231,12 @@ export function ChatScreen({ agentName = 'platform_engineer_agent' }: Props) {
           message: '__CONFIRMED__',
           conversation_id: conversationId,
           conversation_history: messages.slice(-10).map((m) => {
-            // Reconstruct __ACTION__ marker so the LLM can read back the agent config
-            if (m.actionCard && m.role === 'assistant') {
-              const marker = `__ACTION__${JSON.stringify({ type: 'create_agent', config: m.actionCard.config })}__ACTION__`
-              return { role: m.role, content: m.content ? `${m.content}\n${marker}` : marker }
+            // Reconstruct __ACTION__ markers so the LLM can read back agent configs
+            if (m.actionCards?.length && m.role === 'assistant') {
+              const markers = m.actionCards
+                .map((c) => `__ACTION__${JSON.stringify({ type: 'create_agent', config: c.config })}__ACTION__`)
+                .join('\n')
+              return { role: m.role, content: m.content ? `${m.content}\n${markers}` : markers }
             }
             return { role: m.role, content: m.content }
           }),
@@ -259,19 +284,14 @@ export function ChatScreen({ agentName = 'platform_engineer_agent' }: Props) {
             if (agentCreated && !agentWasCreated) {
               agentWasCreated = true
               setMessages((prev) =>
-                prev.map((m) =>
-                  m.actionCard?.status === 'creating'
-                    ? {
-                        ...m,
-                        actionCard: {
-                          ...m.actionCard!,
-                          status: 'created',
-                          createdAgentName: agentCreated.name,
-                          createdAgentSlug: agentCreated.slug,
-                        },
-                      }
-                    : m
-                )
+                prev.map((m) => ({
+                  ...m,
+                  actionCards: m.actionCards?.map((c) =>
+                    c.status === 'creating'
+                      ? { ...c, status: 'created' as const, createdAgentName: agentCreated.name, createdAgentSlug: agentCreated.slug }
+                      : c
+                  ),
+                }))
               )
             }
 
@@ -292,19 +312,14 @@ export function ChatScreen({ agentName = 'platform_engineer_agent' }: Props) {
       if (agentCreated && !agentWasCreated) {
         agentWasCreated = true
         setMessages((prev) =>
-          prev.map((m) =>
-            m.actionCard?.status === 'creating'
-              ? {
-                  ...m,
-                  actionCard: {
-                    ...m.actionCard!,
-                    status: 'created',
-                    createdAgentName: agentCreated.name,
-                    createdAgentSlug: agentCreated.slug,
-                  },
-                }
-              : m
-          )
+          prev.map((m) => ({
+            ...m,
+            actionCards: m.actionCards?.map((c) =>
+              c.status === 'creating'
+                ? { ...c, status: 'created' as const, createdAgentName: agentCreated.name, createdAgentSlug: agentCreated.slug }
+                : c
+            ),
+          }))
         )
       }
       setMessages((prev) => {
@@ -319,21 +334,23 @@ export function ChatScreen({ agentName = 'platform_engineer_agent' }: Props) {
       // LLM didn't output __AGENT_CREATED__ — reset so user can retry
       if (!agentWasCreated) {
         setMessages((prev) =>
-          prev.map((m) =>
-            m.actionCard?.status === 'creating'
-              ? { ...m, actionCard: { ...m.actionCard!, status: 'pending' } }
-              : m
-          )
+          prev.map((m) => ({
+            ...m,
+            actionCards: m.actionCards?.map((c) =>
+              c.status === 'creating' ? { ...c, status: 'pending' as const } : c
+            ),
+          }))
         )
       }
     } catch (err: any) {
       const errMsg = err?.message || 'Agent creation failed'
       setMessages((prev) =>
-        prev.map((m) =>
-          m.actionCard?.status === 'creating'
-            ? { ...m, actionCard: { ...m.actionCard!, status: 'pending' } }
-            : m
-        )
+        prev.map((m) => ({
+          ...m,
+          actionCards: m.actionCards?.map((c) =>
+            c.status === 'creating' ? { ...c, status: 'pending' as const } : c
+          ),
+        }))
       )
       setMessages((prev) => {
         const next = [...prev]
@@ -351,22 +368,24 @@ export function ChatScreen({ agentName = 'platform_engineer_agent' }: Props) {
 
   const handleConfirm = (_config: AgentCreateConfig) => {
     setMessages((prev) =>
-      prev.map((m) =>
-        m.actionCard?.status === 'pending'
-          ? { ...m, actionCard: { ...m.actionCard!, status: 'creating' } }
-          : m
-      )
+      prev.map((m) => ({
+        ...m,
+        actionCards: m.actionCards?.map((c) =>
+          c.status === 'pending' ? { ...c, status: 'creating' as const } : c
+        ),
+      }))
     )
     streamConfirmed()
   }
 
   const handleCancelAction = () => {
     setMessages((prev) =>
-      prev.map((m) =>
-        m.actionCard?.status === 'pending'
-          ? { ...m, actionCard: { ...m.actionCard!, status: 'cancelled' } }
-          : m
-      )
+      prev.map((m) => ({
+        ...m,
+        actionCards: m.actionCards?.map((c) =>
+          c.status === 'pending' ? { ...c, status: 'cancelled' as const } : c
+        ),
+      }))
     )
   }
 

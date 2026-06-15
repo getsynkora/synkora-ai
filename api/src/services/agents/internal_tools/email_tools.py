@@ -194,6 +194,7 @@ async def internal_send_email(
                 from_email=from_email,
                 from_name=from_name,
                 tenant_id=tenant_id,
+                attachments=attachments,
             )
 
             if result.get("success"):
@@ -384,7 +385,7 @@ async def internal_test_email_connection(
             return {"success": False, "error": "tenant_id not available in runtime context"}
 
         email_service = EmailService(db)
-        result = email_service.test_connection(tenant_id=tenant_id)
+        result = await email_service.test_connection(tenant_id=tenant_id)
 
         return {
             "success": result.get("success", False),

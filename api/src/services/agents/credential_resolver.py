@@ -1545,6 +1545,138 @@ class CredentialResolver:
             logger.error(f"Failed to get Jira credentials: {e}", exc_info=True)
             return None
 
+    async def get_zendesk_credentials(self, tool_name: str) -> dict[str, Any] | None:
+        """
+        Get Zendesk credentials for the given tool.
+        Supports OAuth (Bearer token) and API token (Basic Auth).
+
+        Returns:
+            For OAuth:     {auth_type: 'oauth', subdomain, access_token}
+            For API token: {auth_type: 'api_token', subdomain, email, api_token}
+        """
+        from src.models.agent_tool import AgentTool
+        from src.models.oauth_app import OAuthApp
+        from src.services.agents.security import decrypt_value
+
+        try:
+            result = await self.db.execute(
+                select(AgentTool).filter(
+                    AgentTool.agent_id == self.context.agent_id,
+                    AgentTool.tool_name == tool_name,
+                    AgentTool.enabled,
+                )
+            )
+            agent_tool = result.scalar_one_or_none()
+
+            if not agent_tool or not agent_tool.oauth_app_id:
+                logger.warning(f"No OAuth app configured for tool {tool_name}")
+                return None
+
+            result = await self.db.execute(
+                select(OAuthApp).filter(
+                    OAuthApp.id == agent_tool.oauth_app_id,
+                    OAuthApp.provider.ilike("zendesk"),
+                    OAuthApp.is_active,
+                )
+            )
+            oauth_app = result.scalar_one_or_none()
+
+            if not oauth_app:
+                logger.warning(f"No active Zendesk OAuth app found for tool {tool_name}")
+                return None
+
+            config = oauth_app.config or {}
+            subdomain = config.get("subdomain", "").strip()
+            if not subdomain:
+                logger.warning(f"No subdomain in Zendesk OAuth app '{oauth_app.app_name}'")
+                return None
+
+            if oauth_app.auth_method == "api_token":
+                api_token = decrypt_value(oauth_app.api_token) if oauth_app.api_token else None
+                email = config.get("email", "").strip()
+                if not api_token or not email:
+                    logger.warning(f"Missing api_token or email in Zendesk OAuth app '{oauth_app.app_name}'")
+                    return None
+                logger.info(f"✅ Resolved Zendesk API token credentials for tool '{tool_name}'")
+                return {"auth_type": "api_token", "subdomain": subdomain, "email": email, "api_token": api_token}
+
+            # OAuth — try user token first
+            user_token = await self._get_user_token(oauth_app.id)
+            if user_token:
+                logger.info(f"✅ Resolved Zendesk OAuth token for tool '{tool_name}' (user-level)")
+                return {"auth_type": "oauth", "subdomain": subdomain, "access_token": user_token}
+
+            if oauth_app.access_token:
+                access_token = decrypt_value(oauth_app.access_token)
+                logger.info(f"✅ Resolved Zendesk OAuth token for tool '{tool_name}' (app-level fallback)")
+                return {"auth_type": "oauth", "subdomain": subdomain, "access_token": access_token}
+
+            logger.warning(f"No valid token found in Zendesk OAuth app '{oauth_app.app_name}'")
+            return None
+
+        except Exception as e:
+            logger.error(f"Failed to get Zendesk credentials: {e}", exc_info=True)
+            return None
+
+    async def get_zoho_crm_credentials(self, tool_name: str) -> dict[str, Any] | None:
+        """
+        Get Zoho CRM credentials for the given tool (OAuth only).
+
+        Returns:
+            {auth_type: 'oauth', data_center, access_token}
+        """
+        from src.models.agent_tool import AgentTool
+        from src.models.oauth_app import OAuthApp
+        from src.services.agents.security import decrypt_value
+
+        try:
+            result = await self.db.execute(
+                select(AgentTool).filter(
+                    AgentTool.agent_id == self.context.agent_id,
+                    AgentTool.tool_name == tool_name,
+                    AgentTool.enabled,
+                )
+            )
+            agent_tool = result.scalar_one_or_none()
+
+            if not agent_tool or not agent_tool.oauth_app_id:
+                logger.warning(f"No OAuth app configured for tool {tool_name}")
+                return None
+
+            result = await self.db.execute(
+                select(OAuthApp).filter(
+                    OAuthApp.id == agent_tool.oauth_app_id,
+                    OAuthApp.provider.ilike("zoho_crm"),
+                    OAuthApp.is_active,
+                )
+            )
+            oauth_app = result.scalar_one_or_none()
+
+            if not oauth_app:
+                logger.warning(f"No active Zoho CRM OAuth app found for tool {tool_name}")
+                return None
+
+            config = oauth_app.config or {}
+            data_center = config.get("data_center", "com")
+
+            # Try user token first
+            user_token = await self._get_user_token(oauth_app.id)
+            if user_token:
+                logger.info(f"✅ Resolved Zoho CRM OAuth token for tool '{tool_name}' (user-level)")
+                return {"auth_type": "oauth", "data_center": data_center, "access_token": user_token}
+
+            if oauth_app.access_token:
+                access_token = decrypt_value(oauth_app.access_token)
+                logger.info(f"✅ Resolved Zoho CRM OAuth token for tool '{tool_name}' (app-level fallback)")
+                return {"auth_type": "oauth", "data_center": data_center, "access_token": access_token}
+
+            logger.warning(f"No valid token found in Zoho CRM OAuth app '{oauth_app.app_name}'")
+            return None
+
+        except Exception as e:
+            logger.error(f"Failed to get Zoho CRM credentials: {e}", exc_info=True)
+            return None
+
     async def get_micromobility_credentials(self, tool_name: str) -> dict[str, Any] | None:
         """
         Get micromobility credentials for the given tool.

@@ -119,6 +119,13 @@ class ChatStreamService:
             db = session_factory()
         _execution_id = None
 
+        # Initialize shared_state and inject chat session metadata
+        if shared_state is None:
+            shared_state = {}
+        shared_state["session_type"] = "chat"
+        if conversation_uuid:
+            shared_state["conversation_id"] = str(conversation_uuid)
+
         async def _track(event_data: dict) -> None:
             if _execution_id:
                 try:
@@ -236,6 +243,27 @@ class ChatStreamService:
                 f"time={load_result.loading_time:.3f}s, is_workflow={is_workflow_agent}"
             )
 
+            # Inject chat HITL approval config if agent has it enabled
+            if db_agent and isinstance(db_agent.tools_config, dict):
+                _chat_hitl = db_agent.tools_config.get("chat_hitl", {})
+                if _chat_hitl.get("enabled"):
+                    shared_state["approval_config"] = {
+                        "require_approval": True,
+                        "approval_mode": _chat_hitl.get("mode", "smart"),
+                        "require_approval_tools": _chat_hitl.get("tools", []),
+                        "agent_id": str(db_agent.id),
+                        "tenant_id": str(tenant_id) if tenant_id else "",
+                        "agent_name": db_agent.agent_name,
+                        "task_id": None,  # chat mode — no task_id
+                        "conversation_id": str(conversation_uuid) if conversation_uuid else "",
+                        "approval_channel": "chat",
+                        "approval_channel_config": {
+                            "conversation_id": str(conversation_uuid) if conversation_uuid else ""
+                        },
+                        "approval_timeout_minutes": _chat_hitl.get("timeout_minutes", 60),
+                        "session_type": "chat",
+                    }
+
             # Agent trace: fire user_message event
             if conversation_uuid and db_agent and tenant_id:
                 try:
@@ -324,7 +352,7 @@ class ChatStreamService:
                 yield await generate_status_event(f"📎 Processing {len(attachments)} attachment(s)...")
                 attachment_context = format_attachment_context(attachments)
 
-            agent_kbs, agent_tools, mcp_tool_names = await self._load_agent_resources(db_agent, db)
+            agent_kbs, agent_tools, mcp_tool_names = await self._load_agent_resources(db_agent, db, shared_state)
 
             # Detect URLs in user message and queue background Celery crawl tasks (non-blocking).
             # Reuses already-loaded agent_kbs so no extra DB query is needed.
@@ -561,9 +589,37 @@ class ChatStreamService:
                 "routing_mode": getattr(db_agent, "routing_mode", "fixed"),
                 "conversation_id": str(conversation_uuid) if conversation_uuid else None,
             }
+
+            # Emit handoff_initiated SSE if the agent called handoff_to_human this turn
+            if shared_state and shared_state.get("handoff_initiated"):
+                _handoff_data = shared_state["handoff_initiated"]
+                yield await generate_sse_event(
+                    "handoff_initiated",
+                    {
+                        "summary": _handoff_data.get("reason", ""),
+                        "conversation_id": _handoff_data.get("conversation_id"),
+                    },
+                )
+
+            # Emit approval_required SSE if a chat HITL gate fired this turn
+            if shared_state and shared_state.get("chat_approval_pending"):
+                _approval_data = shared_state["chat_approval_pending"]
+                yield await generate_sse_event("approval_required", _approval_data)
+
             yield await generate_done_event(sources=retrieved_sources, metadata=metadata)
             final_content = "".join(state.assistant_chunks) if hasattr(state, "assistant_chunks") else ""
             await _track({"type": "done", "content": final_content[:5000], "metadata": metadata})
+
+            # Emit satisfaction prompt event if agent is configured to show it
+            if conversation_uuid:
+                try:
+                    obs_config = db_agent.observability_config or {}
+                    if obs_config.get("show_satisfaction_prompt", False):
+                        from src.helpers.streaming_helpers import generate_satisfaction_prompt_event
+
+                        yield await generate_satisfaction_prompt_event(str(conversation_uuid))
+                except Exception:
+                    pass  # never block chat
 
             # Mark execution complete in Live Lab
             if _execution_id and tenant_id:
@@ -645,6 +701,25 @@ class ChatStreamService:
                     )
                 except Exception:
                     pass  # never block chat
+
+                # Infer implicit session outcome (fire-and-forget)
+                if conversation_uuid:
+                    try:
+                        import asyncio as _asyncio
+
+                        from src.services.eval.outcome_service import infer_outcome
+
+                        _task = _asyncio.create_task(
+                            infer_outcome(
+                                tenant_id=tenant_id or db_agent.tenant_id,
+                                agent_id=db_agent.id,
+                                conversation_id=conversation_uuid,
+                                trace_id=getattr(agent, "current_trace_id", None),
+                            )
+                        )
+                        _task.add_done_callback(lambda _: None)
+                    except Exception:
+                        pass  # never block chat
 
                 if assistant_message:
                     stats_db = session_factory() if managed_db_session else db
@@ -1380,7 +1455,9 @@ class ChatStreamService:
             logger.warning(f"URL crawl task queuing failed: {exc}")
             return ""
 
-    async def _load_agent_resources(self, db_agent, db: AsyncSession) -> tuple[list[Any], list[Any], list[str]]:
+    async def _load_agent_resources(
+        self, db_agent, db: AsyncSession, shared_state: dict[str, Any] | None = None
+    ) -> tuple[list[Any], list[Any], list[str]]:
         """
         Load agent resources (knowledge bases, tools, MCP tools, custom tools).
 
@@ -1436,6 +1513,7 @@ class ChatStreamService:
                 return await self.tool_registry.load_agent_mcp_tools(
                     agent_id=str(db_agent.id),
                     db=session,
+                    shared_state=shared_state,
                 )
 
         async def load_custom_tools():
@@ -1447,11 +1525,105 @@ class ChatStreamService:
                 )
             return True
 
-        mcp_result, _ = cast(
-            tuple[list[str] | Exception, bool | Exception],
+        async def load_sub_agent_tools() -> list[str]:
+            """
+            Auto-register a dedicated delegate tool for each active registered sub-agent.
+
+            This is how proper multi-agent frameworks work — the orchestrator discovers
+            its specialists through tool descriptions, not system prompt instructions.
+            Each sub-agent becomes e.g. `delegate_to_security_reviewer(task_description)`.
+            """
+            import re
+
+            from sqlalchemy.orm import selectinload
+
+            from src.models.agent_sub_agent import AgentSubAgent
+            from src.services.agents.internal_tools.spawn_agent_tool import internal_spawn_agent
+
+            registered: list[str] = []
+            try:
+                async with session_factory() as session:
+                    result = await session.execute(
+                        select(AgentSubAgent)
+                        .options(selectinload(AgentSubAgent.sub_agent))
+                        .filter(
+                            AgentSubAgent.parent_agent_id == db_agent.id,
+                            AgentSubAgent.is_active,
+                        )
+                        .order_by(AgentSubAgent.execution_order)
+                    )
+                    rels = list(result.scalars().all())
+
+                for rel in rels:
+                    sub = rel.sub_agent
+                    if not sub:
+                        continue
+
+                    slug = sub.slug or sub.agent_name
+                    safe_name = re.sub(r"[^a-zA-Z0-9_-]", "_", slug).lower()
+                    tool_name = f"delegate_to_{safe_name}"
+
+                    description = (
+                        f"Delegate a task to the {sub.agent_name} specialist agent."
+                        + (f" {sub.description}" if sub.description else "")
+                    ).strip()
+
+                    _sub_slug = slug
+                    _parent_id = str(db_agent.id)
+                    _parent_slug = db_agent.slug or db_agent.agent_name
+
+                    def _make_delegate_wrapper(sub_slug: str, parent_id: str, parent_slug: str):
+                        async def _wrapper(config: dict | None = None, **kwargs):
+                            rc = config.get("_runtime_context") if config else None
+                            return await internal_spawn_agent(
+                                task_description=kwargs.get("task_description", ""),
+                                agent_name=sub_slug,
+                                run_in_background=kwargs.get("run_in_background", False),
+                                db=rc.db_session if rc else None,
+                                tenant_id=str(rc.tenant_id) if rc else None,
+                                parent_agent_id=parent_id,
+                                parent_agent_name=parent_slug,
+                            )
+
+                        return _wrapper
+
+                    self.tool_registry.register_tool(
+                        name=tool_name,
+                        description=description,
+                        parameters={
+                            "type": "object",
+                            "properties": {
+                                "task_description": {
+                                    "type": "string",
+                                    "description": f"The task to delegate to {sub.agent_name}. Be specific about expected output.",
+                                },
+                                "run_in_background": {
+                                    "type": "boolean",
+                                    "description": "Default false. Set true only for tasks longer than 5 minutes.",
+                                    "default": False,
+                                },
+                            },
+                            "required": ["task_description"],
+                        },
+                        function=_make_delegate_wrapper(_sub_slug, _parent_id, _parent_slug),
+                    )
+                    registered.append(tool_name)
+                    logger.debug("Registered sub-agent delegate tool: %s → %s", tool_name, slug)
+
+                if registered:
+                    logger.info("Registered %d sub-agent delegate tool(s): %s", len(registered), registered)
+
+            except Exception as exc:
+                logger.warning("Failed to load sub-agent tools: %s", exc)
+
+            return registered
+
+        mcp_result, _, sub_agent_result = cast(
+            tuple[list[str] | Exception, bool | Exception, list[str] | Exception],
             await asyncio.gather(
                 load_mcp_tools(),
                 load_custom_tools(),
+                load_sub_agent_tools(),
                 return_exceptions=True,
             ),
         )
@@ -1461,6 +1633,9 @@ class ChatStreamService:
             logger.error(f"Error loading MCP tools: {mcp_result}")
         elif mcp_result:
             mcp_tool_names = mcp_result
+
+        if isinstance(sub_agent_result, list):
+            mcp_tool_names = list(set(mcp_tool_names + sub_agent_result))
 
         logger.info(f"⚡ Resource loading completed in {time.time() - load_start:.3f}s")
         return agent_kbs, agent_tools, mcp_tool_names

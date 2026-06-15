@@ -15,14 +15,27 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 MCP_PROTOCOL_VERSION = "2025-06-18"
-SERVER_INFO = {"name": "synkora-agent", "version": "1.0.0"}
+
+
+def _get_integrations_config(agent) -> dict:
+    return (agent.agent_metadata or {}).get("integrations_config", {})
+
+
+def _server_info(agent) -> dict:
+    cfg = _get_integrations_config(agent)
+    name = cfg.get("mcp_server_name") or agent.agent_name
+    return {"name": name, "version": "1.0.0"}
 
 
 def _build_tool_schema(agent) -> dict:
     """Build the single 'chat' tool schema exposed by this agent."""
+    cfg = _get_integrations_config(agent)
+    description = (
+        cfg.get("mcp_server_description") or agent.description or f"Send a message to the {agent.agent_name} agent"
+    )
     return {
         "name": "chat",
-        "description": agent.description or f"Send a message to the {agent.agent_name} agent",
+        "description": description,
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -101,7 +114,7 @@ class MCPServerHostService:
         params = payload.get("params", {})
 
         if method == "initialize":
-            return self._handle_initialize(req_id, params)
+            return self._handle_initialize(req_id, params, agent)
         elif method == "tools/list":
             return self._handle_tools_list(req_id, agent)
         elif method == "tools/call":
@@ -115,7 +128,7 @@ class MCPServerHostService:
                 "error": {"code": -32601, "message": f"Method not found: {method}"},
             }
 
-    def _handle_initialize(self, req_id: Any, params: dict) -> dict:
+    def _handle_initialize(self, req_id: Any, params: dict, agent) -> dict:
         """Return server capabilities."""
         client_version = params.get("protocolVersion", MCP_PROTOCOL_VERSION)
         logger.info(f"[MCP] Client initialize, protocolVersion={client_version}")
@@ -124,7 +137,7 @@ class MCPServerHostService:
             "id": req_id,
             "result": {
                 "protocolVersion": MCP_PROTOCOL_VERSION,
-                "serverInfo": SERVER_INFO,
+                "serverInfo": _server_info(agent),
                 "capabilities": {
                     "tools": {},
                 },

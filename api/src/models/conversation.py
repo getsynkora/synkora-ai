@@ -78,6 +78,11 @@ class Conversation(Base, UUIDMixin, TimestampMixin, SoftDeleteMixin):
     # Metrics
     message_count: Mapped[int] = mapped_column(default=0)
 
+    # Human handoff
+    handoff_status: Mapped[str] = mapped_column(String(20), nullable=False, default="none")
+    handoff_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    handoff_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     # Memory/Context Management
     context_summary: Mapped[str | None] = mapped_column(
         Text, comment="LLM-generated summary of conversation for context continuity"

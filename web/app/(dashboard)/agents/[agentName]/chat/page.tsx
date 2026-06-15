@@ -12,6 +12,7 @@ import {
 import { Message, Agent, Source, Person, NewsItem, Attachment, FormDefinition } from '@/components/chat/types'
 import { apiClient } from '@/lib/api/client'
 import { getLensOverview, type LensOverviewResponse } from '@/lib/api/agent-lens'
+import { postFeedback } from '@/lib/api/eval'
 import { useAgentLLMConfigs } from '@/hooks/useAgentLLMConfigs'
 import { useChatTransport } from '@/components/chat/hooks/useChatTransport'
 
@@ -390,6 +391,7 @@ export default function AdvancedChatPage() {
         setMessages((prev) => {
           const loaded = msgs.map((msg: any) => ({
             id: msg.id,
+            dbId: undefined as string | undefined,
             role: msg.role.toLowerCase(), // Convert "USER" -> "user", "ASSISTANT" -> "assistant"
             content: msg.content,
             timestamp: new Date(msg.created_at),
@@ -413,6 +415,9 @@ export default function AdvancedChatPage() {
               const existing = prev[i]
               if (!existing) return
 
+              // Save the real DB UUID before swapping the React key back to the
+              // ephemeral id. Feedback and other API calls must use the DB UUID.
+              newMsg.dbId = newMsg.id
               // Keep the stable key that React already knows about
               newMsg.id = existing.id
 
@@ -521,7 +526,7 @@ export default function AdvancedChatPage() {
       setCurrentConversation(null)
       setMessages([])
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [selectedSource])
 
   const handleSourceChange = (source: PlatformSource) => {
@@ -910,6 +915,14 @@ export default function AdvancedChatPage() {
       setMessages((prev) => prev.filter((m) => m.id !== messageId))
     } catch (err) {
       console.error('Failed to delete message:', err)
+    }
+  }
+
+  const handleFeedback = async (messageId: string, rating: 1 | -1) => {
+    try {
+      await postFeedback(agentName, messageId, rating, 'console')
+    } catch (err) {
+      console.error('Failed to submit feedback:', err)
     }
   }
 
@@ -1466,6 +1479,7 @@ export default function AdvancedChatPage() {
                   userAvatar={user?.avatar}
                   userName={user?.name}
                   agentName={agent?.agent_name}
+                  onFeedback={handleFeedback}
                 />
               </div>
 

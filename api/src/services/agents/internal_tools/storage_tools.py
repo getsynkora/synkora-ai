@@ -33,7 +33,8 @@ def _get_workspace_path(config: dict[str, Any] | None, runtime_context: Any = No
         from src.services.agents.workspace_manager import get_workspace_manager
 
         tenant_id = rc.tenant_id
-        conversation_id = getattr(rc, "conversation_id", None) or _uuid.uuid5(tenant_id, "background_tasks")
+        tenant_uuid = tenant_id if isinstance(tenant_id, _uuid.UUID) else _uuid.UUID(str(tenant_id))
+        conversation_id = getattr(rc, "conversation_id", None) or _uuid.uuid5(tenant_uuid, "background_tasks")
         return get_workspace_manager().get_or_create_workspace(tenant_id, conversation_id)
 
     return None

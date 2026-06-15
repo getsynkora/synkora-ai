@@ -85,7 +85,7 @@ export function InteractiveFormCard({
     setSubmitError(null)
     setHasSubmitted(form.status === 'submitted')
     clearProgress()
-  }, [form.form_id, form.status, initialValues]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [form.form_id, form.status, initialValues])  
 
   const isDisabled = disabled || hasSubmitted || isSubmitting || isUploading
 

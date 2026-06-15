@@ -34,6 +34,7 @@ from .agent_user_subscription import AgentUserSubscription, SubscriptionAccessSt
 from .agent_version import AgentVersion
 from .agent_webhook import AgentWebhook, AgentWebhookEvent
 from .agent_widget import AgentWidget, WidgetAnalytics
+from .analysis_job import AnalysisJob, JobStatus, JobType
 from .app import App, AppMode, AppStatus
 from .app_review import AppReview, ReviewSentiment
 from .app_store_source import AppStoreSource, SourceStatus, StoreType, SyncFrequency
@@ -252,6 +253,10 @@ __all__ = [
     # HITL Approval models
     "AgentApprovalRequest",
     "ApprovalStatus",
+    # Analysis Job models
+    "AnalysisJob",
+    "JobStatus",
+    "JobType",
     # Debate Session models
     "DebateSession",
     # Wiki / Knowledge Autopilot models

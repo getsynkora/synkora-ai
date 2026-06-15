@@ -21,6 +21,27 @@ _trace_bg_tasks: set[asyncio.Task] = set()
 # Singleton ES client (lazy-initialised)
 _es_client = None
 
+
+def reset_trace_client() -> None:
+    """Reset the ES client singleton so the next call creates a fresh one.
+
+    Must be called before each asyncio.run() in a Celery worker to prevent
+    'Event loop is closed' errors from reusing a client bound to a prior loop.
+    """
+    global _es_client
+    _es_client = None
+
+
+async def flush_trace_tasks() -> None:
+    """Await all pending fire-and-forget trace tasks.
+
+    Call this at the end of an asyncio.run() coroutine to ensure trace events
+    are actually written before the event loop closes.
+    """
+    if _trace_bg_tasks:
+        await asyncio.gather(*list(_trace_bg_tasks), return_exceptions=True)
+
+
 # Max bytes stored for tool args/result on success path
 _PREVIEW_MAX_BYTES = 500
 

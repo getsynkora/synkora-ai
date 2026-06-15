@@ -261,6 +261,34 @@ const PROVIDER_CONFIG: Record<string, {
     description: 'Meeting bots for Zoom, Meet, Teams & Slack',
     setupUrl: 'https://www.recall.ai/dashboard',
   },
+  zendesk: {
+    name: 'Zendesk',
+    icon: (
+      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#03363D">
+        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm-1.5 17.25L4.5 9h13l-6 8.25zm1.5-9.75c-2.07 0-3.75-1.68-3.75-3.75S9.93 0 12 0s3.75 1.68 3.75 3.75S14.07 7.5 12 7.5z"/>
+      </svg>
+    ),
+    color: 'text-[#03363D]',
+    bgColor: 'bg-green-50',
+    borderColor: 'border-green-200',
+    description: 'Tickets, users, and support conversations',
+    setupUrl: 'https://developer.zendesk.com/documentation/live-chat/getting-started/oauth-authentication/',
+  },
+  zoho_crm: {
+    name: 'Zoho CRM',
+    icon: (
+      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+        <rect width="24" height="24" rx="4" fill="#E42527"/>
+        <path d="M4 16l5-8h6l-5 8H4z" fill="white"/>
+        <path d="M11 16l5-8h4l-5 8h-4z" fill="white" fillOpacity="0.6"/>
+      </svg>
+    ),
+    color: 'text-[#E42527]',
+    bgColor: 'bg-red-50',
+    borderColor: 'border-red-200',
+    description: 'Contacts, leads, deals, and CRM data',
+    setupUrl: 'https://www.zoho.com/crm/developer/docs/api/v6/oauth-overview.html',
+  },
 }
 
 type TabType = 'my-connections' | 'admin'

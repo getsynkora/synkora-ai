@@ -41,9 +41,11 @@ function timeUntil(iso: string): string {
 
 function ApprovalCard({
   approval,
+  agentSlug,
   onResponded,
 }: {
   approval: ApprovalRequest
+  agentSlug: string
   onResponded: () => void
 }) {
   const [responding, setResponding] = useState(false)
@@ -60,7 +62,7 @@ function ApprovalCard({
       const { apiClient } = await import('@/lib/api/client')
       await apiClient.request(
         'POST',
-        `/api/v1/agents/${encodeURIComponent(approval.agent_name)}/autonomous/approvals/${approval.id}/respond`,
+        `/api/v1/agents/${encodeURIComponent(agentSlug)}/autonomous/approvals/${approval.id}/respond`,
         {
           decision,
           feedback_text: decision === 'feedback' ? feedback : undefined,
@@ -228,7 +230,7 @@ export function AutonomousApprovals({ agentName, onCountChange }: Props) {
       ) : (
         <div className="space-y-3">
           {approvals.map(a => (
-            <ApprovalCard key={a.id} approval={a} onResponded={fetchApprovals} />
+            <ApprovalCard key={a.id} approval={a} agentSlug={agentName} onResponded={fetchApprovals} />
           ))}
         </div>
       )}

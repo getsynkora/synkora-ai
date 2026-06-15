@@ -507,6 +507,32 @@ async def initiate_oauth(
             oauth = LinkedInOAuth(client_id=client_id, client_secret=client_secret, redirect_uri=redirect_uri)
             scopes = oauth_app.scopes or ["openid", "profile", "email", "w_member_social"]
             auth_url = oauth.get_authorization_url(state=state, scopes=scopes)
+        elif provider == "zendesk":
+            from ...services.oauth.zendesk_oauth import ZendeskOAuth
+
+            subdomain = (oauth_app.config or {}).get("subdomain", "").strip()
+            if not subdomain:
+                raise HTTPException(status_code=400, detail="Zendesk subdomain not configured for this OAuth app")
+            oauth = ZendeskOAuth(
+                client_id=client_id, client_secret=client_secret, redirect_uri=redirect_uri, subdomain=subdomain
+            )
+            scopes = oauth_app.scopes or ["read", "write"]
+            auth_url = oauth.get_authorization_url(state=state, scopes=scopes)
+        elif provider == "zoho_crm":
+            from ...services.oauth.zoho_crm_oauth import ZohoCRMOAuth
+
+            dc = (oauth_app.config or {}).get("data_center", "com")
+            oauth = ZohoCRMOAuth(
+                client_id=client_id, client_secret=client_secret, redirect_uri=redirect_uri, data_center=dc
+            )
+            scopes = oauth_app.scopes or [
+                "ZohoCRM.modules.ALL",
+                "ZohoCRM.settings.ALL",
+                "ZohoCRM.users.READ",
+                "ZohoCRM.org.READ",
+                "offline_access",
+            ]
+            auth_url = oauth.get_authorization_url(state=state, scopes=scopes)
         else:
             raise HTTPException(status_code=400, detail=f"Unsupported provider: {provider}")
 

@@ -334,6 +334,83 @@ export async function getLensCache(
 }
 
 // ---------------------------------------------------------------------------
+// Quality (satisfaction + outcomes)
+// ---------------------------------------------------------------------------
+
+export interface LensQualityChannelBreakdown {
+  channel: string;
+  satisfaction_rate: number;
+  rated_count: number;
+}
+
+export interface LensSatisfactionStats {
+  total_rated: number;
+  thumbs_up: number;
+  thumbs_down: number;
+  satisfaction_rate: number;
+  by_channel: LensQualityChannelBreakdown[];
+}
+
+export interface LensOutcomeStats {
+  total_sessions: number;
+  success: number;
+  partial: number;
+  failure: number;
+  unknown: number;
+  success_rate: number;
+  explicit_rate: number;
+  implicit_rate: number;
+}
+
+export interface LensDislikedTool {
+  tool_name: string;
+  dislike_rate: number;
+  dislike_count: number;
+}
+
+export interface LensQualityResponse {
+  period_start: string;
+  period_end: string;
+  satisfaction: LensSatisfactionStats;
+  outcomes: LensOutcomeStats;
+  top_disliked_tools: LensDislikedTool[];
+}
+
+export async function getLensQuality(
+  agentSlug: string,
+  range: LensRange = '7d'
+): Promise<LensQualityResponse> {
+  return apiClient.request('GET', `/api/v1/agents/${agentSlug}/lens/quality?range=${range}`);
+}
+
+// ---------------------------------------------------------------------------
+// Eval history
+// ---------------------------------------------------------------------------
+
+export interface LensEvalRunRow {
+  run_id: string;
+  dataset_id: string;
+  dataset_name: string | null;
+  ran_at: string | null;
+  status: string;
+  total_cases: number;
+  passed: number;
+  failed: number;
+  pass_rate: number;
+  avg_score: number;
+  avg_latency_ms: number;
+}
+
+export interface LensEvalHistoryResponse {
+  runs: LensEvalRunRow[];
+  total: number;
+}
+
+export async function getLensEvalHistory(agentSlug: string): Promise<LensEvalHistoryResponse> {
+  return apiClient.request('GET', `/api/v1/agents/${agentSlug}/lens/eval-history`);
+}
+
+// ---------------------------------------------------------------------------
 // Session graph
 // ---------------------------------------------------------------------------
 

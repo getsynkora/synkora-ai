@@ -59,7 +59,9 @@ celery_app = Celery(
         "src.tasks.batch_poll_task",  # LLM batch API polling
         "src.tasks.gdpr_tasks",  # GDPR Article 15 export + Article 17 erasure
         "src.tasks.retention_tasks",  # Data retention policy enforcement
+        "src.tasks.eval_tasks",  # LLM-as-judge eval dataset runs
         "src.tasks.payout_tasks",  # Agent subscription expiry and creator payouts
+        "src.tasks.analysis_tasks",  # Agent conversation analysis jobs
     ],
 )
 

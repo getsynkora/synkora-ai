@@ -531,6 +531,8 @@ export default function AgentToolsPage() {
   const [oauthApps, setOAuthApps] = useState<any[]>([]);
   const [allOAuthApps, setAllOAuthApps] = useState<any[]>([]);
   const [oauthStatus, setOAuthStatus] = useState<any>(null);
+  const [bulkOAuthSelection, setBulkOAuthSelection] = useState<Record<string, string>>({});
+  const [bulkLoading, setBulkLoading] = useState<Record<string, boolean>>({});
   const [customTools, setCustomTools] = useState<CustomTool[]>([]);
   const [userConnections, setUserConnections] = useState<Record<number, { connected: boolean; email?: string; username?: string; auth_method?: string }>>({});
   const [apiTokenModal, setApiTokenModal] = useState<{ open: boolean; appId: number | null; provider: string }>({ open: false, appId: null, provider: '' });
@@ -1699,6 +1701,88 @@ export default function AgentToolsPage() {
     }
   };
 
+  const handleEnableAll = async (group: any) => {
+    if (!agentId) return;
+    setBulkLoading(prev => ({ ...prev, [group.id]: true }));
+    const toolsToEnable = group.tools.filter((t: Tool) => !isToolEnabled(t.name));
+    let successCount = 0;
+    let failCount = 0;
+    await Promise.all(
+      toolsToEnable.map(async (tool: Tool) => {
+        try {
+          await apiClient.addToolToAgent(agentId, { tool_name: tool.name, config: {}, enabled: true });
+          successCount++;
+        } catch {
+          failCount++;
+        }
+      })
+    );
+    await loadAgentTools(false);
+    setBulkLoading(prev => ({ ...prev, [group.id]: false }));
+    if (failCount === 0) {
+      toast.success(successCount > 0 ? `Enabled ${successCount} tools` : 'All tools already enabled');
+    } else {
+      toast.error(`Enabled ${successCount}, failed ${failCount}`);
+    }
+  };
+
+  const handleDisableAll = async (group: any) => {
+    if (!agentId) return;
+    setBulkLoading(prev => ({ ...prev, [group.id]: true }));
+    const toolsToDisable = group.tools.filter((t: Tool) => isToolEnabled(t.name));
+    let successCount = 0;
+    let failCount = 0;
+    await Promise.all(
+      toolsToDisable.map(async (tool: Tool) => {
+        const agentTool = agentTools.find(t => t.tool_name === tool.name);
+        if (!agentTool) return;
+        try {
+          await apiClient.deleteAgentTool(agentId, agentTool.id.toString());
+          successCount++;
+        } catch {
+          failCount++;
+        }
+      })
+    );
+    await loadAgentTools(false);
+    setBulkLoading(prev => ({ ...prev, [group.id]: false }));
+    if (failCount === 0) {
+      toast.success(successCount > 0 ? `Disabled ${successCount} tools` : 'No tools were enabled');
+    } else {
+      toast.error(`Disabled ${successCount}, failed ${failCount}`);
+    }
+  };
+
+  const handleApplyOAuthToAll = async (group: any, oauthAppId: string) => {
+    if (!agentId || !oauthAppId) return;
+    setBulkLoading(prev => ({ ...prev, [group.id]: true }));
+    const toolsToAssign = group.tools.filter((t: Tool) => isToolEnabled(t.name) && t.configurable);
+    let successCount = 0;
+    let failCount = 0;
+    await Promise.all(
+      toolsToAssign.map(async (tool: Tool) => {
+        try {
+          await apiClient.addToolToAgent(agentId, {
+            tool_name: tool.name,
+            config: {},
+            enabled: true,
+            oauth_app_id: parseInt(oauthAppId, 10),
+          });
+          successCount++;
+        } catch {
+          failCount++;
+        }
+      })
+    );
+    await loadAgentTools(false);
+    setBulkLoading(prev => ({ ...prev, [group.id]: false }));
+    if (failCount === 0) {
+      toast.success(`OAuth assigned to ${successCount} tools`);
+    } else {
+      toast.error(`Assigned ${successCount}, failed ${failCount}`);
+    }
+  };
+
   // Get list of enabled tool names for capability component
   const enabledToolNames = agentTools.filter(t => t.enabled).map(t => t.tool_name);
 
@@ -1936,7 +2020,68 @@ export default function AgentToolsPage() {
                         )}
                       </>
                     ) : group.tools.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      <>
+                        {/* Bulk action toolbar */}
+                        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                          {/* Left: enable / disable all */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-gray-500">Bulk:</span>
+                            <button
+                              disabled={bulkLoading[group.id]}
+                              onClick={() => handleEnableAll(group)}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-50"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              Enable all
+                            </button>
+                            <button
+                              disabled={bulkLoading[group.id]}
+                              onClick={() => handleDisableAll(group)}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-50"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                              Disable all
+                            </button>
+                          </div>
+
+                          {/* Right: OAuth assign (only for OAuth categories) */}
+                          {groupOAuthProvider && hasOAuthApps && (
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={bulkOAuthSelection[group.id] || ''}
+                                onChange={e => setBulkOAuthSelection(prev => ({ ...prev, [group.id]: e.target.value }))}
+                                disabled={bulkLoading[group.id]}
+                                className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs text-gray-700 focus:border-red-400 focus:outline-none focus:ring-1 focus:ring-red-400 disabled:opacity-50"
+                              >
+                                <option value="">Select account…</option>
+                                {getOAuthAppsForProvider(groupOAuthProvider).map((app: any) => {
+                                  const isConfigured = app.has_access_token || app.has_api_token;
+                                  return (
+                                    <option key={app.id} value={app.id.toString()}>
+                                      {app.app_name}{app.is_default ? ' · Default' : ''}{isConfigured ? ' (connected)' : ' (not connected)'}
+                                    </option>
+                                  );
+                                })}
+                              </select>
+                              <button
+                                disabled={!bulkOAuthSelection[group.id] || bulkLoading[group.id]}
+                                onClick={() => handleApplyOAuthToAll(group, bulkOAuthSelection[group.id])}
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-40"
+                              >
+                                Apply to all enabled
+                              </button>
+                            </div>
+                          )}
+
+                          {bulkLoading[group.id] && (
+                            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+                              Working…
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                         {group.tools.map((tool: Tool) => {
                           const enabled = isToolEnabled(tool.name);
                           return (
@@ -1982,6 +2127,7 @@ export default function AgentToolsPage() {
                           );
                         })}
                       </div>
+                      </>
                     ) : (
                       <div className="text-center py-8 text-gray-500">
                         No tools match your search

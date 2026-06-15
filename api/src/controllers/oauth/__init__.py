@@ -16,6 +16,8 @@ It has been refactored from a single large file into modular components:
 - clickup.py: ClickUp OAuth routes
 - twitter.py: Twitter/X OAuth routes
 - linkedin.py: LinkedIn OAuth routes
+- zendesk.py: Zendesk OAuth routes
+- zoho.py: Zoho CRM OAuth routes
 
 SECURITY: Uses Redis-backed state storage for CSRF protection.
 SECURITY: Validates redirect URLs and URL-encodes error messages.
@@ -48,6 +50,8 @@ from .micromobility import router as micromobility_router
 from .slack import router as slack_router
 from .tokens import router as tokens_router
 from .twitter import router as twitter_router
+from .zendesk import router as zendesk_router
+from .zoho import router as zoho_router
 from .zoom import router as zoom_router
 
 # Create the main router with prefix
@@ -67,6 +71,8 @@ router.include_router(micromobility_router)
 router.include_router(clickup_router)
 router.include_router(twitter_router)
 router.include_router(linkedin_router)
+router.include_router(zendesk_router)
+router.include_router(zoho_router)
 
 # Export commonly used items
 __all__ = [

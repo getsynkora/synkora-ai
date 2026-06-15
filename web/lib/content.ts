@@ -213,8 +213,21 @@ function transformAdmonitions(markdown: string) {
   return output.join('\n')
 }
 
-function transformMarkdown(markdown: string) {
-  return transformAdmonitions(markdown)
+function rewriteRelativeImageUrls(markdown: string, publicBasePath: string) {
+  return markdown.replace(/!\[([^\]]*)\]\(((?:\.\/|\.\.\/)[^)]+)\)/g, (_match, altText: string, assetPath: string) => {
+    const normalizedAssetPath = assetPath.replace(/\\/g, '/')
+    const fileName = normalizedAssetPath.split('/').filter(Boolean).pop()
+    if (!fileName) return `![${altText}](${assetPath})`
+    return `![${altText}](${publicBasePath}/${fileName})`
+  })
+}
+
+function transformMarkdown(markdown: string, options?: { relativeImageBasePath?: string }) {
+  const withRewrittenImages = options?.relativeImageBasePath
+    ? rewriteRelativeImageUrls(markdown, options.relativeImageBasePath)
+    : markdown
+
+  return transformAdmonitions(withRewrittenImages)
     .replace(/<!--\s*truncate\s*-->/g, '')
     .trim()
 }
@@ -327,7 +340,7 @@ export async function getAllBlogPosts(): Promise<BlogPost[]> {
         publishedAt: publishedAtMatch?.[1] ?? null,
         tags,
         authors,
-        content: transformMarkdown(content),
+        content: transformMarkdown(content, { relativeImageBasePath: '/images/blog' }),
       } satisfies BlogPost
     })
   )

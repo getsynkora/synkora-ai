@@ -89,6 +89,42 @@ class SlackMessageHandler:
             The agent's response text, or None on error
         """
         try:
+            # Feedback: intercept 👍/👎 as per-message satisfaction signal
+            _stripped = text.strip()
+            if _stripped in ("👍", "👎", ":thumbsup:", ":thumbsdown:", "+1", "-1"):
+                try:
+                    from sqlalchemy import select
+
+                    from src.models.message import Message
+                    from src.services.eval.feedback_service import record_feedback
+
+                    # Find the most recent assistant message in this channel
+                    _msg_result = await self.db_session.execute(
+                        select(Message)
+                        .join(Message.conversation)
+                        .filter(Message.role == "assistant")
+                        .order_by(Message.created_at.desc())
+                        .limit(1)
+                    )
+                    _last_msg = _msg_result.scalar_one_or_none()
+                    if _last_msg:
+                        _rating = 1 if _stripped in ("👍", ":thumbsup:", "+1") else -1
+                        record_feedback(
+                            message_id=str(_last_msg.id),
+                            agent_id=slack_bot.agent_id,
+                            tenant_id=slack_bot.tenant_id,
+                            channel="slack",
+                            rating=_rating,
+                        )
+                        _ack = "Thanks for the feedback!" if _rating == 1 else "Thanks, I'll try to do better!"
+                        if say:
+                            await say(_ack)
+                        else:
+                            await client.chat_postMessage(channel=channel_id, text=_ack, thread_ts=thread_ts)
+                        return _ack
+                except Exception as _fb_err:
+                    logger.debug("Slack feedback intercept failed: %s", _fb_err)
+
             # HITL: Check if this message is a reply to a pending approval request
             from src.config.redis import get_redis_async
             from src.services.human_approval_service import HumanApprovalService
@@ -127,6 +163,15 @@ class SlackMessageHandler:
             conversation = await self._get_or_create_conversation(
                 slack_bot=slack_bot, channel_id=channel_id, user_id=user_id, thread_ts=thread_ts
             )
+
+            # Block AI while a human operator is handling this conversation
+            if getattr(conversation, "handoff_status", None) == "active":
+                _wait = "A human support agent is currently handling this conversation. They will respond shortly."
+                if say:
+                    await say(_wait)
+                else:
+                    await client.chat_postMessage(channel=channel_id, text=_wait, thread_ts=thread_ts)
+                return _wait
 
             # Fetch user and channel info in parallel (suppress individual failures)
             user_info: Any

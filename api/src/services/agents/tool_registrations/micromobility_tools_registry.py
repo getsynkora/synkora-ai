@@ -193,6 +193,10 @@ def register_micromobility_tools(registry):
 
     async def internal_micromobility_create_task_wrapper(config: dict[str, Any] | None = None, **kwargs):
         runtime_context = config.get("_runtime_context") if config else None
+        # Normalize priority: LLM may send full words instead of single-letter codes
+        _priority_map = {"high": "H", "medium": "M", "low": "L", "urgent": "U"}
+        raw_priority = kwargs.get("priority")
+        priority = _priority_map.get(str(raw_priority).lower(), raw_priority) if raw_priority else None
         return await internal_micromobility_create_task(
             config=config,
             runtime_context=runtime_context,
@@ -202,7 +206,7 @@ def register_micromobility_tools(registry):
             description=kwargs.get("description"),
             vehicle_id=kwargs.get("vehicle_id"),
             user=kwargs.get("user"),
-            priority=kwargs.get("priority"),
+            priority=priority,
             due_by=kwargs.get("due_by"),
         )
 
@@ -292,7 +296,10 @@ def register_micromobility_tools(registry):
                     "description": "Filter by rider/user UUID — vehicles last unlocked by this user",
                 },
                 "country": {"type": "string", "description": "Filter by country code"},
-                "geofence": {"type": "string", "description": "Filter by geofence/service area ID"},
+                "geofence": {
+                    "type": "string",
+                    "description": "Filter by service area UUID (the 'id' field from list_service_areas). Must be a UUID — NOT the service area name or fleet name. Passing a name instead of a UUID causes a 500 error.",
+                },
                 # Battery & heartbeat range
                 "min_power_level": {"type": "integer", "description": "Minimum battery level (0–100)"},
                 "max_power_level": {"type": "integer", "description": "Maximum battery level (0–100)"},
@@ -562,32 +569,45 @@ def register_micromobility_tools(registry):
     registry.register_tool(
         name="internal_micromobility_create_task",
         description=(
-            "Create a new ranger task. Submitted as multipart form data. Requires confirmation. "
-            "IMPORTANT: operator_id (the ranger to assign) is required by the API — do NOT call this tool "
-            "without it. If you don't have an operator ID, call internal_micromobility_list_operators first "
-            "to get one, then call this tool."
+            "Create a new ranger task and assign it to an operator. Requires confirmation before submitting. "
+            "PRE-FLIGHT CHECKLIST — you MUST complete all steps before calling this tool:\n"
+            "1. OPERATOR ID: 'user' is required. If you do not have a real operator UUID from this session, "
+            "call internal_micromobility_list_operators first and use the 'id' field from the result. "
+            "Never guess or fabricate a UUID.\n"
+            "2. VEHICLE ID: If the task involves a specific vehicle, use the vehicle's actual UUID "
+            "(from list_vehicles or a previous tool result). Never fabricate a UUID.\n"
+            "3. PRIORITY CODE: Must be a single letter — 'H' (high), 'M' (medium), 'L' (low), 'U' (urgent). "
+            "Never send the full word (e.g. 'high' will be rejected by the API).\n"
+            "4. TASK TYPE: Must be exactly 'CHARGING', 'REBALANCING', 'MAINTENANCE', or 'UNAVAILABLE'.\n"
+            "If any required value is missing, gather it via the appropriate list tool first."
         ),
         parameters={
             "type": "object",
             "properties": {
                 "task_type": {
                     "type": "string",
-                    "description": "Task type: 'CHARGING', 'REBALANCING', 'MAINTENANCE', 'UNAVAILABLE'",
+                    "description": "Task type — exactly one of: 'CHARGING', 'REBALANCING', 'MAINTENANCE', 'UNAVAILABLE'",
                 },
                 "user": {
                     "type": "string",
-                    "description": "REQUIRED. Operator/ranger user ID to assign the task to. Get from list_operators first if unknown.",
+                    "description": "REQUIRED. Operator/ranger user UUID to assign the task to. Must come from internal_micromobility_list_operators — never fabricate.",
                 },
                 "task_status": {
                     "type": "string",
                     "description": "Initial status: 'TODO' (default), 'PICKED', 'DROPPED', 'CANCELLED'",
                 },
                 "title": {"type": "string", "description": "Short title for the task"},
-                "description": {"type": "string", "description": "Detailed task description or instructions"},
-                "vehicle_id": {"type": "string", "description": "Vehicle ID to assign the task to"},
+                "description": {
+                    "type": "string",
+                    "description": "Detailed task description or instructions for the ranger",
+                },
+                "vehicle_id": {
+                    "type": "string",
+                    "description": "Vehicle UUID to assign the task to. Must come from list_vehicles — never fabricate.",
+                },
                 "priority": {
                     "type": "string",
-                    "description": "Priority: 'H' (high), 'M' (medium), 'L' (low), 'U' (urgent)",
+                    "description": "Single-letter priority code: 'H' (high), 'M' (medium), 'L' (low), 'U' (urgent). Do NOT send full words.",
                 },
                 "due_by": {
                     "type": "string",
@@ -602,14 +622,14 @@ def register_micromobility_tools(registry):
 
     registry.register_tool(
         name="internal_micromobility_update_task",
-        description="Update a ranger task's status or notes. Use to mark tasks in progress or completed. Requires confirmation.",
+        description="Update a ranger task's status or notes. Use to mark tasks as started, completed, or cancelled. Requires confirmation.",
         parameters={
             "type": "object",
             "properties": {
                 "task_id": {"type": "string", "description": "Task ID to update"},
                 "status": {
                     "type": "string",
-                    "description": "New status: 'pending', 'in_progress', 'completed', 'cancelled'",
+                    "description": "New status: 'TODO' (not started), 'PICKED' (in progress), 'DROPPED' (completed), 'CANCELLED'",
                 },
                 "notes": {"type": "string", "description": "Updated notes or comments"},
             },

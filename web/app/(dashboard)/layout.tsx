@@ -26,9 +26,19 @@ export default function DashboardLayout({
   useEffect(() => {
     if (typeof window !== 'undefined') {
       secureStorage.migrateFromLocalStorage()
+
+      // Consume SAML token from URL fragment (set by ACS callback redirect)
+      const hash = window.location.hash
+      const samlMatch = hash.match(/[#&]saml_token=([^&]+)/)
+      if (samlMatch) {
+        secureStorage.storeTokens({ access_token: decodeURIComponent(samlMatch[1]) })
+        // Remove the token from the URL so it doesn't linger in history
+        window.history.replaceState(null, '', window.location.pathname + window.location.search)
+      }
+
       fetchUser()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [])
 
   useEffect(() => {

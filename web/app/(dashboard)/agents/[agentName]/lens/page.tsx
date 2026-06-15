@@ -6,7 +6,8 @@ import Link from 'next/link'
 import {
   ArrowLeft, Activity, Bell, Plus, Trash2, CheckCircle, XCircle,
   AlertTriangle, Wrench, Zap, DollarSign, Clock, TrendingUp, BarChart2,
-  ThumbsUp, ThumbsDown, Minus, Scissors, Database,
+  ThumbsUp, ThumbsDown, Minus, Scissors, Database, Star, FlaskConical,
+  Play, ChevronDown, ChevronRight,
 } from 'lucide-react'
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
@@ -21,6 +22,8 @@ import {
   getLensToolROI,
   getLensCompaction,
   getLensCache,
+  getLensQuality,
+  getLensEvalHistory,
   createLensAlert,
   deleteLensAlert,
   type LensOverviewResponse,
@@ -30,13 +33,29 @@ import {
   type LensToolROIStat,
   type LensCompactionAnalyticsResponse,
   type LensCacheAnalyticsResponse,
+  type LensQualityResponse,
+  type LensEvalHistoryResponse,
+  type LensEvalRunRow,
   type AlertResponse,
   type AlertCreateBody,
   type LensRange,
 } from '@/lib/api/agent-lens'
+import {
+  listDatasets,
+  createDataset,
+  deleteDataset,
+  listCases,
+  createCase,
+  deleteCase,
+  triggerEvalRun,
+  getRunResults,
+  type EvalDataset,
+  type EvalCase,
+  type EvalResult,
+} from '@/lib/api/eval'
 import AgentPageShell, { AgentPagePanel, AgentPageTabs } from '@/components/agents/AgentPageShell'
 
-type Tab = 'overview' | 'tools' | 'roi' | 'compaction' | 'cache' | 'alerts'
+type Tab = 'overview' | 'tools' | 'roi' | 'compaction' | 'cache' | 'alerts' | 'quality' | 'eval'
 
 const RANGE_OPTIONS: { label: string; value: LensRange }[] = [
   { label: '24h', value: '24h' },
@@ -584,12 +603,29 @@ export default function LensOverviewPage() {
   const [compaction, setCompaction] = useState<LensCompactionAnalyticsResponse | null>(null)
   const [cache, setCache] = useState<LensCacheAnalyticsResponse | null>(null)
   const [alerts, setAlerts] = useState<AlertResponse[]>([])
+  const [quality, setQuality] = useState<LensQualityResponse | null>(null)
+  const [evalHistory, setEvalHistory] = useState<LensEvalHistoryResponse | null>(null)
+
+  // Eval dataset management
+  const [datasets, setDatasets] = useState<EvalDataset[]>([])
+  const [selectedDataset, setSelectedDataset] = useState<EvalDataset | null>(null)
+  const [cases, setCases] = useState<EvalCase[]>([])
+  const [expandedRun, setExpandedRun] = useState<string | null>(null)
+  const [runResults, setRunResults] = useState<Record<string, EvalResult[]>>({})
+  const [newDatasetName, setNewDatasetName] = useState('')
+  const [newCaseInput, setNewCaseInput] = useState('')
+  const [newCaseCriteria, setNewCaseCriteria] = useState('')
+  const [datasetCreating, setDatasetCreating] = useState(false)
+  const [caseAdding, setCaseAdding] = useState(false)
+  const [runTriggering, setRunTriggering] = useState<string | null>(null)
 
   const [loading, setLoading] = useState(true)
   const [toolsLoading, setToolsLoading] = useState(false)
   const [roiLoading, setRoiLoading] = useState(false)
   const [compactionLoading, setCompactionLoading] = useState(false)
   const [cacheLoading, setCacheLoading] = useState(false)
+  const [qualityLoading, setQualityLoading] = useState(false)
+  const [evalLoading, setEvalLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const [showAlertForm, setShowAlertForm] = useState(false)
@@ -659,12 +695,33 @@ export default function LensOverviewPage() {
     } catch { }
   }, [agentSlug])
 
+  const loadQuality = useCallback(async () => {
+    setQualityLoading(true)
+    try {
+      setQuality(await getLensQuality(agentSlug, range))
+    } catch { } finally { setQualityLoading(false) }
+  }, [agentSlug, range])
+
+  const loadEval = useCallback(async () => {
+    setEvalLoading(true)
+    try {
+      const [history, ds] = await Promise.all([
+        getLensEvalHistory(agentSlug),
+        listDatasets(agentSlug),
+      ])
+      setEvalHistory(history)
+      setDatasets(ds.datasets)
+    } catch { } finally { setEvalLoading(false) }
+  }, [agentSlug])
+
   useEffect(() => { loadOverview() }, [loadOverview])
   useEffect(() => { if (tab === 'tools') loadToolAnalytics() }, [tab, loadToolAnalytics])
   useEffect(() => { if (tab === 'roi') loadROI() }, [tab, loadROI])
   useEffect(() => { if (tab === 'compaction') loadCompaction() }, [tab, loadCompaction])
   useEffect(() => { if (tab === 'cache') loadCache() }, [tab, loadCache])
   useEffect(() => { if (tab === 'alerts') loadAlerts() }, [tab, loadAlerts])
+  useEffect(() => { if (tab === 'quality') loadQuality() }, [tab, loadQuality])
+  useEffect(() => { if (tab === 'eval') loadEval() }, [tab, loadEval])
 
   async function handleCreateAlert() {
     setAlertSaving(true)
@@ -681,6 +738,83 @@ export default function LensOverviewPage() {
       await deleteLensAlert(agentSlug, id)
       setAlerts(prev => prev.filter(a => a.id !== id))
     } catch { }
+  }
+
+  async function handleCreateDataset() {
+    if (!newDatasetName.trim()) return
+    setDatasetCreating(true)
+    try {
+      const ds = await createDataset(agentSlug, newDatasetName.trim())
+      setDatasets(prev => [ds, ...prev])
+      setNewDatasetName('')
+    } catch { } finally { setDatasetCreating(false) }
+  }
+
+  async function handleDeleteDataset(datasetId: string) {
+    try {
+      await deleteDataset(agentSlug, datasetId)
+      setDatasets(prev => prev.filter(d => d.dataset_id !== datasetId))
+      if (selectedDataset?.dataset_id === datasetId) {
+        setSelectedDataset(null)
+        setCases([])
+      }
+    } catch { }
+  }
+
+  async function handleSelectDataset(ds: EvalDataset) {
+    setSelectedDataset(ds)
+    try {
+      const res = await listCases(agentSlug, ds.dataset_id)
+      setCases(res.cases)
+    } catch { }
+  }
+
+  async function handleAddCase() {
+    if (!selectedDataset || !newCaseInput.trim() || !newCaseCriteria.trim()) return
+    setCaseAdding(true)
+    try {
+      const c = await createCase(agentSlug, selectedDataset.dataset_id, newCaseInput.trim(), newCaseCriteria.trim())
+      setCases(prev => [...prev, c])
+      setNewCaseInput('')
+      setNewCaseCriteria('')
+      setDatasets(prev => prev.map(d =>
+        d.dataset_id === selectedDataset.dataset_id ? { ...d, case_count: d.case_count + 1 } : d
+      ))
+    } catch { } finally { setCaseAdding(false) }
+  }
+
+  async function handleDeleteCase(caseId: string) {
+    if (!selectedDataset) return
+    try {
+      await deleteCase(agentSlug, selectedDataset.dataset_id, caseId)
+      setCases(prev => prev.filter(c => c.case_id !== caseId))
+      setDatasets(prev => prev.map(d =>
+        d.dataset_id === selectedDataset.dataset_id ? { ...d, case_count: Math.max(0, d.case_count - 1) } : d
+      ))
+    } catch { }
+  }
+
+  async function handleTriggerRun(datasetId: string) {
+    setRunTriggering(datasetId)
+    try {
+      await triggerEvalRun(agentSlug, datasetId)
+      // Reload eval history after a brief delay to pick up the new run
+      setTimeout(() => loadEval(), 1500)
+    } catch { } finally { setRunTriggering(null) }
+  }
+
+  async function handleExpandRun(runId: string) {
+    if (expandedRun === runId) {
+      setExpandedRun(null)
+      return
+    }
+    setExpandedRun(runId)
+    if (!runResults[runId]) {
+      try {
+        const res = await getRunResults(agentSlug, runId)
+        setRunResults(prev => ({ ...prev, [runId]: res.results }))
+      } catch { }
+    }
   }
 
   const stats = overview?.stats
@@ -740,6 +874,8 @@ export default function LensOverviewPage() {
             { id: 'compaction', label: 'Compaction', icon: <Scissors size={14} /> },
             { id: 'cache', label: 'Cache', icon: <Database size={14} /> },
             { id: 'alerts', label: 'Alerts', icon: <Bell size={14} /> },
+            { id: 'quality', label: 'Quality', icon: <Star size={14} /> },
+            { id: 'eval', label: 'Eval', icon: <FlaskConical size={14} /> },
           ]}
         />
 
@@ -1140,6 +1276,348 @@ export default function LensOverviewPage() {
           )}
         </div>
       )}
+      {/* ── QUALITY TAB ───────────────────────────────────────────────────── */}
+      {tab === 'quality' && (
+        <>
+          {qualityLoading ? (
+            <div className="text-gray-400 py-16 text-center">Loading quality data...</div>
+          ) : quality ? (
+            <div className="space-y-6">
+              {/* Satisfaction KPIs */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <KpiCard
+                  label="Satisfaction Rate"
+                  value={fmtPct(quality.satisfaction.satisfaction_rate)}
+                  sub={`${quality.satisfaction.total_rated} rated messages`}
+                  icon={Star}
+                  iconBg={quality.satisfaction.satisfaction_rate >= 0.8 ? 'bg-emerald-50' : quality.satisfaction.satisfaction_rate >= 0.6 ? 'bg-amber-50' : 'bg-red-50'}
+                  iconColor={quality.satisfaction.satisfaction_rate >= 0.8 ? 'text-emerald-600' : quality.satisfaction.satisfaction_rate >= 0.6 ? 'text-amber-600' : 'text-red-600'}
+                />
+                <KpiCard
+                  label="Thumbs Up"
+                  value={String(quality.satisfaction.thumbs_up)}
+                  icon={ThumbsUp}
+                  iconBg="bg-green-50"
+                  iconColor="text-green-600"
+                />
+                <KpiCard
+                  label="Thumbs Down"
+                  value={String(quality.satisfaction.thumbs_down)}
+                  icon={ThumbsDown}
+                  iconBg="bg-red-50"
+                  iconColor="text-red-500"
+                />
+                <KpiCard
+                  label="Session Success"
+                  value={fmtPct(quality.outcomes.success_rate)}
+                  sub={`${quality.outcomes.success} of ${quality.outcomes.total_sessions}`}
+                  icon={CheckCircle}
+                  iconBg={quality.outcomes.success_rate >= 0.7 ? 'bg-emerald-50' : 'bg-amber-50'}
+                  iconColor={quality.outcomes.success_rate >= 0.7 ? 'text-emerald-600' : 'text-amber-600'}
+                />
+              </div>
+
+              {/* Outcome breakdown + channel breakdown */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <DonutCard
+                  title="Session Outcomes"
+                  data={[
+                    { name: 'Success', value: quality.outcomes.success },
+                    { name: 'Partial', value: quality.outcomes.partial },
+                    { name: 'Failure', value: quality.outcomes.failure },
+                    { name: 'Unknown', value: quality.outcomes.unknown },
+                  ].filter(d => d.value > 0)}
+                  colors={['#10b981', '#f59e0b', '#ef4444', '#9ca3af']}
+                  totalLabel="sessions"
+                  totalValue={String(quality.outcomes.total_sessions)}
+                  legendFormatter={(item) => String(item.value)}
+                />
+                {quality.outcomes.total_sessions > 0 && (
+                  <div className="mt-3 rounded-lg border border-gray-100 bg-gray-50 px-4 py-2 grid grid-cols-2 gap-2 text-xs text-gray-500">
+                    <div>Explicit rate: <span className="font-medium text-gray-700">{fmtPct(quality.outcomes.explicit_rate)}</span></div>
+                    <div>Implicit rate: <span className="font-medium text-gray-700">{fmtPct(quality.outcomes.implicit_rate)}</span></div>
+                  </div>
+                )}
+
+                <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-4">Satisfaction by Channel</h3>
+                  {quality.satisfaction.by_channel.length > 0 ? (
+                    <div className="space-y-3">
+                      {quality.satisfaction.by_channel.map(ch => {
+                        const pct = Math.round(ch.satisfaction_rate * 100)
+                        const barColor = pct >= 80 ? 'bg-emerald-500' : pct >= 60 ? 'bg-amber-500' : 'bg-red-500'
+                        return (
+                          <div key={ch.channel}>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-medium text-gray-700 capitalize">{ch.channel}</span>
+                              <span className="text-xs text-gray-500">{pct}% · {ch.rated_count} rated</span>
+                            </div>
+                            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                              <div className={`h-full rounded-full ${barColor}`} style={{ width: `${pct}%` }} />
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-40 text-gray-400 text-sm">No channel data yet</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Top disliked tools */}
+              {quality.top_disliked_tools.length > 0 && (
+                <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Most Disliked Tool Calls</h3>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-100 text-sm">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tool</th>
+                          <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Dislikes</th>
+                          <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Dislike Rate</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {quality.top_disliked_tools.map(t => (
+                          <tr key={t.tool_name} className="hover:bg-gray-50">
+                            <td className="px-4 py-2 font-mono text-xs text-gray-900">{t.tool_name}</td>
+                            <td className="px-4 py-2 text-right text-gray-700">{t.dislike_count}</td>
+                            <td className="px-4 py-2 text-right text-red-600 font-medium">{fmtPct(t.dislike_rate)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              <div className="rounded-lg border border-gray-100 bg-gray-50 px-4 py-3 text-xs text-gray-500 leading-relaxed">
+                <span className="font-medium text-gray-700">Quality signals: </span>
+                Satisfaction rate comes from thumbs up/down votes on individual messages.
+                Session outcomes combine explicit feedback ("Did this help?") with implicit signals
+                (conversation completion, tool success patterns).
+              </div>
+            </div>
+          ) : (
+            <div className="text-gray-400 py-16 text-center">No quality data available</div>
+          )}
+        </>
+      )}
+
+      {/* ── EVAL TAB ──────────────────────────────────────────────────────── */}
+      {tab === 'eval' && (
+        <div className="space-y-6">
+          {evalLoading ? (
+            <div className="text-gray-400 py-16 text-center">Loading eval data...</div>
+          ) : (
+            <>
+              {/* Dataset management */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left: dataset list + create */}
+                <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-semibold text-gray-900">Datasets</h3>
+                  </div>
+
+                  {/* Create dataset */}
+                  <div className="flex gap-2 mb-4">
+                    <input
+                      value={newDatasetName}
+                      onChange={e => setNewDatasetName(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleCreateDataset()}
+                      placeholder="New dataset name"
+                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    />
+                    <button
+                      onClick={handleCreateDataset}
+                      disabled={datasetCreating || !newDatasetName.trim()}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+                    >
+                      <Plus size={14} />{datasetCreating ? '...' : 'Create'}
+                    </button>
+                  </div>
+
+                  {datasets.length === 0 ? (
+                    <div className="text-gray-400 text-sm text-center py-8">No datasets yet. Create one above.</div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {datasets.map(ds => (
+                        <div
+                          key={ds.dataset_id}
+                          onClick={() => handleSelectDataset(ds)}
+                          className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
+                            selectedDataset?.dataset_id === ds.dataset_id
+                              ? 'border-primary-500 bg-primary-50'
+                              : 'border-gray-200 hover:bg-gray-50'
+                          }`}
+                        >
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{ds.name}</p>
+                            <p className="text-xs text-gray-500">{ds.case_count} case{ds.case_count !== 1 ? 's' : ''}</p>
+                          </div>
+                          <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                            <button
+                              onClick={() => handleTriggerRun(ds.dataset_id)}
+                              disabled={runTriggering === ds.dataset_id}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded text-xs font-medium transition-colors"
+                              title="Run eval"
+                            >
+                              <Play size={11} />{runTriggering === ds.dataset_id ? '...' : 'Run'}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteDataset(ds.dataset_id)}
+                              className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Right: cases for selected dataset */}
+                <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-4">
+                    {selectedDataset ? `Cases — ${selectedDataset.name}` : 'Cases'}
+                  </h3>
+
+                  {!selectedDataset ? (
+                    <div className="text-gray-400 text-sm text-center py-8">Select a dataset to manage cases</div>
+                  ) : (
+                    <>
+                      {/* Add case */}
+                      <div className="space-y-2 mb-4">
+                        <textarea
+                          value={newCaseInput}
+                          onChange={e => setNewCaseInput(e.target.value)}
+                          placeholder="User input (e.g. 'What is the capital of France?')"
+                          rows={2}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                        />
+                        <textarea
+                          value={newCaseCriteria}
+                          onChange={e => setNewCaseCriteria(e.target.value)}
+                          placeholder="Expected criteria (e.g. 'Response should mention Paris')"
+                          rows={2}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                        />
+                        <button
+                          onClick={handleAddCase}
+                          disabled={caseAdding || !newCaseInput.trim() || !newCaseCriteria.trim()}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+                        >
+                          <Plus size={14} />{caseAdding ? 'Adding...' : 'Add Case'}
+                        </button>
+                      </div>
+
+                      {cases.length === 0 ? (
+                        <div className="text-gray-400 text-sm text-center py-6">No cases yet. Add one above.</div>
+                      ) : (
+                        <div className="space-y-2 max-h-72 overflow-y-auto">
+                          {cases.map(c => (
+                            <div key={c.case_id} className="flex items-start gap-2 p-3 rounded-lg border border-gray-100 bg-gray-50">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium text-gray-800 truncate">{c.input}</p>
+                                <p className="text-xs text-gray-500 mt-0.5 truncate">{c.expected_criteria}</p>
+                              </div>
+                              <button
+                                onClick={() => handleDeleteCase(c.case_id)}
+                                className="text-gray-400 hover:text-red-500 transition-colors shrink-0 mt-0.5"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Run history */}
+              <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+                <div className="px-5 py-4 border-b border-gray-100">
+                  <h3 className="text-sm font-semibold text-gray-900">Run History</h3>
+                </div>
+                {!evalHistory || evalHistory.runs.length === 0 ? (
+                  <div className="p-8 text-center text-gray-400 text-sm">
+                    No eval runs yet. Select a dataset and click Run to start one.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {evalHistory.runs.map(run => {
+                      const isExpanded = expandedRun === run.run_id
+                      const statusColor = run.status === 'completed'
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : run.status === 'running'
+                        ? 'bg-blue-100 text-blue-700'
+                        : run.status === 'failed'
+                        ? 'bg-red-100 text-red-700'
+                        : 'bg-gray-100 text-gray-600'
+                      const passColor = run.pass_rate >= 0.8 ? 'text-emerald-600' : run.pass_rate >= 0.6 ? 'text-amber-600' : 'text-red-600'
+                      return (
+                        <div key={run.run_id}>
+                          <div
+                            className="flex items-center gap-3 px-5 py-3 cursor-pointer hover:bg-gray-50"
+                            onClick={() => handleExpandRun(run.run_id)}
+                          >
+                            {isExpanded ? <ChevronDown size={14} className="text-gray-400 shrink-0" /> : <ChevronRight size={14} className="text-gray-400 shrink-0" />}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium text-gray-800 truncate">{run.dataset_name || run.dataset_id.slice(0, 8)}</p>
+                              <p className="text-xs text-gray-400">{run.ran_at ? new Date(run.ran_at).toLocaleString() : '—'}</p>
+                            </div>
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded ${statusColor}`}>{run.status}</span>
+                            <span className={`text-sm font-bold ${passColor} w-16 text-right`}>{fmtPct(run.pass_rate)}</span>
+                            <span className="text-xs text-gray-400 w-20 text-right">{run.passed}/{run.total_cases} passed</span>
+                            <span className="text-xs text-gray-400 w-16 text-right">{(run.avg_score * 100).toFixed(0)}% score</span>
+                          </div>
+                          {isExpanded && (
+                            <div className="px-5 pb-4 bg-gray-50 border-t border-gray-100">
+                              {runResults[run.run_id] ? (
+                                runResults[run.run_id].length === 0 ? (
+                                  <p className="text-xs text-gray-400 py-3">No results yet</p>
+                                ) : (
+                                  <div className="space-y-2 mt-3">
+                                    {runResults[run.run_id].map(r => (
+                                      <div key={r.result_id} className={`rounded-lg border p-3 ${r.passed ? 'border-emerald-200 bg-emerald-50' : 'border-red-200 bg-red-50'}`}>
+                                        <div className="flex items-start gap-2">
+                                          {r.passed
+                                            ? <CheckCircle size={13} className="text-emerald-600 shrink-0 mt-0.5" />
+                                            : <XCircle size={13} className="text-red-500 shrink-0 mt-0.5" />
+                                          }
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-medium text-gray-800 mb-0.5 truncate">{r.input}</p>
+                                            <p className="text-xs text-gray-500 mb-1 line-clamp-2">{r.reasoning}</p>
+                                            <div className="flex items-center gap-3 text-xs text-gray-400">
+                                              <span>Score: <span className="font-medium text-gray-700">{(r.score * 100).toFixed(0)}%</span></span>
+                                              <span>Latency: <span className="font-medium text-gray-700">{fmtLatency(r.latency_ms)}</span></span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )
+                              ) : (
+                                <p className="text-xs text-gray-400 py-3">Loading results...</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       </div>
     </AgentPageShell>
   )

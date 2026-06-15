@@ -26,36 +26,39 @@ export interface ParsedMessage {
   role: 'user' | 'assistant'
   content: string
   timestamp: Date
-  actionCard?: ActionCard
+  actionCards?: ActionCard[]
   integrationCard?: IntegrationCard
 }
 
 export function parseActionMarkers(text: string): {
   displayText: string
-  actionCard: ActionCard | null
+  actionCards: ActionCard[]
   integrationCard: IntegrationCard | null
   agentCreated: AgentCreatedInfo | null
 } {
   let displayText = text
-  let actionCard: ActionCard | null = null
+  const actionCards: ActionCard[] = []
   let integrationCard: IntegrationCard | null = null
   let agentCreated: AgentCreatedInfo | null = null
 
-  // Parse __ACTION__....__ACTION__
-  const actionMatch = text.match(/__ACTION__([\s\S]*?)__ACTION__/)
-  if (actionMatch) {
+  // Parse all __ACTION__....__ACTION__ blocks
+  const actionRegex = /__ACTION__([\s\S]*?)__ACTION__/g
+  let actionMatch: RegExpExecArray | null
+  while ((actionMatch = actionRegex.exec(text)) !== null) {
     try {
       const parsed = JSON.parse(actionMatch[1].trim())
       if (parsed.type === 'create_agent' && parsed.config) {
-        actionCard = {
+        actionCards.push({
           type: 'create_agent',
           config: parsed.config,
           status: 'pending',
-        }
+        })
       }
     } catch {
       // ignore malformed JSON
     }
+  }
+  if (actionCards.length > 0) {
     displayText = displayText.replace(/__ACTION__[\s\S]*?__ACTION__/g, '').trim()
   }
 
@@ -92,5 +95,5 @@ export function parseActionMarkers(text: string): {
     displayText = displayText.replace(/__AGENT_CREATED__[\s\S]*?__AGENT_CREATED__/g, '').trim()
   }
 
-  return { displayText, actionCard, integrationCard, agentCreated }
+  return { displayText, actionCards, integrationCard, agentCreated }
 }

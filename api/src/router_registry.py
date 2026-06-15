@@ -119,10 +119,28 @@ ROUTER_REGISTRY: list[RouteConfig] = [
         tags=["autonomous-agents"],
     ),
     RouteConfig(
+        module="src.controllers.agents.handoff",
+        attribute="router",
+        prefix="/api/v1",
+        tags=["handoff"],
+    ),
+    RouteConfig(
+        module="src.controllers.agents.analysis",
+        attribute="router",
+        prefix="/api/v1/agents",
+        tags=["analysis-jobs"],
+    ),
+    RouteConfig(
         module="src.controllers.agents.agent_lens",
         attribute="router",
         prefix="/api/v1/agents",
         tags=["agent-lens"],
+    ),
+    RouteConfig(
+        module="src.controllers.agents.eval",
+        attribute="router",
+        prefix="/api/v1/agents",
+        tags=["agent-eval"],
     ),
     RouteConfig(
         module="src.controllers.agents.conversation_shares",

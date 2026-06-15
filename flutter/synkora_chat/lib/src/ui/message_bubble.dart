@@ -22,9 +22,12 @@ class MessageBubble extends StatelessWidget {
   });
 
   bool get _isUser => message.role == MessageRole.user;
+  bool get _isOperator => message.role == MessageRole.operator;
 
   // Agent bubble — cool slate, clearly distinct from any primaryColor
   static const _agentSurface = Color(0xFFF1F5F9);
+  // Operator bubble — warm amber tint to stand out from agent messages
+  static const _operatorSurface = Color(0xFFFFF8E1);
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +39,69 @@ class MessageBubble extends StatelessWidget {
 
     // Tighter gap within a group, looser gap between groups
     final verticalPad = showAvatar || _isUser ? 6.0 : 2.0;
+
+    // Operator messages render as a full-width banner-style row
+    if (_isOperator) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(16, 2, 16, verticalPad),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            if (showAvatar)
+              const _OperatorAvatar()
+            else
+              const SizedBox(width: 32),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(left: 2, bottom: 3),
+                    child: Text(
+                      'Support',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFFB45309),
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * 0.75,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 11),
+                    decoration: const BoxDecoration(
+                      color: _operatorSurface,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(20),
+                        topRight: Radius.circular(20),
+                        bottomLeft: Radius.circular(5),
+                        bottomRight: Radius.circular(20),
+                      ),
+                    ),
+                    child: Text(
+                      message.content,
+                      style: const TextStyle(
+                        color: Color(0xFF78350F),
+                        fontSize: 15,
+                        height: 1.45,
+                        letterSpacing: 0.1,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 2, 16, verticalPad),
       child: Row(
@@ -222,6 +288,23 @@ class _AgentAvatar extends StatelessWidget {
         Icons.auto_awesome,
         size: 15,
         color: Colors.white,
+      ),
+    );
+  }
+}
+
+class _OperatorAvatar extends StatelessWidget {
+  const _OperatorAvatar();
+
+  @override
+  Widget build(BuildContext context) {
+    return CircleAvatar(
+      radius: 16,
+      backgroundColor: const Color(0xFFFEF3C7),
+      child: const Icon(
+        Icons.support_agent,
+        size: 17,
+        color: Color(0xFFB45309),
       ),
     );
   }
