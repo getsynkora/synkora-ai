@@ -72,9 +72,10 @@ def extract_user_friendly_error(error: Exception) -> str:
     auth_patterns = [
         r"AuthenticationError",
         r"Invalid.*api.?key",
-        r"invalid.*token",
-        r"Unauthorized",
-        r"401",
+        r"invalid_api_key",
+        r"invalid_api_token",
+        r"\bUnauthorized\b",
+        r"\b401\b",
         r"token_not_found",
         r"Invalid proxy server token",
     ]
@@ -104,13 +105,16 @@ def extract_user_friendly_error(error: Exception) -> str:
         r"too many requests",
         r"quota exceeded",
         r"ServiceUnavailableError",
+        r"InternalServerError",
+        r"\b500\b",
         r"503",
         r"Too many connections",
         r"No deployments available",
+        r"overloaded",
     ]
     for pattern in rate_limit_patterns:
         if re.search(pattern, error_str, re.IGNORECASE):
-            return "The AI service is busy. Please try again in a few seconds."
+            return "The AI service is temporarily unavailable. Please try again in a few seconds."
 
     # Check for connection/network errors
     connection_patterns = [
@@ -167,20 +171,43 @@ def extract_user_friendly_error(error: Exception) -> str:
         if re.search(pattern, error_str, re.IGNORECASE):
             return "Request blocked by content policy. Please rephrase your message."
 
-    # Check for billing/quota errors
+    # Check for billing/quota errors (402 Payment Required, insufficient balance/funds/quota)
     billing_patterns = [
+        r"\b402\b",
+        r"Payment Required",
         r"billing",
         r"insufficient.*funds",
+        r"insufficient.*balance",
+        r"insufficient.*credit",
         r"payment",
-        r"credit",
+        r"out of.*credit",
+        r"\bcredit\b",
         r"quota",
     ]
     for pattern in billing_patterns:
         if re.search(pattern, error_str, re.IGNORECASE):
-            return "AI provider billing issue. Please check your account."
+            # Try to extract the actual provider message from the JSON body
+            msg_match = re.search(r"['\"]message['\"]\s*:\s*['\"]([^'\"]{4,200})['\"]", error_str)
+            if msg_match:
+                return f"AI provider billing issue: {msg_match.group(1)}. Please top up your account."
+            return "AI provider billing issue. Please check your account balance."
 
-    # Default: return a generic but helpful message
-    # Don't expose raw technical details to users
+    # For any unmatched error, try to extract the actual provider message from the JSON body.
+    # LiteLLM wraps provider responses as: Error code: NNN - {'error': {'message': '...', ...}}
+    msg_match = re.search(r"['\"]message['\"]\s*:\s*['\"]([^'\"]{10,300})['\"]", error_str)
+    if msg_match:
+        extracted = msg_match.group(1).strip()
+        # Skip: stack traces, internal paths, and generic proxy boilerplate that adds no value
+        is_technical = re.search(r"traceback|File \"|line \d+|__\w+__", extracted, re.IGNORECASE)
+        is_generic = re.search(
+            r"^an error occurred|please try again|contact support|something went wrong|internal server error",
+            extracted,
+            re.IGNORECASE,
+        )
+        if not is_technical and not is_generic:
+            logger.warning(f"Unhandled LLM error ({error_type}), extracted provider message: {extracted}")
+            return extracted
+
     logger.warning(f"Unhandled LLM error ({error_type}): {error_str}")
     return "An error occurred while processing your request. Please try again."
 
@@ -482,6 +509,17 @@ async def generate_done_event(
     data.update(kwargs)
 
     return await generate_sse_event("done", data)
+
+
+async def generate_satisfaction_prompt_event(conversation_id: str) -> str:
+    """
+    Generate satisfaction prompt event.
+
+    Emitted after the final assistant message when the agent has
+    show_satisfaction_prompt=true in observability_config.
+    The client displays a "Did this help? Yes / No" prompt.
+    """
+    return await generate_sse_event("satisfaction_prompt", {"conversation_id": conversation_id})
 
 
 async def generate_first_token_event(time_to_first_token: float) -> str:

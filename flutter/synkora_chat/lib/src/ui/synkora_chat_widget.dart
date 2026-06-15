@@ -93,6 +93,10 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
   final _scrollController = ScrollController();
   final _focusNode = FocusNode();
 
+  // Tracks the last-seen handoff/approval state so we can scroll when they arrive
+  bool _lastHandoffActive = false;
+  bool _lastHadPendingApproval = false;
+
   @override
   void initState() {
     super.initState();
@@ -134,7 +138,13 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
       }
     }
 
-    if (_controller.messages.isNotEmpty) {
+    final handoffChanged = _controller.isHandoffActive != _lastHandoffActive;
+    final approvalChanged =
+        (_controller.pendingApproval != null) != _lastHadPendingApproval;
+    _lastHandoffActive = _controller.isHandoffActive;
+    _lastHadPendingApproval = _controller.pendingApproval != null;
+
+    if (_controller.messages.isNotEmpty || handoffChanged || approvalChanged) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_scrollController.hasClients) {
           _scrollController.animateTo(
@@ -329,6 +339,10 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
                             ? 'Your conversations'
                             : _activeView == _ChatSurfaceView.preChatForm
                             ? 'Before we start'
+                            : _controller.isHandoffActive
+                            ? 'Connected to support'
+                            : _controller.pendingApproval != null
+                            ? 'Waiting for approval'
                             : hasConversationContent
                             ? 'Conversation in progress'
                             : 'Ready to chat',
@@ -486,9 +500,12 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
                           ),
                         ),
 
-                        // Input bar — hidden for sessions view and closed sessions
+                        // Input bar — hidden for sessions view, closed sessions,
+                        // active handoffs, and pending approvals
                         if (_activeView == _ChatSurfaceView.chat &&
-                            !_controller.isCurrentSessionClosed)
+                            !_controller.isCurrentSessionClosed &&
+                            !_controller.isHandoffActive &&
+                            _controller.pendingApproval == null)
                           _InputBar(
                             controller: _inputController,
                             focusNode: _focusNode,
@@ -498,6 +515,10 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
                             isStreaming: _controller.isStreaming,
                             onSend: _send,
                           ),
+                        // Handoff active footer
+                        if (_activeView == _ChatSurfaceView.chat &&
+                            _controller.isHandoffActive)
+                          _HandoffActiveFooter(primaryColor: _primaryColor),
                       ],
                     ),
             ],
@@ -596,12 +617,25 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
           return _ChatEmptyState(onOpenHome: _openHome, primaryColor: _primaryColor);
         }
 
+        final hasPendingApproval = _controller.pendingApproval != null;
+        final extraItems = hasPendingApproval ? 1 : 0;
+
         return ListView.builder(
           controller: _scrollController,
           padding: const EdgeInsets.only(top: 8, bottom: 8),
-          itemCount: _controller.messages.length,
+          itemCount: _controller.messages.length + extraItems,
           itemBuilder: (context, i) {
             final msgs = _controller.messages;
+            // Render the approval card as the last item
+            if (hasPendingApproval && i == msgs.length) {
+              final approval = _controller.pendingApproval!;
+              return _ApprovalCard(
+                event: approval,
+                primaryColor: _primaryColor,
+                onApprove: () => _controller.respondApproval(approval.approvalId, 'approved'),
+                onReject: () => _controller.respondApproval(approval.approvalId, 'rejected'),
+              );
+            }
             final msg = msgs[i];
             if (msg.content.isEmpty && !msg.isStreaming) {
               return const SizedBox.shrink();
@@ -618,6 +652,167 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
           },
         );
     }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Approval card (inline in chat when approval_required SSE event arrives)
+// ---------------------------------------------------------------------------
+
+class _ApprovalCard extends StatelessWidget {
+  final ApprovalRequiredEvent event;
+  final Color primaryColor;
+  final VoidCallback onApprove;
+  final VoidCallback onReject;
+
+  const _ApprovalCard({
+    required this.event,
+    required this.primaryColor,
+    required this.onApprove,
+    required this.onReject,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFBEB),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFFDE68A)),
+        ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.approval_outlined,
+                  size: 18,
+                  color: Color(0xFFB45309),
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Approval required',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF78350F),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              event.message.isNotEmpty
+                  ? event.message
+                  : 'The agent wants to run "${event.toolName}" and needs your approval.',
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0xFF78350F),
+                height: 1.4,
+              ),
+            ),
+            if (event.toolArgs.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(
+                'Tool: ${event.toolName}',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFFB45309),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+            if (event.expiresAt != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Expires: ${event.expiresAt}',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Color(0xFFB45309),
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: onReject,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF78350F),
+                      side: const BorderSide(color: Color(0xFFFDE68A)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text('Reject'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: onApprove,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFFB45309),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text('Approve'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Handoff active footer (replaces input bar during a live handoff)
+// ---------------------------------------------------------------------------
+
+class _HandoffActiveFooter extends StatelessWidget {
+  final Color primaryColor;
+
+  const _HandoffActiveFooter({required this.primaryColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: const Color(0xFFFFFBEB),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: const BoxDecoration(
+              color: Color(0xFF22C55E),
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Text(
+              'Connected to support — the agent is paused',
+              style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFF78350F),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

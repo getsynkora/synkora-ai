@@ -167,28 +167,32 @@ export default function AutonomousPage() {
       badge="Background Automation"
       maxWidthClassName="max-w-[90rem]"
       stats={status?.task_id ? [
-        { label: 'State', value: status.is_active ? 'Active' : 'Paused' },
+        { label: 'Status', value: status.is_active ? 'Active' : 'Paused' },
         { label: 'Approvals', value: pendingApprovals },
       ] : undefined}
       actions={status?.task_id ? (
         <>
           <button
             onClick={handleToggleActive}
-            title={status.is_active ? 'Pause' : 'Resume'}
             className="flex items-center gap-2 rounded-[1rem] border border-black/10 bg-white/80 px-4 py-3 text-sm font-semibold text-[#171717] transition-colors hover:bg-white"
           >
             {status.is_active ? (
-              <ToggleRight className="w-5 h-5 text-green-500" />
+              <>
+                <ToggleRight className="w-5 h-5 text-green-500" />
+                Pause
+              </>
             ) : (
-              <ToggleLeft className="w-5 h-5 text-gray-400" />
+              <>
+                <ToggleLeft className="w-5 h-5 text-gray-400" />
+                Resume
+              </>
             )}
-            {status.is_active ? 'Active' : 'Paused'}
           </button>
           <button
             onClick={() => setShowDisableDialog(true)}
             className="rounded-[1rem] border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600 transition-colors hover:bg-red-100"
           >
-            Disable
+            Delete
           </button>
         </>
       ) : undefined}
@@ -226,6 +230,24 @@ export default function AutonomousPage() {
           <div className="flex items-center justify-center py-16">
             <div className="w-6 h-6 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
           </div>
+        ) : !status?.task_id ? (
+          /* No autonomous task configured — show setup form */
+          <AgentPagePanel>
+            <div className="p-6">
+              <AutonomousConfig
+                agentName={agentName}
+                status={status ?? { enabled: false }}
+                onSaved={async () => {
+                  await fetchStatus()
+                  showToast('Autonomous mode enabled')
+                }}
+                onTriggered={() => {
+                  showToast('Run queued — check Recent Runs shortly')
+                  setActiveTab('history')
+                }}
+              />
+            </div>
+          </AgentPagePanel>
         ) : (
           <AgentPagePanel className="overflow-hidden">
             <div className="border-b border-black/10 p-4">
@@ -238,7 +260,7 @@ export default function AutonomousPage() {
 
             {/* Tab content */}
             <div className="p-6">
-              {activeTab === 'config' && status && (
+              {activeTab === 'config' && (
                 <AutonomousConfig
                   agentName={agentName}
                   status={status}
@@ -253,7 +275,7 @@ export default function AutonomousPage() {
                 />
               )}
 
-              {activeTab === 'history' && status && (
+              {activeTab === 'history' && (
                 <AutonomousRunHistory runs={status.recent_runs ?? []} />
               )}
 
@@ -288,10 +310,10 @@ export default function AutonomousPage() {
               <div className="rounded-[1rem] bg-red-50 p-2.5">
                 <Bot className="w-5 h-5 text-red-600" />
               </div>
-              <h2 className="text-base font-semibold text-gray-900">Disable Autonomous Mode</h2>
+              <h2 className="text-base font-semibold text-gray-900">Delete Autonomous Task</h2>
             </div>
             <p className="text-sm text-gray-600 mb-6">
-              This will delete the autonomous schedule and all run history for <strong>{agentName}</strong>. This action cannot be undone.
+              This will permanently delete the autonomous schedule and all run history for <strong>{agentName}</strong>. This action cannot be undone.
             </p>
             <div className="flex gap-3 justify-end">
               <button
@@ -302,9 +324,9 @@ export default function AutonomousPage() {
               </button>
               <button
                 onClick={handleDelete}
-                className="rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
+                className="rounded-[1rem] bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-700"
               >
-                Disable
+                Delete
               </button>
             </div>
           </div>

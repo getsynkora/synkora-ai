@@ -31,7 +31,8 @@ class AgentApprovalRequest(Base):
     __tablename__ = "agent_approval_requests"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    task_id = Column(UUID(as_uuid=True), ForeignKey("scheduled_tasks.id", ondelete="CASCADE"), nullable=False)
+    task_id = Column(UUID(as_uuid=True), ForeignKey("scheduled_tasks.id", ondelete="CASCADE"), nullable=True)
+    conversation_id = Column(UUID(as_uuid=True), nullable=True)
     tenant_id = Column(UUID(as_uuid=True), nullable=False)
     agent_id = Column(UUID(as_uuid=True), nullable=False)
     agent_name = Column(String(255), nullable=False)
@@ -68,4 +69,5 @@ class AgentApprovalRequest(Base):
         Index("ix_approval_task_status", "task_id", "status"),
         Index("ix_approval_tenant_status", "tenant_id", "status"),
         Index("ix_approval_agent_status", "agent_id", "status"),
+        Index("ix_approval_conversation_status", "conversation_id", "status"),
     )

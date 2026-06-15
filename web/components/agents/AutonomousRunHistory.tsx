@@ -1,6 +1,6 @@
 'use client'
 
-import { CheckCircle, XCircle, Clock, ChevronDown, ChevronUp } from 'lucide-react'
+import { CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, ShieldAlert } from 'lucide-react'
 import { useState } from 'react'
 
 interface RunRecord {
@@ -28,42 +28,39 @@ function timeAgo(iso: string): string {
   return `${Math.floor(hrs / 24)} days ago`
 }
 
+function statusMeta(status: string) {
+  switch (status) {
+    case 'success':
+      return { icon: <CheckCircle className="w-4 h-4 text-green-500" />, badge: 'bg-green-100 text-green-700', label: 'success' }
+    case 'running':
+      return { icon: <Clock className="w-4 h-4 text-blue-500 animate-pulse" />, badge: 'bg-blue-100 text-blue-700', label: 'running' }
+    case 'awaiting_approval':
+      return { icon: <ShieldAlert className="w-4 h-4 text-amber-500" />, badge: 'bg-amber-100 text-amber-700', label: 'awaiting approval' }
+    default:
+      return { icon: <XCircle className="w-4 h-4 text-red-500" />, badge: 'bg-red-100 text-red-700', label: status }
+  }
+}
+
 function RunRow({ run, index }: { run: RunRecord; index: number }) {
   const [expanded, setExpanded] = useState(false)
-  const isSuccess = run.status === 'success'
+  const { icon, badge, label } = statusMeta(run.status)
 
   return (
     <div className="border-b border-gray-100 last:border-0">
       <div
-        className="flex items-center gap-4 px-4 py-3 hover:bg-gray-50 cursor-pointer"
-        onClick={() => run.output_preview || run.error_message ? setExpanded(e => !e) : undefined}
+        className="flex items-center gap-4 px-4 py-3 hover:bg-gray-50 cursor-pointer select-none"
+        onClick={() => setExpanded(e => !e)}
       >
         {/* Status icon */}
-        <div className="flex-shrink-0">
-          {isSuccess ? (
-            <CheckCircle className="w-4 h-4 text-green-500" />
-          ) : run.status === 'running' ? (
-            <Clock className="w-4 h-4 text-blue-500 animate-pulse" />
-          ) : (
-            <XCircle className="w-4 h-4 text-red-500" />
-          )}
-        </div>
+        <div className="flex-shrink-0">{icon}</div>
 
         {/* Run number & status */}
         <div className="flex-1 min-w-0">
           <span className="text-sm font-medium text-gray-800">
             Run #{index + 1}
           </span>
-          <span
-            className={`ml-2 text-xs px-1.5 py-0.5 rounded-full font-medium ${
-              isSuccess
-                ? 'bg-green-100 text-green-700'
-                : run.status === 'running'
-                ? 'bg-blue-100 text-blue-700'
-                : 'bg-red-100 text-red-700'
-            }`}
-          >
-            {run.status}
+          <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full font-medium ${badge}`}>
+            {label}
           </span>
         </div>
 
@@ -75,24 +72,24 @@ function RunRow({ run, index }: { run: RunRecord; index: number }) {
           )}
         </div>
 
-        {/* Expand toggle */}
-        {(run.output_preview || run.error_message) && (
-          <div className="flex-shrink-0 text-gray-400">
-            {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </div>
-        )}
+        <div className="flex-shrink-0 text-gray-400">
+          {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </div>
       </div>
 
       {expanded && (
         <div className="px-12 pb-3">
-          {run.error_message && (
+          {run.error_message ? (
             <div className="rounded bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700 font-mono whitespace-pre-wrap">
               {run.error_message}
             </div>
-          )}
-          {run.output_preview && !run.error_message && (
+          ) : run.output_preview ? (
             <div className="rounded bg-gray-50 border border-gray-200 px-3 py-2 text-xs text-gray-700 whitespace-pre-wrap">
               {run.output_preview}
+            </div>
+          ) : (
+            <div className="rounded bg-gray-50 border border-gray-200 px-3 py-2 text-xs text-gray-400 italic">
+              No text output — agent completed via tool calls only.
             </div>
           )}
         </div>

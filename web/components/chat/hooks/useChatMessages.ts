@@ -104,7 +104,7 @@ export function useChatMessages({ agentName }: UseChatMessagesProps): UseChatMes
   // Never reload while component is active to prevent overwriting streamed content
   useEffect(() => {
     loadChatHistory()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [agentName]) // Only depend on agentName changes, not isStreaming
 
   // Save chat history whenever messages change.

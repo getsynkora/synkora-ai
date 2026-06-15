@@ -221,9 +221,17 @@ async def _make_micromobility_request(
             return {"success": False, "error": f"JWT expired and retry failed: {retry_err}", "status_code": 401}
 
     if not response.is_success:
+        # Include response body for 4xx errors (small, structured JSON) so the LLM
+        # can understand what was wrong. Skip for 5xx (large Django traceback HTML).
+        error_detail = ""
+        if 400 <= response.status_code < 500 and len(response.content) < 2000:
+            try:
+                error_detail = f": {response.json()}"
+            except Exception:
+                error_detail = f": {response.text[:500]}"
         return {
             "success": False,
-            "error": f"API request failed with status {response.status_code}",
+            "error": f"API request failed with status {response.status_code}{error_detail}",
             "status_code": response.status_code,
         }
     try:

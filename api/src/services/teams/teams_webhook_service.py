@@ -64,6 +64,32 @@ class TeamsWebhookService:
             if not text:
                 return
 
+            # Feedback: intercept 👍/👎 as per-message satisfaction signal
+            _stripped = text.strip()
+            if _stripped in ("👍", "👎", ":thumbsup:", ":thumbsdown:", "+1", "-1"):
+                try:
+                    from sqlalchemy import select
+
+                    from ...models.message import Message
+                    from ...services.eval.feedback_service import record_feedback
+
+                    _msg_result = await self.db_session.execute(
+                        select(Message).filter(Message.role == "assistant").order_by(Message.created_at.desc()).limit(1)
+                    )
+                    _last_msg = _msg_result.scalar_one_or_none()
+                    if _last_msg:
+                        _rating = 1 if _stripped in ("👍", ":thumbsup:", "+1") else -1
+                        record_feedback(
+                            message_id=str(_last_msg.id),
+                            agent_id=bot.agent_id,
+                            tenant_id=bot.tenant_id,
+                            channel="teams",
+                            rating=_rating,
+                        )
+                except Exception as _fb_err:
+                    logger.debug("Teams feedback intercept failed: %s", _fb_err)
+                return
+
             from_user = activity.get("from", {})
             user_id = from_user.get("id")
             user_name = from_user.get("name", user_id)
@@ -76,6 +102,17 @@ class TeamsWebhookService:
 
             # Get or create conversation
             conversation = await self._get_or_create_conversation(bot, conversation_id, user_id)
+
+            # Block AI while a human operator is handling this conversation
+            if getattr(conversation, "handoff_status", None) == "active":
+                await self._send_message(
+                    bot,
+                    service_url,
+                    conversation_id,
+                    "A human support agent is currently handling your request. They will respond shortly.",
+                    activity_id,
+                )
+                return
 
             # Save user message
             user_message = Message(

@@ -1,0 +1,17 @@
+dataset: General QA
+cases:
+  - input: "What is 2 + 2?"
+    criteria: "The answer must be 4."
+    tags: [math, factual]
+
+  - input: "What is the capital of France?"
+    criteria: "The answer must clearly state Paris."
+    tags: [factual, geography]
+
+  - input: "List three primary colours."
+    criteria: "The response must mention red, blue, and yellow."
+    tags: [factual]
+
+  - input: "Translate 'hello' into Spanish."
+    criteria: "The response must include 'hola'."
+    tags: [translation]

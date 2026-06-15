@@ -218,6 +218,7 @@ markers = [
     "e2e: End-to-end tests",
     "slow: Slow running tests",
     "asyncio: Async tests",
+    "eval: Evaluation / regression tests",
 ]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"

@@ -61,6 +61,87 @@ const formatDate = (value: string): string => {
   }).format(new Date(value))
 }
 
+// Filter Dropdown — portal-based so it escapes the overflow-y-auto scroll container
+const FILTER_OPTIONS = [
+  { value: 'all', label: 'All' },
+  { value: 'active', label: 'Active' },
+  { value: 'public', label: 'Public' },
+  { value: 'workflow', label: 'Workflows' },
+] as const
+
+type FilterType = 'all' | 'active' | 'public' | 'workflow'
+
+function FilterDropdown({
+  value,
+  onChange,
+}: {
+  value: FilterType
+  onChange: (v: FilterType) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const selected = FILTER_OPTIONS.find((o) => o.value === value)!
+
+  useEffect(() => {
+    if (!open) return
+    const handleClick = (e: MouseEvent) => {
+      if (
+        menuRef.current && !menuRef.current.contains(e.target as Node) &&
+        btnRef.current && !btnRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [open])
+
+  const toggle = () => {
+    if (!open && btnRef.current) setAnchorRect(btnRef.current.getBoundingClientRect())
+    setOpen((v) => !v)
+  }
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        onClick={toggle}
+        className="flex w-full items-center justify-between rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] text-[#171717] outline-none transition-all focus:border-[#ff5f8f] focus:ring-2 focus:ring-[#ff5f8f]/20 md:text-[14px]"
+        style={{ borderColor: open ? '#ff5f8f' : undefined, boxShadow: open ? '0 0 0 2px rgba(255,95,143,0.2)' : undefined }}
+      >
+        <span>{selected.label}</span>
+        <ChevronDown className={`h-4 w-4 text-[#5b564e] transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && anchorRect && createPortal(
+        <div
+          ref={menuRef}
+          style={{
+            position: 'fixed',
+            top: anchorRect.bottom + 4,
+            left: anchorRect.left,
+            width: anchorRect.width,
+            zIndex: 9999,
+          }}
+          className="rounded-[0.45rem] border border-black/[0.08] bg-[rgba(255,255,255,0.94)] py-1.5 shadow-[0_18px_40px_rgba(0,0,0,0.12)] backdrop-blur-xl"
+        >
+          {FILTER_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => { onChange(opt.value); setOpen(false) }}
+              className={`flex w-full items-center gap-2.5 px-4 py-2 text-[13px] text-left transition-colors hover:bg-black/5 ${value === opt.value ? 'font-semibold text-[#ff5f8f]' : 'text-gray-700'}`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>,
+        document.body
+      )}
+    </>
+  )
+}
+
 // Dropdown Menu — rendered via portal so it escapes card overflow/stacking
 const DropdownMenu = ({
   agent,
@@ -290,7 +371,7 @@ export default function AgentsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [agentToDelete, setAgentToDelete] = useState<{ id: string; name: string } | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [filterType, setFilterType] = useState<'all' | 'active' | 'workflow' | 'public'>('all')
+  const [filterType, setFilterType] = useState<FilterType>('all')
 
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize] = useState(9)
@@ -306,7 +387,7 @@ export default function AgentsPage() {
 
   useEffect(() => {
     fetchAgents(deferredSearch)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [currentPage, deferredSearch])
 
   const fetchAgents = async (search?: string) => {
@@ -405,19 +486,7 @@ export default function AgentsPage() {
               />
             </label>
 
-            <label className="relative block">
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value as any)}
-                className="w-full appearance-none rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-3 pr-12 text-[13px] text-[#171717] outline-none transition-all focus:border-[#ff5f8f] focus:ring-2 focus:ring-[#ff5f8f]/20 md:text-[14px]"
-              >
-                <option value="all">All</option>
-                <option value="active">Active</option>
-                <option value="public">Public</option>
-                <option value="workflow">Workflows</option>
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#5b564e]" />
-            </label>
+            <FilterDropdown value={filterType} onChange={setFilterType} />
           </div>
         </div>
 

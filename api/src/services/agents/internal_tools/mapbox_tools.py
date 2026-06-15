@@ -5,11 +5,78 @@ Auth: api_key stored in OAuthApp (provider='mapbox', auth_method='api_token').
 All configuration via OAuthApp.config.
 """
 
+import json
 import logging
+import re
 from typing import Any
 from urllib.parse import quote
 
 logger = logging.getLogger(__name__)
+
+# Common color name → 6-digit hex (Mapbox only accepts 3 or 6-digit hex, no names)
+_COLOR_NAME_MAP: dict[str, str] = {
+    "red": "f44336",
+    "green": "4caf50",
+    "blue": "2196f3",
+    "yellow": "ffeb3b",
+    "orange": "ff9800",
+    "purple": "9c27b0",
+    "pink": "e91e63",
+    "cyan": "00bcd4",
+    "white": "ffffff",
+    "black": "000000",
+    "gray": "9e9e9e",
+    "grey": "9e9e9e",
+    "brown": "795548",
+    "teal": "009688",
+    "lime": "8bc34a",
+    "indigo": "3f51b5",
+    "amber": "ffc107",
+    "maroon": "800000",
+    "navy": "001f5b",
+    "silver": "c0c0c0",
+}
+
+_HEX_RE = re.compile(r"^[0-9a-fA-F]{3}$|^[0-9a-fA-F]{6}$")
+
+
+# Shorthand style names → full Mapbox style IDs
+_STYLE_ALIASES: dict[str, str] = {
+    "streets": "mapbox/streets-v12",
+    "satellite": "mapbox/satellite-v9",
+    "satellite-streets": "mapbox/satellite-streets-v12",
+    "outdoors": "mapbox/outdoors-v12",
+    "light": "mapbox/light-v11",
+    "dark": "mapbox/dark-v11",
+    "navigation-day": "mapbox/navigation-day-v1",
+    "navigation-night": "mapbox/navigation-night-v1",
+}
+
+
+def _normalize_style(style: str) -> str:
+    """Return a valid Mapbox style path (username/style_id)."""
+    s = style.strip()
+    # Check alias table first (e.g. "streets" → "mapbox/streets-v12")
+    if s in _STYLE_ALIASES:
+        return _STYLE_ALIASES[s]
+    # If no slash, assume mapbox/ prefix
+    if "/" not in s:
+        return f"mapbox/{s}"
+    return s
+
+
+def _normalize_color(color: str | None) -> str:
+    """Return a valid 3 or 6-digit hex string for Mapbox (no # prefix)."""
+    if not color:
+        return "f44336"
+    color = color.strip().lstrip("#")
+    lower = color.lower()
+    if lower in _COLOR_NAME_MAP:
+        return _COLOR_NAME_MAP[lower]
+    if _HEX_RE.match(color):
+        return color
+    # Fall back to red if unrecognised
+    return "f44336"
 
 
 async def _get_mapbox_config(runtime_context: Any, tool_name: str) -> dict[str, Any]:
@@ -50,9 +117,10 @@ async def _get_mapbox_config(runtime_context: Any, tool_name: str) -> dict[str, 
             raise ValueError("Mapbox API key is missing. Edit the OAuth app and add your access token.")
 
         config = oauth_app.config or {}
+        style = _normalize_style(config.get("style", "mapbox/streets-v12"))
         return {
             "access_token": decrypt_value(oauth_app.api_token),
-            "style": config.get("style", "mapbox/streets-v12"),
+            "style": style,
             "timeout": float(config.get("timeout_seconds", 15)),
         }
 
@@ -74,16 +142,31 @@ def _build_static_map_url(
     overlays = []
     if markers:
         for m in markers[:20]:  # Mapbox overlay limit
-            color = (m.get("color") or "f00").lstrip("#")
-            label = quote(str(m.get("label", ""))[:2])
+            color = _normalize_color(m.get("color"))
+            # Mapbox requires label to be a single lowercase letter a-z or digit 0-9
+            raw_label = str(m.get("label", "")).lower()[:1]
+            label = quote(raw_label)
             lng = float(m["lng"])
             lat = float(m["lat"])
             pin = f"pin-s-{label}+{color}({lng},{lat})" if label else f"pin-s+{color}({lng},{lat})"
             overlays.append(pin)
 
     if path and len(path) >= 2:
-        coords = ",".join(f"{float(p['lng'])},{float(p['lat'])}" for p in path[:100])
-        overlays.append(f"path-3+0074D9-0.8({quote(f'[{coords}]')})")
+        # Mapbox requires GeoJSON or encoded polyline — use GeoJSON LineString.
+        # Downsample to 25 points max to keep URL under Mapbox's length limit.
+        pts = path[:100]
+        step = max(1, len(pts) // 25)
+        sampled = pts[::step][:25]
+        coords = [[round(float(p["lng"]), 6), round(float(p["lat"]), 6)] for p in sampled]
+        geojson_str = json.dumps(
+            {
+                "type": "Feature",
+                "geometry": {"type": "LineString", "coordinates": coords},
+                "properties": {"stroke": "#0074D9", "stroke-width": 3, "stroke-opacity": 0.8},
+            },
+            separators=(",", ":"),
+        )
+        overlays.append(f"geojson({quote(geojson_str)})")
 
     overlay_str = ",".join(overlays)
     if overlay_str:
@@ -131,19 +214,15 @@ async def internal_get_static_map(
     try:
         cfg = _resolved_cfg or await _get_mapbox_config(runtime_context, "internal_get_static_map")
         token = cfg["access_token"]
-        map_style = style or cfg["style"]
+        map_style = _normalize_style(style) if style else cfg["style"]
         zoom = max(0, min(int(zoom), 22))
         width = max(64, min(int(width), 1280))
         height = max(64, min(int(height), 1280))
 
         map_url = _build_static_map_url(token, map_style, center_lng, center_lat, zoom, width, height, markers, path)
 
-        # Interactive embed URL (opens in browser/iframe)
-        embed_url = (
-            f"https://api.mapbox.com/styles/v1/{map_style}.html"
-            f"?access_token={token}"
-            f"#map={zoom}/{center_lat}/{center_lng}"
-        )
+        # Link to Google Maps — industry standard "open interactive map" pattern
+        embed_url = f"https://maps.google.com/?q={center_lat},{center_lng}&z={zoom}"
 
         return {
             "success": True,
@@ -247,6 +326,15 @@ async def internal_get_directions(
 
         mid_lat = (origin_lat + dest_lat) / 2
         mid_lng = (origin_lng + dest_lng) / 2
+
+        # Build marker list: origin (A), optional waypoints (numbered), destination (B)
+        map_markers: list[dict[str, Any]] = [
+            {"lat": origin_lat, "lng": origin_lng, "label": "a", "color": "4caf50"},
+        ]
+        for i, wp in enumerate((waypoints or [])[:8], start=1):
+            map_markers.append({"lat": float(wp["lat"]), "lng": float(wp["lng"]), "label": str(i), "color": "2196f3"})
+        map_markers.append({"lat": dest_lat, "lng": dest_lng, "label": "b", "color": "f44336"})
+
         map_url_result = await internal_get_static_map(
             config=config,
             runtime_context=runtime_context,
@@ -255,13 +343,24 @@ async def internal_get_directions(
             zoom=13,
             width=800,
             height=500,
-            markers=[
-                {"lat": origin_lat, "lng": origin_lng, "label": "A", "color": "00cc00"},
-                {"lat": dest_lat, "lng": dest_lng, "label": "B", "color": "cc0000"},
-            ],
+            markers=map_markers,
             path=path_points,
             _resolved_cfg=cfg,
         )
+
+        resolved_map_url = map_url_result.get("map_url") if map_url_result.get("success") else None
+        if not resolved_map_url:
+            logger.warning(f"internal_get_directions: static map failed — {map_url_result.get('error')}")
+        else:
+            logger.info(f"internal_get_directions: static map url built ({len(resolved_map_url)} chars)")
+
+        # Google Maps directions URL — shows interactive route with all waypoints
+        gmaps_parts = (
+            [f"{origin_lat},{origin_lng}"]
+            + [f"{float(w['lat'])},{float(w['lng'])}" for w in (waypoints or [])]
+            + [f"{dest_lat},{dest_lng}"]
+        )
+        embed_url = "https://www.google.com/maps/dir/" + "/".join(gmaps_parts)
 
         return {
             "success": True,
@@ -269,7 +368,8 @@ async def internal_get_directions(
             "distance_km": distance_km,
             "duration_min": duration_min,
             "steps": steps,
-            "map_url": map_url_result.get("map_url") if map_url_result.get("success") else None,
+            "map_url": resolved_map_url,
+            "embed_url": embed_url,
             "origin": {"lat": origin_lat, "lng": origin_lng},
             "destination": {"lat": dest_lat, "lng": dest_lng},
         }

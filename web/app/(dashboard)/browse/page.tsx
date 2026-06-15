@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import {
   Search,
@@ -23,6 +24,81 @@ import {
 import toast from 'react-hot-toast'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
+
+const SORT_OPTIONS = [
+  { value: 'popular', label: 'Most Popular' },
+  { value: 'recent', label: 'Recently Added' },
+  { value: 'rating', label: 'Highest Rated' },
+  { value: 'name', label: 'Name (A-Z)' },
+] as const
+
+type SortBy = 'popular' | 'recent' | 'rating' | 'name'
+
+function SortDropdown({ value, onChange }: { value: SortBy; onChange: (v: SortBy) => void }) {
+  const [open, setOpen] = useState(false)
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const selected = SORT_OPTIONS.find((o) => o.value === value)!
+
+  useEffect(() => {
+    if (!open) return
+    const handleClick = (e: MouseEvent) => {
+      if (
+        menuRef.current && !menuRef.current.contains(e.target as Node) &&
+        btnRef.current && !btnRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [open])
+
+  const toggle = () => {
+    if (!open && btnRef.current) setAnchorRect(btnRef.current.getBoundingClientRect())
+    setOpen((v) => !v)
+  }
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        onClick={toggle}
+        aria-label="Sort by"
+        className="flex w-full items-center justify-between rounded-[0.35rem] border border-black/10 bg-white/[0.78] px-4 py-3 text-[13px] text-[#171717] outline-none transition-all focus:border-[#ff5f8f] focus:ring-2 focus:ring-[#ff5f8f]/20 md:text-[14px]"
+        style={{ borderColor: open ? '#ff5f8f' : undefined, boxShadow: open ? '0 0 0 2px rgba(255,95,143,0.2)' : undefined }}
+      >
+        <span>{selected.label}</span>
+        <ChevronDown className={`h-4 w-4 text-[#5b564e] transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && anchorRect && createPortal(
+        <div
+          ref={menuRef}
+          style={{
+            position: 'fixed',
+            top: anchorRect.bottom + 4,
+            left: anchorRect.left,
+            width: anchorRect.width,
+            zIndex: 9999,
+          }}
+          className="rounded-[0.45rem] border border-black/[0.08] bg-[rgba(255,255,255,0.94)] py-1.5 shadow-[0_18px_40px_rgba(0,0,0,0.12)] backdrop-blur-xl"
+        >
+          {SORT_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => { onChange(opt.value); setOpen(false) }}
+              className={`flex w-full items-center gap-2.5 px-4 py-2 text-[13px] text-left transition-colors hover:bg-black/5 ${value === opt.value ? 'font-semibold text-[#ff5f8f]' : 'text-gray-700'}`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>,
+        document.body
+      )}
+    </>
+  )
+}
 
 interface AgentPricing {
   model: string
@@ -134,7 +210,7 @@ export default function BrowsePage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('')
-  const [sortBy, setSortBy] = useState<string>('popular')
+  const [sortBy, setSortBy] = useState<SortBy>('popular')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [currentPage, setCurrentPage] = useState(1)
@@ -306,20 +382,7 @@ export default function BrowsePage() {
               />
             </label>
 
-            <label className="relative block">
-              <select
-                aria-label="Sort by"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="w-full appearance-none rounded-[0.35rem] border border-black/10 bg-white/[0.78] px-4 py-3 pr-12 text-[13px] text-[#171717] outline-none transition-all focus:border-[#ff5f8f] focus:ring-2 focus:ring-[#ff5f8f]/20 md:text-[14px]"
-              >
-                <option value="popular">Most Popular</option>
-                <option value="recent">Recently Added</option>
-                <option value="rating">Highest Rated</option>
-                <option value="name">Name (A-Z)</option>
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#5b564e]" />
-            </label>
+            <SortDropdown value={sortBy} onChange={setSortBy} />
 
             <div className="flex items-center rounded-[0.35rem] border border-black/10 bg-white/[0.78] p-1">
               <button

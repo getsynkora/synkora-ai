@@ -45,7 +45,8 @@ def execute_scheduled_task(
         if not task:
             raise ValueError(f"Scheduled task {task_id} not found")
 
-        if not task.is_active:
+        # Allow approval-triggered resumes even when task is paused
+        if not task.is_active and not approval_id:
             logger.info(f"Task {task_id} is not active, skipping execution")
             return {"status": "skipped", "reason": "Task is not active"}
 
@@ -626,6 +627,11 @@ async def _run_autonomous_agent(
     conv_id: str | None = cfg.get("autonomous_conversation_id")
 
     reset_async_engine()
+    # Reset trace ES client — it's bound to the previous event loop
+    from src.services.agents.agent_trace_service import reset_trace_client
+
+    reset_trace_client()
+
     async_session_factory = create_celery_async_session()
 
     async with async_session_factory() as async_db:
@@ -883,11 +889,15 @@ async def _run_autonomous_agent(
         except Exception as output_err:
             logger.warning(f"Autonomous task {task.id}: output delivery error: {output_err}")
 
-    # Check if the response indicates the agent is waiting for approval
-    # (agent outputs approval_required signal from the gate)
+    # Check if the HITL gate fired during this run (reliable flag set in adk_tools.py)
     final_status = "success"
-    if response_text and "awaiting_approval" in response_text.lower():
+    if task_shared_state.get("approval_triggered"):
         final_status = "awaiting_approval"
+
+    # Flush fire-and-forget trace tasks before the event loop closes
+    from src.services.agents.agent_trace_service import flush_trace_tasks
+
+    await flush_trace_tasks()
 
     return {
         "status": final_status,

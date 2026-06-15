@@ -134,10 +134,12 @@ class TestInternalSendEmail:
         mock_context.tenant_id = "tenant-123"
 
         mock_email_service = MagicMock()
-        mock_email_service.send_email.return_value = {
-            "success": True,
-            "provider": "smtp",
-        }
+        mock_email_service.send_email = AsyncMock(
+            return_value={
+                "success": True,
+                "provider": "smtp",
+            }
+        )
 
         with patch(
             "src.services.agents.internal_tools.email_tools.EmailService",
@@ -164,10 +166,12 @@ class TestInternalSendEmail:
         mock_context.tenant_id = "tenant-123"
 
         mock_email_service = MagicMock()
-        mock_email_service.send_email.return_value = {
-            "success": True,
-            "provider": "sendgrid",
-        }
+        mock_email_service.send_email = AsyncMock(
+            return_value={
+                "success": True,
+                "provider": "sendgrid",
+            }
+        )
 
         with (
             patch("src.tasks.email_tasks.send_email_task") as mock_task,
@@ -197,11 +201,13 @@ class TestInternalSendEmail:
         mock_context.tenant_id = "tenant-123"
 
         mock_email_service = MagicMock()
-        mock_email_service.send_email.return_value = {
-            "success": False,
-            "message": "SMTP authentication failed",
-            "provider": "smtp",
-        }
+        mock_email_service.send_email = AsyncMock(
+            return_value={
+                "success": False,
+                "message": "SMTP authentication failed",
+                "provider": "smtp",
+            }
+        )
 
         with patch(
             "src.services.agents.internal_tools.email_tools.EmailService",
@@ -227,7 +233,7 @@ class TestInternalSendEmail:
         mock_context.tenant_id = "tenant-123"
 
         mock_email_service = MagicMock()
-        mock_email_service.send_email.return_value = {"success": True, "provider": "smtp"}
+        mock_email_service.send_email = AsyncMock(return_value={"success": True, "provider": "smtp"})
 
         with patch(
             "src.services.agents.internal_tools.email_tools.EmailService",
@@ -443,11 +449,13 @@ class TestInternalTestEmailConnection:
         mock_context.tenant_id = "tenant-123"
 
         mock_email_service = MagicMock()
-        mock_email_service.test_connection.return_value = {
-            "success": True,
-            "message": "Connection successful",
-            "provider": "sendgrid",
-        }
+        mock_email_service.test_connection = AsyncMock(
+            return_value={
+                "success": True,
+                "message": "Connection successful",
+                "provider": "sendgrid",
+            }
+        )
 
         with patch(
             "src.services.agents.internal_tools.email_tools.EmailService",
@@ -468,11 +476,13 @@ class TestInternalTestEmailConnection:
         mock_context.tenant_id = "tenant-123"
 
         mock_email_service = MagicMock()
-        mock_email_service.test_connection.return_value = {
-            "success": False,
-            "message": "Authentication failed",
-            "provider": "smtp",
-        }
+        mock_email_service.test_connection = AsyncMock(
+            return_value={
+                "success": False,
+                "message": "Authentication failed",
+                "provider": "smtp",
+            }
+        )
 
         with patch(
             "src.services.agents.internal_tools.email_tools.EmailService",

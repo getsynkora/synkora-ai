@@ -396,7 +396,14 @@ async def get_widget_chat_history(
 
         messages_list = []
         for msg in reversed(messages):
-            messages_list.append({"role": msg.role, "content": msg.content, "created_at": msg.created_at.isoformat()})
+            messages_list.append(
+                {
+                    "id": str(msg.id),
+                    "role": msg.role,
+                    "content": msg.content,
+                    "created_at": msg.created_at.isoformat() if msg.created_at else None,
+                }
+            )
 
         return WidgetResponse(
             success=True,
@@ -1299,6 +1306,36 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
                 logger.error(f"HMAC verification error for widget {widget.id}: {e}")
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Identity verification failed")
 
+        # ── Widget user JWT for MCP servers ───────────────────────────────────────
+        # Generate a short-lived signed JWT encoding the verified user context so
+        # that MCP tools can forward it as an Authorization Bearer token.  The JWT
+        # is only generated when a user context is present AND the widget has an
+        # identity_secret (which doubles as the signing key).
+        _mcp_user_token: str | None = None
+        if request.user and widget.identity_secret:
+            try:
+                import time
+
+                import jwt as _jwt
+
+                from src.services.agents.security import decrypt_value
+
+                _secret = decrypt_value(widget.identity_secret)
+                _now = int(time.time())
+                _payload = {
+                    "user_id": request.user.id,
+                    "organization_id": request.user.org_id,
+                    "iat": _now,
+                    "exp": _now + 300,  # 5-minute lifetime
+                    "widget_id": str(widget.id),
+                    "name": request.user.name,
+                    "email": request.user.email,
+                    "org_name": request.user.org_name,
+                }
+                _mcp_user_token = _jwt.encode(_payload, _secret, algorithm="HS256")
+            except Exception as _jwt_err:
+                logger.warning(f"Could not generate MCP user JWT for widget {widget.id}: {_jwt_err}")
+
         # ── Agent routing ─────────────────────────────────────────────────────────
         resolved_agent_id = widget.agent_id
         if widget.enable_agent_routing and request.user and request.user.org_id:
@@ -1357,6 +1394,7 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
         # Otherwise always create a new conversation — callers that want to resume
         # must pass conversation_id explicitly (Flutter does this via _conversationId tracking).
         resolved_conversation_id = request.conversation_id
+        _widget_source = request.source if request.source in ("flutter", "widget", "chrome") else "widget"
 
         if request.user:
             if resolved_conversation_id:
@@ -1373,7 +1411,6 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
 
             if not resolved_conversation_id:
                 # Always create a new conversation for this user
-                _widget_source = request.source if request.source in ("flutter", "widget", "chrome") else "widget"
                 new_conv = Conversation(
                     agent_id=agent.id,
                     external_user_id=request.user.id,
@@ -1396,6 +1433,58 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
                 except Exception as e:
                     await db.rollback()
                     logger.warning(f"Could not create conversation for user {request.user.id}: {e}")
+
+        else:
+            # Anonymous session — industry standard: persist conversation by session_id so
+            # the dashboard can review all widget conversations, not just identified-user ones.
+            _anon_session_id = request.session_id
+
+            if resolved_conversation_id:
+                # Verify the supplied conversation_id belongs to this agent (anonymous = no account_id)
+                anon_check = await db.execute(
+                    select(Conversation).filter(
+                        Conversation.id == uuid.UUID(resolved_conversation_id),
+                        Conversation.agent_id == agent.id,
+                        Conversation.account_id.is_(None),
+                    )
+                )
+                if not anon_check.scalar_one_or_none():
+                    resolved_conversation_id = None  # Strip invalid/spoofed ID
+
+            if not resolved_conversation_id and _anon_session_id and not request.force_new:
+                # Try to resume the most recent active conversation for this session
+                resume_result = await db.execute(
+                    select(Conversation)
+                    .filter(
+                        Conversation.agent_id == agent.id,
+                        Conversation.session_id == _anon_session_id,
+                        Conversation.status == ConversationStatus.ACTIVE,
+                        Conversation.account_id.is_(None),
+                    )
+                    .order_by(Conversation.updated_at.desc())
+                    .limit(1)
+                )
+                existing_conv = resume_result.scalar_one_or_none()
+                if existing_conv:
+                    resolved_conversation_id = str(existing_conv.id)
+
+            if not resolved_conversation_id:
+                # Create a new anonymous conversation tracked by session_id
+                anon_conv = Conversation(
+                    agent_id=agent.id,
+                    session_id=_anon_session_id or str(uuid.uuid4()),
+                    name=request.message[:60].strip() if request.message else "Anonymous Chat",
+                    status=ConversationStatus.ACTIVE,
+                    source=_widget_source,
+                )
+                db.add(anon_conv)
+                try:
+                    await db.commit()
+                    await db.refresh(anon_conv)
+                    resolved_conversation_id = str(anon_conv.id)
+                except Exception as e:
+                    await db.rollback()
+                    logger.warning(f"Could not create anonymous conversation: {e}")
 
         # Generate session ID if not provided
         session_id = request.session_id or str(uuid.uuid4())
@@ -1452,6 +1541,56 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
             except (ValueError, Exception) as e:
                 logger.warning(f"Could not load conversation history: {e}")
 
+        # Block AI while a human operator is handling this conversation
+        if resolved_conversation_id:
+            try:
+                _hc_result = await db.execute(
+                    select(Conversation).filter(Conversation.id == uuid.UUID(resolved_conversation_id))
+                )
+                _hc = _hc_result.scalar_one_or_none()
+                if _hc and _hc.handoff_status == "active":
+                    # Save the user message so the operator can see it in the thread
+                    from src.models.message import Message as _Msg
+                    from src.models.message import MessageRole as _MR
+                    from src.models.message import MessageStatus as _MS
+
+                    _user_msg = _Msg(
+                        conversation_id=uuid.UUID(resolved_conversation_id),
+                        role=_MR.USER,
+                        content=request.message,
+                        status=_MS.COMPLETED,
+                        message_metadata={"source": "widget"},
+                    )
+                    db.add(_user_msg)
+                    _hc.increment_message_count()
+                    await db.commit()
+                    # Broadcast so operator inbox sees the new message in real time
+                    try:
+                        from src.core.websocket import connection_manager as _cm
+
+                        await _cm.broadcast(
+                            {
+                                "type": "handoff_user_message",
+                                "data": {
+                                    "conversation_id": resolved_conversation_id,
+                                    "content": request.message,
+                                },
+                            }
+                        )
+                    except Exception:
+                        pass
+                    await db.close()
+                    _wait_msg = "Your message has been received. A human support agent is currently handling your request — they'll respond shortly."
+                    _cid = resolved_conversation_id
+
+                    async def _handoff_stream():
+                        yield f"data: {json.dumps({'type': 'chunk', 'content': _wait_msg})}\n\n"
+                        yield f"data: {json.dumps({'type': 'done', 'content': '', 'conversation_id': _cid})}\n\n"
+
+                    return StreamingResponse(_handoff_stream(), media_type="text/event-stream")
+            except Exception as _he:
+                logger.warning(f"Handoff status check failed: {_he}")
+
         # Initialize the chat stream service
         agent_manager = AgentManager()
         chat_stream_service = ChatStreamService(
@@ -1467,6 +1606,9 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
         await db.close()
 
         # Build the raw stream
+        _widget_shared_state: dict[str, Any] = {}
+        if _mcp_user_token:
+            _widget_shared_state["mcp_user_token"] = _mcp_user_token
         raw_stream = chat_stream_service.stream_agent_response(
             agent_slug,
             request.message,
@@ -1475,6 +1617,7 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
             None,  # attachments
             None,  # llm_config_id
             db=None,
+            shared_state=_widget_shared_state if _widget_shared_state else None,
         )
 
         # Wrap stream to fire FCM push after done event
@@ -1532,3 +1675,79 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
     except Exception as e:
         logger.error(f"Failed to process widget chat: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to process chat message")
+
+
+class WidgetApprovalRespondBody(BaseModel):
+    decision: str = Field(..., pattern=r"^(approved|rejected|feedback)$")
+    feedback_text: str | None = None
+
+
+@widgets_router.post("/widgets/chat/approvals/{approval_id}/respond")
+async def widget_respond_approval(
+    approval_id: uuid.UUID,
+    body: WidgetApprovalRespondBody,
+    http_request: Request,
+    db: AsyncSession = Depends(get_async_db),
+):
+    """
+    Allow a widget user to respond to a pending HITL approval request.
+    Auth: X-Widget-API-Key header (same as /widgets/chat).
+    """
+    api_key = http_request.headers.get("X-Widget-API-Key")
+    if not api_key:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Widget API key is required")
+
+    widget = await WidgetAuthMiddleware.validate_api_key(api_key, db)
+    if not widget:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid widget API key")
+
+    try:
+        import hashlib
+        import json as _json
+        from datetime import UTC, datetime
+
+        from src.models.agent_approval import AgentApprovalRequest, ApprovalStatus
+        from src.services.human_approval_service import HumanApprovalService
+
+        result = await db.execute(select(AgentApprovalRequest).filter(AgentApprovalRequest.id == approval_id))
+        approval = result.scalar_one_or_none()
+        if not approval:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Approval not found")
+        if approval.status != ApprovalStatus.PENDING:
+            return {"status": approval.status.value}
+
+        if datetime.now(UTC) > approval.expires_at:
+            approval.status = ApprovalStatus.EXPIRED
+            await db.commit()
+            return {"status": "expired"}
+
+        if body.decision == "approved":
+            approval.status = ApprovalStatus.APPROVED
+            approval.responded_at = datetime.now(UTC)
+            await db.commit()
+
+            # Store one-time Redis execution token
+            from src.config.redis import get_redis_async
+
+            redis = get_redis_async()
+            args_hash = hashlib.sha256(_json.dumps(approval.tool_args, sort_keys=True).encode()).hexdigest()
+            conversation_id = str(approval.conversation_id) if approval.conversation_id else ""
+            token_key = f"approval_token:chat:{conversation_id}:{approval.tool_name}:{args_hash}"
+            await redis.set(token_key, "1", ex=600)
+
+        elif body.decision == "rejected":
+            approval.status = ApprovalStatus.REJECTED
+            approval.responded_at = datetime.now(UTC)
+            await db.commit()
+        elif body.decision == "feedback" and body.feedback_text:
+            approval.status = ApprovalStatus.REJECTED
+            approval.responded_at = datetime.now(UTC)
+            await db.commit()
+
+        return {"status": body.decision, "approval_id": str(approval_id)}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Widget approval respond error: {e}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to process approval")

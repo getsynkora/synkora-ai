@@ -152,7 +152,7 @@ class WidgetChatHistory {
 // Chat message
 // ---------------------------------------------------------------------------
 
-enum MessageRole { user, assistant }
+enum MessageRole { user, assistant, operator }
 
 class ChatMessage {
   final String id;
@@ -168,6 +168,8 @@ class ChatMessage {
     required this.timestamp,
     this.isStreaming = false,
   });
+
+  bool get isOperator => role == MessageRole.operator;
 
   ChatMessage copyWith({String? content, bool? isStreaming}) => ChatMessage(
     id: id,
@@ -210,6 +212,34 @@ class DoneEvent extends SseEvent {
 class ErrorEvent extends SseEvent {
   final String message;
   ErrorEvent(this.message);
+}
+
+class ApprovalRequiredEvent extends SseEvent {
+  final String approvalId;
+  final String toolName;
+  final Map<String, dynamic> toolArgs;
+  final String? expiresAt;
+  final String message;
+  ApprovalRequiredEvent({
+    required this.approvalId,
+    required this.toolName,
+    required this.toolArgs,
+    this.expiresAt,
+    required this.message,
+  });
+}
+
+class HandoffInitiatedEvent extends SseEvent {
+  final String summary;
+  HandoffInitiatedEvent(this.summary);
+}
+
+class HandoffResolvedEvent extends SseEvent {}
+
+class OperatorMessageEvent extends SseEvent {
+  final String content;
+  final String messageId;
+  OperatorMessageEvent({required this.content, required this.messageId});
 }
 
 // ---------------------------------------------------------------------------

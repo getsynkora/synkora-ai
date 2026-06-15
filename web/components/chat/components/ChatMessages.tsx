@@ -55,6 +55,7 @@ interface ChatMessagesProps {
   conversationId?: string
   onFormSubmit?: (form: FormDefinition, answers: Record<string, unknown>, attachments?: Attachment[]) => Promise<void> | void
   formSubmissionDisabled?: boolean
+  onFeedback?: (messageId: string, rating: 1 | -1) => void
 }
 
 /**
@@ -83,6 +84,7 @@ export function ChatMessages({
   conversationId,
   onFormSubmit,
   formSubmissionDisabled = false,
+  onFeedback,
 }: ChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -151,6 +153,7 @@ export function ChatMessages({
                 conversationId={conversationId}
                 onFormSubmit={onFormSubmit}
                 formSubmissionDisabled={formSubmissionDisabled}
+                onFeedback={onFeedback}
               />
             )
           })}

@@ -4,6 +4,7 @@
 
 export interface Message {
   id: string
+  dbId?: string  // real DB UUID — populated when id is an ephemeral React key
   role: 'user' | 'assistant'
   content: string
   timestamp: Date

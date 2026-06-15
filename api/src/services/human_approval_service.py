@@ -72,7 +72,7 @@ class HumanApprovalService:
     async def create_and_notify(
         self,
         *,
-        task_id: UUID,
+        task_id: UUID | None,
         agent_id: UUID,
         tenant_id: UUID,
         agent_name: str,
@@ -81,6 +81,7 @@ class HumanApprovalService:
         channel: str,
         channel_config: dict,
         timeout_minutes: int = 60,
+        conversation_id: UUID | None = None,
     ) -> dict:
         """
         Persist an approval request and notify the user.
@@ -95,6 +96,7 @@ class HumanApprovalService:
 
         approval = AgentApprovalRequest(
             task_id=task_id,
+            conversation_id=conversation_id,
             tenant_id=tenant_id,
             agent_id=agent_id,
             agent_name=agent_name,
@@ -153,6 +155,7 @@ class HumanApprovalService:
             "approval_id": str(approval.id),
             "message": message,
             "status": "awaiting_approval",
+            "expires_at": approval.expires_at.isoformat(),
         }
 
     def parse_reply(self, text: str) -> Literal["approve", "reject", "unclear"]:
@@ -290,7 +293,11 @@ class HumanApprovalService:
         from src.config.redis import get_redis_async
 
         redis = get_redis_async()
-        token_key = f"approval_token:{approval.task_id}:{approval.tool_name}:{approval.tool_args_hash}"
+        if approval.task_id is None:
+            # Chat session: key by conversation_id
+            token_key = f"approval_token:chat:{approval.conversation_id}:{approval.tool_name}:{approval.tool_args_hash}"
+        else:
+            token_key = f"approval_token:{approval.task_id}:{approval.tool_name}:{approval.tool_args_hash}"
         await redis.set(token_key, "1", ex=600)  # 10 minute window to execute
 
     # ------------------------------------------------------------------

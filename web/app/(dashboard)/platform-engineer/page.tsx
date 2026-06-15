@@ -35,8 +35,10 @@ interface ToolStatus {
   output_tokens?: number
 }
 
+type PEActionCard = ActionCard & { status: ActionCardStatus; createdAgentName?: string; createdAgentSlug?: string }
+
 interface PEMessage extends Message {
-  _actionCard?: ActionCard & { status: ActionCardStatus; createdAgentName?: string; createdAgentSlug?: string }
+  _actionCards?: PEActionCard[]
   _integrationCard?: IntegrationCard
 }
 
@@ -156,17 +158,25 @@ export default function PlatformEngineerPage() {
         if (event.type === 'chunk') {
           fullResponse += event.content
           setThinkingStatus('')
-          const { displayText, actionCard, integrationCard } = parseActionMarkers(fullResponse)
+          const { displayText, actionCards, integrationCard } = parseActionMarkers(fullResponse)
           setMessages((prev) => {
             const next = [...prev]
             const last = next[next.length - 1]
             if (last.role === 'assistant') {
+              // Merge new action cards with existing status/name so in-progress state is preserved
+              const mergedCards: PEActionCard[] = actionCards.map((ac, i) => {
+                const existing = last._actionCards?.[i]
+                return {
+                  ...ac,
+                  status: existing?.status ?? 'pending',
+                  createdAgentName: existing?.createdAgentName,
+                  createdAgentSlug: existing?.createdAgentSlug,
+                }
+              })
               next[next.length - 1] = {
                 ...last,
                 content: displayText,
-                _actionCard: actionCard
-                  ? { ...actionCard, status: last._actionCard?.status ?? 'pending' }
-                  : last._actionCard,
+                _actionCards: mergedCards.length > 0 ? mergedCards : last._actionCards,
                 _integrationCard: integrationCard ?? last._integrationCard,
               }
             }
@@ -238,16 +248,17 @@ export default function PlatformEngineerPage() {
     }
   }, [isStreaming, messages, transport])
 
-  const handleConfirm = async (config: AgentCreateConfig, messageId?: string) => {
+  const handleConfirm = async (config: AgentCreateConfig, messageId: string, cardIndex: number) => {
     setMessages((prev) =>
-      prev.map((m) =>
-        m._actionCard?.status === 'pending' && (!messageId || m.id === messageId)
-          ? { ...m, _actionCard: { ...m._actionCard!, status: 'creating' } }
-          : m
-      )
+      prev.map((m) => {
+        if (m.id !== messageId) return m
+        const cards = m._actionCards?.map((c, i) =>
+          i === cardIndex ? { ...c, status: 'creating' as ActionCardStatus } : c
+        )
+        return { ...m, _actionCards: cards }
+      })
     )
     try {
-      // Build tool objects for the backend (so it also creates AgentTool records)
       const toolObjects = (config.tools_list || []).map((t) => ({
         name: t,
         description: t.replace(/_/g, ' '),
@@ -282,22 +293,19 @@ export default function PlatformEngineerPage() {
         category: config.category,
         tags: config.tags,
       })
-      // Response: { success, message, data: { agent_id, agent_name } }
       const responseData = res.data?.data || res.data
       const created = responseData?.agent_name || config.name
       const createdSlug: string | undefined = responseData?.slug
-      const agentId: string | undefined = responseData?.agent_id
 
       setMessages((prev) =>
         prev.map((m) => {
-          if (m._actionCard?.status === 'creating') {
-            return { ...m, _actionCard: { ...m._actionCard!, status: 'created', createdAgentName: created, createdAgentSlug: createdSlug } }
-          }
-          // Cancel any remaining pending duplicates for the same agent name
-          if (m._actionCard?.status === 'pending' && m._actionCard.config?.name === config.name) {
-            return { ...m, _actionCard: { ...m._actionCard!, status: 'cancelled' } }
-          }
-          return m
+          if (m.id !== messageId) return m
+          const cards = m._actionCards?.map((c, i) =>
+            i === cardIndex
+              ? { ...c, status: 'created' as ActionCardStatus, createdAgentName: created, createdAgentSlug: createdSlug }
+              : c
+          )
+          return { ...m, _actionCards: cards }
         })
       )
     } catch (err: any) {
@@ -314,23 +322,27 @@ export default function PlatformEngineerPage() {
       }
 
       setMessages((prev) =>
-        prev.map((m) =>
-          m._actionCard?.status === 'creating'
-            ? { ...m, _actionCard: { ...m._actionCard!, status: 'pending' } }
-            : m
-        )
+        prev.map((m) => {
+          if (m.id !== messageId) return m
+          const cards = m._actionCards?.map((c, i) =>
+            i === cardIndex && c.status === 'creating' ? { ...c, status: 'pending' as ActionCardStatus } : c
+          )
+          return { ...m, _actionCards: cards }
+        })
       )
       toast.error(detail)
     }
   }
 
-  const handleCancelAction = (messageId?: string) => {
+  const handleCancelAction = (messageId: string, cardIndex: number) => {
     setMessages((prev) =>
-      prev.map((m) =>
-        m._actionCard?.status === 'pending' && (!messageId || m.id === messageId)
-          ? { ...m, _actionCard: { ...m._actionCard!, status: 'cancelled' } }
-          : m
-      )
+      prev.map((m) => {
+        if (m.id !== messageId) return m
+        const cards = m._actionCards?.map((c, i) =>
+          i === cardIndex && c.status === 'pending' ? { ...c, status: 'cancelled' as ActionCardStatus } : c
+        )
+        return { ...m, _actionCards: cards }
+      })
     )
   }
 
@@ -446,22 +458,12 @@ export default function PlatformEngineerPage() {
   // --- Chat ---
   const isEmpty = messages.length === 0
 
+  // Track agent names that have been successfully created to deduplicate cards across messages
   const alreadyCreated = new Set<string>()
   for (const message of messages) {
-    if (message._actionCard?.status === 'created' && message._actionCard.config?.name) {
-      alreadyCreated.add(message._actionCard.config.name)
-    }
-  }
-
-  const latestPendingById = new Set<string>()
-  const seenAgentNames = new Set<string>()
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const message = messages[i]
-    if (message._actionCard && message._actionCard.status !== 'created') {
-      const agentName = message._actionCard.config?.name
-      if (agentName && !alreadyCreated.has(agentName) && !seenAgentNames.has(agentName)) {
-        seenAgentNames.add(agentName)
-        latestPendingById.add(message.id)
+    for (const card of message._actionCards || []) {
+      if (card.status === 'created' && card.config?.name) {
+        alreadyCreated.add(card.config.name)
       }
     }
   }
@@ -511,12 +513,7 @@ export default function PlatformEngineerPage() {
               {messages.map((message, index) => {
                 const isLastMessage = index === messages.length - 1
                 const isStreamingMessage = isStreaming && isLastMessage
-                const shouldShowActionCard =
-                  !!message._actionCard &&
-                  message._actionCard.status !== 'created' &&
-                  latestPendingById.has(message.id)
-                const shouldShowCreatedCard =
-                  message._actionCard?.status === 'created' && !!message._actionCard.createdAgentName
+                const hasCards = (message._actionCards?.length ?? 0) > 0
                 const shouldShowIntegrationCard = !!message._integrationCard
 
                 return (
@@ -532,24 +529,33 @@ export default function PlatformEngineerPage() {
                       agentName="Platform Engineer"
                     />
 
-                    {(shouldShowActionCard || shouldShowCreatedCard || shouldShowIntegrationCard) && (
+                    {(hasCards || shouldShowIntegrationCard) && (
                       <div className="pl-6 sm:pl-8">
                         <div className="space-y-4">
-                          {shouldShowActionCard && (
-                            <ActionConfirmCard
-                              config={message._actionCard!.config}
-                              status={message._actionCard!.status}
-                              onConfirm={(config) => handleConfirm(config, message.id)}
-                              onCancel={() => handleCancelAction(message.id)}
-                            />
-                          )}
-
-                          {shouldShowCreatedCard && (
-                            <AgentCreatedCard
-                              agentName={message._actionCard!.createdAgentName!}
-                              agentSlug={message._actionCard!.createdAgentSlug}
-                            />
-                          )}
+                          {message._actionCards?.map((card, cardIndex) => {
+                            if (card.status === 'created' && card.createdAgentName) {
+                              return (
+                                <AgentCreatedCard
+                                  key={cardIndex}
+                                  agentName={card.createdAgentName}
+                                  agentSlug={card.createdAgentSlug}
+                                />
+                              )
+                            }
+                            // Skip cards for agents already created by a different card/message
+                            if (card.status === 'pending' && alreadyCreated.has(card.config?.name)) {
+                              return null
+                            }
+                            return (
+                              <ActionConfirmCard
+                                key={cardIndex}
+                                config={card.config}
+                                status={card.status}
+                                onConfirm={(config) => handleConfirm(config, message.id, cardIndex)}
+                                onCancel={() => handleCancelAction(message.id, cardIndex)}
+                              />
+                            )
+                          })}
 
                           {shouldShowIntegrationCard && (
                             <IntegrationPromptCard

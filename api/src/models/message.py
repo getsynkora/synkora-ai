@@ -19,6 +19,7 @@ class MessageRole(enum.StrEnum):
     USER = "USER"
     ASSISTANT = "ASSISTANT"
     SYSTEM = "SYSTEM"
+    OPERATOR = "OPERATOR"
 
     @classmethod
     def _missing_(cls, value: object) -> "MessageRole | None":

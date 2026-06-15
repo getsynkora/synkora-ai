@@ -333,23 +333,19 @@ def execute_spawn_agent_task(
     tenant_id: str,
     parent_agent_id: str,
     task_description: str,
+    target_agent_name: str | None = None,
+    use_worker_prompt: bool = True,
 ) -> dict[str, Any]:
     """
-    Execute a sub-task using the parent agent's configuration.
-
-    The parent agent delegates a focused task - same LLM, same tools,
-    just a different scope defined by task_description.
-
-    This runs in a Celery worker with:
-    - Persistent task tracking via Redis
-    - Built-in retry logic with exponential backoff
-    - Scales across multiple workers
-    - Tasks survive worker restarts
+    Execute a sub-task in the background via Celery.
 
     Args:
         tenant_id: Tenant ID for isolation
-        parent_agent_id: ID of the parent agent to use for execution
+        parent_agent_id: ID of the parent agent
         task_description: The focused task for the sub-agent to complete
+        target_agent_name: Slug/name of the agent to run (parent or registered sub-agent)
+        use_worker_prompt: True → apply worker system prompt override (self-clone mode)
+                           False → run agent with its own system prompt (registered sub-agent)
 
     Returns:
         dict with success status and result or error
@@ -365,11 +361,11 @@ def execute_spawn_agent_task(
         from src.services.agents.chat_stream_service import ChatStreamService
 
         logger.info(
-            f"🚀 Executing spawn_agent task for agent {parent_agent_id} (retry {current_retry}/{self.max_retries})"
+            f"Executing spawn_agent task for agent {parent_agent_id} (retry {current_retry}/{self.max_retries})"
         )
 
-        # Load parent agent from DB — tenant-scoped to prevent cross-tenant access
-        agent = (
+        # Load parent agent to resolve tenant and fallback name
+        parent_agent = (
             db.query(Agent)
             .filter(
                 Agent.id == UUID(parent_agent_id),
@@ -378,30 +374,27 @@ def execute_spawn_agent_task(
             .first()
         )
 
-        if not agent:
+        if not parent_agent:
             logger.error(f"Agent {parent_agent_id} not found for tenant {tenant_id} - permanent failure")
             return {"success": False, "error": f"Agent {parent_agent_id} not found"}
 
-        # Build focused prompt - the parent agent's system prompt is already loaded
-        # We just provide the sub-task with clear instructions
+        # Use target_agent_name if provided, otherwise fall back to parent agent
+        run_agent_name = target_agent_name or parent_agent.agent_name
+
         focused_prompt = f"""## Sub-Task
 
 {task_description}
 
 Complete this task thoroughly and provide your findings. Be comprehensive but concise."""
 
-        logger.info(f"📤 Calling agent '{agent.agent_name}' with sub-task")
+        logger.info(f"Calling agent '{run_agent_name}' with sub-task (worker_prompt={use_worker_prompt})")
 
-        # Create chat stream service - uses same infrastructure as webhook processing
         agent_manager = AgentManager()
-        agent_loader = AgentLoaderService(agent_manager)
-        chat_service = ChatService()
         chat_stream_service = ChatStreamService(
-            agent_loader=agent_loader,
-            chat_service=chat_service,
+            agent_loader=AgentLoaderService(agent_manager),
+            chat_service=ChatService(),
         )
 
-        # Collect response chunks
         response_chunks = []
 
         async def process_agent():
@@ -410,25 +403,23 @@ Complete this task thoroughly and provide your findings. Be comprehensive but co
 
             reset_async_engine()
 
+            stream_kwargs: dict = {
+                "agent_name": run_agent_name,
+                "tenant_id": str(parent_agent.tenant_id),
+                "message": focused_prompt,
+                "conversation_history": None,
+                "conversation_id": None,
+                "attachments": None,
+                "llm_config_id": None,
+                "override_agentic_config": {"parallel_tools": True},
+            }
+            if use_worker_prompt:
+                stream_kwargs["override_system_prompt"] = _WORKER_SYSTEM_PROMPT
+
             async_session_factory = create_celery_async_session()
             async with async_session_factory() as async_db:
-                async for sse_event in chat_stream_service.stream_agent_response(
-                    agent_name=agent.agent_name,
-                    tenant_id=str(agent.tenant_id),
-                    message=focused_prompt,
-                    conversation_history=None,
-                    conversation_id=None,
-                    attachments=None,
-                    llm_config_id=None,
-                    db=async_db,
-                    # Workers are leaf nodes — always enable parallel tool execution
-                    # regardless of the orchestrator agent's stored parallel_tools setting
-                    override_agentic_config={"parallel_tools": True},
-                    # Workers get a task-focused system prompt so they execute the
-                    # given task directly instead of inheriting the orchestrator's
-                    # "don't do work directly" instructions
-                    override_system_prompt=_WORKER_SYSTEM_PROMPT,
-                ):
+                stream_kwargs["db"] = async_db
+                async for sse_event in chat_stream_service.stream_agent_response(**stream_kwargs):
                     # Parse SSE events
                     if sse_event.startswith("data: "):
                         try:

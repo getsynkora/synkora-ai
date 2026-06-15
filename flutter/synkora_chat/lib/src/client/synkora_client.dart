@@ -184,6 +184,18 @@ class SynkoraClient {
         return DoneEvent(convId);
       case 'error':
         return ErrorEvent(json['message'] as String? ?? 'Unknown error');
+      case 'approval_required':
+        return ApprovalRequiredEvent(
+          approvalId: json['approval_id'] as String? ?? '',
+          toolName: json['tool_name'] as String? ?? '',
+          toolArgs: (json['tool_args'] as Map<String, dynamic>?) ?? {},
+          expiresAt: json['expires_at'] as String?,
+          message: json['message'] as String? ?? '',
+        );
+      case 'handoff_initiated':
+        return HandoffInitiatedEvent(json['summary'] as String? ?? '');
+      case 'handoff_resolved':
+        return HandoffResolvedEvent();
       default:
         return null;
     }
@@ -287,6 +299,20 @@ class SynkoraClient {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Approvals
+  // ---------------------------------------------------------------------------
+
+  Future<void> respondApproval({
+    required String approvalId,
+    required String decision,
+  }) async {
+    await _dio.post<void>(
+      '/api/v1/widgets/chat/approvals/$approvalId/respond',
+      data: {'decision': decision},
+    );
+  }
+
   String _describeDioError(DioException error) {
     final statusCode = error.response?.statusCode;
     final normalizedBase = baseUrl.replaceFirst(RegExp(r'^https?://'), '');
@@ -312,15 +338,24 @@ class SynkoraClient {
     return error.message ?? 'Network error';
   }
 
+  MessageRole _parseRole(String? role) {
+    switch (role?.toUpperCase()) {
+      case 'ASSISTANT':
+        return MessageRole.assistant;
+      case 'OPERATOR':
+        return MessageRole.operator;
+      default:
+        return MessageRole.user;
+    }
+  }
+
   ChatMessage _messageFromJson(Map<String, dynamic> j) {
     return ChatMessage(
       id:
           j['id'] as String? ??
           j['message_id'] as String? ??
           DateTime.now().millisecondsSinceEpoch.toString(),
-      role: (j['role'] as String?)?.toLowerCase() == 'user'
-          ? MessageRole.user
-          : MessageRole.assistant,
+      role: _parseRole(j['role'] as String?),
       content: j['content'] as String? ?? '',
       timestamp:
           DateTime.tryParse(j['created_at'] as String? ?? '') ?? DateTime.now(),
