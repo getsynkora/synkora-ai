@@ -31,9 +31,7 @@ def _build_tool_schema(agent) -> dict:
     """Build the single 'chat' tool schema exposed by this agent."""
     cfg = _get_integrations_config(agent)
     description = (
-        cfg.get("mcp_server_description")
-        or agent.description
-        or f"Send a message to the {agent.agent_name} agent"
+        cfg.get("mcp_server_description") or agent.description or f"Send a message to the {agent.agent_name} agent"
     )
     return {
         "name": "chat",
