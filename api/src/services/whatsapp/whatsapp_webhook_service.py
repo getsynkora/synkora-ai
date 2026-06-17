@@ -221,7 +221,7 @@ class WhatsAppWebhookService:
             # Collect streamed response
             response_chunks = []
             async for event_data in chat_stream_service.stream_agent_response(
-                agent_name=agent.agent_name,
+                agent_name=agent.slug or agent.agent_name,
                 message=text,
                 conversation_history=conversation_history,
                 conversation_id=str(conversation.id),

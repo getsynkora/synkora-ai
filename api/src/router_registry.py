@@ -113,6 +113,12 @@ ROUTER_REGISTRY: list[RouteConfig] = [
         tags=["agent-outputs"],
     ),
     RouteConfig(
+        module="src.controllers.agents.voice_meetings",
+        attribute="router",
+        prefix="/api/v1/agents",
+        tags=["voice-meetings"],
+    ),
+    RouteConfig(
         module="src.controllers.agents.autonomous_agents",
         attribute="router",
         prefix="/api/v1/agents",

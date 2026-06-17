@@ -152,7 +152,7 @@ class TeamsWebhookService:
             # Collect streamed response
             response_chunks = []
             async for event_data in stream_agent_response(
-                agent_name=agent.agent_name,
+                agent_name=agent.slug or agent.agent_name,
                 message=text,
                 conversation_history=conversation_history,  # Pass loaded history for memory
                 conversation_id=str(conversation.id),

@@ -68,16 +68,28 @@ class VapiProvider(BaseInboundCallProvider):
         vapi_call_id = call_data.get("call", {}).get("id") or call_data.get("callId", "")
         caller_number = call_data.get("call", {}).get("customer", {}).get("number", "")
         phone_number_str = call_data.get("call", {}).get("phoneNumber", {}).get("number", "")
+        vapi_assistant_id = call_data.get("call", {}).get("assistantId", "")
 
-        # Look up the PhoneNumber record to resolve agent + tenant
+        # Resolve agent: try phone number first (inbound phone call),
+        # then fall back to Vapi assistant ID (web call — no phone number).
         phone_record = await self._find_phone_number(phone_number_str, db)
-        if not phone_record:
-            logger.warning(f"Vapi call-started: no PhoneNumber found for '{phone_number_str}'")
-            return {}
+        tenant_id = None
 
-        agent = await db.get(Agent, phone_record.agent_id)
+        if phone_record:
+            agent = await db.get(Agent, phone_record.agent_id)
+            tenant_id = phone_record.tenant_id
+        elif vapi_assistant_id:
+            agent = await self._find_agent_by_assistant_id(vapi_assistant_id, db)
+            if agent:
+                tenant_id = agent.tenant_id
+        else:
+            agent = None
+
         if not agent or not agent.is_active:
-            logger.warning(f"Vapi call-started: agent {phone_record.agent_id} not found or inactive")
+            logger.warning(
+                f"Vapi call-started: could not resolve agent "
+                f"(phone='{phone_number_str}', assistant='{vapi_assistant_id}')"
+            )
             return {}
 
         phone_config = agent.phone_config or {}
@@ -85,11 +97,12 @@ class VapiProvider(BaseInboundCallProvider):
         max_duration = phone_config.get("max_duration_seconds", _DEFAULT_MAX_DURATION)
 
         # Create Conversation
+        label = f"Call from {caller_number}" if caller_number else "Web call"
         conversation = Conversation(
             app_id=None,
             agent_id=agent.id,
             account_id=None,
-            name=f"Call from {caller_number or 'unknown'}",
+            name=label,
             status=ConversationStatus.ACTIVE,
         )
         db.add(conversation)
@@ -97,13 +110,13 @@ class VapiProvider(BaseInboundCallProvider):
 
         # Create PhoneCall
         phone_call = PhoneCall(
-            tenant_id=phone_record.tenant_id,
+            tenant_id=tenant_id,
             agent_id=agent.id,
-            phone_number_id=phone_record.id,
+            phone_number_id=phone_record.id if phone_record else None,
             conversation_id=conversation.id,
             provider="vapi",
             provider_call_id=vapi_call_id,
-            caller_number=caller_number,
+            caller_number=caller_number or None,
             status=PhoneCallStatus.ACTIVE,
             started_at=datetime.now(UTC),
             answered_at=datetime.now(UTC),
@@ -116,8 +129,8 @@ class VapiProvider(BaseInboundCallProvider):
         session_data = {
             "conversation_id": str(conversation.id),
             "agent_id": str(agent.id),
-            "tenant_id": str(phone_record.tenant_id),
-            "phone_number_id": str(phone_record.id),
+            "tenant_id": str(tenant_id),
+            "phone_number_id": str(phone_record.id) if phone_record else "",
             "phone_call_id": str(phone_call.id),
         }
         await redis.setex(
@@ -280,5 +293,21 @@ class VapiProvider(BaseInboundCallProvider):
             return None
         result = await db.execute(
             select(PhoneNumber).where(PhoneNumber.phone_number == number, PhoneNumber.is_active.is_(True))
+        )
+        return result.scalar_one_or_none()
+
+    async def _find_agent_by_assistant_id(self, vapi_assistant_id: str, db: AsyncSession) -> Agent | None:
+        """Look up Agent by vapi_assistant_id stored in phone_config (used for web calls)."""
+        if not vapi_assistant_id:
+            return None
+        # phone_config is a JSONB column; query for agents where it contains the assistant ID
+        from sqlalchemy import cast, func
+        from sqlalchemy.dialects.postgresql import JSONB
+
+        result = await db.execute(
+            select(Agent).where(
+                Agent.is_active.is_(True),
+                Agent.phone_config["vapi_assistant_id"].as_string() == vapi_assistant_id,
+            )
         )
         return result.scalar_one_or_none()

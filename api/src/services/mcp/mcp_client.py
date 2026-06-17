@@ -351,10 +351,18 @@ class MCPClient:
 
             except Exception as e:
                 last_error = e
+                error_msg = str(e)
+
+                # Auth errors will never succeed on retry — fail fast
+                _auth_keywords = ("authentication", "unauthorized", "401", "forbidden", "403", "jwt", "token")
+                if any(kw in error_msg.lower() for kw in _auth_keywords):
+                    logger.warning(f"MCP auth error for tool {tool_name} (not retrying): {error_msg}")
+                    break
+
                 logger.error("=== MCP Tool Execution Error ===")
                 logger.error(f"Attempt: {attempt + 1}/{self.max_retries}")
                 logger.error(f"Error type: {type(e).__name__}")
-                logger.error(f"Error message: {str(e)}")
+                logger.error(f"Error message: {error_msg}")
                 logger.error("Error details:", exc_info=True)
 
                 if attempt < self.max_retries - 1:
@@ -457,6 +465,17 @@ class MCPClientManager:
                 logger.error(f"Error closing MCP client for agent {agent_id}: {str(e)}")
             finally:
                 del self._clients[agent_id]
+
+    def invalidate_tools_cache(self, agent_id: UUID) -> None:
+        """
+        Clear the in-memory tool discovery cache for an agent's MCP client.
+
+        Causes the next discover_tools() call to re-query the MCP server,
+        picking up any newly added or removed tools without disconnecting.
+        """
+        if agent_id in self._clients:
+            self._clients[agent_id]._tools_cache.clear()
+            logger.info(f"Cleared MCP tools cache for agent {agent_id}")
 
     async def get_agent_client_with_user_token(
         self, agent_id: UUID, db: AsyncSession, user_token: str

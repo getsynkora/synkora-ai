@@ -32,9 +32,20 @@ def register_recall_tools(registry):
 
     async def internal_recall_send_bot_wrapper(config: dict[str, Any] | None = None, **kwargs):
         runtime_context = config.get("_runtime_context") if config else None
+        # Check meeting_bot.enabled from voice_meetings_config
+        if runtime_context and hasattr(runtime_context, "agent"):
+            vm_cfg = (runtime_context.agent.agent_metadata or {}).get("voice_meetings_config") or {}
+            if not vm_cfg.get("meeting_bot", {}).get("enabled", False):
+                return {
+                    "success": False,
+                    "error": "Meeting bot is not enabled for this agent. Enable it in Voice & Meetings settings.",
+                }
+            bot_name = vm_cfg.get("meeting_bot", {}).get("bot_name") or kwargs.get("bot_name", "AI Assistant")
+        else:
+            bot_name = kwargs.get("bot_name", "AI Assistant")
         return await internal_recall_send_bot(
             meeting_url=kwargs.get("meeting_url"),
-            bot_name=kwargs.get("bot_name", "Synkora Meeting Assistant"),
+            bot_name=bot_name,
             join_at=kwargs.get("join_at"),
             runtime_context=runtime_context,
             config=config,

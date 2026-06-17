@@ -1,0 +1,4449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Synkora for Micromobility - Presentation</title>
+  <style>
+    @font-face {
+      font-family: "Inter";
+      src: url("fonts/inter-400.woff2") format("woff2");
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "Inter";
+      src: url("fonts/inter-600.woff2") format("woff2");
+      font-weight: 600;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "Inter";
+      src: url("fonts/inter-700.woff2") format("woff2");
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --ink: #171918;
+      --ink-soft: rgba(23, 25, 24, 0.62);
+      --muted: rgba(23, 25, 24, 0.46);
+      --paper: #fbfaed;
+      --paper-2: #f3f5e8;
+      --card: rgba(255, 255, 248, 0.86);
+      --line: rgba(23, 25, 24, 0.12);
+      --mint: #60d5bd;
+      --mint-dark: #0f9f87;
+      --pink: #ff6f9d;
+      --lime: #cdec67;
+      --blue: #5b8dff;
+      --amber: #f6af4f;
+      --red: #ef5b62;
+      --shadow: 0 22px 64px rgba(23, 25, 24, 0.12);
+      --mono: "SFMono-Regular", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #080a09;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      user-select: none;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      inset: -18%;
+      pointer-events: none;
+    }
+
+    body::before {
+      background:
+        radial-gradient(circle at 18% 24%, rgba(96, 213, 189, 0.28), transparent 26%),
+        radial-gradient(circle at 82% 64%, rgba(255, 111, 157, 0.20), transparent 28%),
+        radial-gradient(circle at 62% 18%, rgba(91, 141, 255, 0.18), transparent 23%),
+        linear-gradient(135deg, #080a09 0%, #151817 54%, #050606 100%);
+      animation: shellGlow 10s ease-in-out infinite alternate;
+    }
+
+    body::after {
+      opacity: 0.2;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+      background-size: 42px 42px;
+      transform: rotate(-3deg) scale(1.08);
+    }
+
+    .viewport {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .stage {
+      position: absolute;
+      width: 1280px;
+      height: 720px;
+      overflow: hidden;
+      background: var(--paper);
+      box-shadow: 0 36px 120px rgba(0, 0, 0, 0.44);
+      transform-origin: top left;
+      transition: opacity 0.24s ease, filter 0.24s ease;
+    }
+
+    .stage.fading {
+      opacity: 0;
+      filter: blur(12px) saturate(0.8);
+    }
+
+    .stage::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(110deg, transparent 0%, rgba(96, 213, 189, 0.24) 47%, transparent 62%);
+      opacity: 0;
+      transform: translateX(-120%);
+      mix-blend-mode: screen;
+      z-index: 30;
+    }
+
+    .stage.entering::after {
+      animation: slideSweep 0.72s cubic-bezier(0.2, 0.9, 0.2, 1);
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: none;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 12% 16%, rgba(96, 213, 189, 0.15), transparent 26%),
+        radial-gradient(circle at 78% 18%, rgba(255, 111, 157, 0.12), transparent 28%),
+        radial-gradient(circle at 82% 82%, rgba(91, 141, 255, 0.10), transparent 28%),
+        linear-gradient(135deg, #fffef2 0%, var(--paper) 60%, var(--paper-2) 100%);
+      padding: 44px 58px 48px 72px;
+    }
+
+    .slide.active {
+      display: block;
+    }
+
+    .slide::before,
+    .slide::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .slide::before {
+      inset: -18%;
+      opacity: 0.62;
+      background:
+        linear-gradient(115deg, transparent 0%, rgba(96, 213, 189, 0.075) 34%, rgba(255, 111, 157, 0.07) 50%, transparent 66%),
+        repeating-linear-gradient(90deg, rgba(23, 25, 24, 0.026) 0 1px, transparent 1px 46px);
+    }
+
+    .slide::after {
+      width: 330px;
+      height: 330px;
+      right: -120px;
+      top: -136px;
+      border: 1px solid rgba(23, 25, 24, 0.07);
+      border-radius: 50%;
+      box-shadow:
+        0 0 0 72px rgba(255, 111, 157, 0.035),
+        0 0 80px rgba(23, 25, 24, 0.06);
+    }
+
+    .slide > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .accent {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 6px;
+      background: var(--ink);
+      z-index: 5;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      height: 30px;
+    }
+
+    .top-left,
+    .top-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .pill,
+    .section-kicker,
+    .tiny,
+    .chip,
+    .progress-label,
+    .label,
+    .mono {
+      font-family: var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-weight: 700;
+    }
+
+    .pill {
+      border: 1px solid rgba(23, 25, 24, 0.16);
+      background: linear-gradient(90deg, rgba(96, 213, 189, 0.22), rgba(255, 111, 157, 0.12));
+      color: var(--ink);
+      font-size: 10px;
+      padding: 6px 13px;
+      border-radius: 5px;
+      box-shadow: inset 0 0 16px rgba(96, 213, 189, 0.08);
+    }
+
+    .tiny {
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-weight: 800;
+      letter-spacing: 0;
+      color: var(--ink);
+      text-transform: none;
+      font-size: 14px;
+    }
+
+    .brand-mark {
+      width: 22px;
+      height: 22px;
+      border-radius: 7px;
+      border: 1px solid rgba(23, 25, 24, 0.16);
+      background:
+        radial-gradient(circle at 70% 26%, var(--pink) 0 18%, transparent 19%),
+        radial-gradient(circle at 34% 72%, var(--mint) 0 23%, transparent 24%),
+        var(--ink);
+      box-shadow: 0 8px 20px rgba(23, 25, 24, 0.16);
+    }
+
+    .content {
+      position: absolute;
+      left: 72px;
+      right: 58px;
+      top: 98px;
+      bottom: 54px;
+      display: grid;
+      gap: 36px;
+    }
+
+    h1,
+    h2,
+    .hero-title {
+      letter-spacing: -0.055em;
+      line-height: 0.96;
+      font-weight: 900;
+      color: var(--ink);
+    }
+
+    h1,
+    .hero-title {
+      font-size: 90px;
+    }
+
+    h2 {
+      font-size: 62px;
+    }
+
+    .highlight {
+      display: inline;
+      padding: 0 0.08em;
+      border-radius: 0.08em;
+      background: linear-gradient(90deg, rgba(255, 111, 157, 0.94), rgba(255, 111, 157, 0.74));
+      color: var(--ink);
+      box-decoration-break: clone;
+      -webkit-box-decoration-break: clone;
+    }
+
+    .mint {
+      color: var(--mint-dark);
+    }
+
+    .pink {
+      color: var(--pink);
+    }
+
+    .blue {
+      color: var(--blue);
+    }
+
+    .lead {
+      max-width: 620px;
+      color: var(--ink-soft);
+      font-size: 19px;
+      line-height: 1.46;
+      font-weight: 700;
+    }
+
+    .copy {
+      color: var(--ink-soft);
+      font-size: 14px;
+      line-height: 1.55;
+      font-weight: 650;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid rgba(23, 25, 24, 0.12);
+      border-radius: 8px;
+      box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(14px);
+    }
+
+    .step {
+      opacity: 0;
+      transform: translateY(18px) scale(0.985);
+      transition:
+        opacity 0.48s ease,
+        transform 0.56s cubic-bezier(0.2, 0.9, 0.2, 1),
+        filter 0.48s ease;
+      filter: blur(5px);
+    }
+
+    .step.revealed {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      filter: blur(0);
+    }
+
+    .step[data-step="0"] {
+      opacity: 1;
+      transform: none;
+      filter: none;
+    }
+
+    .bottom-strip {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      min-height: 48px;
+      background: var(--ink);
+      color: rgba(255, 255, 255, 0.78);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 72px;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      z-index: 3;
+    }
+
+    .bottom-strip span {
+      color: #a7ead7;
+    }
+
+    .click-hint {
+      position: absolute;
+      right: 56px;
+      bottom: 62px;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: rgba(23, 25, 24, 0.22);
+      z-index: 4;
+    }
+
+    .progress {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      width: min(520px, calc(100vw - 48px));
+      height: 3px;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.14);
+      border-radius: 999px;
+      overflow: hidden;
+      z-index: 2;
+      opacity: 0.68;
+    }
+
+    .progress span {
+      display: block;
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--mint), #a7ead7);
+      box-shadow: 0 0 18px rgba(96, 213, 189, 0.55);
+      transition: width 0.45s cubic-bezier(0.2, 0.9, 0.2, 1);
+    }
+
+    .nav-toast {
+      position: fixed;
+      left: 24px;
+      bottom: 18px;
+      z-index: 2;
+      color: rgba(255, 255, 255, 0.54);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .hero-grid {
+      grid-template-columns: 0.92fr 1.08fr;
+      align-items: center;
+    }
+
+    .hero-panel {
+      position: relative;
+      height: 508px;
+      border-radius: 8px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(96, 213, 189, 0.24), transparent 26%),
+        radial-gradient(circle at 72% 68%, rgba(255, 111, 157, 0.15), transparent 28%),
+        rgba(255, 255, 248, 0.64);
+      border: 1px solid rgba(23, 25, 24, 0.12);
+      box-shadow: var(--shadow);
+    }
+
+    .hero-title {
+      margin-top: 18px;
+      margin-bottom: 22px;
+    }
+
+    .slide[data-title="Opening"] .hero-title {
+      font-size: 72px;
+      line-height: 0.95;
+    }
+
+    .slide[data-title="Opening"] .lead {
+      max-width: 650px;
+    }
+
+    .hero-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 28px;
+    }
+
+    .chip {
+      font-size: 10px;
+      color: var(--ink);
+      padding: 8px 10px;
+      border: 1px solid rgba(23, 25, 24, 0.14);
+      border-radius: 5px;
+      background: rgba(255, 255, 248, 0.62);
+    }
+
+    .city-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .route-line {
+      fill: none;
+      stroke: var(--mint-dark);
+      stroke-width: 4;
+      stroke-linecap: round;
+      stroke-dasharray: 10 16;
+      opacity: 0.5;
+      animation: dashMove 1.8s linear infinite;
+    }
+
+    .pulse {
+      transform-origin: center;
+      animation: pulseNode 1.9s ease-in-out infinite;
+    }
+
+    .float-a {
+      animation: floatA 4.2s ease-in-out infinite alternate;
+    }
+
+    .float-b {
+      animation: floatB 5.2s ease-in-out infinite alternate;
+    }
+
+    .orbit {
+      transform-origin: 640px 360px;
+      animation: orbit 14s linear infinite;
+    }
+
+    .twocol {
+      grid-template-columns: 0.85fr 1.15fr;
+      align-items: center;
+    }
+
+    .title-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .problem-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+
+    .problem-card {
+      min-height: 136px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow: hidden;
+    }
+
+    .problem-card .label {
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .problem-card strong {
+      color: var(--ink);
+      font-size: 23px;
+      line-height: 1.05;
+      letter-spacing: -0.035em;
+    }
+
+    .problem-card p {
+      color: var(--ink-soft);
+      font-size: 13px;
+      line-height: 1.4;
+      font-weight: 650;
+    }
+
+    .stakeholder-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      align-self: center;
+    }
+
+    .stakeholder-card {
+      min-height: 330px;
+      padding: 26px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .stakeholder-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 5px;
+      background: linear-gradient(90deg, var(--mint), var(--pink));
+    }
+
+    .stakeholder-card .who {
+      font-size: 10px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .stakeholder-card strong {
+      display: block;
+      font-size: 34px;
+      line-height: 0.98;
+      letter-spacing: -0.055em;
+      margin-bottom: 18px;
+    }
+
+    .stakeholder-card p {
+      color: var(--ink-soft);
+      font-size: 14px;
+      line-height: 1.45;
+      font-weight: 650;
+    }
+
+    .stakeholder-card .result {
+      border-top: 1px solid rgba(23, 25, 24, 0.10);
+      padding-top: 16px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink);
+    }
+
+    .signal-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      align-self: end;
+    }
+
+    .signal {
+      padding: 20px;
+      min-height: 150px;
+    }
+
+    .signal .big {
+      font-size: 46px;
+      font-weight: 900;
+      letter-spacing: -0.06em;
+      margin-bottom: 8px;
+    }
+
+    .signal p {
+      color: var(--ink-soft);
+      font-size: 13px;
+      line-height: 1.42;
+      font-weight: 650;
+    }
+
+    .offer-grid {
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+    }
+
+    .stack-cards {
+      position: relative;
+      height: 500px;
+    }
+
+    .stack-card {
+      position: absolute;
+      width: 480px;
+      min-height: 144px;
+      padding: 22px;
+    }
+
+    .stack-card:nth-child(1) {
+      top: 12px;
+      left: 34px;
+    }
+
+    .stack-card:nth-child(2) {
+      top: 166px;
+      right: 12px;
+    }
+
+    .stack-card:nth-child(3) {
+      bottom: 26px;
+      left: 0;
+    }
+
+    .stack-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .stack-head strong {
+      font-size: 19px;
+      letter-spacing: -0.03em;
+    }
+
+    .mini-badge {
+      border-radius: 999px;
+      padding: 5px 10px;
+      background: var(--ink);
+      color: #fff;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .workflow {
+      display: grid;
+      grid-template-columns: 1fr 78px 1fr 78px 1fr;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .workflow-node {
+      min-height: 176px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-radius: 8px;
+      background: rgba(255, 255, 248, 0.82);
+      border: 1px solid rgba(23, 25, 24, 0.12);
+    }
+
+    .workflow-node strong {
+      font-size: 22px;
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+    }
+
+    .workflow-node p {
+      font-size: 13px;
+      color: var(--ink-soft);
+      line-height: 1.42;
+      font-weight: 650;
+    }
+
+    .arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 52px;
+    }
+
+    .arrow svg {
+      width: 78px;
+      height: 34px;
+      overflow: visible;
+    }
+
+    .arrow path {
+      stroke: var(--ink);
+      stroke-width: 3;
+      fill: none;
+      stroke-linecap: round;
+      stroke-dasharray: 6 9;
+      animation: dashMove 1.8s linear infinite;
+    }
+
+    .agent-grid {
+      grid-template-columns: 0.76fr 1.24fr;
+      align-items: center;
+    }
+
+    .agent-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+
+    .agent-card {
+      min-height: 142px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .agent-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--mint), var(--pink));
+    }
+
+    .agent-card .label {
+      font-size: 9px;
+      color: var(--muted);
+    }
+
+    .agent-card strong {
+      font-size: 20px;
+      line-height: 1.05;
+      letter-spacing: -0.04em;
+    }
+
+    .agent-card p {
+      font-size: 12px;
+      line-height: 1.42;
+      color: var(--ink-soft);
+      font-weight: 650;
+    }
+
+    .dashboard {
+      height: 484px;
+      padding: 18px;
+      display: grid;
+      grid-template-rows: 80px minmax(0, 1fr) 104px;
+      gap: 14px;
+    }
+
+    .metric-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .metric {
+      border-radius: 8px;
+      border: 1px solid rgba(23, 25, 24, 0.10);
+      background: rgba(255, 255, 248, 0.72);
+      padding: 14px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 26px;
+      letter-spacing: -0.045em;
+      margin-bottom: 5px;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-family: var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-size: 9px;
+      font-weight: 700;
+    }
+
+    .health-body {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 14px;
+      min-height: 0;
+    }
+
+    .map-card,
+    .queue-card {
+      border-radius: 8px;
+      border: 1px solid rgba(23, 25, 24, 0.10);
+      background: rgba(255, 255, 248, 0.62);
+      overflow: hidden;
+      position: relative;
+      min-height: 0;
+    }
+
+    .fleet-map {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .queue-card {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .queue-item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      padding: 11px 0;
+      border-bottom: 1px solid rgba(23, 25, 24, 0.09);
+    }
+
+    .queue-item:last-child {
+      border-bottom: 0;
+    }
+
+    .queue-item strong {
+      font-size: 13px;
+      letter-spacing: -0.02em;
+    }
+
+    .queue-item span {
+      font-family: var(--mono);
+      color: var(--muted);
+      text-transform: uppercase;
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      font-weight: 700;
+    }
+
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--mint);
+      box-shadow: 0 0 0 6px rgba(96, 213, 189, 0.18);
+    }
+
+    .alert .status-dot {
+      background: var(--red);
+      box-shadow: 0 0 0 6px rgba(239, 91, 98, 0.16);
+    }
+
+    .approval {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 14px;
+      padding: 18px 20px;
+      border-radius: 8px;
+      background: var(--ink);
+      color: #fff;
+    }
+
+    .approval strong {
+      display: block;
+      font-size: 17px;
+      letter-spacing: -0.03em;
+      margin-bottom: 6px;
+    }
+
+    .approval p {
+      color: rgba(255, 255, 255, 0.62);
+      font-size: 12px;
+      line-height: 1.35;
+      font-weight: 650;
+    }
+
+    .approval-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .fake-button {
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.74);
+    }
+
+    .fake-button.primary {
+      background: var(--mint);
+      color: var(--ink);
+      border-color: transparent;
+    }
+
+    .rebalance-grid {
+      grid-template-columns: 0.86fr 1.14fr;
+      align-items: start;
+      gap: 28px;
+    }
+
+    .rebalance-grid h1 {
+      font-size: 74px;
+      line-height: 0.94;
+    }
+
+    .rebalance-grid .lead {
+      font-size: 16px;
+      line-height: 1.34;
+      max-width: 500px;
+    }
+
+    .zone-board {
+      height: 454px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .zone-board svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .demand-stack {
+      display: grid;
+      gap: 10px;
+    }
+
+    .forecast-card {
+      padding: 14px 16px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 13px;
+      align-items: center;
+    }
+
+    .time-pill {
+      width: 60px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--ink);
+      color: #fff;
+      font-family: var(--mono);
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .forecast-card strong {
+      display: block;
+      font-size: 17px;
+      letter-spacing: -0.035em;
+      margin-bottom: 5px;
+    }
+
+    .forecast-card p {
+      color: var(--ink-soft);
+      font-size: 12px;
+      line-height: 1.4;
+      font-weight: 650;
+    }
+
+    .move-count {
+      font-size: 27px;
+      font-weight: 900;
+      letter-spacing: -0.055em;
+      color: var(--pink);
+      white-space: nowrap;
+    }
+
+    .city-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 30px;
+      align-items: start;
+    }
+
+    .city-grid h1 {
+      font-size: 74px;
+      line-height: 0.94;
+    }
+
+    .city-grid .lead {
+      font-size: 16px;
+      line-height: 1.34;
+      max-width: 560px;
+    }
+
+    .permit-card {
+      padding: 16px 18px;
+      min-height: 106px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .permit-card strong {
+      display: block;
+      font-size: 21px;
+      letter-spacing: -0.04em;
+      margin-bottom: 5px;
+    }
+
+    .permit-card p {
+      color: var(--ink-soft);
+      font-size: 12px;
+      font-weight: 650;
+      line-height: 1.34;
+    }
+
+    .gauge {
+      width: 84px;
+      height: 84px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background:
+        conic-gradient(var(--mint) 0 76%, rgba(23, 25, 24, 0.10) 76% 100%);
+      position: relative;
+    }
+
+    .gauge::after {
+      content: "";
+      position: absolute;
+      inset: 10px;
+      border-radius: 50%;
+      background: #fffef2;
+      border: 1px solid rgba(23, 25, 24, 0.08);
+    }
+
+    .gauge span {
+      position: relative;
+      z-index: 1;
+      font-size: 19px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+    }
+
+    .conversation {
+      height: 500px;
+      padding: 20px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 16px;
+      background: rgba(255, 255, 248, 0.82);
+    }
+
+    .chat-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .chat-row.agent {
+      justify-content: flex-end;
+    }
+
+    .bubble {
+      max-width: 78%;
+      border-radius: 8px;
+      border: 1px solid rgba(23, 25, 24, 0.10);
+      padding: 14px 16px;
+      background: #fffef8;
+      box-shadow: 0 10px 26px rgba(23, 25, 24, 0.06);
+      font-size: 13px;
+      line-height: 1.42;
+      font-weight: 650;
+      color: var(--ink-soft);
+    }
+
+    .agent .bubble {
+      background: var(--ink);
+      color: rgba(255, 255, 255, 0.78);
+    }
+
+    .insight-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .insight {
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      padding: 13px;
+    }
+
+    .insight strong {
+      display: block;
+      color: #fff;
+      font-size: 20px;
+      letter-spacing: -0.04em;
+      margin-bottom: 4px;
+    }
+
+    .insight span {
+      display: block;
+      color: rgba(255, 255, 255, 0.52);
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .input-bar {
+      height: 48px;
+      border-radius: 8px;
+      border: 1px solid rgba(23, 25, 24, 0.12);
+      background: #fffef8;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px 0 18px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .send-dot {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--mint);
+      display: grid;
+      place-items: center;
+    }
+
+    .send-dot svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .diff-grid {
+      grid-template-columns: repeat(3, 1fr);
+      align-content: start;
+      gap: 10px;
+    }
+
+    .slide[data-title="Differentiation"] .content {
+      top: 70px;
+      bottom: 110px;
+      gap: 12px;
+    }
+
+    .slide[data-title="Differentiation"] h2 {
+      font-size: 38px;
+      line-height: 0.96;
+      max-width: 1040px;
+    }
+
+    .slide[data-title="Differentiation"] .title-stack {
+      gap: 8px;
+    }
+
+    .slide[data-title="Differentiation"] .section-kicker {
+      font-size: 10px;
+    }
+
+    .diff-card {
+      min-height: 126px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .diff-card .num {
+      font-family: var(--mono);
+      color: var(--pink);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .diff-card strong {
+      font-size: 16px;
+      line-height: 1.03;
+      letter-spacing: -0.045em;
+    }
+
+    .diff-card p {
+      color: var(--ink-soft);
+      font-size: 10px;
+      line-height: 1.25;
+      font-weight: 650;
+    }
+
+    .close-layout {
+      grid-template-columns: 0.92fr 1.08fr;
+      align-items: center;
+    }
+
+    .launch-card {
+      padding: 24px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .launch-row {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 14px;
+      align-items: start;
+      padding-bottom: 15px;
+      border-bottom: 1px solid rgba(23, 25, 24, 0.10);
+    }
+
+    .launch-row:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .launch-num {
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: var(--ink);
+      color: #fff;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .launch-row strong {
+      display: block;
+      font-size: 18px;
+      letter-spacing: -0.035em;
+      margin-bottom: 5px;
+    }
+
+    .launch-row p {
+      color: var(--ink-soft);
+      font-size: 12px;
+      line-height: 1.4;
+      font-weight: 650;
+    }
+
+    svg text {
+      font-family: var(--mono);
+      font-weight: 700;
+    }
+
+    .draw {
+      stroke-dasharray: 900;
+      stroke-dashoffset: 900;
+      animation: drawLine 2.8s ease forwards;
+    }
+
+    .spark {
+      animation: spark 1.6s ease-in-out infinite alternate;
+    }
+
+    .blink {
+      animation: blink 1.5s ease-in-out infinite alternate;
+    }
+
+    .zone-dash {
+      animation: dashMove 2.6s linear infinite;
+    }
+
+    /* Compact safety layer: keeps every slide inside the 1280x720 frame. */
+    .slide .content {
+      top: 84px;
+      bottom: 76px;
+      gap: 22px;
+    }
+
+    .slide h1,
+    .slide .hero-title {
+      font-size: 66px;
+      line-height: 0.95;
+    }
+
+    .slide h2 {
+      font-size: 44px;
+      line-height: 0.98;
+    }
+
+    .slide .lead {
+      font-size: 15px;
+      line-height: 1.34;
+      max-width: 580px;
+    }
+
+    .slide .copy {
+      font-size: 12px;
+      line-height: 1.38;
+    }
+
+    .slide .title-stack {
+      gap: 11px;
+    }
+
+    .slide .hero-panel {
+      height: 440px;
+    }
+
+    .slide .stack-cards,
+    .slide .conversation {
+      height: 430px;
+    }
+
+    .slide .stack-card {
+      min-height: 112px;
+      padding: 16px;
+    }
+
+    .slide .stack-card:nth-child(1) { top: 0; }
+    .slide .stack-card:nth-child(2) { top: 142px; }
+    .slide .stack-card:nth-child(3) { bottom: 8px; }
+
+    .slide .problem-card,
+    .slide .agent-card {
+      min-height: 112px;
+      padding: 14px;
+      gap: 8px;
+    }
+
+    .slide .problem-card strong,
+    .slide .agent-card strong {
+      font-size: 17px;
+      line-height: 1.06;
+    }
+
+    .slide .problem-card p,
+    .slide .agent-card p {
+      font-size: 11px;
+      line-height: 1.3;
+    }
+
+    .slide .signal {
+      min-height: 118px;
+      padding: 14px;
+    }
+
+    .slide .signal .big {
+      font-size: 34px;
+      margin-bottom: 5px;
+    }
+
+    .slide .signal p {
+      font-size: 11px;
+      line-height: 1.3;
+    }
+
+    .slide .stakeholder-card {
+      min-height: 236px;
+      padding: 18px;
+    }
+
+    .slide .stakeholder-card strong {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+
+    .slide .stakeholder-card p {
+      font-size: 12px;
+      line-height: 1.34;
+    }
+
+    .slide .stakeholder-card .result {
+      font-size: 9px;
+      padding-top: 10px;
+    }
+
+    .slide .dashboard {
+      height: 430px;
+      grid-template-rows: 68px minmax(0, 1fr) 88px;
+      gap: 10px;
+    }
+
+    .slide .metric {
+      padding: 10px;
+    }
+
+    .slide .metric strong {
+      font-size: 22px;
+    }
+
+    .slide .queue-card {
+      padding: 12px;
+      gap: 7px;
+    }
+
+    .slide .queue-item {
+      padding: 7px 0;
+    }
+
+    .slide .zone-board {
+      height: 418px;
+    }
+
+    .slide .rebalance-grid h1,
+    .slide .city-grid h1 {
+      font-size: 58px;
+    }
+
+    .slide .forecast-card {
+      padding: 11px 13px;
+    }
+
+    .slide .permit-card {
+      min-height: 88px;
+      padding: 12px 14px;
+    }
+
+    .slide .gauge {
+      width: 68px;
+      height: 68px;
+    }
+
+    .slide .approval {
+      padding: 13px 16px;
+    }
+
+    .feature-grid,
+    .rider-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      align-content: start;
+    }
+
+    .feature-card,
+    .rider-card {
+      min-height: 126px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card::before,
+    .rider-card::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--mint), var(--pink));
+    }
+
+    .feature-card .label,
+    .rider-card .label {
+      font-size: 9px;
+      color: var(--muted);
+    }
+
+    .feature-card strong,
+    .rider-card strong {
+      font-size: 18px;
+      line-height: 1.04;
+      letter-spacing: -0.035em;
+    }
+
+    .feature-card p,
+    .rider-card p {
+      color: var(--ink-soft);
+      font-size: 11px;
+      line-height: 1.32;
+      font-weight: 650;
+    }
+
+    .flow-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      align-content: start;
+    }
+
+    .flow-card {
+      min-height: 132px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .flow-card .num {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      color: var(--pink);
+    }
+
+    .flow-card strong {
+      font-size: 18px;
+      line-height: 1.04;
+      letter-spacing: -0.04em;
+    }
+
+    .flow-card p {
+      color: var(--ink-soft);
+      font-size: 11px;
+      line-height: 1.3;
+      font-weight: 650;
+    }
+
+    .flow-command {
+      padding: 13px 16px;
+      background: var(--ink);
+      color: rgba(255,255,255,0.78);
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.45;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: center;
+    }
+
+    .flow-command span {
+      color: #a7ead7;
+    }
+
+    .surface-grid {
+      display: grid;
+      grid-template-columns: 0.86fr 1.14fr;
+      gap: 22px;
+      align-items: start;
+    }
+
+    .interface-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .mock-panel {
+      min-height: 188px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow: hidden;
+    }
+
+    .mock-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .mock-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--mint);
+      box-shadow: 0 0 0 6px rgba(96, 213, 189, 0.18);
+      animation: spark 1.2s ease-in-out infinite alternate;
+    }
+
+    .mock-message {
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.66);
+      border: 1px solid rgba(23, 25, 24, 0.10);
+      color: var(--ink-soft);
+      font-size: 12px;
+      line-height: 1.34;
+      font-weight: 650;
+    }
+
+    .mock-message.dark {
+      background: var(--ink);
+      color: rgba(255, 255, 255, 0.78);
+    }
+
+    .mock-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .mock-action {
+      padding: 7px 9px;
+      border-radius: 6px;
+      border: 1px solid rgba(23, 25, 24, 0.12);
+      background: rgba(255, 255, 248, 0.74);
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .mock-action.primary {
+      background: var(--mint);
+      border-color: transparent;
+      color: var(--ink);
+    }
+
+    .phone-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .phone {
+      height: 422px;
+      padding: 12px;
+      border-radius: 28px;
+      background: #171918;
+      box-shadow: 0 22px 60px rgba(23,25,24,0.18);
+      overflow: hidden;
+    }
+
+    .phone-screen {
+      height: 100%;
+      border-radius: 20px;
+      background: linear-gradient(180deg, #fffef4, #f1f4e9);
+      padding: 14px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 12px;
+      overflow: hidden;
+    }
+
+    .phone-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .phone-map {
+      border-radius: 14px;
+      background:
+        radial-gradient(circle at 42% 40%, rgba(96,213,189,0.25), transparent 20%),
+        radial-gradient(circle at 68% 72%, rgba(255,111,157,0.16), transparent 18%),
+        repeating-linear-gradient(0deg, rgba(23,25,24,0.06) 0 1px, transparent 1px 42px),
+        repeating-linear-gradient(90deg, rgba(23,25,24,0.05) 0 1px, transparent 1px 42px),
+        #f7f8ed;
+      border: 1px solid rgba(23,25,24,0.10);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .phone-pin {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--pink);
+      box-shadow: 0 0 0 9px rgba(255,111,157,0.18);
+      animation: pulseNode 1.4s ease-in-out infinite;
+    }
+
+    .phone-pin.mint {
+      background: var(--mint);
+      box-shadow: 0 0 0 9px rgba(96,213,189,0.18);
+    }
+
+    .phone-sheet {
+      display: grid;
+      gap: 8px;
+    }
+
+    .phone-sheet strong {
+      font-size: 17px;
+      letter-spacing: -0.04em;
+    }
+
+    .phone-sheet p {
+      color: var(--ink-soft);
+      font-size: 11px;
+      line-height: 1.3;
+      font-weight: 650;
+    }
+
+    .email-card {
+      min-height: 422px;
+      padding: 18px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 14px;
+    }
+
+    .email-subject {
+      font-size: 26px;
+      line-height: 1.02;
+      letter-spacing: -0.05em;
+      font-weight: 900;
+    }
+
+    .email-metrics {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .email-metric {
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(23,25,24,0.10);
+      background: rgba(255,255,248,0.70);
+    }
+
+    .email-metric strong {
+      display: block;
+      font-size: 25px;
+      letter-spacing: -0.05em;
+      margin-bottom: 4px;
+    }
+
+    .email-metric span {
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .screen-wall {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .screen-stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .wa-window,
+    .slack-window,
+    .dash-window,
+    .mail-window {
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(23,25,24,0.12);
+      box-shadow: 0 20px 60px rgba(23,25,24,0.12);
+      background: #fff;
+    }
+
+    .wa-window {
+      height: 340px;
+      display: grid;
+      grid-template-columns: 174px 1fr;
+      background: #f0ebe3;
+    }
+
+    .wa-sidebar {
+      background: #f7f8f6;
+      border-right: 1px solid rgba(0,0,0,0.08);
+      display: grid;
+      grid-template-rows: 48px 42px 1fr;
+    }
+
+    .wa-header {
+      background: #075e54;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .wa-search {
+      margin: 8px;
+      border-radius: 18px;
+      background: #eef0ed;
+      color: #6b716d;
+      font-size: 10px;
+      padding: 8px 10px;
+    }
+
+    .wa-chat-list {
+      display: grid;
+      align-content: start;
+    }
+
+    .wa-chat-item {
+      display: grid;
+      grid-template-columns: 30px 1fr;
+      gap: 8px;
+      padding: 10px;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      font-size: 10px;
+      color: #27312d;
+    }
+
+    .wa-avatar,
+    .slack-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: #25d366;
+      color: white;
+      font-weight: 900;
+      font-size: 11px;
+    }
+
+    .wa-chat {
+      display: grid;
+      grid-template-rows: 48px 1fr 46px;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(37,211,102,0.08), transparent 26%),
+        radial-gradient(circle at 80% 68%, rgba(7,94,84,0.06), transparent 28%),
+        #efe7dd;
+    }
+
+    .wa-convo-head {
+      background: #075e54;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 14px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .wa-messages {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      justify-content: flex-end;
+    }
+
+    .wa-bubble {
+      max-width: 78%;
+      padding: 9px 11px;
+      border-radius: 8px;
+      background: #fff;
+      color: #1f2a25;
+      font-size: 11px;
+      line-height: 1.32;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.08);
+    }
+
+    .wa-bubble.out {
+      align-self: flex-end;
+      background: #dcf8c6;
+    }
+
+    .wa-input {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: #f0f0f0;
+      color: #7a827d;
+      font-size: 10px;
+    }
+
+    .wa-input span {
+      flex: 1;
+      border-radius: 18px;
+      background: #fff;
+      padding: 8px 10px;
+    }
+
+    .slack-window {
+      height: 340px;
+      display: grid;
+      grid-template-columns: 154px 1fr;
+      background: #fff;
+    }
+
+    .slack-side {
+      background: #3f0e40;
+      color: rgba(255,255,255,0.82);
+      padding: 12px 10px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 14px;
+      font-size: 11px;
+    }
+
+    .slack-team {
+      color: white;
+      font-weight: 900;
+      font-size: 14px;
+      letter-spacing: -0.02em;
+    }
+
+    .slack-nav {
+      display: grid;
+      gap: 7px;
+    }
+
+    .slack-nav div {
+      padding: 6px 8px;
+      border-radius: 5px;
+    }
+
+    .slack-nav .active {
+      background: #1264a3;
+      color: white;
+    }
+
+    .slack-main {
+      display: grid;
+      grid-template-rows: 48px 1fr 52px;
+    }
+
+    .slack-head {
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      color: #1d1c1d;
+      font-weight: 900;
+      font-size: 14px;
+    }
+
+    .slack-feed {
+      padding: 14px 16px;
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .slack-msg {
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 10px;
+      font-size: 11px;
+      line-height: 1.35;
+      color: #3d3c40;
+    }
+
+    .slack-msg strong {
+      color: #1d1c1d;
+      font-size: 12px;
+    }
+
+    .slack-block {
+      margin-top: 7px;
+      border-left: 4px solid #2eb67d;
+      background: #f8f8f8;
+      border-radius: 6px;
+      padding: 10px;
+    }
+
+    .slack-compose {
+      border-top: 1px solid #ddd;
+      padding: 9px 14px;
+    }
+
+    .slack-compose div {
+      border: 1px solid #c8c8c8;
+      border-radius: 7px;
+      padding: 9px 10px;
+      color: #777;
+      font-size: 11px;
+    }
+
+    .dash-window {
+      height: 346px;
+      display: grid;
+      grid-template-columns: 150px 1fr 170px;
+      background: #f7f2e7;
+    }
+
+    .dash-side {
+      background: #171717;
+      color: rgba(255,255,255,0.68);
+      padding: 14px 10px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 16px;
+      font-size: 10px;
+    }
+
+    .dash-logo {
+      color: white;
+      font-weight: 900;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .dash-nav {
+      display: grid;
+      gap: 7px;
+      align-content: start;
+    }
+
+    .dash-nav div {
+      padding: 7px 9px;
+      border-radius: 7px;
+    }
+
+    .dash-nav .active {
+      background: rgba(125,229,193,0.18);
+      color: #a7ead7;
+    }
+
+    .dash-main {
+      padding: 14px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 12px;
+      overflow: hidden;
+    }
+
+    .dash-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+    }
+
+    .dash-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .dash-mini {
+      border-radius: 8px;
+      background: rgba(255,255,255,0.68);
+      border: 1px solid rgba(0,0,0,0.08);
+      padding: 10px;
+    }
+
+    .dash-mini strong {
+      display: block;
+      font-size: 22px;
+      letter-spacing: -0.05em;
+    }
+
+    .dash-mini span {
+      font-family: var(--mono);
+      color: var(--muted);
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .dash-map {
+      border-radius: 10px;
+      min-height: 118px;
+      background:
+        radial-gradient(circle at 34% 56%, rgba(96,213,189,0.26), transparent 18%),
+        radial-gradient(circle at 76% 34%, rgba(255,111,157,0.18), transparent 17%),
+        repeating-linear-gradient(0deg, rgba(23,25,24,0.06) 0 1px, transparent 1px 36px),
+        repeating-linear-gradient(90deg, rgba(23,25,24,0.05) 0 1px, transparent 1px 36px),
+        #fbfaed;
+      border: 1px solid rgba(0,0,0,0.08);
+      position: relative;
+    }
+
+    .slide[data-title="Interaction Surfaces"] .content,
+    .slide[data-title="Rider Mobile Flow"] .content,
+    .slide[data-title="CEO Operator Interfaces"] .content {
+      top: 76px;
+      bottom: 82px;
+      gap: 14px;
+    }
+
+    .slide[data-title="Interaction Surfaces"] h1 {
+      font-size: 50px;
+    }
+
+    .slide[data-title="Interaction Surfaces"] .lead {
+      font-size: 13px;
+      line-height: 1.28;
+    }
+
+    .slide[data-title="Rider Mobile Flow"] h2,
+    .slide[data-title="CEO Operator Interfaces"] h2 {
+      font-size: 36px;
+    }
+
+    .slide[data-title="Rider Mobile Flow"] .phone {
+      height: 352px;
+    }
+
+    .slide[data-title="CEO Operator Interfaces"] .email-card {
+      min-height: 164px !important;
+      padding: 13px;
+      gap: 9px;
+    }
+
+    .slide[data-title="CEO Operator Interfaces"] .email-subject {
+      font-size: 17px !important;
+    }
+
+    .slide[data-title="CEO Operator Interfaces"] .email-metric {
+      padding: 8px;
+    }
+
+    .slide[data-title="CEO Operator Interfaces"] .email-metric strong {
+      font-size: 19px;
+    }
+
+    .slide[data-title="CEO Operator Interfaces"] .phone {
+      height: 164px !important;
+    }
+
+    .dash-agent {
+      background: #fff;
+      border-left: 1px solid rgba(0,0,0,0.08);
+      padding: 12px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 10px;
+    }
+
+    .agent-line {
+      border-radius: 8px;
+      padding: 9px;
+      background: #f7f2e7;
+      font-size: 10px;
+      line-height: 1.3;
+      color: #47423c;
+    }
+
+    .agent-line.dark {
+      background: #171717;
+      color: rgba(255,255,255,0.78);
+    }
+
+    .product-slide .content {
+      top: 70px;
+      bottom: 70px;
+      gap: 14px;
+    }
+
+    .product-slide h1 {
+      font-size: 46px;
+      line-height: 0.98;
+    }
+
+    .product-slide h2 {
+      font-size: 34px;
+      line-height: 0.98;
+    }
+
+    .product-slide .lead {
+      font-size: 13px;
+      line-height: 1.28;
+      max-width: 520px;
+    }
+
+    .screen-layout {
+      display: grid;
+      grid-template-columns: 0.82fr 1.18fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .iphone-pair {
+      display: grid;
+      grid-template-columns: repeat(2, 220px);
+      justify-content: center;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .iphone-real {
+      width: 220px;
+      height: 410px;
+      border-radius: 32px;
+      padding: 10px;
+      background: #111;
+      box-shadow: 0 24px 70px rgba(17, 17, 17, 0.28);
+      position: relative;
+    }
+
+    .iphone-real::before {
+      content: "";
+      position: absolute;
+      top: 18px;
+      left: 50%;
+      width: 70px;
+      height: 20px;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background: #050505;
+      z-index: 3;
+    }
+
+    .iphone-ui {
+      height: 100%;
+      border-radius: 24px;
+      background: #f7f8f4;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 34px 1fr auto;
+      position: relative;
+    }
+
+    .ios-status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 16px 0;
+      font-size: 10px;
+      font-weight: 800;
+      color: #171918;
+    }
+
+    .ios-header {
+      padding: 12px 14px 10px;
+      border-bottom: 1px solid rgba(23,25,24,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 12px;
+      font-weight: 900;
+      background: rgba(255,255,255,0.78);
+    }
+
+    .ios-content {
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+      align-content: start;
+      overflow: hidden;
+    }
+
+    .app-map-real {
+      height: 156px;
+      border-radius: 16px;
+      background:
+        radial-gradient(circle at 32% 42%, rgba(96,213,189,0.32), transparent 18%),
+        radial-gradient(circle at 68% 58%, rgba(255,111,157,0.22), transparent 18%),
+        linear-gradient(25deg, transparent 0 46%, rgba(23,25,24,0.12) 46% 49%, transparent 49% 100%),
+        repeating-linear-gradient(0deg, rgba(23,25,24,0.06) 0 1px, transparent 1px 34px),
+        repeating-linear-gradient(90deg, rgba(23,25,24,0.05) 0 1px, transparent 1px 34px),
+        #eef2e9;
+      border: 1px solid rgba(23,25,24,0.08);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .map-route {
+      position: absolute;
+      inset: 36px 26px 44px 28px;
+      border: 4px dashed rgba(15,159,135,0.55);
+      border-left: 0;
+      border-bottom: 0;
+      border-radius: 0 38px 0 0;
+      animation: pulseNode 1.8s ease-in-out infinite;
+    }
+
+    .map-pin-real {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--pink);
+      box-shadow: 0 0 0 8px rgba(255,111,157,0.18);
+      animation: pulseNode 1.4s ease-in-out infinite;
+    }
+
+    .map-pin-real.mint {
+      background: var(--mint);
+      box-shadow: 0 0 0 8px rgba(96,213,189,0.18);
+    }
+
+    .ios-card {
+      border-radius: 14px;
+      background: #fff;
+      border: 1px solid rgba(23,25,24,0.08);
+      padding: 10px;
+      box-shadow: 0 6px 18px rgba(23,25,24,0.05);
+    }
+
+    .ios-card strong {
+      display: block;
+      font-size: 15px;
+      letter-spacing: -0.03em;
+      margin-bottom: 4px;
+    }
+
+    .ios-card p {
+      font-size: 10px;
+      line-height: 1.28;
+      color: var(--ink-soft);
+      font-weight: 650;
+    }
+
+    .ios-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+    }
+
+    .ios-btn {
+      border-radius: 10px;
+      padding: 9px 7px;
+      text-align: center;
+      background: #171918;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 900;
+    }
+
+    .ios-btn.alt {
+      background: rgba(23,25,24,0.07);
+      color: #171918;
+    }
+
+    .ios-tabbar {
+      height: 44px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      align-items: center;
+      border-top: 1px solid rgba(23,25,24,0.08);
+      background: rgba(255,255,255,0.88);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 8px;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .ios-tabbar .active {
+      color: var(--mint-dark);
+    }
+
+    .chat-thread-real {
+      display: grid;
+      gap: 8px;
+    }
+
+    .ios-chat {
+      max-width: 86%;
+      border-radius: 14px;
+      padding: 8px 10px;
+      background: #fff;
+      border: 1px solid rgba(23,25,24,0.08);
+      color: #27312d;
+      font-size: 10px;
+      line-height: 1.28;
+      font-weight: 650;
+    }
+
+    .ios-chat.out {
+      justify-self: end;
+      background: #dcf8c6;
+    }
+
+    .ios-chat.agent {
+      background: #171918;
+      color: rgba(255,255,255,0.82);
+    }
+
+    .split-screens {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .gmail-real {
+      height: 410px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(23,25,24,0.12);
+      background: #fff;
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      box-shadow: 0 22px 70px rgba(23,25,24,0.14);
+    }
+
+    .gmail-side {
+      background: #f6f8fc;
+      border-right: 1px solid #e4e7ee;
+      padding: 14px 10px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 16px;
+      font-size: 11px;
+      color: #3c4043;
+    }
+
+    .gmail-logo {
+      font-weight: 900;
+      font-size: 16px;
+      color: #202124;
+    }
+
+    .gmail-nav {
+      display: grid;
+      align-content: start;
+      gap: 6px;
+    }
+
+    .gmail-nav div {
+      border-radius: 999px;
+      padding: 7px 10px;
+    }
+
+    .gmail-nav .active {
+      background: #fce8e6;
+      color: #c5221f;
+      font-weight: 800;
+    }
+
+    .gmail-main {
+      display: grid;
+      grid-template-rows: 46px 1fr;
+    }
+
+    .gmail-toolbar {
+      border-bottom: 1px solid #e4e7ee;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      font-size: 11px;
+      color: #5f6368;
+    }
+
+    .gmail-email {
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .gmail-email h3 {
+      font-size: 20px;
+      line-height: 1.08;
+      letter-spacing: -0.035em;
+      color: #202124;
+    }
+
+    .gmail-body {
+      border-radius: 10px;
+      border: 1px solid #e4e7ee;
+      padding: 12px;
+      background: #fff;
+      display: grid;
+      gap: 10px;
+    }
+
+    .gmail-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .gmail-metric {
+      border-radius: 8px;
+      background: #f8fafd;
+      border: 1px solid #e4e7ee;
+      padding: 9px;
+    }
+
+    .gmail-metric strong {
+      display: block;
+      font-size: 18px;
+      letter-spacing: -0.04em;
+    }
+
+    .gmail-metric span {
+      display: block;
+      font-size: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #5f6368;
+      font-weight: 800;
+      margin-top: 3px;
+    }
+
+    .phone-row .iphone-real {
+      justify-self: center;
+      width: 214px;
+      height: 388px;
+    }
+
+    .iphone-ui.flow-phone {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 34px 12px 12px;
+    }
+
+    .iphone-ui.flow-phone .phone-title {
+      margin: 0;
+      flex: 0 0 auto;
+    }
+
+    .iphone-ui.flow-phone .phone-map {
+      min-height: 142px;
+      flex: 0 0 142px;
+    }
+
+    .slide[data-title="Dashboard Ticket Widget"] .dash-window {
+      height: 430px;
+      grid-template-columns: 155px 1fr 245px;
+    }
+
+    .slide[data-title="Dashboard Ticket Widget"] .dash-map {
+      min-height: 132px;
+    }
+
+    .slide[data-title="Interaction Surfaces"] .content {
+      top: 70px;
+      bottom: 56px;
+      grid-template-columns: 0.78fr 1.22fr;
+      gap: 18px;
+    }
+
+    .slide[data-title="Interaction Surfaces"] .screen-stack {
+      gap: 10px;
+    }
+
+    .slide[data-title="Interaction Surfaces"] .slack-window,
+    .slide[data-title="Interaction Surfaces"] .wa-window {
+      height: 268px;
+    }
+
+    .slide[data-title="Interaction Surfaces"] .slack-window {
+      grid-template-columns: 142px 1fr;
+    }
+
+    .slide[data-title="Interaction Surfaces"] .slack-side {
+      padding: 10px 8px;
+      gap: 10px;
+      font-size: 10px;
+    }
+
+    .slide[data-title="Interaction Surfaces"] .slack-nav {
+      gap: 5px;
+    }
+
+    .slide[data-title="Interaction Surfaces"] .slack-main {
+      grid-template-rows: 38px 1fr 40px;
+    }
+
+    .slide[data-title="Interaction Surfaces"] .slack-head {
+      padding: 0 12px;
+      font-size: 12px;
+    }
+
+    .slide[data-title="Interaction Surfaces"] .slack-feed {
+      padding: 10px 12px;
+      gap: 8px;
+    }
+
+    .slide[data-title="Interaction Surfaces"] .slack-msg {
+      grid-template-columns: 28px 1fr;
+      gap: 8px;
+      font-size: 10px;
+      line-height: 1.28;
+    }
+
+    .slide[data-title="Interaction Surfaces"] .slack-block {
+      margin-top: 5px;
+      padding: 7px 8px;
+    }
+
+    .slide[data-title="Interaction Surfaces"] .slack-compose {
+      padding: 7px 10px;
+    }
+
+    .slide[data-title="Interaction Surfaces"] .wa-window {
+      grid-template-columns: 150px 1fr;
+    }
+
+    .slide[data-title="Interaction Surfaces"] .wa-sidebar {
+      grid-template-rows: 38px 36px 1fr;
+    }
+
+    .slide[data-title="Interaction Surfaces"] .wa-header,
+    .slide[data-title="Interaction Surfaces"] .wa-convo-head {
+      font-size: 11px;
+    }
+
+    .slide[data-title="Interaction Surfaces"] .wa-chat {
+      grid-template-rows: 38px 1fr 40px;
+    }
+
+    .slide[data-title="Interaction Surfaces"] .wa-search {
+      margin: 6px;
+      padding: 6px 8px;
+      font-size: 9px;
+    }
+
+    .slide[data-title="Interaction Surfaces"] .wa-chat-item {
+      padding: 8px;
+      font-size: 9px;
+    }
+
+    .slide[data-title="Interaction Surfaces"] .wa-messages {
+      padding: 9px 10px;
+      gap: 6px;
+    }
+
+    .slide[data-title="Interaction Surfaces"] .wa-bubble {
+      padding: 7px 9px;
+      font-size: 10px;
+      line-height: 1.26;
+    }
+
+    .slide[data-title="Rider Mobile Flow"] .content {
+      top: 70px;
+      bottom: 42px;
+      gap: 10px;
+    }
+
+    .slide[data-title="Rider Mobile Flow"] h2 {
+      max-width: 910px;
+      font-size: 31px;
+      line-height: 1.02;
+      letter-spacing: -0.045em;
+    }
+
+    .slide[data-title="Rider Mobile Flow"] .phone-row {
+      grid-template-columns: repeat(3, 208px);
+      justify-content: center;
+      gap: 22px;
+    }
+
+    .slide[data-title="Rider Mobile Flow"] .iphone-real {
+      width: 208px;
+      height: 356px;
+      padding: 8px;
+      border-radius: 30px;
+    }
+
+    .slide[data-title="Rider Mobile Flow"] .iphone-real::before {
+      top: 15px;
+      width: 62px;
+      height: 18px;
+    }
+
+    .slide[data-title="Rider Mobile Flow"] .iphone-ui {
+      border-radius: 22px;
+    }
+
+    .slide[data-title="Rider Mobile Flow"] .ios-header,
+    .slide[data-title="CEO Operator Interfaces"] .ios-header {
+      padding: 9px 12px 8px;
+      font-size: 11px;
+    }
+
+    .slide[data-title="Rider Mobile Flow"] .ios-content,
+    .slide[data-title="CEO Operator Interfaces"] .ios-content {
+      padding: 9px;
+      gap: 7px;
+    }
+
+    .slide[data-title="Rider Mobile Flow"] .ios-card,
+    .slide[data-title="CEO Operator Interfaces"] .ios-card {
+      padding: 8px;
+      border-radius: 12px;
+    }
+
+    .slide[data-title="Rider Mobile Flow"] .ios-card strong,
+    .slide[data-title="CEO Operator Interfaces"] .ios-card strong {
+      font-size: 13px;
+      margin-bottom: 3px;
+    }
+
+    .slide[data-title="Rider Mobile Flow"] .ios-card p,
+    .slide[data-title="CEO Operator Interfaces"] .ios-card p,
+    .slide[data-title="Rider Mobile Flow"] .ios-chat,
+    .slide[data-title="CEO Operator Interfaces"] .ios-chat {
+      font-size: 9px;
+      line-height: 1.24;
+    }
+
+    .slide[data-title="Rider Mobile Flow"] .app-map-real {
+      height: 108px;
+      border-radius: 14px;
+    }
+
+    .phone-input {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 6px;
+      align-items: center;
+      margin-top: auto;
+      padding: 7px;
+      border-radius: 14px;
+      background: #fff;
+      border: 1px solid rgba(23,25,24,0.08);
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 750;
+    }
+
+    .receipt-list {
+      display: grid;
+      gap: 6px;
+    }
+
+    .receipt-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(23,25,24,0.08);
+      color: var(--ink-soft);
+      font-size: 9px;
+      font-weight: 750;
+    }
+
+    .receipt-row strong {
+      color: var(--ink);
+      font-size: 10px;
+    }
+
+    .slide[data-title="CEO Operator Interfaces"] .content {
+      top: 70px;
+      bottom: 54px;
+      grid-template-columns: 1.14fr 0.86fr;
+      gap: 16px;
+    }
+
+    .slide[data-title="CEO Operator Interfaces"] .gmail-real {
+      height: 386px;
+      grid-template-columns: 132px 1fr;
+    }
+
+    .slide[data-title="CEO Operator Interfaces"] .gmail-side {
+      padding: 12px 9px;
+      gap: 12px;
+      font-size: 10px;
+    }
+
+    .slide[data-title="CEO Operator Interfaces"] .gmail-main {
+      grid-template-rows: 42px 1fr;
+    }
+
+    .slide[data-title="CEO Operator Interfaces"] .gmail-email {
+      padding: 12px;
+      gap: 8px;
+    }
+
+    .slide[data-title="CEO Operator Interfaces"] .gmail-email h3 {
+      font-size: 17px;
+      line-height: 1.06;
+    }
+
+    .gmail-row {
+      display: grid;
+      grid-template-columns: 76px minmax(0, 1fr) 48px;
+      gap: 8px;
+      align-items: center;
+      padding: 7px 9px;
+      border-radius: 8px;
+      background: #f2f6ff;
+      border: 1px solid #dce6fb;
+      color: #202124;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .gmail-row strong,
+    .gmail-row em {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .gmail-row span {
+      color: #5f6368;
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .gmail-row em {
+      justify-self: end;
+      color: #5f6368;
+      font-style: normal;
+      font-size: 9px;
+      font-weight: 700;
+    }
+
+    .slide[data-title="CEO Operator Interfaces"] .gmail-body {
+      padding: 10px;
+      gap: 8px;
+    }
+
+    .slide[data-title="CEO Operator Interfaces"] .gmail-body p {
+      font-size: 11px;
+      line-height: 1.28;
+      color: #3c4043;
+      font-weight: 650;
+    }
+
+    .slide[data-title="CEO Operator Interfaces"] .gmail-metrics {
+      gap: 6px;
+    }
+
+    .slide[data-title="CEO Operator Interfaces"] .gmail-metric {
+      padding: 7px;
+    }
+
+    .slide[data-title="CEO Operator Interfaces"] .gmail-metric strong {
+      font-size: 15px;
+    }
+
+    .slide[data-title="CEO Operator Interfaces"] .iphone-pair {
+      grid-template-columns: repeat(2, 188px) !important;
+      gap: 10px !important;
+      justify-content: end;
+    }
+
+    .slide[data-title="CEO Operator Interfaces"] .iphone-real {
+      width: 188px !important;
+      height: 386px !important;
+      padding: 8px;
+      border-radius: 29px;
+    }
+
+    .slide[data-title="CEO Operator Interfaces"] .iphone-real::before {
+      top: 15px;
+      width: 58px;
+      height: 17px;
+    }
+
+    .slide[data-title="CEO Operator Interfaces"] .app-map-real {
+      height: 108px !important;
+    }
+
+    .slide[data-title="CEO Operator Interfaces"] .ios-actions {
+      gap: 6px;
+    }
+
+    .slide[data-title="CEO Operator Interfaces"] .ios-btn {
+      padding: 7px 5px;
+      font-size: 8px;
+    }
+
+    .slide[data-title="Dashboard Ticket Widget"] .content {
+      top: 70px;
+      bottom: 50px;
+      grid-template-columns: 0.50fr 1.50fr;
+      gap: 16px;
+    }
+
+    .slide[data-title="Dashboard Ticket Widget"] h1 {
+      font-size: 34px;
+      line-height: 1;
+      letter-spacing: -0.045em;
+    }
+
+    .slide[data-title="Dashboard Ticket Widget"] .lead {
+      font-size: 12px;
+      line-height: 1.28;
+    }
+
+    .slide[data-title="Dashboard Ticket Widget"] .dash-window {
+      height: 416px;
+      grid-template-columns: 132px 1fr 212px;
+    }
+
+    .dash-window.product-web {
+      grid-template-rows: 30px 1fr;
+    }
+
+    .browser-top {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 12px;
+      background: #edf0e8;
+      border-bottom: 1px solid rgba(23,25,24,0.10);
+      color: #5f6762;
+      font-size: 9px;
+      font-weight: 800;
+    }
+
+    .browser-dots {
+      display: flex;
+      gap: 5px;
+    }
+
+    .browser-dots span {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ff5f57;
+    }
+
+    .browser-dots span:nth-child(2) {
+      background: #ffbd2e;
+    }
+
+    .browser-dots span:nth-child(3) {
+      background: #28c840;
+    }
+
+    .browser-url {
+      flex: 1;
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid rgba(23,25,24,0.08);
+      padding: 5px 10px;
+      color: #6d746f;
+    }
+
+    .slide[data-title="Dashboard Ticket Widget"] .dash-side {
+      padding: 11px 8px;
+      gap: 12px;
+      font-size: 9px;
+    }
+
+    .slide[data-title="Dashboard Ticket Widget"] .dash-nav {
+      gap: 5px;
+    }
+
+    .slide[data-title="Dashboard Ticket Widget"] .dash-nav div {
+      padding: 6px 7px;
+    }
+
+    .slide[data-title="Dashboard Ticket Widget"] .dash-main {
+      padding: 10px;
+      gap: 8px;
+    }
+
+    .slide[data-title="Dashboard Ticket Widget"] .dash-title {
+      font-size: 16px;
+    }
+
+    .slide[data-title="Dashboard Ticket Widget"] .dash-cards {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    .slide[data-title="Dashboard Ticket Widget"] .dash-mini {
+      padding: 7px;
+    }
+
+    .slide[data-title="Dashboard Ticket Widget"] .dash-mini strong {
+      font-size: 17px;
+    }
+
+    .slide[data-title="Dashboard Ticket Widget"] .dash-mini span {
+      font-size: 7px;
+    }
+
+    .slide[data-title="Dashboard Ticket Widget"] .dash-map {
+      min-height: 106px;
+    }
+
+    .slide[data-title="Dashboard Ticket Widget"] .dash-agent {
+      padding: 10px;
+      gap: 7px;
+    }
+
+    .slide[data-title="Dashboard Ticket Widget"] .agent-line {
+      padding: 7px;
+      font-size: 9px;
+      line-height: 1.24;
+    }
+
+    .slide[data-title="Dashboard Ticket Widget"] .dash-agent .mock-actions,
+    .slide[data-title="Dashboard Ticket Widget"] .dash-agent .mock-action {
+      white-space: nowrap;
+    }
+
+    .slide[data-title="Dashboard Ticket Widget"] .ticket-card {
+      padding: 8px;
+      gap: 5px;
+      font-size: 10px;
+      line-height: 1.24;
+    }
+
+    .slide[data-title="Dashboard Ticket Widget"] .bottom-strip,
+    .slide[data-title="CEO Operator Interfaces"] .bottom-strip,
+    .slide[data-title="Interaction Surfaces"] .bottom-strip {
+      min-height: 42px;
+      padding: 0 72px;
+      font-size: 10px;
+    }
+
+    .ticket-card {
+      border-radius: 9px;
+      border: 1px solid rgba(0,0,0,0.08);
+      background: rgba(255,255,255,0.72);
+      padding: 10px;
+      display: grid;
+      gap: 7px;
+      font-size: 11px;
+      color: #47423c;
+    }
+
+    .ticket-card strong {
+      color: #171918;
+      font-size: 13px;
+      letter-spacing: -0.02em;
+    }
+
+    @keyframes shellGlow {
+      from { transform: translate3d(-1.2%, -1%, 0) scale(1); filter: saturate(0.95); }
+      to { transform: translate3d(1.2%, 1%, 0) scale(1.04); filter: saturate(1.2); }
+    }
+
+    @keyframes slideSweep {
+      0% { opacity: 0; transform: translateX(-120%); }
+      18% { opacity: 1; }
+      100% { opacity: 0; transform: translateX(120%); }
+    }
+
+    @keyframes dashMove {
+      from { stroke-dashoffset: 0; }
+      to { stroke-dashoffset: -52; }
+    }
+
+    @keyframes pulseNode {
+      0%, 100% { transform: scale(1); opacity: 0.85; }
+      50% { transform: scale(1.18); opacity: 1; }
+    }
+
+    @keyframes floatA {
+      from { transform: translateY(-8px); }
+      to { transform: translateY(10px); }
+    }
+
+    @keyframes floatB {
+      from { transform: translateX(-9px) translateY(8px); }
+      to { transform: translateX(11px) translateY(-8px); }
+    }
+
+    @keyframes orbit {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes drawLine {
+      to { stroke-dashoffset: 0; }
+    }
+
+    @keyframes spark {
+      from { opacity: 0.38; transform: scale(0.94); }
+      to { opacity: 1; transform: scale(1.04); }
+    }
+
+    @keyframes blink {
+      from { opacity: 0.35; }
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="viewport">
+    <main class="stage" id="stage" aria-live="polite">
+      <section class="slide active" data-title="Opening">
+        <div class="accent"></div>
+        <div class="topbar step" data-step="0">
+          <div class="top-left">
+            <div class="pill">Micromobility</div>
+            <div class="tiny">Fleet AI Deck</div>
+          </div>
+          <div class="brand"><span class="brand-mark"></span> Synkora</div>
+        </div>
+        <div class="content hero-grid">
+          <div class="title-stack">
+            <div class="section-kicker step" data-step="0">A day in the life of a fleet business</div>
+            <div class="hero-title step" data-step="0">The fleet already moved before your team opened the dashboard</div>
+            <p class="lead step" data-step="1">Synkora gives the operator a command layer, the rider a more reliable trip, and the owner a clearer path to margin.</p>
+            <div class="hero-tags step" data-step="2">
+              <span class="chip">6:12 AM brief</span>
+              <span class="chip">11:30 event spike</span>
+              <span class="chip">2:00 compliance risk</span>
+              <span class="chip">5:30 margin review</span>
+              <span class="chip">Rider availability</span>
+              <span class="chip">Owner margin</span>
+            </div>
+          </div>
+          <div class="hero-panel step" data-step="1">
+            <svg class="city-svg" viewBox="0 0 640 508" role="img" aria-label="Animated micromobility city grid">
+              <defs>
+                <filter id="softShadow" x="-40%" y="-40%" width="180%" height="180%">
+                  <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#171918" flood-opacity="0.18" />
+                </filter>
+              </defs>
+              <rect x="0" y="0" width="640" height="508" fill="rgba(255,255,248,0.30)" />
+              <path class="route-line" d="M72 392 C150 310 176 334 238 250 S398 196 490 96" />
+              <path class="route-line" d="M86 116 C190 152 238 116 324 182 S444 318 566 278" style="stroke:#5b8dff; animation-duration:2.4s" />
+              <g opacity="0.62">
+                <path d="M42 210 H598" stroke="#171918" stroke-width="1" opacity="0.16" />
+                <path d="M42 300 H598" stroke="#171918" stroke-width="1" opacity="0.16" />
+                <path d="M180 42 V458" stroke="#171918" stroke-width="1" opacity="0.14" />
+                <path d="M338 42 V458" stroke="#171918" stroke-width="1" opacity="0.14" />
+                <path d="M504 42 V458" stroke="#171918" stroke-width="1" opacity="0.14" />
+              </g>
+              <g filter="url(#softShadow)">
+                <rect x="92" y="82" width="122" height="96" rx="8" fill="#fffef8" stroke="#171918" stroke-opacity="0.12" />
+                <rect x="236" y="304" width="140" height="112" rx="8" fill="#fffef8" stroke="#171918" stroke-opacity="0.12" />
+                <rect x="422" y="150" width="126" height="92" rx="8" fill="#fffef8" stroke="#171918" stroke-opacity="0.12" />
+              </g>
+              <g class="float-a">
+                <circle cx="110" cy="388" r="15" fill="#60d5bd" />
+                <circle cx="110" cy="388" r="25" fill="none" stroke="#60d5bd" stroke-opacity="0.35" stroke-width="3" class="pulse" />
+              </g>
+              <g class="float-b">
+                <circle cx="512" cy="104" r="15" fill="#ff6f9d" />
+                <circle cx="512" cy="104" r="25" fill="none" stroke="#ff6f9d" stroke-opacity="0.32" stroke-width="3" class="pulse" />
+              </g>
+              <g class="float-a" style="animation-delay:-1.2s">
+                <circle cx="532" cy="280" r="15" fill="#5b8dff" />
+                <circle cx="532" cy="280" r="25" fill="none" stroke="#5b8dff" stroke-opacity="0.30" stroke-width="3" class="pulse" />
+              </g>
+              <g transform="translate(286 206)" filter="url(#softShadow)">
+                <rect x="-96" y="-58" width="192" height="116" rx="12" fill="#171918" />
+                <text x="0" y="-22" fill="#a7ead7" font-size="11" text-anchor="middle">SYNKORA AGENT</text>
+                <text x="0" y="6" fill="#fff" font-size="25" text-anchor="middle">Fleet Brain</text>
+                <text x="0" y="32" fill="rgba(255,255,255,0.58)" font-size="10" text-anchor="middle">tools + memory + approvals</text>
+              </g>
+              <g transform="translate(466 366)" class="orbit">
+                <circle cx="0" cy="0" r="42" fill="none" stroke="#171918" stroke-opacity="0.12" />
+                <circle cx="42" cy="0" r="8" fill="#cdec67" />
+              </g>
+              <g transform="translate(102 406)">
+                <circle cx="0" cy="0" r="8" fill="#171918" />
+                <circle cx="64" cy="0" r="8" fill="#171918" />
+                <path d="M0 0 L22 -28 H44 L64 0 M22 -28 L12 0 M44 -28 L52 0" fill="none" stroke="#171918" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M44 -28 H78" fill="none" stroke="#171918" stroke-width="5" stroke-linecap="round" />
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="click-hint">click to advance</div>
+      </section>
+
+      <section class="slide" data-title="Problem">
+        <div class="accent"></div>
+        <div class="topbar step" data-step="0">
+          <div class="top-left">
+            <div class="pill">The Fleet Business Problem</div>
+            <div class="tiny">The day starts before the standup</div>
+          </div>
+          <div class="brand"><span class="brand-mark"></span> Synkora</div>
+        </div>
+        <div class="content twocol">
+          <div class="title-stack">
+            <div class="section-kicker step" data-step="0">Picture Monday, 6:12 AM</div>
+            <h1 class="step" data-step="0">What will hurt us today?</h1>
+            <p class="lead step" data-step="1">The answer is scattered across vehicles, batteries, trips, weather, city permits, ranger queues, support tickets, and event calendars. The bottleneck is not data. It is turning the day into decisions.</p>
+            <div class="signal-row step" data-step="2">
+              <div class="signal card">
+                <div class="big mint">06:12</div>
+                <p>37 low-battery vehicles, 64 idle scooters, and 12 geofence alerts need triage before commute demand starts.</p>
+              </div>
+              <div class="signal card">
+                <div class="big pink">11:30</div>
+                <p>A stadium event and rain forecast change the rebalancing plan before the city feels undersupplied.</p>
+              </div>
+              <div class="signal card">
+                <div class="big blue">17:30</div>
+                <p>The GM asks which zones made money, which vehicles drained margin, and what to change tomorrow.</p>
+              </div>
+            </div>
+          </div>
+          <div class="problem-grid">
+            <div class="problem-card card step" data-step="1">
+              <div class="label">Fleet health</div>
+              <strong>Morning triage is manual.</strong>
+              <p>The team needs a ranked dispatch plan, not four dashboards and a CSV.</p>
+            </div>
+            <div class="problem-card card step" data-step="2">
+              <div class="label">Rebalancing</div>
+              <strong>Demand changes by the hour.</strong>
+              <p>Events, rain, commute patterns, and idle zones should update the plan automatically.</p>
+            </div>
+            <div class="problem-card card step" data-step="3">
+              <div class="label">Compliance</div>
+              <strong>City risk is always local.</strong>
+              <p>Fleet caps, parking rules, geofences, and reporting dates vary by permit.</p>
+            </div>
+            <div class="problem-card card step" data-step="4">
+              <div class="label">Economics</div>
+              <strong>Margin is hidden until month end.</strong>
+              <p>Revenue, charging, maintenance, redeploy labor, and depreciation live apart.</p>
+            </div>
+          </div>
+        </div>
+        <div class="bottom-strip step" data-step="4">The hook: <span>operators move faster, riders find vehicles, owners see the economics.</span></div>
+        <div class="click-hint">click to advance</div>
+      </section>
+
+      <section class="slide" data-title="Stakeholders">
+        <div class="accent"></div>
+        <div class="topbar step" data-step="0">
+          <div class="top-left">
+            <div class="pill">Who Benefits</div>
+            <div class="tiny">One loop, three wins</div>
+          </div>
+          <div class="brand"><span class="brand-mark"></span> Synkora</div>
+        </div>
+        <div class="content" style="grid-template-rows:auto 1fr;">
+          <div class="title-stack">
+            <div class="section-kicker step" data-step="0">Do not pitch only operations</div>
+            <h2 class="step" data-step="0">Every AI decision loop should improve the rider experience and the owner economics.</h2>
+          </div>
+          <div class="stakeholder-grid">
+            <div class="stakeholder-card card step" data-step="1">
+              <div>
+                <div class="who">Operator</div>
+                <strong>Less manual firefighting.</strong>
+                <p>The ops team gets the next best action: charge these units, move this cluster, recover these exceptions, draft this report.</p>
+              </div>
+              <div class="result">Benefit: faster decisions, fewer missed tasks</div>
+            </div>
+            <div class="stakeholder-card card step" data-step="2">
+              <div>
+                <div class="who">Rider</div>
+                <strong>More reliable vehicles nearby.</strong>
+                <p>Better charging, rebalancing, and maintenance means riders see available vehicles where demand actually appears.</p>
+              </div>
+              <div class="result">Benefit: availability, trust, fewer bad trips</div>
+            </div>
+            <div class="stakeholder-card card step" data-step="3">
+              <div>
+                <div class="who">Owner</div>
+                <strong>Cleaner margin visibility.</strong>
+                <p>The owner sees which vehicles, zones, tasks, and city rules create profit or destroy it before month-end review.</p>
+              </div>
+              <div class="result">Benefit: utilization, margin, risk control</div>
+            </div>
+          </div>
+        </div>
+        <div class="bottom-strip step" data-step="3">The sales story: <span>better operations creates better rider experience, which creates better unit economics.</span></div>
+        <div class="click-hint">click to advance</div>
+      </section>
+
+      <section class="slide" data-title="Positioning">
+        <div class="accent"></div>
+        <div class="topbar step" data-step="0">
+          <div class="top-left">
+            <div class="pill">Synkora Positioning</div>
+            <div class="tiny">The fleet business command layer</div>
+          </div>
+          <div class="brand"><span class="brand-mark"></span> Synkora</div>
+        </div>
+        <div class="content offer-grid">
+          <div class="title-stack">
+            <div class="section-kicker step" data-step="0">The promise</div>
+            <h1 class="step" data-step="0">Recurring decisions become <span class="highlight">AI loops</span></h1>
+            <p class="lead step" data-step="1">Synkora is not another fleet dashboard. It is the layer that reads your systems, reasons with your rules, explains the recommendation, and asks before acting.</p>
+            <p class="copy step" data-step="2">For the operator, it is a command center. For the rider, it is availability. For the owner, it is margin, utilization, and risk control.</p>
+          </div>
+          <div class="stack-cards">
+            <div class="stack-card card step" data-step="1">
+              <div class="stack-head">
+                <strong>Morning brief</strong>
+                <span class="mini-badge">Scheduled</span>
+              </div>
+              <p class="copy">Agents run before standup and send the operator a prioritized day plan in the dashboard or Slack.</p>
+            </div>
+            <div class="stack-card card step" data-step="2">
+              <div class="stack-head">
+                <strong>Live action room</strong>
+                <span class="mini-badge">Tools</span>
+              </div>
+              <p class="copy">The same agent can inspect vehicles, trips, maps, tasks, riders, areas, reports, events, and weather.</p>
+            </div>
+            <div class="stack-card card step" data-step="3">
+              <div class="stack-head">
+                <strong>Approval and audit</strong>
+                <span class="mini-badge">Governed</span>
+              </div>
+              <p class="copy">High-impact moves become human-approved work orders with traceable reasoning and usage history.</p>
+            </div>
+          </div>
+        </div>
+        <div class="bottom-strip step" data-step="3">The business experience: <span>brief operations, protect riders, show owners the financial impact.</span></div>
+        <div class="click-hint">click to advance</div>
+      </section>
+
+      <section class="slide" data-title="Platform Strength">
+        <div class="accent"></div>
+        <div class="topbar step" data-step="0">
+          <div class="top-left">
+            <div class="pill">Synkora Platform Strength</div>
+            <div class="tiny">Why this needs more than a chatbot</div>
+          </div>
+          <div class="brand"><span class="brand-mark"></span> Synkora</div>
+        </div>
+        <div class="content" style="grid-template-rows:auto 1fr;">
+          <div class="title-stack">
+            <div class="section-kicker step" data-step="0">The operating layer around AI agents</div>
+            <h2 class="step" data-step="0">One platform connects fleet ops, rider support, city compliance, and owner economics.</h2>
+          </div>
+          <div class="feature-grid">
+            <div class="feature-card card step" data-step="1">
+              <div class="label">Fleet connectors</div>
+              <strong>Vehicles, trips, riders, tasks</strong>
+              <p>Micromobility tools inspect fleet state and create operational work.</p>
+            </div>
+            <div class="feature-card card step" data-step="2">
+              <div class="label">Rider support</div>
+              <strong>Refunds, fees, failed rides</strong>
+              <p>Agents triage rider issues, explain charges, and escalate exceptions.</p>
+            </div>
+            <div class="feature-card card step" data-step="3">
+              <div class="label">Knowledge base</div>
+              <strong>Permits, policies, SOPs</strong>
+              <p>RAG keeps answers grounded in city rules and company policy.</p>
+            </div>
+            <div class="feature-card card step" data-step="4">
+              <div class="label">Channels</div>
+              <strong>Slack, WhatsApp, Teams, widget, API</strong>
+              <p>Ops teams and support teams work where they already live.</p>
+            </div>
+            <div class="feature-card card step" data-step="5">
+              <div class="label">Governance</div>
+              <strong>Approvals, audit, observability</strong>
+              <p>High-impact actions are reviewed, logged, measured, and traceable.</p>
+            </div>
+            <div class="feature-card card step" data-step="6">
+              <div class="label">Ownership</div>
+              <strong>Self-host, BYO LLM, multi-tenant</strong>
+              <p>Owners control data, model keys, quotas, billing, and tenant boundaries.</p>
+            </div>
+            <div class="feature-card card step" data-step="7">
+              <div class="label">External context</div>
+              <strong>Weather, events, maps, tickets</strong>
+              <p>Agents combine live demand signals with local context and routes.</p>
+            </div>
+            <div class="feature-card card step" data-step="8">
+              <div class="label">MDS / data health</div>
+              <strong>Feeds, anomalies, compliance exports</strong>
+              <p>Monitor data freshness, missing records, bad zones, and city reporting quality.</p>
+            </div>
+            <div class="feature-card card step" data-step="9">
+              <div class="label">Scheduled intelligence</div>
+              <strong>Morning briefs and nightly plans</strong>
+              <p>Agents run continuously, not only when a user opens a chat box.</p>
+            </div>
+          </div>
+        </div>
+        <div class="click-hint">click to advance</div>
+      </section>
+
+      <section class="slide" data-title="Agent Flow">
+        <div class="accent"></div>
+        <div class="topbar step" data-step="0">
+          <div class="top-left">
+            <div class="pill">Exact Agent Flow</div>
+            <div class="tiny">How Synkora executes work</div>
+          </div>
+          <div class="brand"><span class="brand-mark"></span> Synkora</div>
+        </div>
+        <div class="content" style="grid-template-rows:auto 1fr auto;">
+          <div class="title-stack">
+            <div class="section-kicker step" data-step="0">Make the product understandable in 20 seconds</div>
+            <h2 class="step" data-step="0">A Synkora agent is a governed loop, not a prompt.</h2>
+          </div>
+          <div class="flow-grid">
+            <div class="flow-card card step" data-step="1">
+              <div class="num">01 / Trigger</div>
+              <strong>Schedule, chat, webhook, Slack</strong>
+              <p>Example: 6:12 AM fleet brief or rider support message.</p>
+            </div>
+            <div class="flow-card card step" data-step="2">
+              <div class="num">02 / Context</div>
+              <strong>Tenant, agent config, KB, policy</strong>
+              <p>Load city rules, refund policy, SLA, model config, and credentials.</p>
+            </div>
+            <div class="flow-card card step" data-step="3">
+              <div class="num">03 / Tools</div>
+              <strong>Fleet, maps, events, tickets</strong>
+              <p>Call micromobility, Mapbox, weather, events, Zendesk, DB, and files.</p>
+            </div>
+            <div class="flow-card card step" data-step="4">
+              <div class="num">04 / Intelligence</div>
+              <strong>Summarize and rank</strong>
+              <p>Compute low battery, idle vehicles, fees, MDS anomalies, demand gaps.</p>
+            </div>
+            <div class="flow-card card step" data-step="5">
+              <div class="num">05 / Explain</div>
+              <strong>Show the reason</strong>
+              <p>Return cards, maps, recommended actions, sources, and confidence.</p>
+            </div>
+            <div class="flow-card card step" data-step="6">
+              <div class="num">06 / Approval</div>
+              <strong>Gate money and operations</strong>
+              <p>Refunds, ranger tasks, reports, tickets, and rebalancing wait for approval.</p>
+            </div>
+            <div class="flow-card card step" data-step="7">
+              <div class="num">07 / Action</div>
+              <strong>Create work</strong>
+              <p>Update task, issue refund, create ticket, send Slack, draft city report.</p>
+            </div>
+            <div class="flow-card card step" data-step="8">
+              <div class="num">08 / Trace</div>
+              <strong>Observe and learn</strong>
+              <p>Log tool calls, approvals, usage, cost, outcomes, and future context.</p>
+            </div>
+          </div>
+          <div class="flow-command step" data-step="9">
+            <div>rider says: "I was charged a parking fee but I ended inside the zone"</div>
+            <div><span>agent:</span> trip + GPS + zone + policy -> approve refund or escalate</div>
+          </div>
+        </div>
+        <div class="click-hint">click to advance</div>
+      </section>
+
+      <section class="slide" data-title="Interaction Surfaces">
+        <div class="accent"></div>
+        <div class="topbar step" data-step="0">
+          <div class="top-left">
+            <div class="pill">Agent Interaction Surfaces</div>
+            <div class="tiny">Same agent, many front doors</div>
+          </div>
+          <div class="brand"><span class="brand-mark"></span> Synkora</div>
+        </div>
+        <div class="content surface-grid">
+          <div class="title-stack">
+            <div class="section-kicker step" data-step="0">Make the platform feel real</div>
+            <h1 class="step" data-step="0">Synkora shows up where each user already works.</h1>
+            <p class="lead step" data-step="1">Riders use mobile and WhatsApp. Operators use dashboard, mobile, and Slack. Owners get email and executive Slack briefs. The same agent runtime powers all of them.</p>
+          </div>
+          <div class="screen-stack">
+            <div class="slack-window step" data-step="2">
+              <div class="slack-side">
+                <div class="slack-team">Synkora Ops</div>
+                <div class="slack-nav">
+                  <div>threads</div>
+                  <div class="active"># fleet-alerts</div>
+                  <div># rider-trust</div>
+                  <div># city-compliance</div>
+                  <div># ceo-brief</div>
+                </div>
+              </div>
+              <div class="slack-main">
+                <div class="slack-head"><span># fleet-alerts</span><span>08:45</span></div>
+                <div class="slack-feed">
+                  <div class="slack-msg">
+                    <div class="slack-avatar">S</div>
+                    <div><strong>Synkora Fleet Agent</strong><br>37 low-battery vehicles and 12 geofence exceptions detected before commute peak.
+                      <div class="slack-block">Recommended: create Charge Route A and Recovery Route B. Estimated rider availability impact: +42 vehicles by 9:30.</div>
+                      <div class="mock-actions"><div class="mock-action primary">Create ranger tasks</div><div class="mock-action">Open map</div></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="slack-compose"><div>Message #fleet-alerts</div></div>
+              </div>
+            </div>
+            <div class="wa-window step" data-step="3">
+              <div class="wa-sidebar">
+                <div class="wa-header"><span>WhatsApp</span><span>...</span></div>
+                <div class="wa-search">Search or start new chat</div>
+                <div class="wa-chat-list">
+                  <div class="wa-chat-item"><div class="wa-avatar">R</div><div><strong>Rider 8842</strong><br>Parking fee issue</div></div>
+                  <div class="wa-chat-item"><div class="wa-avatar" style="background:#128c7e;">S</div><div><strong>Synkora Support</strong><br>Online</div></div>
+                </div>
+              </div>
+              <div class="wa-chat">
+                <div class="wa-convo-head"><div class="wa-avatar">R</div><div>Rider 8842</div></div>
+                <div class="wa-messages">
+                  <div class="wa-bubble">I ended in the parking zone but got charged a fee.</div>
+                  <div class="wa-bubble out">I checked your trip GPS, parking boundary, vehicle lock, and policy. GPS drift likely caused the fee.</div>
+                  <div class="wa-bubble out">Refund request is ready. You will get an update in this chat.</div>
+                </div>
+                <div class="wa-input"><span>Type a message</span><strong>send</strong></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bottom-strip step" data-step="4">This is the uniqueness: <span>one governed agent brain, multiple role-specific interfaces.</span></div>
+        <div class="click-hint">click to advance</div>
+      </section>
+
+      <section class="slide" data-title="Rider Mobile Flow">
+        <div class="accent"></div>
+        <div class="topbar step" data-step="0">
+          <div class="top-left">
+            <div class="pill">Rider Interaction Flow</div>
+            <div class="tiny">Mobile app + WhatsApp support</div>
+          </div>
+          <div class="brand"><span class="brand-mark"></span> Synkora</div>
+        </div>
+        <div class="content" style="grid-template-rows:auto 1fr;">
+          <div class="title-stack">
+            <div class="section-kicker step" data-step="0">A bad ride should become an instant recovery moment</div>
+            <h2 class="step" data-step="0">The rider does not care which system failed. Synkora checks all of them.</h2>
+          </div>
+          <div class="phone-row">
+            <div class="iphone-real step" data-step="1">
+              <div class="iphone-ui">
+                <div class="ios-status"><span>14:08</span><span>5G 81%</span></div>
+                <div class="ios-header"><span>Otoride</span><span>Trip live</span></div>
+                <div class="ios-content">
+                  <div class="app-map-real">
+                    <span class="map-route"></span>
+                    <span class="map-pin-real mint" style="left:39%;top:60%;"></span>
+                    <span class="map-pin-real" style="left:64%;top:40%;"></span>
+                  </div>
+                  <div class="ios-card">
+                    <strong>End ride blocked</strong>
+                    <p>Vehicle is inside Parking Area P-14, but GPS reads 9m outside. Timer is still running.</p>
+                  </div>
+                  <div class="ios-actions"><div class="ios-btn">End ride</div><div class="ios-btn alt">Get help</div></div>
+                </div>
+                <div class="ios-tabbar"><span>Ride</span><span class="active">Map</span><span>Wallet</span><span>Help</span></div>
+              </div>
+            </div>
+            <div class="iphone-real step" data-step="2">
+              <div class="iphone-ui">
+                <div class="ios-status"><span>14:09</span><span>5G 80%</span></div>
+                <div class="ios-header"><span>Support</span><span class="mock-dot"></span></div>
+                <div class="ios-content">
+                  <div class="ios-chat out">I cannot end the ride and I am getting charged.</div>
+                  <div class="ios-chat agent">I checked trip state, vehicle lock, GPS trail, parking area, wallet, and fee policy.</div>
+                  <div class="ios-chat agent">Billing is stopped. The parking fee looks invalid because of geofence drift.</div>
+                  <div class="ios-chat out">Can you refund the overcharge?</div>
+                  <div class="ios-chat agent">Refund approval is ready. You will see the receipt here.</div>
+                  <div class="phone-input"><span>Ask Synkora...</span><strong>send</strong></div>
+                </div>
+                <div class="ios-tabbar"><span>Ride</span><span>Map</span><span>Wallet</span><span class="active">Help</span></div>
+              </div>
+            </div>
+            <div class="iphone-real step" data-step="3">
+              <div class="iphone-ui">
+                <div class="ios-status"><span>14:10</span><span>5G 79%</span></div>
+                <div class="ios-header"><span>Wallet</span><span>Resolved</span></div>
+                <div class="ios-content">
+                  <div class="ios-card">
+                    <strong>Ride ended</strong>
+                    <p>Synkora confirmed lock event and corrected the parking-zone mismatch.</p>
+                  </div>
+                  <div class="receipt-list">
+                    <div class="receipt-row"><span>Overcharge</span><strong>$2.40</strong></div>
+                    <div class="receipt-row"><span>Parking fee</span><strong>$3.80</strong></div>
+                    <div class="receipt-row"><span>Refund</span><strong class="mint">Approved</strong></div>
+                  </div>
+                  <div class="ios-card">
+                    <strong>Rider trust signal</strong>
+                    <p>Ticket closed, wallet credited, P-14 geofence flagged for ops review.</p>
+                  </div>
+                </div>
+                <div class="ios-tabbar"><span>Ride</span><span>Map</span><span class="active">Wallet</span><span>Help</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="click-hint">click to advance</div>
+      </section>
+
+      <section class="slide" data-title="CEO Operator Interfaces">
+        <div class="accent"></div>
+        <div class="topbar step" data-step="0">
+          <div class="top-left">
+            <div class="pill">CEO + Operator Interfaces</div>
+            <div class="tiny">Email, Slack, mobile app, dashboard widget</div>
+          </div>
+          <div class="brand"><span class="brand-mark"></span> Synkora</div>
+        </div>
+        <div class="content split-screens">
+          <div class="gmail-real step" data-step="1">
+            <div class="gmail-side">
+              <div class="gmail-logo">Gmail</div>
+              <div class="gmail-nav">
+                <div class="active">Inbox</div><div>Starred</div><div>Sent</div><div>Drafts</div><div>Fleet Reports</div>
+              </div>
+            </div>
+            <div class="gmail-main">
+              <div class="gmail-toolbar"><span>Primary</span><span>Search mail</span><span>06:30 AM</span></div>
+              <div class="gmail-email">
+                <div class="gmail-row"><strong>Synkora</strong><span>Daily Fleet Health: rider trust up, MDS clean...</span><em>6:30 AM</em></div>
+                <div class="gmail-row" style="background:#fff;border-color:#e4e7ee;"><strong>City Ops</strong><span>Permit data export accepted for last cycle</span><em>6:12 AM</em></div>
+                <h3>Daily Fleet Health: rider trust up, MDS clean, margin leak found</h3>
+                <div class="gmail-body">
+                  <p>Synkora brief for CEO: fleet is operationally healthy, but University West is margin-negative after refunds, parking-fee reversals, and idle time.</p>
+                  <div class="gmail-metrics">
+                    <div class="gmail-metric"><strong style="color:#0f9f87;">92%</strong><span>MDS health</span></div>
+                    <div class="gmail-metric"><strong>+31%</strong><span>Demand</span></div>
+                    <div class="gmail-metric"><strong>23</strong><span>Rider issues</span></div>
+                    <div class="gmail-metric"><strong>$4.20</strong><span>Margin</span></div>
+                  </div>
+                  <div class="mock-actions"><div class="mock-action primary">Open Synkora</div><div class="mock-action">Reply in Slack</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="iphone-pair" style="grid-template-columns:210px 210px;gap:12px;">
+            <div class="iphone-real step" data-step="2" style="width:210px;height:410px;">
+              <div class="iphone-ui">
+                <div class="ios-status"><span>9:41</span><span>5G 92%</span></div>
+                <div class="ios-header"><span>Operator</span><span class="mock-dot"></span></div>
+                <div class="ios-content">
+                  <div class="ios-card"><strong>Rebalance plan</strong><p>Move 40 scooters to Stadium North. Pull 18 from University West before rain.</p></div>
+                  <div class="app-map-real" style="height:140px;"><span class="map-route"></span><span class="map-pin-real mint" style="left:32%;top:58%;"></span><span class="map-pin-real" style="left:72%;top:32%;"></span></div>
+                  <div class="ios-card"><strong>Low battery route</strong><p>12 vehicles under 20%. 31 min pickup path sent to Ranger Team 2.</p></div>
+                  <div class="ios-actions"><div class="ios-btn">Approve</div><div class="ios-btn alt">Directions</div></div>
+                </div>
+                <div class="ios-tabbar"><span class="active">Tasks</span><span>Map</span><span>Agents</span><span>More</span></div>
+              </div>
+            </div>
+            <div class="iphone-real step" data-step="3" style="width:210px;height:410px;">
+              <div class="iphone-ui">
+                <div class="ios-status"><span>9:41</span><span>5G 88%</span></div>
+                <div class="ios-header"><span>Agent Chat</span><span>live</span></div>
+                <div class="ios-content">
+                  <div class="ios-chat out">Find low-battery vehicles near downtown.</div>
+                  <div class="ios-chat agent">Found 12 below 20%. Four are blocking high-demand blocks.</div>
+                  <div class="ios-chat out">Give me directions and create the pickup task.</div>
+                  <div class="ios-chat agent">Task created. Route sent to Ranger Team 2 with stop order and ETA.</div>
+                  <div class="ios-actions"><div class="ios-btn">Open route</div><div class="ios-btn alt">View task</div></div>
+                </div>
+                <div class="ios-tabbar"><span>Tasks</span><span class="active">Chat</span><span>Map</span><span>More</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bottom-strip step" data-step="5">People understand Synkora when they see the interfaces: <span>email, Slack, WhatsApp, mobile, dashboard, approvals.</span></div>
+        <div class="click-hint">click to advance</div>
+      </section>
+
+      <section class="slide product-slide" data-title="Dashboard Ticket Widget">
+        <div class="accent"></div>
+        <div class="topbar step" data-step="0">
+          <div class="top-left">
+            <div class="pill">Synkora Dashboard + Widget</div>
+            <div class="tiny">Fleet health, prediction, demand, rider issues</div>
+          </div>
+          <div class="brand"><span class="brand-mark"></span> Synkora</div>
+        </div>
+        <div class="content screen-layout">
+          <div class="title-stack">
+            <div class="section-kicker step" data-step="0">Exact workflow inside the web dashboard</div>
+            <h1 class="step" data-step="0">The operator resolves a rider ticket without leaving Synkora.</h1>
+            <p class="lead step" data-step="1">The dashboard gives fleet health, predicted demand, MDS health, and rider issue queues. The embedded agent widget handles the support ticket and explains the action.</p>
+          </div>
+          <div class="dash-window product-web step" data-step="1">
+            <div class="browser-top">
+              <div class="browser-dots"><span></span><span></span><span></span></div>
+              <div class="browser-url">app.synkora.ai/micromobility/command-center</div>
+              <div>raju@synkora</div>
+            </div>
+            <div class="dash-side">
+              <div class="dash-logo"><span class="brand-mark"></span> Synkora</div>
+              <div class="dash-nav">
+                <div class="active">Command</div><div>Fleet</div><div>Rider Trust</div><div>MDS Health</div><div>Demand</div><div>Agents</div><div>Escalations</div>
+              </div>
+            </div>
+            <div class="dash-main">
+              <div class="dash-title"><span>Micromobility Command</span><span class="pill">Live</span></div>
+              <div class="dash-cards">
+                <div class="dash-mini"><strong class="mint">91%</strong><span>Fleet health</span></div>
+                <div class="dash-mini"><strong class="mint">96%</strong><span>MDS health</span></div>
+                <div class="dash-mini"><strong class="pink">+34%</strong><span>Demand spike</span></div>
+                <div class="dash-mini"><strong>23</strong><span>Rider issues</span></div>
+              </div>
+              <div class="dash-map"><span class="phone-pin mint" style="left:30%;top:54%;"></span><span class="phone-pin" style="left:68%;top:34%;"></span></div>
+              <div class="ticket-card">
+                <strong>Ticket #RID-8842</strong>
+                Rider charged parking fee after ending inside Parking Area P-14. GPS drift suspected. Overcharge and fee refund ready for approval.
+              </div>
+            </div>
+            <div class="dash-agent">
+              <div class="mock-top"><span>Agent widget</span><span class="mock-dot"></span></div>
+              <div class="agent-line dark">Operator: resolve ticket #RID-8842. Was this parking fee valid?</div>
+              <div class="agent-line">Synkora checked trip, vehicle lock, GPS trail, parking polygon, rider wallet, pricing, and refund policy.</div>
+              <div class="agent-line">Finding: rider ended inside P-14. GPS drift triggered the parking fee and overcharge.</div>
+              <div class="agent-line dark">Action: refund $3.80, credit $2.40 overcharge, notify rider, flag P-14 geofence.</div>
+              <div class="mock-actions"><div class="mock-action primary">Approve</div><div class="mock-action">Escalate</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="bottom-strip step" data-step="1">This shows Synkora as a real product surface: <span>dashboard + data + ticket + agent action + approval.</span></div>
+        <div class="click-hint">click to advance</div>
+      </section>
+
+      <section class="slide" data-title="Agents">
+        <div class="accent"></div>
+        <div class="topbar step" data-step="0">
+          <div class="top-left">
+            <div class="pill">Stakeholder Storyboard</div>
+            <div class="tiny">Use cases that expose platform strength</div>
+          </div>
+          <div class="brand"><span class="brand-mark"></span> Synkora</div>
+        </div>
+        <div class="content agent-grid">
+          <div class="title-stack">
+            <div class="section-kicker step" data-step="0">Pitch this as one fleet business day</div>
+            <h1 class="step" data-step="0">Six scenes. One platform story.</h1>
+            <p class="lead step" data-step="1">Each scene is easy for an operator to understand, visible to riders through availability, and valuable to owners through utilization, margin, and risk control.</p>
+          </div>
+          <div class="agent-list">
+            <div class="agent-card card step" data-step="1">
+              <div class="label">01 / 6:12 AM</div>
+              <strong>Morning Ops Brief</strong>
+              <p>Ops gets the first dispatch plan. Riders get charged vehicles before commute demand.</p>
+            </div>
+            <div class="agent-card card step" data-step="2">
+              <div class="label">02 / 8:45 AM</div>
+              <strong>Ranger Dispatch Agent</strong>
+              <p>Ops approves work. Riders avoid broken or unavailable vehicles. Owners reduce wasted labor.</p>
+            </div>
+            <div class="agent-card card step" data-step="3">
+              <div class="label">03 / Realtime</div>
+              <strong>Rider Trust Agent</strong>
+              <p>Resolve end-ride failures, refunds, parking fees, overcharges, and support escalations.</p>
+            </div>
+            <div class="agent-card card step" data-step="4">
+              <div class="label">04 / 11:30 AM</div>
+              <strong>Demand Spike Agent</strong>
+              <p>Ops moves supply before demand. Riders find vehicles near hotspots. Owners capture revenue.</p>
+            </div>
+            <div class="agent-card card step" data-step="5">
+              <div class="label">05 / 2:00 PM</div>
+              <strong>City Compliance Agent</strong>
+              <p>Ops answers the city. Riders keep access. Owners protect the operating license.</p>
+            </div>
+            <div class="agent-card card step" data-step="6">
+              <div class="label">06 / 5:30 PM</div>
+              <strong>Margin and Fleet Mix Agent</strong>
+              <p>Owners see margin by vehicle and zone. Ops knows what to repeat tomorrow.</p>
+            </div>
+          </div>
+        </div>
+        <div class="bottom-strip step" data-step="6">The wedge: <span>solve ops action and rider trust, then prove owner margin.</span></div>
+        <div class="click-hint">click to advance</div>
+      </section>
+
+      <section class="slide" data-title="Rider Trust">
+        <div class="accent"></div>
+        <div class="topbar step" data-step="0">
+          <div class="top-left">
+            <div class="pill">Rider Trust Workflows</div>
+            <div class="tiny">Instant support and governed refunds</div>
+          </div>
+          <div class="brand"><span class="brand-mark"></span> Synkora</div>
+        </div>
+        <div class="content" style="grid-template-rows:auto 1fr auto;">
+          <div class="title-stack">
+            <div class="section-kicker step" data-step="0">Rider trust is where the brand is won or lost</div>
+            <h2 class="step" data-step="0">Handle rider problems instantly, but keep money decisions governed.</h2>
+          </div>
+          <div class="rider-grid">
+            <div class="rider-card card step" data-step="1">
+              <div class="label">End ride issue</div>
+              <strong>"I cannot end my ride."</strong>
+              <p>Check trip state, lock telemetry, GPS, parking zone, and create an emergency support path.</p>
+            </div>
+            <div class="rider-card card step" data-step="2">
+              <div class="label">Refund</div>
+              <strong>"The scooter failed."</strong>
+              <p>Verify trip duration, vehicle health, fault signals, and approve policy-based credit or refund.</p>
+            </div>
+            <div class="rider-card card step" data-step="3">
+              <div class="label">Overcharge</div>
+              <strong>"Why was I charged extra?"</strong>
+              <p>Explain ride time, parking fee, no-parking penalty, pause time, and wallet adjustment.</p>
+            </div>
+            <div class="rider-card card step" data-step="4">
+              <div class="label">Parking dispute</div>
+              <strong>"The app says parking is invalid."</strong>
+              <p>Check zone rules, photo evidence, GPS drift, geofence boundaries, and city parking rules.</p>
+            </div>
+            <div class="rider-card card step" data-step="5">
+              <div class="label">Safety and trust</div>
+              <strong>Bad trip becomes a recovery moment.</strong>
+              <p>Escalate safety issues, update support tickets, and feed repeated failures back to fleet ops.</p>
+            </div>
+            <div class="rider-card card step" data-step="6">
+              <div class="label">Owner control</div>
+              <strong>Refund leakage stays visible.</strong>
+              <p>Track refund reasons, fee disputes, vehicle fault clusters, and rider trust trends by zone.</p>
+            </div>
+          </div>
+          <div class="approval step" data-step="7">
+            <div>
+              <strong>Example governed action</strong>
+              <p>Refund $3.80 parking fee because GPS drift placed the rider outside the valid zone. Log reason and flag geofence for review.</p>
+            </div>
+            <div class="approval-buttons">
+              <div class="fake-button">Escalate</div>
+              <div class="fake-button primary">Approve</div>
+            </div>
+          </div>
+        </div>
+        <div class="click-hint">click to advance</div>
+      </section>
+
+      <section class="slide" data-title="Fleet Health">
+        <div class="accent"></div>
+        <div class="topbar step" data-step="0">
+          <div class="top-left">
+            <div class="pill">Scene 01 / 6:12 AM</div>
+            <div class="tiny">Morning Ops Brief</div>
+          </div>
+          <div class="brand"><span class="brand-mark"></span> Synkora</div>
+        </div>
+        <div class="content agent-grid">
+          <div class="title-stack">
+            <div class="section-kicker step" data-step="0">The first hook for operators, riders, and owners</div>
+            <h1 class="step" data-step="0">The first dispatch plan is ready before standup.</h1>
+            <p class="lead step" data-step="1">The agent scans live vehicles, batteries, idle time, maintenance flags, geofence alerts, IoT faults, and task queues while the team is still coming online.</p>
+            <p class="copy step" data-step="2">Operator: first dispatch plan. Rider: more charged vehicles at commute time. Owner: fewer dead assets sitting in the street.</p>
+          </div>
+          <div class="dashboard card step" data-step="1">
+            <div class="metric-row">
+              <div class="metric">
+                <strong>842</strong>
+                <span>Live vehicles</span>
+              </div>
+              <div class="metric">
+                <strong class="mint">91%</strong>
+                <span>Operational</span>
+              </div>
+              <div class="metric">
+                <strong class="pink">37</strong>
+                <span>Charge first</span>
+              </div>
+              <div class="metric">
+                <strong class="blue">64</strong>
+                <span>Redeploy</span>
+              </div>
+            </div>
+            <div class="health-body">
+              <div class="map-card">
+                <svg class="fleet-map" viewBox="0 0 470 254" role="img" aria-label="Fleet health map">
+                  <rect width="470" height="254" fill="#f4f7eb" />
+                  <path d="M28 56 C108 18 154 86 218 58 S346 40 430 86" fill="none" stroke="#171918" stroke-opacity="0.13" stroke-width="16" stroke-linecap="round" />
+                  <path d="M38 198 C124 126 170 190 246 146 S342 124 426 174" fill="none" stroke="#171918" stroke-opacity="0.13" stroke-width="16" stroke-linecap="round" />
+                  <path d="M118 22 V236" stroke="#171918" stroke-opacity="0.12" stroke-width="14" stroke-linecap="round" />
+                  <path d="M302 24 V228" stroke="#171918" stroke-opacity="0.12" stroke-width="14" stroke-linecap="round" />
+                  <g class="spark">
+                    <circle cx="88" cy="184" r="8" fill="#ef5b62" />
+                    <circle cx="88" cy="184" r="18" fill="none" stroke="#ef5b62" stroke-opacity="0.28" stroke-width="3" />
+                  </g>
+                  <g class="spark" style="animation-delay:-0.4s">
+                    <circle cx="278" cy="138" r="8" fill="#ff6f9d" />
+                    <circle cx="278" cy="138" r="18" fill="none" stroke="#ff6f9d" stroke-opacity="0.26" stroke-width="3" />
+                  </g>
+                  <g class="spark" style="animation-delay:-0.8s">
+                    <circle cx="374" cy="78" r="8" fill="#60d5bd" />
+                    <circle cx="374" cy="78" r="18" fill="none" stroke="#60d5bd" stroke-opacity="0.28" stroke-width="3" />
+                  </g>
+                  <circle cx="152" cy="70" r="6" fill="#60d5bd" />
+                  <circle cx="212" cy="202" r="6" fill="#5b8dff" />
+                  <circle cx="408" cy="174" r="6" fill="#60d5bd" />
+                  <text x="24" y="30" fill="#171918" fill-opacity="0.45" font-size="9">LIVE VEHICLE MAP</text>
+                </svg>
+              </div>
+              <div class="queue-card">
+                <div class="label" style="font-size:9px;color:var(--muted);">6:12 AM priority queue</div>
+                <div class="queue-item alert">
+                  <div>
+                    <strong>Charge route A</strong><br />
+                    <span>37 low battery</span>
+                  </div>
+                  <div class="status-dot"></div>
+                </div>
+                <div class="queue-item">
+                  <div>
+                    <strong>Redeploy idle units</strong><br />
+                    <span>64 idle 4h+</span>
+                  </div>
+                  <div class="status-dot"></div>
+                </div>
+                <div class="queue-item alert">
+                  <div>
+                    <strong>Recover zone exceptions</strong><br />
+                    <span>12 outside zones</span>
+                  </div>
+                  <div class="status-dot"></div>
+                </div>
+                <div class="queue-item">
+                  <div>
+                    <strong>Maintenance hold</strong><br />
+                    <span>18 in service</span>
+                  </div>
+                  <div class="status-dot"></div>
+                </div>
+              </div>
+            </div>
+            <div class="approval step" data-step="3">
+              <div>
+                <strong>First approval of the day</strong>
+                <p>Create a charging pickup route for the 12 lowest-battery vehicles before commute demand starts.</p>
+              </div>
+              <div class="approval-buttons">
+                <div class="fake-button">Edit</div>
+                <div class="fake-button primary">Create</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="click-hint">click to advance</div>
+      </section>
+
+      <section class="slide" data-title="Demand">
+        <div class="accent"></div>
+        <div class="topbar step" data-step="0">
+          <div class="top-left">
+            <div class="pill">Scene 02 / 11:30 AM</div>
+            <div class="tiny">Demand Spike and Rebalancing</div>
+          </div>
+          <div class="brand"><span class="brand-mark"></span> Synkora</div>
+        </div>
+        <div class="content rebalance-grid">
+          <div class="title-stack">
+            <div class="section-kicker step" data-step="0">The next incident is demand, not hardware</div>
+            <h1 class="step" data-step="0">Pre-position supply before the city notices</h1>
+            <p class="lead step" data-step="1">At 11:30, a stadium event, rain forecast, and live supply gap change the plan. Riders need vehicles near the hotspot, and owners need that demand captured.</p>
+            <div class="demand-stack">
+              <div class="forecast-card card step" data-step="2">
+                <div class="time-pill">06:00</div>
+                <div>
+                  <strong>Transit hub still thin</strong>
+                  <p>Morning movement left three adjacent zones short for lunch traffic.</p>
+                </div>
+                <div class="move-count">+28</div>
+              </div>
+              <div class="forecast-card card step" data-step="3">
+                <div class="time-pill">17:00</div>
+                <div>
+                  <strong>Stadium exit spike</strong>
+                  <p>Event context creates directional demand near exits after 17:00.</p>
+                </div>
+                <div class="move-count">+40</div>
+              </div>
+              <div class="forecast-card card step" data-step="4">
+                <div class="time-pill">22:00</div>
+                <div>
+                  <strong>Residential surplus</strong>
+                  <p>Pull units from zones likely to stay idle after the rain starts.</p>
+                </div>
+                <div class="move-count">-18</div>
+              </div>
+            </div>
+          </div>
+          <div class="zone-board card step" data-step="1">
+            <svg viewBox="0 0 610 500" role="img" aria-label="Animated rebalancing map">
+              <rect width="610" height="500" fill="#f6f8ec" />
+              <g opacity="0.5">
+                <path d="M36 92 H574" stroke="#171918" stroke-opacity="0.13" stroke-width="16" stroke-linecap="round" />
+                <path d="M36 214 H574" stroke="#171918" stroke-opacity="0.13" stroke-width="16" stroke-linecap="round" />
+                <path d="M36 358 H574" stroke="#171918" stroke-opacity="0.13" stroke-width="16" stroke-linecap="round" />
+                <path d="M126 36 V460" stroke="#171918" stroke-opacity="0.12" stroke-width="16" stroke-linecap="round" />
+                <path d="M314 36 V460" stroke="#171918" stroke-opacity="0.12" stroke-width="16" stroke-linecap="round" />
+                <path d="M492 36 V460" stroke="#171918" stroke-opacity="0.12" stroke-width="16" stroke-linecap="round" />
+              </g>
+              <g>
+                <rect x="72" y="64" width="164" height="118" rx="8" fill="rgba(96,213,189,0.22)" stroke="#0f9f87" stroke-opacity="0.35" />
+                <text x="92" y="98" font-size="10" fill="#0f9f87">TRANSIT HUB</text>
+                <text x="92" y="138" font-size="30" fill="#171918">+28</text>
+                <text x="92" y="162" font-size="9" fill="#171918" fill-opacity="0.45">MOVE IN BY 06:00</text>
+              </g>
+              <g>
+                <rect x="348" y="86" width="186" height="132" rx="8" fill="rgba(255,111,157,0.18)" stroke="#ff6f9d" stroke-opacity="0.40" />
+                <text x="370" y="122" font-size="10" fill="#c84272">STADIUM</text>
+                <text x="370" y="166" font-size="34" fill="#171918">+40</text>
+                <text x="370" y="190" font-size="9" fill="#171918" fill-opacity="0.45">EVENT EXIT SPIKE</text>
+              </g>
+              <g>
+                <rect x="90" y="306" width="166" height="116" rx="8" fill="rgba(91,141,255,0.16)" stroke="#5b8dff" stroke-opacity="0.35" />
+                <text x="112" y="340" font-size="10" fill="#426bc9">UNIVERSITY</text>
+                <text x="112" y="380" font-size="30" fill="#171918">-18</text>
+                <text x="112" y="404" font-size="9" fill="#171918" fill-opacity="0.45">REDUCE SURPLUS</text>
+              </g>
+              <path class="draw" d="M172 360 C248 296 340 246 424 152" fill="none" stroke="#ff6f9d" stroke-width="4" stroke-linecap="round" />
+              <path class="draw" d="M174 360 C176 270 174 198 154 122" fill="none" stroke="#0f9f87" stroke-width="4" stroke-linecap="round" style="animation-delay:.25s" />
+              <g class="blink">
+                <circle cx="424" cy="152" r="10" fill="#ff6f9d" />
+                <circle cx="154" cy="122" r="10" fill="#60d5bd" />
+                <circle cx="172" cy="360" r="10" fill="#5b8dff" />
+              </g>
+              <g transform="translate(364 330)">
+                <rect width="184" height="88" rx="8" fill="#171918" />
+                <text x="18" y="30" fill="#a7ead7" font-size="10">APPROVAL NEEDED</text>
+                <text x="18" y="58" fill="#fff" font-size="14">Move 68 vehicles before peak.</text>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="bottom-strip step" data-step="4">Benefit chain: <span>operator approves the move -> rider finds a vehicle -> owner captures the peak.</span></div>
+        <div class="click-hint">click to advance</div>
+      </section>
+
+      <section class="slide" data-title="Compliance">
+        <div class="accent"></div>
+        <div class="topbar step" data-step="0">
+          <div class="top-left">
+            <div class="pill">Scene 03 / 2:00 PM</div>
+            <div class="tiny">City Compliance and Reporting</div>
+          </div>
+          <div class="brand"><span class="brand-mark"></span> Synkora</div>
+        </div>
+        <div class="content city-grid">
+          <div class="title-stack">
+            <div class="section-kicker step" data-step="0">The city emails before the afternoon rush</div>
+            <h1 class="step" data-step="0">Answer permit risk with facts, not panic</h1>
+            <p class="lead step" data-step="1">Synkora retrieves city rules from the knowledge base, checks live fleet counts and zones, then drafts the response with evidence attached.</p>
+            <div class="permit-card card step" data-step="2">
+              <div>
+                <strong>Permit cap watch</strong>
+                <p>Compare deployed vehicles against city caps before the business receives a violation notice.</p>
+              </div>
+              <div class="gauge"><span>76%</span></div>
+            </div>
+            <div class="permit-card card step" data-step="3">
+              <div>
+                <strong>Zone exception cleanup</strong>
+                <p>Use maps and parking-area tools to identify violations and generate relocation work.</p>
+              </div>
+              <div class="gauge" style="background:conic-gradient(var(--pink) 0 18%, rgba(23,25,24,.10) 18% 100%);"><span>18</span></div>
+            </div>
+            <div class="permit-card card step" data-step="4">
+              <div>
+                <strong>MDS data health</strong>
+                <p>Detect stale feeds, missing trips, bad status changes, and reporting anomalies before city submission.</p>
+              </div>
+              <div class="gauge" style="background:conic-gradient(var(--blue) 0 92%, rgba(23,25,24,.10) 92% 100%);"><span>92%</span></div>
+            </div>
+          </div>
+          <div class="hero-panel step" data-step="1" style="height:454px;">
+            <svg class="city-svg" viewBox="0 0 640 500" role="img" aria-label="City compliance map">
+              <rect width="640" height="500" fill="rgba(255,255,248,0.30)" />
+              <path d="M56 96 L270 46 L562 132 L520 406 L188 438 L70 296 Z" fill="rgba(96,213,189,0.16)" stroke="#0f9f87" stroke-width="3" />
+              <path class="zone-dash" d="M212 170 L414 130 L500 244 L450 356 L248 344 L156 246 Z" fill="rgba(255,111,157,0.11)" stroke="#ff6f9d" stroke-width="3" stroke-dasharray="9 9" />
+              <g opacity="0.18">
+                <path d="M80 150 H560 M80 246 H560 M80 342 H560" stroke="#171918" stroke-width="10" stroke-linecap="round" />
+                <path d="M166 80 V420 M316 80 V420 M470 80 V420" stroke="#171918" stroke-width="10" stroke-linecap="round" />
+              </g>
+              <g class="spark">
+                <circle cx="448" cy="224" r="10" fill="#ef5b62" />
+                <circle cx="448" cy="224" r="24" fill="none" stroke="#ef5b62" stroke-opacity="0.28" stroke-width="3" />
+              </g>
+              <g class="spark" style="animation-delay:-.5s">
+                <circle cx="256" cy="328" r="10" fill="#ef5b62" />
+                <circle cx="256" cy="328" r="24" fill="none" stroke="#ef5b62" stroke-opacity="0.28" stroke-width="3" />
+              </g>
+              <circle cx="174" cy="142" r="8" fill="#60d5bd" />
+              <circle cx="378" cy="92" r="8" fill="#60d5bd" />
+              <circle cx="518" cy="340" r="8" fill="#5b8dff" />
+              <g transform="translate(86 384)">
+                <rect width="286" height="78" rx="8" fill="#171918" />
+                <text x="18" y="28" fill="#a7ead7" font-size="10">COMPLIANCE BRIEF</text>
+                <text x="18" y="52" fill="#fff" font-size="13">2 parking-zone exceptions need review.</text>
+              </g>
+              <g transform="translate(412 60)" class="float-a">
+                <rect width="154" height="78" rx="8" fill="#fffef8" stroke="#171918" stroke-opacity=".12" />
+                <text x="18" y="28" fill="#171918" fill-opacity=".45" font-size="9">REPORT DUE</text>
+                <text x="18" y="55" fill="#171918" font-size="18">14 days</text>
+              </g>
+            </svg>
+          </div>
+        </div>
+        <div class="bottom-strip step" data-step="4">Benefit chain: <span>clean MDS data -> fewer city surprises -> stronger rider access and permit trust.</span></div>
+        <div class="click-hint">click to advance</div>
+      </section>
+
+      <section class="slide" data-title="Owner Recap">
+        <div class="accent"></div>
+        <div class="topbar step" data-step="0">
+          <div class="top-left">
+            <div class="pill">Scene 04 / 5:30 PM</div>
+            <div class="tiny">Owner asks for the day back</div>
+          </div>
+          <div class="brand"><span class="brand-mark"></span> Synkora</div>
+        </div>
+        <div class="content offer-grid">
+          <div class="title-stack">
+            <div class="section-kicker step" data-step="0">The close of the business day</div>
+            <h1 class="step" data-step="0">What changed today?</h1>
+            <p class="lead step" data-step="1">After the brief, tasks, rebalancing, and compliance checks, the owner needs a clean answer: did riders find vehicles, did utilization improve, and where did margin leak?</p>
+            <p class="copy step" data-step="2">Platform strength exposed: chat UX, structured fleet cards, maps, charts, generated reports, multi-channel delivery, and traceable recommendations.</p>
+          </div>
+          <div class="conversation card step" data-step="1">
+            <div class="topbar" style="height:auto;">
+              <div class="brand"><span class="brand-mark"></span> Fleet Ops Agent</div>
+              <div class="pill">Live</div>
+            </div>
+            <div>
+              <div class="chat-row step" data-step="2">
+                <div class="bubble">What changed after today's actions, and what should we do tomorrow?</div>
+              </div>
+              <div class="chat-row agent step" data-step="3">
+                <div class="bubble">
+                  The morning charging route recovered 29 vehicles, the stadium move prevented the largest supply gap, and University West is still margin-negative after ranger labor.
+                  <div class="insight-grid" style="margin-top:14px;">
+                    <div class="insight">
+                      <strong>+40</strong>
+                      <span>Recovered</span>
+                    </div>
+                    <div class="insight">
+                      <strong>-18</strong>
+                      <span>Still idle</span>
+                    </div>
+                    <div class="insight">
+                      <strong>$4.20</strong>
+                      <span>Avg margin</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="approval step" data-step="4" style="margin-top:12px;">
+                <div>
+                  <strong>Prepare tomorrow plan?</strong>
+                  <p>Draft 6 AM dispatch plan, margin summary, and city compliance brief for review.</p>
+                </div>
+                <div class="approval-buttons">
+                  <div class="fake-button">Edit</div>
+                  <div class="fake-button primary">Approve</div>
+                </div>
+              </div>
+            </div>
+            <div class="input-bar">
+              <span>Ask about riders, vehicles, zones, margin, tasks, or reports...</span>
+              <div class="send-dot" aria-hidden="true">
+                <svg viewBox="0 0 20 20" fill="none"><path d="M3 10h12M10 5l5 5-5 5" stroke="#171918" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="click-hint">click to advance</div>
+      </section>
+
+      <section class="slide" data-title="Differentiation">
+        <div class="accent"></div>
+        <div class="topbar step" data-step="0">
+          <div class="top-left">
+            <div class="pill">Why Synkora</div>
+            <div class="tiny">Why the story requires a platform</div>
+          </div>
+          <div class="brand"><span class="brand-mark"></span> Synkora</div>
+        </div>
+        <div class="content" style="grid-template-rows:auto 1fr;">
+          <div class="title-stack">
+            <div class="section-kicker step" data-step="0">What the whole business just saw</div>
+            <h2 class="step" data-step="0">This is not one clever chatbot. It is an operating system for mobility outcomes.</h2>
+          </div>
+          <div class="diff-grid">
+            <div class="diff-card card step" data-step="1">
+              <div class="num">01</div>
+              <strong>Fleet ops automation</strong>
+              <p>Scheduled briefs, live rebalancing, ranger tasks, and maintenance workflows.</p>
+            </div>
+            <div class="diff-card card step" data-step="2">
+              <div class="num">02</div>
+              <strong>Rider trust automation</strong>
+              <p>End-ride issues, refunds, overcharges, parking fees, and support escalation.</p>
+            </div>
+            <div class="diff-card card step" data-step="3">
+              <div class="num">03</div>
+              <strong>MDS and data health</strong>
+              <p>Freshness checks, missing trips, bad states, city exports, and anomaly alerts.</p>
+            </div>
+            <div class="diff-card card step" data-step="4">
+              <div class="num">04</div>
+              <strong>Multi-channel deployment</strong>
+              <p>Dashboard, Slack, WhatsApp, Teams, widget, REST API, and scheduled jobs.</p>
+            </div>
+            <div class="diff-card card step" data-step="5">
+              <div class="num">05</div>
+              <strong>Governed actions</strong>
+              <p>Human approvals, audit logs, observability, traces, and cost visibility.</p>
+            </div>
+            <div class="diff-card card step" data-step="6">
+              <div class="num">06</div>
+              <strong>Owner-controlled platform</strong>
+              <p>Self-host, BYO LLM keys, tenant isolation, quotas, billing, and API-first control.</p>
+            </div>
+          </div>
+        </div>
+        <div class="bottom-strip step" data-step="6">Positioning line: <span>Synkora improves operations, rider availability, and owner economics in one governed loop.</span></div>
+        <div class="click-hint">click to advance</div>
+      </section>
+
+      <section class="slide" data-title="Launch Plan">
+        <div class="accent"></div>
+        <div class="topbar step" data-step="0">
+          <div class="top-left">
+            <div class="pill">Pilot Story</div>
+            <div class="tiny">How to sell it to the business</div>
+          </div>
+          <div class="brand"><span class="brand-mark"></span> Synkora</div>
+        </div>
+        <div class="content close-layout">
+          <div class="title-stack">
+            <div class="section-kicker step" data-step="0">Recommended pilot narrative</div>
+            <h1 class="step" data-step="0">Sell the first 14 days as one business story</h1>
+            <p class="lead step" data-step="1">Do not pitch abstract AI. Pitch the loop: operators act faster, riders find better vehicles, and owners see the margin impact of every approved move.</p>
+            <div class="hero-tags step" data-step="2">
+              <span class="chip">Morning brief</span>
+              <span class="chip">Rider support</span>
+              <span class="chip">MDS health</span>
+              <span class="chip">Owner margin</span>
+            </div>
+          </div>
+          <div class="launch-card card">
+            <div class="launch-row step" data-step="1">
+              <div class="launch-num">01</div>
+              <div>
+                <strong>Days 1-3: connect the operating surface</strong>
+                <p>Configure vehicles, trips, riders, tasks, fleets, support, payments, parking zones, reports, maps, and channels.</p>
+              </div>
+            </div>
+            <div class="launch-row step" data-step="2">
+              <div class="launch-num">02</div>
+              <div>
+                <strong>Days 4-7: ship ops + rider trust</strong>
+                <p>Deliver fleet health, low-battery triage, end-ride support, refund review, overcharge explanations, and approvals.</p>
+              </div>
+            </div>
+            <div class="launch-row step" data-step="3">
+              <div class="launch-num">03</div>
+              <div>
+                <strong>Days 8-11: add demand + city health</strong>
+                <p>Use weather, events, historical demand, service areas, MDS feed health, and map output to prevent surprises.</p>
+              </div>
+            </div>
+            <div class="launch-row step" data-step="4">
+              <div class="launch-num">04</div>
+              <div>
+                <strong>Days 12-14: close with proof</strong>
+                <p>Show rider trust recovery, owner margin, MDS health, traces, cost, and an executive summary of approved actions.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bottom-strip step" data-step="4">Close: <span>start with one daily story, expand into every decision that affects riders and margin.</span></div>
+        <div class="click-hint">click to advance</div>
+      </section>
+    </main>
+  </div>
+
+  <div class="nav-toast">Space / arrows / click</div>
+  <div class="progress" aria-hidden="true"><span id="progressBar"></span></div>
+
+  <script>
+    const stage = document.getElementById("stage");
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const progressBar = document.getElementById("progressBar");
+    let current = 0;
+    let stageIndex = 0;
+    let transitioning = false;
+
+    function scaleStage() {
+      const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+      const x = (window.innerWidth - 1280 * scale) / 2;
+      const y = (window.innerHeight - 720 * scale) / 2;
+      stage.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+    }
+
+    function stepsFor(slide) {
+      const values = Array.from(slide.querySelectorAll(".step"))
+        .map((el) => Number(el.dataset.step || 0));
+      return Math.max(0, ...values);
+    }
+
+    function paintSteps() {
+      slides.forEach((slide, slideIndex) => {
+        slide.querySelectorAll(".step").forEach((el) => {
+          const shouldReveal = slideIndex === current && Number(el.dataset.step || 0) <= stageIndex;
+          el.classList.toggle("revealed", shouldReveal);
+        });
+      });
+    }
+
+    function updateProgress() {
+      const slideProgress = current / slides.length;
+      const stepProgress = (stageIndex + 1) / ((stepsFor(slides[current]) || 1) + 1) / slides.length;
+      progressBar.style.width = `${Math.min(100, (slideProgress + stepProgress) * 100)}%`;
+    }
+
+    function showSlide(index, direction = 1) {
+      if (index < 0 || index >= slides.length || transitioning) return;
+      transitioning = true;
+      stage.classList.add("fading");
+      window.setTimeout(() => {
+        slides[current].classList.remove("active");
+        current = index;
+        stageIndex = 0;
+        slides[current].classList.add("active");
+        paintSteps();
+        updateProgress();
+        stage.classList.remove("fading");
+        stage.classList.add("entering");
+        window.setTimeout(() => {
+          stage.classList.remove("entering");
+          transitioning = false;
+        }, 760);
+      }, direction === 0 ? 0 : 230);
+    }
+
+    function next() {
+      if (transitioning) return;
+      const maxStep = stepsFor(slides[current]);
+      if (stageIndex < maxStep) {
+        stageIndex += 1;
+        paintSteps();
+        updateProgress();
+        return;
+      }
+      showSlide(current + 1, 1);
+    }
+
+    function previous() {
+      if (transitioning) return;
+      if (stageIndex > 0) {
+        stageIndex -= 1;
+        paintSteps();
+        updateProgress();
+        return;
+      }
+      if (current > 0) {
+        showSlide(current - 1, -1);
+        window.setTimeout(() => {
+          stageIndex = stepsFor(slides[current]);
+          paintSteps();
+          updateProgress();
+        }, 260);
+      }
+    }
+
+    document.addEventListener("click", next);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowRight" || event.key === "PageDown" || event.key === "n" || event.key === " ") {
+        event.preventDefault();
+        next();
+      }
+      if (event.key === "ArrowLeft" || event.key === "PageUp" || event.key === "p") {
+        event.preventDefault();
+        previous();
+      }
+      if (event.key === "Home") {
+        event.preventDefault();
+        showSlide(0, 0);
+      }
+      if (event.key === "End") {
+        event.preventDefault();
+        showSlide(slides.length - 1, 0);
+      }
+      const num = Number.parseInt(event.key, 10);
+      if (!Number.isNaN(num) && num >= 1 && num <= slides.length) {
+        event.preventDefault();
+        showSlide(num - 1, 0);
+      }
+    });
+
+    window.addEventListener("resize", scaleStage);
+    const params = new URLSearchParams(window.location.search);
+    const requestedSlide = Number.parseInt(params.get("slide") || "", 10);
+    const requestedStage = Number.parseInt(params.get("stage") || "", 10);
+    if (!Number.isNaN(requestedSlide)) {
+      slides[current].classList.remove("active");
+      current = Math.min(Math.max(requestedSlide, 0), slides.length - 1);
+      slides[current].classList.add("active");
+    }
+    if (!Number.isNaN(requestedStage)) {
+      stageIndex = Math.min(Math.max(requestedStage, 0), stepsFor(slides[current]));
+    }
+    scaleStage();
+    paintSteps();
+    updateProgress();
+  </script>
+</body>
+</html>

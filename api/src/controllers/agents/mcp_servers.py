@@ -104,6 +104,14 @@ async def attach_mcp_server(
 
         await db.commit()
 
+        # Evict the cached client so next request reconnects with the updated server list.
+        try:
+            from src.services.mcp import mcp_client_manager
+
+            await mcp_client_manager.close_agent_client(agent_uuid)
+        except Exception:
+            pass
+
         return AgentResponse(
             success=True,
             message=message,
@@ -252,6 +260,15 @@ async def update_mcp_config(
         agent_mcp.mcp_config = config
         await db.commit()
 
+        # Invalidate the in-memory tool discovery cache so the next chat picks up
+        # the updated enabled_tools list without waiting for a reconnect.
+        try:
+            from src.services.mcp import mcp_client_manager
+
+            mcp_client_manager.invalidate_tools_cache(agent_uuid)
+        except Exception:
+            pass
+
         # Return the config as-is
         response_config = config.copy()
 
@@ -321,6 +338,14 @@ async def detach_mcp_server(
         mcp_name = agent_mcp.mcp_server.name
         await db.delete(agent_mcp)
         await db.commit()
+
+        # Evict the cached client so next request reconnects without the removed server.
+        try:
+            from src.services.mcp import mcp_client_manager
+
+            await mcp_client_manager.close_agent_client(agent_uuid)
+        except Exception:
+            pass
 
         return AgentResponse(success=True, message=f"MCP server '{mcp_name}' detached from agent")
 
