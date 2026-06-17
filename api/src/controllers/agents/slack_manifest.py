@@ -82,7 +82,12 @@ def _slugify(name: str) -> str:
 
 def _build_manifest(agent_name: str, description: str | None) -> dict:
     bot_display_name = agent_name[:80]  # Slack limit
-    app_description = (description or "AI agent powered by Synkora")[:140]  # Slack limit
+    raw_desc = (description or "AI agent").strip()
+    # display_information.description: Slack recommends ≤140 chars, keep it concise
+    if len(raw_desc) > 80:
+        app_description = raw_desc[:77] + "..."
+    else:
+        app_description = raw_desc
 
     return {
         "_metadata": {"major_version": 1, "minor_version": 1},
@@ -96,9 +101,6 @@ def _build_manifest(agent_name: str, description: str | None) -> dict:
                 "home_tab_enabled": True,
                 "messages_tab_enabled": True,
                 "messages_tab_read_only_enabled": False,
-            },
-            "assistant": {
-                "assistant_description": app_description,
             },
             "bot_user": {
                 "display_name": bot_display_name,

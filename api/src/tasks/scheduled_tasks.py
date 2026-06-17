@@ -264,7 +264,7 @@ This is an automated scheduled task. Complete it thoroughly and provide your fin
                     async_session_factory = create_celery_async_session()
                     async with async_session_factory() as async_db:
                         async for sse_event in chat_stream_service.stream_agent_response(
-                            agent_name=agent.agent_name,
+                            agent_name=agent.slug or agent.agent_name,
                             message=full_prompt,
                             conversation_history=None,
                             conversation_id=None,
@@ -826,7 +826,7 @@ async def _run_autonomous_agent(
             task_shared_state["approval_config"] = approval_config
 
         async for sse_event in chat_stream_service.stream_agent_response(
-            agent_name=agent.agent_name,
+            agent_name=agent.slug or agent.agent_name,
             message=full_prompt,
             conversation_history=None,
             conversation_id=conv_id,

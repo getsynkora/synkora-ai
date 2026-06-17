@@ -93,9 +93,6 @@ class SlackMessageHandler:
             _stripped = text.strip()
             if _stripped in ("👍", "👎", ":thumbsup:", ":thumbsdown:", "+1", "-1"):
                 try:
-                    from sqlalchemy import select
-
-                    from src.models.message import Message
                     from src.services.eval.feedback_service import record_feedback
 
                     # Find the most recent assistant message in this channel
@@ -269,7 +266,7 @@ class SlackMessageHandler:
             response_chunks = []
             chart_events: list[dict] = []
             async for event_data in chat_stream_service.stream_agent_response(
-                agent_name=agent.agent_name,
+                agent_name=agent.slug or agent.agent_name,
                 message=context_message,
                 conversation_history=conversation_history,
                 conversation_id=str(conversation.id),
@@ -296,6 +293,11 @@ class SlackMessageHandler:
 
                     if event_type == "chunk":
                         response_chunks.append(event_json.get("content", ""))
+
+                    elif event_type == "error":
+                        err_content = event_json.get("content", "An error occurred")
+                        logger.error(f"Agent stream error: {err_content}")
+                        response_chunks.append(err_content)
 
                     elif event_type == "chart":
                         chart_obj = event_json.get("chart") or event_json

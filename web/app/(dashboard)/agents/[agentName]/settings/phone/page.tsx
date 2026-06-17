@@ -148,7 +148,7 @@ export default function AgentPhoneSettingsPage() {
 
   if (loading) {
     return (
-      <AgentPageShell agentName={agentName} title="Phone Settings" icon={Phone}>
+      <AgentPageShell agentName={agentName} title="Phone Settings" description="Configure inbound phone calls via Vapi.ai." icon={Phone} badge="Phone">
         <AgentPagePanel>
           <div className="flex items-center justify-center h-40 text-gray-400 text-sm">Loading…</div>
         </AgentPagePanel>
@@ -157,18 +157,15 @@ export default function AgentPhoneSettingsPage() {
   }
 
   return (
-    <AgentPageShell agentName={agentName} title="Phone Settings" icon={Phone}>
+    <AgentPageShell
+      agentName={agentName}
+      title="Phone Settings"
+      description="Let callers reach this agent via phone through Vapi.ai."
+      icon={Phone}
+      badge="Phone"
+    >
       <AgentPagePanel>
-        <div className="max-w-2xl space-y-8">
-
-          {/* Header */}
-          <div className="flex items-center gap-3">
-            <Phone className="w-5 h-5 text-gray-500" />
-            <div>
-              <h2 className="text-base font-semibold text-gray-900">Inbound Phone Calls</h2>
-              <p className="text-sm text-gray-500 mt-0.5">Let callers reach this agent via phone through Vapi.ai</p>
-            </div>
-          </div>
+        <div className="max-w-2xl space-y-8 p-6 md:p-8">
 
           {/* Enable toggle */}
           <div className="flex items-center justify-between">

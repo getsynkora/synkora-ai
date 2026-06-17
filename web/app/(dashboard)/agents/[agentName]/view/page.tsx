@@ -32,11 +32,17 @@ import {
   Bot,
   Server,
   DollarSign,
-  BarChart2
+  BarChart2,
+  Phone,
+  X,
+  MicOff,
+  PhoneOff,
+  Video,
 } from 'lucide-react'
 import { apiClient } from '@/lib/api/client'
 import { getLLMConfigs } from '@/lib/api/agent-llm-configs'
 import { getLensOverview, type LensOverviewResponse } from '@/lib/api/agent-lens'
+import { getVoiceMeetingsConfig, getWebCallToken } from '@/lib/api/voice-meetings'
 import type { AgentLLMConfig } from '@/types/agent-llm-config'
 
 interface AgentDetails {
@@ -84,6 +90,11 @@ export default function AgentViewPage() {
   const [deleting, setDeleting] = useState(false)
   const [showMoreActions, setShowMoreActions] = useState(false)
   const [publicSlug, setPublicSlug] = useState<string | null>(null)
+  const [webCallEnabled, setWebCallEnabled] = useState(false)
+  const [showCallModal, setShowCallModal] = useState(false)
+  const [vapiPublicKey, setVapiPublicKey] = useState<string | null>(null)
+  const [callActive, setCallActive] = useState(false)
+  const [vapiInstance, setVapiInstance] = useState<any>(null)
 
   useEffect(() => {
     fetchAgentDetails()
@@ -109,6 +120,15 @@ export default function AgentViewPage() {
         // Lens stats — only needs agentName, ignore failure
         getLensOverview(agentName, '30d')
           .then(setLensStats)
+          .catch(() => {}),
+        // Voice & Meetings config — show Call Agent button if web_call enabled
+        getVoiceMeetingsConfig(agentName)
+          .then((cfg) => {
+            if (cfg?.web_call?.enabled && cfg?.web_call?.show_on_agent_card) {
+              setWebCallEnabled(true)
+              setVapiPublicKey(cfg.web_call.vapi_public_key ?? null)
+            }
+          })
           .catch(() => {}),
       ])
 
@@ -181,6 +201,7 @@ export default function AgentViewPage() {
     : 0
 
   return (
+    <>
     <div className="min-h-full px-4 py-4 md:px-8 md:py-6 xl:px-10">
       <div className="mx-auto max-w-[90rem]">
         <div className="dashboard-surface mb-6 p-5 md:p-6 xl:p-7">
@@ -271,6 +292,16 @@ export default function AgentViewPage() {
               <MessageSquare className="h-4 w-4" />
               Chat
             </button>
+
+            {webCallEnabled && (
+              <button
+                onClick={() => setShowCallModal(true)}
+                className="inline-flex items-center gap-2 rounded-[0.35rem] bg-green-600 px-5 py-3 text-[13px] font-medium text-white transition-transform hover:-translate-y-0.5 md:text-[14px]"
+              >
+                <Phone className="h-4 w-4" />
+                Call Agent
+              </button>
+            )}
 
             <button
               onClick={() => router.push(`/agents/${agentName}/landing-page`)}
@@ -387,11 +418,18 @@ export default function AgentViewPage() {
                       Compute
                     </button>
                     <button
-                      onClick={() => router.push(`/agents/${agentName}/voice`)}
+                      onClick={() => router.push(`/agents/${agentName}/voice-meetings`)}
                       className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
                     >
                       <Mic className="w-4 h-4 text-cyan-600" />
-                      Voice
+                      Voice & Meetings
+                    </button>
+                    <button
+                      onClick={() => router.push(`/agents/${agentName}/meetings`)}
+                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                    >
+                      <Video className="w-4 h-4 text-cyan-600" />
+                      Meetings
                     </button>
                   </div>
                 </div>
@@ -763,5 +801,83 @@ export default function AgentViewPage() {
         </div>
       </div>
     </div>
+
+    {/* Call Agent modal */}
+
+    {showCallModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold text-gray-900">Call {agent?.agent_name}</h2>
+            <button
+              onClick={() => {
+                if (vapiInstance) { vapiInstance.stop(); setVapiInstance(null) }
+                setCallActive(false)
+                setShowCallModal(false)
+              }}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {!callActive ? (
+            <div className="text-center py-6">
+              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+                <Phone className="w-7 h-7 text-green-600" />
+              </div>
+              <p className="text-sm text-gray-500 mb-6">Start a voice conversation with this agent.</p>
+              <button
+                onClick={async () => {
+                  if (!vapiPublicKey) {
+                    toast.error('Vapi public key is not configured.')
+                    return
+                  }
+                  try {
+                    const token = await getWebCallToken(agentName)
+                    if (!token.vapi_assistant_id) {
+                      toast.error('No Vapi assistant configured. Save Phone Settings first to register the assistant.')
+                      return
+                    }
+                    const Vapi = (await import('@vapi-ai/web')).default
+                    const vapi = new Vapi(vapiPublicKey)
+                    // The assistant is registered with our webhook as its model URL,
+                    // so all conversation turns route through the full Synkora agent pipeline.
+                    vapi.start(token.vapi_assistant_id)
+                    vapi.on('call-end', () => { setCallActive(false); setVapiInstance(null) })
+                    setVapiInstance(vapi)
+                    setCallActive(true)
+                  } catch {
+                    toast.error('Failed to start call. Check Vapi configuration.')
+                  }
+                }}
+                className="px-6 py-3 bg-green-600 text-white rounded-full font-medium hover:bg-green-700 text-sm"
+              >
+                Start Call
+              </button>
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <div className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center mx-auto mb-4 animate-pulse">
+                <Mic className="w-7 h-7 text-white" />
+              </div>
+              <p className="text-sm text-gray-700 font-medium mb-1">Call in progress</p>
+              <p className="text-xs text-gray-400 mb-6">Speak to {agent?.agent_name}</p>
+              <button
+                onClick={() => {
+                  if (vapiInstance) { vapiInstance.stop(); setVapiInstance(null) }
+                  setCallActive(false)
+                }}
+                className="flex items-center gap-2 px-6 py-3 bg-red-500 text-white rounded-full font-medium hover:bg-red-600 text-sm mx-auto"
+              >
+                <PhoneOff className="w-4 h-4" />
+                End Call
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+    </>
   )
 }

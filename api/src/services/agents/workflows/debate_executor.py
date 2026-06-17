@@ -209,7 +209,7 @@ class DebateExecutor:
 
                 try:
                     async for sse_event in chat_stream_service.stream_agent_response(
-                        agent_name=agent.agent_name,
+                        agent_name=agent.slug or agent.agent_name,
                         message=prompt,
                         conversation_history=None,
                         conversation_id=None,

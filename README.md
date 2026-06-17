@@ -2,33 +2,25 @@
 
 # Synkora
 
-<!-- CI/CD Badges -->
+**Self-hosted AI agent platform. No cloud dependency. No vendor lock-in. Your infrastructure, your LLM keys.**
+
+Deploy agents to Slack, WhatsApp, Teams, Telegram, web widget, and REST API — from one platform. MIT licensed.
+
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-synkora.ai-blue?style=for-the-badge)](https://synkora.ai)
+[![Quick Start](https://img.shields.io/badge/Quick%20Start-self--host%20in%20minutes-green?style=for-the-badge)](#quick-start)
+
+---
+
 [![CI Pipeline](https://github.com/getsynkora/synkora-ai/actions/workflows/main-ci.yml/badge.svg)](https://github.com/getsynkora/synkora-ai/actions/workflows/main-ci.yml)
 [![API Tests](https://github.com/getsynkora/synkora-ai/actions/workflows/api-tests.yml/badge.svg)](https://github.com/getsynkora/synkora-ai/actions/workflows/api-tests.yml)
 [![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/rajuniit/6adfe45792942ae62d18c5e89128498b/raw/coverage-badge.json)](https://github.com/getsynkora/synkora-ai/actions/workflows/api-tests.yml)
-
-<!-- Tech Stack Badges -->
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Next.js](https://img.shields.io/badge/Next.js-15.1-black)](https://nextjs.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg)](https://fastapi.tiangolo.com/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-336791.svg)](https://www.postgresql.org/)
-
-<!-- Project Badges -->
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Contributors](https://img.shields.io/github/contributors/getsynkora/synkora-ai)](https://github.com/getsynkora/synkora-ai/graphs/contributors)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![Code of Conduct](https://img.shields.io/badge/code%20of-conduct-ff69b4.svg)](CODE_OF_CONDUCT.md)
-[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/getsynkora/synkora-ai/graphs/commit-activity)
 
-**The open-source AI agent platform your team actually owns.**
-
-Build and deploy AI agents across Slack, WhatsApp, Teams, web widget, and REST API.
-Multi-tenant. API-first. Self-host on your infrastructure. Bring your own LLM keys. MIT licensed.
-
-[Features](#key-features) •
-[Quick Start](#quick-start) •
-[Documentation](#documentation) •
-[Contributing](#contributing) •
-[Community](#support--community)
+[Features](#key-features) • [Quick Start](#quick-start) • [Documentation](#documentation) • [Contributing](#contributing) • [Community](#support--community)
 
 </div>
 
@@ -36,49 +28,65 @@ Multi-tenant. API-first. Self-host on your infrastructure. Bring your own LLM ke
 
 ## Overview
 
-Synkora is an open-source platform for teams building and deploying AI agents. Unlike frameworks like LangChain or CrewAI that give you building blocks, Synkora gives you the entire platform — web UI, multi-tenant workspaces, RAG knowledge bases, multi-channel deployment, billing, scheduled tasks, and observability — ready to self-host or run on Synkora Cloud.
+LangChain gives you building blocks. AutoGen gives you patterns. Synkora gives you the entire platform.
 
-**Why Synkora?**
-- **Platform, not a framework** - No infrastructure code to write. Deploy agents from a web UI or REST API in minutes
-- **You own it** - Self-host on your own servers. MIT licensed. No vendor lock-in, no phone-home
-- **Your LLM keys** - Use OpenAI, Anthropic, Google, or any provider via LiteLLM. Switch anytime
-- **Multi-tenant by design** - Per-tenant isolation, API keys, quotas, and model configs out of the box
-- **Deploy everywhere** - Slack, WhatsApp, Teams, Telegram, web widget, REST API — from one platform
+Web UI, multi-tenant workspaces, RAG knowledge bases, 50+ tool integrations, multi-channel deployment, billing, scheduled tasks, HITL approval gates, and LLM observability — all self-hosted on your infrastructure, ready in minutes.
+
+**Why Synkora over building your own stack?**
+
+| | DIY with LangChain/CrewAI | Synkora |
+|---|---|---|
+| Agent UI | Build it | Included |
+| Multi-tenancy | Build it | Built-in |
+| RAG pipeline | Build it | Built-in |
+| Slack/WhatsApp/Teams bots | Build it | Built-in |
+| Billing & quotas | Build it | Built-in |
+| Human-in-the-loop approvals | Build it | Built-in |
+| LLM cost tracking | Build it | Built-in |
+| Self-hosted | Depends | Always |
+
+- **Platform, not a framework** — No infrastructure code to write. Deploy agents from a web UI or REST API in minutes
+- **You own it** — Self-host on your own servers. MIT licensed. No vendor lock-in, no phone-home
+- **Your LLM keys** — OpenAI, Anthropic, Google, or any provider via LiteLLM. Switch anytime
+- **Multi-tenant by design** — Per-tenant isolation, API keys, quotas, and model configs out of the box
+- **Deploy everywhere** — Slack, WhatsApp, Teams, Telegram, web widget, REST API — from one platform
 
 
 ## See It In Action
+
+> Try it live at **[synkora.ai](https://synkora.ai)** — no installation required.
 
 <table>
   <tr>
     <td align="center" width="50%">
       <strong>Personal AI Assistant</strong><br><br>
-      <video src="https://github.com/user-attachments/assets/ce64d4bc-c47e-48f6-af2d-9287d6b3b836" controls width="100%">
-        Your browser does not support the video tag.
-      </video>
-      <br><em>A personal AI assistant that can do everything — browsing, coding, scheduling, and more.</em>
+      <a href="https://github.com/user-attachments/assets/ce64d4bc-c47e-48f6-af2d-9287d6b3b836">
+        <img src="https://img.shields.io/badge/Watch%20Demo-%E2%96%B6%20Personal%20Assistant-red?style=for-the-badge&logo=github" alt="Personal Assistant Demo"/>
+      </a>
+      <br><br><em>A personal AI assistant that can browse, code, schedule, and more.</em>
     </td>
     <td align="center" width="50%">
-      <strong>Platform Engineer & Agents</strong><br><br>
-      <video src="https://github.com/user-attachments/assets/c27ebb0c-1742-4897-9f7f-eaa112d66470" controls width="100%">
-        Your browser does not support the video tag.
-      </video>
-      <br><em>Managing agents and platform operations with the Platform Engineer Agent.</em>
+      <strong>Platform Engineer Agent</strong><br><br>
+      <a href="https://github.com/user-attachments/assets/c27ebb0c-1742-4897-9f7f-eaa112d66470">
+        <img src="https://img.shields.io/badge/Watch%20Demo-%E2%96%B6%20Platform%20Engineer-red?style=for-the-badge&logo=github" alt="Platform Engineer Demo"/>
+      </a>
+      <br><br><em>Managing agents and platform operations with the Platform Engineer Agent.</em>
     </td>
   </tr>
   <tr>
     <td align="center" width="50%">
       <strong>Daily AI News Reporter — Setup</strong><br><br>
-      <video src="https://github.com/user-attachments/assets/a590dc34-3744-4359-9254-357e0d95d5ee" controls width="100%">
-        Your browser does not support the video tag.
-      </video>
-      <br><em>Setting up a Daily AI News Reporter agent from the chat interface.</em>
+      <a href="https://github.com/user-attachments/assets/a590dc34-3744-4359-9254-357e0d95d5ee">
+        <img src="https://img.shields.io/badge/Watch%20Demo-%E2%96%B6%20News%20Reporter%20Setup-red?style=for-the-badge&logo=github" alt="News Reporter Setup Demo"/>
+      </a>
+      <br><br><em>Setting up a Daily AI News Reporter agent from the chat interface.</em>
     </td>
     <td align="center" width="50%">
-      <strong>Daily AI News Reporter — Email Newsletter Demo</strong><br><br>
-      <video src="https://github.com/user-attachments/assets/4001f0a0-f82d-453e-9b0c-f6e16afd514d" controls width="100%">
-        Your browser does not support the video tag.
-      </video>
-      <br><em>Watch the Daily AI News Reporter automatically send a personalized AI news email digest.</em>
+      <strong>Daily AI News Reporter — Email Digest</strong><br><br>
+      <a href="https://github.com/user-attachments/assets/4001f0a0-f82d-453e-9b0c-f6e16afd514d">
+        <img src="https://img.shields.io/badge/Watch%20Demo-%E2%96%B6%20Email%20Newsletter-red?style=for-the-badge&logo=github" alt="Email Newsletter Demo"/>
+      </a>
+      <br><br><em>Watch the Daily AI News Reporter automatically send a personalized AI news email digest.</em>
     </td>
   </tr>
 </table>
@@ -157,19 +165,6 @@ Synkora is an open-source platform for teams building and deploying AI agents. U
     └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Architecture Scorecard
-
-| Dimension | Rating | Notes |
-|-----------|--------|-------|
-| **Code Quality** | A | Clean, consistent, well-documented |
-| **Modularity** | A | Domain-separated layers, composable mixins, declarative routing |
-| **Design Patterns** | A | Circuit breaker, DLQ, pub/sub, factory, strategy, middleware chain |
-| **Security** | A+ | Defense-in-depth: CSRF, CSP, rate limiting, input sanitization, encryption at rest |
-| **Database Performance** | A | Async + sync engines, pool tuning, lazy loading, statement timeouts |
-| **Horizontal Scaling** | A | Stateless API, distributed WebSocket, distributed cache, queue separation |
-| **Availability** | A | K8s probes, circuit breakers, graceful shutdown, dead-letter queue |
-| **Load Testing** | A | k6 suite with mock LLM mode, CI integration, comprehensive scenarios |
-
 ### Tech Stack
 
 **Backend:**
@@ -230,70 +225,6 @@ synkora/
 └── docs/                   # Documentation
 ```
 
-
-## System Requirements
-
-Synkora runs ~20 Docker containers. The stack includes Elasticsearch (2 GB hard cap), Redis (2 GB configured), a sentence-transformers ML service, Playwright-based scraper, ClickHouse, and multiple Celery workers. Size accordingly.
-
-### Hardware
-
-| | Minimum | Recommended |
-|---|---------|-------------|
-| **RAM** | 16 GB | 32 GB |
-| **CPU** | 4 cores | 8+ cores |
-| **Free disk** | 40 GB | 100 GB |
-| **OS** | macOS 12+, Ubuntu 20.04+, Debian 11+, Fedora 36+, RHEL 8+ | — |
-
-> **Why so much RAM?** Elasticsearch alone is hard-capped at 2 GB and won't start on machines with less free memory. Redis is configured for up to 2 GB. The ML service loads sentence-transformer models (~1–2 GB). Running everything below 8 GB will result in OOM kills.
-
-### Per-Service Resource Breakdown
-
-| Service | RAM (idle) | Purpose |
-|---------|-----------|---------|
-| `elasticsearch` | ~1.5 GB | Full-text search (hard limit: 2 GB) |
-| `redis` | up to 2 GB | Cache, Celery broker, pub/sub |
-| `synkora-ml` | ~1–2 GB | Embeddings + reranking (sentence-transformers) |
-| `synkora-scraper` | ~512 MB | Browser automation (Playwright + Chromium) |
-| `langfuse-clickhouse` | ~512 MB | LLM observability analytics |
-| `langfuse-web` + `langfuse-worker` | ~512 MB | Langfuse UI + background jobs |
-| `api` | ~512 MB | FastAPI application server |
-| `celery-worker` (×4 workers) | ~1.5 GB | Background tasks (default, agents, billing, notifications) |
-| `postgres` + `postgres-test` | ~384 MB | PostgreSQL with pgvector |
-| `qdrant` | ~256 MB | Vector database |
-| `minio` | ~256 MB | S3-compatible object storage |
-| `bot-worker`, `celery-beat`, `docs` | ~384 MB | Slack bots, scheduler, docs |
-| **Total** | **~10–12 GB** | Plus OS + Docker daemon (~2–3 GB overhead) |
-
-### Required Software
-
-| Tool | Version | Required for |
-|------|---------|-------------|
-| Docker Engine | 24+ | All services |
-| Docker Compose v2 | 2.20+ | Orchestration (`docker compose`, not `docker-compose`) |
-| Node.js | 20+ | Frontend (local dev mode only) |
-| pnpm | 8+ | Frontend (local dev mode only) |
-| openssl | any | Secret key generation during install |
-
-> The `./install.sh` script checks all of the above automatically and will offer to install Docker if it's missing.
-
-### Ports Used
-
-| Port | Service |
-|------|---------|
-| `3005` | Web frontend |
-| `5001` | API (FastAPI) |
-| `3001` | Langfuse UI |
-| `9001` | MinIO console |
-| `9000` | MinIO S3 API |
-| `6333` | Qdrant HTTP |
-| `9200` | Elasticsearch |
-| `5438` | PostgreSQL (main) |
-| `6379` | Redis (localhost only) |
-| `8080` | Bot worker health check |
-
-All ports are configurable in `docker-compose.yml`. The installer checks for conflicts before starting.
-
----
 
 ## Cost Efficiency
 
@@ -708,6 +639,69 @@ helm uninstall synkora
 ```
 
 
+## System Requirements
+
+Synkora runs ~20 Docker containers. The installer checks your system and warns if below minimums.
+
+### Hardware
+
+| | Minimum | Recommended |
+|---|---------|-------------|
+| **RAM** | 16 GB | 32 GB |
+| **CPU** | 4 cores | 8+ cores |
+| **Free disk** | 40 GB | 100 GB |
+| **OS** | macOS 12+, Ubuntu 20.04+, Debian 11+, Fedora 36+, RHEL 8+ | — |
+
+> **Why so much RAM?** Elasticsearch is hard-capped at 2 GB. Redis is configured for up to 2 GB. The ML service loads sentence-transformer models (~1–2 GB). Total idle: ~10–12 GB plus OS overhead.
+
+<details>
+<summary>Per-service resource breakdown</summary>
+
+| Service | RAM (idle) | Purpose |
+|---------|-----------|---------|
+| `elasticsearch` | ~1.5 GB | Full-text search (hard limit: 2 GB) |
+| `redis` | up to 2 GB | Cache, Celery broker, pub/sub |
+| `synkora-ml` | ~1–2 GB | Embeddings + reranking (sentence-transformers) |
+| `synkora-scraper` | ~512 MB | Browser automation (Playwright + Chromium) |
+| `langfuse-clickhouse` | ~512 MB | LLM observability analytics |
+| `langfuse-web` + `langfuse-worker` | ~512 MB | Langfuse UI + background jobs |
+| `api` | ~512 MB | FastAPI application server |
+| `celery-worker` (×4 workers) | ~1.5 GB | Background tasks |
+| `postgres` + `postgres-test` | ~384 MB | PostgreSQL with pgvector |
+| `qdrant` | ~256 MB | Vector database |
+| `minio` | ~256 MB | S3-compatible object storage |
+| `bot-worker`, `celery-beat`, `docs` | ~384 MB | Slack bots, scheduler, docs |
+| **Total** | **~10–12 GB** | Plus OS + Docker daemon (~2–3 GB overhead) |
+
+</details>
+
+<details>
+<summary>Required software and ports</summary>
+
+| Tool | Version | Required for |
+|------|---------|-------------|
+| Docker Engine | 24+ | All services |
+| Docker Compose v2 | 2.20+ | Orchestration |
+| Node.js | 20+ | Frontend (local dev only) |
+| pnpm | 8+ | Frontend (local dev only) |
+| openssl | any | Secret key generation |
+
+| Port | Service |
+|------|---------|
+| `3005` | Web frontend |
+| `5001` | API (FastAPI) |
+| `3001` | Langfuse UI |
+| `9001` | MinIO console |
+| `6333` | Qdrant HTTP |
+| `9200` | Elasticsearch |
+| `5438` | PostgreSQL |
+| `6379` | Redis (localhost only) |
+
+All ports are configurable in `docker-compose.yml`.
+
+</details>
+
+
 ## Security
 
 > Detailed in [ARCHITECTURE.md — Security](ARCHITECTURE.md#security)
@@ -813,19 +807,12 @@ Built with amazing open source technologies:
 
 ## Support & Community
 
-### Getting Help
-
-- **Documentation**: See [api/README.md](api/README.md) and [web/README.md](web/README.md) for detailed setup
-- **API Reference**: Interactive API docs at `/api/v1/docs` when running locally
-- **Discussions**: Join our GitHub Discussions for questions and community support
-- **Issues**: Report bugs via [GitHub Issues](https://github.com/getsynkora/synkora-ai/issues)
+- **Live Demo**: [synkora.ai](https://synkora.ai)
+- **Documentation**: [docs/](docs/) — architecture, API reference, guides
+- **API Reference**: Interactive docs at `/api/v1/docs` when running locally
+- **GitHub Discussions**: [Ask questions, share ideas, show what you built](https://github.com/getsynkora/synkora-ai/discussions)
+- **Issues**: [Report bugs or request features](https://github.com/getsynkora/synkora-ai/issues)
 - **Security**: Report vulnerabilities via our [Security Policy](SECURITY.md)
-
-### Community
-
-- **GitHub Discussions**: Ask questions and share ideas
-- **Contributing**: See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines
-- **Code of Conduct**: Read our [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 
 
 ## Roadmap
@@ -854,7 +841,9 @@ Synkora is actively maintained and in production use. We follow semantic version
 
 <div align="center">
 
-Built with ❤️ by the Synkora Community
+**[synkora.ai](https://synkora.ai)** · **[Documentation](docs/)** · **[Discussions](https://github.com/getsynkora/synkora-ai/discussions)** · **[Issues](https://github.com/getsynkora/synkora-ai/issues)**
+
+If Synkora saves you time, a star helps others find it.
 
 [Back to Top](#synkora)
 

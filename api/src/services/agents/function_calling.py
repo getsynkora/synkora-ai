@@ -1662,6 +1662,14 @@ class FunctionCallingHandler:
                         logger.info(f"Not retrying {func_name}: permanent HTTP client error: {error_str[:100]}")
                         break
 
+                    # Don't retry auth errors - they are permanent without a config change
+                    _auth_kw = ("authentication", "unauthorized", "requires.*auth", "jwt", "send a synkora")
+                    import re as _re_fc
+
+                    if any(_re_fc.search(kw, error_str, _re_fc.IGNORECASE) for kw in _auth_kw):
+                        logger.info(f"Not retrying {func_name}: auth error: {error_str[:100]}")
+                        break
+
                     if attempt < max_retries:
                         delay = base_delay * (2**attempt)
                         logger.info(f"Will retry {func_name} in {delay:.1f}s")
