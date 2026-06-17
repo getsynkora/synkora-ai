@@ -1,0 +1,401 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Synkora Bot Worker Pool Architecture</title>
+  <desc id="desc">Animated diagram showing consistent hash ring bot-to-worker assignment, Redis coordination, and dead worker failover with automatic bot migration.</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#081311"/>
+      <stop offset="52%" stop-color="#0f1f1b"/>
+      <stop offset="100%" stop-color="#0e1118"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#121b1a"/>
+      <stop offset="100%" stop-color="#0d1416"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#182423"/>
+      <stop offset="100%" stop-color="#11191c"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#79dfbc"/>
+      <stop offset="100%" stop-color="#41b98d"/>
+    </linearGradient>
+    <linearGradient id="amber" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffce8e"/>
+      <stop offset="100%" stop-color="#ff9f5a"/>
+    </linearGradient>
+    <linearGradient id="rose" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffb7c9"/>
+      <stop offset="100%" stop-color="#ff7ea1"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="20" stdDeviation="24" flood-color="#000000" flood-opacity="0.28"/>
+    </filter>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="14" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <pattern id="grid" width="56" height="56" patternUnits="userSpaceOnUse">
+      <path d="M56 0H0V56" fill="none" stroke="#ffffff" stroke-opacity="0.045" stroke-width="1"/>
+    </pattern>
+    <style>
+      .eyebrow  { fill: #8fbfae; font: 700 15px 'Avenir Next','Segoe UI',Arial,sans-serif; letter-spacing: 4px; text-transform: uppercase; }
+      .title    { fill: #f5f7f6; font: 700 42px 'Avenir Next','Segoe UI',Arial,sans-serif; letter-spacing: -1.4px; }
+      .subtitle { fill: #aab8b4; font: 400 17px 'Avenir Next','Segoe UI',Arial,sans-serif; }
+      .section  { fill: #8ea59e; font: 700 12px 'Avenir Next','Segoe UI',Arial,sans-serif; letter-spacing: 2.8px; text-transform: uppercase; }
+      .ctitle   { fill: #f3f6f4; font: 700 19px 'Avenir Next','Segoe UI',Arial,sans-serif; }
+      .body     { fill: #c5d0cc; font: 400 13px 'Avenir Next','Segoe UI',Arial,sans-serif; }
+      .small    { fill: #91a39d; font: 600 11px 'Avenir Next','Segoe UI',Arial,sans-serif; letter-spacing: 1.2px; text-transform: uppercase; }
+      .mono     { fill: #7ab5a2; font: 600 12px 'Courier New',monospace; }
+      .metric   { fill: #ffffff; font: 700 14px 'Avenir Next','Segoe UI',Arial,sans-serif; }
+      .flow-base   { fill: none; stroke: #1e3330; stroke-width: 4; stroke-linecap: round; }
+      .flow-green  { fill: none; stroke: url(#accent); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 12 9; }
+      .flow-amber  { fill: none; stroke: url(#amber);  stroke-width: 3; stroke-linecap: round; stroke-dasharray: 12 9; }
+      .flow-rose   { fill: none; stroke: url(#rose);   stroke-width: 3; stroke-linecap: round; stroke-dasharray: 12 9; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect width="1600" height="900" fill="url(#grid)"/>
+
+  <!-- Ambient glows -->
+  <circle cx="575" cy="465" r="230" fill="#79dfbc" fill-opacity="0.055" filter="url(#glow)"/>
+  <circle cx="1200" cy="390" r="180" fill="#ffce8e" fill-opacity="0.055" filter="url(#glow)"/>
+  <circle cx="200" cy="500" r="140" fill="#ffb7c9" fill-opacity="0.045" filter="url(#glow)"/>
+
+  <!-- Outer frame -->
+  <rect x="44" y="44" width="1512" height="812" rx="26" fill="url(#panel)" stroke="#28433b" stroke-width="1.5"/>
+  <rect x="76" y="76" width="1448" height="748" rx="22" fill="#0d1417" fill-opacity="0.38" stroke="#1b2e2c" stroke-width="1"/>
+
+  <!-- Title -->
+  <text x="120" y="128" class="eyebrow">Synkora Bot Worker Pool</text>
+  <text x="120" y="188" class="title">Consistent Hashing + Redis Coordination</text>
+  <text x="120" y="218" class="subtitle">No central scheduler. Every worker independently derives its bot assignments from the same hash ring.</text>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       LEFT PANEL — Activation Path
+  ══════════════════════════════════════════════════════════════ -->
+  <g transform="translate(92 252)" filter="url(#shadow)">
+    <rect width="258" height="432" rx="18" fill="url(#card)" stroke="#27423d" stroke-width="1.2"/>
+
+    <text x="22" y="36" class="section">Activation Path</text>
+    <text x="22" y="66" class="ctitle">BotDeploymentService</text>
+
+    <!-- Step 1 -->
+    <rect x="18" y="80" width="222" height="64" rx="12" fill="#0f1718" stroke="#223833" stroke-width="1"/>
+    <text x="30" y="100" class="small" fill="#79dfbc">1. DB update</text>
+    <text x="30" y="120" class="mono">bot.is_active = True</text>
+    <text x="30" y="136" class="body" fill="#7ab5a2">flag before publishing event</text>
+
+    <!-- Step 2 -->
+    <rect x="18" y="158" width="222" height="64" rx="12" fill="#0f1718" stroke="#223833" stroke-width="1"/>
+    <text x="30" y="178" class="small" fill="#ffce8e">2. Hash lookup</text>
+    <text x="30" y="198" class="mono">ring.get_node(bot_id)</text>
+    <text x="30" y="214" class="body" fill="#7ab5a2">predict target worker</text>
+
+    <!-- Step 3 -->
+    <rect x="18" y="236" width="222" height="64" rx="12" fill="#0f1718" stroke="#223833" stroke-width="1"/>
+    <text x="30" y="256" class="small" fill="#79dfbc">3. Publish event</text>
+    <text x="30" y="276" class="mono">XADD bot_worker:events</text>
+    <text x="30" y="292" class="body" fill="#7ab5a2">stream — workers read with XREAD</text>
+
+    <!-- Step 4 -->
+    <rect x="18" y="314" width="222" height="64" rx="12" fill="#0f1718" stroke="#223833" stroke-width="1"/>
+    <text x="30" y="334" class="small" fill="#ffce8e">4. Direct command</text>
+    <text x="30" y="354" class="mono">PUBLISH commands:{id}</text>
+    <text x="30" y="370" class="body" fill="#7ab5a2">pub/sub to assigned worker</text>
+
+    <text x="22" y="410" class="body">Workers filter by hash ring.</text>
+    <text x="22" y="428" class="body">Only the owner acts.</text>
+
+    <!-- Live pulse -->
+    <circle cx="230" cy="418" r="7" fill="#79dfbc">
+      <animate attributeName="r" values="6;9;6" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="fill-opacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       CENTRE — Consistent Hash Ring
+       Ring: cx=575 cy=465 r=155
+       W1 (θ=0°,  top):          (575, 310)
+       W2 (θ=120°, bottom-right): (709, 543)
+       W3 (θ=240°, bottom-left):  (441, 543)
+       Bots A-F distributed between workers
+  ══════════════════════════════════════════════════════════════ -->
+
+  <!-- Ring track -->
+  <circle cx="575" cy="465" r="155" fill="none" stroke="#1a2e2b" stroke-width="4"/>
+
+  <!-- Virtual-node dots (faint ring decoration) -->
+  <g opacity="0.22">
+    <circle cx="575" cy="310" r="3" fill="#79dfbc"/>
+    <circle cx="652" cy="318" r="2.5" fill="#79dfbc"/>
+    <circle cx="706" cy="346" r="2.5" fill="#ffce8e"/>
+    <circle cx="728" cy="438" r="3" fill="#ffce8e"/>
+    <circle cx="709" cy="543" r="3" fill="#ffce8e"/>
+    <circle cx="641" cy="589" r="2.5" fill="#ff7ea1"/>
+    <circle cx="575" cy="620" r="2.5" fill="#ff7ea1"/>
+    <circle cx="509" cy="589" r="2.5" fill="#ff7ea1"/>
+    <circle cx="441" cy="543" r="3" fill="#ff7ea1"/>
+    <circle cx="422" cy="438" r="3" fill="#79dfbc"/>
+    <circle cx="444" cy="346" r="2.5" fill="#79dfbc"/>
+    <circle cx="498" cy="318" r="2.5" fill="#79dfbc"/>
+  </g>
+
+  <!-- Arc segment: W1 owns 240°→360° (green) -->
+  <path d="M441,543 A155,155,0,0,1,575,310" fill="none" stroke="#79dfbc" stroke-width="16" stroke-opacity="0.75" stroke-linecap="butt"/>
+
+  <!-- Arc segment: W2 owns 0°→120° (amber) -->
+  <path d="M575,310 A155,155,0,0,1,709,543" fill="none" stroke="#ffce8e" stroke-width="16" stroke-opacity="0.75" stroke-linecap="butt"/>
+
+  <!-- Arc segment: W3 owns 120°→240° (rose — fades when W3 dies) -->
+  <path d="M709,543 A155,155,0,0,1,441,543" fill="none" stroke="#ff7ea1" stroke-width="16" stroke-linecap="butt">
+    <animate attributeName="stroke-opacity" values="0.75;0.75;0.75;0.15;0.15;0.15;0.75;0.75" dur="9s" repeatCount="indefinite"/>
+  </path>
+
+  <!-- Ring center label -->
+  <text x="575" y="456" text-anchor="middle" class="section">hash ring</text>
+  <text x="575" y="478" text-anchor="middle" fill="#556e6a" font-size="11" font-family="Courier New">100 vnodes / worker · MD5</text>
+
+  <!-- ── Bot nodes on ring ── -->
+  <!-- Bots A, B  →  owned by W2 (amber) -->
+  <!-- A: θ=40°  → (675, 346) -->
+  <circle cx="675" cy="346" r="10" fill="#2a1f0e" stroke="#ffce8e" stroke-width="2.2"/>
+  <text x="688" y="342" class="small" fill="#ffce8e">bot-a</text>
+  <!-- B: θ=80°  → (728, 438) -->
+  <circle cx="728" cy="438" r="10" fill="#2a1f0e" stroke="#ffce8e" stroke-width="2.2"/>
+  <text x="742" y="434" class="small" fill="#ffce8e">bot-b</text>
+
+  <!-- Bots C, D  →  owned by W3 (rose) — migrate to W1 when W3 dies -->
+  <!-- C: θ=160° → (628, 611) -->
+  <circle cx="628" cy="611" r="11" fill="#2a0f18" stroke="#ff7ea1" stroke-width="2.2">
+    <animate attributeName="stroke" values="#ff7ea1;#ff7ea1;#ff7ea1;#79dfbc;#79dfbc;#79dfbc;#ff7ea1;#ff7ea1" dur="9s" repeatCount="indefinite"/>
+  </circle>
+  <text x="640" y="607" class="small" fill="#c0809b">bot-c</text>
+  <!-- D: θ=200° → (522, 611) -->
+  <circle cx="522" cy="611" r="11" fill="#2a0f18" stroke="#ff7ea1" stroke-width="2.2">
+    <animate attributeName="stroke" values="#ff7ea1;#ff7ea1;#ff7ea1;#79dfbc;#79dfbc;#79dfbc;#ff7ea1;#ff7ea1" dur="9s" repeatCount="indefinite" begin="0.3s"/>
+  </circle>
+  <text x="484" y="607" class="small" fill="#c0809b">bot-d</text>
+
+  <!-- Bots E, F  →  owned by W1 (green) -->
+  <!-- E: θ=280° → (422, 438) -->
+  <circle cx="422" cy="438" r="10" fill="#0f2e26" stroke="#79dfbc" stroke-width="2.2"/>
+  <text x="395" y="434" class="small" fill="#79dfbc">bot-e</text>
+  <!-- F: θ=320° → (475, 346) -->
+  <circle cx="475" cy="346" r="10" fill="#0f2e26" stroke="#79dfbc" stroke-width="2.2"/>
+  <text x="448" y="342" class="small" fill="#79dfbc">bot-f</text>
+
+  <!-- ── Worker nodes on ring ── -->
+  <!-- W1 at top (575, 310) — green -->
+  <circle cx="575" cy="310" r="22" fill="#0d2820" stroke="#79dfbc" stroke-width="2.8">
+    <animate attributeName="stroke-opacity" values="0.8;1;0.8" dur="2.4s" repeatCount="indefinite"/>
+  </circle>
+  <text x="575" y="316" text-anchor="middle" fill="#79dfbc" font-size="13" font-family="Avenir Next,Segoe UI,Arial" font-weight="700">W1</text>
+
+  <!-- W2 at bottom-right (709, 543) — amber -->
+  <circle cx="709" cy="543" r="22" fill="#221a0e" stroke="#ffce8e" stroke-width="2.8">
+    <animate attributeName="stroke-opacity" values="0.8;1;0.8" dur="2.1s" repeatCount="indefinite"/>
+  </circle>
+  <text x="709" y="549" text-anchor="middle" fill="#ffce8e" font-size="13" font-family="Avenir Next,Segoe UI,Arial" font-weight="700">W2</text>
+
+  <!-- W3 at bottom-left (441, 543) — rose, dies in animation -->
+  <circle cx="441" cy="543" r="22" fill="#220f18" stroke-width="2.8">
+    <animate attributeName="stroke" values="#ff7ea1;#ff7ea1;#ff7ea1;#734a43;#734a43;#734a43;#ff7ea1;#ff7ea1" dur="9s" repeatCount="indefinite"/>
+    <animate attributeName="fill-opacity" values="1;1;1;0.35;0.35;0.35;1;1" dur="9s" repeatCount="indefinite"/>
+  </circle>
+  <text x="441" y="549" text-anchor="middle" fill="#ff7ea1" font-size="13" font-family="Avenir Next,Segoe UI,Arial" font-weight="700">W3</text>
+
+  <!-- Migration arrow: bot-c/d → W1 (appears when W3 dies) -->
+  <path d="M575,610 Q480,610 441,543" fill="none" stroke="#79dfbc" stroke-width="2.2" stroke-dasharray="8 6" stroke-opacity="0">
+    <animate attributeName="stroke-opacity" values="0;0;0;0.8;0.8;0.8;0;0" dur="9s" repeatCount="indefinite"/>
+    <animate attributeName="stroke-dashoffset" from="0" to="-56" dur="2s" repeatCount="indefinite"/>
+  </path>
+
+  <!-- Ring section label -->
+  <text x="575" y="298" text-anchor="middle" class="small" fill="#3a5e54">bisect_left on 32-bit MD5</text>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       RIGHT PANEL — Worker Pool (3 instances)
+  ══════════════════════════════════════════════════════════════ -->
+
+  <!-- Worker 1 — healthy, green -->
+  <g transform="translate(836 252)" filter="url(#shadow)">
+    <rect width="634" height="110" rx="16" fill="url(#card)" stroke="#2f5f4f" stroke-width="1.5"/>
+    <rect x="0" y="0" width="634" height="46" rx="16" fill="#0f1c1b"/>
+    <rect x="0" y="30" width="634" height="16" fill="#0f1c1b"/>
+    <rect x="18" y="14" width="160" height="20" rx="10" fill="#79dfbc" fill-opacity="0.14" stroke="#3a765f" stroke-width="1"/>
+    <text x="30" y="28" class="small" fill="#79dfbc">Worker 1 — healthy</text>
+    <circle cx="594" cy="23" r="7" fill="#79dfbc">
+      <animate attributeName="r" values="6;9;6" dur="2.3s" repeatCount="indefinite"/>
+      <animate attributeName="fill-opacity" values="0.5;1;0.5" dur="2.3s" repeatCount="indefinite"/>
+    </circle>
+    <text x="22" y="70" class="ctitle">worker-a3f9c2</text>
+    <text x="22" y="92" class="body">51 bots · capacity 1,000 · heartbeat 4 s ago · Slack + Telegram + WhatsApp</text>
+    <!-- Utilisation bar -->
+    <rect x="490" y="62" width="128" height="8" rx="4" fill="#0b1110" stroke="#223834" stroke-width="1"/>
+    <rect x="490" y="62" width="7" height="8" rx="4" fill="url(#accent)"/>
+  </g>
+
+  <!-- Worker 2 — healthy, amber -->
+  <g transform="translate(836 382)" filter="url(#shadow)">
+    <rect width="634" height="110" rx="16" fill="url(#card)" stroke="#5f4f2f" stroke-width="1.5"/>
+    <rect x="0" y="0" width="634" height="46" rx="16" fill="#1c1a0f"/>
+    <rect x="0" y="30" width="634" height="16" fill="#1c1a0f"/>
+    <rect x="18" y="14" width="160" height="20" rx="10" fill="#ffce8e" fill-opacity="0.14" stroke="#7a6a3f" stroke-width="1"/>
+    <text x="30" y="28" class="small" fill="#ffce8e">Worker 2 — healthy</text>
+    <circle cx="594" cy="23" r="7" fill="#ffce8e">
+      <animate attributeName="r" values="6;9;6" dur="1.9s" repeatCount="indefinite"/>
+      <animate attributeName="fill-opacity" values="0.5;1;0.5" dur="1.9s" repeatCount="indefinite"/>
+    </circle>
+    <text x="22" y="70" class="ctitle">worker-b7d1f5</text>
+    <text x="22" y="92" class="body">47 bots · capacity 1,000 · heartbeat 7 s ago · Slack + Telegram</text>
+    <rect x="490" y="62" width="128" height="8" rx="4" fill="#0b1110" stroke="#223834" stroke-width="1"/>
+    <rect x="490" y="62" width="6" height="8" rx="4" fill="url(#amber)"/>
+  </g>
+
+  <!-- Worker 3 — dying / dead, rose -->
+  <g transform="translate(836 512)" filter="url(#shadow)">
+    <rect width="634" height="110" rx="16" fill="url(#card)" stroke-width="1.5">
+      <animate attributeName="stroke" values="#5f2f3a;#5f2f3a;#5f2f3a;#734a43;#734a43;#734a43;#5f2f3a;#5f2f3a" dur="9s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="0" y="0" width="634" height="46" rx="16" fill="#1c0f14"/>
+    <rect x="0" y="30" width="634" height="16" fill="#1c0f14"/>
+    <rect x="18" y="14" width="195" height="20" rx="10" fill="#ff7ea1" fill-opacity="0.12" stroke="#7a3f4f" stroke-width="1"/>
+    <text x="30" y="28" class="small" fill="#ff7ea1">Worker 3 — heartbeat lost</text>
+    <!-- Status dot: pulsing green → red/static -->
+    <circle cx="594" cy="23" r="7">
+      <animate attributeName="fill" values="#ff7ea1;#ff7ea1;#ff7ea1;#734a43;#734a43;#734a43;#ff7ea1;#ff7ea1" dur="9s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="7;4;7;4;7;4;7;7" dur="9s" repeatCount="indefinite"/>
+    </circle>
+    <text x="22" y="70" class="ctitle">worker-c9e2a1</text>
+    <text x="22" y="92" class="body">31 bots orphaned
+      <tspan dx="8" fill="#ff7ea1">→</tspan>
+      <tspan dx="6" fill="#79dfbc">W1 reclaims in ≤ 45 s</tspan>
+    </text>
+    <rect x="490" y="62" width="128" height="8" rx="4" fill="#0b1110" stroke="#223834" stroke-width="1"/>
+    <rect x="490" y="62" width="5" height="8" rx="4">
+      <animate attributeName="fill" values="#ff7ea1;#ff7ea1;#734a43;#734a43;#734a43;#000000;#ff7ea1;#ff7ea1" dur="9s" repeatCount="indefinite"/>
+      <animate attributeName="width" values="5;5;3;1;0;0;5;5" dur="9s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+
+  <!-- Failover timing card -->
+  <g transform="translate(836 643)" filter="url(#shadow)">
+    <rect width="634" height="76" rx="14" fill="#0d1517" stroke="#1f3530" stroke-width="1"/>
+    <text x="22" y="26" class="section">Failover Timing</text>
+    <text x="22" y="50" class="body">
+      Heartbeat every <tspan fill="#79dfbc">10 s</tspan>.
+      Dead threshold: <tspan fill="#ff7ea1">30 s</tspan>.
+      Dead-check loop: <tspan fill="#ffce8e">every 15 s</tspan>.
+      Worst-case bot downtime: <tspan fill="#79dfbc">45 s</tspan>.
+    </text>
+    <text x="22" y="68" class="body">On clean shutdown: worker self-unregisters — surviving workers detect in ≤ 15 s.</text>
+  </g>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       BOTTOM — Redis Coordination Layer
+  ══════════════════════════════════════════════════════════════ -->
+  <g transform="translate(92 742)">
+    <rect width="1404" height="108" rx="16" fill="url(#card)" stroke="#27423d" stroke-width="1.2"/>
+    <text x="22" y="26" class="section">Redis Coordination Layer</text>
+
+    <!-- Box 1: Sorted set — heartbeats -->
+    <rect x="18" y="36" width="312" height="60" rx="10" fill="#0f1718" stroke="#1f3530" stroke-width="1"/>
+    <text x="30" y="54" class="small" fill="#79dfbc">Sorted Set</text>
+    <text x="30" y="72" class="mono">bot_worker:heartbeats</text>
+    <text x="30" y="88" class="body">worker_id → unix timestamp · ZRANGEBYSCORE</text>
+
+    <!-- Box 2: Hash — assignments -->
+    <rect x="346" y="36" width="312" height="60" rx="10" fill="#0f1718" stroke="#1f3530" stroke-width="1"/>
+    <text x="358" y="54" class="small" fill="#ffce8e">Hash</text>
+    <text x="358" y="72" class="mono">bot_worker:assignments</text>
+    <text x="358" y="88" class="body">bot_id → {worker_id, bot_type} · HGET</text>
+
+    <!-- Box 3: Stream — events -->
+    <rect x="674" y="36" width="312" height="60" rx="10" fill="#0f1718" stroke="#1f3530" stroke-width="1"/>
+    <text x="686" y="54" class="small" fill="#79dfbc">Stream · XADD / XREAD block=1000</text>
+    <text x="686" y="72" class="mono">bot_worker:events</text>
+    <text x="686" y="88" class="body">activate · deactivate · restart · max 10 000 entries</text>
+
+    <!-- Box 4: Pub/Sub — commands -->
+    <rect x="1002" y="36" width="382" height="60" rx="10" fill="#0f1718" stroke="#1f3530" stroke-width="1"/>
+    <text x="1014" y="54" class="small" fill="#ffce8e">Pub/Sub · targeted delivery</text>
+    <text x="1014" y="72" class="mono">bot_worker:commands:{worker_id}</text>
+    <text x="1014" y="88" class="body">direct stop/restart once assignment is known via hash</text>
+  </g>
+
+  <!-- ══════════════════════════════════════════════════════════════
+       FLOW LINES
+  ══════════════════════════════════════════════════════════════ -->
+
+  <!-- Activation panel → Redis Stream box (bottom, 3rd box: x≈92+674+92=858, y=742+56=798) -->
+  <path d="M221 684 V764 H830 V750" class="flow-base"/>
+  <path d="M221 684 V764 H830 V750" class="flow-green">
+    <animate attributeName="stroke-dashoffset" from="0" to="-42" dur="2.5s" repeatCount="indefinite"/>
+  </path>
+  <circle cx="221" cy="684" r="5" fill="#79dfbc">
+    <animate attributeName="r" values="4;7;4" dur="2.5s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- Redis Stream → Workers (stream box top-right to worker area) -->
+  <path d="M1030 742 V700 H1153 V722" class="flow-base"/>
+  <path d="M1030 742 V700 H1153 V722" class="flow-green">
+    <animate attributeName="stroke-dashoffset" from="0" to="-42" dur="2.8s" repeatCount="indefinite" begin="0.6s"/>
+  </path>
+
+  <!-- W1 box → Redis heartbeats (left-most box, center ~x=92+174=266, y=742) -->
+  <path d="M1060 362 V720 H266 V742" class="flow-base" stroke-opacity="0.35"/>
+  <path d="M1060 362 V720 H266 V742" class="flow-green" stroke-opacity="0.7">
+    <animate attributeName="stroke-dashoffset" from="0" to="-42" dur="3.4s" repeatCount="indefinite"/>
+  </path>
+
+  <!-- W2 box → Redis heartbeats -->
+  <path d="M1060 492 V726 H274 V742" class="flow-base" stroke-opacity="0.3"/>
+  <path d="M1060 492 V726 H274 V742" class="flow-amber" stroke-opacity="0.6">
+    <animate attributeName="stroke-dashoffset" from="0" to="-42" dur="3.1s" repeatCount="indefinite" begin="1.0s"/>
+  </path>
+
+  <!-- W3 box → Redis heartbeats (fades out) -->
+  <path d="M1060 622 V730 H280 V742" class="flow-base" stroke-opacity="0.25">
+    <animate attributeName="stroke-opacity" values="0.25;0.25;0.25;0.06;0.06;0.06;0.25;0.25" dur="9s" repeatCount="indefinite"/>
+  </path>
+  <path d="M1060 622 V730 H280 V742" class="flow-rose">
+    <animate attributeName="stroke-dashoffset" from="0" to="-42" dur="3.7s" repeatCount="indefinite" begin="0.4s"/>
+    <animate attributeName="stroke-opacity" values="0.6;0.6;0.6;0.08;0.08;0.08;0.6;0.6" dur="9s" repeatCount="indefinite"/>
+  </path>
+
+  <!-- Ring W1 → Worker 1 box connector (horizontal) -->
+  <path d="M575 310 C700 310 780 307 836 307" class="flow-base" stroke-opacity="0.3"/>
+  <path d="M575 310 C700 310 780 307 836 307" class="flow-green" stroke-opacity="0.55">
+    <animate attributeName="stroke-dashoffset" from="0" to="-42" dur="2.6s" repeatCount="indefinite"/>
+  </path>
+
+  <!-- Ring W2 → Worker 2 box connector -->
+  <path d="M709 543 C770 543 800 437 836 437" class="flow-base" stroke-opacity="0.3"/>
+  <path d="M709 543 C770 543 800 437 836 437" class="flow-amber" stroke-opacity="0.55">
+    <animate attributeName="stroke-dashoffset" from="0" to="-42" dur="2.4s" repeatCount="indefinite" begin="0.5s"/>
+  </path>
+
+  <!-- Ring W3 → Worker 3 box connector (fades) -->
+  <path d="M441 543 C600 543 740 567 836 567" class="flow-base" stroke-opacity="0.25">
+    <animate attributeName="stroke-opacity" values="0.25;0.25;0.25;0.05;0.05;0.05;0.25;0.25" dur="9s" repeatCount="indefinite"/>
+  </path>
+  <path d="M441 543 C600 543 740 567 836 567" class="flow-rose">
+    <animate attributeName="stroke-dashoffset" from="0" to="-42" dur="3s" repeatCount="indefinite"/>
+    <animate attributeName="stroke-opacity" values="0.6;0.6;0.6;0.06;0.06;0.06;0.6;0.6" dur="9s" repeatCount="indefinite"/>
+  </path>
+
+  <!-- Junction dots -->
+  <circle cx="836" cy="307" r="5" fill="#79dfbc" fill-opacity="0.7"/>
+  <circle cx="836" cy="437" r="5" fill="#ffce8e" fill-opacity="0.7"/>
+  <circle cx="836" cy="567" r="5" fill="#ff7ea1" fill-opacity="0.7">
+    <animate attributeName="fill-opacity" values="0.7;0.7;0.7;0.15;0.15;0.15;0.7;0.7" dur="9s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- Footer -->
+  <text x="120" y="832" class="small" fill="#6f8b84">Built for the Synkora AI engineering journal</text>
+  <text x="1010" y="832" class="small" fill="#79dfbc">consistent hash · redis stream · heartbeat failover · no central scheduler</text>
+</svg>
