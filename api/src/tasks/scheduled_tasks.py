@@ -870,6 +870,9 @@ async def _run_autonomous_agent(
 
         await async_db.commit()
 
+        # Strip [REMEMBER]...[/REMEMBER] blocks from the output before delivery
+        clean_response = remember_pattern.sub("", response_text).strip()
+
         # --- 6. Deliver outputs ---
         try:
             from src.services.agent_output_service import AgentOutputService
@@ -877,7 +880,7 @@ async def _run_autonomous_agent(
             output_service = AgentOutputService(async_db)
             await output_service.send_outputs(
                 agent_id=agent.id,
-                agent_response=response_text,
+                agent_response=clean_response,
                 context={
                     "agent_name": agent.agent_name,
                     "trigger_type": "autonomous",

@@ -312,6 +312,7 @@ class ChatStreamService:
                     db=db,
                     state=state,
                     track=_track,
+                    trigger_source=trigger_source,
                 ):
                     yield event
                 return
@@ -742,22 +743,25 @@ class ChatStreamService:
                         content=assistant_content,
                     )
 
-                    try:
-                        from src.services.agent_output_service import AgentOutputService
-
-                        output_db = session_factory() if managed_db_session else db
+                    # Skip output delivery when called from the scheduler — scheduled_tasks.py
+                    # handles it after the stream finishes to avoid double-sending.
+                    if trigger_source != "scheduler":
                         try:
-                            await AgentOutputService(output_db).send_outputs(
-                                agent_id=db_agent.id,
-                                agent_response=assistant_content,
-                                context={"agent_name": agent_name, "trigger_type": "chat"},
-                                trigger_type="chat",
-                            )
-                        finally:
-                            if managed_db_session and output_db is not None:
-                                await output_db.close()
-                    except Exception as _out_err:
-                        logger.warning(f"Chat output delivery error: {_out_err}")
+                            from src.services.agent_output_service import AgentOutputService
+
+                            output_db = session_factory() if managed_db_session else db
+                            try:
+                                await AgentOutputService(output_db).send_outputs(
+                                    agent_id=db_agent.id,
+                                    agent_response=assistant_content,
+                                    context={"agent_name": agent_name, "trigger_type": "chat"},
+                                    trigger_type="chat",
+                                )
+                            finally:
+                                if managed_db_session and output_db is not None:
+                                    await output_db.close()
+                        except Exception as _out_err:
+                            logger.warning(f"Chat output delivery error: {_out_err}")
 
         except Exception as e:
             if is_expected_llm_error(e):
@@ -816,6 +820,7 @@ class ChatStreamService:
         db: AsyncSession | None,
         state: StreamState,
         track=None,
+        trigger_source: str = "chat",
     ) -> AsyncGenerator[str, None]:
         import asyncio
 
@@ -1102,17 +1107,20 @@ class ChatStreamService:
                     db=db,
                 )
 
-                try:
-                    from src.services.agent_output_service import AgentOutputService
+                # Skip output delivery when called from the scheduler — scheduled_tasks.py
+                # handles it after the stream finishes to avoid double-sending.
+                if trigger_source != "scheduler":
+                    try:
+                        from src.services.agent_output_service import AgentOutputService
 
-                    await AgentOutputService(db).send_outputs(
-                        agent_id=db_agent.id,
-                        agent_response=assistant_content,
-                        context={"agent_name": db_agent.agent_name, "trigger_type": "chat"},
-                        trigger_type="chat",
-                    )
-                except Exception as _out_err:
-                    logger.warning(f"Workflow chat output delivery error: {_out_err}")
+                        await AgentOutputService(db).send_outputs(
+                            agent_id=db_agent.id,
+                            agent_response=assistant_content,
+                            context={"agent_name": db_agent.agent_name, "trigger_type": "chat"},
+                            trigger_type="chat",
+                        )
+                    except Exception as _out_err:
+                        logger.warning(f"Workflow chat output delivery error: {_out_err}")
 
         except Exception as workflow_error:
             if is_expected_llm_error(workflow_error):

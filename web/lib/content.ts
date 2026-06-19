@@ -179,15 +179,39 @@ function extractExcerpt(markdown: string) {
   return extractDescription(beforeTruncate || markdown)
 }
 
+// These directives are handled by MarkdownContent.tsx — pass them through unchanged.
+const EDITORIAL_DIRECTIVES = new Set(['eyebrow', 'centered-statement', 'brush-title', 'ink-band', 'pipeline'])
+
 function transformAdmonitions(markdown: string) {
   const lines = markdown.split('\n')
   const output: string[] = []
   let inAdmonition = false
   let admonitionTitle = ''
+  let inEditorial = false
 
   for (const line of lines) {
+    // Check for editorial directives first — pass through as-is
+    const editorialOpening = line.match(/^:::(eyebrow|centered-statement|brush-title|ink-band|pipeline)\s*$/)
+    if (editorialOpening) {
+      inEditorial = true
+      output.push(line)
+      continue
+    }
+
+    if (inEditorial && line.trim() === ':::') {
+      inEditorial = false
+      output.push(line)
+      continue
+    }
+
+    if (inEditorial) {
+      output.push(line)
+      continue
+    }
+
+    // Standard admonition → blockquote conversion
     const opening = line.match(/^:::(\w+)(?:\s+(.*))?$/)
-    if (opening) {
+    if (opening && !EDITORIAL_DIRECTIVES.has(opening[1])) {
       inAdmonition = true
       const kind = opening[1].trim()
       admonitionTitle = opening[2]?.trim() || titleCase(kind)

@@ -127,6 +127,7 @@ from .test_scenario import TestScenario
 from .upload_file import FileSource, FileType, UploadFile
 from .usage_analytics import UsageAnalytics
 from .user_oauth_token import UserOAuthToken
+from .video_generation_job import VideoGenerationJob, VideoJobStatus
 from .voice_api_key import VoiceApiKey
 from .voice_usage import VoiceUsage
 from .whatsapp_bot import WhatsAppBot
@@ -257,6 +258,9 @@ __all__ = [
     "AnalysisJob",
     "JobStatus",
     "JobType",
+    # Video Generation Job models
+    "VideoGenerationJob",
+    "VideoJobStatus",
     # Debate Session models
     "DebateSession",
     # Wiki / Knowledge Autopilot models

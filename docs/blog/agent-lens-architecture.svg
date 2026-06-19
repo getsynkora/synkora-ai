@@ -1,0 +1,428 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Synkora Agent Lens Observability Architecture</title>
+  <desc id="desc">Animated diagram showing five fire-and-forget event hooks flowing from the agent runtime into Elasticsearch, with the aggregation read path backing Agent Lens API endpoints and the dashboard.</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#07100f"/>
+      <stop offset="52%" stop-color="#0c1a1f"/>
+      <stop offset="100%" stop-color="#0b1018"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#101d1c"/>
+      <stop offset="100%" stop-color="#0c1419"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#162120"/>
+      <stop offset="100%" stop-color="#0f1a1e"/>
+    </linearGradient>
+    <linearGradient id="escard" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#101c2a"/>
+      <stop offset="100%" stop-color="#0c1520"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#79dfbc"/>
+      <stop offset="100%" stop-color="#41b98d"/>
+    </linearGradient>
+    <linearGradient id="orange" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffb347"/>
+      <stop offset="100%" stop-color="#ff7e2f"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7ec8e3"/>
+      <stop offset="100%" stop-color="#4fa8d5"/>
+    </linearGradient>
+    <linearGradient id="violet" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#c4a7f7"/>
+      <stop offset="100%" stop-color="#9b72ef"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="0.32"/>
+    </filter>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="14" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="glow-sm" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <pattern id="grid" width="52" height="52" patternUnits="userSpaceOnUse">
+      <path d="M52 0H0V52" fill="none" stroke="#ffffff" stroke-opacity="0.04" stroke-width="1"/>
+    </pattern>
+    <style>
+      .eyebrow { fill: #6fada0; font: 700 15px 'Avenir Next', 'Segoe UI', Arial, sans-serif; letter-spacing: 4px; text-transform: uppercase; }
+      .title   { fill: #eef2f0; font: 700 44px 'Avenir Next', 'Segoe UI', Arial, sans-serif; letter-spacing: -1.4px; }
+      .subtitle { fill: #9ab5af; font: 400 18px 'Avenir Next', 'Segoe UI', Arial, sans-serif; }
+      .section { fill: #7aa89f; font: 700 12px 'Avenir Next', 'Segoe UI', Arial, sans-serif; letter-spacing: 2.6px; text-transform: uppercase; }
+      .section-blue { fill: #7ec8e3; font: 700 12px 'Avenir Next', 'Segoe UI', Arial, sans-serif; letter-spacing: 2.6px; text-transform: uppercase; }
+      .section-orange { fill: #ffb347; font: 700 12px 'Avenir Next', 'Segoe UI', Arial, sans-serif; letter-spacing: 2.6px; text-transform: uppercase; }
+      .section-violet { fill: #c4a7f7; font: 700 12px 'Avenir Next', 'Segoe UI', Arial, sans-serif; letter-spacing: 2.6px; text-transform: uppercase; }
+      .card-title { fill: #edf2f0; font: 700 21px 'Avenir Next', 'Segoe UI', Arial, sans-serif; }
+      .body { fill: #b8ccc8; font: 400 15px 'Avenir Next', 'Segoe UI', Arial, sans-serif; }
+      .small { fill: #7aa89f; font: 600 11px 'Avenir Next', 'Segoe UI', Arial, sans-serif; letter-spacing: 1.2px; text-transform: uppercase; }
+      .small-b { fill: #7ec8e3; font: 600 11px 'Avenir Next', 'Segoe UI', Arial, sans-serif; letter-spacing: 1.2px; text-transform: uppercase; }
+      .small-o { fill: #ffb347; font: 600 11px 'Avenir Next', 'Segoe UI', Arial, sans-serif; letter-spacing: 1.2px; text-transform: uppercase; }
+      .small-v { fill: #c4a7f7; font: 600 11px 'Avenir Next', 'Segoe UI', Arial, sans-serif; letter-spacing: 1.2px; text-transform: uppercase; }
+      .metric  { fill: #ffffff; font: 700 15px 'Avenir Next', 'Segoe UI', Arial, sans-serif; }
+      .mono    { fill: #9ac8be; font: 600 13px 'Courier New', monospace; }
+      .mono-o  { fill: #ffb347; font: 600 12px 'Courier New', monospace; }
+      .pill    { fill: #091210; stroke: #234a3e; stroke-width: 1; }
+      .pill-b  { fill: #091318; stroke: #1e4a62; stroke-width: 1; }
+      .pill-o  { fill: #130e07; stroke: #5a3a14; stroke-width: 1; }
+      .border  { stroke: #243e38; stroke-width: 1.2; }
+      .border-b { stroke: #1d3d52; stroke-width: 1.2; }
+      .border-o { stroke: #523617; stroke-width: 1.2; }
+      .flow-base   { fill: none; stroke: #1c3430; stroke-width: 5; stroke-linecap: round; }
+      .flow-green  { fill: none; stroke: url(#accent);  stroke-width: 4; stroke-linecap: round; stroke-dasharray: 14 10; }
+      .flow-orange { fill: none; stroke: url(#orange);  stroke-width: 4; stroke-linecap: round; stroke-dasharray: 12 9; }
+      .flow-blue   { fill: none; stroke: url(#blue);    stroke-width: 4; stroke-linecap: round; stroke-dasharray: 14 10; }
+      .flow-violet { fill: none; stroke: url(#violet);  stroke-width: 3; stroke-linecap: round; stroke-dasharray: 10 8; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect width="1600" height="900" fill="url(#grid)"/>
+
+  <!-- Ambient glow blobs -->
+  <circle cx="420"  cy="180" r="200" fill="#41b98d" fill-opacity="0.06" filter="url(#glow)"/>
+  <circle cx="900"  cy="500" r="180" fill="#4fa8d5" fill-opacity="0.07" filter="url(#glow)"/>
+  <circle cx="1400" cy="200" r="160" fill="#9b72ef" fill-opacity="0.07" filter="url(#glow)"/>
+  <circle cx="1200" cy="750" r="140" fill="#ff7e2f" fill-opacity="0.05" filter="url(#glow)"/>
+
+  <!-- Outer frame -->
+  <rect x="40" y="40" width="1520" height="820" rx="24" fill="url(#panel)" stroke="#1f3a34" stroke-width="1.5"/>
+  <rect x="68" y="68" width="1464" height="764" rx="18" fill="#0a1416" fill-opacity="0.4" stroke="#182d28" stroke-width="1"/>
+
+  <!-- Header -->
+  <text x="116" y="128" class="eyebrow">Synkora · Agent Lens</text>
+  <text x="116" y="194" class="title">Observability Into Every Token, Tool Call &amp; Context Event</text>
+  <text x="116" y="234">
+    <tspan class="subtitle">Five fire-and-forget hooks. Zero latency impact. Full event sequence in Elasticsearch.</tspan>
+  </text>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       COLUMN 1 — Agent Runtime
+  ═══════════════════════════════════════════════════════════ -->
+  <g transform="translate(80 278)" filter="url(#shadow)">
+    <rect width="258" height="528" rx="20" fill="url(#card)" class="border"/>
+    <rect x="0" y="0" width="258" height="60" rx="20" fill="#0f1d1c"/>
+    <rect x="20" y="16" width="136" height="26" rx="13" fill="#41b98d" fill-opacity="0.15" stroke="#2e6b55" stroke-width="1"/>
+    <text x="38" y="34" class="small">Agent Runtime</text>
+
+    <!-- 5 hook rows -->
+    <rect x="18" y="80"  width="222" height="74" rx="12" fill="#0d1a18" stroke="#1e3a34" stroke-width="1"/>
+    <circle cx="38" cy="117" r="7" fill="#79dfbc">
+      <animate attributeName="fill-opacity" values="0.4;1;0.4" dur="2.1s" repeatCount="indefinite"/>
+    </circle>
+    <text x="54" y="110" class="mono">user_message</text>
+    <text x="54" y="128" class="body" style="font-size:13px; fill:#7a9e98;">HTTP / SSE entry</text>
+    <text x="198" y="125" class="small" style="fill:#3b7060;">→ ES</text>
+
+    <rect x="18" y="162" width="222" height="74" rx="12" fill="#0d1a18" stroke="#1e3a34" stroke-width="1"/>
+    <circle cx="38" cy="199" r="7" fill="#ffb347">
+      <animate attributeName="fill-opacity" values="0.4;1;0.4" dur="1.8s" repeatCount="indefinite"/>
+    </circle>
+    <text x="54" y="192" class="mono">llm_call</text>
+    <text x="54" y="210" class="body" style="font-size:13px; fill:#7a9e98;">tokens · cost · cache</text>
+    <text x="198" y="207" class="small" style="fill:#3b7060;">→ ES</text>
+
+    <rect x="18" y="244" width="222" height="74" rx="12" fill="#0d1a18" stroke="#1e3a34" stroke-width="1"/>
+    <circle cx="38" cy="281" r="7" fill="#ff7ea1">
+      <animate attributeName="fill-opacity" values="0.4;1;0.4" dur="2.4s" repeatCount="indefinite"/>
+    </circle>
+    <text x="54" y="274" class="mono">tool_call</text>
+    <text x="54" y="292" class="body" style="font-size:13px; fill:#7a9e98;">args · result · retries</text>
+    <text x="198" y="289" class="small" style="fill:#3b7060;">→ ES</text>
+
+    <rect x="18" y="326" width="222" height="74" rx="12" fill="#0d1a18" stroke="#1e3a34" stroke-width="1"/>
+    <circle cx="38" cy="363" r="7" fill="#c4a7f7">
+      <animate attributeName="fill-opacity" values="0.4;1;0.4" dur="2.7s" repeatCount="indefinite"/>
+    </circle>
+    <text x="54" y="356" class="mono">tool_pruning</text>
+    <text x="54" y="374" class="body" style="font-size:13px; fill:#7a9e98;">tokens saved · data lost</text>
+    <text x="198" y="371" class="small" style="fill:#3b7060;">→ ES</text>
+
+    <rect x="18" y="408" width="222" height="74" rx="12" fill="#0d1a18" stroke="#1e3a34" stroke-width="1"/>
+    <circle cx="38" cy="445" r="7" fill="#79dfbc">
+      <animate attributeName="fill-opacity" values="0.4;1;0.4" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <text x="54" y="438" class="mono">assistant_message</text>
+    <text x="54" y="456" class="body" style="font-size:13px; fill:#7a9e98;">session totals</text>
+    <text x="198" y="453" class="small" style="fill:#3b7060;">→ ES</text>
+
+    <!-- SSE label at bottom -->
+    <rect x="18" y="496" width="222" height="20" rx="10" fill="#0a1210" stroke="#193530" stroke-width="1"/>
+    <text x="129" y="510" text-anchor="middle" class="small" style="fill:#2d5e52;">SSE stream · never blocked</text>
+  </g>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       FLOW A — Runtime → Fire-and-forget (~1µs)
+  ═══════════════════════════════════════════════════════════ -->
+  <path d="M338 450H420" class="flow-base"/>
+  <path d="M338 450H420" class="flow-orange">
+    <animate attributeName="stroke-dashoffset" from="0" to="-46" dur="1.6s" repeatCount="indefinite"/>
+  </path>
+  <text x="358" y="440" class="small-o" style="font-size:10px;">~1µs</text>
+  <circle cx="338" cy="450" r="6" fill="#ffb347" filter="url(#glow-sm)">
+    <animate attributeName="r" values="5;8;5" dur="1.6s" repeatCount="indefinite"/>
+    <animate attributeName="fill-opacity" values="0.5;1;0.5" dur="1.6s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       COLUMN 2 — Fire-and-Forget
+  ═══════════════════════════════════════════════════════════ -->
+  <g transform="translate(420 278)" filter="url(#shadow)">
+    <rect width="270" height="528" rx="20" fill="url(#card)" class="border-o"/>
+    <rect x="0" y="0" width="270" height="60" rx="20" fill="#170f08"/>
+    <rect x="20" y="16" width="164" height="26" rx="13" fill="#ff7e2f" fill-opacity="0.15" stroke="#6b3d18" stroke-width="1"/>
+    <text x="38" y="34" class="small-o">Fire-and-Forget</text>
+
+    <!-- asyncio.create_task badge -->
+    <rect x="18" y="76" width="234" height="52" rx="12" fill="#120d07" stroke="#5a3a14" stroke-width="1"/>
+    <text x="129" y="96"  text-anchor="middle" class="mono-o">asyncio.create_task()</text>
+    <text x="129" y="114" text-anchor="middle" class="body" style="font-size:12px; fill:#7a6a58;">strong ref set · GC-safe discard</text>
+
+    <!-- 5 fire functions -->
+    <rect x="18" y="140" width="234" height="36" rx="10" fill="#0f0d08" stroke="#3a2810" stroke-width="1"/>
+    <text x="34" y="163" class="mono-o" style="font-size:12px;">fire_user_message()</text>
+    <circle cx="236" cy="158" r="5" fill="#79dfbc">
+      <animate attributeName="fill-opacity" values="0.3;1;0.3" dur="2.1s" repeatCount="indefinite"/>
+    </circle>
+
+    <rect x="18" y="184" width="234" height="36" rx="10" fill="#0f0d08" stroke="#3a2810" stroke-width="1"/>
+    <text x="34" y="207" class="mono-o" style="font-size:12px;">fire_llm_call()</text>
+    <circle cx="236" cy="202" r="5" fill="#ffb347">
+      <animate attributeName="fill-opacity" values="0.3;1;0.3" dur="1.8s" repeatCount="indefinite"/>
+    </circle>
+
+    <rect x="18" y="228" width="234" height="36" rx="10" fill="#0f0d08" stroke="#3a2810" stroke-width="1"/>
+    <text x="34" y="251" class="mono-o" style="font-size:12px;">fire_tool_call()</text>
+    <circle cx="236" cy="246" r="5" fill="#ff7ea1">
+      <animate attributeName="fill-opacity" values="0.3;1;0.3" dur="2.4s" repeatCount="indefinite"/>
+    </circle>
+
+    <rect x="18" y="272" width="234" height="36" rx="10" fill="#0f0d08" stroke="#3a2810" stroke-width="1"/>
+    <text x="34" y="295" class="mono-o" style="font-size:12px;">fire_tool_pruning()</text>
+    <circle cx="236" cy="290" r="5" fill="#c4a7f7">
+      <animate attributeName="fill-opacity" values="0.3;1;0.3" dur="2.7s" repeatCount="indefinite"/>
+    </circle>
+
+    <rect x="18" y="316" width="234" height="36" rx="10" fill="#0f0d08" stroke="#3a2810" stroke-width="1"/>
+    <text x="34" y="339" class="mono-o" style="font-size:12px;">fire_assistant_message()</text>
+    <circle cx="236" cy="334" r="5" fill="#79dfbc">
+      <animate attributeName="fill-opacity" values="0.3;1;0.3" dur="3s" repeatCount="indefinite"/>
+    </circle>
+
+    <!-- result caps -->
+    <rect x="18" y="368" width="234" height="56" rx="12" fill="#0a0d07" stroke="#3a2810" stroke-width="1"/>
+    <text x="34" y="388" class="small-o">Result truncation</text>
+    <text x="34" y="406" class="body" style="font-size:13px; fill:#886644;">success: 2 KB cap · failure: 8 KB cap</text>
+    <text x="34" y="420" class="body" style="font-size:12px; fill:#5a4530;">always valid JSON envelope</text>
+
+    <!-- never raises -->
+    <rect x="18" y="436" width="234" height="28" rx="14" fill="#0a0e0b" stroke="#1e3a30" stroke-width="1"/>
+    <text x="135" y="455" text-anchor="middle" class="small" style="fill:#41b98d;">never raises · never awaited</text>
+
+    <!-- silent drop -->
+    <rect x="18" y="474" width="234" height="28" rx="14" fill="#0a0e0b" stroke="#1e3a30" stroke-width="1"/>
+    <text x="135" y="493" text-anchor="middle" class="small" style="fill:#3b7060;">ES down → silent drop · chat continues</text>
+  </g>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       FLOW B — Fire-and-forget → Elasticsearch
+  ═══════════════════════════════════════════════════════════ -->
+  <path d="M690 450H780" class="flow-base"/>
+  <path d="M690 450H780" class="flow-green">
+    <animate attributeName="stroke-dashoffset" from="0" to="-48" dur="1.9s" repeatCount="indefinite"/>
+  </path>
+  <text x="704" y="440" class="small" style="font-size:10px; fill:#41b98d;">async</text>
+  <circle cx="780" cy="450" r="6" fill="#79dfbc" filter="url(#glow-sm)">
+    <animate attributeName="r" values="5;9;5" dur="1.9s" repeatCount="indefinite"/>
+    <animate attributeName="fill-opacity" values="0.5;1;0.5" dur="1.9s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       COLUMN 3 — Elasticsearch
+  ═══════════════════════════════════════════════════════════ -->
+  <g transform="translate(780 278)" filter="url(#shadow)">
+    <rect width="286" height="528" rx="20" fill="url(#escard)" class="border-b"/>
+    <rect x="0" y="0" width="286" height="60" rx="20" fill="#090f1a"/>
+    <rect x="20" y="16" width="152" height="26" rx="13" fill="#4fa8d5" fill-opacity="0.15" stroke="#215570" stroke-width="1"/>
+    <text x="38" y="34" class="small-b">Elasticsearch</text>
+
+    <!-- Index badge -->
+    <rect x="18" y="76" width="250" height="46" rx="12" fill="#091018" stroke="#1a3a52" stroke-width="1"/>
+    <text x="143" y="96"  text-anchor="middle" class="mono" style="color:#7ec8e3; fill:#7ec8e3;">agent-session-events</text>
+    <text x="143" y="112" text-anchor="middle" class="body" style="font-size:12px; fill:#4a7080;">size:0 · aggregations only</text>
+
+    <!-- ILM -->
+    <rect x="18" y="132" width="250" height="44" rx="12" fill="#091018" stroke="#1a3a52" stroke-width="1"/>
+    <text x="34" y="151" class="small-b">ILM Policy</text>
+    <text x="34" y="167" class="body" style="font-size:13px; fill:#4a7080;">delete phase: 90d · zero cron jobs</text>
+
+    <!-- Mapping fields -->
+    <rect x="18" y="186" width="250" height="164" rx="12" fill="#070d16" stroke="#152540" stroke-width="1"/>
+    <text x="34" y="206" class="small-b">Explicit Mappings</text>
+    <text x="34" y="226" class="mono" style="font-size:12px; fill:#4fa8d5;">conversation_id: keyword</text>
+    <text x="34" y="244" class="mono" style="font-size:12px; fill:#4fa8d5;">event_type: keyword</text>
+    <text x="34" y="262" class="mono" style="font-size:12px; fill:#4fa8d5;">input_tokens: integer</text>
+    <text x="34" y="280" class="mono" style="font-size:12px; fill:#4fa8d5;">cost_usd: float</text>
+    <text x="34" y="298" class="mono" style="font-size:12px; fill:#4fa8d5;">args / result: text ← no explosion</text>
+    <text x="34" y="316" class="mono" style="font-size:12px; fill:#4fa8d5;">context_utilization_pct: float</text>
+    <text x="34" y="334" class="mono" style="font-size:12px; fill:#4fa8d5;">cache_read_tokens: integer</text>
+
+    <!-- Aggregation types -->
+    <rect x="18" y="360" width="250" height="144" rx="12" fill="#070d16" stroke="#152540" stroke-width="1"/>
+    <text x="34" y="380" class="small-b">Aggregation Read Path</text>
+    <text x="34" y="400" class="body" style="font-size:13px; fill:#4a8fa8;">cardinality → unique sessions</text>
+    <text x="34" y="418" class="body" style="font-size:13px; fill:#4a8fa8;">filter + sum → tokens · cost</text>
+    <text x="34" y="436" class="body" style="font-size:13px; fill:#4a8fa8;">terms → per-tool breakdown</text>
+    <text x="34" y="454" class="body" style="font-size:13px; fill:#4a8fa8;">date_histogram → trend lines</text>
+    <text x="34" y="472" class="body" style="font-size:13px; fill:#4a8fa8;">top_hits → conv name · model</text>
+
+    <!-- Animated write pulse -->
+    <circle cx="262" cy="450" r="8" fill="#4fa8d5" filter="url(#glow-sm)">
+      <animate attributeName="r"            values="6;11;6"   dur="2.2s" repeatCount="indefinite"/>
+      <animate attributeName="fill-opacity" values="0.4;0.9;0.4" dur="2.2s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       FLOW C — ES → API Endpoints
+  ═══════════════════════════════════════════════════════════ -->
+  <path d="M1066 450H1150" class="flow-base"/>
+  <path d="M1066 450H1150" class="flow-blue">
+    <animate attributeName="stroke-dashoffset" from="0" to="-48" dur="2.1s" repeatCount="indefinite"/>
+  </path>
+  <circle cx="1066" cy="450" r="6" fill="#7ec8e3" filter="url(#glow-sm)">
+    <animate attributeName="r" values="5;9;5" dur="2.1s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       COLUMN 4 — API Endpoints
+  ═══════════════════════════════════════════════════════════ -->
+  <g transform="translate(1150 278)" filter="url(#shadow)">
+    <rect width="272" height="528" rx="20" fill="url(#card)" class="border"/>
+    <rect x="0" y="0" width="272" height="60" rx="20" fill="#0c1a18"/>
+    <rect x="20" y="16" width="164" height="26" rx="13" fill="#41b98d" fill-opacity="0.12" stroke="#2a6050" stroke-width="1"/>
+    <text x="38" y="34" class="small">Lens API · 12 endpoints</text>
+
+    <!-- endpoint rows -->
+    <rect x="18" y="76" width="236" height="36" rx="10" fill="#0a1614" stroke="#1a3430" stroke-width="1"/>
+    <text x="34" y="94"  class="mono" style="font-size:12px;">/lens/overview</text>
+    <text x="34" y="107" class="body" style="font-size:11px; fill:#4a7a70;">12 stat cards · one ES call</text>
+
+    <rect x="18" y="120" width="236" height="36" rx="10" fill="#0a1614" stroke="#1a3430" stroke-width="1"/>
+    <text x="34" y="138" class="mono" style="font-size:12px;">/lens/sessions</text>
+    <text x="34" y="151" class="body" style="font-size:11px; fill:#4a7a70;">paginated · tokens + cost/session</text>
+
+    <rect x="18" y="164" width="236" height="36" rx="10" fill="#0a1614" stroke="#1a3430" stroke-width="1"/>
+    <text x="34" y="182" class="mono" style="font-size:12px;">/lens/sessions/{id}</text>
+    <text x="34" y="195" class="body" style="font-size:11px; fill:#4a7a70;">merged timeline · 5 event types</text>
+
+    <rect x="18" y="208" width="236" height="36" rx="10" fill="#0a1614" stroke="#1a3430" stroke-width="1"/>
+    <text x="34" y="226" class="mono" style="font-size:12px;">/lens/token-distribution</text>
+    <text x="34" y="239" class="body" style="font-size:11px; fill:#4a7a70;">by model · prompt vs completion</text>
+
+    <rect x="18" y="252" width="236" height="36" rx="10" fill="#0a1614" stroke="#1a3430" stroke-width="1"/>
+    <text x="34" y="270" class="mono" style="font-size:12px;">/lens/tool-analytics</text>
+    <text x="34" y="283" class="body" style="font-size:11px; fill:#4a7a70;">success rate · p99 duration</text>
+
+    <rect x="18" y="296" width="236" height="36" rx="10" fill="#0a1614" stroke="#1a3430" stroke-width="1"/>
+    <text x="34" y="314" class="mono" style="font-size:12px;">/lens/tool-roi</text>
+    <text x="34" y="327" class="body" style="font-size:11px; fill:#4a7a70;">completion lift · keep/remove</text>
+
+    <rect x="18" y="340" width="236" height="36" rx="10" fill="#0a1614" stroke="#1a3430" stroke-width="1"/>
+    <text x="34" y="358" class="mono" style="font-size:12px;">/lens/compaction</text>
+    <text x="34" y="371" class="body" style="font-size:11px; fill:#4a7a70;">pruning rate · data_bearing lost</text>
+
+    <rect x="18" y="384" width="236" height="36" rx="10" fill="#0a1614" stroke="#1a3430" stroke-width="1"/>
+    <text x="34" y="402" class="mono" style="font-size:12px;">/lens/cache</text>
+    <text x="34" y="415" class="body" style="font-size:11px; fill:#4a7a70;">hit rate · savings · ctx pressure</text>
+
+    <rect x="18" y="428" width="236" height="36" rx="10" fill="#0a1614" stroke="#1a3430" stroke-width="1"/>
+    <text x="34" y="446" class="mono" style="font-size:12px;">/lens/quality</text>
+    <text x="34" y="459" class="body" style="font-size:11px; fill:#4a7a70;">satisfaction · outcomes · disliked</text>
+
+    <rect x="18" y="472" width="236" height="18" rx="9" fill="#081210" stroke="#152a24" stroke-width="1"/>
+    <text x="136" y="485" text-anchor="middle" class="small" style="fill:#2a5a4e;">+ /alerts crud · /eval-history · /graph</text>
+  </g>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       FLOW D — API → Dashboard
+  ═══════════════════════════════════════════════════════════ -->
+  <path d="M1422 450H1494" class="flow-base"/>
+  <path d="M1422 450H1494" class="flow-violet">
+    <animate attributeName="stroke-dashoffset" from="0" to="-36" dur="2.4s" repeatCount="indefinite"/>
+  </path>
+  <circle cx="1422" cy="450" r="6" fill="#c4a7f7" filter="url(#glow-sm)">
+    <animate attributeName="r" values="5;9;5" dur="2.4s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       COLUMN 5 — Dashboard (narrow)
+  ═══════════════════════════════════════════════════════════ -->
+  <g transform="translate(1494 278)" filter="url(#shadow)">
+    <rect width="94" height="528" rx="20" fill="url(#card)" class="border"/>
+    <rect x="0" y="0" width="94" height="60" rx="20" fill="#13101d"/>
+    <text x="47" y="36" text-anchor="middle" class="small-v" style="font-size:10px;">UI</text>
+
+    <!-- Animated bar chart suggestion -->
+    <rect x="20" y="88" width="14" height="60" rx="4" fill="#c4a7f7" fill-opacity="0.3">
+      <animate attributeName="height" values="40;70;50;65;40" dur="4s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="108;78;98;83;108" dur="4s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="40" y="98" width="14" height="50" rx="4" fill="#c4a7f7" fill-opacity="0.5">
+      <animate attributeName="height" values="60;40;70;45;60" dur="3.5s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="88;108;78;103;88" dur="3.5s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="60" y="78" width="14" height="70" rx="4" fill="#c4a7f7" fill-opacity="0.7">
+      <animate attributeName="height" values="70;55;80;50;70" dur="5s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="78;93;68;98;78" dur="5s" repeatCount="indefinite"/>
+    </rect>
+
+    <!-- Sparkline suggestion -->
+    <polyline points="18,200 30,185 42,195 54,170 66,180 78,160" fill="none" stroke="#79dfbc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+    <circle cx="78" cy="160" r="4" fill="#79dfbc">
+      <animate attributeName="fill-opacity" values="0.4;1;0.4" dur="1.8s" repeatCount="indefinite"/>
+    </circle>
+
+    <!-- Pulse indicator -->
+    <circle cx="47" cy="260" r="10" fill="#c4a7f7" fill-opacity="0.1" stroke="#6a4db0" stroke-width="1">
+      <animate attributeName="r"            values="8;14;8"   dur="2.6s" repeatCount="indefinite"/>
+      <animate attributeName="fill-opacity" values="0.1;0.3;0.1" dur="2.6s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="47" cy="260" r="5" fill="#c4a7f7">
+      <animate attributeName="fill-opacity" values="0.5;1;0.5" dur="2.6s" repeatCount="indefinite"/>
+    </circle>
+
+    <text x="47" y="320" text-anchor="middle" class="small-v" style="font-size:9px; letter-spacing:1px;">LIVE</text>
+  </g>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       STATS BAR at bottom
+  ═══════════════════════════════════════════════════════════ -->
+  <rect x="80" y="830" width="1440" height="16" rx="8" fill="#0b1714" stroke="#172e28" stroke-width="1"/>
+  <!-- animated progress bar segments -->
+  <rect x="80" y="830" width="480" height="16" rx="8" fill="url(#accent)" fill-opacity="0.55">
+    <animate attributeName="width" values="440;500;460;520;440" dur="6s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="560" y="830" width="280" height="16" rx="8" fill="url(#orange)" fill-opacity="0.45">
+    <animate attributeName="width" values="260;300;270;310;260" dur="5.5s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="840" y="830" width="360" height="16" rx="8" fill="url(#blue)" fill-opacity="0.4">
+    <animate attributeName="width" values="340;380;350;400;340" dur="7s" repeatCount="indefinite"/>
+  </rect>
+
+  <!-- Footer text -->
+  <text x="116" y="878" class="small" style="fill:#4a7a70;">Synkora Agent Lens · MIT License · agent_trace_service.py · ~1µs write overhead</text>
+  <text x="1200" y="878" class="small" style="fill:#79dfbc;">the sequence is the truth</text>
+</svg>

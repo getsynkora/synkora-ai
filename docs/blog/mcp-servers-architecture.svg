@@ -1,0 +1,383 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="720" viewBox="0 0 1400 720" role="img" aria-labelledby="mcp-title mcp-desc">
+  <title id="mcp-title">Synkora MCP Server Architecture</title>
+  <desc id="mcp-desc">Two transports (HTTP and stdio) feed tools into a single FastMCP client, which surfaces them to the agent's tool registry alongside internal tools</desc>
+
+  <defs>
+    <style>
+      .label-eyebrow { fill: #7a736a; font: 600 11px 'Avenir Next', sans-serif; letter-spacing: 0.2em; text-transform: uppercase; }
+      .label-title   { fill: #171717; font: 700 15px 'Avenir Next', sans-serif; letter-spacing: -0.02em; }
+      .label-sub     { fill: #5b564e; font: 400 12px 'Avenir Next', sans-serif; }
+      .label-code    { fill: #2d8b69; font: 600 11px 'SF Mono', 'Fira Code', monospace; }
+      .label-badge   { fill: #171717; font: 600 10px 'Avenir Next', sans-serif; letter-spacing: 0.12em; text-transform: uppercase; }
+      .card-bg       { fill: rgba(255,255,255,0.85); }
+      .card-border   { fill: none; stroke: rgba(0,0,0,0.10); stroke-width: 1.5; }
+      .card-dark     { fill: #1a1714; }
+      .teal          { fill: #79dfbc; }
+      .teal-stroke   { fill: none; stroke: #79dfbc; stroke-width: 1.5; }
+      .pipe          { fill: none; stroke: #c8c2b8; stroke-width: 1.5; stroke-dasharray: 5 4; }
+      .pipe-active   { fill: none; stroke: #79dfbc; stroke-width: 2; }
+    </style>
+
+    <!-- animated gradient for active flows -->
+    <linearGradient id="flow-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#79dfbc" stop-opacity="0"/>
+      <stop offset="40%"  stop-color="#79dfbc" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#2d8b69" stop-opacity="0"/>
+    </linearGradient>
+
+    <linearGradient id="flow-grad-v" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#79dfbc" stop-opacity="0"/>
+      <stop offset="50%"  stop-color="#79dfbc" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#2d8b69" stop-opacity="0"/>
+    </linearGradient>
+
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="rgba(0,0,0,0.08)"/>
+    </filter>
+
+    <!-- pulse ring -->
+    <circle id="pulse-dot" r="4" fill="#79dfbc"/>
+  </defs>
+
+  <!-- ── Background ── -->
+  <rect width="1400" height="720" fill="#f7f2e7"/>
+  <circle cx="100"  cy="80"  r="200" fill="#79dfbc" fill-opacity="0.06"/>
+  <circle cx="1300" cy="640" r="240" fill="#ffd7a8" fill-opacity="0.08"/>
+  <circle cx="700"  cy="360" r="180" fill="#ffb7c9" fill-opacity="0.05"/>
+
+  <!-- ── Title ── -->
+  <text x="700" y="46" text-anchor="middle" class="label-eyebrow">Synkora · MCP Server Architecture</text>
+  <text x="700" y="72" text-anchor="middle" fill="#171717" font="700 22px 'Avenir Next', sans-serif" font-size="22" font-weight="700" letter-spacing="-0.03em">How External Tool Servers Become Agent Capabilities</text>
+
+  <!-- ══════════════════════════════════════════════════
+       COLUMN 1 — MCP Servers (left)
+  ══════════════════════════════════════════════════ -->
+
+  <!-- HTTP Server card -->
+  <g filter="url(#shadow)" transform="translate(48, 112)">
+    <rect width="248" height="162" rx="18" class="card-bg" stroke="rgba(0,0,0,0.09)" stroke-width="1.5"/>
+    <rect x="0" y="0" width="248" height="6" rx="3" fill="#79dfbc" opacity="0.8"/>
+    <text x="20" y="32" class="label-eyebrow">HTTP Transport</text>
+    <text x="20" y="54" class="label-title">GitHub MCP Server</text>
+    <text x="20" y="74" class="label-sub">StreamableHttpTransport</text>
+
+    <rect x="20" y="86" width="208" height="26" rx="7" fill="#f1eadc"/>
+    <text x="32" y="103" class="label-code">POST /mcp · Bearer token</text>
+
+    <text x="20" y="132" class="label-sub">auth_type: bearer</text>
+    <text x="20" y="150" class="label-sub">26 tools · JSON-RPC 2.0</text>
+  </g>
+
+  <!-- Notion MCP Server card -->
+  <g filter="url(#shadow)" transform="translate(48, 298)">
+    <rect width="248" height="140" rx="18" class="card-bg" stroke="rgba(0,0,0,0.09)" stroke-width="1.5"/>
+    <rect x="0" y="0" width="248" height="6" rx="3" fill="#ffd7a8" opacity="0.9"/>
+    <text x="20" y="32" class="label-eyebrow">HTTP Transport</text>
+    <text x="20" y="54" class="label-title">Internal Company API</text>
+    <text x="20" y="74" class="label-sub">Custom headers · api_key auth</text>
+
+    <rect x="20" y="86" width="208" height="26" rx="7" fill="#f1eadc"/>
+    <text x="32" y="103" class="label-code">X-API-Key: &lt;per-tenant&gt;</text>
+    <text x="20" y="128" class="label-sub">14 tools · multi-tenant</text>
+  </g>
+
+  <!-- stdio card -->
+  <g filter="url(#shadow)" transform="translate(48, 462)">
+    <rect width="248" height="174" rx="18" class="card-bg" stroke="rgba(0,0,0,0.09)" stroke-width="1.5"/>
+    <rect x="0" y="0" width="248" height="6" rx="3" fill="#ffb7c9" opacity="0.9"/>
+    <text x="20" y="32" class="label-eyebrow">stdio Transport</text>
+    <text x="20" y="54" class="label-title">Brave Search MCP</text>
+    <text x="20" y="74" class="label-sub">Child process · stdin/stdout</text>
+
+    <rect x="20" y="86" width="208" height="44" rx="7" fill="#1a1714"/>
+    <text x="32" y="106" fill="#79dfbc" font="600 10.5px 'SF Mono', monospace" font-size="10.5" font-family="'SF Mono', monospace" font-weight="600">npx -y @modelcontextprotocol/</text>
+    <text x="32" y="122" fill="#79dfbc" font="600 10.5px 'SF Mono', monospace" font-size="10.5" font-family="'SF Mono', monospace" font-weight="600">server-brave-search</text>
+
+    <text x="20" y="152" class="label-sub">env vars: BRAVE_API_KEY</text>
+    <text x="20" y="170" class="label-sub">StdioTransport · IPC pipes</text>
+  </g>
+
+  <!-- Column label -->
+  <text x="172" y="104" text-anchor="middle" class="label-eyebrow">MCP Servers</text>
+
+
+  <!-- ══════════════════════════════════════════════════
+       FLOW LINES — servers → client
+  ══════════════════════════════════════════════════ -->
+
+  <!-- HTTP server 1 → client -->
+  <line x1="296" y1="193" x2="520" y2="290" class="pipe"/>
+  <!-- HTTP server 2 → client -->
+  <line x1="296" y1="368" x2="520" y2="340" class="pipe"/>
+  <!-- stdio → client -->
+  <line x1="296" y1="549" x2="520" y2="400" class="pipe"/>
+
+  <!-- Animated flow dots -->
+  <circle r="5" fill="#79dfbc" filter="url(#glow)" opacity="0.9">
+    <animateMotion dur="2.4s" repeatCount="indefinite" begin="0s">
+      <mpath href="#path-h1"/>
+    </animateMotion>
+  </circle>
+  <path id="path-h1" d="M296,193 L520,290" fill="none"/>
+
+  <circle r="5" fill="#ffd7a8" filter="url(#glow)" opacity="0.9">
+    <animateMotion dur="2.8s" repeatCount="indefinite" begin="0.6s">
+      <mpath href="#path-h2"/>
+    </animateMotion>
+  </circle>
+  <path id="path-h2" d="M296,368 L520,340" fill="none"/>
+
+  <circle r="5" fill="#ffb7c9" filter="url(#glow)" opacity="0.9">
+    <animateMotion dur="3.2s" repeatCount="indefinite" begin="1.2s">
+      <mpath href="#path-stdio"/>
+    </animateMotion>
+  </circle>
+  <path id="path-stdio" d="M296,549 L520,400" fill="none"/>
+
+
+  <!-- ══════════════════════════════════════════════════
+       COLUMN 2 — MCPClient (center-left)
+  ══════════════════════════════════════════════════ -->
+
+  <text x="660" y="104" text-anchor="middle" class="label-eyebrow">FastMCP Client</text>
+
+  <g filter="url(#shadow)" transform="translate(516, 112)">
+    <rect width="288" height="480" rx="22" fill="#1a1714"/>
+
+    <!-- Header -->
+    <rect x="0" y="0" width="288" height="58" rx="22" fill="#222018"/>
+    <rect x="0" y="38" width="288" height="20" fill="#222018"/>
+    <text x="144" y="26" text-anchor="middle" fill="#f7f2e7" font-size="14" font-weight="700" font-family="'Avenir Next', sans-serif" letter-spacing="-0.02em">MCPClientManager</text>
+    <text x="144" y="46" text-anchor="middle" fill="#9a9289" font-size="10" font-family="'Avenir Next', sans-serif" letter-spacing="0.14em" text-transform="uppercase" font-weight="600">per-agent client cache</text>
+
+    <!-- Cache block -->
+    <rect x="16" y="70" width="256" height="72" rx="12" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+    <text x="32" y="91" fill="#c9bfae" font-size="10" font-family="'Avenir Next', sans-serif" letter-spacing="0.14em" text-transform="uppercase" font-weight="600">_clients cache</text>
+    <text x="32" y="110" fill="#79dfbc" font-size="11" font-family="'SF Mono', monospace" font-weight="600">dict[UUID → MCPClient]</text>
+    <text x="32" y="130" fill="#7a736a" font-size="11" font-family="'Avenir Next', sans-serif">cache hit rate: ~98%</text>
+
+    <!-- Connect block -->
+    <rect x="16" y="154" width="256" height="72" rx="12" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+    <text x="32" y="175" fill="#c9bfae" font-size="10" font-family="'Avenir Next', sans-serif" letter-spacing="0.14em" text-transform="uppercase" font-weight="600">connect()</text>
+    <text x="32" y="195" fill="#f7f2e7" font-size="11" font-family="'Avenir Next', sans-serif">Client(mcp_config) → ping()</text>
+    <text x="32" y="213" fill="#7a736a" font-size="11" font-family="'Avenir Next', sans-serif">single / multi-server mode</text>
+
+    <!-- Execute block -->
+    <rect x="16" y="238" width="256" height="100" rx="12" fill="rgba(121,223,188,0.07)" stroke="rgba(121,223,188,0.15)" stroke-width="1"/>
+    <text x="32" y="259" fill="#79dfbc" font-size="10" font-family="'Avenir Next', sans-serif" letter-spacing="0.14em" text-transform="uppercase" font-weight="600">execute_tool()</text>
+    <text x="32" y="279" fill="#f7f2e7" font-size="11" font-family="'Avenir Next', sans-serif">asyncio.wait_for(…, 120s)</text>
+    <text x="32" y="297" fill="#f7f2e7" font-size="11" font-family="'Avenir Next', sans-serif">retry ×3 · backoff 2ⁿ s</text>
+    <text x="32" y="315" fill="#7a736a" font-size="11" font-family="'Avenir Next', sans-serif">auth err → fail fast (no retry)</text>
+    <text x="32" y="333" fill="#7a736a" font-size="11" font-family="'Avenir Next', sans-serif">94% transient recover on retry 1</text>
+
+    <!-- Invalidation block -->
+    <rect x="16" y="350" width="256" height="88" rx="12" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+    <text x="32" y="371" fill="#c9bfae" font-size="10" font-family="'Avenir Next', sans-serif" letter-spacing="0.14em" text-transform="uppercase" font-weight="600">Cache Invalidation</text>
+    <text x="32" y="391" fill="#f7f2e7" font-size="11" font-family="'Avenir Next', sans-serif">attach/detach → evict client</text>
+    <text x="32" y="409" fill="#f7f2e7" font-size="11" font-family="'Avenir Next', sans-serif">config update → clear cache only</text>
+    <text x="32" y="427" fill="#7a736a" font-size="11" font-family="'Avenir Next', sans-serif">no reconnect on config change</text>
+
+    <!-- Widget JWT section -->
+    <rect x="16" y="450" width="256" height="22" rx="8" fill="rgba(255,183,201,0.12)" stroke="rgba(255,183,201,0.2)" stroke-width="1"/>
+    <text x="144" y="465" text-anchor="middle" fill="#ffb7c9" font-size="10" font-family="'Avenir Next', sans-serif" letter-spacing="0.12em" text-transform="uppercase" font-weight="600">per-request JWT injection</text>
+  </g>
+
+  <!-- Animated pulse on client card -->
+  <circle cx="660" cy="352" r="8" fill="none" stroke="#79dfbc" stroke-width="1.5" opacity="0">
+    <animate attributeName="r" values="8;28" dur="2s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.7;0" dur="2s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="660" cy="352" r="5" fill="#79dfbc" filter="url(#glow)">
+    <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite"/>
+  </circle>
+
+
+  <!-- ══════════════════════════════════════════════════
+       FLOW LINES — client → tool registry
+  ══════════════════════════════════════════════════ -->
+
+  <line x1="804" y1="352" x2="930" y2="352" class="pipe-active"/>
+  <!-- animated dot on this line -->
+  <circle r="5" fill="#79dfbc" filter="url(#glow)">
+    <animateMotion dur="1.8s" repeatCount="indefinite">
+      <mpath href="#path-to-registry"/>
+    </animateMotion>
+  </circle>
+  <path id="path-to-registry" d="M804,352 L930,352" fill="none"/>
+
+
+  <!-- ══════════════════════════════════════════════════
+       COLUMN 3 — Tool Registry (center-right)
+  ══════════════════════════════════════════════════ -->
+
+  <text x="1050" y="104" text-anchor="middle" class="label-eyebrow">Tool Registry</text>
+
+  <g filter="url(#shadow)" transform="translate(926, 112)">
+    <rect width="252" height="480" rx="22" class="card-bg" stroke="rgba(0,0,0,0.09)" stroke-width="1.5"/>
+
+    <text x="126" y="36" text-anchor="middle" class="label-title">Agent Tool Pool</text>
+    <text x="126" y="54" text-anchor="middle" fill="#7a736a" font-size="11" font-family="'Avenir Next', sans-serif">50+ internal + N MCP tools</text>
+
+    <!-- Schema compaction -->
+    <rect x="16" y="66" width="220" height="68" rx="12" fill="#f6f1e7"/>
+    <text x="30" y="85" fill="#7a736a" font-size="10" font-family="'Avenir Next', sans-serif" letter-spacing="0.14em" text-transform="uppercase" font-weight="600">_compact_schema()</text>
+    <text x="30" y="103" fill="#2d8b69" font-size="11" font-family="'SF Mono', monospace" font-weight="600">strip param descriptions</text>
+    <text x="30" y="121" fill="#5b564e" font-size="11" font-family="'Avenir Next', sans-serif">40–65% token reduction</text>
+
+    <!-- Tool rows -->
+    <g transform="translate(16, 148)">
+      <!-- internal tools -->
+      <rect width="220" height="28" rx="8" fill="#edf8f3"/>
+      <text x="12" y="18" fill="#2d8b69" font-size="11" font-family="'Avenir Next', sans-serif" font-weight="600">sql_query, web_fetch, gmail …</text>
+      <text x="190" y="18" text-anchor="end" fill="#9a9289" font-size="10" font-family="'Avenir Next', sans-serif">internal</text>
+
+      <rect y="36" width="220" height="28" rx="8" fill="#fff8f0"/>
+      <text x="12" y="54" fill="#c47a00" font-size="11" font-family="'Avenir Next', sans-serif" font-weight="600">github_create_pr, list_issues …</text>
+      <text x="190" y="54" text-anchor="end" fill="#9a9289" font-size="10" font-family="'Avenir Next', sans-serif">mcp</text>
+
+      <rect y="72" width="220" height="28" rx="8" fill="#fff0f5"/>
+      <text x="12" y="90" fill="#c4006c" font-size="11" font-family="'Avenir Next', sans-serif" font-weight="600">brave_search, get_results …</text>
+      <text x="190" y="90" text-anchor="end" fill="#9a9289" font-size="10" font-family="'Avenir Next', sans-serif">mcp</text>
+
+      <rect y="108" width="220" height="28" rx="8" fill="#f7f0ff"/>
+      <text x="12" y="126" fill="#7a00c4" font-size="11" font-family="'Avenir Next', sans-serif" font-weight="600">company_search, docs …</text>
+      <text x="190" y="126" text-anchor="end" fill="#9a9289" font-size="10" font-family="'Avenir Next', sans-serif">mcp</text>
+
+      <!-- pulsing "tool injected" indicator -->
+      <circle cx="202" cy="144" r="5" fill="#79dfbc">
+        <animate attributeName="r" values="5;10;5" dur="1.6s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.8;0.2;0.8" dur="1.6s" repeatCount="indefinite"/>
+      </circle>
+      <text x="192" y="148" text-anchor="end" fill="#7a736a" font-size="10" font-family="'Avenir Next', sans-serif">live tool injection</text>
+    </g>
+
+    <!-- discover stats -->
+    <rect x="16" y="356" width="220" height="60" rx="12" fill="#1a1714"/>
+    <text x="30" y="376" fill="#c9bfae" font-size="10" font-family="'Avenir Next', sans-serif" letter-spacing="0.14em" text-transform="uppercase" font-weight="600">Discovery Cache</text>
+    <text x="30" y="394" fill="#79dfbc" font-size="11" font-family="'SF Mono', monospace" font-weight="600">list_tools() → cached</text>
+    <text x="30" y="410" fill="#7a736a" font-size="11" font-family="'Avenir Next', sans-serif">invalidate on config update</text>
+
+    <!-- transport labels -->
+    <rect x="16" y="428" width="104" height="36" rx="10" fill="#f1eadc"/>
+    <text x="68" y="444" text-anchor="middle" fill="#5b564e" font-size="10" font-family="'Avenir Next', sans-serif" font-weight="600">HTTP</text>
+    <text x="68" y="458" text-anchor="middle" fill="#7a736a" font-size="10" font-family="'Avenir Next', sans-serif">StreamableHttp</text>
+
+    <rect x="128" y="428" width="104" height="36" rx="10" fill="#f1eadc"/>
+    <text x="180" y="444" text-anchor="middle" fill="#5b564e" font-size="10" font-family="'Avenir Next', sans-serif" font-weight="600">stdio</text>
+    <text x="180" y="458" text-anchor="middle" fill="#7a736a" font-size="10" font-family="'Avenir Next', sans-serif">child process</text>
+  </g>
+
+
+  <!-- ══════════════════════════════════════════════════
+       FLOW LINE — registry → agent
+  ══════════════════════════════════════════════════ -->
+
+  <line x1="1178" y1="352" x2="1296" y2="352" class="pipe-active"/>
+  <circle r="5" fill="#2d8b69" filter="url(#glow)">
+    <animateMotion dur="1.6s" repeatCount="indefinite">
+      <mpath href="#path-to-agent"/>
+    </animateMotion>
+  </circle>
+  <path id="path-to-agent" d="M1178,352 L1296,352" fill="none"/>
+
+
+  <!-- ══════════════════════════════════════════════════
+       COLUMN 4 — Agent Core (right)
+  ══════════════════════════════════════════════════ -->
+
+  <text x="1340" y="104" text-anchor="middle" class="label-eyebrow">Agent Core</text>
+
+  <g filter="url(#shadow)" transform="translate(1290, 164)">
+    <rect width="96" height="380" rx="20" fill="#1a1714"/>
+
+    <text x="48" y="32" text-anchor="middle" fill="#f7f2e7" font-size="12" font-weight="700" font-family="'Avenir Next', sans-serif" letter-spacing="-0.02em">LLM</text>
+    <text x="48" y="50" text-anchor="middle" fill="#7a736a" font-size="10" font-family="'Avenir Next', sans-serif">GPT-4o</text>
+    <text x="48" y="64" text-anchor="middle" fill="#7a736a" font-size="10" font-family="'Avenir Next', sans-serif">Claude</text>
+    <text x="48" y="78" text-anchor="middle" fill="#7a736a" font-size="10" font-family="'Avenir Next', sans-serif">Gemini</text>
+
+    <line x1="14" y1="92" x2="82" y2="92" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+
+    <text x="48" y="112" text-anchor="middle" fill="#79dfbc" font-size="11" font-weight="600" font-family="'Avenir Next', sans-serif">tools</text>
+    <text x="48" y="128" text-anchor="middle" fill="#7a736a" font-size="10" font-family="'Avenir Next', sans-serif">internal</text>
+    <text x="48" y="143" text-anchor="middle" fill="#7a736a" font-size="10" font-family="'Avenir Next', sans-serif">+ mcp</text>
+
+    <line x1="14" y1="158" x2="82" y2="158" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+
+    <text x="48" y="178" text-anchor="middle" fill="#c9bfae" font-size="11" font-weight="600" font-family="'Avenir Next', sans-serif">memory</text>
+    <text x="48" y="194" text-anchor="middle" fill="#7a736a" font-size="10" font-family="'Avenir Next', sans-serif">vector</text>
+    <text x="48" y="209" text-anchor="middle" fill="#7a736a" font-size="10" font-family="'Avenir Next', sans-serif">search</text>
+
+    <line x1="14" y1="224" x2="82" y2="224" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+
+    <text x="48" y="248" text-anchor="middle" fill="#ffd7a8" font-size="11" font-weight="600" font-family="'Avenir Next', sans-serif">context</text>
+    <text x="48" y="264" text-anchor="middle" fill="#7a736a" font-size="10" font-family="'Avenir Next', sans-serif">compact</text>
+    <text x="48" y="279" text-anchor="middle" fill="#7a736a" font-size="10" font-family="'Avenir Next', sans-serif">pipeline</text>
+
+    <!-- pulse on agent -->
+    <circle cx="48" cy="330" r="16" fill="none" stroke="#79dfbc" stroke-width="1" opacity="0">
+      <animate attributeName="r" values="10;26" dur="2.2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.7;0" dur="2.2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="48" cy="330" r="10" fill="#79dfbc" fill-opacity="0.12" stroke="#79dfbc" stroke-width="1.5"/>
+    <circle cx="48" cy="330" r="5" fill="#79dfbc">
+      <animate attributeName="opacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <text x="48" y="366" text-anchor="middle" fill="#7a736a" font-size="10" font-family="'Avenir Next', sans-serif">live</text>
+  </g>
+
+
+  <!-- ══════════════════════════════════════════════════
+       BOTTOM STATS BAR
+  ══════════════════════════════════════════════════ -->
+
+  <g transform="translate(48, 660)">
+    <rect width="1304" height="44" rx="14" fill="rgba(26,23,20,0.88)"/>
+
+    <!-- stat items -->
+    <g transform="translate(28, 0)">
+      <text x="0" y="18" fill="#7a736a" font-size="10" font-family="'Avenir Next', sans-serif" letter-spacing="0.16em" text-transform="uppercase" font-weight="600">Transports</text>
+      <text x="0" y="34" fill="#f7f2e7" font-size="12" font-weight="700" font-family="'Avenir Next', sans-serif">HTTP · stdio</text>
+    </g>
+    <line x1="166" y1="8" x2="166" y2="36" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+
+    <g transform="translate(182, 0)">
+      <text x="0" y="18" fill="#7a736a" font-size="10" font-family="'Avenir Next', sans-serif" letter-spacing="0.16em" text-transform="uppercase" font-weight="600">Auth schemes</text>
+      <text x="0" y="34" fill="#f7f2e7" font-size="12" font-weight="700" font-family="'Avenir Next', sans-serif">bearer · api_key · headers · none</text>
+    </g>
+    <line x1="440" y1="8" x2="440" y2="36" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+
+    <g transform="translate(456, 0)">
+      <text x="0" y="18" fill="#7a736a" font-size="10" font-family="'Avenir Next', sans-serif" letter-spacing="0.16em" text-transform="uppercase" font-weight="600">Tool timeout</text>
+      <text x="0" y="34" fill="#79dfbc" font-size="12" font-weight="700" font-family="'Avenir Next', sans-serif">120s per call</text>
+    </g>
+    <line x1="590" y1="8" x2="590" y2="36" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+
+    <g transform="translate(606, 0)">
+      <text x="0" y="18" fill="#7a736a" font-size="10" font-family="'Avenir Next', sans-serif" letter-spacing="0.16em" text-transform="uppercase" font-weight="600">Schema compaction</text>
+      <text x="0" y="34" fill="#79dfbc" font-size="12" font-weight="700" font-family="'Avenir Next', sans-serif">40–65% token reduction</text>
+    </g>
+    <line x1="806" y1="8" x2="806" y2="36" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+
+    <g transform="translate(822, 0)">
+      <text x="0" y="18" fill="#7a736a" font-size="10" font-family="'Avenir Next', sans-serif" letter-spacing="0.16em" text-transform="uppercase" font-weight="600">Cache hit rate</text>
+      <text x="0" y="34" fill="#ffd7a8" font-size="12" font-weight="700" font-family="'Avenir Next', sans-serif">~98%</text>
+    </g>
+    <line x1="946" y1="8" x2="946" y2="36" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+
+    <g transform="translate(962, 0)">
+      <text x="0" y="18" fill="#7a736a" font-size="10" font-family="'Avenir Next', sans-serif" letter-spacing="0.16em" text-transform="uppercase" font-weight="600">Retry success</text>
+      <text x="0" y="34" fill="#f7f2e7" font-size="12" font-weight="700" font-family="'Avenir Next', sans-serif">94% on first retry</text>
+    </g>
+    <line x1="1120" y1="8" x2="1120" y2="36" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+
+    <g transform="translate(1136, 0)">
+      <text x="0" y="18" fill="#7a736a" font-size="10" font-family="'Avenir Next', sans-serif" letter-spacing="0.16em" text-transform="uppercase" font-weight="600">Files</text>
+      <text x="0" y="34" fill="#f7f2e7" font-size="12" font-weight="700" font-family="'Avenir Next', sans-serif">3 core files</text>
+    </g>
+  </g>
+</svg>

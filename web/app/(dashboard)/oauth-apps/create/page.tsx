@@ -203,6 +203,21 @@ const ZohoCRMIcon = () => (
   </svg>
 )
 
+const KlingAIIcon = () => (
+  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
+    <rect width="24" height="24" rx="6" fill="#7C3AED"/>
+    <path d="M5 7h3v10H5zM9 12l6-5v10l-6-5z" fill="white"/>
+  </svg>
+)
+
+const MinimaxIcon = () => (
+  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
+    <rect width="24" height="24" rx="6" fill="#2563EB"/>
+    <circle cx="12" cy="12" r="5" stroke="white" strokeWidth="1.5"/>
+    <polygon points="10,9 16,12 10,15" fill="white"/>
+  </svg>
+)
+
 const PROVIDERS = [
   {
     value: 'github',
@@ -575,6 +590,34 @@ const PROVIDERS = [
     setupGuide: 'https://www.zoho.com/crm/developer/docs/api/v6/oauth-overview.html',
     supportsOAuth: true,
     supportsApiToken: false,
+  },
+  {
+    value: 'kling',
+    label: 'Kling AI',
+    icon: <KlingAIIcon />,
+    color: 'text-purple-700',
+    bgColor: 'bg-purple-50',
+    description: 'AI video generation from text prompts (9:16 vertical)',
+    defaultScopes: [],
+    redirectUri: '',
+    setupGuide: 'https://klingai.com/dev',
+    supportsOAuth: false,
+    supportsApiToken: true,
+    apiTokenDescription: 'Enter your Kling Access Key. Add {"secret_key": "your-secret-key"} in the Config JSON field below.',
+  },
+  {
+    value: 'minimax_video',
+    label: 'Minimax Hailuo',
+    icon: <MinimaxIcon />,
+    color: 'text-blue-700',
+    bgColor: 'bg-blue-50',
+    description: 'High-quality AI video generation',
+    defaultScopes: [],
+    redirectUri: '',
+    setupGuide: 'https://www.minimaxi.com/en/document-center',
+    supportsOAuth: false,
+    supportsApiToken: true,
+    apiTokenDescription: 'Enter your Minimax API Key. Add {"group_id": "your-group-id"} in the Config JSON field below.',
   },
 ]
 

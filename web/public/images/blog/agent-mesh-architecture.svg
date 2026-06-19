@@ -1,0 +1,546 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="mesh-title mesh-desc">
+  <title id="mesh-title">Synkora Agent Mesh — Multi-Channel Multi-Agent Architecture</title>
+  <desc id="mesh-desc">Animated diagram showing eight inbound channels flowing into a unified routing layer, a central agent core with tools and memory, and an outbound multi-agent network with sub-agents, A2A protocol, parallel execution, debate, and human handoff.</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#060d10"/>
+      <stop offset="55%" stop-color="#0a1520"/>
+      <stop offset="100%" stop-color="#0d1018"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0e1c1f"/>
+      <stop offset="100%" stop-color="#0b1419"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#142028"/>
+      <stop offset="100%" stop-color="#0f1820"/>
+    </linearGradient>
+    <linearGradient id="core-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f2a20"/>
+      <stop offset="100%" stop-color="#0b1e2c"/>
+    </linearGradient>
+    <linearGradient id="accent"  x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#79dfbc"/>
+      <stop offset="100%" stop-color="#41b98d"/>
+    </linearGradient>
+    <linearGradient id="orange" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffb347"/>
+      <stop offset="100%" stop-color="#ff7e2f"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7ec8e3"/>
+      <stop offset="100%" stop-color="#4fa8d5"/>
+    </linearGradient>
+    <linearGradient id="violet" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#c4a7f7"/>
+      <stop offset="100%" stop-color="#9b72ef"/>
+    </linearGradient>
+    <linearGradient id="rose" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffb7c9"/>
+      <stop offset="100%" stop-color="#ff7ea1"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#000" flood-opacity="0.36"/>
+    </filter>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="16" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glow-sm" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" fill="none" stroke="#fff" stroke-opacity="0.035" stroke-width="1"/>
+    </pattern>
+    <style>
+      .ey  { fill:#6fada0; font:700 14px 'Avenir Next','Segoe UI',Arial,sans-serif; letter-spacing:4px; text-transform:uppercase; }
+      .ttl { fill:#eef2f0; font:700 42px 'Avenir Next','Segoe UI',Arial,sans-serif; letter-spacing:-1.4px; }
+      .sub { fill:#8ab5ae; font:400 17px 'Avenir Next','Segoe UI',Arial,sans-serif; }
+      .sec { fill:#79dfbc; font:700 11px 'Avenir Next','Segoe UI',Arial,sans-serif; letter-spacing:2.8px; text-transform:uppercase; }
+      .sec-o { fill:#ffb347; font:700 11px 'Avenir Next','Segoe UI',Arial,sans-serif; letter-spacing:2.8px; text-transform:uppercase; }
+      .sec-b { fill:#7ec8e3; font:700 11px 'Avenir Next','Segoe UI',Arial,sans-serif; letter-spacing:2.8px; text-transform:uppercase; }
+      .sec-v { fill:#c4a7f7; font:700 11px 'Avenir Next','Segoe UI',Arial,sans-serif; letter-spacing:2.8px; text-transform:uppercase; }
+      .sec-r { fill:#ffb7c9; font:700 11px 'Avenir Next','Segoe UI',Arial,sans-serif; letter-spacing:2.8px; text-transform:uppercase; }
+      .ct  { fill:#edf2f0; font:700 18px 'Avenir Next','Segoe UI',Arial,sans-serif; }
+      .bod { fill:#b0c8c2; font:400 13px 'Avenir Next','Segoe UI',Arial,sans-serif; }
+      .sm  { fill:#7aa89f; font:600 10px 'Avenir Next','Segoe UI',Arial,sans-serif; letter-spacing:1.2px; text-transform:uppercase; }
+      .mo  { fill:#9ac8be; font:600 12px 'Courier New',monospace; }
+      .mo-o{ fill:#ffb347; font:600 11px 'Courier New',monospace; }
+      .mo-b{ fill:#7ec8e3; font:600 11px 'Courier New',monospace; }
+      .mo-v{ fill:#c4a7f7; font:600 11px 'Courier New',monospace; }
+      .fw  { fill:none; stroke:#1c3430; stroke-width:4; stroke-linecap:round; }
+      .fg  { fill:none; stroke:url(#accent); stroke-width:3; stroke-linecap:round; stroke-dasharray:12 9; }
+      .fo  { fill:none; stroke:url(#orange); stroke-width:3; stroke-linecap:round; stroke-dasharray:10 8; }
+      .fb  { fill:none; stroke:url(#blue);   stroke-width:3; stroke-linecap:round; stroke-dasharray:12 9; }
+      .fv  { fill:none; stroke:url(#violet); stroke-width:2.5; stroke-linecap:round; stroke-dasharray:10 8; }
+      .fr  { fill:none; stroke:url(#rose);   stroke-width:2.5; stroke-linecap:round; stroke-dasharray:8 7; }
+    </style>
+  </defs>
+
+  <!-- BG -->
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect width="1600" height="900" fill="url(#grid)"/>
+
+  <!-- Ambient glows -->
+  <circle cx="200"  cy="450" r="220" fill="#41b98d" fill-opacity="0.055" filter="url(#glow)"/>
+  <circle cx="800"  cy="450" r="200" fill="#4fa8d5" fill-opacity="0.06"  filter="url(#glow)"/>
+  <circle cx="1420" cy="300" r="180" fill="#9b72ef" fill-opacity="0.06"  filter="url(#glow)"/>
+  <circle cx="1380" cy="680" r="140" fill="#ff7ea1" fill-opacity="0.05"  filter="url(#glow)"/>
+
+  <!-- Frame -->
+  <rect x="40" y="40" width="1520" height="820" rx="24" fill="url(#panel)" stroke="#1c3630" stroke-width="1.5"/>
+
+  <!-- Header -->
+  <text x="112" y="118" class="ey">Synkora · Agent Mesh</text>
+  <text x="112" y="182" class="ttl">One Brain. Eight Channels. Infinite Agents.</text>
+  <text x="112" y="222" class="sub">Every message — WhatsApp, Slack, Telegram, API, widget, Chrome, mobile — routes to the same agent core.</text>
+  <text x="112" y="244" class="sub">Sub-agents, A2A protocol, parallel execution, debate, and human handoff fan out from there.</text>
+
+  <!-- ═══════════════════════════════════════
+       LEFT — 8 Channel Bubbles
+  ═══════════════════════════════════════ -->
+
+  <!-- WhatsApp -->
+  <g transform="translate(68 278)" filter="url(#shadow)">
+    <rect width="162" height="52" rx="14" fill="#0d1e18" stroke="#1f4d30" stroke-width="1.2"/>
+    <circle cx="26" cy="26" r="10" fill="#25d366" fill-opacity="0.8"/>
+    <text x="44" y="22" class="ct" style="font-size:14px; fill:#c8eed8;">WhatsApp</text>
+    <text x="44" y="38" class="bod" style="font-size:11px; fill:#4a8060;">neonize · device-link</text>
+    <circle cx="150" cy="26" r="5" fill="#25d366">
+      <animate attributeName="fill-opacity" values="0.4;1;0.4" dur="2.3s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Slack -->
+  <g transform="translate(68 342)" filter="url(#shadow)">
+    <rect width="162" height="52" rx="14" fill="#0d1520" stroke="#1f3060" stroke-width="1.2"/>
+    <circle cx="26" cy="26" r="10" fill="#4a154b" stroke="#7b4cbb" stroke-width="1.5"/>
+    <text x="26" y="32" text-anchor="middle" style="fill:#c7b8f0; font:700 12px Arial;">#</text>
+    <text x="44" y="22" class="ct" style="font-size:14px; fill:#c7b8f0;">Slack</text>
+    <text x="44" y="38" class="bod" style="font-size:11px; fill:#4a4080;">socket mode · event mode</text>
+    <circle cx="150" cy="26" r="5" fill="#c7b8f0">
+      <animate attributeName="fill-opacity" values="0.4;1;0.4" dur="1.9s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Telegram -->
+  <g transform="translate(68 406)" filter="url(#shadow)">
+    <rect width="162" height="52" rx="14" fill="#0a1820" stroke="#1a3a52" stroke-width="1.2"/>
+    <circle cx="26" cy="26" r="10" fill="#229ed9" fill-opacity="0.75"/>
+    <text x="44" y="22" class="ct" style="font-size:14px; fill:#a8d8f0;">Telegram</text>
+    <text x="44" y="38" class="bod" style="font-size:11px; fill:#3a6880;">polling · webhook</text>
+    <circle cx="150" cy="26" r="5" fill="#7ec8e3">
+      <animate attributeName="fill-opacity" values="0.4;1;0.4" dur="2.6s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- REST API -->
+  <g transform="translate(68 470)" filter="url(#shadow)">
+    <rect width="162" height="52" rx="14" fill="#101818" stroke="#1e4040" stroke-width="1.2"/>
+    <circle cx="26" cy="26" r="10" fill="#41b98d" fill-opacity="0.6"/>
+    <text x="44" y="22" class="ct" style="font-size:14px; fill:#a8eed8;">REST API</text>
+    <text x="44" y="38" class="bod" style="font-size:11px; fill:#3a7060;">Bearer token · SSE stream</text>
+    <circle cx="150" cy="26" r="5" fill="#79dfbc">
+      <animate attributeName="fill-opacity" values="0.4;1;0.4" dur="2.1s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Widget -->
+  <g transform="translate(68 534)" filter="url(#shadow)">
+    <rect width="162" height="52" rx="14" fill="#101520" stroke="#1e3050" stroke-width="1.2"/>
+    <circle cx="26" cy="26" r="10" fill="#4fa8d5" fill-opacity="0.7"/>
+    <text x="44" y="22" class="ct" style="font-size:14px; fill:#a8d8f0;">Web Widget</text>
+    <text x="44" y="38" class="bod" style="font-size:11px; fill:#3a5870;">JS embed · WebSocket</text>
+    <circle cx="150" cy="26" r="5" fill="#7ec8e3">
+      <animate attributeName="fill-opacity" values="0.4;1;0.4" dur="3.1s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Chrome -->
+  <g transform="translate(68 598)" filter="url(#shadow)">
+    <rect width="162" height="52" rx="14" fill="#181010" stroke="#503020" stroke-width="1.2"/>
+    <circle cx="26" cy="26" r="10" fill="#ea4335" fill-opacity="0.65"/>
+    <text x="44" y="22" class="ct" style="font-size:14px; fill:#f0c8a8;">Chrome Ext.</text>
+    <text x="44" y="38" class="bod" style="font-size:11px; fill:#806040;">content script · side panel</text>
+    <circle cx="150" cy="26" r="5" fill="#ffb347">
+      <animate attributeName="fill-opacity" values="0.4;1;0.4" dur="2.7s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Mobile -->
+  <g transform="translate(68 662)" filter="url(#shadow)">
+    <rect width="162" height="52" rx="14" fill="#151020" stroke="#3a2a55" stroke-width="1.2"/>
+    <circle cx="26" cy="26" r="10" fill="#9b72ef" fill-opacity="0.7"/>
+    <text x="44" y="22" class="ct" style="font-size:14px; fill:#d0b8f8;">Mobile App</text>
+    <text x="44" y="38" class="bod" style="font-size:11px; fill:#604880;">Flutter · push notify</text>
+    <circle cx="150" cy="26" r="5" fill="#c4a7f7">
+      <animate attributeName="fill-opacity" values="0.4;1;0.4" dur="2.4s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Voice / VAPI -->
+  <g transform="translate(68 726)" filter="url(#shadow)">
+    <rect width="162" height="52" rx="14" fill="#0e1818" stroke="#203848" stroke-width="1.2"/>
+    <circle cx="26" cy="26" r="10" fill="#14b8a6" fill-opacity="0.7"/>
+    <text x="44" y="22" class="ct" style="font-size:14px; fill:#a0e8e0;">Voice / VAPI</text>
+    <text x="44" y="38" class="bod" style="font-size:11px; fill:#3a6868;">inbound calls · webhooks</text>
+    <circle cx="150" cy="26" r="5" fill="#79dfbc">
+      <animate attributeName="fill-opacity" values="0.4;1;0.4" dur="3.3s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Channel → Router flow lines + animated pulses -->
+  <!-- WA -->
+  <path d="M230 304H310" class="fw"/>
+  <path d="M230 304H310" class="fg">
+    <animate attributeName="stroke-dashoffset" from="0" to="-42" dur="1.8s" repeatCount="indefinite"/>
+  </path>
+  <!-- Slack -->
+  <path d="M230 368H310" class="fw"/>
+  <path d="M230 368H310" class="fv">
+    <animate attributeName="stroke-dashoffset" from="0" to="-36" dur="2s" repeatCount="indefinite"/>
+  </path>
+  <!-- Telegram -->
+  <path d="M230 432H310" class="fw"/>
+  <path d="M230 432H310" class="fb">
+    <animate attributeName="stroke-dashoffset" from="0" to="-42" dur="2.2s" repeatCount="indefinite"/>
+  </path>
+  <!-- API -->
+  <path d="M230 496H310" class="fw"/>
+  <path d="M230 496H310" class="fg">
+    <animate attributeName="stroke-dashoffset" from="0" to="-42" dur="1.6s" repeatCount="indefinite"/>
+  </path>
+  <!-- Widget -->
+  <path d="M230 560H310" class="fw"/>
+  <path d="M230 560H310" class="fb">
+    <animate attributeName="stroke-dashoffset" from="0" to="-42" dur="2.5s" repeatCount="indefinite"/>
+  </path>
+  <!-- Chrome -->
+  <path d="M230 624H310" class="fw"/>
+  <path d="M230 624H310" class="fo">
+    <animate attributeName="stroke-dashoffset" from="0" to="-36" dur="2.3s" repeatCount="indefinite"/>
+  </path>
+  <!-- Mobile -->
+  <path d="M230 688H310" class="fw"/>
+  <path d="M230 688H310" class="fv">
+    <animate attributeName="stroke-dashoffset" from="0" to="-36" dur="2.7s" repeatCount="indefinite"/>
+  </path>
+  <!-- Voice -->
+  <path d="M230 752H310" class="fw"/>
+  <path d="M230 752H310" class="fg">
+    <animate attributeName="stroke-dashoffset" from="0" to="-42" dur="3s" repeatCount="indefinite"/>
+  </path>
+
+  <!-- Arrival pulses at router -->
+  <circle cx="310" cy="304" r="5" fill="#79dfbc" filter="url(#glow-sm)">
+    <animate attributeName="r" values="4;7;4" dur="1.8s" repeatCount="indefinite"/>
+    <animate attributeName="fill-opacity" values="0.4;1;0.4" dur="1.8s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="310" cy="368" r="5" fill="#c4a7f7" filter="url(#glow-sm)">
+    <animate attributeName="r" values="4;7;4" dur="2s" repeatCount="indefinite"/>
+    <animate attributeName="fill-opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="310" cy="432" r="5" fill="#7ec8e3" filter="url(#glow-sm)">
+    <animate attributeName="r" values="4;7;4" dur="2.2s" repeatCount="indefinite"/>
+    <animate attributeName="fill-opacity" values="0.4;1;0.4" dur="2.2s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="310" cy="496" r="5" fill="#79dfbc" filter="url(#glow-sm)">
+    <animate attributeName="r" values="4;7;4" dur="1.6s" repeatCount="indefinite"/>
+    <animate attributeName="fill-opacity" values="0.4;1;0.4" dur="1.6s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="310" cy="560" r="5" fill="#7ec8e3" filter="url(#glow-sm)">
+    <animate attributeName="r" values="4;7;4" dur="2.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="310" cy="624" r="5" fill="#ffb347" filter="url(#glow-sm)">
+    <animate attributeName="r" values="4;7;4" dur="2.3s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="310" cy="688" r="5" fill="#c4a7f7" filter="url(#glow-sm)">
+    <animate attributeName="r" values="4;7;4" dur="2.7s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="310" cy="752" r="5" fill="#79dfbc" filter="url(#glow-sm)">
+    <animate attributeName="r" values="4;7;4" dur="3s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- ═══════════════════════════════════════
+       ROUTING LAYER
+  ═══════════════════════════════════════ -->
+  <g transform="translate(310 268)" filter="url(#shadow)">
+    <rect width="190" height="520" rx="20" fill="url(#card)" stroke="#1e4038" stroke-width="1.2"/>
+    <rect x="0" y="0" width="190" height="56" rx="20" fill="#0c1e1a"/>
+    <rect x="16" y="14" width="130" height="24" rx="12" fill="#41b98d" fill-opacity="0.14" stroke="#2a6050" stroke-width="1"/>
+    <text x="30" y="31" class="sec" style="font-size:10px;">Routing Layer</text>
+
+    <text x="16" y="80" class="sec" style="font-size:9px; fill:#3e7060;">Message Normalization</text>
+    <rect x="16" y="86" width="158" height="60" rx="10" fill="#091510" stroke="#1a3828" stroke-width="1"/>
+    <text x="26" y="104" class="mo" style="font-size:11px;">source: "slack"</text>
+    <text x="26" y="120" class="mo" style="font-size:11px;">content: "..."</text>
+    <text x="26" y="136" class="mo" style="font-size:11px;">user_id: "U0A3..."</text>
+
+    <text x="16" y="166" class="sec" style="font-size:9px; fill:#3e7060;">Conversation Lane</text>
+    <rect x="16" y="172" width="158" height="44" rx="10" fill="#091510" stroke="#1a3828" stroke-width="1"/>
+    <text x="26" y="192" class="mo" style="font-size:11px;">per-conv asyncio.Lock</text>
+    <text x="26" y="208" class="mo" style="font-size:11px;">TTL: 90s · no races</text>
+
+    <text x="16" y="238" class="sec" style="font-size:9px; fill:#3e7060;">Auth &amp; Tenant</text>
+    <rect x="16" y="244" width="158" height="44" rx="10" fill="#091510" stroke="#1a3828" stroke-width="1"/>
+    <text x="26" y="264" class="mo" style="font-size:11px;">JWT · API key</text>
+    <text x="26" y="280" class="mo" style="font-size:11px;">tenant_id isolated</text>
+
+    <text x="16" y="310" class="sec" style="font-size:9px; fill:#3e7060;">HITL Gate</text>
+    <rect x="16" y="316" width="158" height="44" rx="10" fill="#091510" stroke="#1a3828" stroke-width="1"/>
+    <text x="26" y="336" class="mo" style="font-size:11px;">approval_id check</text>
+    <text x="26" y="352" class="mo" style="font-size:11px;">Redis gate · 600s TTL</text>
+
+    <text x="16" y="382" class="sec" style="font-size:9px; fill:#3e7060;">Persistent Channels</text>
+    <rect x="16" y="388" width="158" height="60" rx="10" fill="#091510" stroke="#1a3828" stroke-width="1"/>
+    <text x="26" y="408" class="mo" style="font-size:11px;">bot_worker pool</text>
+    <text x="26" y="424" class="mo" style="font-size:11px;">consistent hash ring</text>
+    <text x="26" y="440" class="mo" style="font-size:11px;">WA/Slack/TG sockets</text>
+
+    <text x="16" y="472" class="sec" style="font-size:9px; fill:#3e7060;">Stateless Channels</text>
+    <rect x="16" y="478" width="158" height="44" rx="10" fill="#091510" stroke="#1a3828" stroke-width="1"/>
+    <text x="26" y="498" class="mo" style="font-size:11px;">SSE · WebSocket</text>
+    <text x="26" y="514" class="mo" style="font-size:11px;">API · Widget · Mobile</text>
+  </g>
+
+  <!-- Router → Core arrow -->
+  <path d="M500 528H590" class="fw"/>
+  <path d="M500 528H590" class="fg">
+    <animate attributeName="stroke-dashoffset" from="0" to="-42" dur="1.7s" repeatCount="indefinite"/>
+  </path>
+  <circle cx="590" cy="528" r="7" fill="#79dfbc" filter="url(#glow-sm)">
+    <animate attributeName="r" values="5;10;5" dur="1.7s" repeatCount="indefinite"/>
+    <animate attributeName="fill-opacity" values="0.4;1;0.4" dur="1.7s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- ═══════════════════════════════════════
+       CORE — Agent Brain
+  ═══════════════════════════════════════ -->
+  <g transform="translate(590 268)" filter="url(#shadow)">
+    <rect width="300" height="520" rx="22" fill="url(#core-bg)" stroke="#2a5a40" stroke-width="1.6"/>
+    <rect x="0" y="0" width="300" height="62" rx="22" fill="#0a2018"/>
+
+    <!-- Pulsing core indicator -->
+    <circle cx="250" cy="31" r="14" fill="#41b98d" fill-opacity="0.12" stroke="#2a6a48" stroke-width="1">
+      <animate attributeName="r" values="12;18;12" dur="3s" repeatCount="indefinite"/>
+      <animate attributeName="fill-opacity" values="0.08;0.2;0.08" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="250" cy="31" r="7" fill="#79dfbc">
+      <animate attributeName="fill-opacity" values="0.5;1;0.5" dur="3s" repeatCount="indefinite"/>
+    </circle>
+
+    <text x="24" y="24" class="sec">Agent Core</text>
+    <text x="24" y="44" class="ct" style="font-size:16px; fill:#c8eed8;">LLM · Tools · Memory · KB</text>
+
+    <!-- LLM -->
+    <rect x="16" y="76" width="268" height="52" rx="12" fill="#091810" stroke="#1e4030" stroke-width="1"/>
+    <text x="28" y="96"  class="sec" style="font-size:9px;">LLM Config</text>
+    <text x="28" y="113" class="mo" style="font-size:11px;">LiteLLM · GPT-4o / Claude / Gemini</text>
+
+    <!-- Tools -->
+    <rect x="16" y="138" width="268" height="52" rx="12" fill="#091810" stroke="#1e4030" stroke-width="1"/>
+    <text x="28" y="158" class="sec" style="font-size:9px;">50+ Tools</text>
+    <text x="28" y="175" class="mo" style="font-size:11px;">SQL · web · Slack · GitHub · Jira…</text>
+
+    <!-- Memory -->
+    <rect x="16" y="200" width="268" height="52" rx="12" fill="#091810" stroke="#1e4030" stroke-width="1"/>
+    <text x="28" y="220" class="sec" style="font-size:9px;">Memory · KB</text>
+    <text x="28" y="237" class="mo" style="font-size:11px;">recall · RAG · vector search</text>
+
+    <!-- MCP -->
+    <rect x="16" y="262" width="268" height="52" rx="12" fill="#091810" stroke="#1e4030" stroke-width="1"/>
+    <text x="28" y="282" class="sec" style="font-size:9px;">MCP Servers</text>
+    <text x="28" y="299" class="mo" style="font-size:11px;">call_remote_agent · spawn_agent</text>
+
+    <!-- Context -->
+    <rect x="16" y="324" width="268" height="52" rx="12" fill="#091810" stroke="#1e4030" stroke-width="1"/>
+    <text x="28" y="344" class="sec" style="font-size:9px;">Context Pipeline</text>
+    <text x="28" y="361" class="mo" style="font-size:11px;">prune · compact · schema strip</text>
+
+    <!-- Prompt / System -->
+    <rect x="16" y="386" width="268" height="52" rx="12" fill="#091810" stroke="#1e4030" stroke-width="1"/>
+    <text x="28" y="406" class="sec" style="font-size:9px;">Prompt Builder</text>
+    <text x="28" y="423" class="mo" style="font-size:11px;">system · KB · context files · style</text>
+
+    <!-- Agent Lens badge -->
+    <rect x="16" y="450" width="268" height="34" rx="17" fill="#0b2015" stroke="#1e4a30" stroke-width="1"/>
+    <text x="150" y="472" text-anchor="middle" class="sm" style="fill:#41b98d; letter-spacing:1.5px;">Agent Lens observability · fire-and-forget</text>
+  </g>
+
+  <!-- Core → Multi-agent layer -->
+  <path d="M890 528H960" class="fw"/>
+  <path d="M890 528H960" class="fb">
+    <animate attributeName="stroke-dashoffset" from="0" to="-42" dur="1.9s" repeatCount="indefinite"/>
+  </path>
+  <circle cx="960" cy="528" r="7" fill="#7ec8e3" filter="url(#glow-sm)">
+    <animate attributeName="r" values="5;10;5" dur="1.9s" repeatCount="indefinite"/>
+    <animate attributeName="fill-opacity" values="0.4;1;0.4" dur="1.9s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- ═══════════════════════════════════════
+       RIGHT — Multi-Agent Network
+  ═══════════════════════════════════════ -->
+
+  <!-- Sequential sub-agents -->
+  <g transform="translate(960 268)" filter="url(#shadow)">
+    <rect width="248" height="110" rx="18" fill="url(#card)" stroke="#1e4050" stroke-width="1.2"/>
+    <rect x="0" y="0" width="248" height="46" rx="18" fill="#090f1a"/>
+    <rect x="16" y="12" width="120" height="22" rx="11" fill="#4fa8d5" fill-opacity="0.14" stroke="#1e4a66" stroke-width="1"/>
+    <text x="28" y="27" class="sec-b" style="font-size:9px;">Sequential</text>
+    <text x="16" y="68"  class="mo-b" style="font-size:11px;">A → B → C · pass state forward</text>
+    <text x="16" y="86"  class="mo-b" style="font-size:11px;">execution_order · AgentSubAgent</text>
+    <!-- animated chain -->
+    <circle cx="186" cy="78" r="5" fill="#7ec8e3">
+      <animate attributeName="fill-opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="210" cy="78" r="5" fill="#7ec8e3">
+      <animate attributeName="fill-opacity" values="0.3;1;0.3" dur="2s" begin="0.7s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="234" cy="78" r="5" fill="#7ec8e3">
+      <animate attributeName="fill-opacity" values="0.3;1;0.3" dur="2s" begin="1.4s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Parallel sub-agents -->
+  <g transform="translate(960 392)" filter="url(#shadow)">
+    <rect width="248" height="110" rx="18" fill="url(#card)" stroke="#1e4038" stroke-width="1.2"/>
+    <rect x="0" y="0" width="248" height="46" rx="18" fill="#0a1e18"/>
+    <rect x="16" y="12" width="110" height="22" rx="11" fill="#41b98d" fill-opacity="0.14" stroke="#2a6050" stroke-width="1"/>
+    <text x="28" y="27" class="sec" style="font-size:9px;">Parallel</text>
+    <text x="16" y="68"  class="mo" style="font-size:11px;">asyncio.gather · all sub-agents at once</text>
+    <text x="16" y="86"  class="mo" style="font-size:11px;">wait_for_all · timeout_seconds</text>
+    <!-- animated parallel bars -->
+    <rect x="188" y="62" width="8" height="28" rx="4" fill="#79dfbc" fill-opacity="0.5">
+      <animate attributeName="height" values="20;32;20" dur="1.6s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="68;56;68" dur="1.6s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="202" y="58" width="8" height="32" rx="4" fill="#79dfbc" fill-opacity="0.7">
+      <animate attributeName="height" values="30;20;30" dur="1.8s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="58;68;58" dur="1.8s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="216" y="64" width="8" height="26" rx="4" fill="#79dfbc" fill-opacity="0.6">
+      <animate attributeName="height" values="26;36;26" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="64;54;64" dur="2s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="230" y="60" width="8" height="30" rx="4" fill="#79dfbc" fill-opacity="0.4">
+      <animate attributeName="height" values="24;34;24" dur="1.4s" repeatCount="indefinite"/>
+      <animate attributeName="y" values="66;56;66" dur="1.4s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+
+  <!-- War Room / Debate -->
+  <g transform="translate(960 516)" filter="url(#shadow)">
+    <rect width="248" height="110" rx="18" fill="url(#card)" stroke="#3a2a55" stroke-width="1.2"/>
+    <rect x="0" y="0" width="248" height="46" rx="18" fill="#130f1e"/>
+    <rect x="16" y="12" width="110" height="22" rx="11" fill="#9b72ef" fill-opacity="0.14" stroke="#5a3a9a" stroke-width="1"/>
+    <text x="28" y="27" class="sec-v" style="font-size:9px;">Debate · War Room</text>
+    <text x="16" y="68"  class="mo-v" style="font-size:11px;">multi-agent rounds · synthesis</text>
+    <text x="16" y="86"  class="mo-v" style="font-size:11px;">structured · freeform · external</text>
+    <circle cx="200" cy="76" r="16" fill="#9b72ef" fill-opacity="0.08" stroke="#5a3a9a" stroke-width="1">
+      <animate attributeName="r" values="14;20;14" dur="2.8s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="200" cy="76" r="7" fill="#c4a7f7">
+      <animate attributeName="fill-opacity" values="0.4;1;0.4" dur="2.8s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- A2A Protocol -->
+  <g transform="translate(960 640)" filter="url(#shadow)">
+    <rect width="248" height="110" rx="18" fill="url(#card)" stroke="#50351a" stroke-width="1.2"/>
+    <rect x="0" y="0" width="248" height="46" rx="18" fill="#1a1108"/>
+    <rect x="16" y="12" width="150" height="22" rx="11" fill="#ffb347" fill-opacity="0.14" stroke="#7a5020" stroke-width="1"/>
+    <text x="28" y="27" class="sec-o" style="font-size:9px;">A2A Protocol · Google</text>
+    <text x="16" y="68"  class="mo-o" style="font-size:11px;">message/send · tasks/sendSubscribe</text>
+    <text x="16" y="86"  class="mo-o" style="font-size:11px;">agent.json card · external agents</text>
+    <circle cx="228" cy="78" r="6" fill="#ffb347">
+      <animate attributeName="fill-opacity" values="0.3;1;0.3" dur="2.1s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="5;8;5" dur="2.1s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Human Handoff -->
+  <g transform="translate(960 764)" filter="url(#shadow)">
+    <rect width="248" height="72" rx="18" fill="url(#card)" stroke="#502030" stroke-width="1.2"/>
+    <rect x="0" y="0" width="248" height="46" rx="18" fill="#1a0a10"/>
+    <rect x="16" y="12" width="130" height="22" rx="11" fill="#ff7ea1" fill-opacity="0.14" stroke="#7a2840" stroke-width="1"/>
+    <text x="28" y="27" class="sec-r" style="font-size:9px;">Human Handoff</text>
+    <text x="16" y="64"  class="mo" style="font-size:11px; fill:#ffb7c9;">operator reply · WebSocket · resolve</text>
+    <circle cx="228" cy="28" r="5" fill="#ff7ea1">
+      <animate attributeName="fill-opacity" values="0.3;1;0.3" dur="1.9s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Core to each right panel arrows -->
+  <!-- to Sequential -->
+  <path d="M890 360H948L948 323H960" class="fw"/>
+  <path d="M890 360H948L948 323H960" class="fb">
+    <animate attributeName="stroke-dashoffset" from="0" to="-42" dur="2.3s" repeatCount="indefinite"/>
+  </path>
+  <!-- to Parallel -->
+  <path d="M890 450H948L948 447H960" class="fw"/>
+  <path d="M890 450H948L948 447H960" class="fg">
+    <animate attributeName="stroke-dashoffset" from="0" to="-42" dur="1.8s" repeatCount="indefinite"/>
+  </path>
+  <!-- to Debate (already at 528) -->
+  <!-- to A2A -->
+  <path d="M890 610H948L948 695H960" class="fw"/>
+  <path d="M890 610H948L948 695H960" class="fo">
+    <animate attributeName="stroke-dashoffset" from="0" to="-36" dur="2.5s" repeatCount="indefinite"/>
+  </path>
+  <!-- to Handoff -->
+  <path d="M890 680H940L940 800H960" class="fw"/>
+  <path d="M890 680H940L940 800H960" class="fr">
+    <animate attributeName="stroke-dashoffset" from="0" to="-30" dur="2.8s" repeatCount="indefinite"/>
+  </path>
+
+  <!-- External agent call-back arrow (A2A → remote) -->
+  <path d="M1208 695H1310" class="fw"/>
+  <path d="M1208 695H1310" class="fo">
+    <animate attributeName="stroke-dashoffset" from="0" to="-36" dur="2s" repeatCount="indefinite"/>
+  </path>
+  <g transform="translate(1314 676)" filter="url(#shadow)">
+    <rect width="214" height="42" rx="12" fill="#1a1108" stroke="#7a5020" stroke-width="1"/>
+    <text x="14" y="16" class="sec-o" style="font-size:9px;">External Agent</text>
+    <text x="14" y="32" class="mo-o" style="font-size:10px;">any A2A / MCP endpoint</text>
+    <circle cx="194" cy="21" r="5" fill="#ffb347">
+      <animate attributeName="fill-opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+      <animate attributeName="r" values="4;7;4" dur="2s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Sub-agent fan out (sequential → sub-agents boxes) -->
+  <g transform="translate(1220 278)">
+    <rect width="110" height="32" rx="8" fill="#091520" stroke="#1a3a52" stroke-width="1"/>
+    <text x="12" y="21" class="mo-b" style="font-size:10px;">Agent B · order=1</text>
+  </g>
+  <g transform="translate(1220 320)">
+    <rect width="110" height="32" rx="8" fill="#091520" stroke="#1a3a52" stroke-width="1"/>
+    <text x="12" y="21" class="mo-b" style="font-size:10px;">Agent C · order=2</text>
+  </g>
+  <path d="M1208 323H1220" class="fw" style="stroke-width:2;"/>
+  <path d="M1208 323H1220" class="fb" style="stroke-width:2;">
+    <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1.6s" repeatCount="indefinite"/>
+  </path>
+  <path d="M1208 337L1214 337L1214 336L1220 336" class="fw" style="stroke-width:2;"/>
+  <path d="M1208 349L1214 349L1214 336L1220 336" class="fb" style="stroke-width:2;">
+    <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="2.1s" repeatCount="indefinite"/>
+  </path>
+
+  <!-- Stats bar -->
+  <rect x="80" y="836" width="1440" height="14" rx="7" fill="#0a1510" stroke="#162c24" stroke-width="1"/>
+  <rect x="80" y="836" width="520" height="14" rx="7" fill="url(#accent)" fill-opacity="0.5">
+    <animate attributeName="width" values="480;560;510;580;480" dur="6s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="600" y="836" width="310" height="14" rx="7" fill="url(#blue)" fill-opacity="0.45">
+    <animate attributeName="width" values="290;340;305;360;290" dur="5s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="910" y="836" width="380" height="14" rx="7" fill="url(#violet)" fill-opacity="0.4">
+    <animate attributeName="width" values="360;410;375;430;360" dur="7s" repeatCount="indefinite"/>
+  </rect>
+
+  <!-- Footer -->
+  <text x="112" y="872" class="sm" style="fill:#3e8060;">MIT · agent_manager.py · sub_agents.py · a2a.py · debate_executor.py · parallel_executor.py · conversation_lane.py</text>
+  <text x="1290" y="872" class="sm" style="fill:#79dfbc;">one brain · any channel · any agent</text>
+</svg>

@@ -289,6 +289,36 @@ const PROVIDER_CONFIG: Record<string, {
     description: 'Contacts, leads, deals, and CRM data',
     setupUrl: 'https://www.zoho.com/crm/developer/docs/api/v6/oauth-overview.html',
   },
+  kling: {
+    name: 'Kling AI',
+    icon: (
+      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+        <rect width="24" height="24" rx="6" fill="#7C3AED"/>
+        <path d="M8 7.5C8 7.22 8.22 7 8.5 7h2c.28 0 .5.22.5.5v9c0 .28-.22.5-.5.5h-2A.5.5 0 0 1 8 16.5v-9Z" fill="white"/>
+        <path d="M13 9.27c0-.45.5-.7.87-.44l4.26 3.23c.3.23.3.67 0 .9L13.87 16.2c-.37.27-.87.01-.87-.44V9.27Z" fill="white"/>
+      </svg>
+    ),
+    color: 'text-purple-700',
+    bgColor: 'bg-purple-50',
+    borderColor: 'border-purple-200',
+    description: 'AI video generation from text prompts (9:16 vertical)',
+    setupUrl: 'https://klingai.com/dev',
+  },
+  minimax_video: {
+    name: 'Minimax Hailuo',
+    icon: (
+      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+        <rect width="24" height="24" rx="6" fill="#2563EB"/>
+        <circle cx="12" cy="12" r="5" stroke="white" strokeWidth="1.5"/>
+        <path d="M10 10l4 2-4 2V10Z" fill="white"/>
+      </svg>
+    ),
+    color: 'text-blue-700',
+    bgColor: 'bg-blue-50',
+    borderColor: 'border-blue-200',
+    description: 'High-quality AI video generation',
+    setupUrl: 'https://www.minimaxi.com/en/document-center',
+  },
 }
 
 type TabType = 'my-connections' | 'admin'
