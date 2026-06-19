@@ -112,7 +112,7 @@ export interface OAuthApp {
 // Slack bot for dropdowns
 export interface SlackBot {
   id: string;
-  name: string;
-  slack_team_name?: string;
+  bot_name: string;
+  slack_workspace_name?: string;
   is_active: boolean;
 }

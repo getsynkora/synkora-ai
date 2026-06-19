@@ -72,11 +72,14 @@ async def _run_agent_non_streaming(
     db,
 ) -> str:
     """Run the agent in non-streaming mode and return the response text."""
+    import json
+
     try:
         from sqlalchemy import select
 
         from src.models.agent import Agent
         from src.services.agents.agent_loader_service import AgentLoaderService
+        from src.services.agents.agent_manager import AgentManager
         from src.services.agents.chat_service import ChatService
         from src.services.agents.chat_stream_service import ChatStreamService
 
@@ -85,23 +88,27 @@ async def _run_agent_non_streaming(
         if not db_agent:
             return ""
 
-        agent_loader = AgentLoaderService(db)
-        agent = await agent_loader.load_agent(db_agent)
+        agent_name = db_agent.slug or db_agent.agent_name
 
-        chat_service = ChatService(db)
-        stream_service = ChatStreamService(chat_service)
+        agent_manager = AgentManager()
+        agent_loader = AgentLoaderService(agent_manager)
+        stream_service = ChatStreamService(
+            agent_loader=agent_loader,
+            chat_service=ChatService(),
+        )
 
         chunks: list[str] = []
-        async for event_str in stream_service.stream_response(
-            agent=agent,
-            db_agent=db_agent,
+        async for event_str in stream_service.stream_agent_response(
+            agent_name=agent_name,
             message=message,
+            conversation_history=None,
             conversation_id=None,
-            tenant_id=tenant_id,
+            attachments=None,
+            llm_config_id=None,
             db=db,
+            tenant_id=tenant_id,
+            trigger_source="eval",
         ):
-            import json
-
             try:
                 if event_str.startswith("data: "):
                     data = json.loads(event_str[6:])
@@ -172,23 +179,35 @@ async def run_eval_dataset(
 
     from src.config.settings import settings
     from src.models.agent import Agent
+    from src.models.agent_llm_config import AgentLLMConfig
     from src.services.agents.config import ModelConfig
+    from src.services.agents.security import decrypt_value
     from src.services.eval.dataset_service import list_cases
 
     es = await _get_es_client()
 
-    # Load agent's LLM config for the judge (read direct from JSON column — no full agent load needed)
+    # Load agent's default LLM config for the judge from AgentLLMConfig table (has encrypted api_key)
     result = await db.execute(select(Agent).filter(Agent.id == agent_id, Agent.tenant_id == tenant_id))
     db_agent = result.scalar_one_or_none()
     agent_llm_config = None
-    if db_agent and isinstance(db_agent.llm_config, dict):
-        raw = db_agent.llm_config
-        agent_llm_config = ModelConfig(
-            provider=raw.get("provider", "litellm"),
-            model_name=raw.get("model_name", raw.get("model", "")),
-            api_key=raw.get("api_key"),
-            api_base=raw.get("api_base"),
+    if db_agent:
+        # Try default AgentLLMConfig row first (proper table with encrypted api_key)
+        llm_cfg_result = await db.execute(
+            select(AgentLLMConfig).filter(
+                AgentLLMConfig.agent_id == agent_id,
+                AgentLLMConfig.tenant_id == tenant_id,
+                AgentLLMConfig.is_default.is_(True),
+                AgentLLMConfig.enabled.is_(True),
+            )
         )
+        llm_cfg_row = llm_cfg_result.scalar_one_or_none()
+        if llm_cfg_row:
+            agent_llm_config = ModelConfig(
+                provider=llm_cfg_row.provider,
+                model_name=llm_cfg_row.model_name,
+                api_key=decrypt_value(llm_cfg_row.api_key) if llm_cfg_row.api_key else None,
+                api_base=llm_cfg_row.api_base,
+            )
 
     # Mark run as running
     await es.index(

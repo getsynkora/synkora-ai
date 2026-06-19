@@ -141,7 +141,7 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g., Slack Notifications"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 required
               />
             </div>
@@ -155,7 +155,7 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Optional description"
                 rows={2}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -173,7 +173,7 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
               setConnectionValue('');
             }}
             disabled={!!output}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
             required
           >
             <option value="slack">Slack</option>
@@ -196,7 +196,7 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
             <select
               value={connectionValue}
               onChange={(e) => setConnectionValue(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
               required
             >
               <option value="">Select Slack connection</option>
@@ -204,7 +204,7 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
                 <optgroup label="Slack Bots (Bot Token)">
                   {slackBots.map((bot) => (
                     <option key={bot.id} value={`bot:${bot.id}`}>
-                      {bot.name}{bot.slack_team_name ? ` — ${bot.slack_team_name}` : ''}
+                      {bot.bot_name}{bot.slack_workspace_name ? ` — ${bot.slack_workspace_name}` : ''}
                     </option>
                   ))}
                 </optgroup>
@@ -236,7 +236,7 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
             <select
               value={connectionValue}
               onChange={(e) => setConnectionValue(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
               required
             >
               <option value="">Select email app</option>
@@ -266,7 +266,7 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
                 value={slackChannelId}
                 onChange={(e) => setSlackChannelId(e.target.value)}
                 placeholder="C0123456789"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 required
               />
               <p className="text-xs text-gray-600 mt-1">
@@ -282,7 +282,7 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
                 value={slackChannelName}
                 onChange={(e) => setSlackChannelName(e.target.value)}
                 placeholder="#general"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -299,7 +299,7 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
                 value={emailTo}
                 onChange={(e) => setEmailTo(e.target.value)}
                 placeholder="user@example.com, another@example.com"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 required
               />
               <p className="text-xs text-gray-600 mt-1">
@@ -315,7 +315,7 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
                 value={emailSubject}
                 onChange={(e) => setEmailSubject(e.target.value)}
                 placeholder="Agent Output"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 required
               />
             </div>
@@ -333,7 +333,7 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
                 value={webhookUrl}
                 onChange={(e) => setWebhookUrl(e.target.value)}
                 placeholder="https://api.example.com/webhook"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 required
               />
             </div>
@@ -344,7 +344,7 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
               <select
                 value={webhookMethod}
                 onChange={(e) => setWebhookMethod(e.target.value as 'POST' | 'PUT' | 'PATCH')}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
               >
                 <option value="POST">POST</option>
                 <option value="PUT">PUT</option>
@@ -432,7 +432,7 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
                   max={5}
                   value={maxRetries}
                   onChange={(e) => setMaxRetries(parseInt(e.target.value))}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 />
               </div>
             )}

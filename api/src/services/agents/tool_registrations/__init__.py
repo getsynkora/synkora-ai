@@ -48,6 +48,7 @@ from .storage_tools_registry import register_storage_tools
 from .tool_discovery_registry import register_tool_discovery_tools
 from .tutorial_tools_registry import register_tutorial_tools
 from .twitter_tools_registry import register_twitter_tools
+from .video_tools_registry import register_video_tools
 from .youtube_tools_registry import register_youtube_tools
 from .zoom_tools_registry import register_zoom_tools
 
@@ -103,4 +104,5 @@ __all__ = [
     "register_storage_tools",
     "register_news_tools",
     "register_remote_agent_tools",
+    "register_video_tools",
 ]

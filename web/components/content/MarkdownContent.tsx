@@ -55,8 +55,53 @@ export default function MarkdownContent({ content }: { content: string }) {
           )
         }
 
+        if (block.type === 'pipeline') {
+          return <PipelineBlock key={index} content={block.content} />
+        }
+
         return null
       })}
+    </div>
+  )
+}
+
+function PipelineBlock({ content }: { content: string }) {
+  const lines = content.split('\n').filter(Boolean)
+
+  type Phase = { label: string; steps: { num: string; text: string }[] }
+  const phases: Phase[] = []
+  let current: Phase = { label: '', steps: [] }
+
+  for (const line of lines) {
+    if (line.startsWith('## ')) {
+      if (current.steps.length > 0 || current.label) phases.push(current)
+      current = { label: line.slice(3).trim(), steps: [] }
+    } else {
+      const m = line.match(/^(\d+)\.\s+(.+)$/)
+      if (m) current.steps.push({ num: m[1], text: m[2] })
+    }
+  }
+  if (current.steps.length > 0 || current.label) phases.push(current)
+
+  return (
+    <div className="content-pipeline">
+      {phases.map((phase, pi) => (
+        <div key={pi} className="content-pipeline__phase">
+          {phase.label && (
+            <div className="content-pipeline__header">
+              <span className="content-pipeline__header-name">{phase.label}</span>
+            </div>
+          )}
+          {phase.steps.map((step, si) => (
+            <div key={si} className="content-pipeline__step">
+              <span className="content-pipeline__n">{step.num}.</span>
+              <span className="content-pipeline__body">
+                <InlineMarkdown content={step.text} />
+              </span>
+            </div>
+          ))}
+        </div>
+      ))}
     </div>
   )
 }
@@ -181,6 +226,7 @@ type EditorialBlock =
   | { type: 'centered-statement'; content: string }
   | { type: 'brush-title'; content: string }
   | { type: 'ink-band'; content: string }
+  | { type: 'pipeline'; content: string }
 
 function parseEditorialBlocks(content: string): EditorialBlock[] {
   const lines = content.split('\n')
@@ -197,7 +243,7 @@ function parseEditorialBlocks(content: string): EditorialBlock[] {
 
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i]
-    const directive = line.match(/^:::(eyebrow|centered-statement|brush-title|ink-band)\s*$/)
+    const directive = line.match(/^:::(eyebrow|centered-statement|brush-title|ink-band|pipeline)\s*$/)
     if (!directive) {
       markdownBuffer.push(line)
       continue

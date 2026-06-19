@@ -452,6 +452,11 @@ class ADKToolRegistry:
 
         register_image_generation_tools(self)
 
+        # Website-to-video pipeline tools (scrape → script → scenes → assemble)
+        from src.services.agents.tool_registrations.video_tools_registry import register_video_tools
+
+        register_video_tools(self)
+
         # Recall.ai meeting bot tools - use modular registry
         from src.services.agents.tool_registrations.recall_tools_registry import register_recall_tools
 

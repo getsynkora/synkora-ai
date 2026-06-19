@@ -333,6 +333,10 @@ class MCPClient:
                     token = server.auth_config["token"]
                     logger.info(f"Token present: Yes (length: {len(token)})")
 
+        # Per-call timeout (seconds). Keeps slow MCP tools from consuming the
+        # entire outer task budget and killing the whole agent run.
+        _TOOL_TIMEOUT = 120
+
         # Execute with retries
         last_error = None
         for attempt in range(self.max_retries):
@@ -340,7 +344,10 @@ class MCPClient:
                 logger.info(f"Attempt {attempt + 1}/{self.max_retries}: Calling FastMCP client.call_tool()")
 
                 # FastMCP Client handles session management and tool execution
-                result = await self._client.call_tool(name=tool_name, arguments=arguments)
+                result = await asyncio.wait_for(
+                    self._client.call_tool(name=tool_name, arguments=arguments),
+                    timeout=_TOOL_TIMEOUT,
+                )
 
                 logger.info("=== MCP Tool Execution Response ===")
                 logger.info("Success: True")
@@ -348,6 +355,11 @@ class MCPClient:
                 logger.info(f"Result: {json.dumps(result, indent=2) if isinstance(result, dict) else str(result)}")
 
                 return result
+
+            except asyncio.CancelledError:
+                # Outer task was cancelled (e.g. parent wait_for fired) — do not retry,
+                # just propagate so the caller can handle it cleanly.
+                raise
 
             except Exception as e:
                 last_error = e

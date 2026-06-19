@@ -79,7 +79,7 @@ export function saveVoiceMeetingsConfig(agentSlug: string, config: VoiceMeetings
   return apiClient.request('PUT', `/api/v1/agents/${agentSlug}/voice-meetings`, config)
 }
 
-export function getWebCallToken(agentSlug: string): Promise<{ public_key: string; agent_id: string; agent_name: string; vapi_assistant_id: string | null }> {
+export function getWebCallToken(agentSlug: string): Promise<{ public_key: string; agent_id: string; agent_name: string }> {
   return apiClient.request('POST', `/api/v1/agents/${agentSlug}/voice-meetings/web-call-token`)
 }
 

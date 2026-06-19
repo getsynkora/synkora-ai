@@ -8,12 +8,112 @@ export const metadata = {
   description: 'Architecture deep dives, launch notes, and practical guides from the Synkora team.',
 }
 
-export default async function BlogPage() {
+export default async function BlogPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tag?: string }>
+}) {
+  const { tag: activeTag } = await searchParams
   const posts = await getAllBlogPosts()
   const [featuredPost, ...otherPosts] = posts
   const topicStats = getTopicStats(posts)
   const allAuthors = new Set(posts.flatMap((post) => post.authors.map((author) => author.name)))
   const latestDate = featuredPost?.publishedAt ? formatDate(featuredPost.publishedAt) : null
+
+  // Tag filtered view
+  if (activeTag) {
+    const filtered = posts.filter((p) => p.tags.includes(activeTag))
+    return (
+      <PublicPageFrame mainClassName="pt-28 pb-20 px-4 sm:px-6">
+        <div className="mx-auto max-w-3xl">
+          <Link
+            href="/blog"
+            className="inline-flex items-center text-sm font-medium text-[#5b564e] transition-colors hover:text-[#171717]"
+          >
+            ← All posts
+          </Link>
+
+          <div className="mt-6">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#7a736a]">Topic</p>
+            <h1 className="mt-2 text-4xl font-semibold tracking-[-0.05em] text-[#171717] sm:text-5xl">
+              {activeTag}
+            </h1>
+            <p className="mt-2 text-[15px] text-[#7a736a]">
+              {filtered.length} post{filtered.length === 1 ? '' : 's'}
+            </p>
+          </div>
+
+          <div className="mt-10 space-y-0 overflow-hidden rounded-[2rem] border border-black/10 bg-[#f6f1e7] shadow-[0_24px_60px_rgba(0,0,0,0.06)]">
+            {filtered.length === 0 ? (
+              <p className="px-8 py-10 text-[15px] text-[#9a9289]">No posts found under this topic.</p>
+            ) : (
+              filtered.map((post, i) => (
+                <Link
+                  key={post.slug}
+                  href={`/blog/${post.slug}`}
+                  className="group flex items-start gap-5 px-8 py-7 transition-colors hover:bg-[#ede8db]"
+                  style={{ borderTop: i === 0 ? 'none' : '1px solid #d8d2c8' }}
+                >
+                  <div className="mt-0.5 shrink-0 text-[#3a3530] transition-colors group-hover:text-[#2d8b69]">
+                    <svg width="28" height="28" viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <rect x="10" y="10" width="12" height="12" rx="2" />
+                      <path d="M16 4v6M16 22v6M4 16h6M22 16h6M7 7l4.2 4.2M20.8 20.8l4.2 4.2M25 7l-4.2 4.2M11.2 20.8 7 25" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0">
+                    {post.publishedAt && (
+                      <p className="text-[12px] text-[#9a9289]">{formatDate(post.publishedAt)}</p>
+                    )}
+                    <p className="mt-1 line-clamp-2 text-[1.3rem] font-semibold leading-snug tracking-[-0.04em] text-[#1a1714] transition-colors group-hover:text-[#2d8b69]">
+                      {post.title}
+                    </p>
+                    {post.excerpt && (
+                      <p className="mt-1.5 line-clamp-2 text-[14px] leading-6 text-[#5b564e]">{post.excerpt}</p>
+                    )}
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
+                      {post.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${
+                            tag === activeTag
+                              ? 'border-[#2d8b69] bg-[#edf8f3] text-[#2d8b69]'
+                              : 'border-[#c8c2b8] text-[#7a736a]'
+                          }`}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </Link>
+              ))
+            )}
+          </div>
+
+          {/* Other topics */}
+          {topicStats.filter((t) => t.label !== activeTag).length > 0 && (
+            <div className="mt-10">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#7a736a]">Other topics</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {topicStats
+                  .filter((t) => t.label !== activeTag)
+                  .map((topic) => (
+                    <Link
+                      key={topic.label}
+                      href={`/blog?tag=${encodeURIComponent(topic.label)}`}
+                      className="rounded-full border border-[#c8c2b8] bg-white/80 px-3.5 py-2 text-[12px] font-medium text-[#5b564e] shadow-[0_4px_12px_rgba(0,0,0,0.04)] transition-colors hover:border-[#2d8b69] hover:text-[#2d8b69]"
+                    >
+                      {topic.label}
+                      <span className="ml-1.5 opacity-60">{topic.count}</span>
+                    </Link>
+                  ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </PublicPageFrame>
+    )
+  }
 
   return (
     <PublicPageFrame mainClassName="overflow-hidden pt-28 pb-20 px-4 sm:px-6">

@@ -157,12 +157,12 @@ class OutputSanitizer:
     }
 
     # Layer 2: PII patterns
+    # NOTE: email addresses are intentionally excluded here. They are user-configured
+    # values (e.g. report recipients) that agents legitimately reference in their
+    # responses. Masking them here causes the masked value to persist in conversation
+    # history, breaking subsequent runs that try to use the address. Email PII in
+    # tool *results* is handled separately by PIIRedactor with proper token restoration.
     PII_PATTERNS = {
-        "email": {
-            "pattern": r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
-            "action": SanitizationAction.MASK,
-            "severity": "MEDIUM",
-        },
         "phone_us": {
             "pattern": r"\b(\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})\b",
             "action": SanitizationAction.MASK,

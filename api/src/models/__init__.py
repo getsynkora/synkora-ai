@@ -35,6 +35,7 @@ from .agent_version import AgentVersion
 from .agent_webhook import AgentWebhook, AgentWebhookEvent
 from .agent_widget import AgentWidget, WidgetAnalytics
 from .analysis_job import AnalysisJob, JobStatus, JobType
+from .video_generation_job import VideoGenerationJob, VideoJobStatus
 from .app import App, AppMode, AppStatus
 from .app_review import AppReview, ReviewSentiment
 from .app_store_source import AppStoreSource, SourceStatus, StoreType, SyncFrequency
@@ -257,6 +258,9 @@ __all__ = [
     "AnalysisJob",
     "JobStatus",
     "JobType",
+    # Video Generation Job models
+    "VideoGenerationJob",
+    "VideoJobStatus",
     # Debate Session models
     "DebateSession",
     # Wiki / Knowledge Autopilot models
