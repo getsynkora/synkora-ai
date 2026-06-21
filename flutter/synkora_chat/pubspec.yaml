@@ -1,6 +1,6 @@
 name: synkora_chat
 description: Native Flutter SDK for embedding Synkora AI chat widgets. Drop-in UI + headless API client with local message cache.
-version: 1.13.4
+version: 1.13.6
 homepage: https://synkora.com
 repository: https://github.com/synkora/synkora-flutter
 issue_tracker: https://github.com/synkora/synkora-flutter/issues
