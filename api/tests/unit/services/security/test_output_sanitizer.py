@@ -155,13 +155,16 @@ class TestPIIDetection:
         return OutputSanitizer()
 
     def test_masks_email_addresses(self, sanitizer):
-        """Test that email addresses are masked."""
+        """Test that email addresses pass through unchanged.
+
+        Emails are intentionally not masked — they are user-configured values
+        (e.g. report recipients) that agents legitimately reference. Email PII
+        in tool results is handled separately by PIIRedactor with token restoration.
+        """
         content = "Contact: user@example.com for help"
         result = sanitizer.sanitize(content)
 
-        # Email should be masked (partial)
-        assert "user@example.com" not in result.sanitized_content
-        assert len(result.detections) > 0
+        assert "user@example.com" in result.sanitized_content
 
     def test_masks_phone_numbers(self, sanitizer):
         """Test that phone numbers are masked."""
@@ -266,12 +269,11 @@ class TestSanitizationActions:
 
     def test_mask_action(self, sanitizer):
         """Test MASK action partially masks content."""
-        content = "Email: test@example.com"
+        content = "Call me at 555-867-5309"
         result = sanitizer.sanitize(content)
 
-        # Should have partial masking (first and last chars visible)
-        sanitized = result.sanitized_content
-        assert "test@example.com" not in sanitized
+        # Phone number should be partially masked (MASK action)
+        assert "555-867-5309" not in result.sanitized_content
 
 
 class TestSanitizationResult:
