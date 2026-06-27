@@ -62,7 +62,7 @@ celery_app = Celery(
         "src.tasks.eval_tasks",  # LLM-as-judge eval dataset runs
         "src.tasks.payout_tasks",  # Agent subscription expiry and creator payouts
         "src.tasks.analysis_tasks",  # Agent conversation analysis jobs
-        "src.tasks.video_tasks",     # AI video generation jobs (Kling, Minimax Hailuo)
+        "src.tasks.video_tasks",  # AI video generation jobs (Kling, Minimax Hailuo)
     ],
 )
 

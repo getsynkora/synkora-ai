@@ -1,6 +1,6 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 
 SPEC_CONTENT = "# My Feature\n\n## Overview\nSome overview.\n\n## User Stories\n- As a user..."
 PLAN_CONTENT = "# Plan\n\n## Approaches Considered\n### Option A..."
@@ -21,11 +21,18 @@ class TestSpeckitSpecify:
     @pytest.mark.asyncio
     async def test_uploads_to_correct_s3_key(self):
         mock_s3 = MagicMock()
-        mock_s3.upload_file.return_value = {"key": "speckit/tenant-abc/FEAT-0001/spec.md", "url": "s3://bucket/speckit/tenant-abc/FEAT-0001/spec.md", "bucket": "test-bucket"}
-        mock_s3.generate_presigned_url.return_value = "https://s3.example.com/speckit/tenant-abc/FEAT-0001/spec.md?sig=xxx"
+        mock_s3.upload_file.return_value = {
+            "key": "speckit/tenant-abc/FEAT-0001/spec.md",
+            "url": "s3://bucket/speckit/tenant-abc/FEAT-0001/spec.md",
+            "bucket": "test-bucket",
+        }
+        mock_s3.generate_presigned_url.return_value = (
+            "https://s3.example.com/speckit/tenant-abc/FEAT-0001/spec.md?sig=xxx"
+        )
 
         with patch("src.services.agents.internal_tools.speckit_tools.get_s3_storage", return_value=mock_s3):
             from src.services.agents.internal_tools.speckit_tools import internal_speckit_specify
+
             result = await internal_speckit_specify(
                 feature_id="FEAT-0001",
                 spec_content=SPEC_CONTENT,
@@ -49,6 +56,7 @@ class TestSpeckitSpecify:
 
         with patch("src.services.agents.internal_tools.speckit_tools.get_s3_storage", return_value=mock_s3):
             from src.services.agents.internal_tools.speckit_tools import internal_speckit_specify
+
             await internal_speckit_specify(
                 feature_id="FEAT-0001",
                 spec_content=SPEC_CONTENT,
@@ -63,6 +71,7 @@ class TestSpeckitSpecify:
     @pytest.mark.asyncio
     async def test_missing_spec_content_returns_error(self):
         from src.services.agents.internal_tools.speckit_tools import internal_speckit_specify
+
         result = await internal_speckit_specify(
             feature_id="FEAT-0001",
             spec_content="",
@@ -78,6 +87,7 @@ class TestSpeckitSpecify:
 
         with patch("src.services.agents.internal_tools.speckit_tools.get_s3_storage", return_value=mock_s3):
             from src.services.agents.internal_tools.speckit_tools import internal_speckit_specify
+
             result = await internal_speckit_specify(
                 feature_id="FEAT-0001",
                 spec_content=SPEC_CONTENT,
@@ -98,6 +108,7 @@ class TestSpeckitSpecify:
 
         with patch("src.services.agents.internal_tools.speckit_tools.get_s3_storage", return_value=mock_s3):
             from src.services.agents.internal_tools.speckit_tools import internal_speckit_specify
+
             result = await internal_speckit_specify(
                 feature_id="FEAT-0001",
                 spec_content=SPEC_CONTENT,
@@ -113,11 +124,16 @@ class TestSpeckitPlan:
     @pytest.mark.asyncio
     async def test_uploads_plan_to_correct_key(self):
         mock_s3 = MagicMock()
-        mock_s3.upload_file.return_value = {"key": "speckit/tenant-abc/FEAT-0001/plan.md", "url": "s3://b/k", "bucket": "b"}
+        mock_s3.upload_file.return_value = {
+            "key": "speckit/tenant-abc/FEAT-0001/plan.md",
+            "url": "s3://b/k",
+            "bucket": "b",
+        }
         mock_s3.generate_presigned_url.return_value = "https://plan-url"
 
         with patch("src.services.agents.internal_tools.speckit_tools.get_s3_storage", return_value=mock_s3):
             from src.services.agents.internal_tools.speckit_tools import internal_speckit_plan
+
             result = await internal_speckit_plan(
                 feature_id="FEAT-0001",
                 plan_content=PLAN_CONTENT,
@@ -133,6 +149,7 @@ class TestSpeckitPlan:
     @pytest.mark.asyncio
     async def test_missing_plan_content_returns_error(self):
         from src.services.agents.internal_tools.speckit_tools import internal_speckit_plan
+
         result = await internal_speckit_plan(
             feature_id="FEAT-0001",
             plan_content="",
@@ -145,11 +162,16 @@ class TestSpeckitTasks:
     @pytest.mark.asyncio
     async def test_uploads_tasks_to_correct_key(self):
         mock_s3 = MagicMock()
-        mock_s3.upload_file.return_value = {"key": "speckit/tenant-abc/FEAT-0001/tasks.md", "url": "s3://b/k", "bucket": "b"}
+        mock_s3.upload_file.return_value = {
+            "key": "speckit/tenant-abc/FEAT-0001/tasks.md",
+            "url": "s3://b/k",
+            "bucket": "b",
+        }
         mock_s3.generate_presigned_url.return_value = "https://tasks-url"
 
         with patch("src.services.agents.internal_tools.speckit_tools.get_s3_storage", return_value=mock_s3):
             from src.services.agents.internal_tools.speckit_tools import internal_speckit_tasks
+
             result = await internal_speckit_tasks(
                 feature_id="FEAT-0001",
                 tasks_content=TASKS_CONTENT,
@@ -164,6 +186,7 @@ class TestSpeckitTasks:
     @pytest.mark.asyncio
     async def test_missing_tasks_content_returns_error(self):
         from src.services.agents.internal_tools.speckit_tools import internal_speckit_tasks
+
         result = await internal_speckit_tasks(
             feature_id="FEAT-0001",
             tasks_content="",
@@ -181,6 +204,7 @@ class TestSpeckitCommit:
     @pytest.mark.asyncio
     async def test_missing_repo_returns_error(self):
         from src.services.agents.internal_tools.speckit_tools import internal_speckit_commit
+
         result = await internal_speckit_commit(
             filename="spec.md",
             s3_key="speckit/t/FEAT-0001/spec.md",
@@ -192,8 +216,13 @@ class TestSpeckitCommit:
 
     @pytest.mark.asyncio
     async def test_no_github_token_returns_error(self):
-        with patch("src.services.agents.internal_tools.speckit_tools.get_github_token_from_context", new_callable=AsyncMock, return_value=None):
+        with patch(
+            "src.services.agents.internal_tools.speckit_tools.get_github_token_from_context",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
             from src.services.agents.internal_tools.speckit_tools import internal_speckit_commit
+
             result = await internal_speckit_commit(
                 filename="spec.md",
                 s3_key="speckit/t/FEAT-0001/spec.md",
@@ -209,10 +238,15 @@ class TestSpeckitCommit:
         mock_s3.download_file.side_effect = Exception("S3 down")
 
         with (
-            patch("src.services.agents.internal_tools.speckit_tools.get_github_token_from_context", new_callable=AsyncMock, return_value="ghp_token"),
+            patch(
+                "src.services.agents.internal_tools.speckit_tools.get_github_token_from_context",
+                new_callable=AsyncMock,
+                return_value="ghp_token",
+            ),
             patch("src.services.agents.internal_tools.speckit_tools.get_s3_storage", return_value=mock_s3),
         ):
             from src.services.agents.internal_tools.speckit_tools import internal_speckit_commit
+
             result = await internal_speckit_commit(
                 filename="spec.md",
                 s3_key="speckit/t/FEAT-0001/spec.md",
@@ -266,11 +300,16 @@ class TestSpeckitCommit:
         mock_client.put = mock_put
 
         with (
-            patch("src.services.agents.internal_tools.speckit_tools.get_github_token_from_context", new_callable=AsyncMock, return_value="ghp_token"),
+            patch(
+                "src.services.agents.internal_tools.speckit_tools.get_github_token_from_context",
+                new_callable=AsyncMock,
+                return_value="ghp_token",
+            ),
             patch("src.services.agents.internal_tools.speckit_tools.get_s3_storage", return_value=mock_s3),
             patch("src.services.agents.internal_tools.speckit_tools.httpx.AsyncClient", return_value=mock_client),
         ):
             from src.services.agents.internal_tools.speckit_tools import internal_speckit_commit
+
             result = await internal_speckit_commit(
                 filename="spec.md",
                 s3_key="speckit/tenant-abc/FEAT-0001/spec.md",

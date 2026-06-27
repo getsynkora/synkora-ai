@@ -27,13 +27,17 @@ def _make_jwt(access_key: str, secret_key: str) -> str:
 
     now = int(time.time())
     header = base64.urlsafe_b64encode(json.dumps({"alg": "HS256", "typ": "JWT"}).encode()).rstrip(b"=").decode()
-    payload = base64.urlsafe_b64encode(
-        json.dumps({"iss": access_key, "exp": now + 1800, "nbf": now - 5}).encode()
-    ).rstrip(b"=").decode()
+    payload = (
+        base64.urlsafe_b64encode(json.dumps({"iss": access_key, "exp": now + 1800, "nbf": now - 5}).encode())
+        .rstrip(b"=")
+        .decode()
+    )
     signing_input = f"{header}.{payload}"
-    sig = base64.urlsafe_b64encode(
-        hmac.new(secret_key.encode(), signing_input.encode(), hashlib.sha256).digest()
-    ).rstrip(b"=").decode()
+    sig = (
+        base64.urlsafe_b64encode(hmac.new(secret_key.encode(), signing_input.encode(), hashlib.sha256).digest())
+        .rstrip(b"=")
+        .decode()
+    )
     return f"{signing_input}.{sig}"
 
 

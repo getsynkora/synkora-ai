@@ -104,8 +104,7 @@ async def _fetch_html(url: str) -> str | dict:
                 return {
                     "success": False,
                     "error": (
-                        f"HTTP {response.status_code}. "
-                        "Site may be blocking scrapers — try a direct product page URL."
+                        f"HTTP {response.status_code}. Site may be blocking scrapers — try a direct product page URL."
                     ),
                 }
 
@@ -146,11 +145,7 @@ def _extract_benefits(soup: BeautifulSoup) -> list[str]:
     """Extract up to 6 bullet-point benefits from ul/li elements."""
     benefits: list[str] = []
     for ul in soup.find_all("ul"):
-        items = [
-            li.get_text(strip=True)
-            for li in ul.find_all("li")
-            if len(li.get_text(strip=True)) > 10
-        ]
+        items = [li.get_text(strip=True) for li in ul.find_all("li") if len(li.get_text(strip=True)) > 10]
         benefits.extend(items[:3])
         if len(benefits) >= 6:
             break
