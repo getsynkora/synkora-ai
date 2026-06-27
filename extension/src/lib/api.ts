@@ -99,13 +99,17 @@ export async function streamChat(
   const url = `${synkoraUrl}/api/v1/agents/chat/stream`;
   assertHttps(url);
 
-  // Prepend page context as the first history entry if provided
   const history = conversationHistory ? [...conversationHistory] : [];
+
+  // Inject page context into the user message so the backend sees it.
+  // We cannot use role:"system" — the backend filters that role from conversation_history.
+  let messageWithContext = message;
   if (systemContext) {
-    history.unshift({
-      role: 'system',
-      content: `Current page context:\n\n${systemContext}`,
-    });
+    const hasForm = systemContext.includes('[Form fields on this page]');
+    const fillInstructions = hasForm
+      ? `\n\n[Fill instructions]\nIf the user asks you to fill the form, respond with your explanation then output ONLY this JSON block:\n\`\`\`fill-form\n{"fields":[{"index":0,"value":"..."},{"index":1,"value":"..."}]}\n\`\`\`\nUse the [N] index numbers from the form fields list above. If you are missing a required value, ask the user for it before outputting the block.`
+      : '';
+    messageWithContext = `[Current page context]\n${systemContext}${fillInstructions}\n\n---\n${message}`;
   }
 
   const resp = await fetch(url, {
@@ -116,7 +120,7 @@ export async function streamChat(
     },
     body: JSON.stringify({
       agent_slug: agentSlug,
-      message,
+      message: messageWithContext,
       conversation_id: conversationId,
       conversation_history: history.length > 0 ? history : undefined,
     }),

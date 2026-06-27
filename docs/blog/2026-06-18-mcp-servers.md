@@ -97,6 +97,8 @@ def _create_transport(self, server: MCPServer):
 
 The `MCPServer` database model stores both configurations in the same table. `transport_type` is the discriminator. Everything else — `command`, `args`, `env_vars` for stdio; `url`, `auth_config`, `headers` for HTTP — is nullable, populated depending on which transport you use.
 
+The three sensitive fields (`auth_config`, `env_vars`, `headers`) are Fernet-encrypted at rest using the same `encrypt_value`/`decrypt_value` pattern that protects OAuth tokens and database passwords across the platform. The columns store `enc:<fernet_token>` strings; `@property` getters on the model decrypt transparently on read and encrypt on write. Existing rows without encryption are read correctly as plain JSON and re-encrypted on the next write. Raw credentials never touch a log file or appear in the LLM's context window.
+
 
 ## Multi-Server, Single Client
 
@@ -371,7 +373,7 @@ The MCP client manager is a global singleton. One instance per API process. No e
 
 | File | What it owns |
 |---|---|
-| `api/src/models/mcp_server.py` | Database schema: transport, auth, command, args, env_vars |
+| `api/src/models/mcp_server.py` | Database schema: transport, auth, command, args, env_vars · Fernet encryption of auth_config, env_vars, headers via `@property` getters |
 | `api/src/services/mcp/mcp_client.py` | `MCPClient` (connect/execute/retry) · `MCPClientManager` (cache/evict/patch) |
 | `api/src/controllers/agents/mcp_servers.py` | CRUD endpoints: attach, detach, list, discover tools, update config |
 
