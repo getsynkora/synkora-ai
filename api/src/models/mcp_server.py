@@ -95,6 +95,7 @@ class MCPServer(BaseModel, StatusMixin, TenantMixin):
             return None
         if raw.startswith("enc:"):
             from src.services.agents.security import decrypt_value  # noqa: PLC0415
+
             return _json.loads(decrypt_value(raw[4:]))
         return _json.loads(raw)
 
@@ -104,6 +105,7 @@ class MCPServer(BaseModel, StatusMixin, TenantMixin):
             self._auth_config_enc = None
             return
         from src.services.agents.security import encrypt_value  # noqa: PLC0415
+
         self._auth_config_enc = f"enc:{encrypt_value(_json.dumps(value))}"
 
     @property
@@ -114,6 +116,7 @@ class MCPServer(BaseModel, StatusMixin, TenantMixin):
             return None
         if raw.startswith("enc:"):
             from src.services.agents.security import decrypt_value  # noqa: PLC0415
+
             return _json.loads(decrypt_value(raw[4:]))
         return _json.loads(raw)
 
@@ -123,6 +126,7 @@ class MCPServer(BaseModel, StatusMixin, TenantMixin):
             self._env_vars_enc = None
             return
         from src.services.agents.security import encrypt_value  # noqa: PLC0415
+
         self._env_vars_enc = f"enc:{encrypt_value(_json.dumps(value))}"
 
     @property
@@ -133,6 +137,7 @@ class MCPServer(BaseModel, StatusMixin, TenantMixin):
             return None
         if raw.startswith("enc:"):
             from src.services.agents.security import decrypt_value  # noqa: PLC0415
+
             return _json.loads(decrypt_value(raw[4:]))
         return _json.loads(raw)
 
@@ -142,6 +147,7 @@ class MCPServer(BaseModel, StatusMixin, TenantMixin):
             self._headers_enc = None
             return
         from src.services.agents.security import encrypt_value  # noqa: PLC0415
+
         self._headers_enc = f"enc:{encrypt_value(_json.dumps(value))}"
 
     # ------------------------------------------------------------------
