@@ -15,9 +15,8 @@ Downgrade: converts columns back to JSON; any rows that have already been encryp
 (enc: prefix) will be set to NULL since the cipher text is not valid JSON.
 """
 
-from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
+from alembic import op
 
 revision = "20260627_0001"
 down_revision = "20260619_0001"

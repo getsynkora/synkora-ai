@@ -56,7 +56,9 @@ class MCPServer(BaseModel, StatusMixin, TenantMixin):
 
     # Backing column: stores Fernet-encrypted JSON string ("enc:<token>") or NULL.
     # Access only via the .env_vars property — never read _env_vars_enc directly.
-    _env_vars_enc = Column("env_vars", Text, nullable=True, comment="Environment variables for stdio process (Fernet-encrypted)")
+    _env_vars_enc = Column(
+        "env_vars", Text, nullable=True, comment="Environment variables for stdio process (Fernet-encrypted)"
+    )
 
     server_type = Column(String(50), nullable=False, default="http", comment="Server type (http, websocket, grpc)")
 
@@ -66,7 +68,9 @@ class MCPServer(BaseModel, StatusMixin, TenantMixin):
 
     # Backing column: stores Fernet-encrypted JSON string ("enc:<token>") or NULL.
     # Access only via the .auth_config property — never read _auth_config_enc directly.
-    _auth_config_enc = Column("auth_config", Text, nullable=True, comment="Authentication configuration (Fernet-encrypted)")
+    _auth_config_enc = Column(
+        "auth_config", Text, nullable=True, comment="Authentication configuration (Fernet-encrypted)"
+    )
 
     # Backing column: stores Fernet-encrypted JSON string ("enc:<token>") or NULL.
     # Access only via the .headers property — never read _headers_enc directly.
