@@ -63,7 +63,7 @@ def downgrade() -> None:
         existing_type=sa.Text(),
         type_=sa.JSON(),
         existing_nullable=True,
-        postgresql_using="CASE WHEN auth_config LIKE 'enc:%' THEN NULL ELSE auth_config::JSON END",
+        postgresql_using="CASE WHEN auth_config LIKE 'enc:%%' THEN NULL ELSE auth_config::JSON END",
     )
     op.alter_column(
         "mcp_servers",
@@ -71,7 +71,7 @@ def downgrade() -> None:
         existing_type=sa.Text(),
         type_=sa.JSON(),
         existing_nullable=True,
-        postgresql_using="CASE WHEN env_vars LIKE 'enc:%' THEN NULL ELSE env_vars::JSON END",
+        postgresql_using="CASE WHEN env_vars LIKE 'enc:%%' THEN NULL ELSE env_vars::JSON END",
     )
     op.alter_column(
         "mcp_servers",
@@ -79,5 +79,5 @@ def downgrade() -> None:
         existing_type=sa.Text(),
         type_=sa.JSON(),
         existing_nullable=True,
-        postgresql_using="CASE WHEN headers LIKE 'enc:%' THEN NULL ELSE headers::JSON END",
+        postgresql_using="CASE WHEN headers LIKE 'enc:%%' THEN NULL ELSE headers::JSON END",
     )
