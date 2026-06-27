@@ -62,6 +62,7 @@ interface WsCallback {
 async function* makeSseStream(
   apiUrl: string,
   payload: ChatPayload,
+  signal?: AbortSignal,
 ): AsyncGenerator<ChatEvent> {
   const token = secureStorage.getAccessToken()
 
@@ -72,6 +73,7 @@ async function* makeSseStream(
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(payload),
+    signal,
   })
 
   if (!response.ok) {
@@ -206,10 +208,11 @@ function makeWsStream(
 export function useChatTransport(
   chatTransport: 'sse' | 'websocket' = 'sse',
   apiUrl: string,
-): { sendMessage: (payload: ChatPayload) => AsyncIterable<ChatEvent> } {
+): { sendMessage: (payload: ChatPayload) => AsyncIterable<ChatEvent>; stopStreaming: () => void } {
   const wsRef = useRef<WebSocket | null>(null)
   const wsAuthReadyRef = useRef(false)
   const wsCallbackRef = useRef<WsCallback | null>(null)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   // Manage the persistent WebSocket connection lifecycle.
   // Only active when chatTransport === 'websocket'.
@@ -296,6 +299,13 @@ export function useChatTransport(
     }
   }, [chatTransport, apiUrl])
 
+  const stopStreaming = useCallback(() => {
+    abortControllerRef.current?.abort()
+    abortControllerRef.current = null
+    // For WebSocket: stop routing events to the current request
+    wsCallbackRef.current = null
+  }, [])
+
   const sendMessage = useCallback(
     (payload: ChatPayload): AsyncIterable<ChatEvent> => {
       if (chatTransport === 'websocket') {
@@ -318,13 +328,16 @@ export function useChatTransport(
         return makeWsStream(ws, wsCallbackRef, payload)
       }
 
-      // Default: SSE
+      // SSE: create a fresh AbortController for this request
+      const controller = new AbortController()
+      abortControllerRef.current = controller
       return {
-        [Symbol.asyncIterator]: () => makeSseStream(apiUrl, payload)[Symbol.asyncIterator](),
+        [Symbol.asyncIterator]: () =>
+          makeSseStream(apiUrl, payload, controller.signal)[Symbol.asyncIterator](),
       }
     },
     [chatTransport, apiUrl],
   )
 
-  return { sendMessage }
+  return { sendMessage, stopStreaming }
 }

@@ -12,6 +12,7 @@ export interface Message {
   metadata?: MessageMetadata
   sources?: RAGSource[]
   isError?: boolean
+  stopped?: boolean
 }
 
 export interface Attachment {

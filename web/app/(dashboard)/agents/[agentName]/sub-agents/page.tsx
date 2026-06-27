@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
-import { Plus, Trash2, ArrowUp, ArrowDown, ArrowLeft, Users, Check, X, Workflow, Settings, Save } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, ArrowLeft, Users, Check, X, Workflow, Settings, Save, ExternalLink, ChevronRight, GitBranch } from "lucide-react";
 import { apiClient } from "@/lib/api/client";
 import AgentPageShell, { AgentPagePanel } from '@/components/agents/AgentPageShell';
 
@@ -476,6 +476,71 @@ export default function SubAgentsPage() {
           </AgentPagePanel>
         </div>
 
+        {/* Hierarchy Visualization */}
+        {subAgents.length > 0 && (
+          <AgentPagePanel className="mb-6 overflow-hidden">
+            <div className="border-b border-[#eadfce] px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-[1rem] bg-[#f1eadc] p-2.5">
+                  <GitBranch className="w-5 h-5 text-[#171717]" />
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-gray-900">Agent Hierarchy</h2>
+                  <p className="text-sm text-gray-600">Visual overview of the parent-child agent structure</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-5">
+              {/* Parent node */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center gap-2.5 rounded-[1rem] border-2 border-[#171717] bg-[#171717] px-4 py-2.5 text-white shadow-sm">
+                  <Users className="w-4 h-4" />
+                  <span className="text-sm font-semibold">{agent?.agent_name || agentName}</span>
+                  <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs">parent</span>
+                </div>
+                <button
+                  onClick={() => router.push(`/agents/${agentName}/view`)}
+                  className="text-xs text-gray-400 hover:text-gray-700 underline underline-offset-2"
+                >
+                  view
+                </button>
+              </div>
+
+              {/* Children */}
+              <div className="ml-6 space-y-2 border-l-2 border-dashed border-[#d9cfc3] pl-5">
+                {subAgents.map((subAgent) => (
+                  <div key={subAgent.id} className="flex items-center gap-3">
+                    <ChevronRight className="w-3.5 h-3.5 -ml-[1.35rem] shrink-0 text-[#b7a897]" />
+                    <div className={`flex items-center gap-2.5 rounded-[1rem] border px-3.5 py-2 text-sm font-medium shadow-sm ${
+                      subAgent.is_active
+                        ? 'border-[#d4edda] bg-[#f3fdf5] text-gray-800'
+                        : 'border-[#e8e0d5] bg-[#f8f4ed] text-gray-500'
+                    }`}>
+                      <Users className="w-3.5 h-3.5" />
+                      {subAgent.sub_agent_name}
+                      {!subAgent.is_active && (
+                        <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-500">inactive</span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => router.push(`/agents/${subAgent.sub_agent_name}/view`)}
+                      className="text-xs text-gray-400 hover:text-gray-700 underline underline-offset-2"
+                    >
+                      view
+                    </button>
+                    <button
+                      onClick={() => router.push(`/agents/${subAgent.sub_agent_name}/sub-agents`)}
+                      className="text-xs text-gray-400 hover:text-gray-700 underline underline-offset-2"
+                    >
+                      sub-agents
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </AgentPagePanel>
+        )}
+
         {/* Sub-Agents List */}
         <AgentPagePanel className="overflow-hidden">
           <div className="border-b border-[#eadfce] px-5 py-4">
@@ -568,9 +633,13 @@ export default function SubAgentsPage() {
                         </div>
                       </td>
                       <td className="px-5 py-3 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
+                        <button
+                          onClick={() => router.push(`/agents/${subAgent.sub_agent_name}/view`)}
+                          className="flex items-center gap-1.5 text-sm font-medium text-gray-900 hover:text-[#d14c3f] transition-colors group"
+                        >
                           {subAgent.sub_agent_name}
-                        </div>
+                          <ExternalLink className="w-3 h-3 text-gray-400 group-hover:text-[#d14c3f] opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </button>
                       </td>
                       <td className="px-5 py-3">
                         <div className="text-xs text-gray-600 max-w-md truncate">
@@ -603,17 +672,27 @@ export default function SubAgentsPage() {
                         </div>
                       </td>
                       <td className="px-5 py-3 whitespace-nowrap text-right">
-                        <button
-                          onClick={() =>
-                            handleRemoveSubAgent(
-                              subAgent.id,
-                              subAgent.sub_agent_name
-                            )
-                          }
-                          className="rounded-lg p-1.5 text-[#b84a3a] transition-colors hover:bg-[#f8ece8]"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => router.push(`/agents/${subAgent.sub_agent_name}/view`)}
+                            className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-[#f1eadc] hover:text-gray-900"
+                            title="View agent"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() =>
+                              handleRemoveSubAgent(
+                                subAgent.id,
+                                subAgent.sub_agent_name
+                              )
+                            }
+                            className="rounded-lg p-1.5 text-[#b84a3a] transition-colors hover:bg-[#f8ece8]"
+                            title="Remove sub-agent"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

@@ -157,9 +157,9 @@ class TestPIIDetection:
     def test_masks_email_addresses(self, sanitizer):
         """Test that email addresses pass through unchanged.
 
-        Emails are intentionally not masked here — they are user-configured values
-        (e.g. report recipients) that agents legitimately reference. Email PII in
-        tool results is handled separately by PIIRedactor with token restoration.
+        Emails are intentionally not masked — they are user-configured values
+        (e.g. report recipients) that agents legitimately reference. Email PII
+        in tool results is handled separately by PIIRedactor with token restoration.
         """
         content = "Contact: user@example.com for help"
         result = sanitizer.sanitize(content)
