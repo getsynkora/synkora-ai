@@ -132,21 +132,36 @@ export default function App() {
     checkSelection();
   }, []);
 
-  // Listen for tab URL changes — re-check scripting access on navigation
+  // Listen for tab URL changes within the same tab (navigation)
   useEffect(() => {
     const handler = (_: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {
       if (!tab.active) return;
       if (changeInfo.url) {
         setPageUrl(changeInfo.url);
-        setContextAvailable(false); // reset until verified
+        setContextAvailable(false);
       }
-      // Re-check once the page is fully loaded (not on every intermediate state)
       if (changeInfo.status === 'complete' && tab.url) {
         checkScriptingAccess(tab.url);
       }
     };
     chrome.tabs.onUpdated.addListener(handler);
     return () => chrome.tabs.onUpdated.removeListener(handler);
+  }, [checkScriptingAccess]);
+
+  // Listen for tab switches — onActivated fires when the user selects a different tab
+  useEffect(() => {
+    const handler = async ({ tabId }: chrome.tabs.TabActiveInfo) => {
+      try {
+        const tab = await chrome.tabs.get(tabId);
+        setPageUrl(tab.url ?? '');
+        setContextAvailable(false);
+        if (tab.url) await checkScriptingAccess(tab.url);
+      } catch {
+        // Tab may have been closed between the event and the get()
+      }
+    };
+    chrome.tabs.onActivated.addListener(handler);
+    return () => chrome.tabs.onActivated.removeListener(handler);
   }, [checkScriptingAccess]);
 
   const selectedAgent = agents.find((a) => a.id === selectedAgentId) ?? null;
