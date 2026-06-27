@@ -34,12 +34,9 @@ def register_recall_tools(registry):
         runtime_context = config.get("_runtime_context") if config else None
         # Check meeting_bot.enabled from voice_meetings_config
         if runtime_context and hasattr(runtime_context, "agent"):
-            vm_cfg = (runtime_context.agent.agent_metadata or {}).get("voice_meetings_config") or {}
+            vm_cfg = ((runtime_context.agent.agent_metadata or {}).get("voice_meetings_config") or {})
             if not vm_cfg.get("meeting_bot", {}).get("enabled", False):
-                return {
-                    "success": False,
-                    "error": "Meeting bot is not enabled for this agent. Enable it in Voice & Meetings settings.",
-                }
+                return {"success": False, "error": "Meeting bot is not enabled for this agent. Enable it in Voice & Meetings settings."}
             bot_name = vm_cfg.get("meeting_bot", {}).get("bot_name") or kwargs.get("bot_name", "AI Assistant")
         else:
             bot_name = kwargs.get("bot_name", "AI Assistant")

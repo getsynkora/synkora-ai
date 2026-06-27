@@ -3,6 +3,7 @@
 import { useState, useRef, KeyboardEvent } from 'react'
 import {
   Send,
+  Square,
   Paperclip,
   Mic,
   Image as ImageIcon,
@@ -35,6 +36,8 @@ interface ChatConfig {
 
 interface ChatInputProps {
   onSend: (message: string, attachments?: Attachment[]) => void
+  onStop?: () => void
+  isStreaming?: boolean
   disabled?: boolean
   placeholder?: string
   className?: string
@@ -48,6 +51,8 @@ interface ChatInputProps {
  */
 export function ChatInput({
   onSend,
+  onStop,
+  isStreaming = false,
   disabled = false,
   placeholder = 'Type your message...',
   className,
@@ -446,28 +451,39 @@ export function ChatInput({
               >
                 <Mic size={16} />
               </button>
-              <button
-                onClick={handleSend}
-                disabled={isDisabled || !canSend}
-                className={cn(
-                  'rounded-[0.85rem] p-1.5 transition-all',
-                  isDisabled || !canSend
-                    ? 'text-gray-300 cursor-not-allowed'
-                    : 'text-white'
-                )}
-                style={
-                  !isDisabled && canSend
-                    ? { background: primaryColor }
-                    : undefined
-                }
-                title="Send message (Enter)"
-              >
-                {isUploading ? (
-                  <Loader2 size={17} className="animate-spin" />
-                ) : (
-                  <Send size={16} />
-                )}
-              </button>
+              {isStreaming && onStop ? (
+                <button
+                  onClick={onStop}
+                  className="rounded-[0.85rem] p-1.5 transition-all text-white"
+                  style={{ background: primaryColor }}
+                  title="Stop generating"
+                >
+                  <Square size={15} className="fill-current" />
+                </button>
+              ) : (
+                <button
+                  onClick={handleSend}
+                  disabled={isDisabled || !canSend}
+                  className={cn(
+                    'rounded-[0.85rem] p-1.5 transition-all',
+                    isDisabled || !canSend
+                      ? 'text-gray-300 cursor-not-allowed'
+                      : 'text-white'
+                  )}
+                  style={
+                    !isDisabled && canSend
+                      ? { background: primaryColor }
+                      : undefined
+                  }
+                  title="Send message (Enter)"
+                >
+                  {isUploading ? (
+                    <Loader2 size={17} className="animate-spin" />
+                  ) : (
+                    <Send size={16} />
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>

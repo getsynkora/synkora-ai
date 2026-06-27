@@ -44,6 +44,7 @@ from .role_tools_registry import register_role_tools
 from .scheduler_tools_registry import register_scheduler_tools
 from .slack_tools_registry import register_slack_tools
 from .spawn_agent_tools_registry import register_spawn_agent_tools
+from .speckit_tools_registry import register_speckit_tools
 from .storage_tools_registry import register_storage_tools
 from .tool_discovery_registry import register_tool_discovery_tools
 from .tutorial_tools_registry import register_tutorial_tools
@@ -105,4 +106,5 @@ __all__ = [
     "register_news_tools",
     "register_remote_agent_tools",
     "register_video_tools",
+    "register_speckit_tools",
 ]

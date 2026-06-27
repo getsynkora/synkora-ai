@@ -346,7 +346,8 @@ export default function AdvancedChatPage() {
   }, [agentId])
 
   // Chat transport — SSE by default; switches to WebSocket when configured per-agent
-  const transport = useChatTransport(chatConfig?.chat_transport ?? 'sse', API_URL)
+  const { sendMessage: transportSendMessage, stopStreaming } = useChatTransport(chatConfig?.chat_transport ?? 'sse', API_URL)
+  const transport = { sendMessage: transportSendMessage }
 
   // Tracks a conversation ID whose message-load was deferred because streaming was active
   const pendingLoadConvIdRef = useRef<string | null>(null)
@@ -838,19 +839,31 @@ export default function AdvancedChatPage() {
       }
     } catch (error) {
       streamHadError = true
-      console.error('Failed to send message:', error)
-      setMessages((prev) => {
-        const newMessages = [...prev]
-        const lastIndex = newMessages.length - 1
-        if (lastIndex >= 0 && newMessages[lastIndex]?.role === 'assistant') {
-          newMessages[lastIndex] = {
-            ...newMessages[lastIndex],
-            content: `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
-            isError: true,
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        // User stopped the stream — keep partial content, mark as stopped
+        setMessages((prev) => {
+          const newMessages = [...prev]
+          const lastIndex = newMessages.length - 1
+          if (lastIndex >= 0 && newMessages[lastIndex]?.role === 'assistant') {
+            newMessages[lastIndex] = { ...newMessages[lastIndex], stopped: true }
           }
-        }
-        return newMessages
-      })
+          return newMessages
+        })
+      } else {
+        console.error('Failed to send message:', error)
+        setMessages((prev) => {
+          const newMessages = [...prev]
+          const lastIndex = newMessages.length - 1
+          if (lastIndex >= 0 && newMessages[lastIndex]?.role === 'assistant') {
+            newMessages[lastIndex] = {
+              ...newMessages[lastIndex],
+              content: `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
+              isError: true,
+            }
+          }
+          return newMessages
+        })
+      }
     } finally {
       setIsStreaming(false)
       setThinkingStatus('')
@@ -1323,6 +1336,15 @@ export default function AdvancedChatPage() {
                   }
                 }}
                 onNewChat={selectedSource === 'web' ? handleNewChat : undefined}
+                onRenameSession={async (sessionId, newName) => {
+                  await apiClient.updateConversationName(sessionId, newName)
+                  setConversations(prev => prev.map(c =>
+                    c.id === sessionId ? { ...c, name: newName } : c
+                  ))
+                  if (currentConversation?.id === sessionId) {
+                    setCurrentConversation(prev => prev ? { ...prev, name: newName } : prev)
+                  }
+                }}
                 onShareSession={(sessionId) => setShareConvId(sessionId)}
                 chatConfig={chatConfig}
                 agentName={agent?.agent_name}
@@ -1501,6 +1523,8 @@ export default function AdvancedChatPage() {
               <ChatInput
                 key={`chat-input-${inputResetKey}`}
                 onSend={handleSend}
+                onStop={stopStreaming}
+                isStreaming={isStreaming}
                 disabled={isStreaming || !agentId || !!agentLoadError}
                 conversationId={currentConversation?.id}
                 chatConfig={chatConfig}

@@ -462,6 +462,11 @@ class ADKToolRegistry:
 
         register_recall_tools(self)
 
+        # Spec-kit SDD tools (specify, plan, tasks, commit)
+        from src.services.agents.tool_registrations.speckit_tools_registry import register_speckit_tools
+
+        register_speckit_tools(self)
+
         # Spawn agent tools - use modular registry
         from src.services.agents.tool_registrations.spawn_agent_tools_registry import register_spawn_agent_tools
 

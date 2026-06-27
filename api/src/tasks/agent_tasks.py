@@ -184,6 +184,7 @@ Please process this webhook event using your configured tools."""
         async def process_agent():
             """Stream agent response and collect chunks."""
             from src.core.database import create_celery_async_session, reset_async_engine
+            from src.models.conversation import Conversation, ConversationStatus
 
             # Reset global async engine so get_async_session_factory() re-initializes
             # bound to this event loop (not the previous Celery task's closed loop)
@@ -191,12 +192,26 @@ Please process this webhook event using your configured tools."""
 
             async_session_factory = create_celery_async_session()
             async with async_session_factory() as async_db:
+                # Create a conversation so messages are persisted and the execution
+                # appears as a session in Agent Lens (which queries Conversation rows).
+                conv_name = f"Webhook: {provider} {event_type}"[:255]
+                conversation = Conversation(
+                    agent_id=agent_db.id,
+                    name=conv_name,
+                    status=ConversationStatus.ACTIVE,
+                    source="webhook",
+                )
+                async_db.add(conversation)
+                await async_db.commit()
+                await async_db.refresh(conversation)
+                webhook_conversation_id = str(conversation.id)
+
                 async for sse_event in chat_stream_service.stream_agent_response(
                     agent_name=agent_db.agent_name,
                     tenant_id=str(agent_db.tenant_id),
                     message=message,
                     conversation_history=None,
-                    conversation_id=None,
+                    conversation_id=webhook_conversation_id,
                     attachments=None,
                     llm_config_id=None,
                     db=async_db,

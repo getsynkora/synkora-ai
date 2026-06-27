@@ -14,6 +14,7 @@ from uuid import UUID
 
 import httpx
 import markdown as md_lib
+from src.services.slack.formatters import create_slack_blocks, format_text_for_slack
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,7 +28,6 @@ from src.models import (
 )
 from src.models.slack_bot import SlackBot
 from src.services.agents.security import decrypt_value
-from src.services.slack.formatters import create_slack_blocks, format_text_for_slack
 
 logger = logging.getLogger(__name__)
 

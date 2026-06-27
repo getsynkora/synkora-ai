@@ -1,13 +1,14 @@
-import { Globe, EyeOff, ChevronDown } from 'lucide-react';
+import { Globe, EyeOff, ChevronDown, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 import { useExtensionStore } from '@/store/extension';
 
 interface Props {
   pageUrl: string;
   contextAvailable: boolean;
+  onGrantPermission?: () => void;
 }
 
-export function ContextBadge({ pageUrl, contextAvailable }: Props) {
+export function ContextBadge({ pageUrl, contextAvailable, onGrantPermission }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const {
     pageContextEnabled, pageContextMode,
@@ -19,28 +20,42 @@ export function ContextBadge({ pageUrl, contextAvailable }: Props) {
   })();
 
   const isOn = pageContextEnabled && contextAvailable;
+  const isHttpPage = pageUrl.startsWith('http');
+  const needsPermission = isHttpPage && !contextAvailable;
 
   return (
     <div className="relative flex items-center gap-1.5 text-xs text-brand-muted">
-      <button
-        onClick={() => contextAvailable && setPageContextEnabled(!pageContextEnabled)}
-        title={
-          !contextAvailable
-            ? 'Page context unavailable on this page'
-            : pageContextEnabled
-            ? 'Click to disable page context'
-            : 'Click to enable page context'
-        }
-        className={`flex items-center gap-1 transition-colors ${
-          contextAvailable ? 'cursor-pointer hover:text-brand-ink' : 'cursor-default opacity-50'
-        } ${isOn ? 'text-synkora-700' : ''}`}
-      >
-        {isOn ? <Globe size={11} /> : <EyeOff size={11} />}
-        <span className="truncate max-w-[120px]">{hostname}</span>
-        <span className={isOn ? 'text-synkora-600' : ''}>
-          · Page context: {isOn ? 'ON' : 'OFF'}
-        </span>
-      </button>
+      {needsPermission && onGrantPermission ? (
+        <button
+          onClick={onGrantPermission}
+          title="Grant access to read this page"
+          className="flex items-center gap-1 text-[#b35630] hover:text-[#944726] transition-colors"
+        >
+          <ShieldAlert size={11} />
+          <span className="truncate max-w-[120px]">{hostname}</span>
+          <span className="underline underline-offset-2">· Grant page access</span>
+        </button>
+      ) : (
+        <button
+          onClick={() => contextAvailable && setPageContextEnabled(!pageContextEnabled)}
+          title={
+            !contextAvailable
+              ? 'Page context unavailable on this page'
+              : pageContextEnabled
+              ? 'Click to disable page context'
+              : 'Click to enable page context'
+          }
+          className={`flex items-center gap-1 transition-colors ${
+            contextAvailable ? 'cursor-pointer hover:text-brand-ink' : 'cursor-default opacity-50'
+          } ${isOn ? 'text-synkora-700' : ''}`}
+        >
+          {isOn ? <Globe size={11} /> : <EyeOff size={11} />}
+          <span className="truncate max-w-[120px]">{hostname}</span>
+          <span className={isOn ? 'text-synkora-600' : ''}>
+            · Page context: {isOn ? 'ON' : 'OFF'}
+          </span>
+        </button>
+      )}
 
       {isOn && (
         <div className="relative">

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { AlertCircle, LogOut } from 'lucide-react';
 import {
   loadAccessToken, loadSynkoraUrl, storeSynkoraUrl,
@@ -17,6 +17,35 @@ export default function App() {
   const [urlInput, setUrlInput] = useState('http://localhost:3005');
   const [connecting, setConnecting] = useState(false);
   const [authError, setAuthError] = useState('');
+
+  // Try running a no-op script to verify scripting permission for the current tab.
+  // Sets contextAvailable based on whether it actually works.
+  const checkScriptingAccess = useCallback(async (url: string) => {
+    if (!url.startsWith('http')) {
+      setContextAvailable(false);
+      return;
+    }
+    try {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      const tabId = tabs[0]?.id;
+      if (!tabId) { setContextAvailable(false); return; }
+      await chrome.scripting.executeScript({ target: { tabId }, func: () => true });
+      setContextAvailable(true);
+    } catch {
+      setContextAvailable(false);
+    }
+  }, []);
+
+  const grantPagePermission = useCallback(async (url: string) => {
+    if (!url.startsWith('http')) return;
+    try {
+      const origin = new URL(url).origin + '/*';
+      const granted = await chrome.permissions.request({ origins: [origin] });
+      if (granted) setContextAvailable(true);
+    } catch {
+      // ignore — user may have cancelled
+    }
+  }, []);
 
   const {
     isConnected, synkoraUrl, setConnected,
@@ -73,18 +102,18 @@ export default function App() {
         setUrlInput(url);
       }
 
-      // Get current tab URL
+      // Get current tab URL and verify scripting access
       const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
       const tab = tabs[0];
       if (tab?.url) {
         setPageUrl(tab.url);
-        setContextAvailable(tab.url.startsWith('http'));
+        await checkScriptingAccess(tab.url);
       }
 
       setInitializing(false);
     };
     init();
-  }, [setConnected]);
+  }, [setConnected, checkScriptingAccess]);
 
   // Check for pending selection text from right-click
   useEffect(() => {
@@ -103,16 +132,22 @@ export default function App() {
     checkSelection();
   }, []);
 
-  // Listen for tab URL changes
+  // Listen for tab URL changes — re-check scripting access on navigation
   useEffect(() => {
     const handler = (_: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {
-      if (changeInfo.url && tab.active) {
+      if (!tab.active) return;
+      if (changeInfo.url) {
         setPageUrl(changeInfo.url);
+        setContextAvailable(false); // reset until verified
+      }
+      // Re-check once the page is fully loaded (not on every intermediate state)
+      if (changeInfo.status === 'complete' && tab.url) {
+        checkScriptingAccess(tab.url);
       }
     };
     chrome.tabs.onUpdated.addListener(handler);
     return () => chrome.tabs.onUpdated.removeListener(handler);
-  }, []);
+  }, [checkScriptingAccess]);
 
   const selectedAgent = agents.find((a) => a.id === selectedAgentId) ?? null;
 
@@ -240,7 +275,11 @@ export default function App() {
           </button>
         </div>
         <div className="px-3 pb-1.5">
-          <ContextBadge pageUrl={pageUrl} contextAvailable={contextAvailable} />
+          <ContextBadge
+            pageUrl={pageUrl}
+            contextAvailable={contextAvailable}
+            onGrantPermission={() => grantPagePermission(pageUrl)}
+          />
         </div>
       </div>
 

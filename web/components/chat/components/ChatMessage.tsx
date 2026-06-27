@@ -3,7 +3,7 @@
 import { memo, useState, useMemo, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
-import { Copy, Check, RefreshCw, Sparkles, FileText, Image as ImageIcon, Download, File, Trash2, ThumbsUp, ThumbsDown } from 'lucide-react'
+import { Copy, Check, RefreshCw, Sparkles, FileText, Image as ImageIcon, Download, File, Trash2, ThumbsUp, ThumbsDown, Square } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Message, Attachment, GeneratedImageData, FormDefinition } from '../types'
 import ReactMarkdown from 'react-markdown'
@@ -1486,6 +1486,12 @@ export const ChatMessage = memo(function ChatMessage({
             )}
 
             <div className="flex items-center gap-2 ml-auto text-[11px] text-gray-400">
+              {message.stopped && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-gray-400">
+                  <Square size={8} className="fill-gray-300" />
+                  stopped
+                </span>
+              )}
               {message.metadata?.timing?.duration && (
                 <span>{message.metadata.timing.duration.toFixed(1)}s</span>
               )}

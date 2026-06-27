@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   MessageSquare,
   Trash2,
@@ -9,6 +9,9 @@ import {
   User,
   ChevronDown,
   Share2,
+  Pencil,
+  Check,
+  X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -33,6 +36,7 @@ interface ChatSidebarProps {
   onSessionSelect?: (sessionId: string) => void
   onNewChat?: () => void
   onDeleteSession?: (sessionId: string) => void
+  onRenameSession?: (sessionId: string, newName: string) => void
   onShareSession?: (sessionId: string) => void
   onSettingsClick?: () => void
   className?: string
@@ -52,6 +56,7 @@ export function ChatSidebar({
   onSessionSelect,
   onNewChat,
   onDeleteSession,
+  onRenameSession,
   onShareSession,
   className,
   chatConfig,
@@ -123,6 +128,7 @@ export function ChatSidebar({
                 activeSessionId={activeSessionId}
                 onSessionSelect={onSessionSelect}
                 onDeleteSession={onDeleteSession}
+                onRenameSession={onRenameSession}
                 onShareSession={onShareSession}
                 primaryColor={primaryColor}
               />
@@ -134,6 +140,7 @@ export function ChatSidebar({
                 activeSessionId={activeSessionId}
                 onSessionSelect={onSessionSelect}
                 onDeleteSession={onDeleteSession}
+                onRenameSession={onRenameSession}
                 onShareSession={onShareSession}
                 primaryColor={primaryColor}
               />
@@ -145,6 +152,7 @@ export function ChatSidebar({
                 activeSessionId={activeSessionId}
                 onSessionSelect={onSessionSelect}
                 onDeleteSession={onDeleteSession}
+                onRenameSession={onRenameSession}
                 onShareSession={onShareSession}
                 primaryColor={primaryColor}
               />
@@ -156,6 +164,7 @@ export function ChatSidebar({
                 activeSessionId={activeSessionId}
                 onSessionSelect={onSessionSelect}
                 onDeleteSession={onDeleteSession}
+                onRenameSession={onRenameSession}
                 onShareSession={onShareSession}
                 primaryColor={primaryColor}
               />
@@ -226,6 +235,7 @@ interface SessionGroupProps {
   activeSessionId?: string
   onSessionSelect?: (sessionId: string) => void
   onDeleteSession?: (sessionId: string) => void
+  onRenameSession?: (sessionId: string, newName: string) => void
   onShareSession?: (sessionId: string) => void
   primaryColor: string
 }
@@ -236,6 +246,7 @@ function SessionGroup({
   activeSessionId,
   onSessionSelect,
   onDeleteSession,
+  onRenameSession,
   onShareSession,
   primaryColor,
 }: SessionGroupProps) {
@@ -252,6 +263,7 @@ function SessionGroup({
             isActive={session.id === activeSessionId}
             onClick={() => onSessionSelect?.(session.id)}
             onDelete={() => onDeleteSession?.(session.id)}
+            onRename={(newName) => onRenameSession?.(session.id, newName)}
             onShare={() => onShareSession?.(session.id)}
             primaryColor={primaryColor}
           />
@@ -266,61 +278,129 @@ interface SessionItemProps {
   isActive?: boolean
   onClick?: () => void
   onDelete?: () => void
+  onRename?: (newName: string) => void
   onShare?: () => void
   primaryColor: string
 }
 
-function SessionItem({ session, isActive, onClick, onDelete, onShare }: SessionItemProps) {
+function SessionItem({ session, isActive, onClick, onDelete, onRename, onShare }: SessionItemProps) {
   const [showActions, setShowActions] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editValue, setEditValue] = useState(session.title)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (isEditing) {
+      inputRef.current?.focus()
+      inputRef.current?.select()
+    }
+  }, [isEditing])
+
+  const startEditing = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEditValue(session.title)
+    setIsEditing(true)
+  }
+
+  const commitRename = () => {
+    const trimmed = editValue.trim()
+    if (trimmed && trimmed !== session.title) {
+      onRename?.(trimmed)
+    }
+    setIsEditing(false)
+  }
+
+  const cancelRename = () => {
+    setEditValue(session.title)
+    setIsEditing(false)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') { e.preventDefault(); commitRename() }
+    if (e.key === 'Escape') { e.preventDefault(); cancelRename() }
+  }
 
   return (
     <div
       className={cn(
-        'group relative flex items-center rounded-xl transition-all cursor-pointer',
-        isActive ? 'bg-gray-100' : 'hover:bg-gray-50'
+        'group relative flex items-center rounded-xl transition-all',
+        isEditing ? 'bg-gray-100' : cn('cursor-pointer', isActive ? 'bg-gray-100' : 'hover:bg-gray-50')
       )}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
-      <button
-        onClick={onClick}
-        className="flex-1 px-3 py-2.5 text-left min-w-0"
-      >
-        <p className={cn(
-          'text-sm truncate',
-          isActive ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'
-        )}>
-          {session.title}
-        </p>
-      </button>
-
-      {showActions && (
-        <div className="flex items-center mr-1.5 gap-0.5">
-          {onShare && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onShare()
-              }}
-              className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"
-              title="Share"
-            >
-              <Share2 size={13} className="text-gray-400 hover:text-blue-500" />
-            </button>
-          )}
-          {onDelete && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onDelete()
-              }}
-              className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"
-              title="Delete"
-            >
-              <Trash2 size={13} className="text-gray-400 hover:text-red-500" />
-            </button>
-          )}
+      {isEditing ? (
+        <div className="flex flex-1 items-center gap-1 px-2 py-1.5 min-w-0">
+          <input
+            ref={inputRef}
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onBlur={commitRename}
+            className="flex-1 min-w-0 bg-white border border-gray-300 rounded-lg px-2 py-1 text-sm text-gray-900 focus:outline-none focus:border-gray-400"
+          />
+          <button
+            onMouseDown={(e) => { e.preventDefault(); commitRename() }}
+            className="p-1 hover:bg-gray-200 rounded-lg transition-colors flex-shrink-0"
+            title="Save"
+          >
+            <Check size={13} className="text-green-600" />
+          </button>
+          <button
+            onMouseDown={(e) => { e.preventDefault(); cancelRename() }}
+            className="p-1 hover:bg-gray-200 rounded-lg transition-colors flex-shrink-0"
+            title="Cancel"
+          >
+            <X size={13} className="text-gray-400" />
+          </button>
         </div>
+      ) : (
+        <>
+          <button
+            onClick={onClick}
+            onDoubleClick={onRename ? startEditing : undefined}
+            className="flex-1 px-3 py-2.5 text-left min-w-0"
+          >
+            <p className={cn(
+              'text-sm truncate',
+              isActive ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'
+            )}>
+              {session.title}
+            </p>
+          </button>
+
+          {showActions && (
+            <div className="flex items-center mr-1.5 gap-0.5">
+              {onRename && (
+                <button
+                  onClick={startEditing}
+                  className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"
+                  title="Rename"
+                >
+                  <Pencil size={13} className="text-gray-400 hover:text-gray-700" />
+                </button>
+              )}
+              {onShare && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onShare() }}
+                  className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"
+                  title="Share"
+                >
+                  <Share2 size={13} className="text-gray-400 hover:text-blue-500" />
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDelete() }}
+                  className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"
+                  title="Delete"
+                >
+                  <Trash2 size={13} className="text-gray-400 hover:text-red-500" />
+                </button>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   )

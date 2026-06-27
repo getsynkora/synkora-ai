@@ -35,6 +35,7 @@ from .agent_version import AgentVersion
 from .agent_webhook import AgentWebhook, AgentWebhookEvent
 from .agent_widget import AgentWidget, WidgetAnalytics
 from .analysis_job import AnalysisJob, JobStatus, JobType
+from .video_generation_job import VideoGenerationJob, VideoJobStatus
 from .app import App, AppMode, AppStatus
 from .app_review import AppReview, ReviewSentiment
 from .app_store_source import AppStoreSource, SourceStatus, StoreType, SyncFrequency
@@ -127,7 +128,6 @@ from .test_scenario import TestScenario
 from .upload_file import FileSource, FileType, UploadFile
 from .usage_analytics import UsageAnalytics
 from .user_oauth_token import UserOAuthToken
-from .video_generation_job import VideoGenerationJob, VideoJobStatus
 from .voice_api_key import VoiceApiKey
 from .voice_usage import VoiceUsage
 from .whatsapp_bot import WhatsAppBot
