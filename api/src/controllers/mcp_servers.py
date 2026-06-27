@@ -116,7 +116,8 @@ async def create_mcp_server(
         if request.transport_type not in ["http", "stdio"]:
             raise HTTPException(status_code=400, detail="Transport type must be 'http' or 'stdio'")
 
-        # Create new server
+        # Create new server — sensitive fields set via properties after construction
+        # so that Fernet encryption is applied before the first db.add().
         new_server = MCPServer(
             tenant_id=tenant_id,
             name=request.name,
@@ -125,15 +126,15 @@ async def create_mcp_server(
             transport_type=request.transport_type,
             command=request.command,
             args=request.args,
-            env_vars=request.env_vars,
             server_type=request.server_type,
             auth_type=request.auth_type,
-            auth_config=request.auth_config,
-            headers=request.headers,
             capabilities=request.capabilities,
             server_metadata=request.server_metadata or {},
             status="ACTIVE",
         )
+        new_server.auth_config = request.auth_config
+        new_server.env_vars = request.env_vars
+        new_server.headers = request.headers
 
         db.add(new_server)
         await db.commit()
