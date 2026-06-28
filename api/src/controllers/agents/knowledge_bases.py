@@ -309,11 +309,11 @@ async def detach_knowledge_base(
         if not agent:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent with ID '{agent_id}' not found")
 
-        # Find and delete the association
+        # Find and delete the association — eagerly load knowledge_base to avoid lazy-load in async context
         result = await db.execute(
-            select(AgentKnowledgeBase).filter(
-                AgentKnowledgeBase.agent_id == agent_uuid, AgentKnowledgeBase.knowledge_base_id == kb_id
-            )
+            select(AgentKnowledgeBase)
+            .filter(AgentKnowledgeBase.agent_id == agent_uuid, AgentKnowledgeBase.knowledge_base_id == kb_id)
+            .options(selectinload(AgentKnowledgeBase.knowledge_base))
         )
         agent_kb = result.scalar_one_or_none()
 
@@ -322,7 +322,7 @@ async def detach_knowledge_base(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Knowledge base not attached to this agent"
             )
 
-        kb_name = agent_kb.knowledge_base.name
+        kb_name = agent_kb.knowledge_base.name if agent_kb.knowledge_base else str(kb_id)
         await db.delete(agent_kb)
         await db.commit()
 

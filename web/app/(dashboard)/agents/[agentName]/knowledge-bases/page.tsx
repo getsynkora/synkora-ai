@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { BookOpen, Plus } from 'lucide-react'
+import { AlertTriangle, BookOpen, Plus } from 'lucide-react'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import ErrorAlert from '@/components/common/ErrorAlert'
 import EmptyState from '@/components/common/EmptyState'
@@ -27,21 +27,18 @@ interface KnowledgeBase {
 
 interface AgentKnowledgeBase {
   id: number
-  agent_id: number
-  knowledge_base_id: number
-  knowledge_base?: KnowledgeBase
-  name?: string
-  description?: string
-  vector_db_provider?: string
-  total_documents?: number
-  total_chunks?: number
+  name: string
+  description: string
+  vector_db_provider: string
+  total_documents: number
+  total_chunks: number
+  is_active?: boolean
   retrieval_config: {
     top_k: number
     score_threshold: number
     include_metadata: boolean
   }
   created_at: string
-  is_active?: boolean
 }
 
 export default function AgentKnowledgeBasesPage() {
@@ -55,6 +52,8 @@ export default function AgentKnowledgeBasesPage() {
   const [error, setError] = useState<string | null>(null)
   const [showAttachModal, setShowAttachModal] = useState(false)
   const [selectedKbId, setSelectedKbId] = useState<number | null>(null)
+  const [detachingKb, setDetachingKb] = useState<AgentKnowledgeBase | null>(null)
+  const [isDetaching, setIsDetaching] = useState(false)
   const [attachConfig, setAttachConfig] = useState({
     top_k: 5,
     score_threshold: 0.7,
@@ -127,22 +126,25 @@ export default function AgentKnowledgeBasesPage() {
     }
   }
 
-  const handleDetach = async (kbId: number, kbName: string) => {
-    if (!agent) return
-    
-    if (!confirm(`Are you sure you want to detach "${kbName}" from this agent?`)) {
-      return
-    }
+  const handleDetach = (kb: AgentKnowledgeBase) => {
+    setDetachingKb(kb)
+  }
 
+  const confirmDetach = async () => {
+    if (!agent || !detachingKb) return
+    setIsDetaching(true)
     try {
-      await apiClient.removeKnowledgeBaseFromAgent(agent.id.toString(), kbId.toString())
+      await apiClient.removeKnowledgeBaseFromAgent(agent.id.toString(), detachingKb.id.toString())
+      setDetachingKb(null)
       fetchAttachedKBs()
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to detach knowledge base')
+    } finally {
+      setIsDetaching(false)
     }
   }
 
-  const getProviderBadgeColor = (provider: string) => {
+  const getProviderBadgeColor = (provider?: string) => {
     const colors: Record<string, string> = {
       QDRANT: 'bg-blue-100 text-blue-800',
       PINECONE: 'bg-purple-100 text-purple-800',
@@ -150,7 +152,7 @@ export default function AgentKnowledgeBasesPage() {
       CHROMA: 'bg-orange-100 text-orange-800',
       MILVUS: 'bg-primary-100 text-primary-800',
     }
-    return colors[provider.toUpperCase()] || 'bg-gray-100 text-gray-800'
+    return colors[(provider || '').toUpperCase()] || 'bg-gray-100 text-gray-800'
   }
 
   const getUnattachedKBs = () => {
@@ -230,22 +232,22 @@ export default function AgentKnowledgeBasesPage() {
               {/* Header */}
               <div className="flex items-start justify-between mb-4">
                 <Link
-                  href={`/knowledge-bases/${akb.knowledge_base_id}`}
+                  href={`/knowledge-bases/${akb.id}`}
                   className="flex-1"
                 >
                   <h3 className="text-base font-semibold text-gray-900 hover:text-primary-600 transition-colors">
-                    {akb.knowledge_base?.name || akb.name || 'Unknown KB'}
+                    {akb.name || 'Unknown KB'}
                   </h3>
                   <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                    {akb.knowledge_base?.description || akb.description || ''}
+                    {akb.description || ''}
                   </p>
                 </Link>
               </div>
 
               {/* Provider Badge */}
               <div className="mb-4">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getProviderBadgeColor(akb.knowledge_base?.vector_db_provider || akb.vector_db_provider || 'unknown')}`}>
-                  {akb.knowledge_base?.vector_db_provider || akb.vector_db_provider || 'unknown'}
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getProviderBadgeColor(akb.vector_db_provider)}`}>
+                  {akb.vector_db_provider || 'unknown'}
                 </span>
               </div>
 
@@ -254,13 +256,13 @@ export default function AgentKnowledgeBasesPage() {
                 <div>
                   <p className="text-xs text-gray-500">Documents</p>
                   <p className="text-base font-semibold text-gray-900">
-                    {akb.knowledge_base?.total_documents ?? akb.total_documents ?? 0}
+                    {akb.total_documents ?? 0}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Chunks</p>
                   <p className="text-base font-semibold text-gray-900">
-                    {akb.knowledge_base?.total_chunks ?? akb.total_chunks ?? 0}
+                    {akb.total_chunks ?? 0}
                   </p>
                 </div>
               </div>
@@ -271,16 +273,16 @@ export default function AgentKnowledgeBasesPage() {
                 <div className="space-y-1 bg-gray-50 rounded-md p-2.5">
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-600">Top K:</span>
-                    <span className="text-gray-900 font-medium">{akb.retrieval_config.top_k}</span>
+                    <span className="text-gray-900 font-medium">{akb.retrieval_config?.top_k ?? '—'}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-600">Score Threshold:</span>
-                    <span className="text-gray-900 font-medium">{akb.retrieval_config.score_threshold}</span>
+                    <span className="text-gray-900 font-medium">{akb.retrieval_config?.score_threshold ?? '—'}</span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-600">Include Metadata:</span>
                     <span className="text-gray-900 font-medium">
-                      {akb.retrieval_config.include_metadata ? 'Yes' : 'No'}
+                      {akb.retrieval_config?.include_metadata ? 'Yes' : 'No'}
                     </span>
                   </div>
                 </div>
@@ -288,13 +290,49 @@ export default function AgentKnowledgeBasesPage() {
 
               {/* Actions */}
               <button
-                onClick={() => handleDetach(akb.knowledge_base_id, akb.knowledge_base?.name || akb.name || 'KB')}
+                onClick={() => handleDetach(akb)}
                 className="w-full px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
               >
                 Detach
               </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Detach Confirm Modal */}
+      {detachingKb && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-[1.8rem] border border-black/10 bg-[#fcfaf5] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.18)]">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[1rem] bg-red-50">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Detach Knowledge Base</h3>
+            </div>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to detach{' '}
+              <span className="font-medium text-gray-900">{detachingKb.name}</span>
+              {' '}from this agent? The knowledge base itself will not be deleted.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDetachingKb(null)}
+                disabled={isDetaching}
+                className="rounded-[1rem] border border-black/10 bg-[#f1eadc] px-4 py-2.5 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#e8ddc8] disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDetach}
+                disabled={isDetaching}
+                className="flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
+              >
+                {isDetaching && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                Detach
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
