@@ -28,7 +28,7 @@ const staticPlans = [
 
 export default function PricingPreviewClient() {
   const [pricingPlans, setPricingPlans] = useState<PricingPlan[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     const fetchPricingPlans = async () => {
