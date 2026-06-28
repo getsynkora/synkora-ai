@@ -21,7 +21,7 @@ data:
   # REQUIRED: set to your deployment domain before applying.
   APP_BASE_URL: "https://synkora.ai"
 
-  INNER_CORS_ORIGINS: "https://synkora.ai"
+  INNER_CORS_ORIGINS: "https://synkora.ai,https://otoride.ai,https://www.otoride.ai"
 
   RATE_LIMIT_ENABLED: "true"
   RATE_LIMIT_PER_MINUTE: "60"

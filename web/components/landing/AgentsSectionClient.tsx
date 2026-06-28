@@ -147,7 +147,7 @@ const staticAgents = [
 export default function AgentsSectionClient() {
   const sectionRef = useRef<HTMLElement>(null)
   const [publicAgents, setPublicAgents] = useState<PublicAgent[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     const fetchPublicAgents = async () => {
