@@ -30,7 +30,9 @@ export default function AnimatedNav() {
 
     import('gsap').then(({ default: gsap }) => {
       gsap.fromTo(brandRef.current, { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: 0.75, ease: 'power3.out' })
+      gsap.set(centerRef.current, { opacity: 1 })
       gsap.fromTo(centerRef.current?.children || [], { opacity: 0, y: -14 }, { opacity: 1, y: 0, duration: 0.5, stagger: 0.06, delay: 0.15, ease: 'power2.out' })
+      gsap.set(actionsRef.current, { opacity: 1 })
       gsap.fromTo(actionsRef.current?.children || [], { opacity: 0, x: 18 }, { opacity: 1, x: 0, duration: 0.55, stagger: 0.07, delay: 0.2, ease: 'power2.out' })
     })
 
