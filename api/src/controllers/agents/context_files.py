@@ -195,6 +195,8 @@ async def list_context_files(
                     "extraction_status": f.extraction_status,
                     "extraction_error": f.extraction_error,
                     "display_order": f.display_order,
+                    "load_mode": f.load_mode,
+                    "description": f.description,
                     "created_at": f.created_at.isoformat(),
                     "updated_at": f.updated_at.isoformat(),
                 }
@@ -413,13 +415,22 @@ async def update_context_file_content(
             file_content=new_content, key=context_file.s3_key, content_type=context_file.file_type or "text/markdown"
         )
 
-        # Update file size and extracted text in database
+        # Update file size and description in database; invalidate content cache
         context_file.file_size = len(new_content)
-        context_file.extracted_text = request.content
+        context_file.description = request.content[:200].strip()
         context_file.extraction_status = "COMPLETED"
         context_file.extraction_error = None
 
         await db.commit()
+
+        # Invalidate per-file content cache so next access fetches fresh from S3
+        try:
+            from src.services.cache import get_agent_cache
+            cache = get_agent_cache()
+            await cache.invalidate_context_file_content(str(context_file.id))
+            await cache.invalidate_agent(agent_id=str(context_file.agent_id))
+        except Exception as cache_err:
+            logger.warning(f"Failed to invalidate cache after content update: {cache_err}")
 
         return AgentResponse(
             success=True,
@@ -437,6 +448,89 @@ async def update_context_file_content(
         await db.rollback()
         logger.error(f"Failed to update context file content: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update file content")
+
+
+class PatchContextFileRequest(BaseModel):
+    """Request model for updating load_mode or description."""
+
+    load_mode: str | None = None  # "always" | "on_demand"
+    description: str | None = None
+
+
+@agents_context_files_router.patch("/context-files/{file_id}", response_model=AgentResponse)
+async def patch_context_file(
+    file_id: str,
+    request: PatchContextFileRequest,
+    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
+    db: AsyncSession = Depends(get_async_db),
+):
+    """
+    Update load_mode or description for a context file.
+
+    Args:
+        file_id: UUID of the context file
+        request: Fields to update (load_mode and/or description)
+        tenant_id: Tenant ID from JWT token
+        db: Database session
+
+    Returns:
+        Updated file metadata
+    """
+    try:
+        from src.models.agent_context_file import AgentContextFile
+        from src.services.cache import get_agent_cache
+
+        try:
+            file_uuid = uuid.UUID(file_id)
+        except ValueError:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid file ID format")
+
+        result = await db.execute(
+            select(AgentContextFile)
+            .join(Agent, AgentContextFile.agent_id == Agent.id)
+            .filter(AgentContextFile.id == file_uuid, Agent.tenant_id == tenant_id)
+        )
+        context_file = result.scalar_one_or_none()
+
+        if not context_file:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Context file not found")
+
+        if request.load_mode is not None:
+            if request.load_mode not in ("always", "on_demand"):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="load_mode must be 'always' or 'on_demand'",
+                )
+            context_file.load_mode = request.load_mode
+
+        if request.description is not None:
+            context_file.description = request.description[:500]
+
+        await db.commit()
+
+        # Invalidate manifest cache so prompt builder picks up the change
+        try:
+            cache = get_agent_cache()
+            await cache.invalidate_agent(agent_id=str(context_file.agent_id))
+        except Exception as cache_err:
+            logger.warning(f"Failed to invalidate manifest cache after patch: {cache_err}")
+
+        return AgentResponse(
+            success=True,
+            message="Context file updated",
+            data={
+                "id": str(context_file.id),
+                "load_mode": context_file.load_mode,
+                "description": context_file.description,
+            },
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"Failed to patch context file: {e}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update context file")
 
 
 @agents_context_files_router.delete("/context-files/{file_id}", response_model=AgentResponse)
@@ -481,10 +575,21 @@ async def delete_context_file(
             )
 
         filename = context_file.filename
+        file_id_str = str(context_file.id)
+        agent_id_str = str(context_file.agent_id)
 
-        # Delete file
+        # Delete file from S3 + DB
         processor = AgentContextFileProcessor(db)
         await processor.delete_file(context_file)
+
+        # Invalidate per-file content cache and agent manifest cache
+        try:
+            from src.services.cache import get_agent_cache
+            cache = get_agent_cache()
+            await cache.invalidate_context_file_content(file_id_str)
+            await cache.invalidate_agent(agent_id=agent_id_str)
+        except Exception as cache_err:
+            logger.warning(f"Failed to invalidate cache after file deletion: {cache_err}")
 
         return AgentResponse(success=True, message=f"File '{filename}' deleted successfully")
 

@@ -23,13 +23,13 @@ export const metadata = {
     description: 'Multitenant, API-first platform for building, deploying, and managing AI agents. Multi-provider LLM support, RAG, tool registry, and full observability. Self-host or cloud.',
     type: 'website',
     siteName: 'Synkora',
-    images: [{ url: '/hero-image.jpg', width: 1200, height: 630, alt: 'Synkora – Open-Source LLM Platform' }],
+    images: [{ url: '/images/screenshot-dashboard-full.png', width: 1200, height: 630, alt: 'Synkora – Open-Source LLM Platform' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Synkora – Open-Source LLM Application Platform',
     description: 'Multitenant, API-first platform for building, deploying, and managing AI agents. Multi-provider LLM support, RAG, tool registry, and full observability. Self-host or cloud.',
-    images: ['/hero-image.jpg'],
+    images: ['/images/screenshot-dashboard-full.png'],
   },
 }
 

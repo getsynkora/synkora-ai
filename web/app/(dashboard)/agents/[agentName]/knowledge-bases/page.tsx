@@ -156,7 +156,7 @@ export default function AgentKnowledgeBasesPage() {
   }
 
   const getUnattachedKBs = () => {
-    const attachedIds = attachedKBs.map(akb => akb.id)
+    const attachedIds = attachedKBs.map(akb => akb.knowledge_base_id)
     return availableKBs.filter(kb => !attachedIds.includes(kb.id))
   }
 

@@ -27,7 +27,8 @@ class AgentContextFile(BaseModel, TenantMixin):
         file_size: File size in bytes
         s3_key: S3 storage key
         s3_bucket: S3 bucket name
-        extracted_text: Extracted text content from the file
+        load_mode: "always" (inject into system prompt) or "on_demand" (LLM loads via tool)
+        description: Short description shown in manifest for on_demand files (auto-generated, user-overridable)
         extraction_status: Status of text extraction (pending, completed, failed)
         extraction_error: Error message if extraction failed
         display_order: Order for displaying files (lower numbers first)
@@ -54,7 +55,18 @@ class AgentContextFile(BaseModel, TenantMixin):
 
     s3_bucket = Column(String(255), nullable=False, comment="S3 bucket name")
 
-    extracted_text = Column(Text, nullable=True, comment="Extracted text content from the file")
+    load_mode = Column(
+        String(20),
+        nullable=False,
+        default="always",
+        comment="always | on_demand",
+    )
+
+    description = Column(
+        String(500),
+        nullable=True,
+        comment="Short description shown to LLM in on-demand manifest (auto-generated, user-overridable)",
+    )
 
     extraction_status = Column(
         String(50),

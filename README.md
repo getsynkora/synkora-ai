@@ -26,6 +26,12 @@ Deploy agents to Slack, WhatsApp, Teams, Telegram, web widget, and REST API — 
 
 ---
 
+<div align="center">
+  <img src="web/public/images/screenshot-hero.png" alt="Synkora — The AI agent platform your team actually owns" width="100%"/>
+</div>
+
+---
+
 ## Overview
 
 LangChain gives you building blocks. AutoGen gives you patterns. Synkora gives you the entire platform.
@@ -59,34 +65,50 @@ Web UI, multi-tenant workspaces, RAG knowledge bases, 50+ tool integrations, mul
 <table>
   <tr>
     <td align="center" width="50%">
-      <strong>Personal AI Assistant</strong><br><br>
-      <a href="https://github.com/user-attachments/assets/ce64d4bc-c47e-48f6-af2d-9287d6b3b836">
-        <img src="https://img.shields.io/badge/Watch%20Demo-%E2%96%B6%20Personal%20Assistant-red?style=for-the-badge&logo=github" alt="Personal Assistant Demo"/>
-      </a>
-      <br><br><em>A personal AI assistant that can browse, code, schedule, and more.</em>
+      <strong>Platform Overview</strong><br><br>
+      <img src="web/public/images/screenshot-overview.png" alt="Build LLM Applications in Minutes" width="100%"/>
+      <br><em>From agent definition to production deployment in minutes — API access, RAG, tool integrations, and multi-channel delivery.</em>
     </td>
     <td align="center" width="50%">
-      <strong>Platform Engineer Agent</strong><br><br>
-      <a href="https://github.com/user-attachments/assets/c27ebb0c-1742-4897-9f7f-eaa112d66470">
-        <img src="https://img.shields.io/badge/Watch%20Demo-%E2%96%B6%20Platform%20Engineer-red?style=for-the-badge&logo=github" alt="Platform Engineer Demo"/>
-      </a>
-      <br><br><em>Managing agents and platform operations with the Platform Engineer Agent.</em>
+      <strong>Workspace Dashboard</strong><br><br>
+      <img src="web/public/images/screenshot-dashboard-full.png" alt="Synkora Dashboard" width="100%"/>
+      <br><em>Full workspace overview — agents, knowledge bases, data sources, MCP servers, and recent activity in one view.</em>
     </td>
   </tr>
   <tr>
     <td align="center" width="50%">
-      <strong>Daily AI News Reporter — Setup</strong><br><br>
-      <a href="https://github.com/user-attachments/assets/a590dc34-3744-4359-9254-357e0d95d5ee">
-        <img src="https://img.shields.io/badge/Watch%20Demo-%E2%96%B6%20News%20Reporter%20Setup-red?style=for-the-badge&logo=github" alt="News Reporter Setup Demo"/>
-      </a>
-      <br><br><em>Setting up a Daily AI News Reporter agent from the chat interface.</em>
+      <strong>Agent Library</strong><br><br>
+      <img src="web/public/images/screenshot-agents.png" alt="Agents Library" width="100%"/>
+      <br><em>Browse, search, and manage all your agents. Each card shows usage, success rate, and team visibility.</em>
     </td>
     <td align="center" width="50%">
-      <strong>Daily AI News Reporter — Email Digest</strong><br><br>
-      <a href="https://github.com/user-attachments/assets/4001f0a0-f82d-453e-9b0c-f6e16afd514d">
-        <img src="https://img.shields.io/badge/Watch%20Demo-%E2%96%B6%20Email%20Newsletter-red?style=for-the-badge&logo=github" alt="Email Newsletter Demo"/>
-      </a>
-      <br><br><em>Watch the Daily AI News Reporter automatically send a personalized AI news email digest.</em>
+      <strong>Agent Detail & Integrations</strong><br><br>
+      <img src="web/public/images/screenshot-agent-detail.png" alt="Agent Detail" width="100%"/>
+      <br><em>Per-agent configuration — integrations (Slack, WhatsApp, Telegram, databases), deployment channels, and advanced settings.</em>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <strong>Live Agent Chat</strong><br><br>
+      <img src="web/public/images/screenshot-agent-chat.png" alt="Agent Chat Interface" width="100%"/>
+      <br><em>Real-time streaming chat with quick-start action cards, session stats, and inline Lens observability.</em>
+    </td>
+    <td align="center" width="50%">
+      <strong>Autonomous Mode</strong><br><br>
+      <img src="web/public/images/screenshot-autonomous-mode.png" alt="Autonomous Mode — Background Automation" width="100%"/>
+      <br><em>Schedule agents to run on any cadence — every 5 minutes to custom cron. Set tool budgets and enable Human-in-the-Loop approval.</em>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <strong>Platform Engineer Agent</strong><br><br>
+      <img src="web/public/images/screenshot-platform-engineer.png" alt="Platform Engineer Agent" width="100%"/>
+      <br><em>Create and manage agents through conversation. Describe what you want — no forms, no config files.</em>
+    </td>
+    <td align="center" width="50%">
+      <strong>Full Navigation</strong><br><br>
+      <img src="web/public/images/screenshot-dashboard.png" alt="Synkora Full Navigation" width="100%"/>
+      <br><em>Everything accessible from the sidebar — agents, knowledge bases, data sources, scheduled tasks, integrations, billing, and team management.</em>
     </td>
   </tr>
 </table>

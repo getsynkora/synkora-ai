@@ -1827,6 +1827,202 @@ async def platform_disable_agent_autonomous(
 
 
 # ---------------------------------------------------------------------------
+# Sub-agent wiring
+# ---------------------------------------------------------------------------
+
+
+async def platform_list_sub_agents(
+    agent_name: str,
+    runtime_context: Any = None,
+) -> dict:
+    """List sub-agents registered to a parent agent."""
+    if not runtime_context or not runtime_context.tenant_id:
+        return {"success": False, "message": "No tenant context available"}
+
+    try:
+        from src.models.agent_sub_agent import AgentSubAgent
+
+        db = runtime_context.db_session
+        tenant_id = runtime_context.tenant_id
+
+        parent = await _resolve_target_agent(db, agent_name, tenant_id)
+        if not parent:
+            return {"success": False, "message": f"Agent '{agent_name}' not found"}
+
+        from sqlalchemy.orm import selectinload
+
+        result = await db.execute(
+            select(AgentSubAgent)
+            .options(selectinload(AgentSubAgent.sub_agent))
+            .where(AgentSubAgent.parent_agent_id == parent.id)
+            .order_by(AgentSubAgent.execution_order)
+        )
+        rels = result.scalars().all()
+
+        sub_agents = []
+        for rel in rels:
+            child = rel.sub_agent
+            if child:
+                sub_agents.append(
+                    {
+                        "relationship_id": str(rel.id),
+                        "sub_agent_id": str(child.id),
+                        "sub_agent_name": child.agent_name,
+                        "description": child.description,
+                        "execution_order": rel.execution_order,
+                        "is_active": rel.is_active,
+                    }
+                )
+
+        return {
+            "success": True,
+            "parent_agent": agent_name,
+            "sub_agents": sub_agents,
+            "count": len(sub_agents),
+        }
+    except Exception as e:
+        logger.exception("Error listing sub-agents")
+        return {"success": False, "message": str(e)}
+
+
+async def platform_add_sub_agent(
+    parent_agent_name: str,
+    sub_agent_name: str,
+    execution_order: int = 0,
+    runtime_context: Any = None,
+) -> dict:
+    """
+    Wire a sub-agent to a parent agent.
+
+    After this call, when the parent agent uses spawn_agent(agent_name=sub_agent_name),
+    the routing layer will delegate to the registered sub-agent instead of self-cloning.
+    """
+    if not runtime_context or not runtime_context.tenant_id:
+        return {"success": False, "message": "No tenant context available"}
+
+    try:
+        from src.models.agent_sub_agent import AgentSubAgent
+
+        db = runtime_context.db_session
+        tenant_id = runtime_context.tenant_id
+
+        parent = await _resolve_target_agent(db, parent_agent_name, tenant_id)
+        if not parent:
+            return {"success": False, "message": f"Parent agent '{parent_agent_name}' not found"}
+
+        child = await _resolve_target_agent(db, sub_agent_name, tenant_id)
+        if not child:
+            return {"success": False, "message": f"Sub-agent '{sub_agent_name}' not found"}
+
+        if parent.id == child.id:
+            return {"success": False, "message": "An agent cannot be its own sub-agent"}
+
+        existing = (
+            await db.execute(
+                select(AgentSubAgent).where(
+                    AgentSubAgent.parent_agent_id == parent.id,
+                    AgentSubAgent.sub_agent_id == child.id,
+                )
+            )
+        ).scalar_one_or_none()
+
+        if existing:
+            # Reactivate if it was soft-deleted, update execution_order
+            existing.is_active = True
+            existing.execution_order = execution_order
+            await db.commit()
+            return {
+                "success": True,
+                "message": f"Sub-agent '{child.agent_name}' is already linked to '{parent.agent_name}' (reactivated).",
+                "relationship_id": str(existing.id),
+                "parent_agent": parent.agent_name,
+                "sub_agent": child.agent_name,
+            }
+
+        rel = AgentSubAgent(
+            parent_agent_id=parent.id,
+            sub_agent_id=child.id,
+            execution_order=execution_order,
+            is_active=True,
+        )
+        db.add(rel)
+        await db.commit()
+        await db.refresh(rel)
+
+        return {
+            "success": True,
+            "message": f"Sub-agent '{child.agent_name}' wired to '{parent.agent_name}'.",
+            "relationship_id": str(rel.id),
+            "parent_agent": parent.agent_name,
+            "sub_agent": child.agent_name,
+            "execution_order": rel.execution_order,
+        }
+    except Exception as e:
+        logger.exception("Error adding sub-agent")
+        try:
+            await runtime_context.db_session.rollback()
+        except Exception:
+            pass
+        return {"success": False, "message": str(e)}
+
+
+async def platform_remove_sub_agent(
+    parent_agent_name: str,
+    sub_agent_name: str,
+    runtime_context: Any = None,
+) -> dict:
+    """Remove (unlink) a sub-agent from a parent agent."""
+    if not runtime_context or not runtime_context.tenant_id:
+        return {"success": False, "message": "No tenant context available"}
+
+    try:
+        from src.models.agent_sub_agent import AgentSubAgent
+
+        db = runtime_context.db_session
+        tenant_id = runtime_context.tenant_id
+
+        parent = await _resolve_target_agent(db, parent_agent_name, tenant_id)
+        if not parent:
+            return {"success": False, "message": f"Parent agent '{parent_agent_name}' not found"}
+
+        child = await _resolve_target_agent(db, sub_agent_name, tenant_id)
+        if not child:
+            return {"success": False, "message": f"Sub-agent '{sub_agent_name}' not found"}
+
+        rel = (
+            await db.execute(
+                select(AgentSubAgent).where(
+                    AgentSubAgent.parent_agent_id == parent.id,
+                    AgentSubAgent.sub_agent_id == child.id,
+                )
+            )
+        ).scalar_one_or_none()
+
+        if not rel:
+            return {
+                "success": False,
+                "message": f"No link found between '{parent.agent_name}' and '{child.agent_name}'",
+            }
+
+        await db.delete(rel)
+        await db.commit()
+
+        return {
+            "success": True,
+            "message": f"Sub-agent '{child.agent_name}' removed from '{parent.agent_name}'.",
+            "parent_agent": parent.agent_name,
+            "sub_agent": child.agent_name,
+        }
+    except Exception as e:
+        logger.exception("Error removing sub-agent")
+        try:
+            await runtime_context.db_session.rollback()
+        except Exception:
+            pass
+        return {"success": False, "message": str(e)}
+
+
+# ---------------------------------------------------------------------------
 # Channel management helpers
 # ---------------------------------------------------------------------------
 

@@ -22,6 +22,7 @@ def register_platform_tools(registry) -> None:
         registry: ADKToolRegistry instance
     """
     from src.services.agents.internal_tools.platform_tools import (
+        platform_add_sub_agent,
         platform_attach_database_connections,
         platform_attach_knowledge_base,
         platform_attach_mcp_server,
@@ -40,6 +41,8 @@ def register_platform_tools(registry) -> None:
         platform_list_database_connections,
         platform_list_knowledge_bases,
         platform_list_mcp_servers,
+        platform_list_sub_agents,
+        platform_remove_sub_agent,
         platform_set_agent_autonomous,
         platform_update_agent,
     )
@@ -780,4 +783,88 @@ def register_platform_tools(registry) -> None:
         tool_category="action",
     )
 
-    logger.info("Registered 20 platform engineer tools")
+    async def platform_list_sub_agents_wrapper(config: dict[str, Any] | None = None, **kwargs):
+        runtime_context = config.get("_runtime_context") if config else None
+        return await platform_list_sub_agents(
+            agent_name=kwargs.get("agent_name", ""),
+            runtime_context=runtime_context,
+        )
+
+    async def platform_add_sub_agent_wrapper(config: dict[str, Any] | None = None, **kwargs):
+        runtime_context = config.get("_runtime_context") if config else None
+        return await platform_add_sub_agent(
+            parent_agent_name=kwargs.get("parent_agent_name", ""),
+            sub_agent_name=kwargs.get("sub_agent_name", ""),
+            execution_order=kwargs.get("execution_order", 0),
+            runtime_context=runtime_context,
+        )
+
+    async def platform_remove_sub_agent_wrapper(config: dict[str, Any] | None = None, **kwargs):
+        runtime_context = config.get("_runtime_context") if config else None
+        return await platform_remove_sub_agent(
+            parent_agent_name=kwargs.get("parent_agent_name", ""),
+            sub_agent_name=kwargs.get("sub_agent_name", ""),
+            runtime_context=runtime_context,
+        )
+
+    registry.register_tool(
+        name="platform_list_sub_agents",
+        description=(
+            "List all sub-agents registered to a parent agent. "
+            "Shows relationship IDs, sub-agent names, execution order, and active status. "
+            "Call this before adding or removing sub-agents to see the current wiring."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "agent_name": {"type": "string", "description": "Name/slug of the parent agent"},
+            },
+            "required": ["agent_name"],
+        },
+        function=platform_list_sub_agents_wrapper,
+    )
+
+    registry.register_tool(
+        name="platform_add_sub_agent",
+        description=(
+            "Wire a sub-agent to a parent agent. "
+            "After this call, when the parent uses spawn_agent(agent_name=<sub_agent_name>), "
+            "the routing layer delegates to the registered sub-agent instead of self-cloning. "
+            "Both agents must already exist. Use platform_list_agents to find agent names."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "parent_agent_name": {"type": "string", "description": "Name/slug of the parent (orchestrator) agent"},
+                "sub_agent_name": {"type": "string", "description": "Name/slug of the agent to register as sub-agent"},
+                "execution_order": {
+                    "type": "integer",
+                    "description": "Execution priority order (lower runs first). Default 0.",
+                    "default": 0,
+                },
+            },
+            "required": ["parent_agent_name", "sub_agent_name"],
+        },
+        function=platform_add_sub_agent_wrapper,
+        tool_category="action",
+    )
+
+    registry.register_tool(
+        name="platform_remove_sub_agent",
+        description=(
+            "Remove (unlink) a sub-agent from a parent agent. "
+            "Call platform_list_sub_agents first to confirm the current wiring."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "parent_agent_name": {"type": "string", "description": "Name/slug of the parent agent"},
+                "sub_agent_name": {"type": "string", "description": "Name/slug of the sub-agent to remove"},
+            },
+            "required": ["parent_agent_name", "sub_agent_name"],
+        },
+        function=platform_remove_sub_agent_wrapper,
+        tool_category="action",
+    )
+
+    logger.info("Registered 23 platform engineer tools")

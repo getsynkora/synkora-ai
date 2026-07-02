@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Upload, X, FileText, CheckCircle, AlertCircle, Loader2, Download, Trash2, Search, Sparkles, ChevronDown, Plus, Pencil } from 'lucide-react'
+import { Upload, X, FileText, CheckCircle, AlertCircle, Loader2, Download, Trash2, Search, Sparkles, ChevronDown, Plus, Pencil, Zap, Clock } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { apiClient } from '@/lib/api/client'
 import { PREDEFINED_SKILLS, SKILL_CATEGORIES, PredefinedSkill, searchSkills, getSkillsByCategory } from '@/lib/data/predefined-skills'
@@ -24,6 +24,8 @@ interface ContextFile {
   extraction_error?: string
   display_order: number
   created_at: string
+  load_mode: 'always' | 'on_demand'
+  description?: string
 }
 
 interface ContextFilesUploadProps {
@@ -270,6 +272,16 @@ export default function ContextFilesUpload({ agentName, onUploadComplete }: Cont
     } catch (error) {
       console.error('Failed to download file:', error)
       toast.error('Failed to download file')
+    }
+  }
+
+  const handleUpdateFile = async (fileId: string, updates: { load_mode?: 'always' | 'on_demand'; description?: string }) => {
+    try {
+      await apiClient.request('PATCH', `/api/v1/agents/context-files/${fileId}`, updates)
+      setExistingFiles(prev => prev.map(f => f.id === fileId ? { ...f, ...updates } : f))
+    } catch (error) {
+      console.error('Failed to update file:', error)
+      toast.error('Failed to update file')
     }
   }
 
@@ -547,9 +559,30 @@ export default function ContextFilesUpload({ agentName, onUploadComplete }: Cont
                             {file.extraction_error}
                           </p>
                         )}
+                        {file.description && (
+                          <p className="text-xs text-gray-400 mt-1 line-clamp-1" title={file.description}>
+                            {file.description}
+                          </p>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-1">
+                        {/* Load mode toggle */}
+                        <button
+                          onClick={() => handleUpdateFile(file.id, { load_mode: file.load_mode === 'always' ? 'on_demand' : 'always' })}
+                          title={file.load_mode === 'always' ? 'Always injected — click to make on-demand' : 'On-demand — click to always inject'}
+                          className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full transition-colors ${
+                            file.load_mode === 'always'
+                              ? 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                          }`}
+                        >
+                          {file.load_mode === 'always' ? (
+                            <><Zap className="w-3 h-3" />Always</>
+                          ) : (
+                            <><Clock className="w-3 h-3" />On-demand</>
+                          )}
+                        </button>
                         {isFileEditable(file.filename) && (
                           <button
                             onClick={() => setEditingFile(file)}
