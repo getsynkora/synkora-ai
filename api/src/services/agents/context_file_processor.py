@@ -204,6 +204,7 @@ class AgentContextFileProcessor:
                 # Prime the per-file content cache so first access is instant
                 try:
                     from src.services.cache import get_agent_cache
+
                     cache = get_agent_cache()
                     await cache.set_context_file_content(str(context_file.id), extracted_text)
                 except Exception as cache_err:
@@ -367,4 +368,3 @@ class AgentContextFileProcessor:
         except Exception as e:
             logger.error(f"Error generating download URL for {context_file.filename}: {e}")
             raise
-

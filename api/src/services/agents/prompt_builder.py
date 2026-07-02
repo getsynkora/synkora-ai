@@ -229,9 +229,9 @@ class SystemPromptBuilder:
         Fetch extracted text for always-inject files.
         Checks Redis cache first; falls back to S3 download + extraction.
         """
+        from src.services.agents.context_file_processor import AgentContextFileProcessor
         from src.services.cache import get_agent_cache
         from src.services.storage.s3_storage import S3StorageService
-        from src.services.agents.context_file_processor import AgentContextFileProcessor
 
         cache = get_agent_cache()
         s3 = S3StorageService()

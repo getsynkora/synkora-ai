@@ -426,6 +426,7 @@ async def update_context_file_content(
         # Invalidate per-file content cache so next access fetches fresh from S3
         try:
             from src.services.cache import get_agent_cache
+
             cache = get_agent_cache()
             await cache.invalidate_context_file_content(str(context_file.id))
             await cache.invalidate_agent(agent_id=str(context_file.agent_id))
@@ -585,6 +586,7 @@ async def delete_context_file(
         # Invalidate per-file content cache and agent manifest cache
         try:
             from src.services.cache import get_agent_cache
+
             cache = get_agent_cache()
             await cache.invalidate_context_file_content(file_id_str)
             await cache.invalidate_agent(agent_id=agent_id_str)

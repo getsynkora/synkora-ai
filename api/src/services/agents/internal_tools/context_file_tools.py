@@ -41,11 +41,12 @@ async def internal_load_context_file(
         if not agent_id or not tenant_id:
             return {"success": False, "error": "Missing agent_id or tenant_id in runtime context"}
 
-        from src.services.cache import get_agent_cache
-        from src.core.database import get_async_session_factory
-        from src.models.agent_context_file import AgentContextFile
-        from src.models.agent import Agent
         from sqlalchemy import select
+
+        from src.core.database import get_async_session_factory
+        from src.models.agent import Agent
+        from src.models.agent_context_file import AgentContextFile
+        from src.services.cache import get_agent_cache
 
         session_factory = get_async_session_factory()
         async with session_factory() as session:
@@ -82,8 +83,8 @@ async def internal_load_context_file(
         # 2. S3 fallback
         if content is None:
             try:
-                from src.services.storage.s3_storage import S3StorageService
                 from src.services.agents.context_file_processor import AgentContextFileProcessor
+                from src.services.storage.s3_storage import S3StorageService
 
                 s3 = S3StorageService()
                 s3_url = f"s3://{context_file.s3_bucket}/{context_file.s3_key}"
