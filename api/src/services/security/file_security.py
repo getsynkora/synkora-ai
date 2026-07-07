@@ -248,12 +248,41 @@ class FileSecurityService:
 
         return result
 
+    # MIME types that python-magic commonly reports for plain-text files whose
+    # content resembles a programming language.  These are all UTF-8 text and
+    # have no fixed magic bytes, so signature checking is meaningless for them.
+    _TEXT_EQUIVALENT_MIMES = frozenset(
+        {
+            "application/javascript",
+            "application/x-javascript",
+            "text/javascript",
+            "application/x-python",
+            "application/x-python-code",
+            "application/x-sh",
+            "application/x-shellscript",
+            "application/x-ruby",
+            "application/x-perl",
+            "application/x-php",
+            "application/x-httpd-php",
+            "application/x-typescript",
+            "application/x-sql",
+            "application/x-yaml",
+            "application/x-toml",
+        }
+    )
+
     def _validate_file_signature(self, content: bytes, mime_type: str) -> bool:
         """Validate file magic numbers/signatures"""
         # All text/* types are valid — python-magic detects .md/.txt content as
         # text/x-script.python, text/html, text/x-c, etc. depending on content.
         # Text files have no fixed magic bytes so signature checking is not meaningful.
         if mime_type.startswith("text/"):
+            return True
+
+        # python-magic often misidentifies plain-text files that contain code
+        # (e.g. a .md skill file with JS examples) as application/javascript or
+        # similar.  These are all text content — no magic-byte check applies.
+        if mime_type in self._TEXT_EQUIVALENT_MIMES:
             return True
 
         if mime_type not in self.ALLOWED_FILE_SIGNATURES:

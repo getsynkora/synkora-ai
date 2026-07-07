@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import toast from 'react-hot-toast'
@@ -38,7 +38,13 @@ import {
   MicOff,
   PhoneOff,
   Video,
+  Copy,
+  Maximize2,
+  Check,
 } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { apiClient } from '@/lib/api/client'
 import { getLLMConfigs } from '@/lib/api/agent-llm-configs'
 import { getLensOverview, type LensOverviewResponse } from '@/lib/api/agent-lens'
@@ -77,6 +83,158 @@ interface AgentDetails {
   }
 }
 
+function SystemPromptModal({
+  prompt,
+  agentName,
+  isOpen,
+  onClose,
+}: {
+  prompt: string
+  agentName: string
+  isOpen: boolean
+  onClose: () => void
+}) {
+  const [copied, setCopied] = useState(false)
+  const [mounted, setMounted] = useState(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const wordCount = prompt.trim().split(/\s+/).filter(Boolean).length
+
+  useEffect(() => {
+    setMounted(true)
+    return () => setMounted(false)
+  }, [])
+
+  useEffect(() => {
+    if (!isOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = prev
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [isOpen, onClose])
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(prompt)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  if (!mounted || !isOpen) return null
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-end justify-center p-4 sm:items-center"
+      aria-modal="true"
+      role="dialog"
+    >
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+        onClick={onClose}
+      />
+
+      {/* Sheet */}
+      <div className="relative flex w-full max-w-2xl flex-col overflow-hidden rounded-[1.75rem] bg-white shadow-[0_32px_64px_-12px_rgba(0,0,0,0.25)] ring-1 ring-black/[0.06]"
+           style={{ maxHeight: 'min(82vh, 700px)' }}>
+
+        {/* Top accent bar */}
+        <div className="h-1 w-full bg-gradient-to-r from-[#ffb347] via-[#ff5f8f] to-[#c471f5]" />
+
+        {/* Header */}
+        <div className="flex items-center gap-3 px-6 py-4">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#fff0d9] to-[#ffe1cc]">
+            <MessageSquare className="h-4 w-4 text-[#c47a35]" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-[0.95rem] font-semibold text-[#171717]">System Prompt</h3>
+            <p className="text-[11px] text-[#9c9086]">{wordCount.toLocaleString()} words</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-1.5 rounded-[0.8rem] bg-[#f6f0e8] px-3.5 py-2 text-[12px] font-medium text-[#464038] transition-all hover:bg-[#ede4d8] active:scale-95"
+            >
+              {copied
+                ? <><Check className="h-3.5 w-3.5 text-emerald-600" /><span className="text-emerald-700">Copied</span></>
+                : <><Copy className="h-3.5 w-3.5" /><span>Copy</span></>}
+            </button>
+            <button
+              onClick={onClose}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-[#9c9086] transition-all hover:bg-[#f1eadc] hover:text-[#464038] active:scale-95"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="mx-6 h-px bg-black/[0.06]" />
+
+        {/* Body */}
+        <div ref={scrollRef} className="overflow-y-auto px-6 py-5 overscroll-contain">
+          <div className="text-[13.5px] leading-[1.75] text-[#3d3830]">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                h1: ({ children }) => <h1 className="mb-3 mt-6 text-[1.15rem] font-bold tracking-tight text-[#171717] first:mt-0">{children}</h1>,
+                h2: ({ children }) => <h2 className="mb-2 mt-5 text-[1rem] font-semibold text-[#171717] first:mt-0">{children}</h2>,
+                h3: ({ children }) => <h3 className="mb-2 mt-4 text-[0.9rem] font-semibold text-[#464038] first:mt-0">{children}</h3>,
+                p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
+                ul: ({ children }) => <ul className="mb-3 ml-5 list-disc space-y-1">{children}</ul>,
+                ol: ({ children }) => <ol className="mb-3 ml-5 list-decimal space-y-1">{children}</ol>,
+                li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                code: ({ inline, children }: { inline?: boolean; children?: React.ReactNode }) =>
+                  inline ? (
+                    <code className="rounded-md bg-[#f3ede4] px-1.5 py-0.5 font-mono text-[12px] text-[#a0522d]">{children}</code>
+                  ) : (
+                    <code className="text-[12px]">{children}</code>
+                  ),
+                pre: ({ children }) => (
+                  <pre className="mb-3 overflow-x-auto rounded-[1rem] border border-black/[0.06] bg-[#faf6f0] p-4 font-mono text-[12px] leading-relaxed">
+                    {children}
+                  </pre>
+                ),
+                blockquote: ({ children }) => (
+                  <blockquote className="mb-3 rounded-r-lg border-l-[3px] border-[#ffb347] bg-[#fff8ee] px-4 py-2 text-[#6c5c40] italic">
+                    {children}
+                  </blockquote>
+                ),
+                strong: ({ children }) => <strong className="font-semibold text-[#171717]">{children}</strong>,
+                em: ({ children }) => <em className="text-[#5a5248]">{children}</em>,
+                hr: () => <hr className="my-5 border-black/[0.07]" />,
+                a: ({ href, children }) => (
+                  <a href={href} className="text-[#c47a35] underline decoration-[#ffb347]/60 underline-offset-2 hover:decoration-[#c47a35]" target="_blank" rel="noreferrer">
+                    {children}
+                  </a>
+                ),
+              }}
+            >
+              {prompt}
+            </ReactMarkdown>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between border-t border-black/[0.06] bg-[#fdfaf7] px-6 py-3">
+          <p className="text-[11px] text-[#b0a898]">{prompt.length.toLocaleString()} characters</p>
+          <button
+            onClick={() => window.location.assign(`/agents/${agentName}/edit`)}
+            className="flex items-center gap-1.5 rounded-[0.8rem] bg-[#171717] px-4 py-2 text-[12px] font-medium text-white transition-all hover:bg-[#2a2a2a] active:scale-95"
+          >
+            <Edit className="h-3.5 w-3.5" />
+            Edit Prompt
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
 export default function AgentViewPage() {
   const params = useParams()
   const router = useRouter()
@@ -95,6 +253,8 @@ export default function AgentViewPage() {
   const [vapiPublicKey, setVapiPublicKey] = useState<string | null>(null)
   const [callActive, setCallActive] = useState(false)
   const [vapiInstance, setVapiInstance] = useState<any>(null)
+  const [showPromptModal, setShowPromptModal] = useState(false)
+  const [promptCopied, setPromptCopied] = useState(false)
 
   useEffect(() => {
     fetchAgentDetails()
@@ -708,6 +868,28 @@ export default function AgentViewPage() {
                   <MessageSquare className="h-4.5 w-4.5 text-[#171717]" />
               </div>
               <h2 className="text-[1rem] font-semibold text-[#171717] md:text-[1.1rem]">System Prompt</h2>
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(agent.system_prompt)
+                    setPromptCopied(true)
+                    setTimeout(() => setPromptCopied(false), 2000)
+                  }}
+                  title="Copy system prompt"
+                  className="flex items-center gap-1.5 rounded-[0.75rem] bg-[#f1eadc] px-3 py-1.5 text-[12px] font-medium text-[#464038] transition-colors hover:bg-[#e8dece]"
+                >
+                  {promptCopied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+                  {promptCopied ? 'Copied!' : 'Copy'}
+                </button>
+                <button
+                  onClick={() => setShowPromptModal(true)}
+                  title="View as markdown"
+                  className="flex items-center gap-1.5 rounded-[0.75rem] bg-[#f1eadc] px-3 py-1.5 text-[12px] font-medium text-[#464038] transition-colors hover:bg-[#e8dece]"
+                >
+                  <Maximize2 className="h-3.5 w-3.5" />
+                  View
+                </button>
+              </div>
             </div>
             <div className="max-h-56 overflow-y-auto rounded-[1.35rem] bg-[#f1eadc] p-4">
               <p className="whitespace-pre-wrap font-mono text-[12px] leading-relaxed text-[#464038] md:text-[13px]">
@@ -715,6 +897,13 @@ export default function AgentViewPage() {
               </p>
             </div>
           </div>
+
+          <SystemPromptModal
+            prompt={agent.system_prompt}
+            agentName={agentName as string}
+            isOpen={showPromptModal}
+            onClose={() => setShowPromptModal(false)}
+          />
         </div>
 
         {/* Tools Configuration */}

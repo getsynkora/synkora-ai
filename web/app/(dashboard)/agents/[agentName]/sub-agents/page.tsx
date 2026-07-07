@@ -13,6 +13,7 @@ interface SubAgent {
   id: string;
   sub_agent_id: string;
   sub_agent_name: string;
+  sub_agent_slug: string | null;
   sub_agent_description: string | null;
   execution_order: number;
   is_active: boolean;
@@ -523,13 +524,13 @@ export default function SubAgentsPage() {
                       )}
                     </div>
                     <button
-                      onClick={() => router.push(`/agents/${subAgent.sub_agent_name}/view`)}
+                      onClick={() => router.push(`/agents/${subAgent.sub_agent_slug ?? subAgent.sub_agent_name}/view`)}
                       className="text-xs text-gray-400 hover:text-gray-700 underline underline-offset-2"
                     >
                       view
                     </button>
                     <button
-                      onClick={() => router.push(`/agents/${subAgent.sub_agent_name}/sub-agents`)}
+                      onClick={() => router.push(`/agents/${subAgent.sub_agent_slug ?? subAgent.sub_agent_name}/sub-agents`)}
                       className="text-xs text-gray-400 hover:text-gray-700 underline underline-offset-2"
                     >
                       sub-agents
@@ -634,7 +635,7 @@ export default function SubAgentsPage() {
                       </td>
                       <td className="px-5 py-3 whitespace-nowrap">
                         <button
-                          onClick={() => router.push(`/agents/${subAgent.sub_agent_name}/view`)}
+                          onClick={() => router.push(`/agents/${subAgent.sub_agent_slug ?? subAgent.sub_agent_name}/view`)}
                           className="flex items-center gap-1.5 text-sm font-medium text-gray-900 hover:text-[#d14c3f] transition-colors group"
                         >
                           {subAgent.sub_agent_name}
@@ -674,7 +675,7 @@ export default function SubAgentsPage() {
                       <td className="px-5 py-3 whitespace-nowrap text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button
-                            onClick={() => router.push(`/agents/${subAgent.sub_agent_name}/view`)}
+                            onClick={() => router.push(`/agents/${subAgent.sub_agent_slug ?? subAgent.sub_agent_name}/view`)}
                             className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-[#f1eadc] hover:text-gray-900"
                             title="View agent"
                           >

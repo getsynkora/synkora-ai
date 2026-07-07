@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useDeferredValue, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react'
+import { useState, useEffect, useRef, useCallback, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
@@ -668,36 +668,64 @@ export default function AgentsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize] = useState(9)
   const [totalPages, setTotalPages] = useState(1)
+  // Separate flag for search-while-results-exist: dims the grid instead of replacing it
+  const [isSearching, setIsSearching] = useState(false)
 
-  // Debounce the search term so we don't fire a request on every keystroke
-  const deferredSearch = useDeferredValue(searchQuery)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Track the active page+search combination to avoid stale responses overwriting newer ones
+  const fetchIdRef = useRef(0)
 
-  useEffect(() => {
-    // Reset to page 1 when search changes
-    setCurrentPage(1)
-  }, [deferredSearch])
-
-  useEffect(() => {
-    fetchAgents(deferredSearch)
-     
-  }, [currentPage, deferredSearch])
-
-  const fetchAgents = async (search?: string) => {
-    try {
+  const fetchAgents = useCallback(async (search: string, page: number, isInitial = false) => {
+    const id = ++fetchIdRef.current
+    if (isInitial) {
       setLoading(true)
-      const response = await apiClient.getAgents(currentPage, pageSize, search || undefined)
+    } else {
+      setIsSearching(true)
+    }
+    try {
+      const response = await apiClient.getAgents(page, pageSize, search || undefined)
+      if (id !== fetchIdRef.current) return // stale response — discard
       const agentsList = response.agents_list || []
       const pagination = response.pagination || {}
-
       setAgents(agentsList)
       setTotalPages(pagination.total_pages || 1)
     } catch (error) {
+      if (id !== fetchIdRef.current) return
       console.error('Failed to fetch agents:', error)
       toast.error('Failed to load agents')
     } finally {
-      setLoading(false)
+      if (id === fetchIdRef.current) {
+        setLoading(false)
+        setIsSearching(false)
+      }
     }
+  }, [pageSize])
+
+  // Initial load
+  useEffect(() => {
+    fetchAgents(searchQuery, currentPage, true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Page change (not triggered by search — search resets page via its own handler)
+  useEffect(() => {
+    if (loading) return // skip during initial load
+    fetchAgents(searchQuery, currentPage, false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage])
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      setCurrentPage(1)
+      fetchAgents(value, 1, false)
+    }, 300)
   }
+
+  useEffect(() => {
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  }, [])
 
   const handleDeleteAgent = async () => {
     if (!agentToDelete) return
@@ -706,7 +734,7 @@ export default function AgentsPage() {
       toast.success('Agent deleted')
       setShowDeleteModal(false)
       setAgentToDelete(null)
-      fetchAgents(deferredSearch)
+      fetchAgents(searchQuery, currentPage, false)
     } catch (error) {
       console.error('Failed to delete agent:', error)
       toast.error('Failed to delete agent')
@@ -773,7 +801,7 @@ export default function AgentsPage() {
                 type="text"
                 placeholder="Search agents..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="w-full rounded-[0.35rem] border border-black/10 bg-white/[0.72] py-3 pl-11 pr-4 text-[13px] text-[#171717] outline-none transition-all focus:border-[#ff5f8f] focus:ring-2 focus:ring-[#ff5f8f]/20 md:text-[14px]"
               />
             </label>
@@ -846,7 +874,7 @@ export default function AgentsPage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className={`grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 transition-opacity duration-150 ${isSearching ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
               {filteredAgents.map((agent) => (
                 <AgentCard
                   key={agent.id}

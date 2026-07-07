@@ -44,9 +44,12 @@ from .clickup import router as clickup_router
 from .github import router as github_router
 from .gitlab import router as gitlab_router
 from .google import router as google_router
+from .hubspot import router as hubspot_router
+from .intercom import router as intercom_router
 from .jira import router as jira_router
 from .linkedin import router as linkedin_router
 from .micromobility import router as micromobility_router
+from .salesforce import router as salesforce_router
 from .slack import router as slack_router
 from .tokens import router as tokens_router
 from .twitter import router as twitter_router
@@ -73,6 +76,9 @@ router.include_router(twitter_router)
 router.include_router(linkedin_router)
 router.include_router(zendesk_router)
 router.include_router(zoho_router)
+router.include_router(hubspot_router)
+router.include_router(salesforce_router)
+router.include_router(intercom_router)
 
 # Export commonly used items
 __all__ = [

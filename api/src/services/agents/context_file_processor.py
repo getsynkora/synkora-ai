@@ -191,14 +191,24 @@ class AgentContextFileProcessor:
             self.db.add(context_file)
             await self.db.flush()  # Get the ID
 
-            # Extract text asynchronously
+            # Extract text to generate description and prime the cache
             try:
                 logger.info(f"Extracting text from file {filename}")
                 extracted_text = await self._extract_text(file_content, content_type, filename)
 
-                context_file.extracted_text = extracted_text
+                # Store first 200 chars as description — content is never stored in DB
+                context_file.description = extracted_text[:200].strip() if extracted_text else None
                 context_file.extraction_status = "COMPLETED"
                 logger.info(f"Successfully extracted {len(extracted_text)} characters from {filename}")
+
+                # Prime the per-file content cache so first access is instant
+                try:
+                    from src.services.cache import get_agent_cache
+
+                    cache = get_agent_cache()
+                    await cache.set_context_file_content(str(context_file.id), extracted_text)
+                except Exception as cache_err:
+                    logger.warning(f"Failed to prime content cache for {filename}: {cache_err}")
 
             except Exception as e:
                 logger.error(f"Error extracting text from {filename}: {e}")
@@ -358,21 +368,3 @@ class AgentContextFileProcessor:
         except Exception as e:
             logger.error(f"Error generating download URL for {context_file.filename}: {e}")
             raise
-
-    def get_context_files_text(self, agent: Agent) -> str:
-        """
-        Get combined text from all context files for an agent.
-
-        Args:
-            agent: Agent instance
-
-        Returns:
-            Combined text from all context files
-        """
-        text_parts = []
-
-        for context_file in agent.context_files:
-            if context_file.is_extraction_complete and context_file.extracted_text:
-                text_parts.append(f"=== Context File: {context_file.filename} ===\n\n{context_file.extracted_text}\n\n")
-
-        return "\n".join(text_parts)

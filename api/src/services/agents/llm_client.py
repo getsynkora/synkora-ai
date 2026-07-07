@@ -721,7 +721,7 @@ class MultiProviderLLMClient:
                         status="success",
                         error=None,
                         sequence=_rt.event_sequence,
-                        system_prompt=(prompt or "")[:2000] if prompt else None,
+                        system_prompt=(prompt or "")[:20000] if prompt else None,
                         cache_read_tokens=int(_api_usage.get("cache_read_tokens") or 0),
                         cache_creation_tokens=int(_api_usage.get("cache_creation_tokens") or 0),
                     )
@@ -1345,6 +1345,26 @@ class MultiProviderLLMClient:
             else:
                 system_value = system_prompt
 
+        # Breakpoint on the last history message (all turns except the current one).
+        # Anthropic caches the stable prefix — prior turns don't change after they're added,
+        # so each new turn only pays for the incremental diff, not the entire history.
+        # Only applied for models that support prompt caching and when there are at least
+        # 2 messages (history + current user message).
+        if self._supports_prompt_cache() and len(filtered_messages) >= 2:
+            try:
+                history_end = len(filtered_messages) - 2  # index of last prior-turn message
+                msg = filtered_messages[history_end]
+                content = msg.get("content", "")
+                if isinstance(content, str) and content:
+                    filtered_messages = list(filtered_messages)
+                    filtered_messages[history_end] = {
+                        **msg,
+                        "content": [{"type": "text", "text": content, "cache_control": {"type": "ephemeral"}}],
+                    }
+                    extra_headers["anthropic-beta"] = "prompt-caching-2024-07-31"
+            except Exception:
+                pass  # never block the stream
+
         stream_kwargs: dict[str, Any] = {
             "model": self.config.model_name,
             "max_tokens": max_tok,
@@ -1398,19 +1418,62 @@ class MultiProviderLLMClient:
         # Prepare model name with provider prefix
         model_name = self._prepare_litellm_model_name(self.config.model_name)
 
+        # --- Prompt caching for Anthropic/Claude models via LiteLLM ---
+        # LiteLLM forwards cache_control blocks and the anthropic-beta header
+        # to Anthropic's API unchanged, so we can apply the same breakpoints
+        # here as in the direct _anthropic_stream path.
+        extra_headers: dict[str, str] = {}
+        working_messages = list(messages)
+
+        if self._supports_prompt_cache():
+            # BP1: system prompt — extract and wrap with cache_control so the
+            # stable system prefix is cached across every turn.
+            system_parts = [m["content"] for m in working_messages if m.get("role") == "system"]
+            working_messages = [m for m in working_messages if m.get("role") != "system"]
+            if system_parts:
+                system_text = "\n\n".join(system_parts)
+                # Re-inject as a system message with cache_control
+                working_messages.insert(
+                    0,
+                    {
+                        "role": "system",
+                        "content": [{"type": "text", "text": system_text, "cache_control": {"type": "ephemeral"}}],
+                    },
+                )
+                extra_headers["anthropic-beta"] = "prompt-caching-2024-07-31"
+
+            # BP2: last history message — marks the stable conversation prefix
+            # so each new turn only pays for the incremental diff.
+            if len(working_messages) >= 2:
+                try:
+                    history_end = len(working_messages) - 2
+                    msg = working_messages[history_end]
+                    content = msg.get("content", "")
+                    if isinstance(content, str) and content:
+                        working_messages[history_end] = {
+                            **msg,
+                            "content": [{"type": "text", "text": content, "cache_control": {"type": "ephemeral"}}],
+                        }
+                        extra_headers["anthropic-beta"] = "prompt-caching-2024-07-31"
+                except Exception:
+                    pass  # never block the stream
+
         completion_params = {
             "model": model_name,
-            "messages": messages,
+            "messages": working_messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
             "api_key": self.config.api_key,
             "stream": True,
+            "stream_options": {"include_usage": True},  # get usage in final chunk
             "num_retries": 3,
             "drop_params": True,  # Silently drop unsupported params (e.g. temperature for gpt-5)
+            **({"extra_headers": extra_headers} if extra_headers else {}),
         }
 
         if self.config.api_base:
             completion_params["api_base"] = self.config.api_base
+            completion_params["custom_llm_provider"] = "openai"
 
         completion_params.update(kwargs)
 
@@ -1422,15 +1485,30 @@ class MultiProviderLLMClient:
         chunk_count = 0
         # Iterate through the stream
         async for chunk in response:
-            # Check if chunk has content and it's not None
             if hasattr(chunk, "choices") and len(chunk.choices) > 0:
                 delta = chunk.choices[0].delta
                 if hasattr(delta, "content") and delta.content is not None:
-                    # Only yield non-empty content
                     if delta.content:
                         chunk_count += 1
                         logger.debug(f"📤 LiteLLM chunk #{chunk_count}: {len(delta.content)} chars")
                         yield delta.content
+            # Final chunk carries usage when stream_options include_usage was set
+            if getattr(chunk, "usage", None) and chunk.usage:
+                try:
+                    cached = 0
+                    details = getattr(chunk.usage, "prompt_tokens_details", None)
+                    if details and hasattr(details, "cached_tokens"):
+                        cached = details.cached_tokens or 0
+                    _llm_usage_ctx.set(
+                        {
+                            "input_tokens": getattr(chunk.usage, "prompt_tokens", 0) or 0,
+                            "output_tokens": getattr(chunk.usage, "completion_tokens", 0) or 0,
+                            "cache_read_tokens": cached,
+                            "cache_creation_tokens": 0,
+                        }
+                    )
+                except Exception:
+                    pass  # usage capture never blocks streaming
 
         logger.info(f"✅ LiteLLM stream with messages completed: {chunk_count} chunks")
 

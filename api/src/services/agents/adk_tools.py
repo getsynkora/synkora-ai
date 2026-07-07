@@ -244,6 +244,13 @@ class ADKToolRegistry:
 
         register_tool_discovery_tools(self)
 
+        # Context File tools - allows LLM to load on-demand context files at runtime
+        from src.services.agents.tool_registrations.context_file_tools_registry import (
+            register_context_file_tools,
+        )
+
+        register_context_file_tools(self)
+
         # Data Analysis tools - use modular registry
         from src.services.agents.tool_registrations.data_analysis_tools_registry import (
             register_data_analysis_tools,
@@ -2238,6 +2245,9 @@ Supports: Git, GitHub CLI, npm, pip, Docker, file operations (ls, cat, mkdir, et
             "platform_create_telegram_bot",
             "platform_list_agent_channels",
             "platform_delete_agent_channel",
+            "platform_list_sub_agents",
+            "platform_add_sub_agent",
+            "platform_remove_sub_agent",
             "internal_create_cron_scheduled_task",
             "internal_create_scheduled_task",
             "internal_list_scheduled_tasks",

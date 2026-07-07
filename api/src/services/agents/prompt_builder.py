@@ -142,35 +142,51 @@ class SystemPromptBuilder:
         Returns:
             Formatted context section string, or empty string if no files
         """
-        context_files_data = await self._get_context_files_data(agent)
-        return self._format_context_from_data(
-            context_files_data,
-            max_context_length=max_context_length,
-            context_mode=context_mode,
-            context_query=context_query,
-            full_context_threshold=full_context_threshold,
-            preview_chars=preview_chars,
-            max_preview_files=max_preview_files,
-        )
+        all_files = await self._get_context_files_data(agent)
+        if not all_files:
+            return ""
+
+        always_files = [f for f in all_files if f.get("load_mode", "always") == "always"]
+        on_demand_files = [f for f in all_files if f.get("load_mode") == "on_demand"]
+
+        parts = []
+
+        # Eager files — fetch content and inject in full
+        if always_files:
+            always_with_content = await self._fetch_content_for_files(always_files)
+            eager_text = self._format_context_from_data(
+                always_with_content,
+                max_context_length=max_context_length,
+                context_mode=context_mode,
+                context_query=context_query,
+                full_context_threshold=full_context_threshold,
+                preview_chars=preview_chars,
+                max_preview_files=max_preview_files,
+            )
+            if eager_text:
+                parts.append(eager_text)
+
+        # On-demand files — inject manifest only (names + descriptions)
+        manifest = self._format_on_demand_manifest(on_demand_files)
+        if manifest:
+            parts.append(manifest)
+
+        return "\n\n".join(parts)
 
     async def _get_context_files_data(self, agent: Agent) -> list[dict]:
-        """Load completed context files, preferring cache over database."""
-        # PERFORMANCE: Check cache first before hitting database
+        """Load context file manifest (metadata only), preferring cache over database."""
         from src.services.cache import get_agent_cache
 
         cache = get_agent_cache()
 
-        # Try to get from cache
         try:
             cached_data = await cache.get_context_files(str(agent.id))
             if cached_data:
-                logger.info(f"⚡ Context files cache HIT for agent {agent.id}")
+                logger.info(f"Context files manifest cache HIT for agent {agent.id}")
                 return cached_data
         except Exception as e:
-            logger.warning(f"Context cache read failed: {e}")
+            logger.warning(f"Context manifest cache read failed: {e}")
 
-        # Cache MISS - query database using a fresh session to avoid autoflush issues
-        # This prevents TimeoutError when the parent session has pending dirty objects
         from src.core.database import get_async_session_factory
 
         session_factory = get_async_session_factory()
@@ -180,7 +196,6 @@ class SystemPromptBuilder:
                 .filter(
                     AgentContextFile.agent_id == agent.id,
                     AgentContextFile.extraction_status == "COMPLETED",
-                    AgentContextFile.extracted_text.isnot(None),
                 )
                 .order_by(AgentContextFile.display_order)
             )
@@ -189,15 +204,85 @@ class SystemPromptBuilder:
         if not context_files:
             return []
 
-        context_files_data = [{"filename": cf.filename, "extracted_text": cf.extracted_text} for cf in context_files]
+        manifest_data = [
+            {
+                "file_id": str(cf.id),
+                "filename": cf.filename,
+                "description": cf.description or "",
+                "load_mode": cf.load_mode or "always",
+                "s3_key": cf.s3_key,
+                "s3_bucket": cf.s3_bucket,
+                "file_type": cf.file_type,
+            }
+            for cf in context_files
+        ]
 
-        # Cache the context files data
         try:
-            await cache.set_context_files(str(agent.id), context_files_data, ttl=300)  # 5 min cache
+            await cache.set_context_files(str(agent.id), manifest_data, ttl=300)
         except Exception as e:
-            logger.warning(f"Failed to cache context files: {e}")
+            logger.warning(f"Failed to cache context files manifest: {e}")
 
-        return context_files_data
+        return manifest_data
+
+    async def _fetch_content_for_files(self, files: list[dict]) -> list[dict]:
+        """
+        Fetch extracted text for always-inject files.
+        Checks Redis cache first; falls back to S3 download + extraction.
+        """
+        from src.services.agents.context_file_processor import AgentContextFileProcessor
+        from src.services.cache import get_agent_cache
+        from src.services.storage.s3_storage import S3StorageService
+
+        cache = get_agent_cache()
+        s3 = S3StorageService()
+        result = []
+
+        for f in files:
+            file_id = f["file_id"]
+            content: str | None = None
+
+            try:
+                content = await cache.get_context_file_content(file_id)
+            except Exception as e:
+                logger.warning(f"Cache read error for file {file_id}: {e}")
+
+            if content is None:
+                try:
+                    s3_url = f"s3://{f['s3_bucket']}/{f['s3_key']}"
+                    raw = await s3.download_file_content(s3_url)
+                    processor = AgentContextFileProcessor(self.db)
+                    content = await processor._extract_text(raw, f["file_type"], f["filename"])
+                    await cache.set_context_file_content(file_id, content)
+                except Exception as e:
+                    logger.error(f"Failed to fetch content for {f['filename']} from S3: {e}")
+                    content = f"[Content unavailable for {f['filename']}]"
+
+            result.append({**f, "extracted_text": content})
+
+        return result
+
+    @staticmethod
+    def _format_on_demand_manifest(on_demand_files: list[dict]) -> str:
+        """Format manifest block listing on-demand files for the LLM."""
+        if not on_demand_files:
+            return ""
+
+        lines = [
+            "=" * 60,
+            "AVAILABLE CONTEXT FILES (load on demand)",
+            "=" * 60,
+            "",
+            "The following files are available. Use internal_load_context_file(filename)",
+            "to load the content of any file you need for the current task.",
+            "",
+        ]
+        for f in on_demand_files:
+            desc = f.get("description", "").strip()
+            desc_part = f": {desc}" if desc else ""
+            lines.append(f"  - {f['filename']}{desc_part}")
+
+        lines.append("")
+        return "\n".join(lines)
 
     def _format_context_from_data(
         self,

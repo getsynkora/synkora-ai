@@ -58,6 +58,8 @@ COMPLEXITY_TOOL_LIMITS = {
 ALWAYS_INCLUDE_TOOLS = [
     "internal_search_available_tools",
     "internal_list_tool_categories",
+    # Context file on-demand loading — always available so LLM can load skills/context when needed
+    "internal_load_context_file",
     # Multi-agent orchestration tools — always available so agents can spawn
     # sub-agents and track tasks without needing spawn_agent in tools_config.
     "spawn_agent",

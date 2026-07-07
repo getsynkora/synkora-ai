@@ -7,6 +7,16 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
+def _get_user_info(runtime_context: Any) -> tuple[str, str | None]:
+    """Return (user_name, user_email) from shared_state if available."""
+    name = "Support Request"
+    email = None
+    if runtime_context and runtime_context.shared_state:
+        name = runtime_context.shared_state.get("external_user_name") or name
+        email = runtime_context.shared_state.get("external_user_email")
+    return name, email
+
+
 async def _try_create_zendesk_ticket(runtime_context: Any, reason: str, conversation_summary: str) -> str | None:
     """
     Create a Zendesk ticket for the handoff.
@@ -67,13 +77,7 @@ async def _try_create_zoho_lead(runtime_context: Any, reason: str, conversation_
         if conversation_summary:
             description += f"\n\nConversation summary:\n{conversation_summary}"
 
-        # Get user info from shared_state if available
-        user_name = "Support Request"
-        user_email = None
-        if runtime_context and runtime_context.shared_state:
-            user_name = runtime_context.shared_state.get("external_user_name") or user_name
-            user_email = runtime_context.shared_state.get("external_user_email")
-
+        user_name, user_email = _get_user_info(runtime_context)
         fields: dict[str, Any] = {
             "Last_Name": user_name,
             "Lead_Source": "AI Agent Handoff",
@@ -91,6 +95,153 @@ async def _try_create_zoho_lead(runtime_context: Any, reason: str, conversation_
             return f"Zoho CRM lead #{record_id}"
     except Exception as exc:
         logger.warning("Zoho CRM lead creation failed during handoff: %s", exc)
+    return None
+
+
+async def _try_create_freshdesk_ticket(runtime_context: Any, reason: str, conversation_summary: str) -> str | None:
+    """
+    Create a Freshdesk ticket for the handoff.
+    Returns a human-readable reference string on success, None on failure/not-configured.
+    """
+    try:
+        from src.services.agents.credential_resolver import CredentialResolver
+        from src.services.agents.internal_tools.freshdesk_tools import create_freshdesk_ticket
+
+        resolver = CredentialResolver(runtime_context)
+        creds = await resolver.get_freshdesk_credentials("internal_create_freshdesk_ticket")
+        if not creds:
+            return None
+
+        body = f"User requested human support via AI agent.\n\nReason: {reason}"
+        if conversation_summary:
+            body += f"\n\nConversation summary:\n{conversation_summary}"
+
+        user_name, user_email = _get_user_info(runtime_context)
+        ticket = await create_freshdesk_ticket(
+            subdomain=creds["subdomain"],
+            api_key=creds["api_key"],
+            subject=f"Support Request: {reason[:80]}",
+            description=body,
+            requester_email=user_email,
+            priority="normal",
+            tags=["ai_handoff"],
+        )
+        ticket_id = ticket.get("id")
+        ticket_url = ticket.get("url", "")
+        if ticket_id:
+            logger.info("Created Freshdesk ticket #%s for handoff", ticket_id)
+            return f"Freshdesk ticket #{ticket_id} ({ticket_url})"
+    except Exception as exc:
+        logger.warning("Freshdesk ticket creation failed during handoff: %s", exc)
+    return None
+
+
+async def _try_create_hubspot_ticket(runtime_context: Any, reason: str, conversation_summary: str) -> str | None:
+    """
+    Create a HubSpot ticket for the handoff.
+    Returns a human-readable reference string on success, None on failure/not-configured.
+    """
+    try:
+        from src.services.agents.credential_resolver import CredentialResolver
+        from src.services.agents.internal_tools.hubspot_tools import create_hubspot_ticket
+
+        resolver = CredentialResolver(runtime_context)
+        creds = await resolver.get_hubspot_credentials("internal_create_hubspot_ticket")
+        if not creds:
+            return None
+
+        content = f"User requested human support via AI agent.\n\nReason: {reason}"
+        if conversation_summary:
+            content += f"\n\nConversation summary:\n{conversation_summary}"
+
+        _, user_email = _get_user_info(runtime_context)
+        ticket = await create_hubspot_ticket(
+            access_token=creds["access_token"],
+            subject=f"Support Request: {reason[:80]}",
+            content=content,
+            priority="normal",
+            contact_email=user_email,
+        )
+        ticket_id = ticket.get("id")
+        ticket_url = ticket.get("url", "")
+        if ticket_id:
+            logger.info("Created HubSpot ticket #%s for handoff", ticket_id)
+            return f"HubSpot ticket #{ticket_id} ({ticket_url})"
+    except Exception as exc:
+        logger.warning("HubSpot ticket creation failed during handoff: %s", exc)
+    return None
+
+
+async def _try_create_salesforce_case(runtime_context: Any, reason: str, conversation_summary: str) -> str | None:
+    """
+    Create a Salesforce Case for the handoff.
+    Returns a human-readable reference string on success, None on failure/not-configured.
+    """
+    try:
+        from src.services.agents.credential_resolver import CredentialResolver
+        from src.services.agents.internal_tools.salesforce_tools import create_salesforce_case
+
+        resolver = CredentialResolver(runtime_context)
+        creds = await resolver.get_salesforce_credentials("internal_create_salesforce_case")
+        if not creds:
+            return None
+
+        description = f"User requested human support via AI agent.\n\nReason: {reason}"
+        if conversation_summary:
+            description += f"\n\nConversation summary:\n{conversation_summary}"
+
+        user_name, user_email = _get_user_info(runtime_context)
+        case = await create_salesforce_case(
+            instance_url=creds["instance_url"],
+            access_token=creds["access_token"],
+            subject=f"Support Request: {reason[:80]}",
+            description=description,
+            priority="normal",
+            origin="Chat",
+            contact_email=user_email,
+            contact_name=user_name if user_name != "Support Request" else None,
+        )
+        case_id = case.get("id")
+        case_url = case.get("url", "")
+        if case_id:
+            logger.info("Created Salesforce Case %s for handoff", case_id)
+            return f"Salesforce case ({case_url})"
+    except Exception as exc:
+        logger.warning("Salesforce case creation failed during handoff: %s", exc)
+    return None
+
+
+async def _try_create_intercom_conversation(runtime_context: Any, reason: str, conversation_summary: str) -> str | None:
+    """
+    Create an Intercom conversation for the handoff.
+    Returns a human-readable reference string on success, None on failure/not-configured.
+    """
+    try:
+        from src.services.agents.credential_resolver import CredentialResolver
+        from src.services.agents.internal_tools.intercom_tools import create_intercom_conversation
+
+        resolver = CredentialResolver(runtime_context)
+        creds = await resolver.get_intercom_credentials("internal_create_intercom_conversation")
+        if not creds:
+            return None
+
+        body = f"Support handoff initiated by AI agent.\n\nReason: {reason}"
+        if conversation_summary:
+            body += f"\n\nConversation summary:\n{conversation_summary}"
+
+        user_name, user_email = _get_user_info(runtime_context)
+        result = await create_intercom_conversation(
+            access_token=creds["access_token"],
+            message_body=body,
+            contact_email=user_email,
+            contact_name=user_name if user_name != "Support Request" else None,
+        )
+        conv_id = result.get("id")
+        if conv_id:
+            logger.info("Created Intercom conversation %s for handoff", conv_id)
+            return f"Intercom conversation #{conv_id}"
+    except Exception as exc:
+        logger.warning("Intercom conversation creation failed during handoff: %s", exc)
     return None
 
 
@@ -152,16 +303,23 @@ async def handoff_to_human(reason: str, config: dict[str, Any] | None = None) ->
         except Exception as exc:
             logger.error("Failed to update conversation handoff status: %s", exc, exc_info=True)
 
-    # Create external tickets if the agent has those integrations configured
+    # Create external tickets / records if the agent has those integrations configured.
+    # Each function silently returns None when the integration is not set up, so
+    # failures in one provider never block others or the handoff itself.
     ticket_refs: list[str] = []
     if runtime_context:
-        zd_ref = await _try_create_zendesk_ticket(runtime_context, reason, conversation_summary)
-        if zd_ref:
-            ticket_refs.append(zd_ref)
+        import asyncio
 
-        zoho_ref = await _try_create_zoho_lead(runtime_context, reason, conversation_summary)
-        if zoho_ref:
-            ticket_refs.append(zoho_ref)
+        results = await asyncio.gather(
+            _try_create_zendesk_ticket(runtime_context, reason, conversation_summary),
+            _try_create_zoho_lead(runtime_context, reason, conversation_summary),
+            _try_create_freshdesk_ticket(runtime_context, reason, conversation_summary),
+            _try_create_hubspot_ticket(runtime_context, reason, conversation_summary),
+            _try_create_salesforce_case(runtime_context, reason, conversation_summary),
+            _try_create_intercom_conversation(runtime_context, reason, conversation_summary),
+            return_exceptions=False,
+        )
+        ticket_refs = [r for r in results if r]
 
     # Signal chat_stream_service to emit handoff_initiated SSE
     if runtime_context and runtime_context.shared_state is not None:

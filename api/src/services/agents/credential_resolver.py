@@ -1906,6 +1906,243 @@ class CredentialResolver:
             logger.error(f"Failed to get micromobility credentials: {e}", exc_info=True)
             return None
 
+    async def get_freshdesk_credentials(self, tool_name: str) -> dict[str, Any] | None:
+        """
+        Get Freshdesk credentials (API key + subdomain).
+
+        Returns:
+            {auth_type: 'api_key', subdomain, api_key}
+        """
+        from src.models.agent_tool import AgentTool
+        from src.models.oauth_app import OAuthApp
+        from src.services.agents.security import decrypt_value
+
+        try:
+            result = await self.db.execute(
+                select(AgentTool).filter(
+                    AgentTool.agent_id == self.context.agent_id,
+                    AgentTool.tool_name == tool_name,
+                    AgentTool.enabled,
+                )
+            )
+            agent_tool = result.scalar_one_or_none()
+            if not agent_tool or not agent_tool.oauth_app_id:
+                logger.warning(f"No OAuth app configured for tool {tool_name}")
+                return None
+
+            result = await self.db.execute(
+                select(OAuthApp).filter(
+                    OAuthApp.id == agent_tool.oauth_app_id,
+                    OAuthApp.provider.ilike("freshdesk"),
+                    OAuthApp.is_active,
+                )
+            )
+            oauth_app = result.scalar_one_or_none()
+            if not oauth_app:
+                logger.warning(f"No active Freshdesk OAuth app found for tool {tool_name}")
+                return None
+
+            config = oauth_app.config or {}
+            subdomain = config.get("subdomain", "").strip()
+            if not subdomain:
+                logger.warning(f"No subdomain in Freshdesk OAuth app '{oauth_app.app_name}'")
+                return None
+
+            api_key = decrypt_value(oauth_app.api_token) if oauth_app.api_token else None
+            if not api_key:
+                logger.warning(f"No API key in Freshdesk OAuth app '{oauth_app.app_name}'")
+                return None
+
+            logger.info(f"✅ Resolved Freshdesk API key credentials for tool '{tool_name}'")
+            return {"auth_type": "api_key", "subdomain": subdomain, "api_key": api_key}
+
+        except Exception as e:
+            logger.error(f"Failed to get Freshdesk credentials: {e}", exc_info=True)
+            return None
+
+    async def get_hubspot_credentials(self, tool_name: str) -> dict[str, Any] | None:
+        """
+        Get HubSpot credentials (OAuth access token or Private App token).
+
+        Returns:
+            {auth_type: 'oauth'|'api_token', access_token}
+        """
+        from src.models.agent_tool import AgentTool
+        from src.models.oauth_app import OAuthApp
+        from src.services.agents.security import decrypt_value
+
+        try:
+            result = await self.db.execute(
+                select(AgentTool).filter(
+                    AgentTool.agent_id == self.context.agent_id,
+                    AgentTool.tool_name == tool_name,
+                    AgentTool.enabled,
+                )
+            )
+            agent_tool = result.scalar_one_or_none()
+            if not agent_tool or not agent_tool.oauth_app_id:
+                logger.warning(f"No OAuth app configured for tool {tool_name}")
+                return None
+
+            result = await self.db.execute(
+                select(OAuthApp).filter(
+                    OAuthApp.id == agent_tool.oauth_app_id,
+                    OAuthApp.provider.ilike("hubspot"),
+                    OAuthApp.is_active,
+                )
+            )
+            oauth_app = result.scalar_one_or_none()
+            if not oauth_app:
+                logger.warning(f"No active HubSpot OAuth app found for tool {tool_name}")
+                return None
+
+            # Private App token stored as api_token
+            if oauth_app.auth_method == "api_token":
+                token = decrypt_value(oauth_app.api_token) if oauth_app.api_token else None
+                if not token:
+                    logger.warning(f"No API token in HubSpot OAuth app '{oauth_app.app_name}'")
+                    return None
+                logger.info(f"✅ Resolved HubSpot private app token for tool '{tool_name}'")
+                return {"auth_type": "api_token", "access_token": token}
+
+            # OAuth — user token first
+            user_token = await self._get_user_token(oauth_app.id)
+            if user_token:
+                logger.info(f"✅ Resolved HubSpot OAuth token for tool '{tool_name}' (user-level)")
+                return {"auth_type": "oauth", "access_token": user_token}
+
+            if oauth_app.access_token:
+                token = decrypt_value(oauth_app.access_token)
+                logger.info(f"✅ Resolved HubSpot OAuth token for tool '{tool_name}' (app-level fallback)")
+                return {"auth_type": "oauth", "access_token": token}
+
+            logger.warning(f"No valid token found in HubSpot OAuth app '{oauth_app.app_name}'")
+            return None
+
+        except Exception as e:
+            logger.error(f"Failed to get HubSpot credentials: {e}", exc_info=True)
+            return None
+
+    async def get_salesforce_credentials(self, tool_name: str) -> dict[str, Any] | None:
+        """
+        Get Salesforce credentials (OAuth — instance_url + access_token).
+
+        Returns:
+            {auth_type: 'oauth', instance_url, access_token}
+        """
+        from src.models.agent_tool import AgentTool
+        from src.models.oauth_app import OAuthApp
+        from src.services.agents.security import decrypt_value
+
+        try:
+            result = await self.db.execute(
+                select(AgentTool).filter(
+                    AgentTool.agent_id == self.context.agent_id,
+                    AgentTool.tool_name == tool_name,
+                    AgentTool.enabled,
+                )
+            )
+            agent_tool = result.scalar_one_or_none()
+            if not agent_tool or not agent_tool.oauth_app_id:
+                logger.warning(f"No OAuth app configured for tool {tool_name}")
+                return None
+
+            result = await self.db.execute(
+                select(OAuthApp).filter(
+                    OAuthApp.id == agent_tool.oauth_app_id,
+                    OAuthApp.provider.ilike("salesforce"),
+                    OAuthApp.is_active,
+                )
+            )
+            oauth_app = result.scalar_one_or_none()
+            if not oauth_app:
+                logger.warning(f"No active Salesforce OAuth app found for tool {tool_name}")
+                return None
+
+            config = oauth_app.config or {}
+            instance_url = config.get("instance_url", "").strip()
+            if not instance_url:
+                logger.warning(f"No instance_url in Salesforce OAuth app '{oauth_app.app_name}'")
+                return None
+
+            user_token = await self._get_user_token(oauth_app.id)
+            if user_token:
+                logger.info(f"✅ Resolved Salesforce OAuth token for tool '{tool_name}' (user-level)")
+                return {"auth_type": "oauth", "instance_url": instance_url, "access_token": user_token}
+
+            if oauth_app.access_token:
+                token = decrypt_value(oauth_app.access_token)
+                logger.info(f"✅ Resolved Salesforce OAuth token for tool '{tool_name}' (app-level fallback)")
+                return {"auth_type": "oauth", "instance_url": instance_url, "access_token": token}
+
+            logger.warning(f"No valid token found in Salesforce OAuth app '{oauth_app.app_name}'")
+            return None
+
+        except Exception as e:
+            logger.error(f"Failed to get Salesforce credentials: {e}", exc_info=True)
+            return None
+
+    async def get_intercom_credentials(self, tool_name: str) -> dict[str, Any] | None:
+        """
+        Get Intercom credentials (OAuth access token or Personal Access Token).
+
+        Returns:
+            {auth_type: 'oauth'|'api_token', access_token}
+        """
+        from src.models.agent_tool import AgentTool
+        from src.models.oauth_app import OAuthApp
+        from src.services.agents.security import decrypt_value
+
+        try:
+            result = await self.db.execute(
+                select(AgentTool).filter(
+                    AgentTool.agent_id == self.context.agent_id,
+                    AgentTool.tool_name == tool_name,
+                    AgentTool.enabled,
+                )
+            )
+            agent_tool = result.scalar_one_or_none()
+            if not agent_tool or not agent_tool.oauth_app_id:
+                logger.warning(f"No OAuth app configured for tool {tool_name}")
+                return None
+
+            result = await self.db.execute(
+                select(OAuthApp).filter(
+                    OAuthApp.id == agent_tool.oauth_app_id,
+                    OAuthApp.provider.ilike("intercom"),
+                    OAuthApp.is_active,
+                )
+            )
+            oauth_app = result.scalar_one_or_none()
+            if not oauth_app:
+                logger.warning(f"No active Intercom OAuth app found for tool {tool_name}")
+                return None
+
+            if oauth_app.auth_method == "api_token":
+                token = decrypt_value(oauth_app.api_token) if oauth_app.api_token else None
+                if not token:
+                    logger.warning(f"No personal access token in Intercom OAuth app '{oauth_app.app_name}'")
+                    return None
+                logger.info(f"✅ Resolved Intercom personal access token for tool '{tool_name}'")
+                return {"auth_type": "api_token", "access_token": token}
+
+            user_token = await self._get_user_token(oauth_app.id)
+            if user_token:
+                logger.info(f"✅ Resolved Intercom OAuth token for tool '{tool_name}' (user-level)")
+                return {"auth_type": "oauth", "access_token": user_token}
+
+            if oauth_app.access_token:
+                token = decrypt_value(oauth_app.access_token)
+                logger.info(f"✅ Resolved Intercom OAuth token for tool '{tool_name}' (app-level fallback)")
+                return {"auth_type": "oauth", "access_token": token}
+
+            logger.warning(f"No valid token found in Intercom OAuth app '{oauth_app.app_name}'")
+            return None
+
+        except Exception as e:
+            logger.error(f"Failed to get Intercom credentials: {e}", exc_info=True)
+            return None
+
     async def get_twitter_token(self, tool_name: str, retry_refresh: bool = True) -> str | None:
         """
         Get Twitter access token for the given tool.
