@@ -1359,9 +1359,7 @@ class MultiProviderLLMClient:
                     filtered_messages = list(filtered_messages)
                     filtered_messages[history_end] = {
                         **msg,
-                        "content": [
-                            {"type": "text", "text": content, "cache_control": {"type": "ephemeral"}}
-                        ],
+                        "content": [{"type": "text", "text": content, "cache_control": {"type": "ephemeral"}}],
                     }
                     extra_headers["anthropic-beta"] = "prompt-caching-2024-07-31"
             except Exception:
@@ -1435,10 +1433,13 @@ class MultiProviderLLMClient:
             if system_parts:
                 system_text = "\n\n".join(system_parts)
                 # Re-inject as a system message with cache_control
-                working_messages.insert(0, {
-                    "role": "system",
-                    "content": [{"type": "text", "text": system_text, "cache_control": {"type": "ephemeral"}}],
-                })
+                working_messages.insert(
+                    0,
+                    {
+                        "role": "system",
+                        "content": [{"type": "text", "text": system_text, "cache_control": {"type": "ephemeral"}}],
+                    },
+                )
                 extra_headers["anthropic-beta"] = "prompt-caching-2024-07-31"
 
             # BP2: last history message — marks the stable conversation prefix
@@ -1498,12 +1499,14 @@ class MultiProviderLLMClient:
                     details = getattr(chunk.usage, "prompt_tokens_details", None)
                     if details and hasattr(details, "cached_tokens"):
                         cached = details.cached_tokens or 0
-                    _llm_usage_ctx.set({
-                        "input_tokens": getattr(chunk.usage, "prompt_tokens", 0) or 0,
-                        "output_tokens": getattr(chunk.usage, "completion_tokens", 0) or 0,
-                        "cache_read_tokens": cached,
-                        "cache_creation_tokens": 0,
-                    })
+                    _llm_usage_ctx.set(
+                        {
+                            "input_tokens": getattr(chunk.usage, "prompt_tokens", 0) or 0,
+                            "output_tokens": getattr(chunk.usage, "completion_tokens", 0) or 0,
+                            "cache_read_tokens": cached,
+                            "cache_creation_tokens": 0,
+                        }
+                    )
                 except Exception:
                     pass  # usage capture never blocks streaming
 

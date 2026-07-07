@@ -211,9 +211,7 @@ async def _try_create_salesforce_case(runtime_context: Any, reason: str, convers
     return None
 
 
-async def _try_create_intercom_conversation(
-    runtime_context: Any, reason: str, conversation_summary: str
-) -> str | None:
+async def _try_create_intercom_conversation(runtime_context: Any, reason: str, conversation_summary: str) -> str | None:
     """
     Create an Intercom conversation for the handoff.
     Returns a human-readable reference string on success, None on failure/not-configured.

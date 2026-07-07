@@ -64,9 +64,7 @@ async def _get_conversation_for_tenant(
         # Conversations without an agent cannot be scoped to a tenant — deny access.
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
 
-    agent_result = await db.execute(
-        select(Agent).filter(Agent.id == conv.agent_id, Agent.tenant_id == tenant_id)
-    )
+    agent_result = await db.execute(select(Agent).filter(Agent.id == conv.agent_id, Agent.tenant_id == tenant_id))
     if not agent_result.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
 
@@ -136,11 +134,7 @@ async def list_handoffs(
         page:      page number (default: 1)
         page_size: results per page (default: 20, max: 100)
     """
-    base_q = (
-        select(Conversation)
-        .join(Agent, Agent.id == Conversation.agent_id)
-        .filter(Agent.tenant_id == tenant_id)
-    )
+    base_q = select(Conversation).join(Agent, Agent.id == Conversation.agent_id).filter(Agent.tenant_id == tenant_id)
 
     if handoff_status != "all":
         base_q = base_q.filter(Conversation.handoff_status == handoff_status)
@@ -186,9 +180,7 @@ async def get_handoff_detail(
     Get full detail for a single handoff conversation, including all messages.
     """
     result = await db.execute(
-        select(Conversation)
-        .options(selectinload(Conversation.messages))
-        .filter(Conversation.id == conversation_id)
+        select(Conversation).options(selectinload(Conversation.messages)).filter(Conversation.id == conversation_id)
     )
     conv = result.scalar_one_or_none()
     if not conv:
@@ -197,9 +189,7 @@ async def get_handoff_detail(
     # Tenant check
     if not conv.agent_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
-    agent_result = await db.execute(
-        select(Agent).filter(Agent.id == conv.agent_id, Agent.tenant_id == tenant_id)
-    )
+    agent_result = await db.execute(select(Agent).filter(Agent.id == conv.agent_id, Agent.tenant_id == tenant_id))
     if not agent_result.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
 
@@ -227,9 +217,7 @@ async def get_conversation_messages(
     """
     conv = await _get_conversation_for_tenant(conversation_id, tenant_id, db)
 
-    count_result = await db.execute(
-        select(func.count()).where(Message.conversation_id == conv.id)
-    )
+    count_result = await db.execute(select(func.count()).where(Message.conversation_id == conv.id))
     total = count_result.scalar_one()
 
     offset = (page - 1) * page_size

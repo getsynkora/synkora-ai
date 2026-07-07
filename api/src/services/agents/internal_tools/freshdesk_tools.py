@@ -27,8 +27,7 @@ async def _get_freshdesk_credentials(runtime_context: Any, tool_name: str) -> di
     creds = await resolver.get_freshdesk_credentials(tool_name)
     if not creds:
         raise ValueError(
-            "Freshdesk authentication not configured. "
-            "Please add your Freshdesk API key in OAuth Apps settings."
+            "Freshdesk authentication not configured. Please add your Freshdesk API key in OAuth Apps settings."
         )
     return creds
 

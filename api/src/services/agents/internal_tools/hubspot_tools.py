@@ -27,8 +27,7 @@ async def _get_hubspot_credentials(runtime_context: Any, tool_name: str) -> dict
     creds = await resolver.get_hubspot_credentials(tool_name)
     if not creds:
         raise ValueError(
-            "HubSpot authentication not configured. "
-            "Please connect your HubSpot account in OAuth Apps settings."
+            "HubSpot authentication not configured. Please connect your HubSpot account in OAuth Apps settings."
         )
     return creds
 

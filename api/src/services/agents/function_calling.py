@@ -1498,9 +1498,7 @@ class FunctionCallingHandler:
                     if isinstance(content, str) and content:
                         msgs[history_end] = {
                             **msg,
-                            "content": [
-                                {"type": "text", "text": content, "cache_control": {"type": "ephemeral"}}
-                            ],
+                            "content": [{"type": "text", "text": content, "cache_control": {"type": "ephemeral"}}],
                         }
                         create_params["messages"] = msgs
                         create_params.setdefault("extra_headers", {})["anthropic-beta"] = "prompt-caching-2024-07-31"

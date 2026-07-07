@@ -25,8 +25,7 @@ async def _get_intercom_credentials(runtime_context: Any, tool_name: str) -> dic
     creds = await resolver.get_intercom_credentials(tool_name)
     if not creds:
         raise ValueError(
-            "Intercom authentication not configured. "
-            "Please connect your Intercom account in OAuth Apps settings."
+            "Intercom authentication not configured. Please connect your Intercom account in OAuth Apps settings."
         )
     return creds
 

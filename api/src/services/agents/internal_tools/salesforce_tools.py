@@ -25,8 +25,7 @@ async def _get_salesforce_credentials(runtime_context: Any, tool_name: str) -> d
     creds = await resolver.get_salesforce_credentials(tool_name)
     if not creds:
         raise ValueError(
-            "Salesforce authentication not configured. "
-            "Please connect your Salesforce account in OAuth Apps settings."
+            "Salesforce authentication not configured. Please connect your Salesforce account in OAuth Apps settings."
         )
     return creds
 
