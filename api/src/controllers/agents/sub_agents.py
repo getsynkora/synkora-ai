@@ -44,6 +44,7 @@ class SubAgentResponse(BaseModel):
     parent_agent_id: UUID
     sub_agent_id: UUID
     sub_agent_name: str
+    sub_agent_slug: str | None
     sub_agent_description: str | None
     execution_order: int
     is_active: bool
@@ -104,6 +105,7 @@ async def list_sub_agents(
                     "parent_agent_id": str(rel.parent_agent_id),
                     "sub_agent_id": str(rel.sub_agent_id),
                     "sub_agent_name": sub_agent.agent_name,
+                    "sub_agent_slug": sub_agent.slug,
                     "sub_agent_description": sub_agent.description,
                     "execution_order": rel.execution_order,
                     "is_active": rel.is_active,

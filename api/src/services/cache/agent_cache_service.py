@@ -344,6 +344,50 @@ class AgentCacheService:
             logger.error(f"Error caching context files: {e}")
             return False
 
+    CONTENT_CACHE_TTL = 86400  # 24 hours — content never changes after upload
+
+    async def get_context_file_content(self, file_id: str) -> str | None:
+        """Get cached extracted text for a single context file."""
+        redis = self._get_redis()
+        if not redis:
+            return None
+        try:
+            key = self._build_key("context_file_content", file_id)
+            cached = await redis.get(key)
+            if cached:
+                logger.info(f"Cache HIT: context_file_content:{file_id}")
+                return json.loads(cached)
+            return None
+        except Exception as e:
+            logger.error(f"Error getting context file content cache: {e}")
+            return None
+
+    async def set_context_file_content(self, file_id: str, content: str) -> bool:
+        """Cache extracted text for a single context file (24h TTL)."""
+        redis = self._get_redis()
+        if not redis:
+            return False
+        try:
+            key = self._build_key("context_file_content", file_id)
+            await redis.setex(key, timedelta(seconds=self.CONTENT_CACHE_TTL), json.dumps(content))
+            logger.info(f"Cached context_file_content:{file_id} (TTL: {self.CONTENT_CACHE_TTL}s)")
+            return True
+        except Exception as e:
+            logger.error(f"Error caching context file content: {e}")
+            return False
+
+    async def invalidate_context_file_content(self, file_id: str) -> None:
+        """Delete per-file content cache on file deletion."""
+        redis = self._get_redis()
+        if not redis:
+            return
+        try:
+            key = self._build_key("context_file_content", file_id)
+            await redis.delete(key)
+            logger.info(f"Invalidated context_file_content:{file_id}")
+        except Exception as e:
+            logger.error(f"Error invalidating context file content: {e}")
+
     async def invalidate_agent(
         self,
         slug: str = None,

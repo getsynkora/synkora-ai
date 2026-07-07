@@ -1435,21 +1435,75 @@ class FunctionCallingHandler:
                 "messages": messages,
                 "tools": tools,
             }
-            if system_prompt:
-                create_params["system"] = system_prompt
-
-            # Add cache_control to the last tool entry — caches the entire tool list prefix.
-            # Any change to the tool list will change the last entry, auto-busting the cache.
             _CACHEABLE = ("claude-3", "claude-sonnet", "claude-haiku", "claude-opus")
             model = getattr(self.llm_client.config, "model_name", "")
-            if tools and any(p in model.lower() for p in _CACHEABLE):
-                try:
-                    create_params["tools"] = list(tools)
-                    create_params["tools"][-1] = {
-                        **create_params["tools"][-1],
-                        "cache_control": {"type": "ephemeral"},
-                    }
+            _is_cacheable = any(p in model.lower() for p in _CACHEABLE)
+
+            # Breakpoint 1: cache the system prompt (stable across all turns).
+            if system_prompt:
+                if _is_cacheable:
+                    create_params["system"] = [
+                        {"type": "text", "text": system_prompt, "cache_control": {"type": "ephemeral"}}
+                    ]
                     create_params.setdefault("extra_headers", {})["anthropic-beta"] = "prompt-caching-2024-07-31"
+                else:
+                    create_params["system"] = system_prompt
+
+            # Breakpoint 2: cache the stable tool prefix.
+            #
+            # Problem: the filter in _select_tools picks different tools per message, so
+            # putting cache_control on the last tool (the old approach) busts the cache on
+            # every call — and because Anthropic's cache key is prefix-ordered
+            # (tools → system → messages), a tool-cache miss also invalidates BP3
+            # (conversation history), wiping out both savings at once.
+            #
+            # Fix: separate tools into "always-included" (stable, present in every request)
+            # and "dynamic" (filtered per message). Put cache_control after the stable
+            # prefix. Dynamic tools are appended after the breakpoint and are never cached.
+            # When the filtered set changes, only the dynamic tail differs — BP2 still hits,
+            # and BP3 (history) remains valid.
+            if tools and _is_cacheable:
+                try:
+                    from src.services.agents.tool_filter import ALWAYS_INCLUDE_TOOLS
+
+                    tool_list = list(tools)
+                    stable = [t for t in tool_list if t.get("name", "") in ALWAYS_INCLUDE_TOOLS]
+                    dynamic = [t for t in tool_list if t.get("name", "") not in ALWAYS_INCLUDE_TOOLS]
+
+                    # Stable tools first so the cached prefix is consistent across calls.
+                    # Fall back to caching the last tool when no stable tools are present
+                    # (e.g. an agent that explicitly strips discovery tools).
+                    reordered = stable + dynamic
+                    bp_idx = len(stable) - 1 if stable else len(reordered) - 1
+
+                    if bp_idx >= 0:
+                        reordered[bp_idx] = {
+                            **reordered[bp_idx],
+                            "cache_control": {"type": "ephemeral"},
+                        }
+                        create_params["tools"] = reordered
+                        create_params.setdefault("extra_headers", {})["anthropic-beta"] = "prompt-caching-2024-07-31"
+                except Exception:
+                    pass  # caching is optional; fall back to uncached call
+
+            # Breakpoint 3: cache the conversation history prefix (all prior turns).
+            # The last message before the current user message is the stable history boundary.
+            # Each new turn only pays for the incremental diff, not the full growing history.
+            if _is_cacheable and len(messages) >= 2:
+                try:
+                    msgs = list(messages)
+                    history_end = len(msgs) - 2  # last prior-turn message
+                    msg = msgs[history_end]
+                    content = msg.get("content", "")
+                    if isinstance(content, str) and content:
+                        msgs[history_end] = {
+                            **msg,
+                            "content": [
+                                {"type": "text", "text": content, "cache_control": {"type": "ephemeral"}}
+                            ],
+                        }
+                        create_params["messages"] = msgs
+                        create_params.setdefault("extra_headers", {})["anthropic-beta"] = "prompt-caching-2024-07-31"
                 except Exception:
                     pass  # caching is optional; fall back to uncached call
 

@@ -215,7 +215,7 @@ def fire_llm_call(
             "llm_status": status,
             "llm_error": error,
             # LLM input inspection — stored as text fields to avoid ES mapping explosion
-            "system_prompt": (system_prompt or "")[:2000] if system_prompt else None,
+            "system_prompt": (system_prompt or "")[:20000] if system_prompt else None,
             "messages_json": messages_json[:16000] if messages_json else None,
             "tools_json": tools_json[:32000] if tools_json else None,
             # Prompt cache

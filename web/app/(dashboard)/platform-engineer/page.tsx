@@ -606,6 +606,14 @@ function HeroSection({
   const [value, setValue] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
+  // Auto-resize textarea as content grows
+  useEffect(() => {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }, [value])
+
   return (
     <div className="relative flex min-h-full items-center justify-center overflow-hidden px-4 py-12 text-center md:px-8 md:py-16">
       <div className="pointer-events-none absolute inset-0 opacity-[0.12] [background-image:repeating-linear-gradient(90deg,transparent_0,transparent_12%,rgba(72,51,34,0.08)_12.2%,transparent_12.5%)]" />
@@ -638,8 +646,8 @@ function HeroSection({
               value={value}
               onChange={(e) => setValue(e.target.value)}
               placeholder="Describe the agent you want to build..."
-              rows={2}
-              className="w-full resize-none !bg-transparent text-base leading-relaxed text-gray-900 placeholder:text-gray-400 outline-none"
+              rows={3}
+              className="w-full resize-none !bg-transparent text-base leading-relaxed text-gray-900 placeholder:text-gray-400 outline-none min-h-[80px] max-h-[320px] overflow-y-auto"
               style={{ backgroundColor: 'transparent' }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
