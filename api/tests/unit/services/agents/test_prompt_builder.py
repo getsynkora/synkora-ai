@@ -59,11 +59,13 @@ class TestSystemPromptBuilder:
         mock_factory = MagicMock(return_value=mock_cm)
         return MagicMock(return_value=mock_factory)
 
-    def _make_mock_cache(self):
+    def _make_mock_cache(self, content=None):
         """Helper: build a cache mock with a cache-miss on get_context_files."""
         mock_cache_instance = MagicMock()
         mock_cache_instance.get_context_files = AsyncMock(return_value=None)
         mock_cache_instance.set_context_files = AsyncMock()
+        mock_cache_instance.get_context_file_content = AsyncMock(return_value=content)
+        mock_cache_instance.set_context_file_content = AsyncMock()
         mock_cache = MagicMock(return_value=mock_cache_instance)
         return mock_cache
 
@@ -78,45 +80,49 @@ class TestSystemPromptBuilder:
     async def test_build_context_section_with_files(self, builder, mock_agent):
         file1 = MagicMock(spec=AgentContextFile)
         file1.filename = "file1.txt"
-        file1.extracted_text = "Content 1"
+        file1.load_mode = "always"
 
-        with patch("src.services.cache.get_agent_cache", self._make_mock_cache()):
+        with patch("src.services.cache.get_agent_cache", self._make_mock_cache("Content 1")):
             with patch("src.core.database.get_async_session_factory", self._make_mock_session([file1])):
-                context = await builder._build_context_section(mock_agent)
-                assert "CONTEXT FILES" in context
-                assert "file1.txt" in context
-                assert "Content 1" in context
+                with patch("src.services.agents.prompt_builder.S3StorageService"):
+                    context = await builder._build_context_section(mock_agent)
+                    assert "CONTEXT FILES" in context
+                    assert "file1.txt" in context
+                    assert "Content 1" in context
 
     @pytest.mark.asyncio
     async def test_build_context_section_length_limit(self, builder, mock_agent):
         file1 = MagicMock(spec=AgentContextFile)
         file1.filename = "file1.txt"
-        file1.extracted_text = "Content 1"
+        file1.load_mode = "always"
 
-        with patch("src.services.cache.get_agent_cache", self._make_mock_cache()):
+        with patch("src.services.cache.get_agent_cache", self._make_mock_cache("Content 1")):
             with patch("src.core.database.get_async_session_factory", self._make_mock_session([file1])):
-                context = await builder._build_context_section(mock_agent, max_context_length=5)
-                assert "Content truncated" in context
+                with patch("src.services.agents.prompt_builder.S3StorageService"):
+                    context = await builder._build_context_section(mock_agent, max_context_length=5)
+                    assert "Content truncated" in context
 
     @pytest.mark.asyncio
     async def test_build_context_section_auto_compacts_large_files(self, builder, mock_agent):
         file1 = MagicMock(spec=AgentContextFile)
         file1.filename = "policy.txt"
-        file1.extracted_text = ("Policy guidance for approvals and compliance. " * 200).strip()
+        file1.load_mode = "always"
+        large_text = ("Policy guidance for approvals and compliance. " * 200).strip()
 
-        with patch("src.services.cache.get_agent_cache", self._make_mock_cache()):
+        with patch("src.services.cache.get_agent_cache", self._make_mock_cache(large_text)):
             with patch("src.core.database.get_async_session_factory", self._make_mock_session([file1])):
-                context = await builder._build_context_section(
-                    mock_agent,
-                    context_mode="auto",
-                    context_query="compliance approvals",
-                    full_context_threshold=200,
-                    preview_chars=120,
-                )
-                assert "CONTEXT FILES (COMPACTED)" in context
-                assert "policy.txt" in context
-                assert "compacted for token efficiency" in context
-                assert len(context) < len(file1.extracted_text)
+                with patch("src.services.agents.prompt_builder.S3StorageService"):
+                    context = await builder._build_context_section(
+                        mock_agent,
+                        context_mode="auto",
+                        context_query="compliance approvals",
+                        full_context_threshold=200,
+                        preview_chars=120,
+                    )
+                    assert "CONTEXT FILES (COMPACTED)" in context
+                    assert "policy.txt" in context
+                    assert "compacted for token efficiency" in context
+                    assert len(context) < len(large_text)
 
     @pytest.mark.asyncio
     async def test_get_context_summary(self, builder, mock_agent):

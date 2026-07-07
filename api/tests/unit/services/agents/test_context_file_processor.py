@@ -86,7 +86,7 @@ class TestAgentContextFileProcessor:
 
         assert isinstance(result, AgentContextFile)
         assert result.filename == "test.txt"
-        assert result.extracted_text == "Hello World"
+        assert result.description == "Hello World"
         assert result.extraction_status == "COMPLETED"
         processor.db.add.assert_called_once()
         processor.db.commit.assert_called_once()
@@ -153,17 +153,7 @@ class TestAgentContextFileProcessor:
         url = await processor.get_download_url(mock_file)
         assert url == "url"
 
-    def test_get_context_files_text(self, processor, mock_agent):
-        file1 = MagicMock()
-        file1.is_extraction_complete = True
-        file1.extracted_text = "Content 1"
-        file1.filename = "file1.txt"
-
-        file2 = MagicMock()
-        file2.is_extraction_complete = False  # Should be skipped
-
-        mock_agent.context_files = [file1, file2]
-
-        text = processor.get_context_files_text(mock_agent)
-        assert "Content 1" in text
-        assert "file1.txt" in text
+    @pytest.mark.asyncio
+    async def test_extract_text_plain(self, processor):
+        text = await processor._extract_text(b"Hello World", "text/plain", "test.txt")
+        assert text == "Hello World"
