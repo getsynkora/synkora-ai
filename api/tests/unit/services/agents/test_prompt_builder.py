@@ -84,7 +84,7 @@ class TestSystemPromptBuilder:
 
         with patch("src.services.cache.get_agent_cache", self._make_mock_cache("Content 1")):
             with patch("src.core.database.get_async_session_factory", self._make_mock_session([file1])):
-                with patch("src.services.agents.prompt_builder.S3StorageService"):
+                with patch("src.services.storage.s3_storage.S3StorageService"):
                     context = await builder._build_context_section(mock_agent)
                     assert "CONTEXT FILES" in context
                     assert "file1.txt" in context
@@ -98,7 +98,7 @@ class TestSystemPromptBuilder:
 
         with patch("src.services.cache.get_agent_cache", self._make_mock_cache("Content 1")):
             with patch("src.core.database.get_async_session_factory", self._make_mock_session([file1])):
-                with patch("src.services.agents.prompt_builder.S3StorageService"):
+                with patch("src.services.storage.s3_storage.S3StorageService"):
                     context = await builder._build_context_section(mock_agent, max_context_length=5)
                     assert "Content truncated" in context
 
@@ -111,7 +111,7 @@ class TestSystemPromptBuilder:
 
         with patch("src.services.cache.get_agent_cache", self._make_mock_cache(large_text)):
             with patch("src.core.database.get_async_session_factory", self._make_mock_session([file1])):
-                with patch("src.services.agents.prompt_builder.S3StorageService"):
+                with patch("src.services.storage.s3_storage.S3StorageService"):
                     context = await builder._build_context_section(
                         mock_agent,
                         context_mode="auto",
