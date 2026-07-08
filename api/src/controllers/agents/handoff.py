@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.core.database import get_async_db
-from src.middleware.auth_middleware import get_current_tenant_id
+from src.middleware.agent_api_auth import get_tenant_from_jwt_or_api_key
 from src.models.agent import Agent
 from src.models.conversation import Conversation
 from src.models.message import Message, MessageRole, MessageStatus
@@ -123,7 +123,7 @@ async def list_handoffs(
     handoff_status: Literal["active", "resolved", "all"] = Query("active", alias="status"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
+    tenant_id: uuid.UUID = Depends(get_tenant_from_jwt_or_api_key),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
@@ -173,7 +173,7 @@ async def list_handoffs(
 @router.get("/conversations/{conversation_id}/handoff", status_code=status.HTTP_200_OK)
 async def get_handoff_detail(
     conversation_id: uuid.UUID,
-    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
+    tenant_id: uuid.UUID = Depends(get_tenant_from_jwt_or_api_key),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
@@ -208,7 +208,7 @@ async def get_conversation_messages(
     conversation_id: uuid.UUID,
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
-    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
+    tenant_id: uuid.UUID = Depends(get_tenant_from_jwt_or_api_key),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
@@ -247,7 +247,7 @@ async def get_conversation_messages(
 async def handoff_reply(
     conversation_id: uuid.UUID,
     body: HandoffReplyBody,
-    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
+    tenant_id: uuid.UUID = Depends(get_tenant_from_jwt_or_api_key),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
@@ -292,7 +292,7 @@ async def handoff_reply(
 @router.post("/conversations/{conversation_id}/handoff/resolve", status_code=status.HTTP_200_OK)
 async def handoff_resolve(
     conversation_id: uuid.UUID,
-    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
+    tenant_id: uuid.UUID = Depends(get_tenant_from_jwt_or_api_key),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
@@ -335,7 +335,7 @@ async def handoff_resolve(
 @router.post("/conversations/{conversation_id}/handoff/reopen", status_code=status.HTTP_200_OK)
 async def handoff_reopen(
     conversation_id: uuid.UUID,
-    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
+    tenant_id: uuid.UUID = Depends(get_tenant_from_jwt_or_api_key),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
@@ -383,7 +383,7 @@ async def handoff_reopen(
 async def handoff_assign(
     conversation_id: uuid.UUID,
     body: HandoffAssignBody,
-    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
+    tenant_id: uuid.UUID = Depends(get_tenant_from_jwt_or_api_key),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
