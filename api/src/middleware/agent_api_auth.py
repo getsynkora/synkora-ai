@@ -7,8 +7,9 @@ Validates agent API keys and enforces rate limiting, permissions, and usage trac
 import hmac
 import logging
 import time
+import uuid
 
-from fastapi import HTTPException, Request, status
+from fastapi import Depends, Header, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -306,3 +307,72 @@ def require_permission(permission: str):
         return api_key
 
     return check_permission
+
+
+async def get_tenant_from_jwt_or_api_key(
+    authorization: str | None = Header(None),
+    db: AsyncSession = Depends(get_async_db),
+) -> uuid.UUID:
+    """
+    Dual-mode auth dependency for management endpoints (e.g. handoff API).
+
+    Accepts either:
+      - A Synkora account JWT:  Authorization: Bearer <jwt>
+      - An AgentApiKey:        Authorization: Bearer sk_live_...
+
+    Returns the tenant UUID so route handlers stay identical.
+    """
+    if not authorization:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    parts = authorization.split()
+    if len(parts) != 2 or parts[0].lower() != "bearer":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authorization format. Use: Bearer <token>",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    token = parts[1]
+
+    # AgentApiKey path — sk_live_... keys
+    if token.startswith("sk_"):
+        api_key_record = await AgentApiAuthMiddleware.validate_api_key(token, db)
+        if not api_key_record:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired API key",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        return api_key_record.tenant_id
+
+    # JWT path — standard account token
+    try:
+        from src.services import AuthService
+
+        payload = AuthService.decode_token(token)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if "tenant_id" not in payload:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Tenant context required",
+        )
+
+    try:
+        return uuid.UUID(payload["tenant_id"])
+    except (ValueError, AttributeError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )

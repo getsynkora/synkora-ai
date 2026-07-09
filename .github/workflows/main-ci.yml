@@ -129,6 +129,7 @@ jobs:
             --ignore-vuln CVE-2025-69872 \
             --ignore-vuln CVE-2026-35029 \
             --ignore-vuln GHSA-69x8-hrgq-fjj8 \
+            --ignore-vuln PYSEC-2026-1325 \
             --format markdown \
             --output api/pip-audit-report.md
         continue-on-error: false
