@@ -7,7 +7,7 @@ from typing import BinaryIO
 from uuid import UUID, uuid4
 
 import docx
-import PyPDF2
+import pypdf
 
 from src.services.storage.s3_storage import S3StorageService
 
@@ -233,7 +233,7 @@ class AttachmentService:
 
         try:
             pdf_file = io.BytesIO(file_content)
-            pdf_reader = PyPDF2.PdfReader(pdf_file)
+            pdf_reader = pypdf.PdfReader(pdf_file)
 
             for page_num, page in enumerate(pdf_reader.pages):
                 try:

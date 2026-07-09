@@ -89,7 +89,7 @@ dependencies = [
     # Document Processing & Image Extraction
     "pymupdf>=1.24.0,<2.0.0",
     "python-docx>=1.1.0,<2.0.0",
-    "PyPDF2>=3.0.0,<4.0.0",
+    "pypdf>=6.13.3,<7.0.0",
     "pillow>=12.2.0,<13.0.0",
     "python-magic>=0.4.27,<1.0.0",
     # Database Connectors — all native async

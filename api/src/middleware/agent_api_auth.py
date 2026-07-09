@@ -353,6 +353,7 @@ async def get_tenant_from_jwt_or_api_key(
     # JWT path — standard account token
     try:
         from src.services import AuthService
+
         payload = AuthService.decode_token(token)
     except Exception:
         raise HTTPException(

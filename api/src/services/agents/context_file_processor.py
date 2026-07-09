@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import BinaryIO
 
 import docx
-import PyPDF2
+import pypdf
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -263,7 +263,7 @@ class AgentContextFileProcessor:
 
         try:
             pdf_file = io.BytesIO(file_content)
-            pdf_reader = PyPDF2.PdfReader(pdf_file)
+            pdf_reader = pypdf.PdfReader(pdf_file)
 
             for page_num, page in enumerate(pdf_reader.pages):
                 try:

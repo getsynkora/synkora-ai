@@ -107,7 +107,7 @@ class TestAgentContextFileProcessor:
 
     def test_extract_text_pdf(self, processor):
         # Mock PyPDF2
-        with patch("src.services.agents.context_file_processor.PyPDF2.PdfReader") as MockReader:
+        with patch("src.services.agents.context_file_processor.pypdf.PdfReader") as MockReader:
             mock_page = MagicMock()
             mock_page.extract_text.return_value = "PDF Content"
             MockReader.return_value.pages = [mock_page]
