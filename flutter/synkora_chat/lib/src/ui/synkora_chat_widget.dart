@@ -18,7 +18,12 @@ const _kInk = Color(0xFF1A1A2E);
 const _kMuted = Color(0xFF94A3B8);
 const _kBorder = Color(0x14000000);
 
-enum _ChatView { home, chat, sessions, preChatForm }
+// Main bottom-tab indexes
+const _kTabHome = 0;
+const _kTabChat = 1;
+
+// Overlay views that sit above the tab UI (no bottom nav shown)
+enum _OverlayView { none, chatMessages, preChatForm }
 
 /// Drop-in chat widget. Place anywhere in your widget tree.
 ///
@@ -64,7 +69,8 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
   late SynkoraChatController _controller;
   bool _ownsController = false;
   bool _resolvedInitialView = false;
-  _ChatView _activeView = _ChatView.home;
+  int _tabIndex = _kTabHome;
+  _OverlayView _overlay = _OverlayView.none;
   final _inputController = TextEditingController();
   final _scrollController = ScrollController();
   final _focusNode = FocusNode();
@@ -99,13 +105,9 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
   void _onControllerUpdate() {
     if (!_resolvedInitialView && !_controller.isLoading) {
       _resolvedInitialView = true;
-      final uid = widget.user?.id ?? widget.userId;
-      if (uid != null) {
-        _activeView = _ChatView.sessions;
-      } else {
-        _activeView = _controller.hasConversationContent
-            ? _ChatView.chat
-            : _ChatView.home;
+      if (_controller.hasConversationContent) {
+        _tabIndex = _kTabChat;
+        _overlay = _OverlayView.chatMessages;
       }
       if (mounted) setState(() {});
     }
@@ -146,37 +148,34 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
     if (_controller.shouldShowPreChatForm) {
       _pendingSendText = text;
       _inputController.clear();
-      setState(() => _activeView = _ChatView.preChatForm);
+      setState(() => _overlay = _OverlayView.preChatForm);
       return;
     }
-    if (_activeView != _ChatView.chat) {
-      setState(() => _activeView = _ChatView.chat);
-    }
+    setState(() {
+      _tabIndex = _kTabChat;
+      _overlay = _OverlayView.chatMessages;
+    });
     _inputController.clear();
     _controller.send(text);
   }
 
   String? _pendingSendText;
 
-  void _openHome() {
-    if (_activeView != _ChatView.home) {
-      setState(() => _activeView = _ChatView.home);
-    }
-  }
-
-  void _openSessions() {
-    _controller.loadSessions();
-    setState(() => _activeView = _ChatView.sessions);
+  void _closeOverlay() {
+    setState(() => _overlay = _OverlayView.none);
   }
 
   Future<void> _openSession(WidgetSession session) async {
-    setState(() => _activeView = _ChatView.chat);
+    setState(() => _overlay = _OverlayView.chatMessages);
     await _controller.resumeSession(session.id);
   }
 
   Future<void> _newSession() async {
     await _controller.startNewSession();
-    setState(() => _activeView = _ChatView.chat);
+    setState(() {
+      _tabIndex = _kTabChat;
+      _overlay = _OverlayView.chatMessages;
+    });
   }
 
   Future<void> _closeSession(WidgetSession session) async {
@@ -185,9 +184,10 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
   }
 
   Future<void> _sendPrompt(String prompt) async {
-    if (_activeView != _ChatView.chat) {
-      setState(() => _activeView = _ChatView.chat);
-    }
+    setState(() {
+      _tabIndex = _kTabChat;
+      _overlay = _OverlayView.chatMessages;
+    });
     await _controller.send(prompt);
   }
 
@@ -232,7 +232,7 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
     );
     if (confirmed == true) {
       await _controller.clearSession();
-      if (mounted) setState(() => _activeView = _ChatView.home);
+      if (mounted) setState(() => _overlay = _OverlayView.none);
     }
   }
 
@@ -263,9 +263,27 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
             config == null &&
             _controller.error != null;
 
+        final isOverlay = _overlay != _OverlayView.none;
+        final inMessages = _overlay == _OverlayView.chatMessages;
+        final showInputBar = inMessages &&
+            !_controller.isCurrentSessionClosed &&
+            !_controller.isHandoffActive &&
+            _controller.pendingApproval == null;
+        final showHandoff = inMessages && _controller.isHandoffActive;
+
         return Scaffold(
           backgroundColor: _kBg,
           appBar: _buildAppBar(config),
+          bottomNavigationBar: isOverlay
+              ? null
+              : _BottomNav(
+                  currentIndex: _tabIndex,
+                  primaryColor: _primary,
+                  onTap: (i) {
+                    if (i == _kTabChat) _controller.loadSessions();
+                    setState(() => _tabIndex = i);
+                  },
+                ),
           body: hasInitError
               ? _ConnectionErrorState(
                   message: _controller.error!,
@@ -275,9 +293,7 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
                 )
               : Column(
                   children: [
-                    // Error banner
-                    if (_controller.error != null &&
-                        _activeView == _ChatView.chat)
+                    if (_controller.error != null && inMessages)
                       _ErrorBanner(
                         message: _controller.error!,
                         onRetry: _controller.retry,
@@ -289,25 +305,18 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
                           : _buildBody(config),
                     ),
 
-                    // Input bar
-                    if (_activeView == _ChatView.chat &&
-                        !_controller.isCurrentSessionClosed &&
-                        !_controller.isHandoffActive &&
-                        _controller.pendingApproval == null)
+                    if (showInputBar)
                       _InputBar(
                         controller: _inputController,
                         focusNode: _focusNode,
-                        placeholder: config?.theme.placeholder ??
-                            'Type a message...',
+                        placeholder: config?.theme.placeholder ?? 'Type a message...',
                         primaryColor: _primary,
                         isStreaming: _controller.isStreaming,
                         onSend: _send,
-                        agentName:
-                            _formatAgentName(config?.agentName ?? ''),
+                        agentName: _formatAgentName(config?.agentName ?? ''),
                       ),
 
-                    if (_activeView == _ChatView.chat &&
-                        _controller.isHandoffActive)
+                    if (showHandoff)
                       const _HandoffFooter(),
                   ],
                 ),
@@ -318,10 +327,9 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
 
   PreferredSizeWidget _buildAppBar(WidgetConfig? config) {
     final agentName = _formatAgentName(config?.agentName ?? '');
-    final isChat = _activeView == _ChatView.chat;
-    final hasSessions = _controller.sessions.isNotEmpty;
     final fg = _onColor(_primary);
     final fgSubtle = fg.withValues(alpha: 0.65);
+    final isOverlay = _overlay != _OverlayView.none;
 
     return AppBar(
       backgroundColor: _primary,
@@ -329,15 +337,10 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
       elevation: 0,
       toolbarHeight: 60,
       automaticallyImplyLeading: false,
-      leading: isChat && hasSessions
+      leading: isOverlay
           ? IconButton(
               icon: Icon(Icons.arrow_back, color: fg),
-              onPressed: _openSessions,
-            )
-          : widget.onClose != null
-          ? IconButton(
-              icon: Icon(Icons.close, color: fg),
-              onPressed: widget.onClose,
+              onPressed: _closeOverlay,
             )
           : null,
       title: Row(
@@ -368,39 +371,14 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
         ],
       ),
       actions: [
-        if ((widget.user?.id != null || widget.userId != null) &&
-            _activeView != _ChatView.sessions)
+        // New chat — only shown inside a messages view
+        if (_overlay == _OverlayView.chatMessages && _controller.hasConversationContent)
           IconButton(
-            icon: Icon(Icons.history_rounded, color: fg),
-            tooltip: 'Conversations',
-            onPressed: _openSessions,
+            icon: Icon(Icons.add_comment_outlined, color: fg),
+            tooltip: 'New chat',
+            onPressed: _clearSession,
           ),
-        if (config != null && !_controller.isLoading)
-          PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert, color: fg),
-            color: _kPanel,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-              side: const BorderSide(color: _kBorder),
-            ),
-            onSelected: (v) {
-              if (v == 'home') _openHome();
-              if (v == 'new') _clearSession();
-            },
-            itemBuilder: (_) => [
-              if (_controller.hasConversationContent) ...[
-                PopupMenuItem(
-                  value: 'home',
-                  child: _MenuRow(icon: Icons.home_rounded, label: 'Home'),
-                ),
-                PopupMenuItem(
-                  value: 'new',
-                  child: _MenuRow(icon: Icons.add_comment_outlined, label: 'New chat'),
-                ),
-              ],
-            ],
-          ),
-        if (widget.onClose != null && _activeView != _ChatView.home)
+        if (widget.onClose != null)
           IconButton(
             icon: Icon(Icons.close, color: fg),
             onPressed: widget.onClose,
@@ -410,71 +388,82 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
   }
 
   String get _appBarSubtitle {
-    switch (_activeView) {
-      case _ChatView.home:
-        return 'Welcome';
-      case _ChatView.sessions:
-        return 'Your conversations';
-      case _ChatView.preChatForm:
-        return 'Before we start';
-      case _ChatView.chat:
-        if (_controller.isHandoffActive) return 'Connected to support';
-        if (_controller.pendingApproval != null) return 'Waiting for approval';
-        if (_controller.hasConversationContent) return 'Online';
-        return 'Ready to chat';
+    if (_overlay == _OverlayView.preChatForm) return 'Before we start';
+    if (_overlay == _OverlayView.chatMessages) {
+      if (_controller.isHandoffActive) return 'Connected to support';
+      if (_controller.pendingApproval != null) return 'Waiting for approval';
+      if (_controller.hasConversationContent) return 'Online';
+      return 'Ready to chat';
     }
+    if (_tabIndex == _kTabChat) return 'Your conversations';
+    return 'Welcome';
   }
 
   Widget _buildBody(WidgetConfig? config) {
-    switch (_activeView) {
-      case _ChatView.home:
-        return _HomeScreen(
-          config: config,
-          primaryColor: _primary,
-          hasConversationContent: _controller.hasConversationContent,
-          customBody: widget.emptyStateWidget,
-          recentSession: _controller.sessions.isNotEmpty
-              ? _controller.sessions.first
-              : null,
-          onStartChat: _newSession,
-          onResumeSession: (s) => _openSession(s),
-          onSuggestion: _sendPrompt,
-        );
-
-      case _ChatView.sessions:
-        return _SessionsScreen(
-          sessions: _controller.sessions,
-          isLoading: _controller.sessionsLoading,
-          primaryColor: _primary,
-          onSessionTap: _openSession,
-          onNewSession: _newSession,
-          onSessionClose: _closeSession,
-        );
-
-      case _ChatView.preChatForm:
-        return _PreChatFormScreen(
-          config: _controller.config!.preChatForm,
-          primaryColor: _primary,
-          onSubmit: ({String? name, String? email, String? phone}) {
-            _controller.submitPreChatForm(
-                name: name, email: email, phone: phone);
-            final pending = _pendingSendText;
-            _pendingSendText = null;
-            setState(() => _activeView = _ChatView.chat);
-            if (pending != null) _controller.send(pending);
-          },
-          onSkip: () {
-            _controller.submitPreChatForm();
-            final pending = _pendingSendText;
-            _pendingSendText = null;
-            setState(() => _activeView = _ChatView.chat);
-            if (pending != null) _controller.send(pending);
-          },
-        );
-
-      case _ChatView.chat:
-        return _buildChatView(config);
+    // Overlay views take priority
+    if (_overlay == _OverlayView.chatMessages) {
+      return _buildChatView(config);
     }
+
+    if (_overlay == _OverlayView.preChatForm) {
+      return _PreChatFormScreen(
+        config: _controller.config!.preChatForm,
+        primaryColor: _primary,
+        onSubmit: ({String? name, String? email, String? phone}) {
+          _controller.submitPreChatForm(name: name, email: email, phone: phone);
+          final pending = _pendingSendText;
+          _pendingSendText = null;
+          setState(() {
+            _overlay = _OverlayView.none;
+            _tabIndex = _kTabChat;
+          });
+          if (pending != null) _controller.send(pending);
+        },
+        onSkip: () {
+          _controller.submitPreChatForm();
+          final pending = _pendingSendText;
+          _pendingSendText = null;
+          setState(() {
+            _overlay = _OverlayView.none;
+            _tabIndex = _kTabChat;
+          });
+          if (pending != null) _controller.send(pending);
+        },
+      );
+    }
+
+    // Main tabs
+    if (_tabIndex == _kTabHome) {
+      // Find last ongoing (active) session for the home card
+      final ongoingSession = _controller.sessions
+          .where((s) => s.isActive)
+          .isNotEmpty
+          ? _controller.sessions.firstWhere((s) => s.isActive)
+          : (_controller.sessions.isNotEmpty ? _controller.sessions.first : null);
+
+      return _HomeScreen(
+        config: config,
+        primaryColor: _primary,
+        hasConversationContent: _controller.hasConversationContent,
+        customBody: widget.emptyStateWidget,
+        recentSession: ongoingSession,
+        onStartChat: _newSession,
+        onResumeSession: (s) => _openSession(s),
+        onSuggestion: _sendPrompt,
+      );
+    }
+
+    // Chat tab → sessions list
+    return _SessionsScreen(
+      sessions: _controller.sessions,
+      isLoading: _controller.sessionsLoading,
+      primaryColor: _primary,
+      agentName: _formatAgentName(config?.agentName ?? 'Assistant'),
+      agentAvatarUrl: config?.agentAvatarUrl,
+      onSessionTap: _openSession,
+      onNewSession: _newSession,
+      onSessionClose: _closeSession,
+    );
   }
 
   Widget _buildChatView(WidgetConfig? config) {
@@ -496,7 +485,7 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
 
     if (_controller.messages.isEmpty) {
       return _ChatEmptyState(
-        onOpenHome: _openHome,
+        onOpenHome: () => setState(() => _tabIndex = _kTabHome),
         primaryColor: _primary,
       );
     }
@@ -860,6 +849,8 @@ class _SessionsScreen extends StatelessWidget {
   final List<WidgetSession> sessions;
   final bool isLoading;
   final Color primaryColor;
+  final String agentName;
+  final String? agentAvatarUrl;
   final Future<void> Function(WidgetSession) onSessionTap;
   final VoidCallback onNewSession;
   final Future<void> Function(WidgetSession) onSessionClose;
@@ -868,6 +859,8 @@ class _SessionsScreen extends StatelessWidget {
     required this.sessions,
     required this.isLoading,
     required this.primaryColor,
+    required this.agentName,
+    this.agentAvatarUrl,
     required this.onSessionTap,
     required this.onNewSession,
     required this.onSessionClose,
@@ -937,6 +930,8 @@ class _SessionsScreen extends StatelessWidget {
             return _SessionCard(
               session: session,
               primaryColor: primaryColor,
+              agentName: agentName,
+              agentAvatarUrl: agentAvatarUrl,
               timeLabel: _relativeTime(session.lastActivityAt),
               onTap: () => onSessionTap(session),
               onClose: session.isActive
@@ -966,6 +961,8 @@ class _SessionsScreen extends StatelessWidget {
 class _SessionCard extends StatelessWidget {
   final WidgetSession session;
   final Color primaryColor;
+  final String agentName;
+  final String? agentAvatarUrl;
   final String timeLabel;
   final VoidCallback onTap;
   final VoidCallback? onClose;
@@ -973,6 +970,8 @@ class _SessionCard extends StatelessWidget {
   const _SessionCard({
     required this.session,
     required this.primaryColor,
+    required this.agentName,
+    this.agentAvatarUrl,
     required this.timeLabel,
     required this.onTap,
     this.onClose,
@@ -998,30 +997,41 @@ class _SessionCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 22,
-              backgroundColor: primaryColor.withValues(alpha: 0.12),
-              child: Icon(Icons.auto_awesome, size: 18, color: primaryColor),
-            ),
+            // Agent avatar
+            agentAvatarUrl != null && agentAvatarUrl!.isNotEmpty
+                ? CircleAvatar(
+                    radius: 22,
+                    backgroundImage: NetworkImage(agentAvatarUrl!),
+                    backgroundColor: primaryColor.withValues(alpha: 0.12),
+                  )
+                : CircleAvatar(
+                    radius: 22,
+                    backgroundColor: primaryColor.withValues(alpha: 0.12),
+                    child: Icon(Icons.auto_awesome, size: 18, color: primaryColor),
+                  ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Agent name
+                  Text(
+                    agentName,
+                    style: ChatTextStyles.txtStyleSemiB14.copyWith(color: _kInk),
+                  ),
+                  const SizedBox(height: 2),
+                  // Last message preview
                   Text(
                     session.firstMessage ?? 'Conversation',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: ChatTextStyles.txtStyleSemiB14
-                        .copyWith(color: _kInk),
+                    style: ChatTextStyles.txtStyleRegular12.copyWith(color: _kMuted),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     session.isActive ? 'Active' : 'Closed',
                     style: ChatTextStyles.txtStyleRegular12.copyWith(
-                      color: session.isActive
-                          ? const Color(0xFF22C55E)
-                          : _kMuted,
+                      color: session.isActive ? const Color(0xFF22C55E) : _kMuted,
                     ),
                   ),
                 ],
@@ -1032,8 +1042,7 @@ class _SessionCard extends StatelessWidget {
               children: [
                 Text(
                   timeLabel,
-                  style:
-                      ChatTextStyles.txtStyleRegular12.copyWith(color: _kMuted),
+                  style: ChatTextStyles.txtStyleRegular12.copyWith(color: _kMuted),
                 ),
                 if (onClose != null) ...[
                   const SizedBox(height: 4),
@@ -1782,25 +1791,92 @@ class _ConnectionErrorState extends StatelessWidget {
   }
 }
 
+
 // ---------------------------------------------------------------------------
-// Menu row
+// Bottom navigation bar
 // ---------------------------------------------------------------------------
 
-class _MenuRow extends StatelessWidget {
-  final IconData icon;
-  final String label;
+class _BottomNav extends StatelessWidget {
+  final int currentIndex;
+  final Color primaryColor;
+  final void Function(int) onTap;
 
-  const _MenuRow({required this.icon, required this.label});
+  const _BottomNav({
+    required this.currentIndex,
+    required this.primaryColor,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: _kInk),
-        const SizedBox(width: 10),
-        Text(label,
-            style: ChatTextStyles.txtStyleSemiB14.copyWith(color: _kInk)),
-      ],
+    return Container(
+      decoration: const BoxDecoration(
+        color: _kPanel,
+        border: Border(top: BorderSide(color: _kBorder)),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _NavItem(
+                icon: Icons.home_rounded,
+                label: 'Home',
+                selected: currentIndex == _kTabHome,
+                primaryColor: primaryColor,
+                onTap: () => onTap(_kTabHome),
+              ),
+              _NavItem(
+                icon: Icons.chat_bubble_rounded,
+                label: 'Chat',
+                selected: currentIndex == _kTabChat,
+                primaryColor: primaryColor,
+                onTap: () => onTap(_kTabChat),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final Color primaryColor;
+  final VoidCallback onTap;
+
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.primaryColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? primaryColor : _kMuted;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: ChatTextStyles.txtStyleSemiB11.copyWith(color: color),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
