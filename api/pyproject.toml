@@ -45,7 +45,7 @@ dependencies = [
     "aiohttp>=3.14.1,<4.0.0",  # CVE-2026-54273..54280 fixed in 3.14.1
     # Utilities
     "python-dotenv>=1.2.2,<2.0.0",
-    "click>=8.1.0,<9.0.0",
+    "click>=8.3.3,<9.0.0",
     "tenacity>=9.0.0,<10.0.0",
     # Google Agent SDK & MCP
     "google-genai>=1.0.0,<2.0.0",
@@ -90,7 +90,7 @@ dependencies = [
     "pymupdf>=1.24.0,<2.0.0",
     "python-docx>=1.1.0,<2.0.0",
     "pypdf>=6.13.3,<7.0.0",
-    "pillow>=12.2.0,<13.0.0",
+    "pillow>=12.3.0,<13.0.0",
     "python-magic>=0.4.27,<1.0.0",
     # Database Connectors — all native async
     "aiomysql>=0.2.0,<1.0.0",           # MySQL  — native async pool
