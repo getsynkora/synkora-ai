@@ -1,3 +1,13 @@
+## 1.14.0
+
+- Full UI redesign — card-style chat bubbles, teal gradient home screen, adaptive AppBar foreground color
+- `triggerMessage(String)` on `SynkoraChatController` — send messages programmatically from outside the widget
+- Centralized `ChatTextStyles` with GlassdoorSans font family
+- "Powered by" footer in input bar
+- "Chat closed" read-only banner for ended sessions
+- FAQ rows on home screen replacing suggestion chips
+- Sessions list redesigned as flat cards
+
 ## 1.13.6
 
 - New UI/UX improvements
