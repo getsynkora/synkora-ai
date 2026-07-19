@@ -33,6 +33,23 @@ class SynkoraChatController extends ChangeNotifier {
   }
 
   // ---------------------------------------------------------------------------
+  // Programmatic message trigger (for external button-driven sends)
+  // ---------------------------------------------------------------------------
+
+  final _messageTriggerController = StreamController<String>.broadcast();
+
+  /// Stream the widget listens to for externally-triggered messages.
+  Stream<String> get messageTriggerStream => _messageTriggerController.stream;
+
+  /// Send a message programmatically — e.g. from a button outside the widget.
+  /// When [SynkoraChatWidget] is used, it also switches the view to the chat screen.
+  /// No-ops if [text] is blank or if already streaming.
+  void triggerMessage(String text) {
+    if (text.trim().isEmpty || _isStreaming) return;
+    _messageTriggerController.add(text);
+  }
+
+  // ---------------------------------------------------------------------------
   // State
   // ---------------------------------------------------------------------------
 
@@ -563,6 +580,7 @@ class SynkoraChatController extends ChangeNotifier {
   void dispose() {
     _inactivityTimer?.cancel();
     _handoffPollTimer?.cancel();
+    _messageTriggerController.close();
     _client.dispose();
     _cache.close();
     super.dispose();

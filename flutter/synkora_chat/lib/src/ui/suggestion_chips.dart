@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../client/models.dart';
+import '../theme/chat_text_styles.dart';
 
 class SuggestionChips extends StatelessWidget {
   final List<SuggestionPrompt> prompts;
@@ -88,16 +89,12 @@ class _ChipCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 alignment: Alignment.center,
-                child: Text(prompt.icon, style: const TextStyle(fontSize: 16)),
+                child: Text(prompt.icon, style: ChatTextStyles.txtStyleRegular16),
               ),
             const SizedBox(height: 8),
             Text(
               prompt.title,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-                color: Color(0xFF0F172A),
-              ),
+              style: ChatTextStyles.txtStyleSemiB13,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -105,9 +102,8 @@ class _ChipCard extends StatelessWidget {
               const SizedBox(height: 3),
               Text(
                 prompt.description,
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: Color(0xFF64748B),
+                style: ChatTextStyles.txtStyleRegular11.copyWith(
+                  color: const Color(0xFF64748B),
                   height: 1.35,
                 ),
                 maxLines: 2,

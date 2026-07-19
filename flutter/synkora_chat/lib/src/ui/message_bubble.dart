@@ -2,14 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
 import '../client/models.dart';
+import '../theme/chat_text_styles.dart';
+
+const _kTeal = Color(0xFF10717C);
+const _kBg = Color(0xFFF5F7F8);
+const _kInk = Color(0xFF1A1A2E);
+const _kMuted = Color(0xFF94A3B8);
+const _kTableBorder = Color(0x1E0F172A);
+const _kTableRow = Color(0x080F172A);
 
 class MessageBubble extends StatelessWidget {
   final ChatMessage message;
   final Color primaryColor;
   final String? agentAvatarUrl;
-  /// Show avatar on this bubble (false = last-in-group collapsed).
+  final String? agentName;
   final bool showAvatar;
-  /// Called when the user taps a link inside the agent's message.
   final void Function(String href)? onLinkTap;
 
   const MessageBubble({
@@ -17,6 +24,7 @@ class MessageBubble extends StatelessWidget {
     required this.message,
     required this.primaryColor,
     this.agentAvatarUrl,
+    this.agentName,
     this.showAvatar = true,
     this.onLinkTap,
   });
@@ -24,156 +32,333 @@ class MessageBubble extends StatelessWidget {
   bool get _isUser => message.role == MessageRole.user;
   bool get _isOperator => message.role == MessageRole.operator;
 
-  // Agent bubble — cool slate, clearly distinct from any primaryColor
-  static const _agentSurface = Color(0xFFF1F5F9);
-  // Operator bubble — warm amber tint to stand out from agent messages
-  static const _operatorSurface = Color(0xFFFFF8E1);
+  String _formatTime(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'Now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} min';
+    if (diff.inHours < 24) return '${diff.inHours}hr';
+    return '${diff.inDays}d';
+  }
 
   @override
   Widget build(BuildContext context) {
-    // User text: white on dark primaryColor, near-black on light primaryColor
-    final userFg =
-        ThemeData.estimateBrightnessForColor(primaryColor) == Brightness.dark
-        ? Colors.white
-        : const Color(0xFF0F172A);
+    if (_isOperator) return _OperatorBubble(message: message, showAvatar: showAvatar);
 
-    // Tighter gap within a group, looser gap between groups
-    final verticalPad = showAvatar || _isUser ? 6.0 : 2.0;
-
-    // Operator messages render as a full-width banner-style row
-    if (_isOperator) {
-      return Padding(
-        padding: EdgeInsets.fromLTRB(16, 2, 16, verticalPad),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            if (showAvatar)
-              const _OperatorAvatar()
-            else
-              const SizedBox(width: 32),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.only(left: 2, bottom: 3),
-                    child: Text(
-                      'Support',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFFB45309),
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * 0.75,
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 11),
-                    decoration: const BoxDecoration(
-                      color: _operatorSurface,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(20),
-                        topRight: Radius.circular(20),
-                        bottomLeft: Radius.circular(5),
-                        bottomRight: Radius.circular(20),
-                      ),
-                    ),
-                    child: Text(
-                      message.content,
-                      style: const TextStyle(
-                        color: Color(0xFF78350F),
-                        fontSize: 15,
-                        height: 1.45,
-                        letterSpacing: 0.1,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+    if (_isUser) {
+      return _UserBubble(
+        message: message,
+        primaryColor: primaryColor,
+        timeLabel: _formatTime(message.timestamp),
       );
     }
 
+    return _AgentBubble(
+      message: message,
+      primaryColor: primaryColor,
+      agentAvatarUrl: agentAvatarUrl,
+      agentName: agentName ?? 'Assistant',
+      showAvatar: showAvatar,
+      timeLabel: _formatTime(message.timestamp),
+      onLinkTap: onLinkTap,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Agent bubble — white card, teal avatar left, "Name · time" below
+// ---------------------------------------------------------------------------
+
+class _AgentBubble extends StatelessWidget {
+  final ChatMessage message;
+  final Color primaryColor;
+  final String? agentAvatarUrl;
+  final String agentName;
+  final bool showAvatar;
+  final String timeLabel;
+  final void Function(String href)? onLinkTap;
+
+  const _AgentBubble({
+    required this.message,
+    required this.primaryColor,
+    required this.agentAvatarUrl,
+    required this.agentName,
+    required this.showAvatar,
+    required this.timeLabel,
+    this.onLinkTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(16, 2, 16, verticalPad),
+      padding: const EdgeInsets.fromLTRB(12, 4, 48, 4),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        mainAxisAlignment: _isUser
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!_isUser) ...[
-            if (showAvatar)
-              _AgentAvatar(avatarUrl: agentAvatarUrl, primaryColor: primaryColor)
-            else
-              const SizedBox(width: 32), // same width as avatar diameter
-            const SizedBox(width: 8),
-          ],
+          // Avatar column — always reserve space for alignment
+          SizedBox(
+            width: 36,
+            child: showAvatar
+                ? _AgentAvatar(
+                    avatarUrl: agentAvatarUrl,
+                    primaryColor: primaryColor,
+                  )
+                : null,
+          ),
+          const SizedBox(width: 8),
           Flexible(
-            child: Container(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.75,
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-              decoration: BoxDecoration(
-                color: _isUser ? primaryColor : _agentSurface,
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(20),
-                  topRight: const Radius.circular(20),
-                  bottomLeft: _isUser
-                      ? const Radius.circular(20)
-                      : const Radius.circular(5),
-                  bottomRight: _isUser
-                      ? const Radius.circular(5)
-                      : const Radius.circular(20),
-                ),
-              ),
-              child: message.isStreaming && message.content.isEmpty
-                  ? _TypingDots(color: primaryColor)
-                  : _isUser
-                  ? Text(
-                      message.content,
-                      style: TextStyle(
-                        color: userFg,
-                        fontSize: 15,
-                        height: 1.45,
-                        letterSpacing: 0.1,
-                      ),
-                    )
-                  : _MarkdownContent(
-                      content: message.content,
-                      primaryColor: primaryColor,
-                      onLinkTap: onLinkTap,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // White card bubble
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(4),
+                      topRight: Radius.circular(16),
+                      bottomLeft: Radius.circular(16),
+                      bottomRight: Radius.circular(16),
                     ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x12000000),
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  child: message.isStreaming && message.content.isEmpty
+                      ? _TypingDots(color: primaryColor)
+                      : _MarkdownContent(
+                          content: message.content,
+                          primaryColor: primaryColor,
+                          onLinkTap: onLinkTap,
+                        ),
+                ),
+                if (showAvatar) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '$agentName · $timeLabel',
+                    style: ChatTextStyles.txtStyleRegular11.copyWith(
+                      color: _kMuted,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
-          if (_isUser) ...[
-            const SizedBox(width: 8),
-            const _UserAvatar(),
-          ],
         ],
       ),
     );
   }
 }
 
-/// Renders markdown with horizontally scrollable tables and link tap support.
+// ---------------------------------------------------------------------------
+// User bubble — teal pill right, "You · time" below
+// ---------------------------------------------------------------------------
+
+class _UserBubble extends StatelessWidget {
+  final ChatMessage message;
+  final Color primaryColor;
+  final String timeLabel;
+
+  const _UserBubble({
+    required this.message,
+    required this.primaryColor,
+    required this.timeLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(48, 4, 12, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Flexible(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: primaryColor,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(16),
+                      topRight: Radius.circular(4),
+                      bottomLeft: Radius.circular(16),
+                      bottomRight: Radius.circular(16),
+                    ),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 12),
+                  child: Text(
+                    message.content,
+                    style: ChatTextStyles.txtStyleRegular15.copyWith(
+                      color: primaryColor.computeLuminance() > 0.4
+                          ? const Color(0xFF1A1A2E)
+                          : Colors.white,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              const _UserAvatar(),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.only(right: 44),
+            child: Text(
+              'You · $timeLabel',
+              style: ChatTextStyles.txtStyleRegular11.copyWith(color: _kMuted),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Operator bubble — amber tinted, "Support · time" below
+// ---------------------------------------------------------------------------
+
+class _OperatorBubble extends StatelessWidget {
+  final ChatMessage message;
+  final bool showAvatar;
+
+  const _OperatorBubble({required this.message, required this.showAvatar});
+
+  String _formatTime(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'Now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} min';
+    if (diff.inHours < 24) return '${diff.inHours}hr';
+    return '${diff.inDays}d';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 4, 48, 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 36,
+            child: showAvatar
+                ? CircleAvatar(
+                    radius: 18,
+                    backgroundColor: const Color(0xFFFEF3C7),
+                    child: const Icon(
+                      Icons.support_agent,
+                      size: 17,
+                      color: Color(0xFFB45309),
+                    ),
+                  )
+                : null,
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFFBEB),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(4),
+                      topRight: Radius.circular(16),
+                      bottomLeft: Radius.circular(16),
+                      bottomRight: Radius.circular(16),
+                    ),
+                    border: Border.all(color: const Color(0xFFFDE68A)),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x08000000),
+                        blurRadius: 6,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 12),
+                  child: Text(
+                    message.content,
+                    style: ChatTextStyles.txtStyleRegular15.copyWith(
+                      color: const Color(0xFF78350F),
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+                if (showAvatar) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Support · ${_formatTime(message.timestamp)}',
+                    style: ChatTextStyles.txtStyleRegular11
+                        .copyWith(color: _kMuted),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Avatars
+// ---------------------------------------------------------------------------
+
+class _AgentAvatar extends StatelessWidget {
+  final String? avatarUrl;
+  final Color primaryColor;
+
+  const _AgentAvatar({this.avatarUrl, required this.primaryColor});
+
+  @override
+  Widget build(BuildContext context) {
+    if (avatarUrl != null && avatarUrl!.isNotEmpty) {
+      return CircleAvatar(
+        radius: 18,
+        backgroundImage: NetworkImage(avatarUrl!),
+        backgroundColor: primaryColor.withValues(alpha: 0.15),
+      );
+    }
+    return CircleAvatar(
+      radius: 18,
+      backgroundColor: primaryColor,
+      child: const Icon(Icons.auto_awesome, size: 14, color: Colors.white),
+    );
+  }
+}
+
+class _UserAvatar extends StatelessWidget {
+  const _UserAvatar();
+
+  @override
+  Widget build(BuildContext context) {
+    return CircleAvatar(
+      radius: 16,
+      backgroundColor: const Color(0xFFE2E8F0),
+      child: const Icon(Icons.person, size: 17, color: Color(0xFF64748B)),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Markdown content
+// ---------------------------------------------------------------------------
+
 class _MarkdownContent extends StatelessWidget {
   final String content;
   final Color primaryColor;
   final void Function(String href)? onLinkTap;
-
-  static const _ink = Color(0xFF0F172A);
-  static const _tableBorder = Color(0x1E0F172A);
-  static const _tableRow = Color(0x080F172A);
 
   const _MarkdownContent({
     required this.content,
@@ -185,10 +370,12 @@ class _MarkdownContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final styleSheet = MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-      p: const TextStyle(color: _ink, fontSize: 15, height: 1.4),
-      strong: const TextStyle(color: _ink, fontSize: 15, fontWeight: FontWeight.w600),
-      em: const TextStyle(color: _ink, fontSize: 15, fontStyle: FontStyle.italic),
+    final styleSheet =
+        MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+      p: ChatTextStyles.txtStyleRegular15.copyWith(color: _kInk, height: 1.4),
+      strong: ChatTextStyles.txtStyleSemiB15.copyWith(color: _kInk),
+      em: ChatTextStyles.txtStyleRegular15
+          .copyWith(color: _kInk, fontStyle: FontStyle.italic),
       code: TextStyle(
         backgroundColor: const Color(0xFFE2E8F0),
         fontSize: 13,
@@ -199,18 +386,15 @@ class _MarkdownContent extends StatelessWidget {
         color: const Color(0xFFF3F4F6),
         borderRadius: BorderRadius.circular(8),
       ),
-      // Table styles
-      tableBorder: TableBorder.all(color: _tableBorder, width: 1),
-      tableHead: const TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w600,
-        color: _ink,
-      ),
-      tableBody: const TextStyle(fontSize: 13, color: _ink, height: 1.3),
+      tableBorder: TableBorder.all(color: _kTableBorder, width: 1),
+      tableHead: ChatTextStyles.txtStyleSemiB13.copyWith(color: _kInk),
+      tableBody:
+          ChatTextStyles.txtStyleRegular13.copyWith(color: _kInk, height: 1.3),
       tableHeadAlign: TextAlign.left,
-      tableCellsPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      tableCellsPadding:
+          const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       tableColumnWidth: const FlexColumnWidth(),
-      tableCellsDecoration: const BoxDecoration(color: _tableRow),
+      tableCellsDecoration: const BoxDecoration(color: _kTableRow),
       a: TextStyle(
         color: primaryColor,
         decoration: TextDecoration.underline,
@@ -223,19 +407,14 @@ class _MarkdownContent extends StatelessWidget {
       styleSheet: styleSheet,
       shrinkWrap: true,
       onTapLink: (text, href, title) {
-        if (href != null && onLinkTap != null) {
-          onLinkTap!(href);
-        }
+        if (href != null && onLinkTap != null) onLinkTap!(href);
       },
     );
 
-    // Wrap in horizontal scroll only when a table is present so normal
-    // messages stay at natural width without unnecessary scroll physics.
     if (_hasTable) {
       return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: ConstrainedBox(
-          // Minimum width = bubble width; expands as wide as needed for table
           constraints: BoxConstraints(
             minWidth: 0,
             maxWidth: MediaQuery.of(context).size.width * 1.5,
@@ -244,71 +423,13 @@ class _MarkdownContent extends StatelessWidget {
         ),
       );
     }
-
     return body;
   }
 }
 
-class _UserAvatar extends StatelessWidget {
-  const _UserAvatar();
-
-  @override
-  Widget build(BuildContext context) {
-    return CircleAvatar(
-      radius: 16,
-      backgroundColor: const Color(0xFFE2E8F0),
-      child: const Icon(
-        Icons.person,
-        size: 17,
-        color: Color(0xFF64748B),
-      ),
-    );
-  }
-}
-
-class _AgentAvatar extends StatelessWidget {
-  final String? avatarUrl;
-  final Color primaryColor;
-
-  const _AgentAvatar({this.avatarUrl, required this.primaryColor});
-
-  @override
-  Widget build(BuildContext context) {
-    if (avatarUrl != null && avatarUrl!.isNotEmpty) {
-      return CircleAvatar(
-        radius: 16,
-        backgroundImage: NetworkImage(avatarUrl!),
-        backgroundColor: primaryColor.withValues(alpha: 0.12),
-      );
-    }
-    return CircleAvatar(
-      radius: 16,
-      backgroundColor: primaryColor,
-      child: const Icon(
-        Icons.auto_awesome,
-        size: 15,
-        color: Colors.white,
-      ),
-    );
-  }
-}
-
-class _OperatorAvatar extends StatelessWidget {
-  const _OperatorAvatar();
-
-  @override
-  Widget build(BuildContext context) {
-    return CircleAvatar(
-      radius: 16,
-      backgroundColor: const Color(0xFFFEF3C7),
-      child: const Icon(
-        Icons.support_agent,
-        size: 17,
-        color: Color(0xFFB45309),
-      ),
-    );
-  }
-}
+// ---------------------------------------------------------------------------
+// Typing dots
+// ---------------------------------------------------------------------------
 
 class _TypingDots extends StatefulWidget {
   final Color color;
@@ -355,7 +476,7 @@ class _TypingDotsState extends State<_TypingDots>
                   width: 7,
                   height: 7,
                   decoration: BoxDecoration(
-                    color: widget.color.withValues(alpha: 0.6),
+                    color: widget.color.withValues(alpha: 0.7),
                     shape: BoxShape.circle,
                   ),
                 ),
