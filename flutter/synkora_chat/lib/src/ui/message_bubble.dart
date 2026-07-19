@@ -4,8 +4,6 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import '../client/models.dart';
 import '../theme/chat_text_styles.dart';
 
-const _kTeal = Color(0xFF10717C);
-const _kBg = Color(0xFFF5F7F8);
 const _kInk = Color(0xFF1A1A2E);
 const _kMuted = Color(0xFF94A3B8);
 const _kTableBorder = Color(0x1E0F172A);
