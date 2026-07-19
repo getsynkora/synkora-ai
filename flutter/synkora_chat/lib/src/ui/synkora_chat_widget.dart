@@ -8,11 +8,10 @@ import '../client/synkora_client.dart';
 import '../controller/synkora_chat_controller.dart';
 import '../theme/chat_text_styles.dart';
 import 'message_bubble.dart';
-import 'suggestion_chips.dart';
+// suggestion_chips.dart intentionally kept for custom emptyStateWidget use
 
 // Brand palette
 const _kTeal = Color(0xFF10717C);
-const _kTealLight = Color(0xFF1A9AAA);
 const _kBg = Color(0xFFF5F7F8);
 const _kPanel = Color(0xFFFFFFFF);
 const _kInk = Color(0xFF1A1A2E);
@@ -158,12 +157,6 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
   }
 
   String? _pendingSendText;
-
-  void _openChat() {
-    if (_activeView != _ChatView.chat) {
-      setState(() => _activeView = _ChatView.chat);
-    }
-  }
 
   void _openHome() {
     if (_activeView != _ChatView.home) {
