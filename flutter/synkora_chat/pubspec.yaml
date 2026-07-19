@@ -32,3 +32,13 @@ dev_dependencies:
 flutter:
   assets:
     - lib/src/assets/animations/choose_your_colors.json
+    - lib/src/assets/fonts/
+  fonts:
+    - family: GlassdoorSans
+      fonts:
+        - asset: lib/src/assets/fonts/glassdoor_sans-regular.ttf
+          weight: 400
+        - asset: lib/src/assets/fonts/glassdoor_sans_semibold.ttf
+          weight: 600
+        - asset: lib/src/assets/fonts/glassdoor_sans-extrabold.ttf
+          weight: 800

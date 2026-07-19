@@ -259,7 +259,7 @@ class _StatusCard extends StatelessWidget {
   }
 }
 
-class ChatScreen extends StatelessWidget {
+class ChatScreen extends StatefulWidget {
   final String widgetKey;
   final String baseUrl;
   final String? userId;
@@ -272,18 +272,89 @@ class ChatScreen extends StatelessWidget {
   });
 
   @override
+  State<ChatScreen> createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends State<ChatScreen> {
+  late final SynkoraChatController _controller;
+
+  // Quick-fire prompt buttons to test triggerMessage
+  static const _testPrompts = [
+    ('👋 Say hi', 'Hello! How are you?'),
+    ('💰 Pricing', 'What are your pricing plans?'),
+    ('🛠️ Features', 'What features do you offer?'),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = SynkoraChatController(
+      client: SynkoraClient(
+        widgetKey: widget.widgetKey,
+        baseUrl: widget.baseUrl,
+      ),
+      userId: widget.userId,
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return SynkoraChatWidget(
-      widgetKey: widgetKey,
-      baseUrl: baseUrl,
-      userId: userId,
-      onClose: () => Navigator.pop(context),
-      onLinkTap: (href) async {
-        final uri = Uri.tryParse(href);
-        if (uri != null && await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        }
-      },
+    return Scaffold(
+      body: Stack(
+        children: [
+          // The chat widget — using the shared controller
+          SynkoraChatWidget(
+            widgetKey: widget.widgetKey,
+            baseUrl: widget.baseUrl,
+            userId: widget.userId,
+            controller: _controller,
+            primaryColor: const Color(0xFF10717C),
+            onClose: () => Navigator.pop(context),
+            onLinkTap: (href) async {
+              final uri = Uri.tryParse(href);
+              if (uri != null && await canLaunchUrl(uri)) {
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
+              }
+            },
+          ),
+
+          // Floating button row at the bottom — triggers triggerMessage()
+          Positioned(
+            bottom: 100,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: _testPrompts.map((entry) {
+                final (label, prompt) = entry;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: ElevatedButton(
+                    onPressed: () => _controller.triggerMessage(prompt),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10717C), // matches primaryColor
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      elevation: 4,
+                    ),
+                    child: Text(label, style: const TextStyle(fontSize: 12)),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
