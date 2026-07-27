@@ -517,6 +517,12 @@ ROUTER_REGISTRY: list[RouteConfig] = [
         tags=[],
     ),
     RouteConfig(
+        module="src.controllers.platform_oauth_apps",
+        attribute="router",
+        prefix="",
+        tags=[],
+    ),
+    RouteConfig(
         module="src.controllers.billing",
         attribute="router",
         prefix="",

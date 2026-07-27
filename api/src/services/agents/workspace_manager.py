@@ -507,7 +507,9 @@ def get_workspace_path_from_config(config: dict | None) -> str | None:
 
         if ctx and ctx.tenant_id:
             # conversation_id is None in Celery tasks — use a stable per-tenant fallback
-            session_id = ctx.conversation_id or _uuid.uuid5(ctx.tenant_id, "background_tasks")
+            # uuid5 requires a UUID object as namespace, not a string
+            tenant_uuid = ctx.tenant_id if isinstance(ctx.tenant_id, _uuid.UUID) else _uuid.UUID(str(ctx.tenant_id))
+            session_id = ctx.conversation_id or _uuid.uuid5(tenant_uuid, "background_tasks")
             return get_workspace_manager().get_or_create_workspace(ctx.tenant_id, session_id)
 
     except Exception as e:

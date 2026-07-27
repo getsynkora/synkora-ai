@@ -36,7 +36,7 @@ async def _get_gmail_service(runtime_context: Any) -> Any:
     agent_id = runtime_context.agent_id
     user_id = getattr(runtime_context, "user_id", None)
 
-    # Find Gmail tool for this agent
+    # Find Gmail tool for this agent (any gmail tool — they all share the same oauth_app_id)
     result = await db.execute(
         select(AgentTool).filter(
             AgentTool.agent_id == agent_id,
@@ -44,7 +44,7 @@ async def _get_gmail_service(runtime_context: Any) -> Any:
             AgentTool.enabled,
         )
     )
-    agent_tool = result.scalar_one_or_none()
+    agent_tool = result.scalars().first()
 
     if not agent_tool or not agent_tool.oauth_app_id:
         raise ValueError("Gmail not configured for this agent. Please connect Gmail OAuth first.")
@@ -65,7 +65,7 @@ async def _get_gmail_service(runtime_context: Any) -> Any:
     if user_id:
         result = await db.execute(
             select(UserOAuthToken).filter(
-                UserOAuthToken.user_id == user_id, UserOAuthToken.oauth_app_id == oauth_app.id
+                UserOAuthToken.account_id == user_id, UserOAuthToken.oauth_app_id == oauth_app.id
             )
         )
         user_token = result.scalar_one_or_none()

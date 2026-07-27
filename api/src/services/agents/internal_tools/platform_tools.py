@@ -376,7 +376,28 @@ async def platform_check_integration(provider: str, runtime_context: Any = None)
                     "provider_username": row.provider_username,
                 }
 
-        # 2. Check platform/tenant API-key OAuth app
+        # 2. Check tenant clone with company-wide OAuth token (access_token on OAuthApp row)
+        result = await db.execute(
+            select(OAuthApp)
+            .where(
+                OAuthApp.tenant_id == runtime_context.tenant_id,
+                func.lower(OAuthApp.provider) == provider.lower(),
+                OAuthApp.is_active.is_(True),
+                OAuthApp.access_token.isnot(None),
+            )
+            .limit(1)
+        )
+        clone_app = result.scalar_one_or_none()
+        if clone_app:
+            return {
+                "connected": True,
+                "auth_method": "oauth",
+                "provider_email": None,
+                "provider_username": clone_app.app_name,
+                "scope": "company",
+            }
+
+        # 3. Check platform/tenant API-key OAuth app
         result = await db.execute(
             select(OAuthApp)
             .where(
@@ -397,6 +418,31 @@ async def platform_check_integration(provider: str, runtime_context: Any = None)
                 "auth_method": "api_token",
                 "provider_email": None,
                 "provider_username": api_app.app_name,
+            }
+
+        # 4. Check GitHub App (tenant clone or platform app) — no stored token, credentials are App ID + Private Key
+        result = await db.execute(
+            select(OAuthApp)
+            .where(
+                or_(
+                    OAuthApp.tenant_id == runtime_context.tenant_id,
+                    OAuthApp.is_platform_app.is_(True),
+                ),
+                func.lower(OAuthApp.provider) == provider.lower(),
+                OAuthApp.is_active.is_(True),
+                OAuthApp.auth_method == "github_app",
+                OAuthApp.client_id.isnot(None),
+                OAuthApp.client_secret.isnot(None),
+            )
+            .limit(1)
+        )
+        github_app = result.scalar_one_or_none()
+        if github_app:
+            return {
+                "connected": True,
+                "auth_method": "github_app",
+                "provider_email": None,
+                "provider_username": github_app.app_name,
             }
 
         return {"connected": False, "auth_method": None, "provider_email": None, "provider_username": None}
@@ -615,15 +661,35 @@ async def platform_create_agent(
             from src.services.agents.adk_tools import tool_registry
 
             available_tool_names = [t["name"] for t in tool_registry.list_tools()]
-            matched_tools: set[str] = set()
+            # Map tool_name → oauth_app_id to avoid duplicate rows with conflicting app ids
+            tool_to_oauth: dict[str, Any] = {}
+
             for cat in normalized_tools_list:
                 patterns = TOOL_CATEGORY_TO_PATTERNS.get(cat, [])
-                for tool_name in available_tool_names:
-                    if any(fnmatch.fnmatch(tool_name, p) for p in patterns):
-                        matched_tools.add(tool_name)
+                cat_tools = [t for t in available_tool_names if any(fnmatch.fnmatch(t, p) for p in patterns)]
+                if not cat_tools:
+                    continue
 
-            for tool_name in matched_tools:
-                db.add(AgentTool(agent_id=agent.id, tool_name=tool_name, config={}, enabled=True))
+                oauth_app_id = None
+                oauth_providers = (PLATFORM_TOOL_CATALOG.get(cat) or {}).get("requires_oauth") or []
+                if oauth_providers:
+                    oauth_app_id = await _resolve_oauth_app_id(
+                        db=db,
+                        provider=oauth_providers[0],
+                        tenant_id=tenant_id,
+                        user_id=runtime_context.user_id if runtime_context else None,
+                    )
+
+                for tool_name in cat_tools:
+                    if tool_name not in tool_to_oauth:
+                        tool_to_oauth[tool_name] = oauth_app_id
+
+            for tool_name, oauth_app_id in tool_to_oauth.items():
+                db.add(
+                    AgentTool(
+                        agent_id=agent.id, tool_name=tool_name, config={}, enabled=True, oauth_app_id=oauth_app_id
+                    )
+                )
 
         await db.commit()
 
@@ -889,6 +955,17 @@ async def platform_update_agent(
 
             for cat in normalized_tools_list:
                 patterns = TOOL_CATEGORY_TO_PATTERNS.get(cat, [])
+
+                oauth_app_id = None
+                oauth_providers = (PLATFORM_TOOL_CATALOG.get(cat) or {}).get("requires_oauth") or []
+                if oauth_providers:
+                    oauth_app_id = await _resolve_oauth_app_id(
+                        db=db,
+                        provider=oauth_providers[0],
+                        tenant_id=runtime_context.tenant_id,
+                        user_id=runtime_context.user_id if runtime_context else None,
+                    )
+
                 for tool_name in available_tool_names:
                     if any(fnmatch.fnmatch(tool_name, p) for p in patterns):
                         existing = (
@@ -901,8 +978,18 @@ async def platform_update_agent(
                         ).scalar_one_or_none()
                         if existing:
                             existing.enabled = True
+                            if existing.oauth_app_id is None and oauth_app_id is not None:
+                                existing.oauth_app_id = oauth_app_id
                         else:
-                            db.add(AgentTool(agent_id=agent.id, tool_name=tool_name, config={}, enabled=True))
+                            db.add(
+                                AgentTool(
+                                    agent_id=agent.id,
+                                    tool_name=tool_name,
+                                    config={},
+                                    enabled=True,
+                                    oauth_app_id=oauth_app_id,
+                                )
+                            )
                         tools_enabled.append(tool_name)
 
         # Ensure LLM config is set — inherit from PE's per-tenant AgentLLMConfig if missing
@@ -2062,6 +2149,47 @@ async def _scrub_tokens_from_conversation(
         await db.commit()
     except Exception:
         logger.exception("Error scrubbing tokens from conversation")
+
+
+async def _resolve_oauth_app_id(db: Any, provider: str, tenant_id: Any, user_id: Any = None) -> Any | None:
+    """
+    Resolve the OAuthApp.id for a given provider.
+
+    Priority:
+    1. User's personal UserOAuthToken linked to an OAuthApp for this provider
+    2. Platform/tenant OAuthApp (is_platform_app=True or tenant-owned) for this provider
+    """
+    from sqlalchemy import func
+
+    from src.models.oauth_app import OAuthApp
+    from src.models.user_oauth_token import UserOAuthToken
+
+    if user_id:
+        result = await db.execute(
+            select(OAuthApp.id)
+            .join(UserOAuthToken, UserOAuthToken.oauth_app_id == OAuthApp.id)
+            .where(
+                UserOAuthToken.account_id == user_id,
+                func.lower(OAuthApp.provider) == provider.lower(),
+                OAuthApp.is_active.is_(True),
+            )
+            .limit(1)
+        )
+        app_id = result.scalar_one_or_none()
+        if app_id:
+            return app_id
+
+    # Only tenant-owned apps — platform apps are credential-less templates, never assigned to tools
+    result = await db.execute(
+        select(OAuthApp.id)
+        .where(
+            OAuthApp.tenant_id == tenant_id,
+            func.lower(OAuthApp.provider) == provider.lower(),
+            OAuthApp.is_active.is_(True),
+        )
+        .limit(1)
+    )
+    return result.scalar_one_or_none()
 
 
 async def _resolve_target_agent(db: Any, agent_name: str, tenant_id: Any) -> Any:

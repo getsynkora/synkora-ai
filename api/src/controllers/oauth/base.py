@@ -187,6 +187,76 @@ def _safe_success_redirect(
     return RedirectResponse(url=final_url)
 
 
+async def _get_or_create_tenant_clone(
+    db: AsyncSession,
+    platform_app: OAuthApp,
+    tenant_id: uuid.UUID,
+) -> OAuthApp:
+    """
+    Get or create a tenant-owned clone of a platform OAuth app.
+
+    When an admin connects a platform app company-wide (user_level=False), we create a
+    tenant-specific OAuthApp row instead of writing to the shared platform app row.
+    This prevents cross-tenant token leakage.
+
+    The clone is identified by config->platform_app_id pointing back to the source.
+    Credentials (client_id, client_secret, redirect_uri, scopes) are copied so the
+    OAuth flow works identically. The resulting access_token is stored on the clone.
+    """
+    result = await db.execute(
+        select(OAuthApp).filter(
+            OAuthApp.tenant_id == tenant_id,
+            OAuthApp.provider == platform_app.provider,
+            OAuthApp.is_platform_app.is_(False),
+            OAuthApp.config["platform_app_id"].as_string() == str(platform_app.id),
+        )
+    )
+    clone = result.scalar_one_or_none()
+
+    if not clone:
+        clone = OAuthApp(
+            tenant_id=tenant_id,
+            provider=platform_app.provider,
+            app_name=platform_app.app_name,
+            auth_method=platform_app.auth_method,
+            client_id=platform_app.client_id,
+            client_secret=platform_app.client_secret,  # already encrypted
+            redirect_uri=platform_app.redirect_uri,
+            scopes=platform_app.scopes,
+            config={**(platform_app.config or {}), "platform_app_id": str(platform_app.id)},
+            is_active=True,
+            is_default=True,
+            description=platform_app.description,
+        )
+        db.add(clone)
+        await db.flush()
+
+        # Remap any AgentTool rows in this tenant that were assigned the platform app id
+        # (happens when PE assigns tools before admin connects the integration).
+        from sqlalchemy import update as sa_update
+
+        from ...models.agent import Agent
+        from ...models.agent_tool import AgentTool
+
+        await db.execute(
+            sa_update(AgentTool)
+            .where(
+                AgentTool.oauth_app_id == platform_app.id,
+                AgentTool.agent_id.in_(select(Agent.id).where(Agent.tenant_id == tenant_id)),
+            )
+            .values(oauth_app_id=clone.id)
+        )
+        logger.info(
+            "Remapped AgentTool rows from platform app %s → clone %s (provider=%s, tenant=%s)",
+            platform_app.id,
+            clone.id,
+            platform_app.provider,
+            tenant_id,
+        )
+
+    return clone
+
+
 async def get_oauth_app_from_db(
     db: AsyncSession,
     provider: str,
@@ -406,11 +476,15 @@ async def initiate_oauth(
             raise HTTPException(status_code=404, detail="OAuth app not found")
 
         provider = oauth_app.provider.lower()
-        base_url = await get_app_base_url(db, oauth_app.tenant_id)
+        base_url = await get_app_base_url(db, oauth_app.tenant_id or tenant_id)
         redirect_url = data.redirect_url or f"{base_url}/oauth-apps"
 
-        # API token / basic_auth apps don't need OAuth flow
-        if oauth_app.auth_method in ("api_token", "basic_auth"):
+        # API token / basic_auth / github_app don't need an OAuth browser flow
+        if oauth_app.auth_method in ("api_token", "basic_auth", "github_app"):
+            # For platform GitHub App, create the tenant clone immediately — no callback will do it
+            if oauth_app.is_platform_app and oauth_app.auth_method == "github_app":
+                await _get_or_create_tenant_clone(db, oauth_app, tenant_id)
+                await db.commit()
             return {
                 "auth_url": f"{redirect_url}?oauth=success&provider={provider}&method={oauth_app.auth_method}",
                 "method": oauth_app.auth_method,
@@ -433,6 +507,7 @@ async def initiate_oauth(
                 "redirect_url": redirect_url,
                 "user_level": data.user_level,
                 "account_id": str(current_account.id) if data.user_level else None,
+                "tenant_id": str(tenant_id),
             }
         )
         if not state:
@@ -484,6 +559,9 @@ async def initiate_oauth(
                 "read:jira-work",
                 "read:jira-user",
                 "write:jira-work",
+                "read:board-scope:jira-software",
+                "read:sprint:jira-software",
+                "write:sprint:jira-software",
                 "offline_access",
             ]
             auth_url = oauth.get_authorization_url(state=state, scopes=scopes)

@@ -216,7 +216,17 @@ def _sanitize_file_id(file_id: str) -> str:
     if not file_id:
         return file_id
     # Strip whitespace and common trailing punctuation that LLMs might add
-    return file_id.strip().rstrip(".,;:!?")
+    cleaned = file_id.strip().rstrip(".,;:!?")
+    # Validate: real Drive IDs are 25-44 alphanumeric/dash/underscore chars.
+    # If the value looks like a file name (short, contains spaces, etc.) reject it early.
+    import re as _re
+
+    if not _re.match(r"^[A-Za-z0-9_\-]{25,}$", cleaned):
+        raise ValueError(
+            f"'{cleaned}' does not look like a valid Google Drive file ID. "
+            "Use the file ID from the listing (the long alphanumeric string), not the file name."
+        )
+    return cleaned
 
 
 async def internal_google_drive_download_file(file_id: str, **kwargs) -> dict[str, Any]:
@@ -846,7 +856,13 @@ async def internal_google_docs_get_content(document_id: str, **kwargs) -> dict[s
         async with aiohttp.ClientSession() as session:
             async with session.get(f"{DOCS_API_BASE}/documents/{document_id}", headers=headers) as response:
                 if response.status != 200:
+                    if response.status == 404:
+                        raise Exception(
+                            f"Document '{document_id}' not found. Ensure the ID is correct and the account has access to it."
+                        )
                     error_text = await response.text()
+                    if error_text.strip().startswith("<"):
+                        error_text = f"HTTP {response.status}"
                     raise Exception(f"Failed to get document: {error_text}")
 
                 data = await response.json()
@@ -902,7 +918,13 @@ async def internal_google_docs_append_content(document_id: str, content: str, **
         async with aiohttp.ClientSession() as session:
             async with session.get(f"{DOCS_API_BASE}/documents/{document_id}", headers=headers) as response:
                 if response.status != 200:
+                    if response.status == 404:
+                        raise Exception(
+                            f"Document '{document_id}' not found. Ensure the ID is correct and the account has access to it."
+                        )
                     error_text = await response.text()
+                    if error_text.strip().startswith("<"):
+                        error_text = f"HTTP {response.status}"
                     raise Exception(f"Failed to get document: {error_text}")
                 doc_data = await response.json()
                 end_index = doc_data["body"]["content"][-1]["endIndex"] - 1

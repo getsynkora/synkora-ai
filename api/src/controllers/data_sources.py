@@ -207,7 +207,7 @@ async def create_data_source(
                     detail=f"OAuth app provider ({oauth_app.provider}) does not match data source type ({request.type.value})",
                 )
 
-            # Verify user has connected their account to this OAuth app
+            # Verify connection: personal token OR company-wide token on the OAuth app
             result = await db.execute(
                 select(UserOAuthToken).filter(
                     UserOAuthToken.account_id == current_account.id,
@@ -216,7 +216,9 @@ async def create_data_source(
             )
             user_token = result.scalar_one_or_none()
 
-            if not user_token:
+            company_connected = bool(oauth_app.access_token or oauth_app.api_token)
+
+            if not user_token and not company_connected:
                 raise HTTPException(
                     status_code=400,
                     detail="You haven't connected your account to this OAuth app. Please connect first.",
@@ -442,7 +444,7 @@ async def link_oauth_app_to_data_source(
                 detail=f"OAuth app provider ({oauth_app.provider}) does not match data source type ({ds.type.value})",
             )
 
-        # Verify user has connected their account to this OAuth app
+        # Verify connection: personal token OR company-wide token on the OAuth app
         result = await db.execute(
             select(UserOAuthToken).filter(
                 UserOAuthToken.account_id == current_account.id,
@@ -451,7 +453,9 @@ async def link_oauth_app_to_data_source(
         )
         user_token = result.scalar_one_or_none()
 
-        if not user_token:
+        company_connected = bool(oauth_app.access_token or oauth_app.api_token)
+
+        if not user_token and not company_connected:
             raise HTTPException(
                 status_code=400,
                 detail="You haven't connected your account to this OAuth app. Please connect first.",
@@ -605,7 +609,7 @@ async def trigger_sync(
         if not ds:
             raise HTTPException(status_code=404, detail="Data source not found")
 
-        if ds.status != DataSourceStatus.ACTIVE:
+        if ds.status not in (DataSourceStatus.ACTIVE, DataSourceStatus.ERROR):
             raise HTTPException(status_code=400, detail="Data source is not active. Please complete OAuth first.")
 
         # Prevent duplicate concurrent syncs

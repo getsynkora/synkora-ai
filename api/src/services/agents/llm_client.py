@@ -162,7 +162,25 @@ class MultiProviderLLMClient:
             self._initialize_mock()
         elif self.provider in ["google", "gemini"]:
             self._initialize_google()
-        elif self.provider in ["openai", "deepseek", "lm_studio", "vllm"]:
+        elif self.provider in [
+            "openai",
+            "deepseek",
+            "lm_studio",
+            "vllm",
+            # New OpenAI-compatible providers
+            "qwen",
+            "mistral",
+            "xai",
+            "cohere",
+            "perplexity",
+            "zhipu",
+            "moonshot",
+            "yi",
+            "baichuan",
+            # Existing hosted inference (OpenAI-compatible)
+            "together_ai",
+            "replicate",
+        ]:
             self._initialize_openai()
         elif self.provider in ["anthropic", "claude"]:
             self._initialize_anthropic()
@@ -201,7 +219,21 @@ class MultiProviderLLMClient:
 
             kwargs: dict = {"api_key": self.config.api_key or "not-required"}
             default_base_urls = {
+                # Chinese providers
                 "deepseek": "https://api.deepseek.com",
+                "qwen": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+                "zhipu": "https://open.bigmodel.cn/api/paas/v4",
+                "moonshot": "https://api.moonshot.cn/v1",
+                "yi": "https://api.lingyiwanwu.com/v1",
+                "baichuan": "https://api.baichuan-ai.com/v1",
+                # Western providers
+                "mistral": "https://api.mistral.ai/v1",
+                "xai": "https://api.x.ai/v1",
+                "cohere": "https://api.cohere.ai/v1",
+                "perplexity": "https://api.perplexity.ai",
+                # Hosted inference
+                "together_ai": "https://api.together.xyz/v1",
+                "replicate": "https://openai-proxy.replicate.com/v1",
             }
             base_url = self.config.api_base or default_base_urls.get(self.provider)
             if base_url:

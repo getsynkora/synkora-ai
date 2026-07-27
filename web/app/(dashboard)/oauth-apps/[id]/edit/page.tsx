@@ -134,6 +134,10 @@ export default function EditOAuthAppPage() {
         updateData.client_id = formData.client_id
         if (formData.client_secret) updateData.client_secret = formData.client_secret
       }
+      if (formData.auth_method === 'github_app') {
+        updateData.client_id = formData.client_id
+        if (formData.client_secret) updateData.client_secret = formData.client_secret
+      }
       if ((formData.auth_method === 'api_token' || formData.auth_method === 'basic_auth') && formData.api_token) {
         updateData.api_token = formData.api_token
       }
@@ -477,6 +481,41 @@ export default function EditOAuthAppPage() {
                     placeholder="Leave blank to keep current token"
                   />
                   <p className={helperClassName}>Only enter a new value to replace the existing token.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Credentials — GitHub App */}
+          {formData.auth_method === 'github_app' && (
+            <div className={sectionClassName}>
+              <div className="mb-4">
+                <h2 className="text-base font-semibold text-gray-900">GitHub App Credentials</h2>
+                <p className="mt-1 text-sm text-gray-500">Update App ID or private key. Installation is resolved automatically from the configured repositories.</p>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className={labelClassName}>App ID *</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.client_id}
+                    onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
+                    className={monoInputClassName}
+                    placeholder="123456"
+                  />
+                  <p className={helperClassName}>The numeric App ID from GitHub App settings.</p>
+                </div>
+                <div>
+                  <label className={labelClassName}>Private Key (PEM)</label>
+                  <textarea
+                    rows={7}
+                    value={formData.client_secret}
+                    onChange={(e) => setFormData({ ...formData, client_secret: e.target.value })}
+                    className={monoInputClassName + ' text-xs'}
+                    placeholder={'Leave blank to keep existing key\n-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----'}
+                  />
+                  <p className={helperClassName}>Only enter a new key to replace the existing one.</p>
                 </div>
               </div>
             </div>
