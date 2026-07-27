@@ -231,6 +231,7 @@ const PROVIDERS = [
     setupGuide: 'https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app',
     supportsOAuth: true,
     supportsApiToken: true,
+    supportsGitHubApp: true,
     apiTokenDescription: 'Use GitHub Personal Access Token for direct API access'
   },
   {
@@ -718,7 +719,7 @@ export default function CreateOAuthAppPage() {
       if (formData.auth_method === 'oauth') {
         setShowSuccessModal(true)
       } else {
-        // For API token / basic_auth, redirect directly
+        // For API token / basic_auth / github_app, redirect directly
         router.push('/oauth-apps')
       }
     } catch (err) {
@@ -848,7 +849,7 @@ export default function CreateOAuthAppPage() {
               </div>
 
               {/* Authentication Method Selection */}
-              {(selectedProvider?.supportsApiToken || (selectedProvider as any)?.supportsBasicAuth) && (
+              {(selectedProvider?.supportsApiToken || (selectedProvider as any)?.supportsBasicAuth || (selectedProvider as any)?.supportsGitHubApp) && (
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
                   <h2 className="text-base font-semibold text-gray-900 mb-3">Authentication Method</h2>
                   <p className="text-sm text-gray-600 mb-3">
@@ -902,9 +903,27 @@ export default function CreateOAuthAppPage() {
                           className="mt-0.5 w-4 h-4 text-[#ff444f] border-gray-300 focus:ring-[#ff444f]"
                         />
                         <div>
-                          <div className="font-medium text-gray-900 text-sm">API Token</div>
+                          <div className="font-medium text-gray-900 text-sm">API Token / PAT</div>
                           <div className="text-xs text-gray-600">
                             {selectedProvider.apiTokenDescription}
+                          </div>
+                        </div>
+                      </label>
+                    )}
+                    {(selectedProvider as any)?.supportsGitHubApp && (
+                      <label className="flex items-start gap-2.5 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                        <input
+                          type="radio"
+                          name="auth_method"
+                          value="github_app"
+                          checked={formData.auth_method === 'github_app'}
+                          onChange={(e) => setFormData({ ...formData, auth_method: e.target.value })}
+                          className="mt-0.5 w-4 h-4 text-[#ff444f] border-gray-300 focus:ring-[#ff444f]"
+                        />
+                        <div>
+                          <div className="font-medium text-gray-900 text-sm">GitHub App</div>
+                          <div className="text-xs text-gray-600">
+                            Use a GitHub App with App ID and private key. The installation is looked up automatically from the configured repositories.
                           </div>
                         </div>
                       </label>
@@ -916,10 +935,46 @@ export default function CreateOAuthAppPage() {
               {/* Authentication Credentials */}
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
                 <h2 className="text-base font-semibold text-gray-900 mb-3">
-                  {formData.auth_method === 'api_token' ? 'API Token' : formData.auth_method === 'basic_auth' ? 'Login Credentials' : 'OAuth Credentials'}
+                  {formData.auth_method === 'api_token' ? 'API Token' : formData.auth_method === 'basic_auth' ? 'Login Credentials' : formData.auth_method === 'github_app' ? 'GitHub App Credentials' : 'OAuth Credentials'}
                 </h2>
-                
-                {formData.auth_method === 'basic_auth' ? (
+
+                {formData.auth_method === 'github_app' ? (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        App ID *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.client_id}
+                        onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-sm"
+                        placeholder="123456"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        The numeric App ID from your GitHub App settings (Settings → Developer settings → GitHub Apps → your app).
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        Private Key (PEM) *
+                      </label>
+                      <textarea
+                        required
+                        rows={8}
+                        value={formData.client_secret}
+                        onChange={(e) => setFormData({ ...formData, client_secret: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-xs"
+                        placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Paste the full PEM private key. Generate it from GitHub App settings → Private keys → Generate a private key.
+                        Encrypted and stored securely.
+                      </p>
+                    </div>
+                  </div>
+                ) : formData.auth_method === 'basic_auth' ? (
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -1550,7 +1605,7 @@ export default function CreateOAuthAppPage() {
               </div>
 
               {/* Scopes */}
-              {selectedProvider && selectedProvider.defaultScopes.length > 0 && formData.auth_method === 'oauth' && (
+              {selectedProvider && selectedProvider.defaultScopes.length > 0 && formData.auth_method === 'oauth' && formData.provider !== 'github_app' && (
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
                   <h2 className="text-base font-semibold text-gray-900 mb-3">OAuth Scopes</h2>
                   <p className="text-sm text-gray-600 mb-3">

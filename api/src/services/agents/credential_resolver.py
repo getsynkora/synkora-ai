@@ -74,8 +74,22 @@ class CredentialResolver:
                     )
                     return user_token
 
-            # This is used when user_id is not available (e.g., Slack messages)
-            result = await self.db.execute(select(UserOAuthToken).filter(UserOAuthToken.oauth_app_id == oauth_app_id))
+            # Fallback: no user_id (e.g., Slack bot context). Scope strictly to the
+            # current tenant so we never return a token belonging to a different tenant.
+            if hasattr(self.context, "tenant_id") and self.context.tenant_id:
+                from src.models.tenant import TenantAccountJoin
+
+                result = await self.db.execute(
+                    select(UserOAuthToken)
+                    .join(TenantAccountJoin, TenantAccountJoin.account_id == UserOAuthToken.account_id)
+                    .filter(
+                        UserOAuthToken.oauth_app_id == oauth_app_id,
+                        TenantAccountJoin.tenant_id == self.context.tenant_id,
+                    )
+                    .limit(1)
+                )
+            else:
+                return None
             user_token = result.scalar_one_or_none()
 
             if user_token and user_token.access_token:
@@ -172,6 +186,9 @@ class CredentialResolver:
                 token = decrypt_value(oauth_app.access_token)
             elif oauth_app.auth_method == "api_token" and oauth_app.api_token:
                 token = decrypt_value(oauth_app.api_token)
+            elif oauth_app.auth_method == "github_app":
+                # Generate installation access token from App ID + Private Key
+                token = await self._get_github_app_installation_token(oauth_app, tool_name)
 
             if not token:
                 logger.warning(f"No valid token for GitHub OAuth app {oauth_app.app_name}")
@@ -188,6 +205,66 @@ class CredentialResolver:
 
         except Exception as e:
             logger.error(f"Failed to create GitHub client: {e}", exc_info=True)
+            return None
+
+    async def _get_github_app_installation_token(self, oauth_app: Any, tool_name: str) -> str | None:
+        """Get a GitHub App installation access token using the first available installation."""
+        import time
+
+        import httpx
+        import jwt as pyjwt
+
+        from src.services.agents.security import decrypt_value
+
+        try:
+            app_id = oauth_app.client_id
+            if not app_id or not oauth_app.client_secret:
+                logger.warning(f"GitHub App {oauth_app.app_name} missing App ID or private key")
+                return None
+
+            private_key = decrypt_value(oauth_app.client_secret)
+            now = int(time.time())
+            app_jwt = pyjwt.encode(
+                {"iat": now - 60, "exp": now + 600, "iss": str(app_id)},
+                private_key,
+                algorithm="RS256",
+            )
+
+            headers = {
+                "Authorization": f"Bearer {app_jwt}",
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+            }
+
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(
+                    "https://api.github.com/app/installations",
+                    headers=headers,
+                    timeout=15.0,
+                )
+                if resp.status_code != 200 or not resp.json():
+                    logger.warning(f"GitHub App '{oauth_app.app_name}' has no installations")
+                    return None
+
+                installation_id = resp.json()[0]["id"]
+
+                token_resp = await client.post(
+                    f"https://api.github.com/app/installations/{installation_id}/access_tokens",
+                    headers=headers,
+                    timeout=15.0,
+                )
+                if token_resp.status_code != 201:
+                    logger.warning(f"Failed to get GitHub App installation token: {token_resp.text}")
+                    return None
+
+                logger.info(
+                    "Got GitHub App installation token for tool '%s' (app: %s, installation: %s)",
+                    tool_name, oauth_app.app_name, installation_id,
+                )
+                return token_resp.json()["token"]
+
+        except Exception as e:
+            logger.error(f"Failed to get GitHub App installation token: {e}", exc_info=True)
             return None
 
     async def get_github_context(self, tool_name: str) -> dict[str, str | None]:

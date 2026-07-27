@@ -53,7 +53,7 @@ async def internal_git_clone_repo(
 
             tenant_id = runtime_context.tenant_id
             conversation_id = getattr(runtime_context, "conversation_id", None) or _uuid.uuid5(
-                tenant_id, "background_tasks"
+                _uuid.UUID(str(tenant_id)), "background_tasks"
             )
             workspace_path = get_workspace_manager().get_or_create_workspace(tenant_id, conversation_id)
         if not workspace_path:
@@ -167,8 +167,9 @@ async def internal_git_add_remote(
                 from src.services.agents.workspace_manager import get_workspace_manager
 
                 tenant_id = runtime_context.tenant_id
+                tenant_uuid = tenant_id if isinstance(tenant_id, _uuid.UUID) else _uuid.UUID(str(tenant_id))
                 conversation_id = getattr(runtime_context, "conversation_id", None) or _uuid.uuid5(
-                    tenant_id, "background_tasks"
+                    tenant_uuid, "background_tasks"
                 )
                 workspace_path = get_workspace_manager().get_or_create_workspace(tenant_id, conversation_id)
         is_valid, error = await async_validate_repo_path(repo_path, workspace_path, config)
@@ -239,8 +240,9 @@ async def internal_git_cleanup_repo(repo_path: str, config: dict[str, Any] | Non
                 from src.services.agents.workspace_manager import get_workspace_manager
 
                 tenant_id = runtime_context.tenant_id
+                tenant_uuid = tenant_id if isinstance(tenant_id, _uuid.UUID) else _uuid.UUID(str(tenant_id))
                 conversation_id = getattr(runtime_context, "conversation_id", None) or _uuid.uuid5(
-                    tenant_id, "background_tasks"
+                    tenant_uuid, "background_tasks"
                 )
                 workspace_path = get_workspace_manager().get_or_create_workspace(tenant_id, conversation_id)
         is_valid, error = await async_validate_repo_path(repo_path, workspace_path, config)

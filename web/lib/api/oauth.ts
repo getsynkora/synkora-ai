@@ -85,6 +85,12 @@ export async function saveUserApiToken(
   return data
 }
 
+export async function getPlatformOAuthApps(provider?: string): Promise<any[]> {
+  const params = provider ? { provider } : {}
+  const { data } = await apiClient.axios.get('/api/v1/oauth/platform-apps', { params })
+  return Array.isArray(data) ? data : []
+}
+
 // Integration Configs
 export async function getIntegrationConfigs(integrationType?: string): Promise<any[]> {
   const params = integrationType ? { integration_type: integrationType } : {}

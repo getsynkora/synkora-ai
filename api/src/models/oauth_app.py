@@ -32,7 +32,7 @@ class OAuthApp(Base):
     # Platform app flag - True for Synkora-provided OAuth apps that any tenant can use
     is_platform_app = Column(Boolean, default=False, nullable=False, index=True)
 
-    # Authentication method: 'oauth' or 'api_token'
+    # Authentication method: 'oauth', 'api_token', or 'github_app'
     auth_method = Column(String(20), nullable=False, default="oauth")
 
     # OAuth credentials (used when auth_method = 'oauth')
@@ -104,5 +104,8 @@ class OAuthApp(Base):
                 data["token_expires_at"] = self.token_expires_at.isoformat() if self.token_expires_at else None
             elif self.auth_method in ("api_token", "basic_auth"):
                 data["has_api_token"] = bool(self.api_token)
+            elif self.auth_method == "github_app":
+                data["has_private_key"] = bool(self.client_secret)
+                data["app_id"] = self.client_id
 
         return data

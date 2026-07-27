@@ -48,6 +48,33 @@ async def internal_git_create_branch(
             logger.warning(f"git fetch failed: {fetch_result['error']}")
 
         source_branch = f"origin/{from_branch}" if "/" not in from_branch else from_branch
+
+        # Verify source ref exists; auto-detect actual default branch if not
+        verify_result = await async_run_git_command(
+            ["git", "rev-parse", "--verify", source_branch], repo_path, config
+        )
+        if not verify_result["success"]:
+            # Try remote HEAD symref (set by git clone)
+            head_ref = await async_run_git_command(
+                ["git", "symbolic-ref", "refs/remotes/origin/HEAD"], repo_path, config
+            )
+            if head_ref["success"]:
+                detected = head_ref["output"].strip().replace("refs/remotes/", "")
+                logger.info(f"'{source_branch}' not found; using detected default '{detected}'")
+                source_branch = detected
+            else:
+                # Fall back through common default branch names
+                for candidate in ["origin/master", "origin/main", "origin/develop", "origin/trunk"]:
+                    if candidate == source_branch:
+                        continue
+                    candidate_result = await async_run_git_command(
+                        ["git", "rev-parse", "--verify", candidate], repo_path, config
+                    )
+                    if candidate_result["success"]:
+                        logger.info(f"'{source_branch}' not found; falling back to '{candidate}'")
+                        source_branch = candidate
+                        break
+
         logger.info(f"Creating branch '{branch_name}' from '{source_branch}'")
         result = await async_run_git_command(["git", "checkout", "-b", branch_name, source_branch], repo_path, config)
 

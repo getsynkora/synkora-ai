@@ -328,6 +328,8 @@ export default function OAuthAppsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
+  const [platformApps, setPlatformApps] = useState<any[]>([])
+  const [loadingPlatformApps, setLoadingPlatformApps] = useState(false)
   const [userConnections, setUserConnections] = useState<Record<number, UserConnection>>({})
   const [loadingConnections, setLoadingConnections] = useState(false)
   const [disconnecting, setDisconnecting] = useState<string | null>(null)
@@ -355,6 +357,7 @@ export default function OAuthAppsPage() {
 
   useEffect(() => {
     fetchOAuthApps()
+    fetchPlatformApps()
   }, [])
 
   useEffect(() => {
@@ -372,6 +375,37 @@ export default function OAuthAppsPage() {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchPlatformApps = async () => {
+    try {
+      setLoadingPlatformApps(true)
+      const data = await apiClient.getPlatformOAuthApps()
+      setPlatformApps(data)
+    } catch (err) {
+      console.error('Failed to fetch platform apps:', err)
+    } finally {
+      setLoadingPlatformApps(false)
+    }
+  }
+
+  const handleConnectPlatformApp = async (platformApp: any) => {
+    try {
+      setError(null)
+      // Use AJAX initiate so Authorization header is sent → tenant_id in state → clone created
+      const result = await apiClient.initiateOAuth(platformApp.id, window.location.href, false)
+      window.location.href = result.auth_url
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to initiate OAuth connection')
+    }
+  }
+
+  const handleDisconnectPlatformApp = async (provider: string) => {
+    const clone = apps.find(a => a.source === 'platform' && a.provider.toLowerCase() === provider.toLowerCase())
+    if (clone) {
+      await handleDelete(clone.id)
+      await fetchPlatformApps()
     }
   }
 
@@ -509,13 +543,11 @@ export default function OAuthAppsPage() {
     <div className="dashboard-resource-page min-h-screen p-4 md:p-6">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Integrations</h1>
-            <p className="text-gray-600 mt-1 text-sm">
-              Connect your accounts to enable tools and data syncing
-            </p>
-          </div>
+        <div className="mb-6">
+          <h1 className="text-3xl font-semibold tracking-[-0.04em] text-gray-950 md:text-[2rem]">Integrations</h1>
+          <p className="text-gray-500 mt-1 text-sm">
+            Connect your accounts to enable tools and data syncing
+          </p>
         </div>
 
         {error && (
@@ -525,13 +557,13 @@ export default function OAuthAppsPage() {
         )}
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-lg w-fit">
+        <div className="flex gap-1.5 mb-6 rounded-[0.45rem] border border-black/10 bg-white/80 p-1.5 shadow-[0_12px_28px_rgba(0,0,0,0.04)] w-fit">
           <button
             onClick={() => setActiveTab('my-connections')}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-[0.35rem] transition-colors ${
               activeTab === 'my-connections'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-[#171717] text-white shadow-[0_10px_22px_rgba(0,0,0,0.12)]'
+                : 'text-gray-600 hover:bg-[#f7f2e7] hover:text-[#171717]'
             }`}
           >
             <User className="w-4 h-4" />
@@ -539,10 +571,10 @@ export default function OAuthAppsPage() {
           </button>
           <button
             onClick={() => setActiveTab('admin')}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-[0.35rem] transition-colors ${
               activeTab === 'admin'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-[#171717] text-white shadow-[0_10px_22px_rgba(0,0,0,0.12)]'
+                : 'text-gray-600 hover:bg-[#f7f2e7] hover:text-[#171717]'
             }`}
           >
             <Shield className="w-4 h-4" />
@@ -554,9 +586,9 @@ export default function OAuthAppsPage() {
         {activeTab === 'my-connections' && (
           <div className="space-y-4">
             {apps.length === 0 ? (
-              <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Link2 className="w-6 h-6 text-gray-400" />
+              <div className="rounded-[0.5rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,245,239,0.96))] shadow-[0_24px_60px_-46px_rgba(73,45,23,0.3)] p-10 text-center">
+                <div className="w-12 h-12 bg-[#f3ecde] rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Link2 className="w-6 h-6 text-[#7c5d45]" />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">No integrations available</h3>
                 <p className="text-sm text-gray-600 mb-4">
@@ -564,7 +596,7 @@ export default function OAuthAppsPage() {
                 </p>
               </div>
             ) : (
-              <div className="grid gap-3">
+              <div className="grid gap-2">
                 {apps.map((app) => {
                   const config = getConfig(app.provider)
                   const connStatus = userConnections[app.id]
@@ -575,19 +607,19 @@ export default function OAuthAppsPage() {
                   return (
                     <div
                       key={app.id}
-                      className="bg-white rounded-xl border border-gray-200 p-4 hover:border-gray-300 transition-all"
+                      className="rounded-[0.5rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,245,239,0.96))] shadow-[0_24px_60px_-46px_rgba(73,45,23,0.3)] p-4 hover:border-[#cdb79d] transition-all"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 ${config.bgColor} rounded-lg flex items-center justify-center`}>
+                          <div className={`w-10 h-10 ${config.bgColor} rounded-[0.45rem] flex items-center justify-center`}>
                             {config.icon}
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
                               <h3 className="font-semibold text-gray-900">{config.name}</h3>
-                              <span className="text-xs text-gray-500">({app.app_name})</span>
+                              <span className="text-xs text-[#7c5d45]">({app.app_name})</span>
                               {isAdminShared && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-violet-100 text-violet-700 text-xs font-medium rounded">
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-[#f3ecde] border border-[#dfd1be] text-[#7c5d45] text-xs font-semibold rounded-[0.3rem]">
                                   <Shield className="w-3 h-3" />
                                   Admin
                                 </span>
@@ -611,9 +643,9 @@ export default function OAuthAppsPage() {
 
                         <div className="flex items-center gap-2">
                           {loadingConnections ? (
-                            <span className="text-xs text-gray-400">Loading...</span>
+                            <span className="text-xs text-[#7c5d45]">Loading...</span>
                           ) : isAdminShared ? (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-[0.4rem]">
                               <CheckCircle className="w-4 h-4" />
                               Connected
                             </span>
@@ -621,7 +653,7 @@ export default function OAuthAppsPage() {
                             <button
                               onClick={() => userConnection?.id && handleDisconnectUser(userConnection.id, app.id)}
                               disabled={disconnecting === userConnection?.id}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-[#7c5d45] border border-[#dbcdb9] bg-white rounded-[0.4rem] hover:bg-[#f7f2e7] transition-colors disabled:opacity-50"
                             >
                               <Unlink className="w-4 h-4" />
                               {disconnecting === userConnection?.id ? 'Disconnecting...' : 'Disconnect'}
@@ -629,7 +661,7 @@ export default function OAuthAppsPage() {
                           ) : (
                             <button
                               onClick={() => handleAuthorize(app, true)}
-                              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg hover:from-primary-600 hover:to-primary-700 transition-all shadow-sm"
+                              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-[#171717] rounded-[0.4rem] hover:bg-[#2a2a2a] transition-colors shadow-[0_10px_22px_rgba(0,0,0,0.12)]"
                             >
                               <Link2 className="w-4 h-4" />
                               {app.auth_method === 'api_token' ? 'Add Token' : 'Connect'}
@@ -648,14 +680,83 @@ export default function OAuthAppsPage() {
         {/* Admin Setup Tab */}
         {activeTab === 'admin' && (
           <div className="space-y-6">
+            {/* Platform Integrations */}
+            {(platformApps.length > 0 || loadingPlatformApps) && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-[#7c5d45]" />
+                  <h2 className="text-xs font-semibold text-[#7c5d45] uppercase tracking-[0.12em]">Platform Integrations</h2>
+                  <span className="text-xs text-gray-400 font-normal normal-case">— credentials managed by Synkora</span>
+                </div>
+                {loadingPlatformApps ? (
+                  <div className="text-sm text-[#7c5d45] py-2">Loading platform apps...</div>
+                ) : (
+                  <div className="space-y-2">
+                    {platformApps.map((platformApp) => {
+                      const config = getConfig(platformApp.provider)
+                      const isConnected = apps.some(
+                        a => a.source === 'platform' && a.provider.toLowerCase() === platformApp.provider.toLowerCase()
+                      )
+                      return (
+                        <div key={platformApp.id} className="rounded-[0.5rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,245,239,0.96))] shadow-[0_24px_60px_-46px_rgba(73,45,23,0.3)] p-4 hover:border-[#cdb79d] transition-all">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-9 h-9 ${config.bgColor} rounded-[0.45rem] flex items-center justify-center`}>
+                                {config.icon}
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <h3 className="font-semibold text-gray-900">{config.name || platformApp.app_name}</h3>
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-[#f3ecde] border border-[#dfd1be] text-[#7c5d45] text-xs font-semibold rounded-[0.3rem]">
+                                    <Shield className="w-3 h-3" />
+                                    Platform
+                                  </span>
+                                </div>
+                                <p className="text-xs text-gray-500">{config.description || platformApp.description}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {isConnected ? (
+                                <>
+                                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-[0.4rem]">
+                                    <CheckCircle className="w-4 h-4" />
+                                    Connected
+                                  </span>
+                                  <button
+                                    onClick={() => handleDisconnectPlatformApp(platformApp.provider)}
+                                    className="p-2 text-[#7c5d45] hover:text-primary-600 hover:bg-primary-50 rounded-[0.4rem] transition-colors"
+                                    title="Disconnect"
+                                  >
+                                    <Unlink className="w-4 h-4" />
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  onClick={() => handleConnectPlatformApp(platformApp)}
+                                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-[#171717] rounded-[0.4rem] hover:bg-[#2a2a2a] transition-colors shadow-[0_10px_22px_rgba(0,0,0,0.12)]"
+                                >
+                                  <Link2 className="w-4 h-4" />
+                                  Connect
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Header with Add Button */}
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                {apps.length > 0 ? 'Configured Apps' : 'OAuth Apps'}
+              <h2 className="text-xs font-semibold text-[#7c5d45] uppercase tracking-[0.12em]">
+                Custom Integrations
               </h2>
               <Link
                 href="/oauth-apps/create"
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 rounded-lg shadow-sm hover:shadow-md transition-all"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-[#171717] hover:bg-[#2a2a2a] rounded-[0.4rem] shadow-[0_10px_22px_rgba(0,0,0,0.12)] transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 Add New
@@ -663,167 +764,155 @@ export default function OAuthAppsPage() {
             </div>
 
             {/* Configured Apps */}
-            {apps.length > 0 ? (
-              <div>
-                <div className="space-y-2">
-                  {apps.map((app) => {
-                    const config = getConfig(app.provider)
-                    const authorized = isAuthorized(app)
+            {apps.filter(a => a.source !== 'platform').length > 0 ? (
+              <div className="space-y-2">
+                {apps.filter(a => a.source !== 'platform').map((app) => {
+                  const config = getConfig(app.provider)
+                  const authorized = isAuthorized(app)
 
-                    return (
-                      <div
-                        key={app.id}
-                        className="bg-white rounded-lg border border-gray-200 p-4 hover:border-gray-300 transition-all"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-9 h-9 ${config.bgColor} rounded-lg flex items-center justify-center`}>
-                              {config.icon}
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h3 className="font-medium text-gray-900">{app.app_name}</h3>
-                                {app.source === 'platform' && (
-                                  <span className="px-1.5 py-0.5 bg-violet-100 text-violet-700 text-xs font-medium rounded">
-                                    Platform
-                                  </span>
-                                )}
-                                {app.is_default && (
-                                  <span className="px-1.5 py-0.5 bg-primary-100 text-primary-700 text-xs font-medium rounded">
-                                    Default
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2 text-xs text-gray-500">
-                                <span>{config.name}</span>
-                                <span>•</span>
-                                {authorized ? (
-                                  <span className="text-emerald-600 flex items-center gap-1">
-                                    <CheckCircle className="w-3 h-3" />
-                                    {app.auth_method === 'basic_auth' ? 'Configured' : 'App Authorized'}
-                                  </span>
-                                ) : app.auth_method === 'basic_auth' ? (
-                                  <span className="text-amber-600 flex items-center gap-1">
-                                    <AlertCircle className="w-3 h-3" />
-                                    Missing Credentials
-                                  </span>
-                                ) : (
-                                  <span className="text-amber-600 flex items-center gap-1">
-                                    <AlertCircle className="w-3 h-3" />
-                                    Needs Authorization
-                                  </span>
-                                )}
-                              </div>
-                            </div>
+                  return (
+                    <div
+                      key={app.id}
+                      className="rounded-[0.5rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,245,239,0.96))] shadow-[0_24px_60px_-46px_rgba(73,45,23,0.3)] p-4 hover:border-[#cdb79d] transition-all"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 ${config.bgColor} rounded-[0.45rem] flex items-center justify-center`}>
+                            {config.icon}
                           </div>
-
-                          <div className="flex items-center gap-1">
-                            {!authorized && app.auth_method !== 'basic_auth' && (
-                              <button
-                                onClick={() => handleAuthorize(app, false)}
-                                className="px-3 py-1.5 text-sm font-medium text-white bg-amber-500 rounded-lg hover:bg-amber-600 transition-colors"
-                              >
-                                Authorize
-                              </button>
-                            )}
-                            {/* Hide edit/delete for platform apps - they're managed by platform admin */}
-                            {app.source !== 'platform' && (
-                              <>
-                                <Link
-                                  href={`/oauth-apps/${app.id}/edit`}
-                                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                                  title="Edit"
-                                >
-                                  <Settings className="w-4 h-4" />
-                                </Link>
-                                {deleteConfirm === app.id ? (
-                                  <div className="flex items-center gap-1 ml-1">
-                                    <button
-                                      onClick={() => handleDelete(app.id)}
-                                      className="px-2 py-1 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700"
-                                    >
-                                      Delete
-                                    </button>
-                                    <button
-                                      onClick={() => setDeleteConfirm(null)}
-                                      className="px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
-                                    >
-                                      Cancel
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <button
-                                    onClick={() => setDeleteConfirm(app.id)}
-                                    className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                                    title="Delete"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                )}
-                              </>
-                            )}
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold text-gray-900">{app.app_name}</h3>
+                              {app.is_default && (
+                                <span className="px-1.5 py-0.5 bg-[#f3ecde] border border-[#dfd1be] text-[#7c5d45] text-xs font-semibold rounded-[0.3rem]">
+                                  Default
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                              <span>{config.name}</span>
+                              <span>·</span>
+                              {authorized ? (
+                                <span className="text-emerald-600 flex items-center gap-1">
+                                  <CheckCircle className="w-3 h-3" />
+                                  {app.auth_method === 'basic_auth' ? 'Configured' : 'Authorized'}
+                                </span>
+                              ) : app.auth_method === 'basic_auth' ? (
+                                <span className="text-amber-600 flex items-center gap-1">
+                                  <AlertCircle className="w-3 h-3" />
+                                  Missing Credentials
+                                </span>
+                              ) : (
+                                <span className="text-amber-600 flex items-center gap-1">
+                                  <AlertCircle className="w-3 h-3" />
+                                  Needs Authorization
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
 
-                        {/* Webhook URL for Recall.ai */}
-                        {app.provider.toLowerCase() === 'recall' && (
-                          <div className="mt-3 pt-3 border-t border-gray-100">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Webhook className="w-4 h-4 text-indigo-500" />
-                              <span className="text-xs font-medium text-gray-700">Webhook URL</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <code className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-600 font-mono truncate">
-                                {getWebhookUrl()}
-                              </code>
+                        <div className="flex items-center gap-1">
+                          {!authorized && app.auth_method !== 'basic_auth' && (
+                            <button
+                              onClick={() => handleAuthorize(app, false)}
+                              className="px-3 py-1.5 text-sm font-semibold text-white bg-[#171717] rounded-[0.4rem] hover:bg-[#2a2a2a] transition-colors"
+                            >
+                              Authorize
+                            </button>
+                          )}
+                          <Link
+                            href={`/oauth-apps/${app.id}/edit`}
+                            className="p-2 text-[#7c5d45] hover:text-gray-900 hover:bg-[#f3ecde] rounded-[0.4rem] transition-colors"
+                            title="Edit"
+                          >
+                            <Settings className="w-4 h-4" />
+                          </Link>
+                          {deleteConfirm === app.id ? (
+                            <div className="flex items-center gap-1 ml-1">
                               <button
-                                onClick={() => copyWebhookUrl(app.id)}
-                                className={`p-2 rounded-lg transition-colors ${
-                                  copiedWebhook === app.id
-                                    ? 'bg-emerald-100 text-emerald-600'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                }`}
-                                title={copiedWebhook === app.id ? 'Copied!' : 'Copy URL'}
+                                onClick={() => handleDelete(app.id)}
+                                className="px-2 py-1 text-xs font-semibold text-white bg-primary-600 rounded-[0.3rem] hover:bg-primary-700 transition-colors"
                               >
-                                {copiedWebhook === app.id ? (
-                                  <Check className="w-4 h-4" />
-                                ) : (
-                                  <Copy className="w-4 h-4" />
-                                )}
+                                Delete
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirm(null)}
+                                className="px-2 py-1 text-xs font-semibold text-[#7c5d45] border border-[#dbcdb9] bg-white rounded-[0.3rem] hover:bg-[#f7f2e7] transition-colors"
+                              >
+                                Cancel
                               </button>
                             </div>
-                            <p className="text-xs text-gray-500 mt-2">
-                              Add this URL to your Recall.ai dashboard to receive meeting events (bot status, transcripts, etc.)
-                            </p>
-                          </div>
-                        )}
+                          ) : (
+                            <button
+                              onClick={() => setDeleteConfirm(app.id)}
+                              className="p-2 text-[#7c5d45] hover:text-primary-600 hover:bg-primary-50 rounded-[0.4rem] transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    )
-                  })}
-                </div>
+
+                      {/* Webhook URL for Recall.ai */}
+                      {app.provider.toLowerCase() === 'recall' && (
+                        <div className="mt-3 pt-3 border-t border-[#e5d9ca]">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Webhook className="w-4 h-4 text-[#7c5d45]" />
+                            <span className="text-xs font-semibold text-[#7c5d45]">Webhook URL</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <code className="flex-1 px-3 py-2 bg-[#f7f2e7] border border-[#e5d9ca] rounded-[0.4rem] text-xs text-gray-700 font-mono truncate">
+                              {getWebhookUrl()}
+                            </code>
+                            <button
+                              onClick={() => copyWebhookUrl(app.id)}
+                              className={`p-2 rounded-[0.4rem] transition-colors ${
+                                copiedWebhook === app.id
+                                  ? 'bg-emerald-100 text-emerald-600'
+                                  : 'bg-[#f3ecde] text-[#7c5d45] hover:bg-[#eadfce]'
+                              }`}
+                              title={copiedWebhook === app.id ? 'Copied!' : 'Copy URL'}
+                            >
+                              {copiedWebhook === app.id ? (
+                                <Check className="w-4 h-4" />
+                              ) : (
+                                <Copy className="w-4 h-4" />
+                              )}
+                            </button>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-2">
+                            Add this URL to your Recall.ai dashboard to receive meeting events (bot status, transcripts, etc.)
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             ) : (
-              <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-                <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Plus className="w-6 h-6 text-primary-600" />
+              <div className="rounded-[0.5rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,245,239,0.96))] shadow-[0_24px_60px_-46px_rgba(73,45,23,0.3)] p-10 text-center">
+                <div className="w-12 h-12 bg-[#f3ecde] rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Plus className="w-6 h-6 text-[#7c5d45]" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">No OAuth apps configured</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No custom integrations yet</h3>
                 <p className="text-sm text-gray-600 mb-4">
-                  Add your first OAuth app to enable integrations for your team.
+                  Add your own OAuth app credentials to use your own developer app instead of the platform-provided one.
                 </p>
                 <Link
                   href="/oauth-apps/create"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 rounded-lg shadow-sm hover:shadow-md transition-all"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-[#171717] hover:bg-[#2a2a2a] rounded-[0.4rem] shadow-[0_10px_22px_rgba(0,0,0,0.12)] transition-colors"
                 >
                   <Plus className="w-4 h-4" />
-                  Add OAuth App
+                  Add Custom Integration
                 </Link>
               </div>
             )}
 
             {/* Setup Guide */}
-            <div className="bg-gray-50 rounded-lg border border-gray-200 p-4">
-              <h3 className="text-sm font-semibold text-gray-900 mb-2">Setup Guide</h3>
+            <div className="rounded-[0.5rem] border border-[#e5d9ca] bg-[#f7f2e7] p-4">
+              <h3 className="text-sm font-semibold text-[#7c5d45] mb-2">Setup Guide</h3>
               <ol className="text-sm text-gray-600 space-y-1.5 list-decimal list-inside">
                 <li>Create an OAuth app in the provider's developer console</li>
                 <li>Copy the Client ID and Client Secret</li>
@@ -837,7 +926,7 @@ export default function OAuthAppsPage() {
                     href={config.setupUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-red-600 transition-colors"
+                    className="inline-flex items-center gap-1 text-xs text-[#7c5d45] hover:text-primary-600 transition-colors"
                   >
                     <ExternalLink className="w-3 h-3" />
                     {config.name} Docs
@@ -851,16 +940,16 @@ export default function OAuthAppsPage() {
         {/* API Token Modal */}
         {apiTokenModal.open && apiTokenModal.app && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">
+            <div className="rounded-[0.5rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.99),_rgba(249,245,239,0.98))] shadow-[0_40px_80px_-20px_rgba(73,45,23,0.35)] max-w-md w-full mx-4 overflow-hidden">
+              <div className="px-6 py-4 border-b border-[#e5d9ca] flex items-center justify-between">
+                <h3 className="text-base font-semibold text-gray-900">
                   Add Your {getConfig(apiTokenModal.app.provider).name} API Token
                 </h3>
                 <button
                   onClick={() => setApiTokenModal({ open: false, app: null })}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-[#7c5d45] hover:text-gray-900 p-1 hover:bg-[#f3ecde] rounded-[0.3rem] transition-colors"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -869,7 +958,7 @@ export default function OAuthAppsPage() {
                 <p className="text-sm text-gray-600 mb-4">
                   Enter your personal API token for {getConfig(apiTokenModal.app.provider).name}. This token will be used for your account only.
                 </p>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs font-semibold text-[#7c5d45] uppercase tracking-[0.08em] mb-2">
                   API Token
                 </label>
                 <input
@@ -877,23 +966,23 @@ export default function OAuthAppsPage() {
                   value={apiTokenInput}
                   onChange={(e) => setApiTokenInput(e.target.value)}
                   placeholder="Enter your API token"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+                  className="w-full px-3 py-2 border border-[#dbcdb9] bg-white rounded-[0.4rem] focus:ring-2 focus:ring-[#79dfbc] focus:border-transparent text-sm outline-none transition-shadow"
                 />
                 <p className="mt-2 text-xs text-gray-500">
                   Your token is encrypted and stored securely.
                 </p>
               </div>
-              <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+              <div className="px-6 py-4 border-t border-[#e5d9ca] flex justify-end gap-2">
                 <button
                   onClick={() => setApiTokenModal({ open: false, app: null })}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="px-4 py-2 text-sm font-semibold text-[#7c5d45] border border-[#dbcdb9] bg-white hover:bg-[#f7f2e7] rounded-[0.4rem] transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveApiToken}
                   disabled={savingApiToken || !apiTokenInput.trim()}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 text-sm font-semibold text-white bg-[#171717] hover:bg-[#2a2a2a] rounded-[0.4rem] transition-colors shadow-[0_10px_22px_rgba(0,0,0,0.12)] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {savingApiToken ? 'Saving...' : 'Save Token'}
                 </button>

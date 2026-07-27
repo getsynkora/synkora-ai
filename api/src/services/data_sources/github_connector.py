@@ -32,27 +32,27 @@ class GitHubConnector(BaseConnector):
         """
         super().__init__(data_source, db)
         self.base_url = "https://api.github.com"
+        self._cached_installation_token: str | None = None
 
     async def _get_access_token(self) -> str:
         """Get decrypted access token from data source or linked OAuth app."""
-        # First try to get token directly from data source
         if self.data_source.access_token_encrypted:
             return decrypt_value(self.data_source.access_token_encrypted)
 
-        # Fall back to OAuth app if linked
         if self.data_source.oauth_app_id and self.data_source.oauth_app:
             oauth_app = self.data_source.oauth_app
 
-            # Determine which authentication method to use based on auth_method
-            if oauth_app.auth_method == "api_token":
-                # Use API token (PAT)
+            if oauth_app.auth_method == "github_app":
+                if not self._cached_installation_token:
+                    self._cached_installation_token = await self._get_github_app_token(oauth_app)
+                return self._cached_installation_token
+            elif oauth_app.auth_method == "api_token":
                 if not oauth_app.api_token:
                     raise ValueError(
                         "No API token configured. Please add a GitHub Personal Access Token to this OAuth app."
                     )
                 return decrypt_value(oauth_app.api_token)
             else:
-                # Use OAuth token
                 if not oauth_app.access_token:
                     raise ValueError(
                         "No OAuth access token available. Please complete OAuth flow first or use API token method."
@@ -60,6 +60,83 @@ class GitHubConnector(BaseConnector):
                 return decrypt_value(oauth_app.access_token)
 
         raise ValueError("No access token configured for GitHub data source")
+
+    async def _generate_app_jwt(self, oauth_app) -> str:
+        """Generate a short-lived JWT to authenticate as the GitHub App itself."""
+        import time
+
+        import jwt
+
+        app_id = oauth_app.client_id
+        if not app_id:
+            raise ValueError("GitHub App ID not configured (store in Client ID field).")
+        if not oauth_app.client_secret:
+            raise ValueError("GitHub App private key not configured (store in Client Secret field).")
+
+        private_key_pem = decrypt_value(oauth_app.client_secret)
+        now = int(time.time())
+        payload = {"iat": now - 60, "exp": now + 600, "iss": str(app_id)}
+        return jwt.encode(payload, private_key_pem, algorithm="RS256")
+
+    async def _get_github_app_token(self, oauth_app) -> str:
+        """Get installation access token by looking up installation ID from the first configured repo."""
+        app_jwt = await self._generate_app_jwt(oauth_app)
+
+        config = self.data_source.config or {}
+        repositories = config.get("repositories", [])
+        if not repositories:
+            raise ValueError(
+                "No repositories configured. Add at least one repository to use GitHub App authentication."
+            )
+
+        first_repo = repositories[0]
+        if isinstance(first_repo, str):
+            if "/" not in first_repo:
+                raise ValueError(f"Invalid repository format: {first_repo}. Expected 'owner/repo'")
+            owner, repo = first_repo.split("/", 1)
+        elif isinstance(first_repo, dict):
+            owner = first_repo.get("owner", "")
+            repo = first_repo.get("name", "")
+        else:
+            raise ValueError(f"Invalid repository config: {first_repo}")
+
+        if not owner or not repo:
+            raise ValueError("Invalid repository configuration — cannot look up GitHub App installation.")
+
+        headers = {
+            "Authorization": f"Bearer {app_jwt}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        }
+
+        async with httpx.AsyncClient() as client:
+            inst_resp = await client.get(
+                f"https://api.github.com/repos/{owner}/{repo}/installation",
+                headers=headers,
+                timeout=15.0,
+            )
+            if inst_resp.status_code == 404:
+                raise ValueError(
+                    f"GitHub App is not installed on {owner}/{repo}. "
+                    "Please install the GitHub App on the organization or repository first."
+                )
+            if inst_resp.status_code != 200:
+                raise ValueError(
+                    f"Failed to look up GitHub App installation for {owner}/{repo}: {inst_resp.text}"
+                )
+
+            installation_id = inst_resp.json()["id"]
+
+            token_resp = await client.post(
+                f"https://api.github.com/app/installations/{installation_id}/access_tokens",
+                headers=headers,
+                timeout=15.0,
+            )
+            if token_resp.status_code != 201:
+                raise ValueError(f"Failed to get GitHub App installation token: {token_resp.text}")
+
+            logger.info("Got GitHub App installation token for %s/%s (installation %s)", owner, repo, installation_id)
+            return token_resp.json()["token"]
 
     async def _make_request(
         self, method: str, endpoint: str, params: dict[str, Any] | None = None, json_data: dict[str, Any] | None = None
@@ -96,9 +173,22 @@ class GitHubConnector(BaseConnector):
     async def connect(self) -> bool:
         """Establish connection to GitHub (test API access)."""
         try:
-            await self._get_access_token()
-            # Test connection by getting user info
-            await self._make_request("GET", "/user")
+            oauth_app = self.data_source.oauth_app if self.data_source.oauth_app_id else None
+            if oauth_app and oauth_app.auth_method == "github_app":
+                app_jwt = await self._generate_app_jwt(oauth_app)
+                async with httpx.AsyncClient() as client:
+                    resp = await client.get(
+                        "https://api.github.com/app",
+                        headers={
+                            "Authorization": f"Bearer {app_jwt}",
+                            "Accept": "application/vnd.github+json",
+                            "X-GitHub-Api-Version": "2022-11-28",
+                        },
+                        timeout=15.0,
+                    )
+                    resp.raise_for_status()
+            else:
+                await self._make_request("GET", "/user")
             return True
         except Exception as e:
             logger.error(f"Failed to connect to GitHub: {e}")
@@ -398,22 +488,35 @@ class GitHubConnector(BaseConnector):
         return documents
 
     async def test_connection(self) -> dict[str, Any]:
-        """
-        Test GitHub connection.
-
-        Returns:
-            Connection test result
-        """
+        """Test GitHub connection."""
         try:
-            # Get authenticated user info
-            user = await self._make_request("GET", "/user")
-
-            return {
-                "success": True,
-                "message": f"Connected as {user['login']}",
-                "user": {"login": user["login"], "name": user.get("name"), "email": user.get("email")},
-            }
-
+            oauth_app = self.data_source.oauth_app if self.data_source.oauth_app_id else None
+            if oauth_app and oauth_app.auth_method == "github_app":
+                app_jwt = await self._generate_app_jwt(oauth_app)
+                async with httpx.AsyncClient() as client:
+                    resp = await client.get(
+                        "https://api.github.com/app",
+                        headers={
+                            "Authorization": f"Bearer {app_jwt}",
+                            "Accept": "application/vnd.github+json",
+                            "X-GitHub-Api-Version": "2022-11-28",
+                        },
+                        timeout=15.0,
+                    )
+                    resp.raise_for_status()
+                    data = resp.json()
+                return {
+                    "success": True,
+                    "message": f"Connected as GitHub App: {data.get('name', 'unknown')}",
+                    "app": {"name": data.get("name"), "id": data.get("id"), "slug": data.get("slug")},
+                }
+            else:
+                user = await self._make_request("GET", "/user")
+                return {
+                    "success": True,
+                    "message": f"Connected as {user['login']}",
+                    "user": {"login": user["login"], "name": user.get("name"), "email": user.get("email")},
+                }
         except Exception as e:
             logger.error(f"GitHub connection test failed: {e}")
             return {"success": False, "error": str(e)}
