@@ -9,6 +9,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+# Realistic Drive IDs — the validator requires 25+ alphanumeric/dash/underscore chars.
+FAKE_FILE_ID = "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms"
+FAKE_DOC_ID = "1y2x3w4v5u6t7s8r9q0p1o2n3m4l5k6j7i8h9g0f1e2d"
+FAKE_SHEET_ID = "1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t1u2v"
+FAKE_FOLDER_ID = "1C3B5A7Z9X2W4V6U8T0S1R3Q5P7O9N2M4L6K8J0I1H3G"
+FAKE_PERM_ID = "abcdefghijklmnopqrstuvwxyz"
+
 
 class TestSanitizeFileId:
     """Tests for _sanitize_file_id helper function."""
@@ -16,16 +23,16 @@ class TestSanitizeFileId:
     def test_strips_trailing_punctuation(self):
         from src.services.agents.internal_tools.google_drive_tools import _sanitize_file_id
 
-        assert _sanitize_file_id("abc123.") == "abc123"
-        assert _sanitize_file_id("abc123,") == "abc123"
-        assert _sanitize_file_id("abc123;") == "abc123"
-        assert _sanitize_file_id("abc123!") == "abc123"
-        assert _sanitize_file_id("abc123?") == "abc123"
+        assert _sanitize_file_id(FAKE_FILE_ID + ".") == FAKE_FILE_ID
+        assert _sanitize_file_id(FAKE_FILE_ID + ",") == FAKE_FILE_ID
+        assert _sanitize_file_id(FAKE_FILE_ID + ";") == FAKE_FILE_ID
+        assert _sanitize_file_id(FAKE_FILE_ID + "!") == FAKE_FILE_ID
+        assert _sanitize_file_id(FAKE_FILE_ID + "?") == FAKE_FILE_ID
 
     def test_strips_whitespace(self):
         from src.services.agents.internal_tools.google_drive_tools import _sanitize_file_id
 
-        assert _sanitize_file_id("  abc123  ") == "abc123"
+        assert _sanitize_file_id("  " + FAKE_FILE_ID + "  ") == FAKE_FILE_ID
 
     def test_handles_empty_input(self):
         from src.services.agents.internal_tools.google_drive_tools import _sanitize_file_id
@@ -99,7 +106,7 @@ class TestInternalGoogleDriveGetFile:
     async def test_requires_runtime_context(self):
         from src.services.agents.internal_tools.google_drive_tools import internal_google_drive_get_file
 
-        result = await internal_google_drive_get_file(file_id="file-123", runtime_context=None)
+        result = await internal_google_drive_get_file(file_id=FAKE_FILE_ID, runtime_context=None)
         assert result["success"] is False
         assert "Runtime context" in result["error"]
 
@@ -111,7 +118,7 @@ class TestInternalGoogleDriveDeleteFile:
     async def test_requires_runtime_context(self):
         from src.services.agents.internal_tools.google_drive_tools import internal_google_drive_delete_file
 
-        result = await internal_google_drive_delete_file(file_id="file-123", runtime_context=None)
+        result = await internal_google_drive_delete_file(file_id=FAKE_FILE_ID, runtime_context=None)
         assert result["success"] is False
         assert "Runtime context" in result["error"]
 
@@ -138,12 +145,12 @@ class TestInternalGoogleDriveDeleteFile:
             mock_client.return_value.__aexit__ = AsyncMock(return_value=False)
 
             result = await internal_google_drive_delete_file(
-                file_id="file-123",
+                file_id=FAKE_FILE_ID,
                 runtime_context=MagicMock(),
             )
 
             assert result["success"] is True
-            assert result["file_id"] == "file-123"
+            assert result["file_id"] == FAKE_FILE_ID
 
 
 class TestInternalGoogleDriveCreateFolder:
@@ -166,7 +173,7 @@ class TestInternalGoogleDriveMoveFile:
         from src.services.agents.internal_tools.google_drive_tools import internal_google_drive_move_file
 
         result = await internal_google_drive_move_file(
-            file_id="file-123", new_parent_folder_id="folder-456", runtime_context=None
+            file_id=FAKE_FILE_ID, new_parent_folder_id=FAKE_FOLDER_ID, runtime_context=None
         )
         assert result["success"] is False
         assert "Runtime context" in result["error"]
@@ -180,7 +187,7 @@ class TestInternalGoogleDriveShareFile:
         from src.services.agents.internal_tools.google_drive_tools import internal_google_drive_share_file
 
         result = await internal_google_drive_share_file(
-            file_id="file-123", email="user@example.com", runtime_context=None
+            file_id=FAKE_FILE_ID, email="user@example.com", runtime_context=None
         )
         assert result["success"] is False
         assert "Runtime context" in result["error"]
@@ -193,7 +200,7 @@ class TestInternalGoogleDriveGetPermissions:
     async def test_requires_runtime_context(self):
         from src.services.agents.internal_tools.google_drive_tools import internal_google_drive_get_permissions
 
-        result = await internal_google_drive_get_permissions(file_id="file-123", runtime_context=None)
+        result = await internal_google_drive_get_permissions(file_id=FAKE_FILE_ID, runtime_context=None)
         assert result["success"] is False
         assert "Runtime context" in result["error"]
 
@@ -206,7 +213,7 @@ class TestInternalGoogleDriveRemovePermission:
         from src.services.agents.internal_tools.google_drive_tools import internal_google_drive_remove_permission
 
         result = await internal_google_drive_remove_permission(
-            file_id="file-123", permission_id="perm-456", runtime_context=None
+            file_id=FAKE_FILE_ID, permission_id=FAKE_PERM_ID, runtime_context=None
         )
         assert result["success"] is False
         assert "Runtime context" in result["error"]
@@ -231,7 +238,7 @@ class TestInternalGoogleDocsGetContent:
     async def test_requires_runtime_context(self):
         from src.services.agents.internal_tools.google_drive_tools import internal_google_docs_get_content
 
-        result = await internal_google_docs_get_content(document_id="doc-123", runtime_context=None)
+        result = await internal_google_docs_get_content(document_id=FAKE_DOC_ID, runtime_context=None)
         assert result["success"] is False
         assert "Runtime context" in result["error"]
 
@@ -244,7 +251,7 @@ class TestInternalGoogleDocsAppendContent:
         from src.services.agents.internal_tools.google_drive_tools import internal_google_docs_append_content
 
         result = await internal_google_docs_append_content(
-            document_id="doc-123", content="New content", runtime_context=None
+            document_id=FAKE_DOC_ID, content="New content", runtime_context=None
         )
         assert result["success"] is False
         assert "Runtime context" in result["error"]
@@ -269,7 +276,7 @@ class TestInternalGoogleSheetsReadRange:
     async def test_requires_runtime_context(self):
         from src.services.agents.internal_tools.google_drive_tools import internal_google_sheets_read_range
 
-        result = await internal_google_sheets_read_range(spreadsheet_id="sheet-123", runtime_context=None)
+        result = await internal_google_sheets_read_range(spreadsheet_id=FAKE_SHEET_ID, runtime_context=None)
         assert result["success"] is False
         assert "Runtime context" in result["error"]
 
@@ -282,7 +289,7 @@ class TestInternalGoogleSheetsWriteRange:
         from src.services.agents.internal_tools.google_drive_tools import internal_google_sheets_write_range
 
         result = await internal_google_sheets_write_range(
-            spreadsheet_id="sheet-123", range_name="Sheet1!A1", values=[["Hello"]], runtime_context=None
+            spreadsheet_id=FAKE_SHEET_ID, range_name="Sheet1!A1", values=[["Hello"]], runtime_context=None
         )
         assert result["success"] is False
         assert "Runtime context" in result["error"]
@@ -307,7 +314,7 @@ class TestInternalGoogleDriveUpdateFile:
     async def test_requires_runtime_context(self):
         from src.services.agents.internal_tools.google_drive_tools import internal_google_drive_update_file
 
-        result = await internal_google_drive_update_file(file_id="file-123", name="updated.txt", runtime_context=None)
+        result = await internal_google_drive_update_file(file_id=FAKE_FILE_ID, name="updated.txt", runtime_context=None)
         assert result["success"] is False
         assert "Runtime context" in result["error"]
 
@@ -319,6 +326,6 @@ class TestInternalGoogleDriveDownloadFile:
     async def test_requires_runtime_context(self):
         from src.services.agents.internal_tools.google_drive_tools import internal_google_drive_download_file
 
-        result = await internal_google_drive_download_file(file_id="file-123", runtime_context=None)
+        result = await internal_google_drive_download_file(file_id=FAKE_FILE_ID, runtime_context=None)
         assert result["success"] is False
         assert "Runtime context" in result["error"]
