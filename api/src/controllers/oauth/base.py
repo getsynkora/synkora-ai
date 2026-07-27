@@ -242,9 +242,7 @@ async def _get_or_create_tenant_clone(
             sa_update(AgentTool)
             .where(
                 AgentTool.oauth_app_id == platform_app.id,
-                AgentTool.agent_id.in_(
-                    select(Agent.id).where(Agent.tenant_id == tenant_id)
-                ),
+                AgentTool.agent_id.in_(select(Agent.id).where(Agent.tenant_id == tenant_id)),
             )
             .values(oauth_app_id=clone.id)
         )

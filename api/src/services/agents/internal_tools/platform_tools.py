@@ -685,7 +685,11 @@ async def platform_create_agent(
                         tool_to_oauth[tool_name] = oauth_app_id
 
             for tool_name, oauth_app_id in tool_to_oauth.items():
-                db.add(AgentTool(agent_id=agent.id, tool_name=tool_name, config={}, enabled=True, oauth_app_id=oauth_app_id))
+                db.add(
+                    AgentTool(
+                        agent_id=agent.id, tool_name=tool_name, config={}, enabled=True, oauth_app_id=oauth_app_id
+                    )
+                )
 
         await db.commit()
 
@@ -977,7 +981,15 @@ async def platform_update_agent(
                             if existing.oauth_app_id is None and oauth_app_id is not None:
                                 existing.oauth_app_id = oauth_app_id
                         else:
-                            db.add(AgentTool(agent_id=agent.id, tool_name=tool_name, config={}, enabled=True, oauth_app_id=oauth_app_id))
+                            db.add(
+                                AgentTool(
+                                    agent_id=agent.id,
+                                    tool_name=tool_name,
+                                    config={},
+                                    enabled=True,
+                                    oauth_app_id=oauth_app_id,
+                                )
+                            )
                         tools_enabled.append(tool_name)
 
         # Ensure LLM config is set — inherit from PE's per-tenant AgentLLMConfig if missing

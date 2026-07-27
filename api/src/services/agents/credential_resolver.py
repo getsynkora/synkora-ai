@@ -259,7 +259,9 @@ class CredentialResolver:
 
                 logger.info(
                     "Got GitHub App installation token for tool '%s' (app: %s, installation: %s)",
-                    tool_name, oauth_app.app_name, installation_id,
+                    tool_name,
+                    oauth_app.app_name,
+                    installation_id,
                 )
                 return token_resp.json()["token"]
 

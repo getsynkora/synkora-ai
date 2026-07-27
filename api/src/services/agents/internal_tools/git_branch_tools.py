@@ -50,9 +50,7 @@ async def internal_git_create_branch(
         source_branch = f"origin/{from_branch}" if "/" not in from_branch else from_branch
 
         # Verify source ref exists; auto-detect actual default branch if not
-        verify_result = await async_run_git_command(
-            ["git", "rev-parse", "--verify", source_branch], repo_path, config
-        )
+        verify_result = await async_run_git_command(["git", "rev-parse", "--verify", source_branch], repo_path, config)
         if not verify_result["success"]:
             # Try remote HEAD symref (set by git clone)
             head_ref = await async_run_git_command(

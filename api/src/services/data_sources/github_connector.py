@@ -121,9 +121,7 @@ class GitHubConnector(BaseConnector):
                     "Please install the GitHub App on the organization or repository first."
                 )
             if inst_resp.status_code != 200:
-                raise ValueError(
-                    f"Failed to look up GitHub App installation for {owner}/{repo}: {inst_resp.text}"
-                )
+                raise ValueError(f"Failed to look up GitHub App installation for {owner}/{repo}: {inst_resp.text}")
 
             installation_id = inst_resp.json()["id"]
 

@@ -84,9 +84,7 @@ async def list_platform_apps(
     """List all platform OAuth apps. client_secret is never returned."""
     try:
         result = await db.execute(
-            select(OAuthApp)
-            .where(OAuthApp.is_platform_app.is_(True))
-            .order_by(OAuthApp.provider, OAuthApp.app_name)
+            select(OAuthApp).where(OAuthApp.is_platform_app.is_(True)).order_by(OAuthApp.provider, OAuthApp.app_name)
         )
         apps = result.scalars().all()
         return [_serialize(a) for a in apps]
@@ -163,12 +161,14 @@ async def update_platform_app(
 
         # Cascade credential changes to all tenant clones of this platform app.
         # Clones are identified by config->>'platform_app_id' == str(app_id).
-        credential_changed = any([
-            data.client_id is not None,
-            data.client_secret is not None and data.client_secret.strip(),
-            data.redirect_uri is not None,
-            data.scopes is not None,
-        ])
+        credential_changed = any(
+            [
+                data.client_id is not None,
+                data.client_secret is not None and data.client_secret.strip(),
+                data.redirect_uri is not None,
+                data.scopes is not None,
+            ]
+        )
         if credential_changed:
             clones_result = await db.execute(
                 select(OAuthApp).where(
