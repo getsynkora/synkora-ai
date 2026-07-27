@@ -165,6 +165,7 @@ interface ExtendedAPIClient extends APIClient {
   getUserConnectionStatus: typeof oauth.getUserConnectionStatus
   initiateOAuth: typeof oauth.initiateOAuth
   saveUserApiToken: typeof oauth.saveUserApiToken
+  getPlatformOAuthApps: typeof oauth.getPlatformOAuthApps
   getIntegrationConfigs: typeof oauth.getIntegrationConfigs
 
   // Custom Tools
@@ -399,6 +400,7 @@ export const apiClient: ExtendedAPIClient = Object.assign(_apiClient, {
   getUserConnectionStatus: oauth.getUserConnectionStatus,
   initiateOAuth: oauth.initiateOAuth,
   saveUserApiToken: oauth.saveUserApiToken,
+  getPlatformOAuthApps: oauth.getPlatformOAuthApps,
   getIntegrationConfigs: oauth.getIntegrationConfigs,
 
   // Custom Tools

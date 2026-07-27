@@ -145,7 +145,6 @@ FEATURE_ACCESS_ENDPOINTS = {
     "/api/v1/analytics/advanced": "advanced_analytics",
     # SSO Configuration (actual route is /api/v1/sso/okta)
     "/api/v1/sso/okta": "sso",
-    "/api/v1/social-auth-config": "sso",
     # API Access
     "/api/v1/agent-api-keys": "api_access",
     # Custom Tools (Free tier blocked, Hobby+ allowed)

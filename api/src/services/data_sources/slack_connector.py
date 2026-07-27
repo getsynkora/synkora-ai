@@ -94,7 +94,7 @@ class SlackConnector(BaseConnector):
 
                     if user_token and user_token.access_token:
                         logger.info(f"Using user's personal Slack token for data source {self.data_source.name}")
-                        return user_token.access_token
+                        return decrypt_value(user_token.access_token)
             else:
                 # No specific user - try to find any user token for this tenant/oauth_app
                 # This handles cases where the data source was created before we tracked account_id
@@ -105,7 +105,7 @@ class SlackConnector(BaseConnector):
 
                 if user_token and user_token.access_token:
                     logger.info(f"Using first available user token for Slack data source {self.data_source.name}")
-                    return user_token.access_token
+                    return decrypt_value(user_token.access_token)
 
         # Fall back to data source's direct token
         if self.data_source.access_token_encrypted:
@@ -169,6 +169,7 @@ class SlackConnector(BaseConnector):
         include_threads = config.get("include_threads", True)
         include_private = config.get("include_private", False)
 
+        channels_raw: list[str] = []
         if not channel_ids:
             # Fall back to "channels" key which may contain names or IDs
             channels_raw = config.get("channels", [])
@@ -176,9 +177,15 @@ class SlackConnector(BaseConnector):
                 channels_raw = [c.strip() for c in channels_raw.split(",") if c.strip()]
             if channels_raw:
                 channel_ids = await self._resolve_channel_names(channels_raw)
+                if not channel_ids:
+                    raise ConnectionError(
+                        f"Could not find Slack channel(s): {', '.join(channels_raw)}. "
+                        "If this is a private channel, invite the bot to the channel first "
+                        "(type /invite @<app-name> in the channel)."
+                    )
 
         # Only fall back to all channels if nothing is configured at all
-        if not channel_ids:
+        if not channel_ids and not channels_raw:
             channel_ids = await self._get_all_channels(include_private)
 
         # Default lookback for first sync — avoid fetching entire channel history

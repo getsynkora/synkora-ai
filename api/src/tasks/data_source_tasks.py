@@ -49,10 +49,14 @@ async def _run_sync(data_source_id: int, sync_job_id: int, full_sync: bool) -> d
 
     from src.controllers.data_sources import get_connector
     from src.core.database import create_celery_async_session
-    from src.models.data_source import DataSource, DataSourceSyncJob, SyncStatus
+    from src.models.data_source import DataSource, DataSourceStatus, DataSourceSyncJob, SyncStatus
 
     async with create_celery_async_session()() as db:
-        ds = await db.get(DataSource, data_source_id)
+        from sqlalchemy.orm import selectinload
+        result_ds = await db.execute(
+            select(DataSource).options(selectinload(DataSource.oauth_app)).where(DataSource.id == data_source_id)
+        )
+        ds = result_ds.scalar_one_or_none()
         if not ds:
             raise ValueError(f"DataSource {data_source_id} not found")
 
@@ -75,6 +79,8 @@ async def _run_sync(data_source_id: int, sync_job_id: int, full_sync: bool) -> d
 
             ds.last_sync_at = datetime.now(UTC)
             ds.last_error = sync_job.error_message
+            if sync_job.status == SyncStatus.COMPLETED:
+                ds.status = DataSourceStatus.ACTIVE
             await db.commit()
 
             logger.info(f"Sync completed for data source {data_source_id}: {result.get('status')}")

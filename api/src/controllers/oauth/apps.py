@@ -56,7 +56,7 @@ async def list_oauth_apps(
 
         result = []
 
-        # Get tenant's own apps
+        # Get tenant's own apps (exclude platform clones — those appear in the platform section)
         query = select(OAuthApp).filter(OAuthApp.tenant_id == tenant_id)
 
         if provider:
@@ -64,7 +64,8 @@ async def list_oauth_apps(
             query = query.filter(OAuthApp.provider.ilike(provider))
 
         tenant_apps_result = await db.execute(query)
-        tenant_apps = tenant_apps_result.scalars().all()
+        tenant_apps_raw = tenant_apps_result.scalars().all()
+        tenant_apps = [app for app in tenant_apps_raw if not (app.config and app.config.get("platform_app_id"))]
 
         for app in tenant_apps:
             app_data = app.to_dict(include_tokens=True)
@@ -86,7 +87,11 @@ async def list_oauth_apps(
 
             result.append(app_data)
 
-        # Include platform apps if requested
+        # Include platform apps if requested.
+        # Only show platform apps where the admin has already connected (a tenant clone exists).
+        # The clone is a tenant-owned OAuthApp with config->platform_app_id pointing to the
+        # source platform app. Users interact with the clone's id, not the platform app's id,
+        # so their UserOAuthToken rows are scoped to the tenant.
         if include_platform_apps:
             # Get disabled providers for this tenant
             tenant_result = await db.execute(select(Tenant).filter(Tenant.id == tenant_id))
@@ -95,25 +100,25 @@ async def list_oauth_apps(
             if tenant and tenant.disabled_platform_oauth_providers:
                 disabled_providers = [p.lower() for p in tenant.disabled_platform_oauth_providers]
 
-            # Query platform apps
-            platform_query = select(OAuthApp).filter(
-                OAuthApp.is_platform_app.is_(True),
-                OAuthApp.tenant_id.is_(None),
+            # Query tenant clones of platform apps (admin has connected these)
+            clone_query = select(OAuthApp).filter(
+                OAuthApp.tenant_id == tenant_id,
+                OAuthApp.is_platform_app.is_(False),
                 OAuthApp.is_active.is_(True),
+                OAuthApp.config["platform_app_id"].as_string().isnot(None),
             )
 
             if provider:
-                platform_query = platform_query.filter(OAuthApp.provider.ilike(provider))
+                clone_query = clone_query.filter(OAuthApp.provider.ilike(provider))
 
-            platform_apps_result = await db.execute(platform_query)
-            platform_apps = platform_apps_result.scalars().all()
+            clone_result = await db.execute(clone_query)
+            clones = clone_result.scalars().all()
 
-            for app in platform_apps:
-                # Skip if this provider is disabled for the tenant
-                if app.provider.lower() in disabled_providers:
+            for clone in clones:
+                if clone.provider.lower() in disabled_providers:
                     continue
 
-                app_data = app.to_dict(include_tokens=True)
+                app_data = clone.to_dict(include_tokens=True)
                 app_data["source"] = "platform"
 
                 # Include user connection status if requested
@@ -121,7 +126,7 @@ async def list_oauth_apps(
                     user_token_result = await db.execute(
                         select(UserOAuthToken).filter(
                             UserOAuthToken.account_id == current_account.id,
-                            UserOAuthToken.oauth_app_id == app.id,
+                            UserOAuthToken.oauth_app_id == clone.id,
                         )
                     )
                     user_token = user_token_result.scalar_one_or_none()

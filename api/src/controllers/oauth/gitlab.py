@@ -24,6 +24,7 @@ from ...services.agents.security import decrypt_value, encrypt_value
 from ...services.security.oauth_state_service import create_oauth_state, get_oauth_state
 from .base import (
     _get_oauth_app_secure,
+    _get_or_create_tenant_clone,
     _safe_error_redirect,
     _safe_success_redirect,
 )
@@ -96,6 +97,7 @@ async def gitlab_authorize(
                 "redirect_url": redirect_url,
                 "user_level": user_level,
                 "account_id": str(current_account.id) if current_account and user_level else None,
+                "tenant_id": str(tenant_id) if tenant_id else None,
             }
         )
         if not state:
@@ -214,7 +216,12 @@ async def gitlab_callback(
                 f"GitLab OAuth successful (user-level) for app {oauth_app_id}, user {user_info.get('username')}"
             )
         else:
-            # Store in OAuthApp (legacy behavior)
+            # Store on a tenant-owned clone for platform apps to prevent cross-tenant leakage
+            if oauth_app.is_platform_app:
+                _tenant_id_str = state_data.get("tenant_id")
+                if _tenant_id_str:
+                    import uuid as _uuid
+                    oauth_app = await _get_or_create_tenant_clone(db, oauth_app, _uuid.UUID(_tenant_id_str))
             oauth_app.access_token = encrypt_value(token_data["access_token"])
             if token_data.get("refresh_token"):
                 oauth_app.refresh_token = encrypt_value(token_data["refresh_token"])

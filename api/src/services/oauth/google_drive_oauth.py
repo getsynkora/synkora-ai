@@ -99,7 +99,13 @@ class GoogleDriveOAuth(BaseOAuthService):
                 if response.status != 200:
                     error_data = await response.text()
                     logger.warning(f"Google Drive token exchange failed: {error_data}")
-                    raise ValueError(f"Failed to exchange code for token: {response.status}")
+                    try:
+                        import json as _json
+                        err = _json.loads(error_data)
+                        detail = err.get("error_description") or err.get("error") or error_data
+                    except Exception:
+                        detail = error_data
+                    raise ValueError(f"Google Drive OAuth error: {detail}")
 
                 token_data = await response.json()
                 logger.info("Successfully exchanged code for Google Drive token")
