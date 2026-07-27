@@ -53,6 +53,7 @@ async def _run_sync(data_source_id: int, sync_job_id: int, full_sync: bool) -> d
 
     async with create_celery_async_session()() as db:
         from sqlalchemy.orm import selectinload
+
         result_ds = await db.execute(
             select(DataSource).options(selectinload(DataSource.oauth_app)).where(DataSource.id == data_source_id)
         )

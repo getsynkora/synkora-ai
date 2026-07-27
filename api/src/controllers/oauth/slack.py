@@ -182,6 +182,7 @@ async def slack_callback(
                 _tenant_id_str = state_data.get("tenant_id")
                 if _tenant_id_str:
                     import uuid as _uuid
+
                     oauth_app = await _get_or_create_tenant_clone(db, oauth_app, _uuid.UUID(_tenant_id_str))
             oauth_app.access_token = encrypt_value(token_data["access_token"])
             logger.info(f"Slack OAuth successful (app-level) for app {oauth_app_id}, team {team_name}")

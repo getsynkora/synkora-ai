@@ -100,6 +100,7 @@ class GoogleCalendarOAuth(BaseOAuthService):
                     logger.warning(f"Google Calendar token exchange failed: {error_data}")
                     try:
                         import json as _json
+
                         err = _json.loads(error_data)
                         detail = err.get("error_description") or err.get("error") or error_data
                     except Exception:
