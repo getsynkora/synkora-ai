@@ -355,6 +355,14 @@ class BotRedisState:
 
         return events
 
+    def get_latest_event_id(self) -> str:
+        """Return the ID of the most-recent event in the stream, or '0' if empty."""
+        result = self.redis.xrevrange(self.KEY_BOT_EVENTS, "+", "-", count=1)
+        if result:
+            msg_id, _ = result[0]
+            return msg_id if isinstance(msg_id, str) else msg_id.decode()
+        return "0"
+
     def trim_bot_events(self, max_len: int = 10000) -> None:
         """Trim the event stream to prevent unbounded growth.
 
