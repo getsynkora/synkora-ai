@@ -977,9 +977,7 @@ class BotWorker:
                         if assigned_worker != self.worker_id:
                             healthy = self.redis_state.get_healthy_workers(self.config.heartbeat_timeout)
                             if assigned_worker in healthy:
-                                logger.debug(
-                                    f"Bot {bot_id} is owned by healthy worker {assigned_worker}, skipping"
-                                )
+                                logger.debug(f"Bot {bot_id} is owned by healthy worker {assigned_worker}, skipping")
                                 continue
                     logger.info(f"Claiming orphaned bot {bot_id}")
                     await self._start_bot(bot_id, db)
