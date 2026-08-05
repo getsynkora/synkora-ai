@@ -73,9 +73,11 @@ async def _get_slack_client(runtime_context: dict[str, Any], config: dict[str, A
             return None
 
         async for db in get_async_db():
-            # Find active Slack bot for this agent
+            # Find active Slack bot for this agent — use first() to handle multiple connected bots gracefully
             result = await db.execute(
-                select(SlackBot).filter(SlackBot.agent_id == agent_id, SlackBot.connection_status == "connected")
+                select(SlackBot)
+                .filter(SlackBot.agent_id == agent_id, SlackBot.connection_status == "connected")
+                .limit(1)
             )
             slack_bot = result.scalar_one_or_none()
 
