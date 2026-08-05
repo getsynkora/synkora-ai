@@ -197,6 +197,10 @@ class BotWorker:
         # Claim and start bots assigned to this worker
         await self._claim_assigned_bots()
 
+        # Snapshot the current stream tail so the event listener only processes
+        # events that arrive AFTER this pod starts — not historical replays.
+        self._last_event_id = self.redis_state.get_latest_event_id()
+
         # Start background tasks
         self._heartbeat_task = asyncio.create_task(self._heartbeat_loop())
         self._event_listener_task = asyncio.create_task(self._event_listener_loop())
@@ -772,7 +776,10 @@ class BotWorker:
                     except (asyncio.CancelledError, Exception):
                         pass
                 handler = self._slack_handlers.pop(bot_id)
-                await handler.close_async()
+                try:
+                    await asyncio.wait_for(handler.close_async(), timeout=5)
+                except (TimeoutError, Exception):
+                    pass
 
             elif bot_type == "telegram" and bot_id in self._telegram_apps:
                 app = self._telegram_apps.pop(bot_id)
@@ -936,7 +943,7 @@ class BotWorker:
                 logger.warning(f"Unknown command: {command}")
 
     async def _dead_worker_check_loop(self) -> None:
-        """Periodically check for dead workers and claim their bots."""
+        """Periodically check for dead workers and ensure our assigned bots are running."""
         while not self._is_shutting_down:
             try:
                 # Check every 15 seconds
@@ -955,8 +962,10 @@ class BotWorker:
                     # Rebuild ring from scratch so the current worker is always present
                     await self._rebuild_hash_ring()
 
-                    # Claim bots that should now be ours
-                    await self._claim_orphaned_bots()
+                # Always self-heal: start any bots that should be ours but stopped.
+                # This handles bots lost to dead-worker redistribution, event-driven
+                # stop without a matching activate, or transient startup failures.
+                await self._claim_orphaned_bots()
 
             except Exception as e:
                 logger.error(f"Dead worker check error: {e}")
