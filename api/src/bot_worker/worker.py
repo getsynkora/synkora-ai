@@ -954,17 +954,15 @@ class BotWorker:
 
                 if dead_workers:
                     logger.info(f"Found {len(dead_workers)} dead workers: {dead_workers}")
-
-                    # Unregister dead workers from Redis
                     for worker_id in dead_workers:
                         self.redis_state.unregister_worker(worker_id)
 
-                    # Rebuild ring from scratch so the current worker is always present
-                    await self._rebuild_hash_ring()
+                # Rebuild ring every cycle — picks up workers that gracefully
+                # unregistered without being detected as dead (e.g. old pod during
+                # rolling deploy), not only when a dead worker is detected.
+                await self._rebuild_hash_ring()
 
-                # Always self-heal: start any bots that should be ours but stopped.
-                # This handles bots lost to dead-worker redistribution, event-driven
-                # stop without a matching activate, or transient startup failures.
+                # Self-heal: start any bots that should be ours but aren't running.
                 await self._claim_orphaned_bots()
 
             except Exception as e:
