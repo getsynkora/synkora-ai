@@ -2459,7 +2459,7 @@ async def platform_delete_agent_channel(
         return {"success": False, "message": "channel must be 'slack' or 'telegram'"}
 
     try:
-        from datetime import UTC, datetime
+        from datetime import datetime
         from uuid import UUID
 
         db = runtime_context.db_session
@@ -2484,7 +2484,7 @@ async def platform_delete_agent_channel(
             manager = SlackBotManager(db)
             await manager.stop_bot(bot.id)
             bot.is_active = False
-            bot.deleted_at = datetime.now(UTC)
+            bot.deleted_at = datetime.utcnow()
             await db.commit()
 
         else:
@@ -2505,7 +2505,7 @@ async def platform_delete_agent_channel(
             manager = TelegramBotManager(db)
             await manager.stop_bot(bot.id)
             bot.is_active = False
-            bot.deleted_at = datetime.now(UTC)
+            bot.deleted_at = datetime.utcnow()
             await db.commit()
 
         return {"success": True, "message": f"{channel.capitalize()} bot disconnected"}
@@ -2514,4 +2514,9 @@ async def platform_delete_agent_channel(
         return {"success": False, "message": f"Invalid bot_id: {e}"}
     except Exception as e:
         logger.exception("Error deleting agent channel")
+        try:
+            db = runtime_context.db_session
+            await db.rollback()
+        except Exception:
+            pass
         return {"success": False, "message": str(e)}

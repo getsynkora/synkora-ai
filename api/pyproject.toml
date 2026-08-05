@@ -31,7 +31,7 @@ dependencies = [
     "pyjwt>=2.13.0,<3.0.0",
     "pyyaml>=6.0.3,<7.0.0",
     "bcrypt>=4.2.0,<5.0.0",
-    "cryptography>=48.0.1",  # GHSA-537c-gmf6-5ccf fixed in 48.0.1
+    "cryptography>=50.0.0",  # PYSEC-2026-3552/3553/3554 fixed in 49.0.0+, pinned to 50.0.0
     "joserfc>=1.6.7",  # CVE-2026-48990 fixed in 1.6.7
     "msgpack>=1.2.1",  # GHSA-6v7p-g79w-8964 fixed in 1.2.1
     "pyotp>=2.9.0,<3.0.0",
@@ -42,7 +42,7 @@ dependencies = [
     # HTTP Client
     "httpx>=0.28.0,<1.0.0",
     "requests>=2.33.0,<3.0.0",
-    "aiohttp>=3.14.1,<4.0.0",  # CVE-2026-54273..54280 fixed in 3.14.1
+    "aiohttp>=3.14.3,<4.0.0",  # PYSEC-2026-3545/3546/3547 fixed in 3.14.3
     # Utilities
     "python-dotenv>=1.2.2,<2.0.0",
     "click>=8.3.3,<9.0.0",

@@ -63,6 +63,9 @@ class BotWorker:
         # Slack handlers: bot_id -> AsyncSocketModeHandler
         self._slack_handlers: dict[str, Any] = {}
 
+        # Slack polling tasks: bot_id -> asyncio.Task (start_async loop)
+        self._slack_tasks: dict[str, asyncio.Task] = {}
+
         # Telegram applications: bot_id -> Application
         self._telegram_apps: dict[str, Any] = {}
 
@@ -182,6 +185,11 @@ class BotWorker:
 
         # Register with Redis
         self.redis_state.register_worker(self.worker_id, self.capacity)
+
+        # Wait for peer workers to register before building the ring.
+        # Without this, two pods starting in parallel both see only themselves,
+        # map every bot to themselves, and double-poll (Telegram Conflict error).
+        await asyncio.sleep(self.config.startup_jitter_max)
 
         # Build initial hash ring from all workers
         await self._rebuild_hash_ring()
@@ -363,9 +371,10 @@ class BotWorker:
             app = AsyncApp(token=bot_token)
             self._register_slack_handlers(app, slack_bot)
 
-            # Create and start Socket Mode handler
+            # Create and start Socket Mode handler; keep the task so we can cancel it on stop
             handler = AsyncSocketModeHandler(app, app_token)
-            asyncio.create_task(handler.start_async())
+            task = asyncio.create_task(handler.start_async())
+            self._slack_tasks[bot_id] = task
 
             # Store references
             self._slack_handlers[bot_id] = handler
@@ -754,6 +763,14 @@ class BotWorker:
 
         try:
             if bot_type == "slack" and bot_id in self._slack_handlers:
+                # Cancel the start_async task first so its retry loop stops before the session closes
+                task = self._slack_tasks.pop(bot_id, None)
+                if task and not task.done():
+                    task.cancel()
+                    try:
+                        await task
+                    except (asyncio.CancelledError, Exception):
+                        pass
                 handler = self._slack_handlers.pop(bot_id)
                 await handler.close_async()
 
@@ -793,6 +810,9 @@ class BotWorker:
             # Still remove from tracking
             self._active_bots.pop(bot_id, None)
             self._slack_handlers.pop(bot_id, None)
+            task = self._slack_tasks.pop(bot_id, None)
+            if task and not task.done():
+                task.cancel()
             self._telegram_apps.pop(bot_id, None)
             self._whatsapp_clients.pop(bot_id, None)
             return False
@@ -949,6 +969,15 @@ class BotWorker:
 
             for bot_id in my_bots:
                 if bot_id not in self._active_bots:
-                    # This bot should be ours but isn't running
+                    # Skip if Redis says a healthy worker already owns this bot — only claim
+                    # truly orphaned bots (unassigned or assigned to a now-dead worker).
+                    existing = self.redis_state.get_bot_assignment(bot_id)
+                    if existing:
+                        assigned_worker, _ = existing
+                        if assigned_worker != self.worker_id:
+                            healthy = self.redis_state.get_healthy_workers(self.config.heartbeat_timeout)
+                            if assigned_worker in healthy:
+                                logger.debug(f"Bot {bot_id} is owned by healthy worker {assigned_worker}, skipping")
+                                continue
                     logger.info(f"Claiming orphaned bot {bot_id}")
                     await self._start_bot(bot_id, db)

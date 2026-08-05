@@ -1409,9 +1409,9 @@ class CredentialResolver:
 
             # Auto-discover: find any connected bot for this agent
             result = await self.db.execute(
-                select(SlackBot).filter(
-                    SlackBot.agent_id == self.context.agent_id, SlackBot.connection_status == "connected"
-                )
+                select(SlackBot)
+                .filter(SlackBot.agent_id == self.context.agent_id, SlackBot.connection_status == "connected")
+                .limit(1)
             )
             slack_bot = result.scalar_one_or_none()
 
