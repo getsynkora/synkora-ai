@@ -2375,6 +2375,55 @@ export default function AgentToolsPage() {
                 </section>
               )}
 
+              {/* LinkedIn Company Page Section */}
+              {selectedTool.oauthProvider === 'linkedin' &&
+                ['internal_linkedin_post_text', 'internal_linkedin_share_url', 'internal_linkedin_post_with_image'].includes(selectedTool.name) && (
+                <section className={toolModalSectionClass}>
+                  <div className="mb-5">
+                    <h3 className="text-lg font-semibold tracking-[-0.02em] text-[#171717]">Company Page</h3>
+                    <p className="mt-1 text-sm text-[#6d675f]">
+                      Post on behalf of a LinkedIn Company Page instead of the personal account.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between rounded-2xl border border-black/8 bg-white/60 px-4 py-3">
+                    <div>
+                      <p className="text-sm font-medium text-[#171717]">Post to Company Page</p>
+                      <p className="text-xs text-[#6d675f] mt-0.5">
+                        When enabled, posts go to the specified company page instead of the personal feed.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleConfigChange('post_to_company_page', toolConfig['post_to_company_page'] === 'true' ? 'false' : 'true')}
+                      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        toolConfig['post_to_company_page'] === 'true' ? 'bg-[#171717]' : 'bg-gray-200'
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          toolConfig['post_to_company_page'] === 'true' ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  {toolConfig['post_to_company_page'] === 'true' && (
+                    <div className="mt-4">
+                      <label className={toolModalLabelClass}>Company Page ID</label>
+                      <p className={toolModalHelpClass}>
+                        The numeric LinkedIn organization ID (e.g. 12345678). Find it in your LinkedIn Page admin URL or use the &quot;Get Managed Pages&quot; tool.
+                      </p>
+                      <input
+                        type="text"
+                        value={toolConfig['company_page_id'] || ''}
+                        onChange={(e) => handleConfigChange('company_page_id', e.target.value)}
+                        placeholder="e.g. 12345678"
+                        className={toolModalFieldClass}
+                      />
+                    </div>
+                  )}
+                </section>
+              )}
+
               {/* GitHub Account Connection Section */}
               {selectedTool.name === 'github' && (
                 <section className={toolModalSectionClass}>
