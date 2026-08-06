@@ -166,6 +166,14 @@ async def _get_linkedin_credentials(
     if not credentials.get("access_token"):
         raise ValueError("No LinkedIn access token available. Please connect LinkedIn.")
 
+    # Attach company page config so posting functions can switch author URN
+    if agent_tool and agent_tool.config:
+        credentials["post_to_company_page"] = bool(agent_tool.config.get("post_to_company_page"))
+        credentials["company_page_id"] = agent_tool.config.get("company_page_id") or ""
+    else:
+        credentials["post_to_company_page"] = False
+        credentials["company_page_id"] = ""
+
     return credentials
 
 
@@ -306,7 +314,10 @@ async def internal_linkedin_post_text(
         if not user_id:
             return {"success": False, "error": "Failed to get user ID"}
 
-        author_urn = f"urn:li:person:{user_id}"
+        if credentials.get("post_to_company_page") and credentials.get("company_page_id"):
+            author_urn = f"urn:li:organization:{credentials['company_page_id']}"
+        else:
+            author_urn = f"urn:li:person:{user_id}"
 
         # Create post using Posts API
         json_data = {
@@ -394,7 +405,10 @@ async def internal_linkedin_share_url(
         if not user_id:
             return {"success": False, "error": "Failed to get user ID"}
 
-        author_urn = f"urn:li:person:{user_id}"
+        if credentials.get("post_to_company_page") and credentials.get("company_page_id"):
+            author_urn = f"urn:li:organization:{credentials['company_page_id']}"
+        else:
+            author_urn = f"urn:li:person:{user_id}"
 
         # Create share with article content
         json_data = {
@@ -663,7 +677,10 @@ async def internal_linkedin_post_with_image(
         if not user_id:
             return {"success": False, "error": "Failed to get user ID"}
 
-        author_urn = f"urn:li:person:{user_id}"
+        if credentials.get("post_to_company_page") and credentials.get("company_page_id"):
+            author_urn = f"urn:li:organization:{credentials['company_page_id']}"
+        else:
+            author_urn = f"urn:li:person:{user_id}"
 
         init_headers = {
             "Authorization": f"Bearer {access_token}",
