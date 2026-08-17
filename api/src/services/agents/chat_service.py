@@ -38,6 +38,7 @@ class ChatService:
         message: str,
         db: AsyncSession,
         attachments: list[dict[str, Any]] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> Message | None:
         """
         Save user message to conversation.
@@ -46,6 +47,7 @@ class ChatService:
             conversation_id: Conversation UUID
             message: User message content
             db: Database session
+            metadata: Optional channel-specific metadata (e.g. Slack user/channel/thread info)
 
         Returns:
             Saved Message object or None if failed
@@ -62,7 +64,7 @@ class ChatService:
                 conversation_id=conversation_id,
                 role=MessageRole.USER,
                 content=message,
-                message_metadata={},
+                message_metadata=metadata or {},
                 attachments=attachments,
                 status=MessageStatus.COMPLETED,
             )

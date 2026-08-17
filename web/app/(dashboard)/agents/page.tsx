@@ -578,7 +578,7 @@ const AgentCard = ({
           {menuOpen && anchorRect && (
             <DropdownMenu
               agent={agent}
-              onDelete={() => onDelete({ id: agent.id, name: agent.agent_name })}
+              onDelete={() => onDelete({ id: agent.slug, name: agent.agent_name })}
               onClose={() => setMenuOpen(false)}
               anchorRect={anchorRect}
             />

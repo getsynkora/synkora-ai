@@ -27,7 +27,10 @@ class TestGitHubInjectTokenIntoUrl:
     def test_injects_token_before_host(self):
         url = "https://github.com/user/repo.git"
         result = github_inject(url, "ghp_mytoken")
-        assert result == "https://ghp_mytoken@github.com/user/repo.git"
+        # "x-access-token:" username prefix is required so git treats the token as a
+        # password (not just a username), avoiding an interactive password prompt in
+        # non-interactive environments. Works for both PATs and GitHub App tokens.
+        assert result == "https://x-access-token:ghp_mytoken@github.com/user/repo.git"
 
     def test_preserves_path(self):
         url = "https://github.com/org/repo/tree/main"
@@ -70,7 +73,7 @@ class TestGitHubInjectTokenIntoUrl:
     def test_url_without_dotgit_suffix(self):
         url = "https://github.com/user/repo"
         result = github_inject(url, "tok")
-        assert result == "https://tok@github.com/user/repo"
+        assert result == "https://x-access-token:tok@github.com/user/repo"
 
 
 # ---------------------------------------------------------------------------

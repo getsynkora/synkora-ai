@@ -287,6 +287,54 @@ class SlackEventService:
         except Exception as e:
             logger.warning(f"Failed to set assistant suggested prompts: {e}")
 
+    async def process_interaction(self, slack_bot: SlackBot, payload: dict[str, Any]) -> dict[str, str]:
+        """Process a Slack interactive component payload (e.g. button click).
+
+        Args:
+            slack_bot: SlackBot instance
+            payload: Parsed interaction payload (from the form-encoded `payload` field)
+
+        Returns:
+            Dict with status response
+        """
+        from ...services.human_approval_service import HumanApprovalService
+
+        interaction_type = payload.get("type", "")
+        if interaction_type != "block_actions":
+            logger.info(f"Unhandled Slack interaction type: {interaction_type}")
+            return {"status": "ok"}
+
+        actions = payload.get("actions") or []
+        if not actions:
+            logger.warning("block_actions payload had no actions")
+            return {"status": "ok"}
+
+        action_id = actions[0].get("action_id", "")
+        approval_id = actions[0].get("value", "")
+        slack_user_id = (payload.get("user") or {}).get("id", "")
+        response_url = payload.get("response_url")
+
+        if action_id not in ("hitl_approve", "hitl_reject") or not approval_id:
+            logger.info(f"Unhandled Slack block action_id: {action_id}")
+            return {"status": "ok"}
+
+        decision = "approved" if action_id == "hitl_approve" else "rejected"
+
+        result = await HumanApprovalService(self.db_session).respond_to_approval(
+            approval_id, decision, feedback_text=None, db=self.db_session, responded_by=slack_user_id
+        )
+
+        if result.get("already_handled") and response_url:
+            responded_by = result.get("responded_by")
+            note = (
+                f"This request was already handled by <@{responded_by}>."
+                if responded_by
+                else "This request was already handled."
+            )
+            await HumanApprovalService.post_slack_ephemeral(response_url, note)
+
+        return {"status": "ok"}
+
     async def _get_slack_client(self, slack_bot: SlackBot) -> AsyncWebClient:
         """Create Slack web client for the bot.
 

@@ -20,7 +20,7 @@ Tests the full pipeline:
 ```python
 python3 -c "
 import urllib.request, json
-data = json.dumps({'email': 'admin@locahost.com', 'password': 'Admin123!'}).encode()
+data = json.dumps({'email': 'admin@localhost.com', 'password': 'Admin123!'}).encode()
 req = urllib.request.Request(
     'http://localhost:5001/console/api/auth/login',
     data=data,
@@ -33,7 +33,7 @@ with urllib.request.urlopen(req) as r:
 "
 ```
 
-Note: email is `admin@locahost.com` (single 'l' in localhost — that's the actual registered email).
+Note: email is `admin@localhost.com` (confirmed via DB: `SELECT email FROM accounts WHERE is_platform_admin='true'`).
 
 ---
 

@@ -86,6 +86,30 @@ async def _process_event_background(
             logger.error(f"Error processing Slack event for bot {bot_id}: {e}")
 
 
+async def _process_interaction_background(
+    bot_id: UUID,
+    payload: dict,
+) -> None:
+    """Process a Slack interactive component payload (e.g. button click) in background.
+
+    Args:
+        bot_id: Bot ID
+        payload: Parsed interaction payload
+    """
+    async with get_async_session_factory()() as db:
+        try:
+            slack_bot = await db.get(SlackBot, bot_id)
+            if not slack_bot:
+                logger.error(f"Slack bot {bot_id} not found for interaction processing")
+                return
+
+            event_service = SlackEventService(db)
+            await event_service.process_interaction(slack_bot, payload)
+
+        except Exception as e:
+            logger.error(f"Error processing Slack interaction for bot {bot_id}: {e}")
+
+
 @public_router.post("/{bot_id}/events")
 async def handle_slack_event(
     bot_id: UUID,
@@ -114,14 +138,7 @@ async def handle_slack_event(
     """
     # Get raw body for signature verification
     body = await request.body()
-
-    # Parse JSON payload
-    try:
-        import json
-
-        payload = json.loads(body)
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON payload")
+    content_type = request.headers.get("content-type", "")
 
     # Get the bot
     slack_bot = await db.get(SlackBot, bot_id)
@@ -147,6 +164,37 @@ async def handle_slack_event(
 
     # Create event service
     event_service = SlackEventService(db)
+
+    # Interactive components (button clicks) arrive as form-encoded payloads,
+    # not JSON events.
+    if content_type.startswith("application/x-www-form-urlencoded"):
+        import json
+        from urllib.parse import parse_qs
+
+        form = parse_qs(body.decode("utf-8"))
+        payload_values = form.get("payload")
+        if not payload_values:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing payload field")
+
+        if not event_service.verify_request(slack_bot, body, x_slack_request_timestamp, x_slack_signature):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid signature")
+
+        try:
+            interaction_payload = json.loads(payload_values[0])
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid interaction payload")
+
+        # Ack immediately (Slack requires a response within ~3 seconds); process in background.
+        asyncio.create_task(_process_interaction_background(bot_id, interaction_payload))
+        return JSONResponse(content={"status": "ok"})
+
+    # Parse JSON payload (events)
+    try:
+        import json
+
+        payload = json.loads(body)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON payload")
 
     # Handle URL verification challenge (immediate response required)
     event_type = payload.get("type")

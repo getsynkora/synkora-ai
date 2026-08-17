@@ -241,7 +241,11 @@ async def internal_speckit_commit(
 
     rc = config.get("_runtime_context") if config else None
 
-    token = await get_github_token_from_context(rc, tool_name="speckit_commit")
+    # Derive owner/repo_name up front so the correct GitHub App installation
+    # (when the app is installed on multiple orgs) can be selected.
+    owner, repo_name = repo.split("/", 1)
+
+    token = await get_github_token_from_context(rc, tool_name="speckit_commit", owner=owner, repo=repo_name)
     if not token:
         return {"error": "No GitHub OAuth app connected for this tenant. Connect GitHub in Settings > OAuth Apps."}
 
@@ -255,7 +259,6 @@ async def internal_speckit_commit(
         return {"error": f"Failed to read file from S3: {str(e)}"}
 
     # Derive commit path from s3_key: speckit/{tenant}/{feature_id}/filename
-    owner, repo_name = repo.split("/", 1)
     if path is None:
         parts = s3_key.split("/")
         feature_id = parts[2] if len(parts) >= 4 else "unknown"

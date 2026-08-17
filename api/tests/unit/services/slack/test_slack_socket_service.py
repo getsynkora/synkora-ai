@@ -126,6 +126,11 @@ class TestSlackSocketService:
         assert "assistant_thread_started" in registered
         assert "assistant_thread_context_changed" in registered
 
+        # HITL approval buttons must be registered too
+        registered_actions = [c.args[0] for c in mock_app.action.call_args_list]
+        assert "hitl_approve" in registered_actions
+        assert "hitl_reject" in registered_actions
+
     @pytest.mark.asyncio
     async def test_handle_message_delegates_to_handler(self, service, mock_slack_bot, mock_db_session):
         """_handle_message must delegate fully to SlackMessageHandler.handle_message."""
@@ -290,3 +295,84 @@ class TestSlackSocketService:
         assert status["is_running"] is True
         assert status["connection_status"] == "disconnected"  # mock default
         assert status["last_connected_at"] is not None
+
+
+class TestHitlButtonHandling:
+    @pytest.fixture
+    def mock_db_session(self):
+        session = AsyncMock(spec=AsyncSession)
+        return session
+
+    @pytest.fixture
+    def service(self, mock_db_session):
+        SlackSocketService._active_handlers = {}
+        return SlackSocketService(mock_db_session)
+
+    @pytest.mark.asyncio
+    async def test_handle_hitl_approve_calls_respond_to_approval(self, service):
+        approval_id = str(uuid4())
+        body = {
+            "actions": [{"action_id": "hitl_approve", "value": approval_id}],
+            "user": {"id": "U123"},
+            "response_url": "https://hooks.slack.test/response",
+        }
+
+        mock_service_instance = AsyncMock()
+        mock_service_instance.respond_to_approval = AsyncMock(return_value={"status": "approved"})
+
+        with (
+            patch("src.core.database.get_async_session_factory") as mock_factory,
+            patch("src.services.human_approval_service.HumanApprovalService", return_value=mock_service_instance),
+        ):
+            mock_session_cm = AsyncMock()
+            mock_session_cm.__aenter__ = AsyncMock(return_value=AsyncMock(spec=AsyncSession))
+            mock_session_cm.__aexit__ = AsyncMock(return_value=False)
+            mock_factory.return_value = MagicMock(return_value=mock_session_cm)
+
+            await service._handle_hitl_button(body, decision="approved")
+
+            mock_service_instance.respond_to_approval.assert_awaited_once()
+            call_args = mock_service_instance.respond_to_approval.call_args
+            assert call_args.args[0] == approval_id
+            assert call_args.args[1] == "approved"
+            assert call_args.kwargs["responded_by"] == "U123"
+
+    @pytest.mark.asyncio
+    async def test_handle_hitl_button_already_handled_posts_ephemeral(self, service):
+        approval_id = str(uuid4())
+        body = {
+            "actions": [{"action_id": "hitl_reject", "value": approval_id}],
+            "user": {"id": "U999"},
+            "response_url": "https://hooks.slack.test/response",
+        }
+
+        mock_service_instance = AsyncMock()
+        mock_service_instance.respond_to_approval = AsyncMock(
+            return_value={"status": "approved", "already_handled": True, "responded_by": "U111"}
+        )
+
+        with (
+            patch("src.core.database.get_async_session_factory") as mock_factory,
+            patch("src.services.human_approval_service.HumanApprovalService", return_value=mock_service_instance),
+            patch(
+                "src.services.human_approval_service.HumanApprovalService.post_slack_ephemeral",
+                new_callable=AsyncMock,
+            ) as mock_post_ephemeral,
+        ):
+            mock_session_cm = AsyncMock()
+            mock_session_cm.__aenter__ = AsyncMock(return_value=AsyncMock(spec=AsyncSession))
+            mock_session_cm.__aexit__ = AsyncMock(return_value=False)
+            mock_factory.return_value = MagicMock(return_value=mock_session_cm)
+
+            await service._handle_hitl_button(body, decision="rejected")
+
+            mock_post_ephemeral.assert_awaited_once()
+            args = mock_post_ephemeral.call_args.args
+            assert args[0] == "https://hooks.slack.test/response"
+            assert "U111" in args[1]
+
+    @pytest.mark.asyncio
+    async def test_handle_hitl_button_malformed_payload_is_noop(self, service):
+        # Missing 'actions' entirely
+        await service._handle_hitl_button({"user": {"id": "U1"}}, decision="approved")
+        # Should not raise; nothing further to assert since it just logs and returns

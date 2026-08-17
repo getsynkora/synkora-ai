@@ -80,7 +80,7 @@ def _slugify(name: str) -> str:
     return slug or "agent"
 
 
-def _build_manifest(agent_name: str, description: str | None) -> dict:
+def _build_manifest(agent_name: str, description: str | None, suggestion_prompts: list[dict] | None = None) -> dict:
     bot_display_name = agent_name[:80]  # Slack limit
     raw_desc = (description or "AI agent").strip()
     # display_information.description: Slack recommends ≤140 chars, keep it concise
@@ -88,6 +88,22 @@ def _build_manifest(agent_name: str, description: str | None) -> dict:
         app_description = raw_desc[:77] + "..."
     else:
         app_description = raw_desc
+
+    # features.agent_view.agent_description: Slack limit is 300 chars
+    agent_description = raw_desc[:297] + "..." if len(raw_desc) > 300 else raw_desc
+
+    agent_view: dict = {"agent_description": agent_description}
+    if suggestion_prompts:
+        built_prompts = [
+            {
+                "title": p.get("title", "")[:100],
+                "message": (p.get("prompt") or p.get("description") or p.get("title", ""))[:500],
+            }
+            for p in suggestion_prompts[:4]
+            if p.get("title")
+        ]
+        if built_prompts:
+            agent_view["suggested_prompts"] = built_prompts
 
     return {
         "_metadata": {"major_version": 1, "minor_version": 1},
@@ -106,6 +122,10 @@ def _build_manifest(agent_name: str, description: str | None) -> dict:
                 "display_name": bot_display_name,
                 "always_online": True,
             },
+            # Renders the "AGENT" badge and the unified Agent messaging UI
+            # (Messages tab timeline) instead of the plain "APP" badge.
+            # New apps can only use agent_view (assistant_view is legacy).
+            "agent_view": agent_view,
         },
         "oauth_config": {
             "scopes": {
@@ -145,7 +165,7 @@ async def download_slack_manifest(
     if not agent:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
 
-    manifest = _build_manifest(agent.agent_name, agent.description)
+    manifest = _build_manifest(agent.agent_name, agent.description, agent.suggestion_prompts)
     filename = f"slack-manifest-{_slugify(agent.agent_name)}.json"
 
     return Response(

@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.data_source import DataSource
@@ -208,10 +209,42 @@ class BaseConnector(ABC):
         This processes documents through the knowledge base pipeline if linked,
         or stores them directly if not linked to a knowledge base.
 
+        If the linked knowledge base is in ADVANCED ingestion mode, documents are
+        routed through the Company Brain StreamProducer instead of the legacy
+        DocumentProcessor pipeline.
+
         Args:
             documents: List of documents to process
         """
         logger.info(f"Processing batch of {len(documents)} documents")
+
+        kb_id = self.data_source.knowledge_base_id
+        if kb_id is not None:
+            from src.models.knowledge_base import IngestionMode, KnowledgeBase
+
+            result_kb = await self.db.execute(select(KnowledgeBase).where(KnowledgeBase.id == kb_id))
+            kb = result_kb.scalar_one_or_none()
+            if kb is not None and kb.ingestion_mode == IngestionMode.ADVANCED:
+                from src.services.company_brain.ingestion.stream_producer import StreamProducer
+
+                source_type = getattr(self.data_source.type, "value", str(self.data_source.type)).lower()
+                # fetch_documents() implementations follow this class's documented "text"
+                # field contract (see the abstract method above), but the Company Brain
+                # stream/chunker pipeline only reads "content". Normalize here, at the
+                # single bridging point, so every connector reaches it correctly.
+                normalized_documents = [{**doc, "content": doc.get("content") or doc.get("text", "")} for doc in documents]
+                producer = StreamProducer()
+                push_result = await producer.push(
+                    kb_id=kb_id,
+                    tenant_id=str(self.data_source.tenant_id),
+                    source_type=source_type,
+                    documents=normalized_documents,
+                )
+                logger.info(
+                    f"Queued {push_result.get('queued', 0)} documents to Company Brain stream, "
+                    f"skipped {push_result.get('skipped', 0)}"
+                )
+                return
 
         # Use document processor to handle embedding and storage
         processor = DocumentProcessor(self.db)

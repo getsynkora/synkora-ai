@@ -43,7 +43,12 @@ SANDBOX_API_KEY = os.getenv("SANDBOX_API_KEY")
 APP_ENV = os.getenv("APP_ENV", "development").lower()
 SAFE_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
 MAX_CONCURRENT_EXEC = int(os.getenv("SANDBOX_MAX_CONCURRENT_EXEC", "4"))
-MAX_EXEC_TIMEOUT = int(os.getenv("SANDBOX_MAX_EXEC_TIMEOUT", "300"))
+# Default matches the reference code-execution service's own baked-in ceiling
+# (CODE_EXECUTOR_MAX_COMMAND_TIMEOUT_SECONDS=3600) so any deployment that
+# forgets to set SANDBOX_MAX_EXEC_TIMEOUT explicitly still allows genuinely
+# long-running commands (e.g. full-history git clones) instead of silently
+# reverting to a 5-minute cap.
+MAX_EXEC_TIMEOUT = int(os.getenv("SANDBOX_MAX_EXEC_TIMEOUT", "3600"))
 _exec_semaphore = asyncio.Semaphore(max(1, MAX_CONCURRENT_EXEC))
 BASE_ENV_ALLOWLIST = {
     "HOME",

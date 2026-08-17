@@ -364,12 +364,33 @@ class BotWorker:
         try:
             from slack_bolt.adapter.socket_mode.async_handler import AsyncSocketModeHandler
             from slack_bolt.async_app import AsyncApp
+            from slack_sdk.web.async_client import AsyncWebClient
 
             bot_id = str(slack_bot.id)
 
             # Decrypt tokens
             bot_token = decrypt_value(slack_bot.slack_bot_token)
             app_token = decrypt_value(slack_bot.slack_app_token)
+
+            # Auto-detect and persist workspace/team ID if not already set. This is
+            # required for Slack's Thinking Steps streaming API (recipient_team_id).
+            if not slack_bot.slack_workspace_id:
+                try:
+                    auth_response = await AsyncWebClient(token=bot_token).auth_test()
+                    slack_bot.slack_workspace_id = auth_response["team_id"]
+                    slack_bot.slack_workspace_name = auth_response["team"]
+                    async with get_async_session_factory()() as _db:
+                        _bot = await _db.get(SlackBot, slack_bot.id)
+                        if _bot:
+                            _bot.slack_workspace_id = slack_bot.slack_workspace_id
+                            _bot.slack_workspace_name = slack_bot.slack_workspace_name
+                            await _db.commit()
+                    logger.info(
+                        f"Auto-detected workspace for {slack_bot.bot_name}: "
+                        f"{slack_bot.slack_workspace_name} ({slack_bot.slack_workspace_id})"
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to auto-detect workspace info for {slack_bot.bot_name}: {e}")
 
             # Create Slack app with handlers
             app = AsyncApp(token=bot_token)

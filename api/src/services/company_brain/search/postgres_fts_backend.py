@@ -69,7 +69,9 @@ class PostgresFTSBackend(BaseSearchBackend):
     async def search(
         self,
         tenant_id: str,
+        knowledge_base_id: str,
         query: str,
+        query_vector: list[float] | None = None,
         filters: SearchFilter | None = None,
         limit: int = 20,
         offset: int = 0,
@@ -143,7 +145,9 @@ class PostgresFTSBackend(BaseSearchBackend):
             backend_used="postgres_fts",
         )
 
-    async def index_documents(self, tenant_id: str, documents: list[dict[str, Any]]) -> dict[str, int]:
+    async def index_documents(
+        self, tenant_id: str, knowledge_base_id: str, documents: list[dict[str, Any]]
+    ) -> dict[str, int]:
         """
         PostgresFTS backend does not maintain a separate index.
         The tsvector column on data_source_documents is updated automatically
@@ -151,11 +155,13 @@ class PostgresFTSBackend(BaseSearchBackend):
         """
         return {"indexed": len(documents), "failed": 0}
 
-    async def delete_documents(self, tenant_id: str, doc_ids: list[str]) -> int:
+    async def delete_documents(self, tenant_id: str, knowledge_base_id: str, doc_ids: list[str]) -> int:
         # Documents are deleted from data_source_documents by the caller; no separate index.
         return len(doc_ids)
 
-    async def update_tier(self, tenant_id: str, doc_ids: list[str], new_tier: str) -> int:
+    async def update_tier(
+        self, tenant_id: str, knowledge_base_id: str, doc_ids: list[str], new_tier: str
+    ) -> int:
         # Tier is stored in the data_source_documents row; update done by caller.
         return len(doc_ids)
 

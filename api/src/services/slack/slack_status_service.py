@@ -1,6 +1,7 @@
 """Service for managing Slack thread status indicators."""
 
 import logging
+from typing import Any
 
 from slack_sdk.web.async_client import AsyncWebClient
 
@@ -25,7 +26,13 @@ class SlackStatusService:
         """
         self.client = client
 
-    async def set_status(self, channel_id: str, thread_ts: str, status: str = "is thinking...") -> bool:
+    async def set_status(
+        self,
+        channel_id: str,
+        thread_ts: str,
+        status: str = "is thinking...",
+        loading_messages: list[str] | None = None,
+    ) -> bool:
         """
         Set a status indicator on a Slack thread.
 
@@ -36,6 +43,10 @@ class SlackStatusService:
             channel_id: The channel ID containing the thread
             thread_ts: The thread timestamp (parent message ts)
             status: The status text to display (e.g., "is thinking...")
+            loading_messages: Custom messages Slack rotates through in the
+                in-thread loading indicator (max 10). Without this, Slack
+                substitutes its own generic placeholder text (e.g.
+                "Summarising findings...") instead of our real status.
 
         Returns:
             True if status was set successfully, False otherwise
@@ -44,14 +55,17 @@ class SlackStatusService:
             Failures are logged but don't raise exceptions to avoid blocking
             message processing if the status API is unavailable.
         """
+        payload: dict[str, Any] = {
+            "status": status,
+            "channel_id": channel_id,
+            "thread_ts": thread_ts,
+        }
+        if loading_messages:
+            payload["loading_messages"] = loading_messages[:10]
         try:
             response = await self.client.api_call(
                 api_method="assistant.threads.setStatus",
-                json={
-                    "status": status,
-                    "channel_id": channel_id,
-                    "thread_ts": thread_ts,
-                },
+                json=payload,
             )
             if not response.get("ok"):
                 error = response.get("error", "unknown_error")
@@ -81,7 +95,8 @@ class SlackStatusService:
         Returns:
             True if status was set successfully
         """
-        return await self.set_status(channel_id, thread_ts, "is thinking...")
+        status = "is thinking..."
+        return await self.set_status(channel_id, thread_ts, status, loading_messages=[status])
 
     async def set_generating(self, channel_id: str, thread_ts: str) -> bool:
         """
@@ -94,7 +109,8 @@ class SlackStatusService:
         Returns:
             True if status was set successfully
         """
-        return await self.set_status(channel_id, thread_ts, "is generating a response...")
+        status = "is generating a response..."
+        return await self.set_status(channel_id, thread_ts, status, loading_messages=[status])
 
     async def set_custom_status(self, channel_id: str, thread_ts: str, action: str) -> bool:
         """
@@ -108,7 +124,7 @@ class SlackStatusService:
         Returns:
             True if status was set successfully
         """
-        return await self.set_status(channel_id, thread_ts, action)
+        return await self.set_status(channel_id, thread_ts, action, loading_messages=[action])
 
     async def clear_status(self, channel_id: str, thread_ts: str) -> bool:
         """

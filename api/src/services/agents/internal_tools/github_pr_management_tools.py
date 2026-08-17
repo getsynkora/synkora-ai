@@ -17,7 +17,12 @@ import httpx
 logger = logging.getLogger(__name__)
 
 
-async def _get_github_token(runtime_context: dict[str, Any], config: dict[str, Any] | None = None) -> str:
+async def _get_github_token(
+    runtime_context: dict[str, Any],
+    config: dict[str, Any] | None = None,
+    owner: str | None = None,
+    repo: str | None = None,
+) -> str:
     """Get GitHub token from runtime context or OAuth app."""
     from src.services.agents.internal_tools.github_auth_helper import get_github_token_from_context
 
@@ -31,7 +36,7 @@ async def _get_github_token(runtime_context: dict[str, Any], config: dict[str, A
 
     logger.info(f"🔍 [GitHub PR Management Tools] Looking up GitHub OAuth for tool_name='{tool_name}'")
 
-    token = await get_github_token_from_context(runtime_context, tool_name=tool_name)
+    token = await get_github_token_from_context(runtime_context, tool_name=tool_name, owner=owner, repo=repo)
 
     if not token:
         raise ValueError("GitHub token not found. Please configure GitHub OAuth or provide a token.")
@@ -94,7 +99,7 @@ async def internal_github_merge_pr(
         Dictionary with merge result
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         valid_methods = ["merge", "squash", "rebase"]
         if merge_method not in valid_methods:
@@ -152,7 +157,7 @@ async def internal_github_close_pr(
         Dictionary with close result
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         json_data = {"state": "closed"}
 
@@ -197,7 +202,7 @@ async def internal_github_reopen_pr(
         Dictionary with reopen result
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         json_data = {"state": "open"}
 
@@ -250,7 +255,7 @@ async def internal_github_update_pr(
         Dictionary with updated PR details
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         json_data = {}
         if title is not None:
@@ -312,7 +317,7 @@ async def internal_github_request_reviewers(
         Dictionary with reviewer request result
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         json_data = {}
         if reviewers:
@@ -368,7 +373,7 @@ async def internal_github_remove_reviewers(
         Dictionary with removal result
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         json_data = {}
         if reviewers:
@@ -416,7 +421,7 @@ async def internal_github_add_labels(
         Dictionary with updated labels
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         json_data = {"labels": labels}
 
@@ -458,7 +463,7 @@ async def internal_github_remove_label(
         Dictionary with removal result
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         # URL-encode the label name
         from urllib.parse import quote
@@ -504,7 +509,7 @@ async def internal_github_update_branch(
         Dictionary with update result
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         json_data = {}
         if expected_head_sha:
@@ -561,7 +566,9 @@ async def internal_github_create_pr(
 
         from .github_auth_helper import get_github_token_from_context
 
-        token = await get_github_token_from_context(runtime_context, tool_name="internal_github_create_pr")
+        token = await get_github_token_from_context(
+            runtime_context, tool_name="internal_github_create_pr", owner=repo_owner, repo=repo_name
+        )
 
         if not token:
             return {

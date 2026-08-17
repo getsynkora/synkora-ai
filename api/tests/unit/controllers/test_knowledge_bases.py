@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 from src.controllers.knowledge_bases import router
 from src.core.database import get_async_db
 from src.middleware.auth_middleware import get_current_tenant_id
-from src.models.knowledge_base import KnowledgeBaseStatus
+from src.models.knowledge_base import IngestionMode, KnowledgeBaseStatus
 
 
 def setup_db_execute_mock(mock_db, return_value, return_list=False):
@@ -79,6 +79,7 @@ def _create_mock_knowledge_base(kb_id, tenant_id, **kwargs):
     mock_kb.total_documents = kwargs.get("total_documents", 0)
     mock_kb.total_chunks = kwargs.get("total_chunks", 0)
     mock_kb.status = kwargs.get("status", KnowledgeBaseStatus.ACTIVE)
+    mock_kb.ingestion_mode = kwargs.get("ingestion_mode", IngestionMode.STANDARD)
     mock_kb.created_at = datetime.now(UTC)
     mock_kb.updated_at = datetime.now(UTC)
     mock_kb.get_embedding_config_decrypted = MagicMock(return_value={})
@@ -154,6 +155,95 @@ class TestCreateKnowledgeBase:
                 "embedding_model": "all-MiniLM-L6-v2",
                 "vector_db_provider": "INVALID",
                 "chunking_strategy": "SEMANTIC",
+            },
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+class TestCreateKnowledgeBaseIngestionMode:
+    """Tests for the ingestion_mode field on KB creation."""
+
+    def test_create_knowledge_base_defaults_to_standard_ingestion_mode(self, client):
+        """Test creating a KB without ingestion_mode defaults to standard."""
+        test_client, tenant_id, mock_db = client
+
+        kb_id = 1
+
+        def mock_add(kb):
+            kb.id = kb_id
+            kb.created_at = datetime.now(UTC)
+            kb.updated_at = datetime.now(UTC)
+            kb.status = KnowledgeBaseStatus.ACTIVE
+            kb.total_documents = 0
+            kb.total_chunks = 0
+            kb.get_embedding_config_decrypted = MagicMock(return_value={})
+            kb.get_vector_db_config_decrypted = MagicMock(return_value={})
+
+        mock_db.add.side_effect = mock_add
+
+        response = test_client.post(
+            "/knowledge-bases",
+            json={
+                "name": "Test KB",
+                "embedding_provider": "SENTENCE_TRANSFORMERS",
+                "embedding_model": "all-MiniLM-L6-v2",
+                "vector_db_provider": "QDRANT",
+                "chunking_strategy": "SEMANTIC",
+            },
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        data = response.json()
+        assert data["ingestion_mode"] == "standard"
+
+    def test_create_knowledge_base_accepts_advanced_ingestion_mode(self, client):
+        """Test creating a KB with ingestion_mode=advanced."""
+        test_client, tenant_id, mock_db = client
+
+        kb_id = 1
+
+        def mock_add(kb):
+            kb.id = kb_id
+            kb.created_at = datetime.now(UTC)
+            kb.updated_at = datetime.now(UTC)
+            kb.status = KnowledgeBaseStatus.ACTIVE
+            kb.total_documents = 0
+            kb.total_chunks = 0
+            kb.get_embedding_config_decrypted = MagicMock(return_value={})
+            kb.get_vector_db_config_decrypted = MagicMock(return_value={})
+
+        mock_db.add.side_effect = mock_add
+
+        response = test_client.post(
+            "/knowledge-bases",
+            json={
+                "name": "Test KB",
+                "embedding_provider": "SENTENCE_TRANSFORMERS",
+                "embedding_model": "all-MiniLM-L6-v2",
+                "vector_db_provider": "QDRANT",
+                "chunking_strategy": "SEMANTIC",
+                "ingestion_mode": "advanced",
+            },
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        data = response.json()
+        assert data["ingestion_mode"] == "advanced"
+
+    def test_create_knowledge_base_invalid_ingestion_mode(self, client):
+        """Test creating a KB with an invalid ingestion_mode."""
+        test_client, tenant_id, mock_db = client
+
+        response = test_client.post(
+            "/knowledge-bases",
+            json={
+                "name": "Test KB",
+                "embedding_provider": "SENTENCE_TRANSFORMERS",
+                "embedding_model": "all-MiniLM-L6-v2",
+                "vector_db_provider": "QDRANT",
+                "chunking_strategy": "SEMANTIC",
+                "ingestion_mode": "not_a_real_mode",
             },
         )
 

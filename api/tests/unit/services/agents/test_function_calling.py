@@ -84,6 +84,25 @@ class TestFunctionCallingHandler:
             MockTool.assert_called()
 
     @pytest.mark.asyncio
+    async def test_invalid_command_format_not_retried(self, handler, mock_tool_registry):
+        """A malformed command argument (bad JSON/glob syntax the LLM emitted) is a
+        deterministic parse failure — retrying the identical unparseable string can
+        never succeed. It must fail fast (one execute_tool call) instead of burning
+        the full retry budget on the same broken string, so the LLM gets a chance
+        to correct its own syntax on the next turn rather than tripping the circuit
+        breaker before it ever sees the error."""
+        mock_tool_registry.execute_tool.return_value = {
+            "success": False,
+            "output": "",
+            "error": "Invalid command format: invalid syntax (<unknown>, line 1)",
+        }
+
+        result = await handler._execute_single_tool_with_retry("test_tool", {"arg": "x"}, should_trace=False)
+
+        assert result.success is False
+        assert mock_tool_registry.execute_tool.call_count == 1
+
+    @pytest.mark.asyncio
     async def test_generate_with_functions_no_tools(self, mock_llm_client, mock_tool_registry):
         # Initialize handler with NO tools found
         mock_tool_registry.list_tools.return_value = []

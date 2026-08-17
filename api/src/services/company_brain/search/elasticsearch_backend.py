@@ -136,7 +136,9 @@ class ElasticsearchBackend(BaseSearchBackend):
     async def search(
         self,
         tenant_id: str,
+        knowledge_base_id: str,
         query: str,
+        query_vector: list[float] | None = None,
         filters: SearchFilter | None = None,
         limit: int = 20,
         offset: int = 0,
@@ -196,7 +198,9 @@ class ElasticsearchBackend(BaseSearchBackend):
             storage_tier=src.get("storage_tier", "hot"),
         )
 
-    async def index_documents(self, tenant_id: str, documents: list[dict[str, Any]]) -> dict[str, int]:
+    async def index_documents(
+        self, tenant_id: str, knowledge_base_id: str, documents: list[dict[str, Any]]
+    ) -> dict[str, int]:
         from elasticsearch.helpers import async_bulk
 
         client = self._get_client()
@@ -248,7 +252,7 @@ class ElasticsearchBackend(BaseSearchBackend):
 
         return {"indexed": indexed, "failed": failed}
 
-    async def delete_documents(self, tenant_id: str, doc_ids: list[str]) -> int:
+    async def delete_documents(self, tenant_id: str, knowledge_base_id: str, doc_ids: list[str]) -> int:
         client = self._get_client()
         prefix = self._index_prefix()
         deleted = 0
@@ -262,7 +266,9 @@ class ElasticsearchBackend(BaseSearchBackend):
                 pass
         return deleted
 
-    async def update_tier(self, tenant_id: str, doc_ids: list[str], new_tier: str) -> int:
+    async def update_tier(
+        self, tenant_id: str, knowledge_base_id: str, doc_ids: list[str], new_tier: str
+    ) -> int:
         client = self._get_client()
         prefix = self._index_prefix()
         updated = 0

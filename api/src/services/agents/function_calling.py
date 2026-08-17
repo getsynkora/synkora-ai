@@ -463,6 +463,12 @@ class FunctionCallingHandler:
                         except Exception as _prune_trace_err:
                             logger.warning("fire_tool_pruning failed (non-critical): %s", _prune_trace_err)
 
+                    yield {
+                        "type": "compaction",
+                        "pruned_count": pruning_stats.tool_results_pruned,
+                        "tokens_saved": pruning_stats.estimated_tokens_saved,
+                    }
+
                 # Evict any cache entries whose messages were truncated or replaced with
                 # placeholders so the next identical request re-executes the tool and
                 # gets fresh full content (which will land at the end of history and be
@@ -584,6 +590,15 @@ class FunctionCallingHandler:
                         cache_creation_tokens=_cache_creation_tok,
                         context_utilization_pct=_ctx_pct,
                     )
+
+                    yield {
+                        "type": "llm_call",
+                        "status": "completed",
+                        "model": _model_name,
+                        "call_index": self.runtime_context.llm_call_index,
+                        "input_tokens": _in_tok,
+                        "output_tokens": _out_tok,
+                    }
                 except Exception as _llm_trace_err:
                     logger.warning("fire_llm_call failed (non-critical): %s", _llm_trace_err)
 
@@ -1686,6 +1701,15 @@ class FunctionCallingHandler:
                         or "no such file or directory" in str(last_error).lower()
                     ):
                         logger.info(f"Not retrying {func_name}: missing system command: {str(last_error)[:100]}")
+                        break
+
+                    # Don't retry a malformed command argument - it's a deterministic parse
+                    # failure on the exact string the LLM emitted (e.g. a JSON/glob syntax
+                    # mistake). Retrying resends the identical unparseable string, which can
+                    # never succeed, and previously burned all 3 retries (plus the circuit
+                    # breaker) before the LLM ever saw the error to correct its own syntax.
+                    if "invalid command format" in str(last_error).lower():
+                        logger.info(f"Not retrying {func_name}: malformed command argument: {str(last_error)[:100]}")
                         break
 
                     # Don't retry deterministic size/capacity errors

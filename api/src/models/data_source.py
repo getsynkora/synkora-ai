@@ -82,6 +82,12 @@ class DataSource(BaseModel, TimestampMixin):
     refresh_token_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
     token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # Alternative credential source: reuse an existing agent's Slack bot connection
+    # instead of requiring a separate Slack OAuth app for this data source.
+    slack_bot_id: Mapped[str | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("slack_bots.id", ondelete="SET NULL"), nullable=True
+    )
+
     # Configuration
     config: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     # Example config for Slack: {"workspace_id": "...", "channels": ["general", "random"]}
@@ -118,6 +124,7 @@ class DataSource(BaseModel, TimestampMixin):
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="data_sources")
     knowledge_base: Mapped[Optional["KnowledgeBase"]] = relationship("KnowledgeBase", back_populates="data_sources")
     oauth_app: Mapped[Optional["OAuthApp"]] = relationship("OAuthApp")
+    slack_bot: Mapped[Optional["SlackBot"]] = relationship("SlackBot")
     brain_domain: Mapped[Optional["BrainDomain"]] = relationship(
         "BrainDomain",
         back_populates="data_sources",

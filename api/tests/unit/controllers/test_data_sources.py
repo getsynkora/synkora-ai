@@ -125,6 +125,128 @@ class TestCreateDataSource:
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
+    def test_create_data_source_with_slack_bot_id(self, client):
+        """Test creating a Slack data source that reuses an existing SlackBot's credentials."""
+        test_client, tenant_id, mock_db = client
+
+        kb_id = 1
+        ds_id = 1
+        slack_bot_id = str(uuid.uuid4())
+
+        mock_kb = _create_mock_knowledge_base(kb_id, tenant_id)
+        mock_bot = MagicMock()
+        mock_bot.id = slack_bot_id
+        mock_bot.tenant_id = tenant_id
+        mock_ds = _create_mock_data_source(ds_id, tenant_id, kb_id, name="Reused Bot Source")
+        mock_ds.slack_bot_id = slack_bot_id
+
+        call_count = [0]
+
+        def execute_side_effect(*args, **kwargs):
+            call_count[0] += 1
+            mock_result = MagicMock()
+            if call_count[0] == 1:
+                mock_result.scalar_one_or_none.return_value = mock_kb
+            elif call_count[0] == 2:
+                mock_result.scalar_one_or_none.return_value = mock_bot
+            else:
+                mock_result.scalar_one.return_value = mock_ds
+            return mock_result
+
+        mock_db.execute = AsyncMock(side_effect=execute_side_effect)
+        mock_db.add = MagicMock()
+
+        response = test_client.post(
+            "/data-sources",
+            json={
+                "name": "Reused Bot Source",
+                "type": "SLACK",
+                "knowledge_base_id": kb_id,
+                "config": {"channels": ["general"]},
+                "slack_bot_id": slack_bot_id,
+            },
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+
+    def test_create_data_source_duplicate_slack_bot_rejected(self, client):
+        """Test that connecting the same Slack bot to a KB it's already linked to is rejected."""
+        test_client, tenant_id, mock_db = client
+
+        kb_id = 1
+        slack_bot_id = str(uuid.uuid4())
+
+        mock_kb = _create_mock_knowledge_base(kb_id, tenant_id)
+        mock_bot = MagicMock()
+        mock_bot.id = slack_bot_id
+        mock_bot.tenant_id = tenant_id
+
+        existing_ds = _create_mock_data_source(1, tenant_id, kb_id, name="Existing Slack Source")
+        existing_ds.slack_bot_id = uuid.UUID(slack_bot_id)
+        existing_ds.oauth_app_id = None
+
+        call_count = [0]
+
+        def execute_side_effect(*args, **kwargs):
+            call_count[0] += 1
+            mock_result = MagicMock()
+            if call_count[0] == 1:
+                mock_result.scalar_one_or_none.return_value = mock_kb
+            elif call_count[0] == 2:
+                mock_result.scalar_one_or_none.return_value = mock_bot
+            else:
+                mock_result.scalars.return_value.all.return_value = [existing_ds]
+            return mock_result
+
+        mock_db.execute = AsyncMock(side_effect=execute_side_effect)
+
+        response = test_client.post(
+            "/data-sources",
+            json={
+                "name": "Duplicate Slack Source",
+                "type": "SLACK",
+                "knowledge_base_id": kb_id,
+                "config": {},
+                "slack_bot_id": slack_bot_id,
+            },
+        )
+
+        assert response.status_code == status.HTTP_409_CONFLICT
+        assert "already connected" in response.json()["detail"]
+
+    def test_create_data_source_slack_bot_not_found(self, client):
+        """Test creating a data source with a non-existent slack_bot_id."""
+        test_client, tenant_id, mock_db = client
+
+        kb_id = 1
+        mock_kb = _create_mock_knowledge_base(kb_id, tenant_id)
+
+        call_count = [0]
+
+        def execute_side_effect(*args, **kwargs):
+            call_count[0] += 1
+            mock_result = MagicMock()
+            if call_count[0] == 1:
+                mock_result.scalar_one_or_none.return_value = mock_kb
+            else:
+                mock_result.scalar_one_or_none.return_value = None
+            return mock_result
+
+        mock_db.execute = AsyncMock(side_effect=execute_side_effect)
+
+        response = test_client.post(
+            "/data-sources",
+            json={
+                "name": "Test Source",
+                "type": "SLACK",
+                "knowledge_base_id": kb_id,
+                "config": {},
+                "slack_bot_id": str(uuid.uuid4()),
+            },
+        )
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
 
 class TestListDataSources:
     """Tests for listing data sources."""

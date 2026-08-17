@@ -264,6 +264,47 @@ class TestSlackBotsCRUDIntegration:
                 status.HTTP_404_NOT_FOUND,
             ]
 
+    def test_create_slack_bot_persists_allow_external_shared_channels(
+        self, client: TestClient, db_session: Session, auth_headers, test_agent
+    ):
+        """Test that allow_external_shared_channels is persisted and defaults to False."""
+        from src.core.database import get_db
+
+        client.app.dependency_overrides[get_db] = lambda: db_session
+
+        headers, tenant_id, account = auth_headers
+
+        # Omit the field — should default to False
+        response = client.post(
+            "/api/v1/slack-bots",
+            json={
+                "agent_id": test_agent,
+                "bot_name": f"Default Flag Bot {uuid.uuid4().hex[:8]}",
+                "slack_app_id": "A12345690",
+                "slack_bot_token": "xoxb-test-token-default",
+                "slack_app_token": "xapp-test-token-default",
+            },
+            headers=headers,
+        )
+
+        if response.status_code == status.HTTP_201_CREATED:
+            data = response.json()
+            assert data["allow_external_shared_channels"] is False
+
+            # Explicitly enable it via update, then confirm persistence on GET
+            bot_id = data["id"]
+            update_response = client.put(
+                f"/api/v1/slack-bots/{bot_id}",
+                json={"allow_external_shared_channels": True},
+                headers=headers,
+            )
+            if update_response.status_code == status.HTTP_200_OK:
+                assert update_response.json()["allow_external_shared_channels"] is True
+
+                get_response = client.get(f"/api/v1/slack-bots/{bot_id}", headers=headers)
+                assert get_response.status_code == status.HTTP_200_OK
+                assert get_response.json()["allow_external_shared_channels"] is True
+
     def test_update_nonexistent_slack_bot(self, client: TestClient, db_session: Session, auth_headers):
         """Test updating a nonexistent Slack bot returns 404."""
         from src.core.database import get_db

@@ -27,14 +27,32 @@ logger = logging.getLogger(__name__)
 
 
 async def internal_git_clone_repo(
-    repo_url: str, use_ssh: bool = False, config: dict[str, Any] | None = None, runtime_context: Any = None
+    repo_url: str,
+    use_ssh: bool = False,
+    depth: int = 1,
+    branch: str | None = None,
+    config: dict[str, Any] | None = None,
+    runtime_context: Any = None,
 ) -> dict[str, Any]:
     """
     Clone a Git repository into the workspace directory.
 
+    Defaults to a shallow clone (depth=1) of a single branch. This matches how
+    reliable PR-creation automation clones repos in practice: a full clone of a
+    large repo is a single long-lived, large HTTP response, which is exactly
+    the kind of transfer that is fragile to mid-stream network failures
+    (e.g. HTTP/2 stream resets). A shallow clone transfers only the tip commit,
+    avoiding that failure mode regardless of the repo's total history size.
+    History, if ever needed later, can be fetched incrementally afterwards
+    (see internal_git_switch_branch's auto-widen-fetch fallback) rather than
+    requiring it all up front. Pass depth=0 for an explicit full clone when the
+    task genuinely needs full history (e.g. git log/blame across old commits).
+
     Args:
         repo_url: Repository URL (HTTPS or SSH)
         use_ssh: Whether to convert HTTPS URLs to SSH (default: False, uses PAT instead)
+        depth: Number of commits of history to fetch (default: 1, shallow). Pass 0 for a full clone.
+        branch: Specific branch to clone directly (default: None, clones the repo's default branch)
         config: Configuration dictionary containing workspace_path
         runtime_context: Runtime context for credential resolution (provides GitHub PAT)
 
@@ -63,9 +81,16 @@ async def internal_git_clone_repo(
                 "repo_path": None,
             }
 
+        # Parse owner/repo from the URL up front so the correct GitHub App
+        # installation (when the app is installed on multiple orgs) can be
+        # selected for both the clone auth and the pre-clone size check.
+        _gh_match = __import__("re").search(r"github\.com[:/](?:[^@/]+@)?([^/]+)/([^/]+?)(?:\.git)?$", repo_url)
+        _owner = _gh_match.group(1) if _gh_match else None
+        _repo = _gh_match.group(2) if _gh_match else None
+
         if not use_ssh and runtime_context:
             repo_url, used_token = await prepare_authenticated_git_url(
-                repo_url, runtime_context, tool_name="internal_git_clone_repo"
+                repo_url, runtime_context, tool_name="internal_git_clone_repo", owner=_owner, repo=_repo
             )
             if used_token:
                 logger.info("✅ Using GitHub OAuth/PAT token for authentication")
@@ -74,13 +99,16 @@ async def internal_git_clone_repo(
 
         # Pre-check repo size via GitHub API before cloning to avoid downloading
         # hundreds of MB only to reject the repo afterwards.
-        # Only applies to github.com URLs when credentials are available.
-        _gh_match = __import__("re").search(r"github\.com[:/](?:[^@/]+@)?([^/]+)/([^/]+?)(?:\.git)?$", repo_url)
-        if _gh_match and runtime_context:
+        # Only applies to github.com URLs when credentials are available, and
+        # only matters for explicit full clones — a shallow clone transfers a
+        # small, roughly constant amount of data regardless of total repo size.
+        if depth == 0 and _gh_match and runtime_context:
             try:
                 from .github_auth_helper import get_github_token_from_context
 
-                _token = await get_github_token_from_context(runtime_context, tool_name="internal_git_clone_repo")
+                _token = await get_github_token_from_context(
+                    runtime_context, tool_name="internal_git_clone_repo", owner=_owner, repo=_repo
+                )
                 if _token:
                     import asyncio as _asyncio
 
@@ -110,10 +138,17 @@ async def internal_git_clone_repo(
         await async_makedirs(repos_dir, config)
 
         repo_dir = os.path.join(repos_dir, f"git_{uuid.uuid4().hex[:12]}")
-        logger.info(f"Cloning '{repo_url}' into {repo_dir}")
+        clone_cmd = ["git", "clone"]
+        if depth > 0:
+            clone_cmd.extend(["--depth", str(depth)])
+        if branch:
+            clone_cmd.extend(["--branch", branch])
+        clone_cmd.extend([repo_url, repo_dir])
+
+        logger.info(f"Cloning '{repo_url}' into {repo_dir} (depth={depth or 'full'}, branch={branch or 'default'})")
 
         result = await async_run_git_command(
-            ["git", "clone", repo_url, repo_dir], working_directory=None, config=config, timeout=MAX_CLONE_TIMEOUT
+            clone_cmd, working_directory=None, config=config, timeout=MAX_CLONE_TIMEOUT
         )
 
         if not result["success"]:

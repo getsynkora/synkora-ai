@@ -19,9 +19,11 @@ from src.helpers.chat_helpers import (
 from src.helpers.streaming_helpers import (
     extract_user_friendly_error,
     generate_chunk_event,
+    generate_compaction_event,
     generate_done_event,
     generate_error_event,
     generate_first_token_event,
+    generate_llm_call_event,
     generate_sse_event,
     generate_start_event,
     generate_status_event,
@@ -99,6 +101,8 @@ class ChatStreamService:
         shared_state: dict[str, Any] | None = None,
         override_agentic_config: dict[str, Any] | None = None,
         override_system_prompt: str | None = None,
+        user_message_metadata: dict[str, Any] | None = None,
+        trust_provided_history: bool = False,
     ) -> AsyncGenerator[str, None]:
         """
         Stream agent response using SSE with function calling, RAG support, and attachments.
@@ -107,6 +111,13 @@ class ChatStreamService:
             user_id: Optional synkora account ID for user-level OAuth token resolution
             tenant_id: Tenant ID for verifying conversation ownership (SECURITY)
             shared_state: Optional shared state for tools (e.g., scheduled task config)
+            user_message_metadata: Optional channel-specific metadata to store on the saved
+                user message (e.g. Slack user/channel/thread IDs)
+            trust_provided_history: When True, skip the automatic DB/cache reload of
+                conversation_history and use the caller-provided value as-is. Only set this
+                for trusted internal callers (e.g. Slack) that already built a verified,
+                possibly richer history themselves — never for externally-supplied history
+                (e.g. frontend/API callers), since that would let a caller forge history.
         """
         user_message_saved = None
         db_agent = None
@@ -196,7 +207,10 @@ class ChatStreamService:
             # Load conversation history from cache/DB when a conversation_id is present.
             # This is the authoritative source — do not rely on the frontend to send it back.
             # Loaded BEFORE saving the current user message so it only contains prior turns.
-            if conversation_uuid:
+            # Trusted internal callers (e.g. Slack, which already built a verified history
+            # from the DB plus a Slack-API thread-history fallback) can opt out via
+            # trust_provided_history to avoid this reload clobbering their result.
+            if conversation_uuid and not trust_provided_history:
                 from src.services.conversation_service import ConversationService
 
                 try:
@@ -219,6 +233,7 @@ class ChatStreamService:
                     message=message,
                     db=db,
                     attachments=attachments,
+                    metadata=user_message_metadata,
                 )
 
             load_result = await self.agent_loader.load_agent(
@@ -2197,16 +2212,17 @@ class ChatStreamService:
         # regardless of the orchestrator agent's stored setting)
         if override_agentic_config:
             agentic_meta = {**agentic_meta, **override_agentic_config}
+        _default_agentic_config = AgenticConfig()
         logger.info(
             f"🔧 agentic_config loaded for '{db_agent.agent_name}': "
-            f"max_iterations={agentic_meta.get('max_iterations', 20)}, "
+            f"max_iterations={agentic_meta.get('max_iterations', _default_agentic_config.max_iterations)}, "
             f"raw_agent_metadata={db_agent.agent_metadata}"
         )
         agentic_config = AgenticConfig(
-            max_iterations=agentic_meta.get("max_iterations", 20),
-            parallel_tools=agentic_meta.get("parallel_tools", True),
-            tool_retry_attempts=agentic_meta.get("tool_retry_attempts", 2),
-            tool_retry_delay=agentic_meta.get("tool_retry_delay", 1.0),
+            max_iterations=agentic_meta.get("max_iterations", _default_agentic_config.max_iterations),
+            parallel_tools=agentic_meta.get("parallel_tools", _default_agentic_config.parallel_tools),
+            tool_retry_attempts=agentic_meta.get("tool_retry_attempts", _default_agentic_config.tool_retry_attempts),
+            tool_retry_delay=agentic_meta.get("tool_retry_delay", _default_agentic_config.tool_retry_delay),
         )
 
         # Cache agent_name now to avoid lazy-load on an expired ORM object
@@ -2318,6 +2334,21 @@ class ChatStreamService:
                         tool_name=tool_name,
                         status="completed",
                         duration_ms=duration_ms,
+                    )
+
+                elif event["type"] == "llm_call":
+                    yield await generate_llm_call_event(
+                        status=event.get("status", "completed"),
+                        model=event.get("model"),
+                        call_index=event.get("call_index"),
+                        input_tokens=event.get("input_tokens"),
+                        output_tokens=event.get("output_tokens"),
+                    )
+
+                elif event["type"] == "compaction":
+                    yield await generate_compaction_event(
+                        pruned_count=event.get("pruned_count"),
+                        tokens_saved=event.get("tokens_saved"),
                     )
 
                 elif event["type"] == "chart":

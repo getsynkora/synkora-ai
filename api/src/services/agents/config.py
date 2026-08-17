@@ -19,7 +19,7 @@ class AgenticConfig:
     Used by FunctionCallingHandler to control tool execution.
 
     Attributes:
-        max_iterations: Maximum function calling iterations (default: 20)
+        max_iterations: Maximum function calling iterations (default: 150)
         tool_choice: Tool choice strategy - "auto", "required", "none", or specific tool name
         parallel_tools: Whether to execute independent tools in parallel
         tool_retry_attempts: Number of retry attempts for failed tools

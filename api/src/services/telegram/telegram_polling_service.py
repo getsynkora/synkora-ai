@@ -233,6 +233,7 @@ class TelegramPollingService:
                 user_name=user_name,
                 user_first_name=user_first_name,
                 user_last_name=user_last_name,
+                message_text=text,
             )
 
             # Build user display name
@@ -434,6 +435,7 @@ class TelegramPollingService:
         user_name: str | None,
         user_first_name: str | None,
         user_last_name: str | None,
+        message_text: str | None = None,
     ) -> Conversation:
         """Get existing conversation or create new one."""
         # Try to find existing conversation
@@ -454,9 +456,10 @@ class TelegramPollingService:
             user_display = user_name or f"User {user_id}"
 
         # Create new conversation
-        conversation = Conversation(
-            agent_id=telegram_bot.agent_id, name=f"Telegram chat with {user_display}", status=ConversationStatus.ACTIVE
+        conv_name = (
+            message_text.strip()[:60] if message_text and message_text.strip() else f"Telegram chat with {user_display}"
         )
+        conversation = Conversation(agent_id=telegram_bot.agent_id, name=conv_name, status=ConversationStatus.ACTIVE)
         self.db_session.add(conversation)
         await self.db_session.commit()
         await self.db_session.refresh(conversation)

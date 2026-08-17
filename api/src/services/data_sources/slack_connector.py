@@ -60,16 +60,27 @@ class SlackConnector(BaseConnector):
         Get decrypted access token using user-first resolution.
 
         Priority:
-        1. User's personal OAuth token (from UserOAuthToken table)
-        2. Data source's direct access_token_encrypted
-        3. OAuth app's admin token (fallback)
+        1. Linked SlackBot's bot token (reuses an existing agent's Slack connection)
+        2. User's personal OAuth token (from UserOAuthToken table)
+        3. Data source's direct access_token_encrypted
+        4. OAuth app's admin token (fallback)
         """
         from uuid import UUID as UUIDType
 
+        from src.models.slack_bot import SlackBot
         from src.models.user_oauth_token import UserOAuthToken
         from src.services.agents.security import decrypt_value
 
-        # First, try to get user's personal token if OAuth app is linked
+        # First, try to reuse an existing agent's Slack bot connection
+        if self.data_source.slack_bot_id:
+            result = await self.db.execute(select(SlackBot).filter(SlackBot.id == self.data_source.slack_bot_id))
+            slack_bot = result.scalar_one_or_none()
+
+            if slack_bot and slack_bot.slack_bot_token:
+                logger.info(f"Using linked SlackBot token for data source {self.data_source.name}")
+                return decrypt_value(slack_bot.slack_bot_token)
+
+        # Next, try to get user's personal token if OAuth app is linked
         if self.data_source.oauth_app_id:
             # Get account_id from config (set when user connected the data source)
             account_id_str = self.data_source.config.get("connected_by_account_id")

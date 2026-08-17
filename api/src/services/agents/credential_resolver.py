@@ -123,7 +123,7 @@ class CredentialResolver:
             return decrypt_value(user_token_record.access_token)
         return None
 
-    async def get_github_client(self, tool_name: str) -> Any | None:
+    async def get_github_client(self, tool_name: str, owner: str | None = None, repo: str | None = None) -> Any | None:
         """
         Get authenticated GitHub client for a tool.
 
@@ -132,6 +132,9 @@ class CredentialResolver:
 
         Args:
             tool_name: Name of the tool requesting GitHub access
+            owner: Repository owner/org being accessed (required for GitHub Apps
+                installed on multiple orgs, so the correct installation is used)
+            repo: Repository name being accessed (used with owner)
 
         Returns:
             Authenticated Github client or None if not configured
@@ -188,7 +191,7 @@ class CredentialResolver:
                 token = decrypt_value(oauth_app.api_token)
             elif oauth_app.auth_method == "github_app":
                 # Generate installation access token from App ID + Private Key
-                token = await self._get_github_app_installation_token(oauth_app, tool_name)
+                token = await self._get_github_app_installation_token(oauth_app, tool_name, owner=owner, repo=repo)
 
             if not token:
                 logger.warning(f"No valid token for GitHub OAuth app {oauth_app.app_name}")
@@ -207,14 +210,24 @@ class CredentialResolver:
             logger.error(f"Failed to create GitHub client: {e}", exc_info=True)
             return None
 
-    async def _get_github_app_installation_token(self, oauth_app: Any, tool_name: str) -> str | None:
-        """Get a GitHub App installation access token using the first available installation."""
+    async def _get_github_app_installation_token(
+        self, oauth_app: Any, tool_name: str, owner: str | None = None, repo: str | None = None
+    ) -> str | None:
+        """
+        Get a GitHub App installation access token.
+
+        When `owner`/`repo` are provided, looks up the exact installation for that
+        repository (GitHub Apps are commonly installed on multiple orgs/accounts, so
+        picking "the first installation" would silently return a token scoped to the
+        wrong org). Falls back to the first available installation only when no
+        owner/repo context is available.
+        """
         import time
 
         import httpx
         import jwt as pyjwt
 
-        from src.services.agents.security import decrypt_value
+        from src.services.agents.security import decrypt_value, normalize_pem_private_key
 
         try:
             app_id = oauth_app.client_id
@@ -222,7 +235,7 @@ class CredentialResolver:
                 logger.warning(f"GitHub App {oauth_app.app_name} missing App ID or private key")
                 return None
 
-            private_key = decrypt_value(oauth_app.client_secret)
+            private_key = normalize_pem_private_key(decrypt_value(oauth_app.client_secret))
             now = int(time.time())
             app_jwt = pyjwt.encode(
                 {"iat": now - 60, "exp": now + 600, "iss": str(app_id)},
@@ -237,16 +250,39 @@ class CredentialResolver:
             }
 
             async with httpx.AsyncClient() as client:
-                resp = await client.get(
-                    "https://api.github.com/app/installations",
-                    headers=headers,
-                    timeout=15.0,
-                )
-                if resp.status_code != 200 or not resp.json():
-                    logger.warning(f"GitHub App '{oauth_app.app_name}' has no installations")
-                    return None
-
-                installation_id = resp.json()[0]["id"]
+                if owner and repo:
+                    # Look up the exact installation for this repository
+                    inst_resp = await client.get(
+                        f"https://api.github.com/repos/{owner}/{repo}/installation",
+                        headers=headers,
+                        timeout=15.0,
+                    )
+                    if inst_resp.status_code != 200:
+                        if inst_resp.status_code == 404:
+                            logger.warning(
+                                f"GitHub App '{oauth_app.app_name}' is not installed on {owner}/{repo}: "
+                                f"{inst_resp.status_code} {inst_resp.text}"
+                            )
+                        else:
+                            # e.g. 401 "Bad credentials" means the JWT itself was rejected
+                            # (invalid signature, expired, or clock skew) — the app may still
+                            # be installed. Don't conflate this with "not installed".
+                            logger.warning(
+                                f"GitHub App '{oauth_app.app_name}' JWT authentication failed for "
+                                f"{owner}/{repo}: {inst_resp.status_code} {inst_resp.text}"
+                            )
+                        return None
+                    installation_id = inst_resp.json()["id"]
+                else:
+                    resp = await client.get(
+                        "https://api.github.com/app/installations",
+                        headers=headers,
+                        timeout=15.0,
+                    )
+                    if resp.status_code != 200 or not resp.json():
+                        logger.warning(f"GitHub App '{oauth_app.app_name}' has no installations")
+                        return None
+                    installation_id = resp.json()[0]["id"]
 
                 token_resp = await client.post(
                     f"https://api.github.com/app/installations/{installation_id}/access_tokens",

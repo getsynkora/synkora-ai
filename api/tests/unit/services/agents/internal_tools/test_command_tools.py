@@ -110,11 +110,77 @@ class TestCommandToolsHelpers:
         with patch("src.services.agents.internal_tools.command_tools._validate_path", return_value=False):
             assert _is_command_safe(["ls", "/some/path"], None) is False
 
+    def test_is_command_safe_skip_path_validation_for_remote(self):
+        """Remote compute sessions have no local workspace to validate against - the
+        skip_path_validation flag must bypass path checks without weakening the
+        local fail-closed behavior (covered by test_is_command_safe above)."""
+        # Allowlisted commands with paths should pass when explicitly told to skip
+        # path validation (remote compute session), even with no workspace_path.
+        assert _is_command_safe(["find", "/remote/some/path", "-type", "f"], None, skip_path_validation=True) is True
+        assert _is_command_safe(["ls", "/remote/some/path"], None, skip_path_validation=True) is True
+
+        # Non-path validations (allowlist, dangerous flags, git safety) still apply.
+        assert _is_command_safe(["format_drive", "c:"], None, skip_path_validation=True) is False
+        assert _is_command_safe(["git", "push", "--force"], None, skip_path_validation=True) is False
+
+    def test_is_command_safe_no_blocked_path_substring_false_positives(self):
+        """BLOCKED_PATHS entries must match as real path components, not as an arbitrary
+        substring of an unrelated filename. E.g. the "/sys" entry (meant to block the
+        /sys kernel virtual filesystem) previously also matched "system-architecture.md",
+        rejecting a completely legitimate `cat` on a docs file."""
+        legitimate_paths = [
+            "/workspaces/tenant/conv/repos/git_abc123/docs/core_automation/system-architecture.md",
+            "/workspaces/tenant/conv/repos/git_abc123/developer.py",
+            "/workspaces/tenant/conv/repos/git_abc123/backend/root_cause.py",
+            "/workspaces/tenant/conv/repos/git_abc123/invalid_rsa_config.txt",
+        ]
+        for path in legitimate_paths:
+            assert _is_command_safe(["cat", path], None, skip_path_validation=True) is True
+
+        # True positives (real blocked paths) must still be rejected.
+        blocked_paths = [
+            "/etc/passwd",
+            "/root/.bashrc",
+            "/sys/kernel/debug",
+            "/home/user/.ssh/id_rsa",
+            "/home/user/.ssh/known_hosts",
+        ]
+        for path in blocked_paths:
+            assert _is_command_safe(["cat", path], None, skip_path_validation=True) is False
+
 
 class TestInternalRunCommand:
     """Tests for internal_run_command with workspace path mocking."""
 
     MOCK_WORKSPACE = "/tmp/synkora/workspaces/tenant1/conv1"
+
+    @pytest.mark.asyncio
+    async def test_internal_run_command_string_with_regex_backslash(self):
+        """LLMs occasionally emit a command array as a Python-literal-style string
+        rather than strict JSON (e.g. a grep alternation regex like "a\\|b" is valid
+        Python string syntax but invalid JSON, since JSON requires "\\\\" for a literal
+        backslash). This must be parsed via the ast.literal_eval fallback instead of
+        rejecting an otherwise well-formed command."""
+        with (
+            patch(
+                "src.services.agents.internal_tools.command_tools._get_workspace_path", return_value=self.MOCK_WORKSPACE
+            ),
+            patch("os.path.isdir", return_value=True),
+            patch("subprocess.run") as mock_run,
+        ):
+            mock_run.return_value.returncode = 0
+            mock_run.return_value.stdout = "agent.py:10:sub_agents"
+            mock_run.return_value.stderr = ""
+
+            cmd = (
+                r'["grep", "-n", "sub_agents\|root_agent\|LlmAgent", '
+                r'"/tmp/synkora/workspaces/tenant1/conv1/agent.py"]'
+            )
+            result = await internal_run_command(cmd)
+
+            assert result["success"] is True
+            called_command = mock_run.call_args.args[0]
+            assert called_command[2] == "sub_agents\\|root_agent\\|LlmAgent"
 
     @pytest.mark.asyncio
     async def test_internal_run_command_success(self):

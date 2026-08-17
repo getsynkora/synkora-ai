@@ -57,6 +57,7 @@ def _create_mock_slack_bot(tenant_id, agent_id):
     bot.slack_workspace_id = "T12345678"
     bot.slack_workspace_name = "Test Workspace"
     bot.is_active = True
+    bot.allow_external_shared_channels = False
     bot.connection_status = "connected"
     bot.connection_mode = "socket"
     bot.webhook_url = None
@@ -113,6 +114,57 @@ class TestCreateSlackBot:
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_create_slack_bot_allow_external_shared_channels(self, client):
+        """Test creating a bot with allow_external_shared_channels=True."""
+        test_client, tenant_id, mock_account, mock_db, mock_manager = client
+        manager_instance = mock_manager.return_value
+
+        agent_id = uuid.uuid4()
+        mock_bot = _create_mock_slack_bot(tenant_id, agent_id)
+        mock_bot.allow_external_shared_channels = True
+        manager_instance.create_bot = AsyncMock(return_value=mock_bot)
+
+        response = test_client.post(
+            "/slack-bots",
+            json={
+                "agent_id": str(agent_id),
+                "bot_name": "Test Slack Bot",
+                "slack_app_id": "A12345678",
+                "slack_bot_token": "xoxb-test-token",
+                "slack_app_token": "xapp-test-token",
+                "allow_external_shared_channels": True,
+            },
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        data = response.json()
+        assert data["allow_external_shared_channels"] is True
+        manager_instance.create_bot.assert_called_once()
+        assert manager_instance.create_bot.call_args.kwargs["allow_external_shared_channels"] is True
+
+    def test_create_slack_bot_default_allow_external_shared_channels_false(self, client):
+        """Test that omitting the field defaults to False."""
+        test_client, tenant_id, mock_account, mock_db, mock_manager = client
+        manager_instance = mock_manager.return_value
+
+        agent_id = uuid.uuid4()
+        mock_bot = _create_mock_slack_bot(tenant_id, agent_id)
+        manager_instance.create_bot = AsyncMock(return_value=mock_bot)
+
+        response = test_client.post(
+            "/slack-bots",
+            json={
+                "agent_id": str(agent_id),
+                "bot_name": "Test Slack Bot",
+                "slack_app_id": "A12345678",
+                "slack_bot_token": "xoxb-test-token",
+                "slack_app_token": "xapp-test-token",
+            },
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        assert manager_instance.create_bot.call_args.kwargs["allow_external_shared_channels"] is False
 
 
 class TestListSlackBots:
@@ -233,6 +285,24 @@ class TestUpdateSlackBot:
         response = test_client.put(f"/slack-bots/{uuid.uuid4()}", json={"bot_name": "Updated"})
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_update_slack_bot_allow_external_shared_channels(self, client):
+        """Test updating allow_external_shared_channels."""
+        test_client, tenant_id, mock_account, mock_db, mock_manager = client
+        manager_instance = mock_manager.return_value
+
+        bot_id = uuid.uuid4()
+        mock_bot = _create_mock_slack_bot(tenant_id, uuid.uuid4())
+        mock_bot.id = bot_id
+        mock_bot.allow_external_shared_channels = True
+        manager_instance.get_bot = AsyncMock(return_value=mock_bot)
+        manager_instance.update_bot = AsyncMock(return_value=mock_bot)
+
+        response = test_client.put(f"/slack-bots/{bot_id}", json={"allow_external_shared_channels": True})
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["allow_external_shared_channels"] is True
+        assert manager_instance.update_bot.call_args.kwargs["allow_external_shared_channels"] is True
 
 
 class TestDeleteSlackBot:

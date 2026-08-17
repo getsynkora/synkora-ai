@@ -198,10 +198,13 @@ async def _search_with_filter(
     query: str,
     filters: SearchFilter,
     limit: int,
+    knowledge_base_id: str | None = None,
 ) -> list[SearchResult]:
     try:
         backend = get_search_backend()
-        resp = await backend.search(tenant_id=tenant_id, query=query, filters=filters, limit=limit)
+        resp = await backend.search(
+            tenant_id=tenant_id, knowledge_base_id=knowledge_base_id, query=query, filters=filters, limit=limit
+        )
         return resp.results
     except Exception as exc:
         logger.warning("Search failed (filters=%s): %s", filters.source_types, exc)

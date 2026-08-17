@@ -39,6 +39,12 @@ class SlackBot(Base):
 
     # Status
     is_active = Column(Boolean, default=True, nullable=False)
+    allow_external_shared_channels = Column(
+        Boolean,
+        default=False,
+        nullable=False,
+        comment="If False (default), bot refuses to respond in Slack Connect / externally-shared channels",
+    )
     connection_status = Column(
         String(50), default="disconnected", nullable=False, comment="connected, disconnected, error"
     )

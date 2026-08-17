@@ -158,7 +158,8 @@ dev = [
     "pytest-mock>=3.14.0,<4.0.0",
     "faker>=33.0.0,<34.0.0",
     "factory-boy>=3.3.0,<4.0.0",
-    
+    "moto[cloudwatch,cloudwatchlogs,ec2,securityhub,sts]>=5.0.0,<6.0.0",
+
     # Code Quality
     "ruff>=0.8.0,<1.0.0",
     "mypy>=1.14.0,<2.0.0",

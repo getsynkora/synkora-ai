@@ -621,6 +621,52 @@ class TestInternalGitlabCloneRepo:
         assert result["success"] is False
         assert "workspace" in result["error"].lower()
 
+    @pytest.mark.asyncio
+    async def test_defaults_to_shallow_clone(self):
+        """Matches core-automation's own clone_repository default (depth=1):
+        a full clone is a single long-lived, large HTTP transfer, which is
+        fragile to mid-stream network failures regardless of repo size."""
+        with (
+            patch(
+                "src.services.agents.internal_tools.gitlab_tools._get_workspace_path",
+                return_value="/tmp/synkora/workspaces/tenant1/conv1",
+            ),
+            patch("src.services.agents.internal_tools.gitlab_tools.async_makedirs"),
+            patch("src.services.agents.internal_tools.gitlab_tools.async_run_git_command") as mock_run,
+            patch("src.services.agents.internal_tools.gitlab_tools.async_get_repo_size", return_value=10.0),
+            patch("src.services.agents.internal_tools.gitlab_tools.uuid.uuid4") as mock_uuid,
+        ):
+            mock_uuid.return_value.hex = "abc123456789"
+            mock_run.return_value = {"success": True}
+
+            result = await internal_gitlab_clone_repo(repo_url="https://gitlab.com/user/repo.git")
+            assert result["success"] is True
+
+            clone_cmd = mock_run.call_args_list[0].args[0]
+            assert "--depth" in clone_cmd
+            assert clone_cmd[clone_cmd.index("--depth") + 1] == "1"
+
+    @pytest.mark.asyncio
+    async def test_depth_zero_is_full_clone(self):
+        with (
+            patch(
+                "src.services.agents.internal_tools.gitlab_tools._get_workspace_path",
+                return_value="/tmp/synkora/workspaces/tenant1/conv1",
+            ),
+            patch("src.services.agents.internal_tools.gitlab_tools.async_makedirs"),
+            patch("src.services.agents.internal_tools.gitlab_tools.async_run_git_command") as mock_run,
+            patch("src.services.agents.internal_tools.gitlab_tools.async_get_repo_size", return_value=10.0),
+            patch("src.services.agents.internal_tools.gitlab_tools.uuid.uuid4") as mock_uuid,
+        ):
+            mock_uuid.return_value.hex = "abc123456789"
+            mock_run.return_value = {"success": True}
+
+            result = await internal_gitlab_clone_repo(repo_url="https://gitlab.com/user/repo.git", depth=0)
+            assert result["success"] is True
+
+            clone_cmd = mock_run.call_args_list[0].args[0]
+            assert "--depth" not in clone_cmd
+
 
 class TestInternalGitlabComments:
     """Tests for GitLab comment tools."""

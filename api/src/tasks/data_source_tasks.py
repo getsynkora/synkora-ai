@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from src.celery_app import celery_app
@@ -120,7 +120,10 @@ async def _dispatch_all_syncs(tenant_id: str | None) -> dict[str, Any]:
     from src.models.data_source import DataSource, DataSourceStatus, DataSourceSyncJob, SyncStatus
 
     async with create_celery_async_session()() as db:
-        q = select(DataSource).where(DataSource.status == DataSourceStatus.ACTIVE)
+        q = select(DataSource).where(
+            DataSource.status == DataSourceStatus.ACTIVE,
+            DataSource.sync_enabled.is_(True),
+        )
         if tenant_id:
             from uuid import UUID
 
@@ -128,14 +131,21 @@ async def _dispatch_all_syncs(tenant_id: str | None) -> dict[str, Any]:
         result = await db.execute(q)
         data_sources = result.scalars().all()
 
+        now = datetime.now(UTC)
+        due_sources = [
+            ds
+            for ds in data_sources
+            if ds.last_sync_at is None or ds.last_sync_at + timedelta(minutes=ds.sync_frequency_minutes) <= now
+        ]
+
         queued, failed = 0, 0
-        for ds in data_sources:
+        for ds in due_sources:
             try:
                 sync_job = DataSourceSyncJob(
                     data_source_id=ds.id,
                     tenant_id=ds.tenant_id,
                     status=SyncStatus.IN_PROGRESS,
-                    started_at=datetime.now(UTC),
+                    started_at=now,
                 )
                 db.add(sync_job)
                 await db.flush()
@@ -147,5 +157,5 @@ async def _dispatch_all_syncs(tenant_id: str | None) -> dict[str, Any]:
 
         await db.commit()
 
-    logger.info(f"Queued {queued} data source syncs")
+    logger.info(f"Queued {queued}/{len(data_sources)} due data source syncs ({len(data_sources)} active+enabled)")
     return {"queued": queued, "failed": failed}

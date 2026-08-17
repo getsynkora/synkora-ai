@@ -332,6 +332,31 @@ ANTHROPIC_PRESET = ProviderPreset(
     requires_api_key=True,
     documentation_url="https://docs.anthropic.com",
     models=[
+        # Claude 5 Series
+        ModelPreset(
+            name="Claude Opus 5",
+            model_name="claude-opus-5",
+            description="Anthropic's next-generation flagship model — frontier reasoning, coding, and agentic capabilities",
+            default_max_tokens=16384,
+            max_input_tokens=200000,
+            max_output_tokens=32000,
+        ),
+        ModelPreset(
+            name="Claude Sonnet 5",
+            model_name="claude-sonnet-5",
+            description="Balanced Claude 5 model for enterprise workloads",
+            default_max_tokens=16384,
+            max_input_tokens=200000,
+            max_output_tokens=128000,
+        ),
+        ModelPreset(
+            name="Claude Haiku 5",
+            model_name="claude-haiku-5",
+            description="Fast and efficient Claude 5 model",
+            default_max_tokens=8192,
+            max_input_tokens=200000,
+            max_output_tokens=8192,
+        ),
         # Claude 4.7 Series
         ModelPreset(
             name="Claude Opus 4.7",
@@ -840,6 +865,24 @@ AWS_BEDROCK_PRESET = ProviderPreset(
     models=[
         # Anthropic Claude on Bedrock
         ModelPreset(
+            name="Claude Opus 5 (Bedrock)",
+            model_name="anthropic.claude-opus-5-v1:0",
+            description="Anthropic's next-generation flagship model via Bedrock",
+            default_max_tokens=16384,
+        ),
+        ModelPreset(
+            name="Claude Sonnet 5 (Bedrock)",
+            model_name="anthropic.claude-sonnet-5-v1:0",
+            description="Claude Sonnet 5 via Bedrock",
+            default_max_tokens=16384,
+        ),
+        ModelPreset(
+            name="Claude Haiku 5 (Bedrock)",
+            model_name="anthropic.claude-haiku-5-v1:0",
+            description="Claude Haiku 5 via Bedrock",
+            default_max_tokens=8192,
+        ),
+        ModelPreset(
             name="Claude Opus 4.7 (Bedrock)",
             model_name="anthropic.claude-opus-4-7-v1:0",
             description="Latest Claude Opus 4.7 via Bedrock",
@@ -1034,6 +1077,12 @@ AWS_BEDROCK_PRESET = ProviderPreset(
         ),
         # DeepSeek
         ModelPreset(
+            name="DeepSeek V4 Pro (Bedrock)",
+            model_name="deepseek.v4-pro-v1:0",
+            description="DeepSeek V4 Pro flagship model via Bedrock Marketplace",
+            default_max_tokens=16384,
+        ),
+        ModelPreset(
             name="DeepSeek R1 (Bedrock)",
             model_name="deepseek.r1-v1:0",
             description="DeepSeek R1 reasoning model via Bedrock Marketplace",
@@ -1122,6 +1171,24 @@ VERTEX_AI_PRESET = ProviderPreset(
             default_max_tokens=8192,
         ),
         # Claude on Vertex AI
+        ModelPreset(
+            name="Claude Opus 5 (Vertex)",
+            model_name="claude-opus-5@20260601",
+            description="Anthropic's next-generation flagship model via Vertex AI",
+            default_max_tokens=16384,
+        ),
+        ModelPreset(
+            name="Claude Sonnet 5 (Vertex)",
+            model_name="claude-sonnet-5@20260601",
+            description="Claude Sonnet 5 via Vertex AI",
+            default_max_tokens=16384,
+        ),
+        ModelPreset(
+            name="Claude Haiku 5 (Vertex)",
+            model_name="claude-haiku-5@20260601",
+            description="Claude Haiku 5 via Vertex AI",
+            default_max_tokens=8192,
+        ),
         ModelPreset(
             name="Claude 3.7 Sonnet (Vertex)",
             model_name="claude-3-7-sonnet@20250219",
@@ -1562,6 +1629,20 @@ TOGETHER_AI_PRESET = ProviderPreset(
         ),
         # DeepSeek
         ModelPreset(
+            name="DeepSeek V4 Pro",
+            model_name="deepseek-ai/DeepSeek-V4-Pro",
+            description="DeepSeek V4 Pro — current flagship open-source reasoning, coding, and agentic model",
+            default_max_tokens=8192,
+            max_input_tokens=1000000,
+        ),
+        ModelPreset(
+            name="DeepSeek V4 Flash",
+            model_name="deepseek-ai/DeepSeek-V4-Flash",
+            description="DeepSeek V4 Flash — fast open-source model with thinking/non-thinking modes",
+            default_max_tokens=8192,
+            max_input_tokens=1000000,
+        ),
+        ModelPreset(
             name="DeepSeek V3",
             model_name="deepseek-ai/DeepSeek-V3",
             description="DeepSeek V3 — strong open-source reasoning and coding model",
@@ -1983,6 +2064,54 @@ XAI_PRESET = ProviderPreset(
     documentation_url="https://docs.x.ai/",
     models=[
         ModelPreset(
+            name="Grok 4",
+            model_name="grok-4-0709",
+            description="xAI's flagship reasoning model — state-of-the-art performance across math, coding, and reasoning benchmarks",
+            default_max_tokens=131072,
+            max_input_tokens=256000,
+            max_output_tokens=131072,
+        ),
+        ModelPreset(
+            name="Grok 4.1 Fast (Reasoning)",
+            model_name="grok-4.1-fast-reasoning",
+            description="Grok 4.1 Fast — improved reasoning and instruction-following with a 2M token context window",
+            default_max_tokens=131072,
+            max_input_tokens=2000000,
+            max_output_tokens=131072,
+        ),
+        ModelPreset(
+            name="Grok 4.1 Fast (Non-Reasoning)",
+            model_name="grok-4.1-fast-non-reasoning",
+            description="Grok 4.1 Fast — low-latency mode without extended reasoning, 2M token context window",
+            default_max_tokens=131072,
+            max_input_tokens=2000000,
+            max_output_tokens=131072,
+        ),
+        ModelPreset(
+            name="Grok 4 Fast (Reasoning)",
+            model_name="grok-4-fast-reasoning",
+            description="Grok 4 Fast — extended reasoning mode with a 2M token context window",
+            default_max_tokens=131072,
+            max_input_tokens=2000000,
+            max_output_tokens=131072,
+        ),
+        ModelPreset(
+            name="Grok 4 Fast (Non-Reasoning)",
+            model_name="grok-4-fast-non-reasoning",
+            description="Grok 4 Fast — low-latency mode without extended reasoning, 2M token context window",
+            default_max_tokens=131072,
+            max_input_tokens=2000000,
+            max_output_tokens=131072,
+        ),
+        ModelPreset(
+            name="Grok Code Fast 1",
+            model_name="grok-code-fast-1",
+            description="Grok Code Fast — purpose-built for agentic coding workflows",
+            default_max_tokens=131072,
+            max_input_tokens=256000,
+            max_output_tokens=131072,
+        ),
+        ModelPreset(
             name="Grok 3",
             model_name="grok-3-beta",
             description="xAI's flagship model — frontier reasoning, coding, and analysis",
@@ -2159,6 +2288,86 @@ ZHIPU_PRESET = ProviderPreset(
     default_api_base="https://open.bigmodel.cn/api/paas/v4",
     documentation_url="https://open.bigmodel.cn/dev/api/",
     models=[
+        ModelPreset(
+            name="GLM-5.2",
+            model_name="glm-5.2",
+            description="Zhipu's newest flagship — GLM-5 generation refresh with stronger reasoning, coding, and agentic tool-use",
+            default_max_tokens=8192,
+            max_input_tokens=256000,
+            max_output_tokens=16384,
+        ),
+        ModelPreset(
+            name="GLM-5.1",
+            model_name="glm-5.1",
+            description="GLM-5.1 — incremental GLM-5 release with improved long-context stability",
+            default_max_tokens=8192,
+            max_input_tokens=256000,
+            max_output_tokens=16384,
+        ),
+        ModelPreset(
+            name="GLM-5",
+            model_name="glm-5",
+            description="GLM-5 — Zhipu's next-generation flagship model, successor to GLM-4.6",
+            default_max_tokens=8192,
+            max_input_tokens=256000,
+            max_output_tokens=16384,
+        ),
+        ModelPreset(
+            name="GLM-5-Air",
+            model_name="glm-5-air",
+            description="GLM-5-Air — lightweight, cost-efficient GLM-5 variant for high-throughput workloads",
+            default_max_tokens=8192,
+            max_input_tokens=200000,
+            max_output_tokens=8192,
+        ),
+        ModelPreset(
+            name="GLM-4.6",
+            model_name="glm-4.6",
+            description="Zhipu's latest flagship model — improved reasoning, coding, and agentic tool-use over GLM-4.5",
+            default_max_tokens=8192,
+            max_input_tokens=200000,
+            max_output_tokens=8192,
+        ),
+        ModelPreset(
+            name="GLM-4.6V",
+            model_name="glm-4.6v",
+            description="GLM-4.6V — multimodal vision-language flagship model",
+            default_max_tokens=8192,
+            max_input_tokens=128000,
+            max_output_tokens=8192,
+        ),
+        ModelPreset(
+            name="GLM-4.5",
+            model_name="glm-4.5",
+            description="GLM-4.5 — unified reasoning, coding, and agentic model with a hybrid thinking mode",
+            default_max_tokens=8192,
+            max_input_tokens=128000,
+            max_output_tokens=8192,
+        ),
+        ModelPreset(
+            name="GLM-4.5-Air",
+            model_name="glm-4.5-air",
+            description="GLM-4.5 Air — lightweight version optimized for cost and speed",
+            default_max_tokens=8192,
+            max_input_tokens=128000,
+            max_output_tokens=8192,
+        ),
+        ModelPreset(
+            name="GLM-4.5-Flash",
+            model_name="glm-4.5-flash",
+            description="GLM-4.5 Flash — fastest and most cost-efficient GLM-4.5 variant",
+            default_max_tokens=8192,
+            max_input_tokens=128000,
+            max_output_tokens=8192,
+        ),
+        ModelPreset(
+            name="GLM-4.5V",
+            model_name="glm-4.5v",
+            description="GLM-4.5V — multimodal vision-language model built on GLM-4.5",
+            default_max_tokens=8192,
+            max_input_tokens=64000,
+            max_output_tokens=8192,
+        ),
         ModelPreset(
             name="GLM-4-Plus",
             model_name="glm-4-plus",
@@ -2627,7 +2836,31 @@ OPENROUTER_PRESET = ProviderPreset(
             description="Faster, cheaper O1 variant",
             default_max_tokens=65536,
         ),
-        # Anthropic Models — Claude 4.7 (latest)
+        # Anthropic Models — Claude 5 (latest)
+        ModelPreset(
+            name="Claude Opus 5",
+            model_name="anthropic/claude-opus-5",
+            description="Anthropic's next-generation flagship model — highest intelligence",
+            default_max_tokens=32768,
+            max_input_tokens=200000,
+            max_output_tokens=32768,
+        ),
+        ModelPreset(
+            name="Claude Sonnet 5",
+            model_name="anthropic/claude-sonnet-5",
+            description="Best balance of intelligence and speed — Claude 5",
+            default_max_tokens=16384,
+            max_input_tokens=200000,
+            max_output_tokens=128000,
+        ),
+        ModelPreset(
+            name="Claude Haiku 5",
+            model_name="anthropic/claude-haiku-5",
+            description="Claude Haiku 5 — fastest Claude model",
+            default_max_tokens=8192,
+            max_input_tokens=200000,
+            max_output_tokens=8192,
+        ),
         ModelPreset(
             name="Claude Opus 4.7",
             model_name="anthropic/claude-opus-4-7",
@@ -2975,6 +3208,30 @@ OPENROUTER_PRESET = ProviderPreset(
         ),
         # xAI Grok Models
         ModelPreset(
+            name="Grok 4",
+            model_name="x-ai/grok-4",
+            description="xAI's Grok 4 — flagship reasoning model",
+            default_max_tokens=32768,
+            max_input_tokens=256000,
+            max_output_tokens=32768,
+        ),
+        ModelPreset(
+            name="Grok 4 Fast",
+            model_name="x-ai/grok-4-fast",
+            description="xAI's Grok 4 Fast — low-latency model with a 2M token context window",
+            default_max_tokens=32768,
+            max_input_tokens=2000000,
+            max_output_tokens=32768,
+        ),
+        ModelPreset(
+            name="Grok Code Fast 1",
+            model_name="x-ai/grok-code-fast-1",
+            description="xAI's Grok Code Fast — purpose-built for agentic coding workflows",
+            default_max_tokens=32768,
+            max_input_tokens=256000,
+            max_output_tokens=32768,
+        ),
+        ModelPreset(
             name="Grok 3",
             model_name="x-ai/grok-3-beta",
             description="xAI's Grok 3 — frontier reasoning model",
@@ -3067,6 +3324,22 @@ OPENROUTER_PRESET = ProviderPreset(
             default_max_tokens=65536,
         ),
         # DeepSeek Models — latest
+        ModelPreset(
+            name="DeepSeek V4 Pro",
+            model_name="deepseek/deepseek-v4-pro",
+            description="DeepSeek V4 Pro — current flagship DeepSeek model",
+            default_max_tokens=8192,
+            max_input_tokens=1000000,
+            max_output_tokens=16384,
+        ),
+        ModelPreset(
+            name="DeepSeek V4 Flash",
+            model_name="deepseek/deepseek-v4-flash",
+            description="DeepSeek V4 Flash — current fast DeepSeek model with thinking/non-thinking modes",
+            default_max_tokens=8192,
+            max_input_tokens=1000000,
+            max_output_tokens=8192,
+        ),
         ModelPreset(
             name="DeepSeek V3",
             model_name="deepseek/deepseek-chat-v3-5",
@@ -3399,6 +3672,25 @@ LITELLM_PRESET = ProviderPreset(
             name="O1 Mini", model_name="o1-mini", description="OpenAI O1 Mini via LiteLLM", default_max_tokens=65536
         ),
         ModelPreset(name="O1", model_name="o1", description="OpenAI O1 via LiteLLM", default_max_tokens=32768),
+        # Anthropic Claude Models via LiteLLM - Claude 5 Series
+        ModelPreset(
+            name="Claude Opus 5",
+            model_name="claude-opus-5",
+            description="Anthropic's next-generation flagship model via LiteLLM",
+            default_max_tokens=16384,
+        ),
+        ModelPreset(
+            name="Claude Sonnet 5",
+            model_name="claude-sonnet-5",
+            description="Anthropic Claude Sonnet 5 via LiteLLM",
+            default_max_tokens=16384,
+        ),
+        ModelPreset(
+            name="Claude Haiku 5",
+            model_name="claude-haiku-5",
+            description="Anthropic Claude Haiku 5 via LiteLLM",
+            default_max_tokens=8192,
+        ),
         # Anthropic Claude Models via LiteLLM - Claude 4.7 Series
         ModelPreset(
             name="Claude Opus 4.7",
@@ -3695,6 +3987,76 @@ LITELLM_PRESET = ProviderPreset(
             description="DeepSeek V3 latest via LiteLLM",
             default_max_tokens=8192,
             max_input_tokens=163840,
+        ),
+        # Zhipu GLM Models via LiteLLM
+        ModelPreset(
+            name="GLM-5.2",
+            model_name="glm-5.2",
+            description="Zhipu's newest flagship GLM-5.2 via LiteLLM",
+            default_max_tokens=8192,
+            max_input_tokens=256000,
+            max_output_tokens=16384,
+        ),
+        ModelPreset(
+            name="GLM-5",
+            model_name="glm-5",
+            description="Zhipu GLM-5 flagship model via LiteLLM",
+            default_max_tokens=8192,
+            max_input_tokens=256000,
+            max_output_tokens=16384,
+        ),
+        ModelPreset(
+            name="GLM-4.6",
+            model_name="glm-4.6",
+            description="Zhipu GLM-4.6 via LiteLLM",
+            default_max_tokens=8192,
+            max_input_tokens=200000,
+            max_output_tokens=8192,
+        ),
+        ModelPreset(
+            name="GLM-4.5",
+            model_name="glm-4.5",
+            description="Zhipu GLM-4.5 via LiteLLM",
+            default_max_tokens=8192,
+            max_input_tokens=128000,
+            max_output_tokens=8192,
+        ),
+        ModelPreset(
+            name="GLM-4.5-Air",
+            model_name="glm-4.5-air",
+            description="Zhipu GLM-4.5 Air (cost-efficient) via LiteLLM",
+            default_max_tokens=8192,
+            max_input_tokens=128000,
+            max_output_tokens=8192,
+        ),
+        # xAI Grok Models via LiteLLM
+        ModelPreset(
+            name="Grok 4",
+            model_name="grok-4-0709",
+            description="xAI Grok 4 flagship model via LiteLLM",
+            default_max_tokens=16384,
+            max_input_tokens=256000,
+        ),
+        ModelPreset(
+            name="Grok 4.1 Fast Reasoning",
+            model_name="grok-4.1-fast-reasoning",
+            description="xAI Grok 4.1 Fast (reasoning) via LiteLLM",
+            default_max_tokens=16384,
+            max_input_tokens=2000000,
+        ),
+        ModelPreset(
+            name="Grok Code Fast 1",
+            model_name="grok-code-fast-1",
+            description="xAI Grok Code Fast 1 via LiteLLM",
+            default_max_tokens=16384,
+            max_input_tokens=256000,
+        ),
+        ModelPreset(
+            name="Grok 3",
+            model_name="grok-3-beta",
+            description="xAI Grok 3 via LiteLLM",
+            default_max_tokens=8192,
+            max_input_tokens=131072,
         ),
         # Other Popular Models
         ModelPreset(

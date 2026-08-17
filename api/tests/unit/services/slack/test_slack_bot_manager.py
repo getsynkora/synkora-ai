@@ -57,6 +57,7 @@ class TestSlackBotManager:
         bot.slack_workspace_id = "TEAM123"
         bot.slack_workspace_name = "Team Name"
         bot.is_active = True
+        bot.allow_external_shared_channels = False
         bot.connection_status = "disconnected"
         bot.connection_mode = "socket"
         bot.signing_secret = None
@@ -92,6 +93,44 @@ class TestSlackBotManager:
             mock_db_session.add.assert_called_once()
             mock_db_session.commit.assert_called_once()
             mock_db_session.refresh.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_create_bot_default_blocks_external_shared(self, manager, mock_db_session):
+        with patch("src.services.slack.slack_bot_manager.encrypt_value", return_value="enc"):
+            result = await manager.create_bot(
+                agent_id=uuid4(),
+                tenant_id=uuid4(),
+                bot_name="New Bot",
+                slack_app_id="A123",
+                slack_bot_token="xoxb-token",
+                slack_app_token="xapp-token",
+            )
+
+        assert result.allow_external_shared_channels is False
+
+    @pytest.mark.asyncio
+    async def test_create_bot_allow_external_shared_channels_true(self, manager, mock_db_session):
+        with patch("src.services.slack.slack_bot_manager.encrypt_value", return_value="enc"):
+            result = await manager.create_bot(
+                agent_id=uuid4(),
+                tenant_id=uuid4(),
+                bot_name="New Bot",
+                slack_app_id="A123",
+                slack_bot_token="xoxb-token",
+                slack_app_token="xapp-token",
+                allow_external_shared_channels=True,
+            )
+
+        assert result.allow_external_shared_channels is True
+
+    @pytest.mark.asyncio
+    async def test_update_bot_allow_external_shared_channels(self, manager, mock_db_session, mock_slack_bot):
+        mock_db_session.get.return_value = mock_slack_bot
+        mock_slack_bot.allow_external_shared_channels = False
+
+        await manager.update_bot(bot_id=mock_slack_bot.id, allow_external_shared_channels=True)
+
+        assert mock_slack_bot.allow_external_shared_channels is True
 
     @pytest.mark.asyncio
     async def test_create_bot_error(self, manager, mock_db_session):

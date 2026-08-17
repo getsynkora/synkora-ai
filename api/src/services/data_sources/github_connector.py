@@ -12,7 +12,7 @@ import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.data_source import DataSource
-from src.services.agents.security import decrypt_value
+from src.services.agents.security import decrypt_value, normalize_pem_private_key
 
 from .base_connector import BaseConnector
 
@@ -73,7 +73,7 @@ class GitHubConnector(BaseConnector):
         if not oauth_app.client_secret:
             raise ValueError("GitHub App private key not configured (store in Client Secret field).")
 
-        private_key_pem = decrypt_value(oauth_app.client_secret)
+        private_key_pem = normalize_pem_private_key(decrypt_value(oauth_app.client_secret))
         now = int(time.time())
         payload = {"iat": now - 60, "exp": now + 600, "iss": str(app_id)}
         return jwt.encode(payload, private_key_pem, algorithm="RS256")

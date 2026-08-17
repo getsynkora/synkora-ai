@@ -25,6 +25,8 @@ import logging
 import socket
 from typing import Any
 
+from src.core.database import create_celery_async_session
+
 logger = logging.getLogger(__name__)
 
 _GROUP = "kb_embedder"
@@ -104,7 +106,7 @@ class StreamConsumer:
         if not raw_docs:
             return {"read": 0, "indexed": 0, "skipped": 0, "failed": 0}
 
-        stats = await self._process_batch(tenant_id, source_type, raw_docs, min_tokens)
+        stats = await self._process_batch(kb_id, tenant_id, source_type, raw_docs, min_tokens)
 
         # Acknowledge all messages (even ones we skipped — they're not errors)
         if message_ids:
@@ -115,11 +117,15 @@ class StreamConsumer:
 
     async def _process_batch(
         self,
+        kb_id: int,
         tenant_id: str,
         source_type: str,
         raw_docs: list[dict[str, Any]],
         min_tokens: int,
     ) -> dict[str, int]:
+        from sqlalchemy import select
+
+        from src.models.knowledge_base import KnowledgeBase
         from src.services.company_brain.search.factory import get_search_backend
 
         from .chunker import chunk_document
@@ -128,6 +134,14 @@ class StreamConsumer:
         dedup = get_dedup_backend()
         search = get_search_backend()
         indexed = skipped = failed = 0
+
+        async with create_celery_async_session()() as db:
+            kb_result = await db.execute(select(KnowledgeBase).where(KnowledgeBase.id == kb_id))
+            kb = kb_result.scalar_one_or_none()
+
+        if kb is None:
+            logger.error("StreamConsumer: KnowledgeBase %s not found, dropping batch", kb_id)
+            return {"indexed": 0, "skipped": 0, "failed": len(raw_docs)}
 
         # 1. Filter short / empty content
         filtered = [d for d in raw_docs if self._passes_filter(d, min_tokens)]
@@ -158,10 +172,10 @@ class StreamConsumer:
         if not all_chunks:
             return {"indexed": 0, "skipped": skipped, "failed": failed}
 
-        # 4. Embed (batch)
+        # 4. Embed (batch), using this KB's own embedding provider/model
         texts = [c["chunk_content"] for c in all_chunks]
         try:
-            embeddings = await self._embed_batch(texts, source_type)
+            embeddings = await self._embed_batch(texts, kb)
         except Exception as exc:
             logger.error("Embedding batch failed: %s", exc)
             return {"indexed": 0, "skipped": skipped, "failed": failed + len(all_chunks)}
@@ -177,7 +191,7 @@ class StreamConsumer:
                     "content": chunk["chunk_content"],
                     "title": chunk.get("title"),
                     "embedding": emb,
-                    "metadata": {**(chunk.get("metadata") or {}), "tenant_id": tenant_id},
+                    "metadata": {**(chunk.get("metadata") or {}), "tenant_id": tenant_id, "knowledge_base_id": kb_id},
                     "source_url": chunk.get("external_url"),
                     "occurred_at": chunk.get("source_created_at"),
                     "storage_tier": "hot",
@@ -185,12 +199,17 @@ class StreamConsumer:
             )
 
         # 6. Index
-        result = await search.index_documents(tenant_id, index_docs)
+        result = await search.index_documents(tenant_id=tenant_id, knowledge_base_id=kb_id, documents=index_docs)
         indexed += result.get("indexed", 0)
         failed += result.get("failed", 0)
 
-        # 7. Mark seen
-        await dedup.mark_seen_batch(tenant_id, source_type, list(unseen_ids))
+        # 7. Mark seen — only if nothing in this batch failed to index. Dedup
+        # backends (e.g. RedisSetDedup) have no separate "failed" state, so
+        # marking a document seen after a failed index would permanently and
+        # silently drop it — filter_unseen would exclude it from every future
+        # retry until the dedup TTL happens to expire.
+        if failed == 0:
+            await dedup.mark_seen_batch(tenant_id, source_type, list(unseen_ids))
 
         return {"indexed": indexed, "skipped": skipped, "failed": failed}
 
@@ -209,22 +228,13 @@ class StreamConsumer:
             return False
         return True
 
-    async def _embed_batch(self, texts: list[str], source_type: str) -> list[list[float]]:
-        """Embed a batch of texts using the configured model for this source type."""
-        import json as _json
-
-        from src.config.settings import get_settings
-
-        settings = get_settings()
-        raw_models = getattr(settings, "company_brain_embedding_models", '{"default":"text-embedding-3-small"}')
-        try:
-            models: dict[str, str] = _json.loads(raw_models)
-        except Exception:
-            models = {"default": "text-embedding-3-small"}
-
-        model = models.get(source_type.lower(), models.get("default", "text-embedding-3-small"))
-
+    async def _embed_batch(self, texts: list[str], kb: Any) -> list[list[float]]:
+        """Embed a batch of texts using this KB's own configured embedding provider/model."""
         from src.services.knowledge_base.embedding_service import EmbeddingService
 
-        svc = EmbeddingService(model=model)
-        return await svc.embed_batch(texts)
+        svc = EmbeddingService(
+            provider=kb.embedding_provider.value if kb.embedding_provider else "sentence_transformers",
+            model_name=kb.embedding_model or "all-MiniLM-L6-v2",
+            config=kb.get_embedding_config_decrypted(),
+        )
+        return svc.embed_texts(texts, batch_size=32)

@@ -165,7 +165,7 @@ class WhatsAppWebhookService:
                     return
 
             # Get or create conversation
-            conversation = await self._get_or_create_conversation(bot, from_number)
+            conversation = await self._get_or_create_conversation(bot, from_number, message_text=text)
 
             # Block AI while a human operator is handling this conversation
             if getattr(conversation, "handoff_status", None) == "active":
@@ -263,13 +263,16 @@ class WhatsAppWebhookService:
             logger.error(f"Error processing WhatsApp message: {str(e)}")
             await self.db_session.rollback()
 
-    async def _get_or_create_conversation(self, bot: WhatsAppBot, user_phone: str) -> Conversation:
+    async def _get_or_create_conversation(
+        self, bot: WhatsAppBot, user_phone: str, message_text: str | None = None
+    ) -> Conversation:
         """
         Get or create conversation mapping.
 
         Args:
             bot: WhatsAppBot instance
             user_phone: User's phone number
+            message_text: The user's message text, used as the conversation name
 
         Returns:
             Conversation instance
@@ -284,9 +287,12 @@ class WhatsAppWebhookService:
             return await self.db_session.get(Conversation, wa_conv.conversation_id)
 
         # Create new conversation
+        conv_name = (
+            message_text.strip()[:60] if message_text and message_text.strip() else f"WhatsApp conversation with {user_phone}"
+        )
         conversation = Conversation(
             agent_id=bot.agent_id,
-            name=f"WhatsApp conversation with {user_phone}",
+            name=conv_name,
             status=ConversationStatus.ACTIVE,
             source="whatsapp",
         )
