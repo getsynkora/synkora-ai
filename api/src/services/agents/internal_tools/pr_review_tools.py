@@ -14,7 +14,12 @@ import httpx
 logger = logging.getLogger(__name__)
 
 
-async def _get_github_token(runtime_context: dict[str, Any], config: dict[str, Any] | None = None) -> str:
+async def _get_github_token(
+    runtime_context: dict[str, Any],
+    config: dict[str, Any] | None = None,
+    owner: str | None = None,
+    repo: str | None = None,
+) -> str:
     """Get GitHub token from runtime context or OAuth app."""
     from src.services.agents.internal_tools.github_auth_helper import get_github_token_from_context
 
@@ -27,9 +32,9 @@ async def _get_github_token(runtime_context: dict[str, Any], config: dict[str, A
         logger.warning("⚠️ No _tool_name in config, using fallback 'pr_review_tools'")
         tool_name = "pr_review_tools"
 
-    logger.info(f"🔍 [PR Review Tools] Looking up GitHub OAuth for tool_name='{tool_name}'")
+    logger.info(f"🔍 [PR Review Tools] Looking up GitHub OAuth for tool_name='{tool_name}' (owner={owner!r})")
 
-    token = await get_github_token_from_context(runtime_context, tool_name=tool_name)
+    token = await get_github_token_from_context(runtime_context, tool_name=tool_name, owner=owner, repo=repo)
 
     if not token:
         raise ValueError("GitHub token not found. Please configure GitHub OAuth or provide a token.")
@@ -82,7 +87,7 @@ async def internal_get_pr_details(
         Dictionary with PR details
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         # Get PR details
         pr_data = await _make_github_request("GET", f"/repos/{owner}/{repo}/pulls/{pr_number}", token)
@@ -189,7 +194,7 @@ async def internal_get_pr_diff(
         Dictionary with PR diff
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         headers = {
             "Authorization": f"Bearer {token}",
@@ -244,7 +249,7 @@ async def internal_post_pr_review(
         Dictionary with review result
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         # Validate review event
         valid_events = ["COMMENT", "APPROVE", "REQUEST_CHANGES"]
@@ -518,7 +523,7 @@ async def internal_get_file_content(
 
     # --- GitHub API fallback (when no local clone available) ---
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         params = {}
         if ref:

@@ -18,6 +18,7 @@ from src.models.document_segment import DocumentSegment
 from src.models.knowledge_base import (
     ChunkingStrategy,
     EmbeddingProvider,
+    IngestionMode,
     KnowledgeBase,
     KnowledgeBaseStatus,
     VectorDBProvider,
@@ -54,6 +55,7 @@ class CreateKnowledgeBaseRequest(BaseModel):
     min_chunk_size: int = Field(default=500, ge=100, le=5000)
     max_chunk_size: int = Field(default=3000, ge=1000, le=10000)
     chunking_config: dict = Field(default_factory=dict)
+    ingestion_mode: str = Field(default="standard")
 
 
 class UpdateKnowledgeBaseRequest(BaseModel):
@@ -72,6 +74,7 @@ class UpdateKnowledgeBaseRequest(BaseModel):
     min_chunk_size: int | None = Field(None, ge=100, le=5000)
     max_chunk_size: int | None = Field(None, ge=1000, le=10000)
     chunking_config: dict | None = None
+    ingestion_mode: str | None = None
 
 
 class KnowledgeBaseResponse(BaseModel):
@@ -92,6 +95,7 @@ class KnowledgeBaseResponse(BaseModel):
     min_chunk_size: int
     max_chunk_size: int
     chunking_config: dict
+    ingestion_mode: str
     document_count: int
     total_chunks: int
     is_active: bool
@@ -169,6 +173,11 @@ async def create_knowledge_base(
         except ValueError:
             raise HTTPException(status_code=400, detail=f"Invalid chunking strategy: {request.chunking_strategy}")
 
+        try:
+            ingestion_mode_enum = IngestionMode(request.ingestion_mode)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid ingestion mode: {request.ingestion_mode}")
+
         kb = KnowledgeBase(
             name=request.name,
             description=request.description,
@@ -183,6 +192,7 @@ async def create_knowledge_base(
             max_chunk_size=request.max_chunk_size,
             chunking_config=request.chunking_config,
             status=KnowledgeBaseStatus.ACTIVE,
+            ingestion_mode=ingestion_mode_enum,
         )
 
         # Set configs with encryption
@@ -211,6 +221,7 @@ async def create_knowledge_base(
             min_chunk_size=kb.min_chunk_size,
             max_chunk_size=kb.max_chunk_size,
             chunking_config=kb.chunking_config or {},
+            ingestion_mode=kb.ingestion_mode,
             document_count=kb.total_documents,
             total_chunks=kb.total_chunks,
             is_active=(kb.status == KnowledgeBaseStatus.ACTIVE),
@@ -260,6 +271,7 @@ async def list_knowledge_bases(
                 min_chunk_size=kb.min_chunk_size,
                 max_chunk_size=kb.max_chunk_size,
                 chunking_config=kb.chunking_config or {},
+                ingestion_mode=kb.ingestion_mode,
                 document_count=kb.total_documents,
                 total_chunks=kb.total_chunks,
                 is_active=(kb.status == KnowledgeBaseStatus.ACTIVE),
@@ -310,6 +322,7 @@ async def get_knowledge_base(
             min_chunk_size=kb.min_chunk_size,
             max_chunk_size=kb.max_chunk_size,
             chunking_config=kb.chunking_config or {},
+            ingestion_mode=kb.ingestion_mode,
             document_count=kb.total_documents,
             total_chunks=kb.total_chunks,
             is_active=(kb.status == KnowledgeBaseStatus.ACTIVE),
@@ -372,6 +385,11 @@ async def update_knowledge_base(
             kb.max_chunk_size = request.max_chunk_size
         if request.chunking_config is not None:
             kb.chunking_config = request.chunking_config
+        if request.ingestion_mode is not None:
+            try:
+                kb.ingestion_mode = IngestionMode(request.ingestion_mode)
+            except ValueError:
+                raise HTTPException(status_code=400, detail=f"Invalid ingestion mode: {request.ingestion_mode}")
 
         await db.commit()
         await db.refresh(kb)
@@ -394,6 +412,7 @@ async def update_knowledge_base(
             min_chunk_size=kb.min_chunk_size,
             max_chunk_size=kb.max_chunk_size,
             chunking_config=kb.chunking_config or {},
+            ingestion_mode=kb.ingestion_mode,
             document_count=kb.total_documents,
             total_chunks=kb.total_chunks,
             is_active=(kb.status == KnowledgeBaseStatus.ACTIVE),

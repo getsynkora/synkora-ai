@@ -27,6 +27,10 @@ class SlackBotCreate(BaseModel):
     slack_workspace_name: str | None = None
     connection_mode: str = Field(default="socket", description="Connection mode: 'socket' or 'event'")
     signing_secret: str | None = Field(None, description="Signing secret for Event Mode verification")
+    allow_external_shared_channels: bool = Field(
+        default=False,
+        description="If False (default), bot refuses to respond in Slack Connect / externally-shared channels",
+    )
 
 
 class SlackBotUpdate(BaseModel):
@@ -37,6 +41,7 @@ class SlackBotUpdate(BaseModel):
     slack_app_token: str | None = Field(None, description="App-level token for Socket Mode (xapp-*)")
     signing_secret: str | None = Field(None, description="Signing secret for Event Mode verification")
     is_active: bool | None = None
+    allow_external_shared_channels: bool | None = None
 
 
 class SlackBotResponse(BaseModel):
@@ -50,6 +55,7 @@ class SlackBotResponse(BaseModel):
     slack_workspace_id: str | None
     slack_workspace_name: str | None
     is_active: bool
+    allow_external_shared_channels: bool
     connection_status: str
     connection_mode: str
     webhook_url: str | None
@@ -105,6 +111,7 @@ async def create_slack_bot(
             connection_mode=bot_data.connection_mode,
             signing_secret=bot_data.signing_secret,
             created_by=current_account.id,
+            allow_external_shared_channels=bot_data.allow_external_shared_channels,
         )
 
         return SlackBotResponse(
@@ -116,6 +123,7 @@ async def create_slack_bot(
             slack_workspace_id=slack_bot.slack_workspace_id,
             slack_workspace_name=slack_bot.slack_workspace_name,
             is_active=slack_bot.is_active,
+            allow_external_shared_channels=slack_bot.allow_external_shared_channels,
             connection_status=slack_bot.connection_status,
             connection_mode=slack_bot.connection_mode,
             webhook_url=slack_bot.webhook_url,
@@ -150,6 +158,7 @@ async def list_slack_bots(
             slack_workspace_id=bot.slack_workspace_id,
             slack_workspace_name=bot.slack_workspace_name,
             is_active=bot.is_active,
+            allow_external_shared_channels=bot.allow_external_shared_channels,
             connection_status=bot.connection_status,
             connection_mode=bot.connection_mode,
             webhook_url=bot.webhook_url,
@@ -184,6 +193,7 @@ async def get_slack_bot(
         slack_workspace_id=bot.slack_workspace_id,
         slack_workspace_name=bot.slack_workspace_name,
         is_active=bot.is_active,
+        allow_external_shared_channels=bot.allow_external_shared_channels,
         connection_status=bot.connection_status,
         connection_mode=bot.connection_mode,
         webhook_url=bot.webhook_url,
@@ -217,6 +227,7 @@ async def update_slack_bot(
             slack_app_token=bot_data.slack_app_token,
             signing_secret=bot_data.signing_secret,
             is_active=bot_data.is_active,
+            allow_external_shared_channels=bot_data.allow_external_shared_channels,
         )
 
         return SlackBotResponse(
@@ -228,6 +239,7 @@ async def update_slack_bot(
             slack_workspace_id=updated_bot.slack_workspace_id,
             slack_workspace_name=updated_bot.slack_workspace_name,
             is_active=updated_bot.is_active,
+            allow_external_shared_channels=updated_bot.allow_external_shared_channels,
             connection_status=updated_bot.connection_status,
             connection_mode=updated_bot.connection_mode,
             webhook_url=updated_bot.webhook_url,

@@ -366,6 +366,14 @@ services:
     container_name: synkora-sandbox
     environment:
       - SANDBOX_API_KEY=${SANDBOX_API_KEY:-dev-sandbox-key}
+      # Must be >= the longest per-command timeout any tool requests (e.g.
+      # internal_git_clone_repo's MAX_CLONE_TIMEOUT=1800s for full clones).
+      # Otherwise this service silently caps commands at 300s regardless of
+      # what the caller asked for, forcing full-history clones of any
+      # non-trivial repo into a timeout-then-retry-from-scratch cycle.
+      # 3600s matches the reference code-execution service's own
+      # CODE_EXECUTOR_MAX_COMMAND_TIMEOUT_SECONDS ceiling.
+      - SANDBOX_MAX_EXEC_TIMEOUT=3600
     networks:
       - synkora-network
 
@@ -435,6 +443,7 @@ services:
       - SCRAPER_API_KEY=${SCRAPER_API_KEY:-dev-scraper-key}
       - SANDBOX_SERVICE_URL=http://synkora-sandbox:5004
       - SANDBOX_API_KEY=${SANDBOX_API_KEY:-dev-sandbox-key}
+      - QDRANT_URL=http://qdrant:6333
       # Workspace Settings (uses /tmp which is already writable)
       - WORKSPACE_BASE_PATH=/tmp/synkora/workspaces
 
@@ -494,6 +503,7 @@ services:
       - SCRAPER_API_KEY=${SCRAPER_API_KEY:-dev-scraper-key}
       - SANDBOX_SERVICE_URL=http://synkora-sandbox:5004
       - SANDBOX_API_KEY=${SANDBOX_API_KEY:-dev-sandbox-key}
+      - QDRANT_URL=http://qdrant:6333
       - WORKSPACE_BASE_PATH=/tmp/synkora/workspaces
 
       - WORKSPACE_TTL_HOURS=24
@@ -526,6 +536,7 @@ services:
       - SCRAPER_API_KEY=${SCRAPER_API_KEY:-dev-scraper-key}
       - SANDBOX_SERVICE_URL=http://synkora-sandbox:5004
       - SANDBOX_API_KEY=${SANDBOX_API_KEY:-dev-sandbox-key}
+      - QDRANT_URL=http://qdrant:6333
       - WORKSPACE_BASE_PATH=/tmp/synkora/workspaces
 
       - WORKSPACE_TTL_HOURS=24
@@ -558,6 +569,7 @@ services:
       - SCRAPER_API_KEY=${SCRAPER_API_KEY:-dev-scraper-key}
       - SANDBOX_SERVICE_URL=http://synkora-sandbox:5004
       - SANDBOX_API_KEY=${SANDBOX_API_KEY:-dev-sandbox-key}
+      - QDRANT_URL=http://qdrant:6333
       - WORKSPACE_BASE_PATH=/tmp/synkora/workspaces
 
       - WORKSPACE_TTL_HOURS=24
@@ -589,6 +601,7 @@ services:
       - SCRAPER_API_KEY=${SCRAPER_API_KEY:-dev-scraper-key}
       - SANDBOX_SERVICE_URL=http://synkora-sandbox:5004
       - SANDBOX_API_KEY=${SANDBOX_API_KEY:-dev-sandbox-key}
+      - QDRANT_URL=http://qdrant:6333
       - WORKSPACE_BASE_PATH=/tmp/synkora/workspaces
 
       - WORKSPACE_TTL_HOURS=24
@@ -620,6 +633,7 @@ services:
       - SCRAPER_API_KEY=${SCRAPER_API_KEY:-dev-scraper-key}
       - SANDBOX_SERVICE_URL=http://synkora-sandbox:5004
       - SANDBOX_API_KEY=${SANDBOX_API_KEY:-dev-sandbox-key}
+      - QDRANT_URL=http://qdrant:6333
       - WORKSPACE_BASE_PATH=/tmp/synkora/workspaces
 
       - WORKSPACE_TTL_HOURS=24
@@ -651,6 +665,7 @@ services:
       - SCRAPER_API_KEY=${SCRAPER_API_KEY:-dev-scraper-key}
       - SANDBOX_SERVICE_URL=http://synkora-sandbox:5004
       - SANDBOX_API_KEY=${SANDBOX_API_KEY:-dev-sandbox-key}
+      - QDRANT_URL=http://qdrant:6333
       - WORKSPACE_BASE_PATH=/tmp/synkora/workspaces
 
       - WORKSPACE_TTL_HOURS=24
@@ -682,6 +697,12 @@ services:
       - ML_SERVICE_URL=http://synkora-ml:5002
       - SCRAPER_SERVICE_URL=http://synkora-scraper:5003
       - SCRAPER_API_KEY=${SCRAPER_API_KEY:-dev-scraper-key}
+      - SANDBOX_SERVICE_URL=http://synkora-sandbox:5004
+      - SANDBOX_API_KEY=${SANDBOX_API_KEY:-dev-sandbox-key}
+      - QDRANT_URL=http://qdrant:6333
+      - WORKSPACE_BASE_PATH=/tmp/synkora/workspaces
+      - WORKSPACE_TTL_HOURS=24
+      - WORKSPACE_MAX_SIZE_MB=2000
       - BOT_WORKER_CAPACITY=1000
       - BOT_WORKER_HEALTH_PORT=8080
     volumes:

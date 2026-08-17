@@ -29,7 +29,17 @@ import bcrypt
 from sqlalchemy.orm import Session
 
 from src.core.database import get_async_session_factory, get_db
-from src.models import Account, AccountStatus, Role, Tenant, TenantAccountJoin, TenantPlan, TenantStatus, TenantType
+from src.models import (
+    Account,
+    AccountRole,
+    AccountStatus,
+    Role,
+    Tenant,
+    TenantAccountJoin,
+    TenantPlan,
+    TenantStatus,
+    TenantType,
+)
 from src.models.subscription_plan import PlanTier, SubscriptionPlan
 from src.models.tenant_subscription import BillingCycle, SubscriptionStatus, TenantSubscription
 from src.services.permissions.seed_roles_permissions import seed_roles_and_permissions

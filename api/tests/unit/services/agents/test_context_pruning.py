@@ -297,6 +297,65 @@ class TestMeaningfulSummaries:
 
 
 # ---------------------------------------------------------------------------
+# Data-bearing file/document content tools (github/gitlab/PR-review/google-docs)
+# ---------------------------------------------------------------------------
+
+
+class TestFileContentToolsAreProtected:
+    """
+    Regression: file/document content-retrieval tools whose naming doesn't follow
+    the internal_read_/internal_fetch_ convention (e.g. internal_github_get_file_content)
+    must still be protected from being collapsed into a one-line summary. Otherwise an
+    agent cross-referencing several files (e.g. to explain an architecture) loses content
+    it still needs and re-fetches the same files repeatedly once they scroll out of the
+    keep_last_results window — this caused a real production infinite-refetch loop that
+    exhausted the max_iterations budget without ever answering.
+    """
+
+    @pytest.mark.parametrize(
+        "tool_name",
+        [
+            "internal_github_get_file_content",
+            "internal_gitlab_get_file",
+            "internal_get_file_content",
+            "internal_google_docs_get_content",
+        ],
+    )
+    def test_old_file_content_result_is_trimmed_not_summarised(self, tool_name):
+        big_content = json.dumps({"success": True, "content": "x" * 20000, "path": "some/file.py"})
+        messages = _four_tool_conversation(big_content, tool_name=tool_name)
+        settings = PruningSettings(
+            use_meaningful_summaries=True,
+            max_result_chars=100,  # Force pruning
+            keep_last_results=3,
+        )
+        pruned, stats = prune_tool_results(messages, settings)
+
+        old_result = next(m for m in pruned if m.get("tool_call_id") == "c1")
+        # Must be head+tail trimmed (data preserved), never collapsed to a 1-liner summary.
+        assert RESULT_PRUNED_MARKER not in old_result["content"]
+        assert "x" in old_result["content"]
+        assert stats.data_bearing_pruned >= 1
+
+    def test_metadata_only_drive_tool_is_not_protected(self):
+        """internal_google_drive_get_file returns metadata only (no file content), so it
+        should still be summarised like any other non-data tool — confirming the fix is
+        targeted, not an overly broad match."""
+        big_content = json.dumps({"row_count": 500, "rows": [{"id": i} for i in range(500)]})
+        messages = _four_tool_conversation(big_content, tool_name="internal_google_drive_get_file")
+        settings = PruningSettings(
+            use_meaningful_summaries=True,
+            max_result_chars=100,
+            keep_last_results=3,
+        )
+        pruned, stats = prune_tool_results(messages, settings)
+
+        old_result = next(m for m in pruned if m.get("tool_call_id") == "c1")
+        assert old_result["content"].startswith(RESULT_PRUNED_MARKER)
+        assert stats.data_bearing_pruned == 0
+
+
+# ---------------------------------------------------------------------------
 # Default settings
 # ---------------------------------------------------------------------------
 

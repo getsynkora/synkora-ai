@@ -16,6 +16,7 @@ interface SlackBot {
   connection_status: string;
   webhook_url: string | null;
   is_active: boolean;
+  allow_external_shared_channels: boolean;
 }
 
 export default function EditSlackBotPage() {
@@ -30,6 +31,7 @@ export default function EditSlackBotPage() {
     slack_bot_token: "",
     slack_app_token: "",
     signing_secret: "",
+    allow_external_shared_channels: false,
   });
 
   const [loading, setLoading] = useState(true);
@@ -53,6 +55,7 @@ export default function EditSlackBotPage() {
         slack_bot_token: "", // Don't populate for security
         slack_app_token: "", // Don't populate for security
         signing_secret: "", // Don't populate for security
+        allow_external_shared_channels: botData.allow_external_shared_channels ?? false,
       });
     } catch (err: any) {
       console.error("Error loading bot:", err);
@@ -71,6 +74,7 @@ export default function EditSlackBotPage() {
       // Only include fields that have values
       const updateData: any = {
         bot_name: formData.bot_name,
+        allow_external_shared_channels: formData.allow_external_shared_channels,
       };
 
       // Only update tokens if they were changed
@@ -99,6 +103,13 @@ export default function EditSlackBotPage() {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.checked,
     });
   };
 
@@ -320,6 +331,29 @@ export default function EditSlackBotPage() {
                 </p>
               </div>
             )}
+
+            {/* External Shared Channels Toggle */}
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="allow_external_shared_channels"
+                  checked={formData.allow_external_shared_channels}
+                  onChange={handleCheckboxChange}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                />
+                <div>
+                  <span className="text-sm font-medium text-gray-900">
+                    Allow in externally-shared channels (Slack Connect)
+                  </span>
+                  <p className="mt-1 text-xs text-gray-500">
+                    When off (recommended), the bot won't respond in channels shared with another
+                    company's Slack workspace. Turn this on only if you intentionally want this bot
+                    available to external Slack Connect members.
+                  </p>
+                </div>
+              </label>
+            </div>
 
             {/* Help Link */}
             <div className="pt-2">

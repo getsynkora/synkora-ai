@@ -14,6 +14,7 @@ The "query" API runs both in parallel and fuses with built-in RRF.
 
 import logging
 import time
+import uuid
 from typing import Any
 
 from src.config.settings import get_settings
@@ -37,10 +38,22 @@ _PAYLOAD_FIELDS = [
 ]
 
 
-def _collection_name(tenant_id: str, tier: str) -> str:
-    """Deterministic, tenant-scoped collection name."""
+def _point_id(doc_id: str) -> str:
+    """Derive a valid Qdrant point ID from an arbitrary business doc_id.
+
+    Qdrant point IDs must be an unsigned integer or a UUID — arbitrary strings
+    (e.g. Slack message-derived doc_ids like "C0B0ENY8UNQ_1786959431.976139_0")
+    are rejected with 400 Bad Request. Using uuid5 keeps the mapping
+    deterministic (same doc_id always upserts to the same point instead of
+    duplicating) while the original doc_id remains stored in the payload.
+    """
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, doc_id))
+
+
+def _collection_name(tenant_id: str, knowledge_base_id: str, tier: str) -> str:
+    """Deterministic, tenant+KB-scoped collection name."""
     safe_tid = str(tenant_id).replace("-", "")[:32]
-    return f"cb_{safe_tid}_{tier}"
+    return f"cb_{safe_tid}_{knowledge_base_id}_{tier}"
 
 
 class QdrantHybridBackend(BaseSearchBackend):
@@ -71,28 +84,30 @@ class QdrantHybridBackend(BaseSearchBackend):
             raise
         return self._client
 
-    async def _ensure_collection(self, tenant_id: str, tier: str, dense_dim: int = 1536) -> None:
+    async def _ensure_collection(
+        self, tenant_id: str, knowledge_base_id: str, tier: str, dense_dim: int = 1536
+    ) -> None:
         """Create collection if it does not exist (idempotent)."""
         from qdrant_client.models import (
             Distance,
             SparseIndexParams,
             SparseVectorParams,
             VectorParams,
-            VectorsConfig,
         )
 
         client = self._get_client()
-        name = _collection_name(tenant_id, tier)
+        name = _collection_name(tenant_id, knowledge_base_id, tier)
         try:
             await client.get_collection(name)
         except Exception:
+            # NOTE: qdrant_client.models.VectorsConfig is a `typing.Union[VectorParams,
+            # Dict[str, VectorParams]]` type alias, not a constructible class — pass
+            # a plain dict for named vectors instead.
             await client.create_collection(
                 collection_name=name,
-                vectors_config=VectorsConfig(
-                    root={
-                        _DENSE_VECTOR_NAME: VectorParams(size=dense_dim, distance=Distance.COSINE),
-                    }
-                ),
+                vectors_config={
+                    _DENSE_VECTOR_NAME: VectorParams(size=dense_dim, distance=Distance.COSINE),
+                },
                 sparse_vectors_config={
                     _SPARSE_VECTOR_NAME: SparseVectorParams(index=SparseIndexParams(on_disk=False)),
                 },
@@ -127,20 +142,22 @@ class QdrantHybridBackend(BaseSearchBackend):
             logger.warning("Failed to build Qdrant filter: %s", exc)
             return None
 
-    def _collections_for_tiers(self, tenant_id: str, tiers: list[str]) -> list[str]:
-        return [_collection_name(tenant_id, t) for t in tiers if t != "archive"]
+    def _collections_for_tiers(self, tenant_id: str, knowledge_base_id: str, tiers: list[str]) -> list[str]:
+        return [_collection_name(tenant_id, knowledge_base_id, t) for t in tiers if t != "archive"]
 
     async def search(
         self,
         tenant_id: str,
+        knowledge_base_id: str,
         query: str,
+        query_vector: list[float] | None = None,
         filters: SearchFilter | None = None,
         limit: int = 20,
         offset: int = 0,
     ) -> SearchResponse:
         start = time.monotonic()
         tiers = (filters.storage_tiers if filters else None) or ["hot"]
-        collections = self._collections_for_tiers(tenant_id, tiers)
+        collections = self._collections_for_tiers(tenant_id, knowledge_base_id, tiers)
         qdrant_filter = self._build_filter(tenant_id, filters)
 
         all_results: list[SearchResult] = []
@@ -148,8 +165,8 @@ class QdrantHybridBackend(BaseSearchBackend):
         for collection in collections:
             try:
                 results = await self._search_collection(
-                    collection=collection,
-                    query=query,
+                    collection,
+                    query_vector=query_vector,
                     qdrant_filter=qdrant_filter,
                     limit=limit,
                 )
@@ -171,19 +188,24 @@ class QdrantHybridBackend(BaseSearchBackend):
     async def _search_collection(
         self,
         collection: str,
-        query: str,
+        query_vector: list[float] | None,
         qdrant_filter: Any | None,
         limit: int,
     ) -> list[SearchResult]:
-        """Run dense-only search (sparse requires query vector; caller provides embedding)."""
+        """Run dense-only search. Requires a precomputed embedding — this collection has no
+        server-side inference model configured, so Qdrant rejects raw query text with a 400
+        (confirmed: "Expected some form of vector, id, or a type of query").
+        For full hybrid (dense + sparse), callers should use search_with_vectors()."""
+
+        if query_vector is None:
+            logger.warning("Qdrant search for %s called without a query_vector; skipping", collection)
+            return []
 
         client = self._get_client()
 
-        # Dense-only fallback — the retriever layer provides the dense embedding
-        # For full hybrid (dense + sparse), callers should use search_with_vectors()
         response = await client.query_points(
             collection_name=collection,
-            query=query,  # Qdrant 1.10+ accepts text for dense inference if model configured
+            query=query_vector,
             using=_DENSE_VECTOR_NAME,
             query_filter=qdrant_filter,
             limit=limit,
@@ -195,6 +217,7 @@ class QdrantHybridBackend(BaseSearchBackend):
     async def search_with_vectors(
         self,
         tenant_id: str,
+        knowledge_base_id: str,
         dense_vector: list[float],
         sparse_indices: list[int] | None,
         sparse_values: list[float] | None,
@@ -209,7 +232,7 @@ class QdrantHybridBackend(BaseSearchBackend):
 
         start = time.monotonic()
         tiers = (filters.storage_tiers if filters else None) or ["hot"]
-        collections = self._collections_for_tiers(tenant_id, tiers)
+        collections = self._collections_for_tiers(tenant_id, knowledge_base_id, tiers)
         qdrant_filter = self._build_filter(tenant_id, filters)
         client = self._get_client()
         all_results: list[SearchResult] = []
@@ -263,7 +286,9 @@ class QdrantHybridBackend(BaseSearchBackend):
             storage_tier=p.get("storage_tier", "hot"),
         )
 
-    async def index_documents(self, tenant_id: str, documents: list[dict[str, Any]]) -> dict[str, int]:
+    async def index_documents(
+        self, tenant_id: str, knowledge_base_id: str, documents: list[dict[str, Any]]
+    ) -> dict[str, int]:
         from qdrant_client.models import PointStruct, SparseVector
 
         client = self._get_client()
@@ -281,8 +306,8 @@ class QdrantHybridBackend(BaseSearchBackend):
                 continue  # archive goes to S3, not Qdrant
 
             dense_dim = len(tier_docs[0].get("embedding") or []) or 1536
-            await self._ensure_collection(tenant_id, tier, dense_dim)
-            collection = _collection_name(tenant_id, tier)
+            await self._ensure_collection(tenant_id, knowledge_base_id, tier, dense_dim)
+            collection = _collection_name(tenant_id, knowledge_base_id, tier)
 
             points: list[PointStruct] = []
             for doc in tier_docs:
@@ -308,7 +333,7 @@ class QdrantHybridBackend(BaseSearchBackend):
                     "occurred_at": doc.get("occurred_at"),
                     "storage_tier": tier,
                 }
-                points.append(PointStruct(id=doc["doc_id"], vector=vectors, payload=payload))
+                points.append(PointStruct(id=_point_id(doc["doc_id"]), vector=vectors, payload=payload))
 
             if points:
                 try:
@@ -320,21 +345,22 @@ class QdrantHybridBackend(BaseSearchBackend):
 
         return {"indexed": indexed, "failed": failed}
 
-    async def delete_documents(self, tenant_id: str, doc_ids: list[str]) -> int:
+    async def delete_documents(self, tenant_id: str, knowledge_base_id: str, doc_ids: list[str]) -> int:
         from qdrant_client.models import PointIdsList
 
         client = self._get_client()
         deleted = 0
         for tier in ["hot", "warm"]:
-            collection = _collection_name(tenant_id, tier)
+            collection = _collection_name(tenant_id, knowledge_base_id, tier)
             try:
-                await client.delete(collection_name=collection, points_selector=PointIdsList(points=doc_ids))
+                point_ids = [_point_id(d) for d in doc_ids]
+                await client.delete(collection_name=collection, points_selector=PointIdsList(points=point_ids))
                 deleted += len(doc_ids)
             except Exception:
                 pass
         return deleted
 
-    async def update_tier(self, tenant_id: str, doc_ids: list[str], new_tier: str) -> int:
+    async def update_tier(self, tenant_id: str, knowledge_base_id: str, doc_ids: list[str], new_tier: str) -> int:
         # Qdrant doesn't support moving between collections natively.
         # Retrieve from old tier, re-insert into new tier collection, delete from old.
         # For now, just update the payload field (simpler, avoids re-embedding).
@@ -344,12 +370,12 @@ class QdrantHybridBackend(BaseSearchBackend):
         for tier in ["hot", "warm"]:
             if tier == new_tier:
                 continue
-            collection = _collection_name(tenant_id, tier)
+            collection = _collection_name(tenant_id, knowledge_base_id, tier)
             try:
                 await client.set_payload(
                     collection_name=collection,
                     payload={"storage_tier": new_tier},
-                    points=doc_ids,
+                    points=[_point_id(d) for d in doc_ids],
                 )
                 updated += len(doc_ids)
             except Exception:

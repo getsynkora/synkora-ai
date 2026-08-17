@@ -218,6 +218,36 @@ const MinimaxIcon = () => (
   </svg>
 )
 
+const AWSIcon = () => (
+  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
+    <rect width="24" height="24" rx="6" fill="#232F3E"/>
+    <path d="M6 15c2 1.5 10 1.5 12 0M8 10.5c1-2 7-2 8 0M9 7c.5-1 5-1 6 0" stroke="#FF9900" strokeWidth="1.3" strokeLinecap="round" fill="none"/>
+  </svg>
+)
+
+const GCPIcon = () => (
+  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
+    <rect width="24" height="24" rx="6" fill="#FFFFFF" stroke="#E5E7EB"/>
+    <path d="M9 8h6l3 4-3 4H9l-3-4z" fill="#4285F4"/>
+    <path d="M9 8l-3 4 3 4" fill="#EA4335" fillOpacity="0.85"/>
+  </svg>
+)
+
+const AzureIcon = () => (
+  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
+    <rect width="24" height="24" rx="6" fill="#0078D4"/>
+    <path d="M9 6l-4 12h4l2-6 3 6h4L11 6H9z" fill="white"/>
+  </svg>
+)
+
+const DigitalOceanIcon = () => (
+  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
+    <rect width="24" height="24" rx="6" fill="#0080FF"/>
+    <circle cx="12" cy="10" r="5" fill="white"/>
+    <rect x="10" y="16" width="4" height="3" fill="white"/>
+  </svg>
+)
+
 const PROVIDERS = [
   {
     value: 'github',
@@ -619,6 +649,62 @@ const PROVIDERS = [
     supportsOAuth: false,
     supportsApiToken: true,
     apiTokenDescription: 'Enter your Minimax API Key. Add {"group_id": "your-group-id"} in the Config JSON field below.',
+  },
+  {
+    value: 'aws',
+    label: 'AWS',
+    icon: <AWSIcon />,
+    color: 'text-orange-700',
+    bgColor: 'bg-orange-50',
+    description: 'CloudWatch logs/metrics/alarms, EC2/RDS/Lambda health, Security Hub + GuardDuty findings',
+    defaultScopes: [],
+    redirectUri: '',
+    setupGuide: 'https://github.com/synkora/synkora/blob/main/docs/integrations/aws-readonly-policy.json',
+    supportsOAuth: false,
+    supportsApiToken: true,
+    apiTokenDescription: 'Enter your AWS Secret Access Key as the API token below. Your Access Key ID and AWS Region are entered as separate fields above.',
+  },
+  {
+    value: 'gcp',
+    label: 'Google Cloud Platform',
+    icon: <GCPIcon />,
+    color: 'text-blue-700',
+    bgColor: 'bg-blue-50',
+    description: 'Cloud Logging/Monitoring, Compute Engine/GKE health, Security Command Center findings',
+    defaultScopes: [],
+    redirectUri: '',
+    setupGuide: 'https://github.com/synkora/synkora/blob/main/docs/integrations/gcp-readonly-roles.md',
+    supportsOAuth: false,
+    supportsApiToken: true,
+    apiTokenDescription: 'Paste your full service account JSON key as the API token below. Your GCP Project ID is entered as a separate field above.',
+  },
+  {
+    value: 'azure',
+    label: 'Microsoft Azure',
+    icon: <AzureIcon />,
+    color: 'text-blue-800',
+    bgColor: 'bg-blue-50',
+    description: 'Azure Monitor Logs/Metrics/Alerts, VM/AKS health, Defender for Cloud findings',
+    defaultScopes: [],
+    redirectUri: '',
+    setupGuide: 'https://github.com/synkora/synkora/blob/main/docs/integrations/azure-readonly-roles.md',
+    supportsOAuth: false,
+    supportsApiToken: true,
+    apiTokenDescription: 'Enter your AD App client secret as the API token below. Your Client ID, Tenant ID, and Subscription ID are entered as separate fields above.',
+  },
+  {
+    value: 'digitalocean',
+    label: 'DigitalOcean',
+    icon: <DigitalOceanIcon />,
+    color: 'text-sky-700',
+    bgColor: 'bg-sky-50',
+    description: 'Droplet/App Platform metrics, monitoring alert policies, Droplet status',
+    defaultScopes: [],
+    redirectUri: '',
+    setupGuide: 'https://github.com/synkora/synkora/blob/main/docs/integrations/digitalocean-readonly-token.md',
+    supportsOAuth: false,
+    supportsApiToken: true,
+    apiTokenDescription: 'Enter your DigitalOcean personal access token (read-only scope) as the API token.',
   },
 ]
 
@@ -1526,6 +1612,107 @@ export default function CreateOAuthAppPage() {
                         </select>
                         <p className="text-xs text-gray-500 mt-1">Default basemap style for static map images</p>
                       </div>
+                    )}
+
+                    {/* AWS-specific fields */}
+                    {formData.provider === 'aws' && (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                            AWS Access Key ID *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={formData.client_id}
+                            onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-sm"
+                            placeholder="AKIAIOSFODNN7EXAMPLE"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Access Key ID for a read-only IAM user or role. Enter the matching Secret Access Key as the API token below.
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                            AWS Region *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={formData.config.region || ''}
+                            onChange={(e) => setFormData({ ...formData, config: { ...formData.config, region: e.target.value } })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-sm"
+                            placeholder="us-east-1"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">The AWS region your resources are in.</p>
+                        </div>
+                      </>
+                    )}
+
+                    {/* GCP-specific fields */}
+                    {formData.provider === 'gcp' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                          GCP Project ID *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={formData.config.project_id || ''}
+                          onChange={(e) => setFormData({ ...formData, config: { ...formData.config, project_id: e.target.value } })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-sm"
+                          placeholder="my-gcp-project-id"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          The Google Cloud project ID to query. Paste the full service account JSON key as the API token below.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Azure-specific fields */}
+                    {formData.provider === 'azure' && (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                            Azure AD App Client ID *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={formData.client_id}
+                            onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-sm"
+                            placeholder="Application (client) ID"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                            Azure Tenant ID *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={formData.config.azure_tenant_id || ''}
+                            onChange={(e) => setFormData({ ...formData, config: { ...formData.config, azure_tenant_id: e.target.value } })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-sm"
+                            placeholder="Directory (tenant) ID"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                            Azure Subscription ID *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={formData.config.subscription_id || ''}
+                            onChange={(e) => setFormData({ ...formData, config: { ...formData.config, subscription_id: e.target.value } })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-sm"
+                            placeholder="Subscription ID"
+                          />
+                        </div>
+                      </>
                     )}
 
                     {formData.provider === 'mailisk' && (

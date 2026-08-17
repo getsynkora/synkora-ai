@@ -332,7 +332,7 @@ async def _process_message_async(
                 return
 
             # Get or create conversation
-            conversation = await _get_or_create_conversation(db, bot, sender_phone)
+            conversation = await _get_or_create_conversation(db, bot, sender_phone, message_text=text)
 
             # Save user message
             user_msg = Message(
@@ -402,7 +402,9 @@ async def _process_message_async(
             await db.rollback()
 
 
-async def _get_or_create_conversation(db: AsyncSession, bot: WhatsAppBot, user_phone: str) -> Conversation:
+async def _get_or_create_conversation(
+    db: AsyncSession, bot: WhatsAppBot, user_phone: str, message_text: str | None = None
+) -> Conversation:
     result = await db.execute(
         select(WhatsAppConversation).where(
             WhatsAppConversation.whatsapp_bot_id == bot.id,
@@ -415,9 +417,14 @@ async def _get_or_create_conversation(db: AsyncSession, bot: WhatsAppBot, user_p
         if conv:
             return conv
 
+    conv_name = (
+        message_text.strip()[:60]
+        if message_text and message_text.strip()
+        else f"WhatsApp conversation with {user_phone}"
+    )
     conv = Conversation(
         agent_id=bot.agent_id,
-        name=f"WhatsApp conversation with {user_phone}",
+        name=conv_name,
         status=ConversationStatus.ACTIVE,
     )
     db.add(conv)

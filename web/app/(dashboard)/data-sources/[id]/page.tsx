@@ -365,11 +365,14 @@ export default function DataSourceDetailsPage() {
   }
 
   const isWebhookSource = WEBHOOK_SOURCES.includes(dataSource.type?.toUpperCase())
-  const hasOAuthApp = !!(dataSource as any).oauth_app
-  const usePolling = !isWebhookSource || hasOAuthApp
   const hasSigningSecret = !!(dataSource.config?.signing_secret)
   const isActive = dataSource.status?.toUpperCase() === 'ACTIVE'
+  const hasError = dataSource.status?.toUpperCase() === 'ERROR'
   const isSyncing = dataSource.status?.toUpperCase() === 'SYNCING'
+  // Manual "Sync Now" should be available for any connected source (ACTIVE/ERROR),
+  // regardless of whether it was connected via an OAuth app, a linked Slack bot,
+  // or a direct API token — the backend's trigger_sync endpoint only gates on status.
+  const usePolling = !isWebhookSource || isActive || hasError
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 p-4 md:p-8">

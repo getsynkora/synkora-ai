@@ -13,7 +13,12 @@ import httpx
 logger = logging.getLogger(__name__)
 
 
-async def _get_github_token(runtime_context: dict[str, Any], config: dict[str, Any] | None = None) -> str | None:
+async def _get_github_token(
+    runtime_context: dict[str, Any],
+    config: dict[str, Any] | None = None,
+    owner: str | None = None,
+    repo: str | None = None,
+) -> str | None:
     """Get GitHub token from runtime context or OAuth app. Returns None if not configured."""
     from src.services.agents.internal_tools.github_auth_helper import get_github_token_from_context
 
@@ -27,7 +32,7 @@ async def _get_github_token(runtime_context: dict[str, Any], config: dict[str, A
 
     logger.info(f"🔍 [GitHub Comment Tools] Looking up GitHub OAuth for tool_name='{tool_name}'")
 
-    return await get_github_token_from_context(runtime_context, tool_name=tool_name)
+    return await get_github_token_from_context(runtime_context, tool_name=tool_name, owner=owner, repo=repo)
 
 
 async def _make_github_request(
@@ -84,7 +89,7 @@ async def internal_github_post_issue_comment(
         Dictionary with comment details
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
         if not token:
             logger.warning("GitHub token not found — configure GitHub OAuth for this agent to post comments")
             return {"success": False, "error": "GitHub token not found. Please configure GitHub OAuth for this agent."}
@@ -136,7 +141,7 @@ async def internal_github_update_comment(
         Dictionary with updated comment details
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
         if not token:
             logger.warning("GitHub token not found — configure GitHub OAuth for this agent to update comments")
             return {"success": False, "error": "GitHub token not found. Please configure GitHub OAuth for this agent."}
@@ -186,7 +191,7 @@ async def internal_github_delete_comment(
         Dictionary with deletion confirmation
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
         if not token:
             logger.warning("GitHub token not found — configure GitHub OAuth for this agent to delete comments")
             return {"success": False, "error": "GitHub token not found. Please configure GitHub OAuth for this agent."}
@@ -228,7 +233,7 @@ async def internal_github_list_comments(
         Dictionary with list of comments
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
         if not token:
             logger.warning("GitHub token not found — configure GitHub OAuth for this agent to list comments")
             return {"success": False, "error": "GitHub token not found. Please configure GitHub OAuth for this agent."}
@@ -289,7 +294,7 @@ async def internal_github_get_comment(
         Dictionary with comment details
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
         if not token:
             logger.warning("GitHub token not found — configure GitHub OAuth for this agent to get comments")
             return {"success": False, "error": "GitHub token not found. Please configure GitHub OAuth for this agent."}
@@ -349,7 +354,7 @@ async def internal_github_post_pr_review_comment(
         Dictionary with review comment details
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
         if not token:
             logger.warning("GitHub token not found — configure GitHub OAuth for this agent to post PR review comments")
             return {"success": False, "error": "GitHub token not found. Please configure GitHub OAuth for this agent."}
@@ -418,7 +423,7 @@ async def internal_github_reply_to_review_comment(
         Dictionary with reply details
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
         if not token:
             logger.warning("GitHub token not found — configure GitHub OAuth for this agent to reply to review comments")
             return {"success": False, "error": "GitHub token not found. Please configure GitHub OAuth for this agent."}

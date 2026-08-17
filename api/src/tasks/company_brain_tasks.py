@@ -5,10 +5,16 @@ Task inventory:
   kb_consume_stream_task               — read one batch from a Redis Stream and index it
   kb_process_batch_task                — direct indexing (used when queue_backend=celery_only)
   kb_extract_entities_task             — extract/upsert canonical entities into kb_entities
-  company_brain_incremental_sync_task  — trigger incremental sync for a data source
-  company_brain_full_sync_task         — trigger full re-sync for a data source
-  company_brain_sync_all_task          — fan-out incremental sync to all active sources
   company_brain_tier_migration_task    — promote hot->warm, warm->archive based on age thresholds
+
+Note: fetching from external providers (Slack/GitHub/Notion/etc.) is handled by the single
+"official" sync pathway in `src.tasks.data_source_tasks` (sync_data_source_task /
+sync_all_data_sources_task), which uses an AsyncSession-compatible connector dispatch and
+respects per-source `sync_frequency_minutes`. This module no longer duplicates that pathway —
+a previous `company_brain_incremental_sync_task`/`company_brain_full_sync_task`/
+`company_brain_sync_all_task` trio was a redundant beat-scheduled fan-out that instantiated
+connectors with a synchronous `Session` (connectors expect `AsyncSession`), guaranteeing a
+`TypeError` on every run and clobbering the correct status set by the real sync pathway.
 """
 
 import logging
@@ -20,6 +26,8 @@ from src.celery_app import celery_app
 from src.core.database import SessionLocal
 
 logger = logging.getLogger(__name__)
+
+_CONSUME_TIME_BUDGET_SECONDS = 25
 
 
 # ---------------------------------------------------------------------------
@@ -48,7 +56,7 @@ def kb_consume_stream_task(self, kb_id: int, tenant_id: str, source_type: str) -
         return await consumer.consume(kb_id=kb_id, tenant_id=tenant_id, source_type=source_type)
 
     try:
-        return asyncio.get_event_loop().run_until_complete(_run())
+        return asyncio.run(_run())
     except Exception as exc:
         logger.error("kb_consume_stream_task failed: %s", exc)
         raise self.retry(exc=exc)
@@ -89,27 +97,35 @@ def company_brain_consume_active_streams_task(self) -> dict[str, Any]:
         db.close()
 
     async def _run() -> dict[str, Any]:
+        import time
+
         from src.services.company_brain.ingestion.stream_consumer import StreamConsumer
 
         consumer = StreamConsumer()
         totals = {"streams": 0, "read": 0, "indexed": 0, "skipped": 0, "failed": 0}
+        start = time.monotonic()
 
         for source in sources:
             source_type = getattr(source.type, "value", str(source.type)).lower()
-            stats = await consumer.consume(
-                kb_id=int(source.knowledge_base_id),
-                tenant_id=str(source.tenant_id),
-                source_type=source_type,
-                block_ms=5,
-            )
             totals["streams"] += 1
-            for key in ("read", "indexed", "skipped", "failed"):
-                totals[key] += int(stats.get(key, 0))
+            while True:
+                if time.monotonic() - start >= _CONSUME_TIME_BUDGET_SECONDS:
+                    break
+                stats = await consumer.consume(
+                    kb_id=int(source.knowledge_base_id),
+                    tenant_id=str(source.tenant_id),
+                    source_type=source_type,
+                    block_ms=5,
+                )
+                for key in ("read", "indexed", "skipped", "failed"):
+                    totals[key] += int(stats.get(key, 0))
+                if int(stats.get("read", 0)) == 0:
+                    break
 
         return totals
 
     try:
-        return asyncio.get_event_loop().run_until_complete(_run())
+        return asyncio.run(_run())
     except Exception as exc:
         logger.error("company_brain_consume_active_streams_task failed: %s", exc)
         raise self.retry(exc=exc)
@@ -143,6 +159,7 @@ def kb_process_batch_task(
         consumer = StreamConsumer()
         # Bypass the stream and call the processing pipeline directly
         return await consumer._process_batch(
+            kb_id=kb_id,
             tenant_id=tenant_id,
             source_type=source_type,
             raw_docs=documents,
@@ -150,164 +167,10 @@ def kb_process_batch_task(
         )
 
     try:
-        return asyncio.get_event_loop().run_until_complete(_run())
+        return asyncio.run(_run())
     except Exception as exc:
         logger.error("kb_process_batch_task failed: %s", exc)
         raise self.retry(exc=exc)
-
-
-# ---------------------------------------------------------------------------
-# Data source sync tasks
-# ---------------------------------------------------------------------------
-
-
-@celery_app.task(
-    name="company_brain_incremental_sync_task",
-    bind=True,
-    max_retries=3,
-    default_retry_delay=300,
-    queue="company_brain",
-)
-def company_brain_incremental_sync_task(self, data_source_id: int, tenant_id: str) -> dict[str, Any]:
-    """Run an incremental sync for one data source."""
-    db = SessionLocal()
-    try:
-        return _run_sync(db, data_source_id, tenant_id, full_sync=False)
-    except Exception as exc:
-        logger.error("Incremental sync failed for ds=%s: %s", data_source_id, exc)
-        raise self.retry(exc=exc, countdown=300 * (2**self.request.retries))
-    finally:
-        db.close()
-
-
-@celery_app.task(
-    name="company_brain_full_sync_task",
-    bind=True,
-    max_retries=1,
-    default_retry_delay=600,
-    queue="company_brain",
-)
-def company_brain_full_sync_task(self, data_source_id: int, tenant_id: str) -> dict[str, Any]:
-    """Run a full re-sync for one data source."""
-    db = SessionLocal()
-    try:
-        return _run_sync(db, data_source_id, tenant_id, full_sync=True)
-    except Exception as exc:
-        logger.error("Full sync failed for ds=%s: %s", data_source_id, exc)
-        raise self.retry(exc=exc)
-    finally:
-        db.close()
-
-
-def _run_sync(db: Any, data_source_id: int, tenant_id: str, full_sync: bool) -> dict[str, Any]:
-    """Shared sync logic: instantiate the right connector and run sync."""
-    import asyncio
-
-    from src.models.data_source import DataSource, DataSourceStatus
-
-    ds = (
-        db.query(DataSource)
-        .filter(
-            DataSource.id == data_source_id,
-            DataSource.tenant_id == uuid.UUID(tenant_id),
-        )
-        .first()
-    )
-
-    if not ds:
-        return {"success": False, "error": "DataSource not found"}
-
-    # Mark as syncing
-    ds.status = DataSourceStatus.SYNCING
-    db.commit()
-
-    connector = _get_connector(ds, db)
-    if not connector:
-        ds.status = DataSourceStatus.ERROR
-        ds.last_error = f"No connector for type: {ds.type}"
-        db.commit()
-        return {"success": False, "error": ds.last_error}
-
-    async def _run():
-        return await connector.sync(incremental=not full_sync)
-
-    try:
-        result = asyncio.get_event_loop().run_until_complete(_run())
-        ds.status = DataSourceStatus.ACTIVE
-        ds.last_sync_at = datetime.now(UTC)
-        ds.last_error = None
-        db.commit()
-        return {"success": True, **result}
-    except Exception as exc:
-        ds.status = DataSourceStatus.ERROR
-        ds.last_error = str(exc)
-        db.commit()
-        raise
-
-
-def _get_connector(ds: Any, db: Any) -> Any:
-    """Return the appropriate connector for the data source type."""
-    from src.models.data_source import DataSourceType
-
-    type_map = {
-        DataSourceType.SLACK: "src.services.data_sources.slack_connector.SlackConnector",
-        DataSourceType.GITHUB: "src.services.data_sources.github_connector.GitHubConnector",
-        DataSourceType.GITLAB: "src.services.data_sources.gitlab_connector.GitLabConnector",
-        DataSourceType.GMAIL: "src.services.data_sources.gmail_connector.GmailConnector",
-        DataSourceType.GOOGLE_DRIVE: "src.services.data_sources.google_drive_connector.GoogleDriveConnector",
-        DataSourceType.JIRA: "src.services.data_sources.jira_connector.JiraConnector",
-        DataSourceType.CLICKUP: "src.services.data_sources.clickup_connector.ClickUpConnector",
-        DataSourceType.NOTION: "src.services.data_sources.notion_connector.NotionConnector",
-        DataSourceType.CONFLUENCE: "src.services.data_sources.confluence_connector.ConfluenceConnector",
-        DataSourceType.LINEAR: "src.services.data_sources.linear_connector.LinearConnector",
-    }
-
-    class_path = type_map.get(ds.type)
-    if not class_path:
-        logger.warning("No connector registered for DataSourceType: %s", ds.type)
-        return None
-
-    module_path, class_name = class_path.rsplit(".", 1)
-    import importlib
-
-    mod = importlib.import_module(module_path)
-    cls = getattr(mod, class_name)
-    return cls(data_source=ds, db=db)
-
-
-# ---------------------------------------------------------------------------
-# Fan-out task — syncs all active Company Brain data sources
-# ---------------------------------------------------------------------------
-
-
-@celery_app.task(name="company_brain_sync_all_task", queue="company_brain")
-def company_brain_sync_all_task(tenant_id: str | None = None) -> dict[str, Any]:
-    """
-    Fan out incremental sync tasks for all active data sources.
-
-    If tenant_id is provided, only syncs that tenant's sources.
-    """
-    db = SessionLocal()
-    try:
-        from src.models.data_source import DataSource, DataSourceStatus
-
-        query = db.query(DataSource).filter(DataSource.status == DataSourceStatus.ACTIVE)
-        if tenant_id:
-            query = query.filter(DataSource.tenant_id == uuid.UUID(tenant_id))
-
-        sources = query.all()
-        queued = 0
-        for ds in sources:
-            company_brain_incremental_sync_task.delay(
-                data_source_id=ds.id,
-                tenant_id=str(ds.tenant_id),
-            )
-            queued += 1
-
-        logger.info("company_brain_sync_all_task: queued %d incremental syncs", queued)
-        return {"queued": queued}
-    finally:
-        db.close()
 
 
 # ---------------------------------------------------------------------------

@@ -493,6 +493,31 @@ async def internal_search_files(
     Returns:
         Dictionary containing matches or error
     """
+    # Route to remote compute session when configured
+    from src.services.compute.resolver import get_compute_session_from_config
+
+    _cs = await get_compute_session_from_config(config)
+    if _cs is not None and _cs.is_remote:
+        try:
+            compiled_pattern = re.compile(regex_pattern)
+        except re.error as e:
+            return {"error": f"Invalid regex pattern: {str(e)}"}
+
+        result = await _cs.exec_command(["find", directory, "-type", "f"])
+        if not result.get("success"):
+            return {"error": result.get("error") or f"Path not found: {directory}"}
+
+        matches = []
+        for file_path in result["output"].splitlines():
+            file_path = file_path.strip()
+            if not file_path:
+                continue
+            file_name = os.path.basename(file_path)
+            if compiled_pattern.match(file_name):
+                matches.append({"path": file_path, "name": file_name, "directory": os.path.dirname(file_path)})
+
+        return {"directory": directory, "pattern": regex_pattern, "matches": matches, "total_matches": len(matches)}
+
     try:
         # Validate directory path
         is_valid, error_msg = _validate_directory_path(directory, config=config)
@@ -829,6 +854,31 @@ async def internal_edit_file(
     Returns:
         Dictionary indicating success or error
     """
+    # Route to remote compute session when configured
+    from src.services.compute.resolver import get_compute_session_from_config
+
+    _cs = await get_compute_session_from_config(config)
+    if _cs is not None and _cs.is_remote:
+        read_result = await _cs.read_file(file_path, start_line=1, max_lines=10_000_000)
+        if not read_result.get("success"):
+            return {"error": read_result.get("error") or f"File not found: {file_path}"}
+
+        content = read_result["content"]
+        new_content = content.replace(search_pattern, replace_with)
+        replacement_count = content.count(search_pattern)
+
+        write_result = await _cs.write_file(file_path, new_content)
+        if not write_result.get("success"):
+            return {"error": write_result.get("error") or f"Failed to write {file_path}"}
+
+        return {
+            "success": True,
+            "path": file_path,
+            "replacements_made": replacement_count,
+            "search_pattern": search_pattern,
+            "replace_with": replace_with,
+        }
+
     try:
         # Validate file path
         is_valid, error_msg = _validate_file_path(file_path, config=config)
@@ -876,6 +926,39 @@ async def internal_get_file_info(file_path: str, config: dict[str, Any] | None =
     Returns:
         Dictionary containing file information
     """
+    # Route to remote compute session when configured
+    from src.services.compute.resolver import get_compute_session_from_config
+
+    _cs = await get_compute_session_from_config(config)
+    if _cs is not None and _cs.is_remote:
+        if not await _cs.file_exists(file_path):
+            return {"error": f"Path not found: {file_path}"}
+
+        stat_result = await _cs.exec_command(["stat", "-c", "%s|%Y|%Z|%F", file_path])
+        if not stat_result.get("success"):
+            return {"error": stat_result.get("error") or f"Failed to stat {file_path}"}
+
+        try:
+            size_str, mtime_str, ctime_str, ftype = stat_result["output"].strip().split("|", 3)
+            is_dir = "directory" in ftype
+            info = {
+                "path": file_path,
+                "name": os.path.basename(file_path.rstrip("/")),
+                "size": int(size_str),
+                "last_modified": float(mtime_str),
+                "created": float(ctime_str),
+                "is_dir": is_dir,
+                "is_file": not is_dir,
+            }
+        except (ValueError, IndexError) as e:
+            return {"error": f"Failed to parse stat output for {file_path}: {e}"}
+
+        if info["is_file"]:
+            info["extension"] = os.path.splitext(file_path)[1].lower()
+            info["mime_type"] = mimetypes.guess_type(file_path)[0]
+
+        return info
+
     try:
         # Get workspace path and validate
         workspace_path = _get_workspace_path(config)
@@ -928,6 +1011,24 @@ async def internal_move_file(
     Returns:
         Dictionary indicating success or error
     """
+    # Route to remote compute session when configured
+    from src.services.compute.resolver import get_compute_session_from_config
+
+    _cs = await get_compute_session_from_config(config)
+    if _cs is not None and _cs.is_remote:
+        if not await _cs.file_exists(source_path):
+            return {"error": f"Source path not found: {source_path}"}
+
+        dest_dir = os.path.dirname(destination_path)
+        if dest_dir:
+            await _cs.create_dir(dest_dir)
+
+        mv_result = await _cs.exec_command(["mv", source_path, destination_path])
+        if not mv_result.get("success"):
+            return {"error": mv_result.get("error") or f"Failed to move {source_path} to {destination_path}"}
+
+        return {"success": True, "source": source_path, "destination": destination_path, "operation": "move"}
+
     try:
         # Get workspace path and validate both paths
         workspace_path = _get_workspace_path(config)
@@ -1100,6 +1201,24 @@ async def internal_directory_tree(
     Returns:
         Dictionary containing tree output and metadata
     """
+    # Build tree command (shared between local and remote execution)
+    command = ["tree"]
+    if max_depth is not None and max_depth > 0:
+        command.extend(["-L", str(max_depth)])
+    if show_hidden:
+        command.append("-a")
+    command.append(directory_path)
+
+    # Route to remote compute session when configured
+    from src.services.compute.resolver import get_compute_session_from_config
+
+    _cs = await get_compute_session_from_config(config)
+    if _cs is not None and _cs.is_remote:
+        result = await _cs.exec_command(command, timeout=30)
+        if not result.get("success"):
+            return {"path": directory_path, "tree": "", "error": result.get("error") or "tree command failed"}
+        return {"path": directory_path, "tree": result["output"], "max_depth": max_depth, "show_hidden": show_hidden}
+
     try:
         # Validate directory path
         is_valid, error_msg = _validate_directory_path(directory_path, config=config)
@@ -1107,20 +1226,6 @@ async def internal_directory_tree(
             return {"error": error_msg}
 
         logger.info(f"Generating directory tree for: {directory_path}")
-
-        # Build tree command
-        command = ["tree"]
-
-        # Add depth limit if specified
-        if max_depth is not None and max_depth > 0:
-            command.extend(["-L", str(max_depth)])
-
-        # Add hidden files flag if requested
-        if show_hidden:
-            command.append("-a")
-
-        # Add the directory path
-        command.append(directory_path)
 
         try:
             from src.services.agents.internal_tools.command_tools import _is_command_safe
@@ -1160,6 +1265,33 @@ async def internal_directory_tree(
         return {"error": f"Failed to generate directory tree: {str(e)}"}
 
 
+def _glob_pattern_to_regex(pattern: str) -> re.Pattern:
+    """
+    Convert a glob pattern (supporting '**') to a compiled regex matching POSIX-style
+    relative paths. Used to filter remote 'find' output against a glob pattern, since
+    the compute session interface has no native glob primitive.
+    """
+    regex_parts = []
+    i = 0
+    while i < len(pattern):
+        if pattern[i : i + 3] == "**/":
+            regex_parts.append("(?:.*/)?")
+            i += 3
+        elif pattern[i : i + 2] == "**":
+            regex_parts.append(".*")
+            i += 2
+        elif pattern[i] == "*":
+            regex_parts.append("[^/]*")
+            i += 1
+        elif pattern[i] == "?":
+            regex_parts.append("[^/]")
+            i += 1
+        else:
+            regex_parts.append(re.escape(pattern[i]))
+            i += 1
+    return re.compile("^" + "".join(regex_parts) + "$")
+
+
 # Default directories/files to skip during glob and grep
 _SKIP_DIRS = {
     ".git",
@@ -1197,6 +1329,41 @@ async def internal_glob(
     Returns:
         Dictionary containing matching file paths sorted by modification time
     """
+    # Route to remote compute session when configured
+    from src.services.compute.resolver import get_compute_session_from_config
+
+    _cs = await get_compute_session_from_config(config)
+    if _cs is not None and _cs.is_remote:
+        search_dir = path if path else (_cs.base_path or ".")
+        result = await _cs.exec_command(["find", search_dir, "-type", "f"])
+        if not result.get("success"):
+            return {"error": result.get("error") or f"Path not found: {search_dir}"}
+
+        matcher = _glob_pattern_to_regex(pattern)
+        all_files = [f.strip() for f in result["output"].splitlines() if f.strip()]
+
+        matches: list[dict[str, Any]] = []
+        total_found = 0
+        for file_path in all_files:
+            rel_path = os.path.relpath(file_path, search_dir)
+            parts = rel_path.split(os.sep)
+            if any(part in _SKIP_DIRS for part in parts):
+                continue
+            if not matcher.match(rel_path):
+                continue
+            total_found += 1
+            if len(matches) < max_results:
+                matches.append({"path": file_path, "name": os.path.basename(file_path)})
+
+        return {
+            "pattern": pattern,
+            "directory": str(search_dir),
+            "matches": matches,
+            "total_matches": len(matches),
+            "total_found": total_found,
+            "truncated": total_found > max_results,
+        }
+
     try:
         workspace_path = _get_workspace_path(config)
         if not workspace_path:
@@ -1279,6 +1446,93 @@ async def internal_grep(
     Returns:
         Dictionary containing matches with file paths, line numbers, and snippets
     """
+    # Compile regex up front (shared between local and remote execution)
+    flags = re.IGNORECASE if case_insensitive else 0
+    try:
+        compiled = re.compile(pattern, flags)
+    except re.error as e:
+        return {"error": f"Invalid regex pattern: {str(e)}"}
+
+    def _scan_lines(lines: list[str]) -> list[dict[str, Any]]:
+        """Scan a list of file lines for the pattern, building context snippets."""
+        file_matches = []
+        for line_num, line in enumerate(lines, start=1):
+            if compiled.search(line):
+                start = max(0, line_num - 1 - context_lines)
+                end = min(len(lines), line_num + context_lines)
+                context = []
+                for ctx_idx in range(start, end):
+                    prefix = ">" if ctx_idx == line_num - 1 else " "
+                    context.append(f"{prefix} {ctx_idx + 1}: {lines[ctx_idx].rstrip()}")
+
+                file_matches.append(
+                    {
+                        "line": line_num,
+                        "content": line.rstrip(),
+                        "context": "\n".join(context),
+                    }
+                )
+        return file_matches
+
+    # Route to remote compute session when configured
+    from src.services.compute.resolver import get_compute_session_from_config
+
+    _cs = await get_compute_session_from_config(config)
+    if _cs is not None and _cs.is_remote:
+        search_path_str = path if path else (_cs.base_path or ".")
+
+        find_result = await _cs.exec_command(["find", search_path_str, "-type", "f"])
+        if not find_result.get("success"):
+            return {"error": find_result.get("error") or f"Path not found: {search_path_str}"}
+
+        candidate_files = [f.strip() for f in find_result["output"].splitlines() if f.strip()]
+
+        matches: list[dict[str, Any]] = []
+        files_searched = 0
+        files_with_matches = 0
+
+        for file_path in candidate_files:
+            if len(matches) >= max_results:
+                break
+
+            rel_parts = os.path.relpath(file_path, search_path_str).split(os.sep)
+            if any(part in _SKIP_DIRS for part in rel_parts):
+                continue
+
+            file_name = os.path.basename(file_path)
+            if include and not fnmatch.fnmatch(file_name, include):
+                continue
+
+            ext = os.path.splitext(file_name)[1].lower()
+            if ext in ALLOWED_EXTENSIONS["media"]:
+                continue
+
+            read_result = await _cs.read_file(file_path, start_line=1, max_lines=10_000_000)
+            if not read_result.get("success"):
+                continue
+
+            files_searched += 1
+            lines = read_result["content"].splitlines(keepends=True)
+            file_matches = _scan_lines(lines)
+            if file_matches:
+                files_with_matches += 1
+                for m in file_matches:
+                    if len(matches) >= max_results:
+                        break
+                    matches.append({"file": file_path, **m})
+
+        return {
+            "pattern": pattern,
+            "path": search_path_str,
+            "include": include,
+            "case_insensitive": case_insensitive,
+            "matches": matches,
+            "total_matches": len(matches),
+            "files_searched": files_searched,
+            "files_with_matches": files_with_matches,
+            "truncated": len(matches) >= max_results,
+        }
+
     try:
         workspace_path = _get_workspace_path(config)
         if not workspace_path:
@@ -1301,44 +1555,18 @@ async def internal_grep(
         else:
             return {"error": f"Path not found: {search_path_str}"}
 
-        # Compile regex
-        flags = re.IGNORECASE if case_insensitive else 0
-        try:
-            compiled = re.compile(pattern, flags)
-        except re.error as e:
-            return {"error": f"Invalid regex pattern: {str(e)}"}
-
         matches: list[dict[str, Any]] = []
         files_searched = 0
         files_with_matches = 0
 
         def _search_file(file_path: Path) -> list[dict[str, Any]]:
             """Search a single file for the pattern."""
-            file_matches = []
             try:
                 with open(file_path, encoding="utf-8", errors="ignore") as f:
                     lines = f.readlines()
             except (OSError, UnicodeDecodeError):
                 return []
-
-            for line_num, line in enumerate(lines, start=1):
-                if compiled.search(line):
-                    # Gather context lines
-                    start = max(0, line_num - 1 - context_lines)
-                    end = min(len(lines), line_num + context_lines)
-                    context = []
-                    for ctx_idx in range(start, end):
-                        prefix = ">" if ctx_idx == line_num - 1 else " "
-                        context.append(f"{prefix} {ctx_idx + 1}: {lines[ctx_idx].rstrip()}")
-
-                    file_matches.append(
-                        {
-                            "line": line_num,
-                            "content": line.rstrip(),
-                            "context": "\n".join(context),
-                        }
-                    )
-            return file_matches
+            return _scan_lines(lines)
 
         if files_to_search is not None:
             # Search specific file
@@ -1425,6 +1653,12 @@ async def internal_notebook_edit(
     Returns:
         Dictionary indicating success or error
     """
+    # Route to remote compute session when configured
+    from src.services.compute.resolver import get_compute_session_from_config
+
+    _cs = await get_compute_session_from_config(config)
+    is_remote = _cs is not None and _cs.is_remote
+
     try:
         # Validate .ipynb extension
         if not notebook_path.lower().endswith(".ipynb"):
@@ -1435,23 +1669,36 @@ async def internal_notebook_edit(
             return {"error": f"Invalid edit_mode: {edit_mode}. Must be 'replace', 'insert', or 'delete'."}
 
         # Validate file path based on edit mode
-        file_exists = os.path.exists(notebook_path)
-        if edit_mode in ("replace", "delete"):
-            # File must exist for replace/delete
-            is_valid, error_msg = _validate_file_path(notebook_path, must_exist=True, config=config)
-            if not is_valid:
-                return {"error": error_msg}
+        if is_remote:
+            file_exists = await _cs.file_exists(notebook_path)
+            if edit_mode in ("replace", "delete") and not file_exists:
+                return {"error": f"File not found: {notebook_path}"}
         else:
-            # For insert, file may or may not exist, but path must be valid within workspace
-            is_valid, error_msg = _validate_file_path(notebook_path, must_exist=False, config=config)
-            if not is_valid:
-                return {"error": error_msg}
+            file_exists = os.path.exists(notebook_path)
+            if edit_mode in ("replace", "delete"):
+                # File must exist for replace/delete
+                is_valid, error_msg = _validate_file_path(notebook_path, must_exist=True, config=config)
+                if not is_valid:
+                    return {"error": error_msg}
+            else:
+                # For insert, file may or may not exist, but path must be valid within workspace
+                is_valid, error_msg = _validate_file_path(notebook_path, must_exist=False, config=config)
+                if not is_valid:
+                    return {"error": error_msg}
 
         if cell_type and cell_type not in ("code", "markdown"):
             return {"error": f"Invalid cell_type: {cell_type}. Must be 'code' or 'markdown'."}
 
         # Read existing notebook or create minimal structure
-        if file_exists:
+        if file_exists and is_remote:
+            read_result = await _cs.read_file(notebook_path, start_line=1, max_lines=10_000_000)
+            if not read_result.get("success"):
+                return {"error": read_result.get("error") or f"Failed to read {notebook_path}"}
+            try:
+                notebook = json.loads(read_result["content"])
+            except json.JSONDecodeError as e:
+                return {"error": f"Failed to parse notebook JSON: {str(e)}"}
+        elif file_exists:
             try:
                 with open(notebook_path, encoding="utf-8") as f:
                     notebook = json.load(f)
@@ -1525,14 +1772,19 @@ async def internal_notebook_edit(
             cells.pop(cell_number)
             action = "deleted"
 
-        # Create parent directories if needed
-        parent_dir = os.path.dirname(notebook_path)
-        if parent_dir:
-            os.makedirs(parent_dir, exist_ok=True)
+        if is_remote:
+            write_result = await _cs.write_file(notebook_path, json.dumps(notebook, indent=1, ensure_ascii=False))
+            if not write_result.get("success"):
+                return {"error": write_result.get("error") or f"Failed to write {notebook_path}"}
+        else:
+            # Create parent directories if needed
+            parent_dir = os.path.dirname(notebook_path)
+            if parent_dir:
+                os.makedirs(parent_dir, exist_ok=True)
 
-        # Write back
-        with open(notebook_path, "w", encoding="utf-8") as f:
-            json.dump(notebook, f, indent=1, ensure_ascii=False)
+            # Write back
+            with open(notebook_path, "w", encoding="utf-8") as f:
+                json.dump(notebook, f, indent=1, ensure_ascii=False)
 
         return {
             "success": True,

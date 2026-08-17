@@ -243,3 +243,25 @@ def decrypt_value(encrypted_value: str) -> str:
         )
     manager = get_api_key_manager()
     return manager.decrypt_api_key(encrypted_value)
+
+
+def normalize_pem_private_key(key: str) -> str:
+    """
+    Normalize a PEM private key that was pasted with escaped newlines.
+
+    Users commonly copy GitHub App / service-account private keys out of a
+    .env file or JSON blob where the key is stored as a single line with
+    literal "\\n" escape sequences instead of real line breaks (e.g.
+    ``"-----BEGIN RSA PRIVATE KEY-----\\nMIIE...\\n-----END..."``). Libraries
+    like PyJWT/cryptography cannot parse PEM data in that form, so convert
+    literal "\\n"/"\\r\\n" sequences back into real newlines before use.
+
+    Args:
+        key: Raw PEM private key string, possibly with escaped newlines
+
+    Returns:
+        The key with real newlines, unchanged if it already contains them
+    """
+    if "\n" not in key and "\\n" in key:
+        key = key.replace("\\r\\n", "\n").replace("\\n", "\n")
+    return key

@@ -21,6 +21,7 @@ export default function CreateSlackBotPage() {
     slack_workspace_name: "",
     connection_mode: "socket",
     signing_secret: "",
+    allow_external_shared_channels: false,
   });
 
   const [loading, setLoading] = useState(false);
@@ -42,6 +43,7 @@ export default function CreateSlackBotPage() {
         slack_app_id: formData.slack_app_id,
         slack_bot_token: formData.slack_bot_token,
         connection_mode: formData.connection_mode,
+        allow_external_shared_channels: formData.allow_external_shared_channels,
       };
 
       // Add mode-specific fields
@@ -67,6 +69,13 @@ export default function CreateSlackBotPage() {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.checked,
     });
   };
 
@@ -313,6 +322,29 @@ export default function CreateSlackBotPage() {
                 </div>
               </div>
             )}
+
+            {/* External Shared Channels Toggle */}
+            <div className="rounded-[1.2rem] border border-black/10 bg-[#fcfaf5] p-4">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="allow_external_shared_channels"
+                  checked={formData.allow_external_shared_channels}
+                  onChange={handleCheckboxChange}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#171717] focus:ring-[#79dfbc]"
+                />
+                <div>
+                  <span className="text-sm font-semibold text-gray-900">
+                    Allow in externally-shared channels (Slack Connect)
+                  </span>
+                  <p className="mt-1 text-xs text-gray-600">
+                    When off (recommended), the bot won't respond in channels shared with another
+                    company's Slack workspace. Turn this on only if you intentionally want this bot
+                    available to external Slack Connect members.
+                  </p>
+                </div>
+              </label>
+            </div>
 
             {/* Auto-detection notice */}
             <div className="rounded-[1.2rem] border border-[#cfe6d9] bg-[#e8f4ee] p-4">

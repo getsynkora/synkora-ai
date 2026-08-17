@@ -17,6 +17,9 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
 
+from src.models.knowledge_base import IngestionMode
+from src.services.company_brain.search.factory import get_search_backend
+
 logger = logging.getLogger(__name__)
 
 
@@ -308,6 +311,9 @@ class EnhancedRAGService:
         # Generate query embedding(s)
         results_by_variation: dict[str, list[dict]] = {}
 
+        is_advanced = getattr(kb, "ingestion_mode", None) == IngestionMode.ADVANCED
+        search_backend = get_search_backend() if is_advanced else None
+
         for variation in query_variations:
             # Check embedding cache
             variation_hash = hashlib.md5(variation.encode()).hexdigest()
@@ -317,19 +323,41 @@ class EnhancedRAGService:
                 query_embedding = kb_embedding_service.embed_texts([variation])[0]
                 self._embedding_cache[variation_hash] = query_embedding
 
-            # Vector search
-            with vector_db_pool.get_connection(
-                provider_type=kb.vector_db_provider,
-                config=vector_db_config,
-            ) as vector_db:
-                vector_results = vector_db.search(
-                    collection_name=collection_name,
-                    namespace=namespace,
+            if is_advanced:
+                cb_response = await search_backend.search(
+                    tenant_id=str(kb.tenant_id),
+                    knowledge_base_id=str(kb.id),
+                    query=variation,
                     query_vector=query_embedding,
                     limit=max_results,
-                    score_threshold=min_score,
                 )
-                results_by_variation[variation] = vector_results
+                vector_results = [
+                    {
+                        "id": r.doc_id,
+                        "score": r.score,
+                        "keyword_score": r.keyword_score,
+                        "payload": {
+                            "text": r.content,
+                            "title": r.title,
+                            **(r.metadata or {}),
+                        },
+                    }
+                    for r in cb_response.results
+                    if r.score >= min_score
+                ]
+            else:
+                with vector_db_pool.get_connection(
+                    provider_type=kb.vector_db_provider,
+                    config=vector_db_config,
+                ) as vector_db:
+                    vector_results = vector_db.search(
+                        collection_name=collection_name,
+                        namespace=namespace,
+                        query_vector=query_embedding,
+                        limit=max_results,
+                        score_threshold=min_score,
+                    )
+            results_by_variation[variation] = vector_results
 
         # Merge results from all variations using RRF
         merged_results = self._reciprocal_rank_fusion(results_by_variation)

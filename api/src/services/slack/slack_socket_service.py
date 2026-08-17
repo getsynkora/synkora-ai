@@ -191,6 +191,44 @@ class SlackSocketService:
         async def handle_assistant_thread_context_changed(event, client):
             """Acknowledge context changes from the assistant panel (no action needed)."""
 
+        @app.action("hitl_approve")
+        async def handle_hitl_approve(ack, body, client):
+            await ack()
+            await self._handle_hitl_button(body, decision="approved")
+
+        @app.action("hitl_reject")
+        async def handle_hitl_reject(ack, body, client):
+            await ack()
+            await self._handle_hitl_button(body, decision="rejected")
+
+    async def _handle_hitl_button(self, body: dict, decision: str) -> None:
+        """Handle an Approve/Reject button click on a HITL approval message."""
+        from ...core.database import get_async_session_factory
+        from ...services.human_approval_service import HumanApprovalService
+
+        try:
+            approval_id = body["actions"][0]["value"]
+            slack_user_id = body["user"]["id"]
+            response_url = body.get("response_url")
+        except (KeyError, IndexError):
+            logger.warning("Malformed HITL button interaction payload")
+            return
+
+        async with get_async_session_factory()() as db:
+            service = HumanApprovalService(db)
+            result = await service.respond_to_approval(
+                approval_id, decision, feedback_text=None, db=db, responded_by=slack_user_id
+            )
+
+        if result.get("already_handled") and response_url:
+            responded_by = result.get("responded_by")
+            note = (
+                f"This request was already handled by <@{responded_by}>."
+                if responded_by
+                else "This request was already handled."
+            )
+            await HumanApprovalService.post_slack_ephemeral(response_url, note)
+
     async def _handle_message(
         self,
         slack_bot: SlackBot,

@@ -34,14 +34,14 @@ export default function DashboardPage() {
       
       // Fetch all data in parallel
       const [agentsResponse, knowledgeBases, dataSources, mcpServers] = await Promise.all([
-        apiClient.getAgents().catch(() => ({ agents: [], pagination: { total: 0 } })),
+        apiClient.getAgents().catch(() => ({ agents_list: [], pagination: { total: 0 } })),
         apiClient.getKnowledgeBases().catch(() => []),
         apiClient.getDataSources().catch(() => []),
         apiClient.getMCPServers().catch(() => [])
       ])
 
       // Extract agents array from response
-      const agents = Array.isArray(agentsResponse) ? agentsResponse : (agentsResponse.agents || [])
+      const agents = Array.isArray(agentsResponse) ? agentsResponse : (agentsResponse.agents_list || [])
       const totalAgents = agentsResponse.pagination?.total || agents.length
 
       setStats({

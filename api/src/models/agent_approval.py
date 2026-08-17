@@ -55,6 +55,7 @@ class AgentApprovalRequest(Base):
 
     expires_at = Column(DateTime(timezone=True), nullable=False)
     responded_at = Column(DateTime(timezone=True), nullable=True)
+    responded_by = Column(String(255), nullable=True)  # e.g. Slack user ID of the approver/rejector
     execution_result = Column(JSONB, nullable=True)
 
     created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC))

@@ -39,6 +39,7 @@ class SlackBotManager:
         connection_mode: str = "socket",
         signing_secret: str | None = None,
         created_by: UUID | None = None,
+        allow_external_shared_channels: bool = False,
     ) -> SlackBot:
         """
         Create a new Slack bot configuration.
@@ -88,6 +89,7 @@ class SlackBotManager:
                 connection_mode=connection_mode,
                 signing_secret=encrypted_signing_secret,
                 is_active=True,
+                allow_external_shared_channels=allow_external_shared_channels,
                 connection_status="connected" if connection_mode == "event" else "disconnected",
                 created_by=created_by,
             )
@@ -147,6 +149,7 @@ class SlackBotManager:
         slack_app_token: str | None = None,
         signing_secret: str | None = None,
         is_active: bool | None = None,
+        allow_external_shared_channels: bool | None = None,
     ) -> SlackBot:
         """
         Update Slack bot configuration.
@@ -197,6 +200,9 @@ class SlackBotManager:
                 # Stop bot if deactivated (Socket Mode only)
                 if not is_active and slack_bot.connection_status == "connected" and slack_bot.is_socket_mode:
                     await self.deployment_service.deactivate_slack_bot(bot_id)
+
+            if allow_external_shared_channels is not None:
+                slack_bot.allow_external_shared_channels = allow_external_shared_channels
 
             slack_bot.updated_at = datetime.utcnow()
             await self.db_session.commit()

@@ -89,7 +89,7 @@ dependencies = [
     # Document Processing & Image Extraction
     "pymupdf>=1.24.0,<2.0.0",
     "python-docx>=1.1.0,<2.0.0",
-    "pypdf>=6.13.3,<7.0.0",
+    "pypdf>=6.15.0,<7.0.0",  # PYSEC-2026-3655, PYSEC-2026-3656 fixed in 6.15.0
     "pillow>=12.3.0,<13.0.0",
     "python-magic>=0.4.27,<1.0.0",
     # Database Connectors — all native async
@@ -144,6 +144,7 @@ dependencies = [
     "pyopenssl>=26.0.0",          # CVE-2026-27448, CVE-2026-27459 (via snowflake)
     "lxml>=6.1.0",                # CVE-2026-41066 (via python-docx / various)
     "mako>=1.3.12",               # CVE-2026-44307 (via alembic)
+    "h2>=4.4.1",                  # PYSEC-2026-3628 (via httpx[http2])
     # WhatsApp Web / Device Link
     "neonize>=0.3.9,<1.0.0",
     "qrcode[pil]>=7.0.0,<9.0.0",
@@ -158,7 +159,8 @@ dev = [
     "pytest-mock>=3.14.0,<4.0.0",
     "faker>=33.0.0,<34.0.0",
     "factory-boy>=3.3.0,<4.0.0",
-    
+    "moto[cloudwatch,cloudwatchlogs,ec2,securityhub,sts]>=5.0.0,<6.0.0",
+
     # Code Quality
     "ruff>=0.8.0,<1.0.0",
     "mypy>=1.14.0,<2.0.0",

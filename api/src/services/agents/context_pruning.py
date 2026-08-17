@@ -51,6 +51,15 @@ class PruningSettings:
         "internal_sql_",
         "internal_db_",
         "internal_select_",
+        # File/document content-retrieval tools whose naming doesn't follow the
+        # internal_read_/internal_fetch_ convention above, but return the same
+        # kind of verbatim data (source file contents) the LLM needs to
+        # reference across multiple later turns (e.g. to cross-reference several
+        # files while writing up an architecture explanation).
+        "internal_github_get_file_content",
+        "internal_gitlab_get_file",
+        "internal_get_file_content",
+        "internal_google_docs_get_content",
     )
 
 

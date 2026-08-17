@@ -52,6 +52,13 @@ class ChunkingStrategy(enum.StrEnum):
     CODE = "CODE"  # Code structure-aware chunking
 
 
+class IngestionMode(enum.StrEnum):
+    """Knowledge base ingestion mode."""
+
+    STANDARD = "standard"  # Synchronous DocumentProcessor path (legacy/default)
+    ADVANCED = "advanced"  # Company Brain streaming ingestion pipeline
+
+
 class KnowledgeBase(BaseModel, TimestampMixin):
     """
     Knowledge base configuration.
@@ -74,6 +81,11 @@ class KnowledgeBase(BaseModel, TimestampMixin):
         Enum(KnowledgeBaseStatus, values_callable=lambda x: [e.value for e in x]),
         nullable=False,
         default=KnowledgeBaseStatus.INACTIVE,
+    )
+    ingestion_mode: Mapped[IngestionMode] = mapped_column(
+        Enum(IngestionMode, values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+        default=IngestionMode.STANDARD,
     )
 
     # Vector DB configuration
@@ -199,6 +211,10 @@ class KnowledgeBase(BaseModel, TimestampMixin):
     # Statistics
     total_documents: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     total_chunks: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    def __init__(self, **kwargs: object) -> None:
+        kwargs.setdefault("ingestion_mode", IngestionMode.STANDARD)
+        super().__init__(**kwargs)
 
     # Relationships
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="knowledge_bases")

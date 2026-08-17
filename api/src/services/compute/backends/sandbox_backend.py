@@ -21,6 +21,28 @@ _client = httpx.AsyncClient(
 )
 
 
+def _parse_response(resp: httpx.Response, defaults: dict[str, Any]) -> dict[str, Any]:
+    """
+    Parse a sandbox HTTP response into the {"success": bool, ...} envelope callers expect.
+
+    The sandbox service returns {"success": bool, ...} on its own 2xx/4xx responses, but a
+    non-2xx response from the underlying ASGI framework itself (e.g. a 404/500 that never
+    reached the sandbox's own handler) can have a completely different shape (FastAPI's
+    default {"detail": "..."}) with no "success" key at all. Without this normalization,
+    callers doing result["success"] get an unhandled KeyError instead of a clean error dict.
+    """
+    try:
+        data = resp.json()
+    except Exception:
+        data = None
+
+    if isinstance(data, dict) and "success" in data:
+        return data
+
+    error = data.get("detail") if isinstance(data, dict) else None
+    return {**defaults, "success": False, "error": error or resp.text or f"HTTP {resp.status_code}"}
+
+
 class SandboxComputeBackend(ComputeBackend):
     def __init__(
         self,
@@ -104,7 +126,7 @@ class SandboxComputeSession:
                 headers=self._h(),
                 timeout=timeout + 10,
             )
-            return resp.json()
+            return _parse_response(resp, {"output": "", "return_code": -1})
         except Exception as e:
             logger.error(f"exec_command error: {e}")
             return {"success": False, "output": "", "error": str(e), "return_code": -1}
@@ -116,7 +138,7 @@ class SandboxComputeSession:
                 params={**self._base(), "path": path, "start_line": start_line, "max_lines": max_lines},
                 headers=self._h(),
             )
-            return resp.json()
+            return _parse_response(resp, {"content": "", "total_lines": 0})
         except Exception as e:
             return {"success": False, "content": "", "total_lines": 0, "error": str(e)}
 
@@ -127,7 +149,7 @@ class SandboxComputeSession:
                 json={**self._base(), "path": path, "content": content},
                 headers=self._h(),
             )
-            return resp.json()
+            return _parse_response(resp, {})
         except Exception as e:
             return {"success": False, "error": str(e)}
 
@@ -138,7 +160,7 @@ class SandboxComputeSession:
                 params={**self._base(), "path": path},
                 headers=self._h(),
             )
-            return resp.json()
+            return _parse_response(resp, {"entries": []})
         except Exception as e:
             return {"success": False, "entries": [], "error": str(e)}
 
@@ -149,7 +171,7 @@ class SandboxComputeSession:
                 json={**self._base(), "path": path},
                 headers=self._h(),
             )
-            return resp.json()
+            return _parse_response(resp, {})
         except Exception as e:
             return {"success": False, "error": str(e)}
 

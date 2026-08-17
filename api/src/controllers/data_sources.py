@@ -15,12 +15,17 @@ from src.middleware.auth_middleware import get_current_account, get_current_tena
 from src.models.data_source import DataSource, DataSourceStatus, DataSourceType, SyncStatus
 from src.models.knowledge_base import KnowledgeBase
 from src.models.tenant import Account, Tenant, TenantPlan, TenantStatus
+from src.services.data_sources.clickup_connector import ClickUpConnector
+from src.services.data_sources.confluence_connector import ConfluenceConnector
 from src.services.data_sources.databricks_connector import DatabricksConnector
 from src.services.data_sources.datadog_connector import DatadogConnector
 from src.services.data_sources.docker_logs_connector import DockerLogsConnector
 from src.services.data_sources.github_connector import GitHubConnector
 from src.services.data_sources.gitlab_connector import GitLabConnector
 from src.services.data_sources.gmail_connector import GmailConnector
+from src.services.data_sources.jira_connector import JiraConnector
+from src.services.data_sources.linear_connector import LinearConnector
+from src.services.data_sources.notion_connector import NotionConnector
 from src.services.data_sources.slack_connector import SlackConnector
 from src.services.data_sources.telegram_connector import TelegramConnector
 
@@ -38,6 +43,7 @@ class CreateDataSourceRequest(BaseModel):
     knowledge_base_id: int
     config: dict = Field(default_factory=dict)
     oauth_app_id: int | None = None
+    slack_bot_id: str | None = None
 
 
 class UpdateDataSourceRequest(BaseModel):
@@ -163,6 +169,16 @@ def get_connector(data_source: DataSource, db: AsyncSession):
         return DatabricksConnector(data_source, db)
     elif data_source.type == DataSourceType.DOCKER_LOGS:
         return DockerLogsConnector(data_source, db)
+    elif data_source.type == DataSourceType.NOTION:
+        return NotionConnector(data_source, db)
+    elif data_source.type == DataSourceType.CONFLUENCE:
+        return ConfluenceConnector(data_source, db)
+    elif data_source.type == DataSourceType.JIRA:
+        return JiraConnector(data_source, db)
+    elif data_source.type == DataSourceType.CLICKUP:
+        return ClickUpConnector(data_source, db)
+    elif data_source.type == DataSourceType.LINEAR:
+        return LinearConnector(data_source, db)
     else:
         raise ValueError(f"Unsupported data source type: {data_source.type}")
 
@@ -227,8 +243,114 @@ async def create_data_source(
             # Store the account ID in config for token resolution
             config["connected_by_account_id"] = str(current_account.id)
 
+        # Verify Slack bot if provided (reuse an existing agent's Slack connection)
+        slack_bot_uuid = None
+        if request.slack_bot_id:
+            from uuid import UUID as UUIDType
+
+            from src.models.slack_bot import SlackBot
+
+            try:
+                slack_bot_uuid = UUIDType(request.slack_bot_id)
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Invalid slack_bot_id")
+
+            result = await db.execute(
+                select(SlackBot).filter(SlackBot.id == slack_bot_uuid, SlackBot.tenant_id == tenant_id)
+            )
+            slack_bot = result.scalar_one_or_none()
+
+            if not slack_bot:
+                raise HTTPException(status_code=404, detail="Slack bot not found")
+
+            if request.type != DataSourceType.SLACK:
+                raise HTTPException(status_code=400, detail="slack_bot_id can only be used with type=SLACK")
+
+        # Reject connecting the same underlying account/workspace/token to a KB it's
+        # already linked to. Without this, real-time webhooks (keyed by kb_id+type,
+        # not data_source_id) silently pick one of the duplicates at random, and
+        # pull-based syncs double-fetch and double-embed the exact same content.
+        existing_result = await db.execute(
+            select(DataSource).filter(
+                DataSource.tenant_id == tenant_id,
+                DataSource.knowledge_base_id == request.knowledge_base_id,
+                DataSource.type == request.type,
+            )
+        )
+        duplicate: DataSource | None = None
+        for existing in existing_result.scalars().all():
+            if request.oauth_app_id and existing.oauth_app_id == request.oauth_app_id:
+                duplicate = existing
+                break
+            if slack_bot_uuid and existing.slack_bot_id == slack_bot_uuid:
+                duplicate = existing
+                break
+            if request.type in (DataSourceType.NOTION, DataSourceType.CONFLUENCE, DataSourceType.LINEAR):
+                from src.services.agents.security import decrypt_value
+
+                existing_config = existing.config or {}
+                if request.type == DataSourceType.NOTION:
+                    raw_token = config.get("internal_token")
+                    existing_token_enc = existing_config.get("internal_token_encrypted")
+                elif request.type == DataSourceType.CONFLUENCE:
+                    raw_token = config.get("pat") or config.get("api_token")
+                    existing_token_enc = existing_config.get("pat_encrypted") or existing_config.get(
+                        "api_token_encrypted"
+                    )
+                else:
+                    raw_token = config.get("api_key")
+                    existing_token_enc = existing_config.get("api_key_encrypted")
+
+                if raw_token and existing_token_enc:
+                    try:
+                        if decrypt_value(existing_token_enc) == raw_token:
+                            duplicate = existing
+                            break
+                    except Exception:
+                        pass
+
+        if duplicate:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"This {request.type.value} account is already connected to this knowledge base "
+                    f"as '{duplicate.name}'."
+                ),
+            )
+
+        # Direct API-token / PAT auth for providers with no OAuth app flow yet
+        # (Notion, Confluence, Linear). Plaintext token fields are encrypted at rest
+        # and the plaintext copy is dropped from config before it's ever persisted.
+        direct_auth_configured = False
+        if not request.oauth_app_id and not slack_bot_uuid:
+            from src.services.agents.security import encrypt_value
+
+            if request.type == DataSourceType.NOTION:
+                token = config.pop("internal_token", None)
+                if token:
+                    config["internal_token_encrypted"] = encrypt_value(token)
+                    direct_auth_configured = True
+            elif request.type == DataSourceType.CONFLUENCE:
+                pat = config.pop("pat", None)
+                api_token = config.pop("api_token", None)
+                if pat:
+                    config["pat_encrypted"] = encrypt_value(pat)
+                    direct_auth_configured = True
+                elif api_token and config.get("email"):
+                    config["api_token_encrypted"] = encrypt_value(api_token)
+                    direct_auth_configured = True
+            elif request.type == DataSourceType.LINEAR:
+                api_key = config.pop("api_key", None)
+                if api_key:
+                    config["api_key_encrypted"] = encrypt_value(api_key)
+                    direct_auth_configured = True
+
         # Determine initial status
-        initial_status = DataSourceStatus.ACTIVE if request.oauth_app_id else DataSourceStatus.INACTIVE
+        initial_status = (
+            DataSourceStatus.ACTIVE
+            if (request.oauth_app_id or slack_bot_uuid or direct_auth_configured)
+            else DataSourceStatus.INACTIVE
+        )
 
         data_source = DataSource(
             name=request.name,
@@ -237,6 +359,7 @@ async def create_data_source(
             tenant_id=tenant_id,
             config=config,
             oauth_app_id=request.oauth_app_id,
+            slack_bot_id=slack_bot_uuid,
             status=initial_status,
         )
 

@@ -16,7 +16,13 @@ from ...middleware.auth_middleware import get_current_tenant_id, get_optional_ac
 from ...models.oauth_app import OAuthApp
 from ...models.tenant import Account
 from ...models.user_oauth_token import UserOAuthToken
-from ...services.agents.security import encrypt_value
+from ...services.agents.security import encrypt_value, normalize_pem_private_key
+from ...services.cloud_providers.credential_validators import (
+    validate_aws_credentials,
+    validate_azure_credentials,
+    validate_digitalocean_credentials,
+    validate_gcp_credentials,
+)
 from .base import (
     OAuthAppCreate,
     OAuthAppUpdate,
@@ -39,6 +45,47 @@ def _validate_mailisk_config(provider: str, auth_method: str, config: dict | Non
 
     if not namespace:
         raise HTTPException(status_code=400, detail="Mailisk integrations require config.namespace")
+
+
+async def _validate_cloud_provider_config(
+    provider: str, auth_method: str, client_id: str | None, api_token: str | None, config: dict | None
+) -> None:
+    """Live, read-only validate-on-save check for the 4 cloud provider integrations.
+
+    Only runs when auth_method is 'api_token' and the provider matches one of the 4 supported
+    cloud providers — no-op for every other provider/auth_method combination.
+    """
+    provider_lower = str(provider).lower()
+    if auth_method != "api_token" or provider_lower not in ("aws", "gcp", "azure", "digitalocean"):
+        return
+
+    config = config or {}
+    try:
+        if provider_lower == "aws":
+            if not client_id or not api_token:
+                return
+            await validate_aws_credentials(
+                access_key_id=client_id, secret_access_key=api_token, region=config.get("region", "us-east-1")
+            )
+        elif provider_lower == "gcp":
+            if not api_token:
+                return
+            await validate_gcp_credentials(service_account_json=api_token, project_id=config.get("project_id", ""))
+        elif provider_lower == "azure":
+            if not client_id or not api_token:
+                return
+            await validate_azure_credentials(
+                tenant_id=config.get("azure_tenant_id", ""),
+                client_id=client_id,
+                client_secret=api_token,
+                subscription_id=config.get("subscription_id", ""),
+            )
+        elif provider_lower == "digitalocean":
+            if not api_token:
+                return
+            await validate_digitalocean_credentials(token=api_token)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.get("/apps")
@@ -182,8 +229,10 @@ async def create_oauth_app(
     """Create a new OAuth app."""
     try:
         # Validate authentication method and required fields
-        if data.auth_method not in ["oauth", "api_token", "basic_auth"]:
-            raise HTTPException(status_code=400, detail="auth_method must be 'oauth', 'api_token', or 'basic_auth'")
+        if data.auth_method not in ["oauth", "api_token", "basic_auth", "github_app"]:
+            raise HTTPException(
+                status_code=400, detail="auth_method must be 'oauth', 'api_token', 'basic_auth', or 'github_app'"
+            )
 
         if data.auth_method == "oauth":
             if not all([data.client_id, data.client_secret, data.redirect_uri]):
@@ -198,8 +247,18 @@ async def create_oauth_app(
                 raise HTTPException(
                     status_code=400, detail="password (api_token field) is required for basic_auth method"
                 )
+        elif data.auth_method == "github_app":
+            if not all([data.client_id, data.client_secret]):
+                raise HTTPException(
+                    status_code=400,
+                    detail="client_id (App ID) and client_secret (private key) are required for GitHub App method",
+                )
 
         _validate_mailisk_config(data.provider, data.auth_method, data.config)
+
+        await _validate_cloud_provider_config(
+            data.provider, data.auth_method, data.client_id, data.api_token, data.config
+        )
 
         # Check if app with same provider and name exists for this tenant
         existing_result = await db.execute(
@@ -226,8 +285,11 @@ async def create_oauth_app(
         encrypted_secret = None
         encrypted_api_token = None
 
-        if data.auth_method == "oauth" and data.client_secret:
-            encrypted_secret = encrypt_value(data.client_secret)
+        if data.auth_method in ("oauth", "github_app") and data.client_secret:
+            secret = data.client_secret
+            if data.auth_method == "github_app":
+                secret = normalize_pem_private_key(secret)
+            encrypted_secret = encrypt_value(secret)
         elif data.auth_method in ("api_token", "basic_auth") and data.api_token:
             encrypted_api_token = encrypt_value(data.api_token)
 
@@ -285,12 +347,27 @@ async def update_oauth_app(
             raise HTTPException(status_code=404, detail="OAuth app not found")
 
         # Validate auth method if changing
-        if data.auth_method is not None and data.auth_method not in ["oauth", "api_token", "basic_auth"]:
-            raise HTTPException(status_code=400, detail="auth_method must be 'oauth', 'api_token', or 'basic_auth'")
+        if data.auth_method is not None and data.auth_method not in [
+            "oauth",
+            "api_token",
+            "basic_auth",
+            "github_app",
+        ]:
+            raise HTTPException(
+                status_code=400, detail="auth_method must be 'oauth', 'api_token', 'basic_auth', or 'github_app'"
+            )
 
         _validate_mailisk_config(
             app.provider,
             data.auth_method or app.auth_method,
+            data.config if data.config is not None else app.config,
+        )
+
+        await _validate_cloud_provider_config(
+            app.provider,
+            data.auth_method or app.auth_method,
+            data.client_id if data.client_id is not None else app.client_id,
+            data.api_token,
             data.config if data.config is not None else app.config,
         )
 
@@ -305,7 +382,10 @@ async def update_oauth_app(
         if data.client_id is not None:
             app.client_id = data.client_id
         if data.client_secret is not None:
-            app.client_secret = encrypt_value(data.client_secret)
+            secret = data.client_secret
+            if (data.auth_method or app.auth_method) == "github_app":
+                secret = normalize_pem_private_key(secret)
+            app.client_secret = encrypt_value(secret)
         if data.redirect_uri is not None:
             app.redirect_uri = data.redirect_uri
         if data.scopes is not None:

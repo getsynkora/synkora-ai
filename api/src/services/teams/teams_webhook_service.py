@@ -101,7 +101,7 @@ class TeamsWebhookService:
             activity_id = activity.get("id")
 
             # Get or create conversation
-            conversation = await self._get_or_create_conversation(bot, conversation_id, user_id)
+            conversation = await self._get_or_create_conversation(bot, conversation_id, user_id, message_text=text)
 
             # Block AI while a human operator is handling this conversation
             if getattr(conversation, "handoff_status", None) == "active":
@@ -211,7 +211,7 @@ class TeamsWebhookService:
                 await self._send_message(bot, service_url, conversation_id, bot.welcome_message)
 
     async def _get_or_create_conversation(
-        self, bot: TeamsBot, teams_conversation_id: str, user_id: str
+        self, bot: TeamsBot, teams_conversation_id: str, user_id: str, message_text: str | None = None
     ) -> Conversation:
         """
         Get or create conversation mapping.
@@ -220,6 +220,7 @@ class TeamsWebhookService:
             bot: TeamsBot instance
             teams_conversation_id: Teams conversation ID
             user_id: Teams user ID
+            message_text: The user's message text, used as the conversation name
 
         Returns:
             Conversation instance
@@ -236,9 +237,10 @@ class TeamsWebhookService:
             return await self.db_session.get(Conversation, teams_conv.conversation_id)
 
         # Create new conversation
-        conversation = Conversation(
-            agent_id=bot.agent_id, name=f"Teams conversation with {user_id}", status=ConversationStatus.ACTIVE
+        conv_name = (
+            message_text.strip()[:60] if message_text and message_text.strip() else f"Teams conversation with {user_id}"
         )
+        conversation = Conversation(agent_id=bot.agent_id, name=conv_name, status=ConversationStatus.ACTIVE)
         self.db_session.add(conversation)
         await self.db_session.commit()
         await self.db_session.refresh(conversation)

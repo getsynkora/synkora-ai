@@ -115,6 +115,22 @@ const TOOL_GROUPS: ToolGroup[] = [
     expanded: false
   },
   {
+    id: 'aws',
+    name: 'AWS',
+    description: 'CloudWatch logs/metrics/alarms, EC2/RDS/Lambda health, Security Hub + GuardDuty findings',
+    icon: Cloud,
+    tools: [],
+    expanded: false
+  },
+  {
+    id: 'azure',
+    name: 'Microsoft Azure',
+    description: 'Azure Monitor logs/metrics/alerts, VM/AKS health, Defender for Cloud findings',
+    icon: Cloud,
+    tools: [],
+    expanded: false
+  },
+  {
     id: 'blog_site',
     name: 'Blog Site Deploy',
     description: 'Scaffold a blog site, create a GitHub repo, deploy, and enable GitHub Pages',
@@ -235,6 +251,14 @@ const TOOL_GROUPS: ToolGroup[] = [
     expanded: false
   },
   {
+    id: 'digitalocean',
+    name: 'DigitalOcean',
+    description: 'Droplet/App Platform metrics, monitoring alert policies, Droplet status',
+    icon: Cloud,
+    tools: [],
+    expanded: false
+  },
+  {
     id: 'documents',
     name: 'Document Generation',
     description: 'Generate PDFs, PowerPoint, Google Docs, and Google Sheets',
@@ -319,6 +343,14 @@ const TOOL_GROUPS: ToolGroup[] = [
     name: 'Google Calendar Tools',
     description: 'Manage calendar events and schedules',
     icon: Calendar,
+    tools: [],
+    expanded: false
+  },
+  {
+    id: 'gcp',
+    name: 'Google Cloud Platform',
+    description: 'Cloud Logging/Monitoring, Compute Engine/GKE health, Security Command Center findings',
+    icon: Cloud,
     tools: [],
     expanded: false
   },
@@ -614,7 +646,7 @@ export default function AgentToolsPage() {
 
   const loadAllOAuthApps = async () => {
     try {
-      const providers = ['github', 'gitlab', 'SLACK', 'gmail', 'mailisk', 'zoom', 'google_calendar', 'google_drive', 'clickup', 'jira', 'twitter', 'linkedin', 'recall', 'newsapi', 'micromobility', 'openweather', 'predicthq', 'ticketmaster', 'mapbox'];
+      const providers = ['github', 'gitlab', 'SLACK', 'gmail', 'mailisk', 'zoom', 'google_calendar', 'google_drive', 'clickup', 'jira', 'twitter', 'linkedin', 'recall', 'newsapi', 'micromobility', 'openweather', 'predicthq', 'ticketmaster', 'mapbox', 'aws', 'gcp', 'azure', 'digitalocean'];
       const allApps: any[] = [];
       
       for (const provider of providers) {
@@ -675,7 +707,7 @@ export default function AgentToolsPage() {
 
   const getAuthMethodForProvider = (provider: string) => {
     // Providers that only support API tokens (no OAuth flow)
-    const apiTokenOnlyProviders = ['recall', 'TELEGRAM', 'onepassword', 'mailisk', 'newsapi', 'micromobility', 'openweather', 'predicthq', 'ticketmaster', 'mapbox'];
+    const apiTokenOnlyProviders = ['recall', 'TELEGRAM', 'onepassword', 'mailisk', 'newsapi', 'micromobility', 'openweather', 'predicthq', 'ticketmaster', 'mapbox', 'aws', 'gcp', 'azure', 'digitalocean'];
     if (apiTokenOnlyProviders.includes(provider.toLowerCase()) ||
         apiTokenOnlyProviders.includes(provider)) {
       return 'api_token';
@@ -703,7 +735,7 @@ export default function AgentToolsPage() {
       const app = providerApps[0]; // Use first available app
 
       // Providers that only support API tokens (no OAuth flow)
-      const apiTokenOnlyProviders = ['recall', 'TELEGRAM', 'onepassword', 'mailisk', 'newsapi', 'micromobility', 'openweather', 'predicthq', 'ticketmaster', 'mapbox'];
+      const apiTokenOnlyProviders = ['recall', 'TELEGRAM', 'onepassword', 'mailisk', 'newsapi', 'micromobility', 'openweather', 'predicthq', 'ticketmaster', 'mapbox', 'aws', 'gcp', 'azure', 'digitalocean'];
       const isApiTokenOnly = apiTokenOnlyProviders.includes(provider.toLowerCase()) ||
                              apiTokenOnlyProviders.includes(provider);
 
@@ -851,6 +883,16 @@ export default function AgentToolsPage() {
       // 1Password tools — must come before file_system (read_secret contains 'read')
       else if (toolName.startsWith('internal_1password_')) {
         groupId = 'onepassword';
+      }
+      // Cloud provider infra investigation tools — must come before file_system (get_logs/get_resource_health contain 'read'-adjacent fragments)
+      else if (toolName.startsWith('internal_aws_')) {
+        groupId = 'aws';
+      } else if (toolName.startsWith('internal_gcp_')) {
+        groupId = 'gcp';
+      } else if (toolName.startsWith('internal_azure_')) {
+        groupId = 'azure';
+      } else if (toolName.startsWith('internal_digitalocean_')) {
+        groupId = 'digitalocean';
       }
       // YouTube tools
       else if (toolName.startsWith('internal_youtube_') || toolName.startsWith('youtube_')) {
@@ -1913,6 +1955,10 @@ export default function AgentToolsPage() {
                 if (group.id === 'events_predicthq') return 'predicthq';
                 if (group.id === 'events_ticketmaster') return 'ticketmaster';
                 if (group.id === 'mapbox') return 'mapbox';
+                if (group.id === 'aws') return 'aws';
+                if (group.id === 'gcp') return 'gcp';
+                if (group.id === 'azure') return 'azure';
+                if (group.id === 'digitalocean') return 'digitalocean';
                 return null;
               })();
 

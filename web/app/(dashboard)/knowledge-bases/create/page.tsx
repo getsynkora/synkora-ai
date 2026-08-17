@@ -153,6 +153,7 @@ export default function CreateKnowledgeBasePage() {
     min_chunk_size: 500,
     max_chunk_size: 3000,
     chunking_config: {} as Record<string, any>,
+    ingestion_mode: 'standard',
   })
 
   const selectedVectorDB = VECTOR_DB_PROVIDERS.find(p => p.value === formData.vector_db_provider)
@@ -188,6 +189,7 @@ export default function CreateKnowledgeBasePage() {
         min_chunk_size: formData.min_chunk_size,
         max_chunk_size: formData.max_chunk_size,
         chunking_config: formData.chunking_config,
+        ingestion_mode: formData.ingestion_mode,
       }
 
       const data = await apiClient.createKnowledgeBase(payload)
@@ -485,6 +487,39 @@ export default function CreateKnowledgeBasePage() {
 
                     {showAdvanced && (
                       <div className="border-t border-black/10 px-6 pb-6">
+                        {/* Ingestion Mode Section */}
+                        <div className="border-b border-black/10 py-5">
+                          <h3 className="mb-4 font-semibold text-gray-900">Ingestion Mode</h3>
+                          <div className="flex gap-3">
+                            <button
+                              type="button"
+                              onClick={() => setFormData(prev => ({ ...prev, ingestion_mode: 'standard' }))}
+                              className={`flex-1 rounded-[1.1rem] border p-3 text-left transition-all ${
+                                formData.ingestion_mode === 'standard'
+                                  ? 'border-black/10 bg-[#f7f2e7] shadow-[0_12px_28px_rgba(0,0,0,0.04)]'
+                                  : 'border-black/10 bg-white hover:bg-[#fcfaf5]'
+                              }`}
+                            >
+                              <div className="font-medium text-sm text-gray-900">Standard</div>
+                              <div className="text-xs text-gray-500">Direct document upload and vector search.</div>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setFormData(prev => ({ ...prev, ingestion_mode: 'advanced' }))}
+                              className={`flex-1 rounded-[1.1rem] border p-3 text-left transition-all ${
+                                formData.ingestion_mode === 'advanced'
+                                  ? 'border-black/10 bg-[#f7f2e7] shadow-[0_12px_28px_rgba(0,0,0,0.04)]'
+                                  : 'border-black/10 bg-white hover:bg-[#fcfaf5]'
+                              }`}
+                            >
+                              <div className="font-medium text-sm text-gray-900">Advanced (Company Brain)</div>
+                              <div className="text-xs text-gray-500">
+                                Continuous multi-source ingestion with hybrid search and tiered storage.
+                              </div>
+                            </button>
+                          </div>
+                        </div>
+
                         {/* Vector Database Section */}
                         <div className="border-b border-black/10 py-5">
                           <h3 className="mb-4 font-semibold text-gray-900">Vector Database</h3>

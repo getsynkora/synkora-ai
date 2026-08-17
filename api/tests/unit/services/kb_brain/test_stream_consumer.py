@@ -6,11 +6,33 @@ without real Redis or embedding services.
 """
 
 import json
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from src.services.company_brain.ingestion.stream_consumer import StreamConsumer
+
+
+def _mock_kb_session_cm():
+    """Build a mock async-session context manager returning a fake KnowledgeBase.
+
+    `_process_batch` unconditionally fetches the KnowledgeBase row via
+    `create_celery_async_session()` before doing anything else, so every test that
+    exercises `consume()` past the empty-stream short-circuit must mock this lookup.
+    """
+    mock_kb = MagicMock()
+    mock_kb.embedding_provider = MagicMock(value="sentence_transformers")
+    mock_kb.embedding_model = "all-MiniLM-L6-v2"
+    mock_kb.get_embedding_config_decrypted.return_value = {}
+
+    mock_session = AsyncMock()
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = mock_kb
+    mock_session.execute = AsyncMock(return_value=mock_result)
+    mock_session_cm = AsyncMock()
+    mock_session_cm.__aenter__.return_value = mock_session
+    mock_session_cm.__aexit__.return_value = None
+    return mock_session_cm
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -159,6 +181,10 @@ async def test_consume_full_pipeline_mocked():
         patch.object(consumer, "_get_redis", return_value=mock_redis),
         patch.object(consumer, "_batch_size", return_value=100),
         patch.object(consumer, "_min_tokens", return_value=10),
+        patch(
+            "src.services.company_brain.ingestion.stream_consumer.create_celery_async_session",
+            return_value=lambda: _mock_kb_session_cm(),
+        ),
         patch("src.services.company_brain.ingestion.dedup.get_dedup_backend", return_value=mock_dedup),
         patch("src.services.company_brain.search.factory.get_search_backend", return_value=mock_search),
         patch.object(consumer, "_embed_batch", AsyncMock(return_value=fake_embedding)),
@@ -188,6 +214,10 @@ async def test_consume_skips_bot_doc():
         patch.object(consumer, "_get_redis", return_value=mock_redis),
         patch.object(consumer, "_batch_size", return_value=100),
         patch.object(consumer, "_min_tokens", return_value=10),
+        patch(
+            "src.services.company_brain.ingestion.stream_consumer.create_celery_async_session",
+            return_value=lambda: _mock_kb_session_cm(),
+        ),
     ):
         result = await consumer.consume(kb_id=1, tenant_id="t-abc", source_type="slack")
 
@@ -218,6 +248,10 @@ async def test_consume_skips_already_seen_doc():
         patch.object(consumer, "_get_redis", return_value=mock_redis),
         patch.object(consumer, "_batch_size", return_value=100),
         patch.object(consumer, "_min_tokens", return_value=10),
+        patch(
+            "src.services.company_brain.ingestion.stream_consumer.create_celery_async_session",
+            return_value=lambda: _mock_kb_session_cm(),
+        ),
         patch("src.services.company_brain.ingestion.dedup.get_dedup_backend", return_value=mock_dedup),
         patch("src.services.company_brain.search.factory.get_search_backend", return_value=AsyncMock()),
     ):

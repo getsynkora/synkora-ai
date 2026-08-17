@@ -19,20 +19,19 @@ from urllib.parse import quote
 
 import httpx
 
-from .git_helpers import async_get_repo_size, async_makedirs, async_rmtree, async_run_git_command
+from .git_helpers import (
+    _get_workspace_path,
+    async_get_repo_size,
+    async_makedirs,
+    async_rmtree,
+    async_run_git_command,
+)
 
 logger = logging.getLogger(__name__)
 
 # Git operation limits
 MAX_REPO_SIZE_MB = 500
 MAX_CLONE_TIMEOUT = 600
-
-
-def _get_workspace_path(config: dict[str, Any] | None) -> str | None:
-    """Get the workspace path from config or RuntimeContext (including Celery task fallback)."""
-    from src.services.agents.workspace_manager import get_workspace_path_from_config
-
-    return get_workspace_path_from_config(config)
 
 
 async def _get_gitlab_credentials(runtime_context: Any, tool_name: str = "internal_gitlab_get_user") -> dict[str, Any]:
@@ -1028,6 +1027,8 @@ async def internal_gitlab_get_file(
 async def internal_gitlab_clone_repo(
     repo_url: str,
     use_ssh: bool = False,
+    depth: int = 1,
+    branch: str | None = None,
     config: dict[str, Any] | None = None,
     runtime_context: Any = None,
 ) -> dict[str, Any]:
@@ -1036,9 +1037,16 @@ async def internal_gitlab_clone_repo(
 
     Uses GitLab OAuth or API token for authentication when available.
 
+    Defaults to a shallow, single-branch clone (depth=1): a full clone of a
+    large repo is a single long-lived, large HTTP transfer, which is fragile
+    to mid-stream network failures regardless of repo size. Pass depth=0 for
+    a full clone when the task genuinely needs complete history.
+
     Args:
         repo_url: GitLab repository URL (HTTPS or SSH)
         use_ssh: Whether to use SSH instead of HTTPS (default: False)
+        depth: Number of commits of history to fetch (default: 1, shallow). Pass 0 for a full clone.
+        branch: Specific branch to clone directly (default: None, clones the repo's default branch)
         config: Configuration dictionary containing workspace_path
         runtime_context: Runtime context for credential resolution
 
@@ -1085,11 +1093,20 @@ async def internal_gitlab_clone_repo(
 
         # Generate unique directory name for the repo
         repo_dir = os.path.join(repos_dir, f"gitlab_{uuid.uuid4().hex[:12]}")
-        logger.info(f"Cloning GitLab repo '{repo_url}' into {repo_dir}")
+        clone_cmd = ["git", "clone"]
+        if depth > 0:
+            clone_cmd.extend(["--depth", str(depth)])
+        if branch:
+            clone_cmd.extend(["--branch", branch])
+        clone_cmd.extend([repo_url, repo_dir])
+
+        logger.info(
+            f"Cloning GitLab repo '{repo_url}' into {repo_dir} (depth={depth or 'full'}, branch={branch or 'default'})"
+        )
 
         # Clone the repository
         result = await async_run_git_command(
-            ["git", "clone", repo_url, repo_dir],
+            clone_cmd,
             working_directory=None,
             config=config,
             timeout=MAX_CLONE_TIMEOUT,

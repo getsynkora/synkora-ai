@@ -1,5 +1,6 @@
 """Slack message formatting utilities."""
 
+import json
 import logging
 import re
 import uuid
@@ -8,6 +9,14 @@ logger = logging.getLogger(__name__)
 
 SLACK_MAX_TEXT_LENGTH = 3000
 SLACK_MAX_BLOCKS = 50
+# chat.postMessage can reject an exactly-50-block message with `msg_blocks_too_long`
+# even though every individual block is under SLACK_MAX_TEXT_LENGTH — this is a
+# separate, undocumented aggregate-size check distinct from the per-block 3000-char
+# limit and the 50-block count limit (confirmed live: 50 blocks / ~22,162 bytes of
+# serialized JSON was rejected). Chunking on total serialized size too, with a
+# generous safety margin below that confirmed-failing size, avoids relying on an
+# unknown exact threshold.
+SLACK_MAX_TOTAL_PAYLOAD_CHARS = 10_000
 
 # Column name hints for smart number formatting
 _CURRENCY_HINTS = {
@@ -441,6 +450,57 @@ def _image_block(alt: str, url: str) -> dict:
     return {"type": "image", "image_url": url, "alt_text": alt or "image"}
 
 
+def _chunk_code_block(fenced_text: str) -> list[dict]:
+    """Split an already-```-fenced code block into section blocks under SLACK_MAX_TEXT_LENGTH.
+
+    LLMs frequently return large fenced blocks for this kind of request (mermaid
+    flowcharts, full file dumps, etc.) that alone exceed Slack's per-block 3000-char
+    text limit. Unlike regular text sections (chunked below), this path previously
+    emitted the whole fenced block as a single section with no length check, which
+    Slack's chat.postMessage rejects outright with `invalid_blocks` — silently
+    failing the entire response instead of just wrapping. Line-based chunking keeps
+    each Slack block valid mrkdwn (i.e. never splits a fence marker across blocks).
+    """
+    if len(fenced_text) <= SLACK_MAX_TEXT_LENGTH:
+        return [{"type": "section", "text": {"type": "mrkdwn", "text": fenced_text}}]
+
+    match = re.match(r"^```(\w*)\n([\s\S]*?)\n?```$", fenced_text)
+    if not match:
+        chunks = [fenced_text[i : i + SLACK_MAX_TEXT_LENGTH] for i in range(0, len(fenced_text), SLACK_MAX_TEXT_LENGTH)]
+        return [{"type": "section", "text": {"type": "mrkdwn", "text": c}} for c in chunks]
+
+    lang, body = match.group(1), match.group(2)
+    fence_overhead = len(f"```{lang}\n") + len("\n```")
+    max_body_len = SLACK_MAX_TEXT_LENGTH - fence_overhead
+
+    def _wrap(lines: list[str]) -> dict:
+        return {"type": "section", "text": {"type": "mrkdwn", "text": f"```{lang}\n" + "\n".join(lines) + "\n```"}}
+
+    blocks: list[dict] = []
+    current_lines: list[str] = []
+    current_len = 0
+    for line in body.split("\n"):
+        # A single line longer than the budget must be hard-sliced on its own.
+        while len(line) > max_body_len:
+            if current_lines:
+                blocks.append(_wrap(current_lines))
+                current_lines, current_len = [], 0
+            blocks.append(_wrap([line[:max_body_len]]))
+            line = line[max_body_len:]
+
+        added = len(line) + 1
+        if current_lines and current_len + added > max_body_len:
+            blocks.append(_wrap(current_lines))
+            current_lines, current_len = [], 0
+        current_lines.append(line)
+        current_len += added
+
+    if current_lines:
+        blocks.append(_wrap(current_lines))
+
+    return blocks
+
+
 def create_slack_blocks(text: str) -> list:
     """Parse raw LLM markdown and produce Slack Block Kit blocks.
 
@@ -556,7 +616,7 @@ def create_slack_blocks(text: str) -> list:
                     formatted = stripped  # keep as-is
                 else:
                     formatted = f"```sql\n{stripped}\n```"
-                blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": formatted}})
+                blocks.extend(_chunk_code_block(formatted))
                 continue
 
             # ── Pure bullet list → native rich_text block ────────────────────
@@ -631,18 +691,28 @@ def create_slack_blocks(text: str) -> list:
     return deduped
 
 
-def chunk_blocks(blocks: list, max_blocks: int = SLACK_MAX_BLOCKS) -> list:
-    """Split a block list into chunks that fit within Slack's 50-block limit."""
-    if len(blocks) <= max_blocks:
+def chunk_blocks(
+    blocks: list,
+    max_blocks: int = SLACK_MAX_BLOCKS,
+    max_chars: int = SLACK_MAX_TOTAL_PAYLOAD_CHARS,
+) -> list:
+    """Split a block list into chunks that fit within Slack's block-count limit
+    AND a conservative total serialized-size budget (see SLACK_MAX_TOTAL_PAYLOAD_CHARS
+    for why the size check is needed in addition to the count check)."""
+    if len(blocks) <= max_blocks and len(json.dumps(blocks)) <= max_chars:
         return [blocks]
 
     chunks: list[list] = []
     current: list = []
+    current_size = 2  # "[]"
     for block in blocks:
-        current.append(block)
-        if len(current) >= max_blocks:
+        block_size = len(json.dumps(block)) + 1  # +1 for separating comma
+        if current and (len(current) >= max_blocks or current_size + block_size > max_chars):
             chunks.append(current)
             current = []
+            current_size = 2
+        current.append(block)
+        current_size += block_size
 
     if current:
         chunks.append(current)

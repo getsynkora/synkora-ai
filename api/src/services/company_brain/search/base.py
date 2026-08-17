@@ -87,6 +87,7 @@ class BaseSearchBackend(ABC):
     async def search(
         self,
         tenant_id: str,
+        knowledge_base_id: str,
         query: str,
         filters: SearchFilter | None = None,
         limit: int = 20,
@@ -96,11 +97,12 @@ class BaseSearchBackend(ABC):
         Run a hybrid search and return ranked results.
 
         Args:
-            tenant_id: Scopes the search to one tenant — never crosses tenants.
-            query:     Natural-language query string.
-            filters:   Optional metadata pre-filter applied before scoring.
-            limit:     Max results to return.
-            offset:    Pagination offset.
+            tenant_id:         Scopes the search to one tenant — never crosses tenants.
+            knowledge_base_id: Scopes the search to one knowledge base within the tenant.
+            query:             Natural-language query string.
+            filters:           Optional metadata pre-filter applied before scoring.
+            limit:             Max results to return.
+            offset:            Pagination offset.
 
         Returns:
             SearchResponse with results sorted by descending score.
@@ -110,6 +112,7 @@ class BaseSearchBackend(ABC):
     async def index_documents(
         self,
         tenant_id: str,
+        knowledge_base_id: str,
         documents: list[dict[str, Any]],
     ) -> dict[str, int]:
         """
@@ -135,6 +138,7 @@ class BaseSearchBackend(ABC):
     async def delete_documents(
         self,
         tenant_id: str,
+        knowledge_base_id: str,
         doc_ids: list[str],
     ) -> int:
         """Delete documents by internal doc_id. Returns count deleted."""
@@ -143,6 +147,7 @@ class BaseSearchBackend(ABC):
     async def update_tier(
         self,
         tenant_id: str,
+        knowledge_base_id: str,
         doc_ids: list[str],
         new_tier: str,
     ) -> int:

@@ -13,7 +13,12 @@ import httpx
 logger = logging.getLogger(__name__)
 
 
-async def _get_github_token(runtime_context: dict[str, Any], config: dict[str, Any] | None = None) -> str:
+async def _get_github_token(
+    runtime_context: dict[str, Any],
+    config: dict[str, Any] | None = None,
+    owner: str | None = None,
+    repo: str | None = None,
+) -> str:
     """Get GitHub token from runtime context or OAuth app."""
     from src.services.agents.internal_tools.github_auth_helper import get_github_token_from_context
 
@@ -27,7 +32,7 @@ async def _get_github_token(runtime_context: dict[str, Any], config: dict[str, A
 
     logger.info(f"🔍 [GitHub Issue Tools] Looking up GitHub OAuth for tool_name='{tool_name}'")
 
-    token = await get_github_token_from_context(runtime_context, tool_name=tool_name)
+    token = await get_github_token_from_context(runtime_context, tool_name=tool_name, owner=owner, repo=repo)
 
     if not token:
         raise ValueError("GitHub token not found. Please configure GitHub OAuth or provide a token.")
@@ -92,7 +97,7 @@ async def internal_github_create_issue(
         Dictionary with created issue details
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         json_data = {"title": title, "body": body}
 
@@ -147,7 +152,7 @@ async def internal_github_get_issue(
         Dictionary with issue details
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         result = await _make_github_request("GET", f"/repos/{owner}/{repo}/issues/{issue_number}", token)
 
@@ -214,7 +219,7 @@ async def internal_github_list_issues(
         Dictionary with list of issues
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         params = {
             "state": state,
@@ -304,7 +309,7 @@ async def internal_github_update_issue(
         Dictionary with updated issue details
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         json_data = {}
         if title is not None:
@@ -436,7 +441,7 @@ async def internal_github_assign_issue(
         Dictionary with updated assignees
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         json_data = {"assignees": assignees}
 
@@ -483,7 +488,7 @@ async def internal_github_unassign_issue(
         Dictionary with updated assignees
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         json_data = {"assignees": assignees}
 
@@ -530,7 +535,7 @@ async def internal_github_lock_issue(
         Dictionary with lock result
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         json_data = {}
         if lock_reason:
@@ -574,7 +579,7 @@ async def internal_github_unlock_issue(
         Dictionary with unlock result
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         await _make_github_request("DELETE", f"/repos/{owner}/{repo}/issues/{issue_number}/lock", token)
 

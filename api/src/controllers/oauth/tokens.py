@@ -203,6 +203,7 @@ async def get_user_connection_status(
 
         auth_method = oauth_app.auth_method or "oauth"
         app_has_credentials = bool(oauth_app.api_token)  # covers api_token + basic_auth (password)
+        app_has_github_app_credentials = bool(oauth_app.client_id and oauth_app.client_secret)
 
         result = {
             "app_id": app_id,
@@ -212,13 +213,21 @@ async def get_user_connection_status(
             "connected": False,
             "admin_connected": False,  # True when shared admin credentials are configured
             "user_token": None,
-            "app_has_token": bool(oauth_app.access_token) or app_has_credentials,
+            "app_has_token": bool(oauth_app.access_token) or app_has_credentials or app_has_github_app_credentials,
         }
 
         # For api_token / basic_auth apps there is no per-user connection —
         # the admin-configured credentials are shared by all users automatically.
         if auth_method in ("api_token", "basic_auth"):
             if app_has_credentials:
+                result["connected"] = True
+                result["admin_connected"] = True
+            return result
+
+        # GitHub App credentials (App ID + private key) are also admin-configured and
+        # shared by all users — no per-user OAuth token is ever created for this method.
+        if auth_method == "github_app":
+            if app_has_github_app_credentials:
                 result["connected"] = True
                 result["admin_connected"] = True
             return result

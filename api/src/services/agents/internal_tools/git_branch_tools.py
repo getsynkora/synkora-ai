@@ -52,6 +52,19 @@ async def internal_git_create_branch(
         # Verify source ref exists; auto-detect actual default branch if not
         verify_result = await async_run_git_command(["git", "rev-parse", "--verify", source_branch], repo_path, config)
         if not verify_result["success"]:
+            # Shallow clones default to single-branch mode: only the cloned
+            # branch's tip is fetched, so a from_branch that isn't the branch
+            # the repo was cloned with won't exist yet. Widen the fetch to
+            # include it before falling back to default-branch detection.
+            await async_run_git_command(
+                ["git", "remote", "set-branches", "--add", "origin", from_branch], repo_path, config
+            )
+            widen_fetch = await async_run_git_command(["git", "fetch", "origin", from_branch], repo_path, config)
+            if widen_fetch["success"]:
+                verify_result = await async_run_git_command(
+                    ["git", "rev-parse", "--verify", source_branch], repo_path, config
+                )
+        if not verify_result["success"]:
             # Try remote HEAD symref (set by git clone)
             head_ref = await async_run_git_command(
                 ["git", "symbolic-ref", "refs/remotes/origin/HEAD"], repo_path, config
@@ -114,6 +127,16 @@ async def internal_git_switch_branch(
             return {"success": False, "error": f"Repository path does not exist: {repo_path}"}
 
         result = await async_run_git_command(["git", "checkout", branch_name], repo_path, config)
+        if not result["success"]:
+            # Shallow clones default to single-branch mode: a branch other
+            # than the one the repo was cloned with won't exist locally yet.
+            # Widen the fetch to include it and retry before giving up.
+            await async_run_git_command(
+                ["git", "remote", "set-branches", "--add", "origin", branch_name], repo_path, config
+            )
+            widen_fetch = await async_run_git_command(["git", "fetch", "origin", branch_name], repo_path, config)
+            if widen_fetch["success"]:
+                result = await async_run_git_command(["git", "checkout", branch_name], repo_path, config)
         if not result["success"]:
             return {"success": False, "error": f"Failed to switch branch: {result['error']}"}
 

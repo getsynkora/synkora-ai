@@ -1,0 +1,74 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "SynkoraCloudWatchReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "cloudwatch:Get*",
+        "cloudwatch:List*",
+        "cloudwatch:Describe*"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "SynkoraCloudWatchLogsReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "logs:Get*",
+        "logs:List*",
+        "logs:Describe*",
+        "logs:FilterLogEvents",
+        "logs:StartQuery",
+        "logs:StopQuery"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "SynkoraEC2ReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:Describe*"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "SynkoraRDSReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "rds:Describe*",
+        "rds:ListTagsForResource"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "SynkoraLambdaReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:GetFunction",
+        "lambda:GetFunctionConfiguration",
+        "lambda:ListFunctions"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "SynkoraSecurityHubReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "securityhub:Get*",
+        "securityhub:List*",
+        "securityhub:Describe*"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "SynkoraGuardDutyReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "guardduty:List*",
+        "guardduty:Get*"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

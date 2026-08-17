@@ -21,6 +21,13 @@ interface OAuthApp {
   is_default: boolean
 }
 
+interface SlackBot {
+  id: string
+  bot_name: string
+  slack_workspace_name: string | null
+  connection_status: string
+}
+
 const SOURCE_TYPES = [
   {
     value: 'SLACK',
@@ -28,6 +35,7 @@ const SOURCE_TYPES = [
     description: 'Sync messages, threads, and files from Slack channels',
     icon: '💬',
     color: 'bg-[#f4ebe2] text-[#6f4f36]',
+    authLabel: 'OAuth Required',
   },
   {
     value: 'GMAIL',
@@ -35,6 +43,7 @@ const SOURCE_TYPES = [
     description: 'Sync emails from Gmail using labels and filters',
     icon: '📧',
     color: 'bg-[#f8e4dd] text-[#9f4b31]',
+    authLabel: 'OAuth Required',
   },
   {
     value: 'GITHUB',
@@ -42,8 +51,52 @@ const SOURCE_TYPES = [
     description: 'Sync repositories, issues, pull requests, and discussions',
     icon: '🐙',
     color: 'bg-[#e6f0ea] text-[#2f6a51]',
+    authLabel: 'OAuth Required',
+  },
+  {
+    value: 'JIRA',
+    label: 'Jira',
+    description: 'Sync issues, comments, and project activity from Jira',
+    icon: '📋',
+    color: 'bg-[#e7edfb] text-[#31489f]',
+    authLabel: 'OAuth Required',
+  },
+  {
+    value: 'CLICKUP',
+    label: 'ClickUp',
+    description: 'Sync tasks and docs across ClickUp spaces and lists',
+    icon: '✅',
+    color: 'bg-[#f0e9fb] text-[#6a3f9f]',
+    authLabel: 'OAuth Required',
+  },
+  {
+    value: 'NOTION',
+    label: 'Notion',
+    description: 'Sync pages and databases using a Notion internal integration token',
+    icon: '📓',
+    color: 'bg-[#eceaea] text-[#3a3a3a]',
+    authLabel: 'API Token',
+  },
+  {
+    value: 'CONFLUENCE',
+    label: 'Confluence',
+    description: 'Sync spaces and pages using an API token or personal access token',
+    icon: '📚',
+    color: 'bg-[#e6f0ea] text-[#2f6a51]',
+    authLabel: 'API Token',
+  },
+  {
+    value: 'LINEAR',
+    label: 'Linear',
+    description: 'Sync issues and project activity using a Linear personal API key',
+    icon: '📐',
+    color: 'bg-[#e7edfb] text-[#31489f]',
+    authLabel: 'API Token',
   },
 ]
+
+// Types that authenticate with a directly-pasted API token/PAT instead of an OAuth app.
+const DIRECT_AUTH_TYPES = new Set(['NOTION', 'CONFLUENCE', 'LINEAR'])
 
 function ConnectDataSourceContent() {
   const router = useRouter()
@@ -61,6 +114,9 @@ function ConnectDataSourceContent() {
   const [oauthApps, setOauthApps] = useState<OAuthApp[]>([])
   const [selectedOAuthAppId, setSelectedOAuthAppId] = useState<number | null>(null)
   const [checkingOAuth, setCheckingOAuth] = useState(false)
+  const [slackBots, setSlackBots] = useState<SlackBot[]>([])
+  const [selectedSlackBotId, setSelectedSlackBotId] = useState<string | null>(null)
+  const [useExistingSlackBot, setUseExistingSlackBot] = useState(false)
   const [repositories, setRepositories] = useState<any[]>([])
   const [loadingRepos, setLoadingRepos] = useState(false)
   const [selectedRepos, setSelectedRepos] = useState<Set<string>>(new Set())
@@ -90,6 +146,26 @@ function ConnectDataSourceContent() {
     create_wiki: false,
   })
 
+  // Notion config (direct-auth: internal integration token)
+  const [notionConfig, setNotionConfig] = useState({
+    internal_token: '',
+    sync_frequency: 3600,
+  })
+
+  // Confluence config (direct-auth: PAT or email + API token)
+  const [confluenceConfig, setConfluenceConfig] = useState({
+    pat: '',
+    email: '',
+    api_token: '',
+    sync_frequency: 3600,
+  })
+
+  // Linear config (direct-auth: personal API key)
+  const [linearConfig, setLinearConfig] = useState({
+    api_key: '',
+    sync_frequency: 3600,
+  })
+
   const currentStep = step === 'select-type' ? 1 : step === 'select-kb' ? 2 : 3
   const steps = [
     { id: 1, label: 'Select Type' },
@@ -102,6 +178,7 @@ function ConnectDataSourceContent() {
   const helpClass = 'mt-2 text-xs leading-relaxed text-gray-500'
   const selectedSource = SOURCE_TYPES.find((type) => type.value === selectedType)
   const selectedKnowledgeBase = knowledgeBases.find((kb) => kb.id === selectedKbId)
+  const isDirectAuth = DIRECT_AUTH_TYPES.has(selectedType)
 
   useEffect(() => {
     fetchKnowledgeBases()
@@ -125,13 +202,27 @@ function ConnectDataSourceContent() {
       const data = await apiClient.getOAuthApps(provider)
       const apps = Array.isArray(data) ? data : []
       setOauthApps(apps)
-      
+
       // Auto-select if only one app
       if (apps.length === 1) {
         setSelectedOAuthAppId(apps[0].id)
       }
-      
-      return apps.length > 0
+
+      let hasSlackBots = false
+      if (provider === 'SLACK') {
+        const bots = await apiClient.getSlackBots()
+        const activeBots = (Array.isArray(bots) ? bots : []).filter(
+          (b: SlackBot) => b.connection_status === 'connected'
+        )
+        setSlackBots(activeBots)
+        hasSlackBots = activeBots.length > 0
+        if (activeBots.length === 1) {
+          setSelectedSlackBotId(activeBots[0].id)
+          setUseExistingSlackBot(true)
+        }
+      }
+
+      return apps.length > 0 || hasSlackBots
     } catch (err) {
       console.error('Failed to fetch OAuth apps:', err)
       return false
@@ -196,12 +287,20 @@ function ConnectDataSourceContent() {
     // Set default name based on type
     const defaultName = `${type.charAt(0).toUpperCase() + type.slice(1)} Data Source`
     setDataSourceName(defaultName)
-    
+
     if (selectedKbId) {
-      // Check OAuth apps before proceeding
-      const hasOAuthApps = await fetchOAuthApps(type)
-      if (hasOAuthApps) {
+      if (DIRECT_AUTH_TYPES.has(type)) {
         setStep('configure')
+        return
+      }
+      // Check OAuth apps / Slack bots before proceeding
+      const hasCredentials = await fetchOAuthApps(type)
+      if (hasCredentials) {
+        setStep('configure')
+      } else {
+        setError(
+          `No connected ${type} account found. Please connect an OAuth app (or a Slack bot) for ${type} first.`
+        )
       }
     } else {
       setStep('select-kb')
@@ -210,10 +309,20 @@ function ConnectDataSourceContent() {
 
   const handleKbSelect = async (kbId: number) => {
     setSelectedKbId(kbId)
-    // Check OAuth apps before proceeding
-    const hasOAuthApps = await fetchOAuthApps(selectedType)
-    if (hasOAuthApps) {
+
+    if (DIRECT_AUTH_TYPES.has(selectedType)) {
       setStep('configure')
+      return
+    }
+
+    // Check OAuth apps / Slack bots before proceeding
+    const hasCredentials = await fetchOAuthApps(selectedType)
+    if (hasCredentials) {
+      setStep('configure')
+    } else {
+      setError(
+        `No connected ${selectedType} account found. Please connect an OAuth app (or a Slack bot) for ${selectedType} first.`
+      )
     }
   }
 
@@ -227,8 +336,26 @@ function ConnectDataSourceContent() {
       return
     }
 
-    if (!selectedOAuthAppId) {
-      setError('Please select an OAuth app')
+    const usingSlackBot = selectedType === 'SLACK' && useExistingSlackBot && selectedSlackBotId
+    if (!isDirectAuth && !usingSlackBot && !selectedOAuthAppId) {
+      setError('Please select an OAuth app or an existing Slack bot')
+      return
+    }
+
+    if (selectedType === 'NOTION' && !notionConfig.internal_token.trim()) {
+      setError('Please provide a Notion internal integration token')
+      return
+    }
+    if (
+      selectedType === 'CONFLUENCE' &&
+      !confluenceConfig.pat.trim() &&
+      !(confluenceConfig.email.trim() && confluenceConfig.api_token.trim())
+    ) {
+      setError('Please provide a Confluence personal access token, or an email + API token')
+      return
+    }
+    if (selectedType === 'LINEAR' && !linearConfig.api_key.trim()) {
+      setError('Please provide a Linear personal API key')
       return
     }
 
@@ -243,15 +370,22 @@ function ConnectDataSourceContent() {
         sourceConfig = gmailConfig
       } else if (selectedType === 'GITHUB') {
         sourceConfig = githubConfig
+      } else if (selectedType === 'NOTION') {
+        sourceConfig = notionConfig
+      } else if (selectedType === 'CONFLUENCE') {
+        sourceConfig = confluenceConfig
+      } else if (selectedType === 'LINEAR') {
+        sourceConfig = linearConfig
       }
-      
-      // Create data source with selected OAuth app
+
+      // Create data source with selected OAuth app or linked Slack bot
       await apiClient.createDataSource({
         name: dataSourceName.trim(),
         type: selectedType,
         knowledge_base_id: selectedKbId,
         config: sourceConfig,
-        oauth_app_id: selectedOAuthAppId,
+        oauth_app_id: usingSlackBot ? null : selectedOAuthAppId,
+        slack_bot_id: usingSlackBot ? selectedSlackBotId : null,
       })
 
       // Redirect back to data sources list
@@ -395,7 +529,7 @@ function ConnectDataSourceContent() {
                         {type.icon}
                       </div>
                       <span className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${type.color}`}>
-                        OAuth Required
+                        {type.authLabel}
                       </span>
                     </div>
 
@@ -489,7 +623,12 @@ function ConnectDataSourceContent() {
           </div>
         )}
 
-        {!checkingOAuth && oauthApps.length === 0 && selectedType && selectedKbId && (
+        {!checkingOAuth &&
+          !isDirectAuth &&
+          oauthApps.length === 0 &&
+          !(selectedType === 'SLACK' && slackBots.length > 0) &&
+          selectedType &&
+          selectedKbId && (
           <div className="rounded-[1.9rem] border border-[#ead8aa] bg-[linear-gradient(180deg,_rgba(255,251,237,0.98),_rgba(251,244,217,0.96))] p-6 shadow-[0_24px_60px_-44px_rgba(126,89,25,0.25)]">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
               <div className="flex h-14 w-14 items-center justify-center rounded-[1.25rem] bg-white/85 text-[#9d6a1e] shadow-[0_16px_32px_-24px_rgba(126,89,25,0.28)]">
@@ -508,7 +647,7 @@ function ConnectDataSourceContent() {
                 <div className="rounded-[1.5rem] border border-[#eadbb4] bg-white/75 p-5">
                   <p className="text-sm font-semibold text-gray-900">What you need to do</p>
                   <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-gray-700">
-                    <li>Create a {selectedType === 'SLACK' ? 'Slack' : selectedType === 'GMAIL' ? 'Google' : 'GitHub'} OAuth app in the provider developer console.</li>
+                    <li>Create a {selectedSource?.label || 'provider'} OAuth app in the provider developer console.</li>
                     <li>Configure the required scopes and callback URL.</li>
                     <li>Add the OAuth credentials to Synkora.</li>
                     <li>Return here and continue the connection flow.</li>
@@ -534,7 +673,9 @@ function ConnectDataSourceContent() {
           </div>
         )}
 
-        {!checkingOAuth && step === 'configure' && oauthApps.length > 0 && (
+        {!checkingOAuth &&
+          step === 'configure' &&
+          (isDirectAuth || oauthApps.length > 0 || (selectedType === 'SLACK' && slackBots.length > 0)) && (
           <div className="space-y-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div className="space-y-1">
@@ -557,7 +698,54 @@ function ConnectDataSourceContent() {
 
             <div className="rounded-[2rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,245,239,0.96))] p-6 shadow-[0_28px_70px_-48px_rgba(73,45,23,0.32)] md:p-8">
               <div className="space-y-8">
+                {selectedType === 'SLACK' && slackBots.length > 0 && (
+                  <div className="mb-5 space-y-3">
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setUseExistingSlackBot(true)}
+                        className={`flex-1 rounded-[1.1rem] border px-4 py-3 text-sm font-semibold transition-all ${
+                          useExistingSlackBot
+                            ? 'border-[#d7bea3] bg-[#f6ede4] text-gray-900'
+                            : 'border-gray-200 bg-white text-gray-600'
+                        }`}
+                      >
+                        Use existing Slack bot
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setUseExistingSlackBot(false)}
+                        className={`flex-1 rounded-[1.1rem] border px-4 py-3 text-sm font-semibold transition-all ${
+                          !useExistingSlackBot
+                            ? 'border-[#d7bea3] bg-[#f6ede4] text-gray-900'
+                            : 'border-gray-200 bg-white text-gray-600'
+                        }`}
+                      >
+                        Set up new OAuth app
+                      </button>
+                    </div>
+
+                    {useExistingSlackBot && (
+                      <select
+                        value={selectedSlackBotId || ''}
+                        onChange={(e) => setSelectedSlackBotId(e.target.value)}
+                        className="w-full rounded-[1rem] border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900"
+                      >
+                        <option value="" disabled>
+                          Select a Slack bot
+                        </option>
+                        {slackBots.map((bot) => (
+                          <option key={bot.id} value={bot.id}>
+                            {bot.bot_name} {bot.slack_workspace_name ? `(${bot.slack_workspace_name})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                )}
+
                 <div className="grid gap-4 md:grid-cols-2">
+                  {!isDirectAuth && !(selectedType === 'SLACK' && useExistingSlackBot) && (
                   <div>
                     <label className={labelClass}>
                       Select OAuth App <span className="text-red-500">*</span>
@@ -579,6 +767,7 @@ function ConnectDataSourceContent() {
                       Select which {selectedSource?.label || 'source'} account should power this connection.
                     </p>
                   </div>
+                  )}
 
                   <div>
                     <label className={labelClass}>
@@ -589,7 +778,7 @@ function ConnectDataSourceContent() {
                       value={dataSourceName}
                       onChange={(e) => setDataSourceName(e.target.value)}
                       className={fieldClass}
-                      placeholder={`e.g., My ${selectedType === 'SLACK' ? 'Slack' : selectedType === 'GMAIL' ? 'Gmail' : 'GitHub'} Source`}
+                      placeholder={`e.g., My ${selectedSource?.label || 'Data'} Source`}
                       required
                     />
                     <p className={helpClass}>Give this source a clear internal name so it is easy to recognize later.</p>
@@ -849,6 +1038,147 @@ function ConnectDataSourceContent() {
                     </div>
                   </div>
                 )}
+
+                {selectedType === 'NOTION' && (
+                  <div className="rounded-[1.5rem] border border-[#ebe1d5] bg-white/70 p-5 md:p-6">
+                    <div className="mb-5">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7a5e]">Notion Settings</p>
+                      <h3 className="mt-2 text-lg font-semibold text-gray-950">Internal integration token</h3>
+                    </div>
+
+                    <div className="grid gap-5 md:grid-cols-2">
+                      <div>
+                        <label className={labelClass}>
+                          Internal Integration Token <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="password"
+                          value={notionConfig.internal_token}
+                          onChange={(e) => setNotionConfig({ ...notionConfig, internal_token: e.target.value })}
+                          className={fieldClass}
+                          placeholder="secret_..."
+                          required
+                        />
+                        <p className={helpClass}>
+                          Create an internal integration at notion.so/my-integrations, share the pages/databases with
+                          it, then paste the token here.
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className={labelClass}>Sync Frequency (seconds)</label>
+                        <input
+                          type="number"
+                          value={notionConfig.sync_frequency}
+                          onChange={(e) => setNotionConfig({ ...notionConfig, sync_frequency: parseInt(e.target.value) })}
+                          className={fieldClass}
+                          min="60"
+                        />
+                        <p className={helpClass}>How often to check for new content. Minimum 60 seconds.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedType === 'CONFLUENCE' && (
+                  <div className="rounded-[1.5rem] border border-[#ebe1d5] bg-white/70 p-5 md:p-6">
+                    <div className="mb-5">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7a5e]">Confluence Settings</p>
+                      <h3 className="mt-2 text-lg font-semibold text-gray-950">Authenticate with a PAT or API token</h3>
+                    </div>
+
+                    <div className="grid gap-5 md:grid-cols-2">
+                      <div>
+                        <label className={labelClass}>Personal Access Token</label>
+                        <input
+                          type="password"
+                          value={confluenceConfig.pat}
+                          onChange={(e) => setConfluenceConfig({ ...confluenceConfig, pat: e.target.value })}
+                          className={fieldClass}
+                          placeholder="Confluence Data Center PAT"
+                        />
+                        <p className={helpClass}>
+                          Use this for self-hosted Confluence Data Center, or leave empty and use email + API token
+                          for Confluence Cloud instead.
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className={labelClass}>Sync Frequency (seconds)</label>
+                        <input
+                          type="number"
+                          value={confluenceConfig.sync_frequency}
+                          onChange={(e) => setConfluenceConfig({ ...confluenceConfig, sync_frequency: parseInt(e.target.value) })}
+                          className={fieldClass}
+                          min="60"
+                        />
+                        <p className={helpClass}>How often to check for new content. Minimum 60 seconds.</p>
+                      </div>
+
+                      <div>
+                        <label className={labelClass}>Email (Confluence Cloud)</label>
+                        <input
+                          type="email"
+                          value={confluenceConfig.email}
+                          onChange={(e) => setConfluenceConfig({ ...confluenceConfig, email: e.target.value })}
+                          className={fieldClass}
+                          placeholder="you@company.com"
+                        />
+                      </div>
+
+                      <div>
+                        <label className={labelClass}>API Token (Confluence Cloud)</label>
+                        <input
+                          type="password"
+                          value={confluenceConfig.api_token}
+                          onChange={(e) => setConfluenceConfig({ ...confluenceConfig, api_token: e.target.value })}
+                          className={fieldClass}
+                          placeholder="Generated from id.atlassian.com/manage-profile/security/api-tokens"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {selectedType === 'LINEAR' && (
+                  <div className="rounded-[1.5rem] border border-[#ebe1d5] bg-white/70 p-5 md:p-6">
+                    <div className="mb-5">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7a5e]">Linear Settings</p>
+                      <h3 className="mt-2 text-lg font-semibold text-gray-950">Personal API key</h3>
+                    </div>
+
+                    <div className="grid gap-5 md:grid-cols-2">
+                      <div>
+                        <label className={labelClass}>
+                          Personal API Key <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="password"
+                          value={linearConfig.api_key}
+                          onChange={(e) => setLinearConfig({ ...linearConfig, api_key: e.target.value })}
+                          className={fieldClass}
+                          placeholder="lin_api_..."
+                          required
+                        />
+                        <p className={helpClass}>
+                          Generate this from Linear Settings &gt; API &gt; Personal API keys.
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className={labelClass}>Sync Frequency (seconds)</label>
+                        <input
+                          type="number"
+                          value={linearConfig.sync_frequency}
+                          onChange={(e) => setLinearConfig({ ...linearConfig, sync_frequency: parseInt(e.target.value) })}
+                          className={fieldClass}
+                          min="60"
+                        />
+                        <p className={helpClass}>How often to check for new content. Minimum 60 seconds.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -860,7 +1190,11 @@ function ConnectDataSourceContent() {
                 <div>
                   <p className="text-sm font-semibold text-gray-900">Connect Data Source</p>
                   <p className="mt-1 text-sm leading-6 text-gray-600">
-                    This will link your {selectedSource?.label || 'data source'} to the selected knowledge base using the authorized OAuth app. Syncing will begin using the frequency you configured above.
+                    This will link your {selectedSource?.label || 'data source'} to the selected knowledge base{' '}
+                    {isDirectAuth
+                      ? 'using the API token provided above'
+                      : 'using the authorized OAuth app'}
+                    . Syncing will begin using the frequency you configured above.
                   </p>
                 </div>
               </div>

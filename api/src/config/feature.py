@@ -438,10 +438,6 @@ class CompanyBrainConfig(BaseSettings):
     )
 
     # Sync schedule
-    company_brain_incremental_sync_minutes: int = Field(
-        default=15,
-        description="How often incremental sync runs (minutes)",
-    )
     company_brain_full_sync_hours: int = Field(
         default=24,
         description="How often a full re-sync runs (hours)",

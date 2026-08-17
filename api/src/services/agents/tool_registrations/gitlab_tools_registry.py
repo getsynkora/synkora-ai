@@ -206,6 +206,8 @@ def register_gitlab_tools(registry):
         return await internal_gitlab_clone_repo(
             repo_url=kwargs.get("repo_url"),
             use_ssh=kwargs.get("use_ssh", False),
+            depth=kwargs.get("depth", 1),
+            branch=kwargs.get("branch"),
             runtime_context=runtime_context,
             config=config,
         )
@@ -609,7 +611,13 @@ def register_gitlab_tools(registry):
 
     registry.register_tool(
         name="internal_gitlab_clone_repo",
-        description="Clone a GitLab repository into a temporary directory. Automatically authenticates using the configured GitLab token. Returns the path to the cloned repository. After cloning, use internal_git_* tools (create_branch, commit_and_push, etc.) for local operations.",
+        description=(
+            "Clone a GitLab repository into a temporary directory. Automatically authenticates using the "
+            "configured GitLab token. Returns the path to the cloned repository. After cloning, use "
+            "internal_git_* tools (create_branch, commit_and_push, etc.) for local operations. Defaults to a "
+            "shallow, single-branch clone (fast and reliable even for large repos); pass a 'branch' to clone "
+            "a specific branch directly, or 'depth: 0' for a full clone with complete history."
+        ),
         parameters={
             "type": "object",
             "properties": {
@@ -621,6 +629,18 @@ def register_gitlab_tools(registry):
                     "type": "boolean",
                     "description": "Whether to convert HTTPS URLs to SSH (default: false, uses token authentication)",
                     "default": False,
+                },
+                "depth": {
+                    "type": "integer",
+                    "description": (
+                        "Number of commits of history to fetch. Default 1 (shallow clone, recommended for "
+                        "most tasks). Use 0 for a full clone with complete history."
+                    ),
+                    "default": 1,
+                },
+                "branch": {
+                    "type": "string",
+                    "description": "Specific branch to clone directly. Omit to clone the repository's default branch.",
                 },
             },
             "required": ["repo_url"],

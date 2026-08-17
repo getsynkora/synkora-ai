@@ -48,7 +48,35 @@ BLOCKED_PATTERNS = [
 
 
 def _get_workspace_path(config: dict[str, Any] | None) -> str | None:
-    """Get the workspace path from config or RuntimeContext."""
+    """
+    Get the workspace path for git operations.
+
+    When a remote ComputeSession is active (Sandbox, RemoteSSH, etc.), git commands
+    execute on the remote target via async_run_git_command(), so paths must be scoped
+    to *that* target's own workspace root (session.base_path) — not the local
+    WorkspaceManager path, which only exists on this container's filesystem and has
+    no relationship to the remote target's directory layout. Using the wrong path here
+    causes clones to "succeed" outside the remote's workspace sandbox while every
+    subsequent path-validated remote operation (exists/list/read/write) then rejects
+    that same path as escaping the workspace.
+
+    Falls back to the local WorkspaceManager path when there is no remote session.
+    """
+    compute_session = (config or {}).get("_compute_session")
+    if compute_session is None:
+        try:
+            from src.services.agents.runtime_context import get_runtime_context
+
+            ctx = get_runtime_context()
+            compute_session = getattr(ctx, "compute_session", None) if ctx else None
+        except Exception:
+            compute_session = None
+
+    if compute_session is not None and getattr(compute_session, "is_remote", False):
+        base_path = getattr(compute_session, "base_path", None)
+        if base_path:
+            return base_path
+
     from src.services.agents.workspace_manager import get_workspace_path_from_config
 
     return get_workspace_path_from_config(config)

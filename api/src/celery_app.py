@@ -124,9 +124,6 @@ celery_app.conf.update(
         "company_brain_consume_active_streams_task": {"queue": "company_brain"},
         "kb_consume_stream_task": {"queue": "company_brain"},
         "kb_process_batch_task": {"queue": "company_brain"},
-        "company_brain_incremental_sync_task": {"queue": "company_brain"},
-        "company_brain_full_sync_task": {"queue": "company_brain"},
-        "company_brain_sync_all_task": {"queue": "company_brain"},
         "company_brain_tier_migration_task": {"queue": "company_brain"},
         "kb_extract_entities_task": {"queue": "company_brain"},
     },
@@ -174,6 +171,11 @@ celery_app.conf.update(
             "task": "tasks.generate_all_daily_digests",
             "schedule": crontab(hour=23, minute=0),
         },
+        # Fan out due data source syncs (sync_frequency_minutes-based) every 5 minutes.
+        "dispatch-due-data-source-syncs": {
+            "task": "sync_all_data_sources_task",
+            "schedule": crontab(minute="*/5"),
+        },
         # Poll pending LLM batch jobs every 30 minutes
         "poll-llm-batches": {
             "task": "tasks.poll_llm_batches",
@@ -188,11 +190,6 @@ celery_app.conf.update(
         "company-brain-consume-active-streams": {
             "task": "company_brain_consume_active_streams_task",
             "schedule": 30.0,
-        },
-        # Fan out incremental syncs for active Company Brain data sources.
-        "company-brain-incremental-sync": {
-            "task": "company_brain_sync_all_task",
-            "schedule": getattr(settings, "company_brain_incremental_sync_minutes", 15) * 60.0,
         },
         # Promote aged Company Brain documents through hot/warm/archive tiers.
         "company-brain-tier-migration": {

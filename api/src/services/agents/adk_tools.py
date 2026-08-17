@@ -178,6 +178,34 @@ class ADKToolRegistry:
 
         register_google_calendar_tools(self)
 
+        # AWS tools - use modular registry
+        from src.services.agents.tool_registrations.aws_tools_registry import (
+            register_aws_tools,
+        )
+
+        register_aws_tools(self)
+
+        # GCP tools - use modular registry
+        from src.services.agents.tool_registrations.gcp_tools_registry import (
+            register_gcp_tools,
+        )
+
+        register_gcp_tools(self)
+
+        # Azure tools - use modular registry
+        from src.services.agents.tool_registrations.azure_tools_registry import (
+            register_azure_tools,
+        )
+
+        register_azure_tools(self)
+
+        # DigitalOcean tools - use modular registry
+        from src.services.agents.tool_registrations.digitalocean_tools_registry import (
+            register_digitalocean_tools,
+        )
+
+        register_digitalocean_tools(self)
+
         # Zoom tools - use modular registry
         from src.services.agents.tool_registrations.zoom_tools_registry import register_zoom_tools
 
@@ -886,7 +914,12 @@ IMPORTANT: Directory path must be within the workspace directory.""",
 
 IMPORTANT: File paths in write commands must be within the workspace directory.
 
-Supports: Git, GitHub CLI, npm, pip, Docker, file operations (ls, cat, mkdir, etc.), and more.""",
+Supports: Git, GitHub CLI, npm, pip, Docker, file operations (ls, cat, mkdir, etc.), and more.
+
+NOT supported: scripting interpreters (python, python3, node, bash, sh, perl, ruby, java, etc.) are
+deliberately blocked for security. Do not try `python3 -c ...` or `bash -c ...` as a workaround for
+editing files - they will always be rejected. To create or modify files, use internal_edit_file or
+internal_write_file instead. To inspect files, use internal_read_file or internal_grep.""",
             parameters={
                 "type": "object",
                 "properties": {

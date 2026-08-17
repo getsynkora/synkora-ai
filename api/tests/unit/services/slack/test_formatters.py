@@ -1,6 +1,9 @@
+import json
+
 from src.services.slack.formatters import (
     SLACK_MAX_BLOCKS,
     SLACK_MAX_TEXT_LENGTH,
+    SLACK_MAX_TOTAL_PAYLOAD_CHARS,
     chunk_blocks,
     clean_table_cell,
     convert_markdown_table_to_slack_blocks,
@@ -143,3 +146,60 @@ class TestSlackFormatters:
         chunks = chunk_blocks(blocks)
         assert len(chunks) == 1
         assert len(chunks[0]) == 5
+
+    def test_chunk_blocks_splits_on_total_payload_size(self):
+        # Slack's chat.postMessage can reject a message with `msg_blocks_too_long`
+        # purely due to aggregate serialized payload size, even when the block
+        # count is well under SLACK_MAX_BLOCKS and every block is under
+        # SLACK_MAX_TEXT_LENGTH individually (confirmed live: 50 blocks / ~22KB
+        # was rejected). chunk_blocks() must split on total size too.
+        big_text = "a" * 2000
+        blocks = [{"type": "section", "text": {"type": "mrkdwn", "text": big_text}}] * 10
+
+        chunks = chunk_blocks(blocks)
+
+        assert len(chunks) > 1
+        for chunk in chunks:
+            assert len(json.dumps(chunk)) <= SLACK_MAX_TOTAL_PAYLOAD_CHARS
+        # No blocks lost or reordered across chunks.
+        assert sum(len(c) for c in chunks) == len(blocks)
+
+    def test_create_slack_blocks_long_fenced_code_block(self):
+        # A single fenced code block (e.g. a large mermaid flowchart or file dump)
+        # longer than SLACK_MAX_TEXT_LENGTH must be split across multiple valid
+        # section blocks instead of emitted as one oversized block that Slack's
+        # chat.postMessage API rejects with `invalid_blocks`.
+        long_line = "a" * 50
+        body = "\n".join([long_line] * 100)  # ~5100 chars, well over the 3000 limit
+        text = f"```mermaid\n{body}\n```"
+
+        blocks = create_slack_blocks(text)
+
+        section_blocks = [b for b in blocks if b["type"] == "section"]
+        assert len(section_blocks) > 1
+        for b in section_blocks:
+            block_text = b["text"]["text"]
+            assert len(block_text) <= SLACK_MAX_TEXT_LENGTH
+            assert block_text.startswith("```mermaid\n")
+            assert block_text.endswith("\n```")
+
+        # Reassembling the body content (minus fences) must reproduce every line.
+        reassembled = "\n".join(
+            line
+            for b in section_blocks
+            for line in b["text"]["text"].removeprefix("```mermaid\n").removesuffix("\n```").split("\n")
+        )
+        assert reassembled == body
+
+    def test_create_slack_blocks_long_bare_sql_block(self):
+        # Bare SQL (auto-fenced with ```sql) must also be chunked when long.
+        long_line = "SELECT " + "x, " * 60 + "y FROM t"
+        query = "\n".join([long_line] * 40)
+
+        blocks = create_slack_blocks(query)
+
+        section_blocks = [b for b in blocks if b["type"] == "section"]
+        assert len(section_blocks) > 1
+        for b in section_blocks:
+            assert len(b["text"]["text"]) <= SLACK_MAX_TEXT_LENGTH
+            assert b["text"]["text"].startswith("```sql\n")

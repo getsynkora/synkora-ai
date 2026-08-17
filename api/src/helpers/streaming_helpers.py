@@ -358,6 +358,59 @@ async def generate_tool_status_event(
     return await generate_sse_event("tool_status", data)
 
 
+async def generate_llm_call_event(
+    status: str,
+    model: str | None = None,
+    call_index: int | None = None,
+    input_tokens: int | None = None,
+    output_tokens: int | None = None,
+) -> str:
+    """
+    Generate an LLM call boundary event (start/completion of a single completion
+    inside the agentic tool-calling loop).
+
+    Args:
+        status: "started" or "completed"
+        model: Model name for this call
+        call_index: 1-based index of this call within the turn
+        input_tokens: Input token count (completed only)
+        output_tokens: Output token count (completed only)
+
+    Returns:
+        SSE formatted llm_call event
+    """
+    data: dict[str, Any] = {"status": status}
+    if model is not None:
+        data["model"] = model
+    if call_index is not None:
+        data["call_index"] = call_index
+    if input_tokens is not None:
+        data["input_tokens"] = input_tokens
+    if output_tokens is not None:
+        data["output_tokens"] = output_tokens
+    return await generate_sse_event("llm_call", data)
+
+
+async def generate_compaction_event(pruned_count: int | None = None, tokens_saved: int | None = None) -> str:
+    """
+    Generate a context-compaction event (fired when older tool results are pruned
+    from the conversation to save context).
+
+    Args:
+        pruned_count: Number of items pruned
+        tokens_saved: Approximate tokens saved by pruning
+
+    Returns:
+        SSE formatted compaction event
+    """
+    data: dict[str, Any] = {}
+    if pruned_count is not None:
+        data["pruned_count"] = pruned_count
+    if tokens_saved is not None:
+        data["tokens_saved"] = tokens_saved
+    return await generate_sse_event("compaction", data)
+
+
 def _generate_tool_description(tool_name: str, arguments: dict | None) -> str:
     """Generate a human-readable description for a tool execution."""
     tool_descriptions = {

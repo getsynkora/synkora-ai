@@ -140,6 +140,87 @@ class TestInternalGitHubTools:
                     assert "exceeds maximum" in result["error"]
 
     @pytest.mark.asyncio
+    async def test_internal_git_clone_repo_defaults_to_shallow_clone(self):
+        """A single, long-lived full-clone HTTP transfer is fragile to mid-stream
+        network failures on large repos (confirmed via core-automation's own
+        clone_repository tool, which defaults to depth=1). We match that default."""
+        with (
+            patch(
+                "src.services.agents.internal_tools.git_repo_tools._get_workspace_path",
+                return_value=self.MOCK_WORKSPACE,
+            ),
+            patch("os.makedirs"),
+            patch("src.services.agents.internal_tools.git_repo_tools.async_run_git_command") as mock_run,
+            patch("src.services.agents.internal_tools.git_repo_tools.async_get_repo_size", return_value=10.0),
+            patch("src.services.agents.internal_tools.git_repo_tools.uuid.uuid4") as mock_uuid,
+            patch(
+                "src.services.agents.internal_tools.github_auth_helper.prepare_authenticated_git_url",
+                return_value=("https://github.com/user/repo.git", False),
+            ),
+        ):
+            mock_uuid.return_value.hex = "abc123456789"
+            mock_run.return_value = {"success": True}
+
+            result = await internal_git_clone_repo("https://github.com/user/repo.git")
+            assert result["success"] is True
+
+            clone_cmd = mock_run.call_args_list[0].args[0]
+            assert clone_cmd[:2] == ["git", "clone"]
+            assert "--depth" in clone_cmd
+            assert clone_cmd[clone_cmd.index("--depth") + 1] == "1"
+
+    @pytest.mark.asyncio
+    async def test_internal_git_clone_repo_depth_zero_is_full_clone(self):
+        with (
+            patch(
+                "src.services.agents.internal_tools.git_repo_tools._get_workspace_path",
+                return_value=self.MOCK_WORKSPACE,
+            ),
+            patch("os.makedirs"),
+            patch("src.services.agents.internal_tools.git_repo_tools.async_run_git_command") as mock_run,
+            patch("src.services.agents.internal_tools.git_repo_tools.async_get_repo_size", return_value=10.0),
+            patch("src.services.agents.internal_tools.git_repo_tools.uuid.uuid4") as mock_uuid,
+            patch(
+                "src.services.agents.internal_tools.github_auth_helper.prepare_authenticated_git_url",
+                return_value=("https://github.com/user/repo.git", False),
+            ),
+        ):
+            mock_uuid.return_value.hex = "abc123456789"
+            mock_run.return_value = {"success": True}
+
+            result = await internal_git_clone_repo("https://github.com/user/repo.git", depth=0)
+            assert result["success"] is True
+
+            clone_cmd = mock_run.call_args_list[0].args[0]
+            assert "--depth" not in clone_cmd
+
+    @pytest.mark.asyncio
+    async def test_internal_git_clone_repo_with_branch(self):
+        with (
+            patch(
+                "src.services.agents.internal_tools.git_repo_tools._get_workspace_path",
+                return_value=self.MOCK_WORKSPACE,
+            ),
+            patch("os.makedirs"),
+            patch("src.services.agents.internal_tools.git_repo_tools.async_run_git_command") as mock_run,
+            patch("src.services.agents.internal_tools.git_repo_tools.async_get_repo_size", return_value=10.0),
+            patch("src.services.agents.internal_tools.git_repo_tools.uuid.uuid4") as mock_uuid,
+            patch(
+                "src.services.agents.internal_tools.github_auth_helper.prepare_authenticated_git_url",
+                return_value=("https://github.com/user/repo.git", False),
+            ),
+        ):
+            mock_uuid.return_value.hex = "abc123456789"
+            mock_run.return_value = {"success": True}
+
+            result = await internal_git_clone_repo("https://github.com/user/repo.git", branch="develop")
+            assert result["success"] is True
+
+            clone_cmd = mock_run.call_args_list[0].args[0]
+            assert "--branch" in clone_cmd
+            assert clone_cmd[clone_cmd.index("--branch") + 1] == "develop"
+
+    @pytest.mark.asyncio
     async def test_internal_git_create_branch(self):
         with (
             patch(
@@ -199,6 +280,38 @@ class TestInternalGitHubTools:
             mock_run.return_value = {"success": True}
             result = await internal_git_switch_branch(self.MOCK_REPO_PATH, "main")
             assert result["success"] is True
+
+    @pytest.mark.asyncio
+    async def test_internal_git_switch_branch_widens_fetch_for_shallow_clone(self):
+        """Shallow clones default to single-branch mode, so a branch other than
+        the one cloned isn't fetched yet. switch_branch should widen the fetch
+        and retry instead of failing outright."""
+        with (
+            patch(
+                "src.services.agents.internal_tools.git_branch_tools._get_workspace_path",
+                return_value=self.MOCK_WORKSPACE,
+            ),
+            patch(
+                "src.services.agents.internal_tools.git_branch_tools.async_validate_repo_path",
+                return_value=(True, None),
+            ),
+            patch("os.path.exists", return_value=True),
+            patch("src.services.agents.internal_tools.git_branch_tools.async_run_git_command") as mock_run,
+        ):
+            call_log: list[list[str]] = []
+
+            async def _fake_run(command, *_args, **_kwargs):
+                call_log.append(command)
+                if command[:2] == ["git", "checkout"] and len(call_log) == 1:
+                    return {"success": False, "error": "pathspec 'feature' did not match"}
+                return {"success": True}
+
+            mock_run.side_effect = _fake_run
+
+            result = await internal_git_switch_branch(self.MOCK_REPO_PATH, "feature")
+            assert result["success"] is True
+            assert ["git", "fetch", "origin", "feature"] in call_log
+            assert call_log.count(["git", "checkout", "feature"]) == 2
 
     @pytest.mark.asyncio
     async def test_internal_git_list_branches(self):

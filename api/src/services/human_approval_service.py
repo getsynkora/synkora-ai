@@ -205,12 +205,14 @@ class HumanApprovalService:
             await db.commit()
             await self._store_execution_token(approval)
             await self._fire_approved_run(approval)
+            await self._update_slack_message_if_applicable(approval)
             return "approved"
 
         if decision == "reject":
             approval.status = ApprovalStatus.REJECTED
             approval.responded_at = now
             await db.commit()
+            await self._update_slack_message_if_applicable(approval)
             return "rejected"
 
         # unclear → treat as feedback if it has some substance
@@ -219,6 +221,7 @@ class HumanApprovalService:
             approval.responded_at = now
             await db.commit()
             await self._fire_feedback_run(approval, reply_text)
+            await self._update_slack_message_if_applicable(approval)
             return "feedback"
 
         return "unclear"
@@ -229,8 +232,9 @@ class HumanApprovalService:
         decision: Literal["approved", "rejected", "feedback"],
         feedback_text: str | None,
         db: AsyncSession,
+        responded_by: str | None = None,
     ) -> dict:
-        """Handle a dashboard-originated respond action."""
+        """Handle a dashboard-originated or button-click respond action."""
         result = await db.execute(select(AgentApprovalRequest).filter(AgentApprovalRequest.id == approval_id))
         approval = result.scalar_one_or_none()
         if not approval:
@@ -245,25 +249,41 @@ class HumanApprovalService:
             return {"status": "expired"}
 
         if approval.status != ApprovalStatus.PENDING:
-            return {"status": approval.status.value}
+            return {"status": approval.status.value, "already_handled": True, "responded_by": approval.responded_by}
 
         if decision == "approved":
             approval.status = ApprovalStatus.APPROVED
             approval.responded_at = now
+            approval.responded_by = responded_by
             await db.commit()
             await self._store_execution_token(approval)
             await self._fire_approved_run(approval)
         elif decision == "rejected":
             approval.status = ApprovalStatus.REJECTED
             approval.responded_at = now
+            approval.responded_by = responded_by
             await db.commit()
         elif decision == "feedback" and feedback_text:
             approval.status = ApprovalStatus.REJECTED
             approval.responded_at = now
+            approval.responded_by = responded_by
             await db.commit()
             await self._fire_feedback_run(approval, feedback_text)
 
+        await self._update_slack_message_if_applicable(approval)
+
         return {"status": approval.status.value, "approval_id": str(approval.id)}
+
+    @staticmethod
+    async def post_slack_ephemeral(response_url: str, text: str) -> None:
+        """Send an ephemeral message back to a Slack interaction via its response_url."""
+        import httpx
+
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                await client.post(response_url, json={"text": text, "replace_original": False})
+        except Exception as exc:
+            logger.warning(f"Failed to post ephemeral response via response_url: {exc}")
 
     # ------------------------------------------------------------------
     # Redis helpers
@@ -358,13 +378,98 @@ class HumanApprovalService:
         text = (
             f"*Action pending your approval*\n"
             f"Agent *{approval.agent_name}* wants to call `{approval.tool_name}`:\n"
-            f"```{args_preview}```\n"
-            f"Reply *yes* to proceed or *no* to cancel."
+            f"```{args_preview}```"
         )
+        blocks = self._build_approval_blocks(approval, text)
 
-        resp = await client.chat_postMessage(channel=channel_id, text=text)
+        resp = await client.chat_postMessage(channel=channel_id, text=text, blocks=blocks)
         message_ts = resp.get("ts", "")
         return {"slack_bot_id": str(bot.id), "channel_id": channel_id, "message_ts": message_ts}
+
+    @staticmethod
+    def _build_approval_blocks(approval: AgentApprovalRequest, text: str) -> list[dict]:
+        """Build the Block Kit blocks for a pending approval message (summary + buttons)."""
+        return [
+            {"type": "section", "text": {"type": "mrkdwn", "text": text}},
+            {
+                "type": "actions",
+                "block_id": "hitl_approval_actions",
+                "elements": [
+                    {
+                        "type": "button",
+                        "action_id": "hitl_approve",
+                        "style": "primary",
+                        "text": {"type": "plain_text", "text": "Approve"},
+                        "value": str(approval.id),
+                    },
+                    {
+                        "type": "button",
+                        "action_id": "hitl_reject",
+                        "style": "danger",
+                        "text": {"type": "plain_text", "text": "Reject"},
+                        "value": str(approval.id),
+                    },
+                ],
+            },
+            {
+                "type": "context",
+                "elements": [
+                    {"type": "mrkdwn", "text": "Or reply in this thread to give feedback instead."},
+                ],
+            },
+        ]
+
+    async def _update_slack_message_if_applicable(self, approval: AgentApprovalRequest) -> None:
+        """Best-effort: edit the original Slack message to reflect the final decision."""
+        if approval.notification_channel != "slack":
+            return
+        if approval.status not in (ApprovalStatus.APPROVED, ApprovalStatus.REJECTED):
+            return
+        try:
+            await self._update_slack_message(approval)
+        except Exception as exc:
+            logger.warning(f"Failed to update Slack message for approval {approval.id}: {exc}")
+
+    async def _update_slack_message(self, approval: AgentApprovalRequest) -> None:
+        """Edit the original Slack approval message to show the outcome and remove the buttons."""
+        from slack_sdk.web.async_client import AsyncWebClient
+
+        from src.models.slack_bot import SlackBot
+        from src.services.agents.security import decrypt_value
+
+        ref = approval.notification_ref or {}
+        bot_id = ref.get("slack_bot_id")
+        channel_id = ref.get("channel_id")
+        message_ts = ref.get("message_ts")
+        if not bot_id or not channel_id or not message_ts:
+            return
+
+        bot = await self._db.get(SlackBot, bot_id)
+        if not bot:
+            return
+
+        try:
+            token = decrypt_value(bot.slack_bot_token)
+        except Exception:
+            token = bot.slack_bot_token
+
+        client = AsyncWebClient(token=token)
+
+        args_preview = json.dumps(approval.tool_args, ensure_ascii=False)
+        if len(args_preview) > 300:
+            args_preview = args_preview[:297] + "..."
+
+        summary_text = f"Agent *{approval.agent_name}* wanted to call `{approval.tool_name}`:\n```{args_preview}```"
+        if approval.status == ApprovalStatus.APPROVED:
+            outcome_text = f"✅ Approved by <@{approval.responded_by}>" if approval.responded_by else "✅ Approved"
+        else:
+            outcome_text = f"❌ Rejected by <@{approval.responded_by}>" if approval.responded_by else "❌ Rejected"
+
+        blocks = [
+            {"type": "section", "text": {"type": "mrkdwn", "text": summary_text}},
+            {"type": "section", "text": {"type": "mrkdwn", "text": outcome_text}},
+        ]
+        await client.chat_update(channel=channel_id, ts=message_ts, text=outcome_text, blocks=blocks)
 
     async def _send_whatsapp_business(self, approval: AgentApprovalRequest, channel_config: dict) -> None:
         """Send approval request via WhatsApp Business API."""

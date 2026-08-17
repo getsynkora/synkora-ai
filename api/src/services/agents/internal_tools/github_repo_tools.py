@@ -14,7 +14,12 @@ import httpx
 logger = logging.getLogger(__name__)
 
 
-async def _get_github_token(runtime_context: dict[str, Any], config: dict[str, Any] | None = None) -> str:
+async def _get_github_token(
+    runtime_context: dict[str, Any],
+    config: dict[str, Any] | None = None,
+    owner: str | None = None,
+    repo: str | None = None,
+) -> str:
     """Get GitHub token from runtime context or OAuth app."""
     from src.services.agents.internal_tools.github_auth_helper import get_github_token_from_context
 
@@ -28,7 +33,7 @@ async def _get_github_token(runtime_context: dict[str, Any], config: dict[str, A
 
     logger.info(f"🔍 [GitHub Repo Tools] Looking up GitHub OAuth for tool_name='{tool_name}'")
 
-    token = await get_github_token_from_context(runtime_context, tool_name=tool_name)
+    token = await get_github_token_from_context(runtime_context, tool_name=tool_name, owner=owner, repo=repo)
 
     if not token:
         raise ValueError("GitHub token not found. Please configure GitHub OAuth or provide a token.")
@@ -53,7 +58,11 @@ async def _make_github_request(
 
     url = f"https://api.github.com{endpoint}"
 
-    async with httpx.AsyncClient() as client:
+    # follow_redirects=True: api.github.com is a fixed, trusted host (not user-controlled,
+    # so no SSRF risk) and legitimately issues 301/302s for some normalized paths (e.g. a
+    # trailing/double slash on the contents endpoint). Without this, httpx's default of not
+    # following redirects means response.json() below gets called on the empty redirect body.
+    async with httpx.AsyncClient(follow_redirects=True) as client:
         response = await client.request(
             method=method, url=url, headers=headers, params=params, json=json_data, timeout=30.0
         )
@@ -88,7 +97,7 @@ async def internal_github_get_repo_info(
         Dictionary with repository details
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         result = await _make_github_request("GET", f"/repos/{owner}/{repo}", token)
 
@@ -156,7 +165,7 @@ async def internal_github_get_readme(
         Dictionary with README content
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         params = {}
         if ref:
@@ -217,7 +226,7 @@ async def internal_github_list_repo_contents(
         Dictionary with directory contents
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         params = {}
         if ref:
@@ -301,13 +310,14 @@ async def internal_github_get_file_content(
         Dictionary with file content
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         params = {}
         if ref:
             params["ref"] = ref
 
-        result = await _make_github_request("GET", f"/repos/{owner}/{repo}/contents/{path}", token, params=params)
+        endpoint = f"/repos/{owner}/{repo}/contents/{path}".rstrip("/")
+        result = await _make_github_request("GET", endpoint, token, params=params)
 
         if isinstance(result, list):
             return {"success": False, "error": f"Path '{path}' is a directory, not a file"}
@@ -520,7 +530,7 @@ async def internal_github_get_branches(
         Dictionary with list of branches
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         params = {
             "per_page": min(per_page, 100),
@@ -588,7 +598,7 @@ async def internal_github_get_commits(
         Dictionary with list of commits
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         params = {
             "per_page": min(per_page, 100),
@@ -666,7 +676,7 @@ async def internal_github_get_contributors(
         Dictionary with list of contributors
     """
     try:
-        token = await _get_github_token(runtime_context, config)
+        token = await _get_github_token(runtime_context, config, owner=owner, repo=repo)
 
         params = {
             "per_page": min(per_page, 100),

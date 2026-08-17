@@ -1,22 +1,46 @@
 """Embedding service — delegates sentence_transformers to the ML microservice."""
 
 import asyncio
-import concurrent.futures
 import logging
+import threading
 
 logger = logging.getLogger(__name__)
+
+_background_loop: asyncio.AbstractEventLoop | None = None
+_background_loop_lock = threading.Lock()
+
+
+def _get_background_loop() -> asyncio.AbstractEventLoop:
+    """Lazily start one dedicated background event loop, reused for the life of
+    the process.
+
+    ``get_ml_client()`` (``src.core.ml_client``) caches a single
+    ``httpx.AsyncClient`` at module scope, bound to whichever event loop is
+    running the first time it's used. A previous implementation ran each call
+    via ``asyncio.run()`` in a fresh thread, tearing the loop down afterwards —
+    every call after the first then failed with "RuntimeError: Event loop is
+    closed" when it tried to reuse that cached client. Running everything on
+    one persistent loop keeps the client's connections valid across calls.
+    """
+    global _background_loop
+    with _background_loop_lock:
+        if _background_loop is None or _background_loop.is_closed():
+            loop = asyncio.new_event_loop()
+            threading.Thread(target=loop.run_forever, daemon=True).start()
+            _background_loop = loop
+    return _background_loop
 
 
 def _run_async(coro) -> object:
     """Run an async coroutine safely from synchronous code.
 
-    Uses a dedicated thread so this works whether or not there is already a
-    running event loop in the calling context (FastAPI, Celery, tests, etc.).
-    Calling ``asyncio.run()`` directly inside a running loop raises
-    ``RuntimeError: This event loop is already running``.
+    Schedules the coroutine on the shared background event loop so this works
+    whether or not there is already a running event loop in the calling
+    context (FastAPI, Celery, tests, etc.), without tearing the loop down
+    between calls.
     """
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-        return pool.submit(asyncio.run, coro).result()
+    loop = _get_background_loop()
+    return asyncio.run_coroutine_threadsafe(coro, loop).result()
 
 
 class EmbeddingService:
@@ -29,9 +53,12 @@ class EmbeddingService:
     """
 
     def __init__(
-        self, provider: str = "sentence_transformers", model_name: str = "all-MiniLM-L6-v2", config: dict | None = None
+        self, provider: str = "SENTENCE_TRANSFORMERS", model_name: str = "all-MiniLM-L6-v2", config: dict | None = None
     ):
-        self.provider = provider
+        # KnowledgeBase.embedding_provider (models/knowledge_base.py) is an UPPERCASE
+        # StrEnum, and every caller passes its `.value` straight through. Normalize
+        # here so provider dispatch is case-insensitive regardless of caller.
+        self.provider = provider.upper() if provider else provider
         self.model_name = model_name
         self.config = config or {}
         self.model = None
@@ -43,7 +70,7 @@ class EmbeddingService:
         try:
             logger.info(f"Loading embedding model: {self.provider}/{self.model_name}")
 
-            if self.provider in ("sentence_transformers", "huggingface"):
+            if self.provider in ("SENTENCE_TRANSFORMERS", "HUGGINGFACE"):
                 # Handled by ML microservice — no local model to load
                 logger.info(f"Using ML microservice for provider={self.provider}")
 
@@ -55,7 +82,7 @@ class EmbeddingService:
                     raise ValueError("OpenAI API key not provided in embedding_config")
                 self.client = openai.OpenAI(api_key=api_key)
 
-            elif self.provider == "cohere":
+            elif self.provider == "COHERE":
                 import cohere
 
                 api_key = self.config.get("api_key")
@@ -82,7 +109,7 @@ class EmbeddingService:
     def embed_text(self, text: str) -> list[float]:
         """Generate embedding for a single text."""
         try:
-            if self.provider in ("sentence_transformers", "huggingface"):
+            if self.provider in ("SENTENCE_TRANSFORMERS", "HUGGINGFACE"):
                 from src.core.ml_client import get_ml_client
 
                 client = get_ml_client()
@@ -92,7 +119,7 @@ class EmbeddingService:
                 response = self.client.embeddings.create(model=self.model_name, input=text)
                 return response.data[0].embedding
 
-            elif self.provider == "cohere":
+            elif self.provider == "COHERE":
                 response = self.client.embed(texts=[text], model=self.model_name)
                 return response.embeddings[0]
 
@@ -114,7 +141,7 @@ class EmbeddingService:
     def embed_texts(self, texts: list[str], batch_size: int = 32) -> list[list[float]]:
         """Generate embeddings for multiple texts in batches."""
         try:
-            if self.provider in ("sentence_transformers", "huggingface"):
+            if self.provider in ("SENTENCE_TRANSFORMERS", "HUGGINGFACE"):
                 from src.core.ml_client import get_ml_client
 
                 client = get_ml_client()
@@ -125,7 +152,7 @@ class EmbeddingService:
                 response = self.client.embeddings.create(model=self.model_name, input=texts)
                 return [item.embedding for item in response.data]
 
-            elif self.provider == "cohere":
+            elif self.provider == "COHERE":
                 response = self.client.embed(texts=texts, model=self.model_name)
                 return response.embeddings
 
@@ -149,7 +176,7 @@ class EmbeddingService:
         if "dimension" in self.config:
             return self.config["dimension"]
 
-        if self.provider in ("sentence_transformers", "huggingface"):
+        if self.provider in ("SENTENCE_TRANSFORMERS", "HUGGINGFACE"):
             from src.core.ml_client import get_ml_client
 
             client = get_ml_client()

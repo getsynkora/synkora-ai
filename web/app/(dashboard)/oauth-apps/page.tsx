@@ -27,6 +27,7 @@ interface OAuthApp {
   has_access_token?: boolean
   has_refresh_token?: boolean
   has_api_token?: boolean
+  has_private_key?: boolean
   token_expires_at?: string | null
 }
 
@@ -507,6 +508,7 @@ export default function OAuthAppsPage() {
   const isAuthorized = (app: OAuthApp) => {
     if (app.auth_method === 'api_token') return app.has_api_token
     if (app.auth_method === 'basic_auth') return app.has_api_token // password stored = configured
+    if (app.auth_method === 'github_app') return app.has_private_key // App ID + private key stored = configured
     return app.has_access_token
   }
 
@@ -795,9 +797,9 @@ export default function OAuthAppsPage() {
                               {authorized ? (
                                 <span className="text-emerald-600 flex items-center gap-1">
                                   <CheckCircle className="w-3 h-3" />
-                                  {app.auth_method === 'basic_auth' ? 'Configured' : 'Authorized'}
+                                  {app.auth_method === 'basic_auth' || app.auth_method === 'github_app' ? 'Configured' : 'Authorized'}
                                 </span>
-                              ) : app.auth_method === 'basic_auth' ? (
+                              ) : app.auth_method === 'basic_auth' || app.auth_method === 'github_app' ? (
                                 <span className="text-amber-600 flex items-center gap-1">
                                   <AlertCircle className="w-3 h-3" />
                                   Missing Credentials
@@ -813,7 +815,7 @@ export default function OAuthAppsPage() {
                         </div>
 
                         <div className="flex items-center gap-1">
-                          {!authorized && app.auth_method !== 'basic_auth' && (
+                          {!authorized && app.auth_method !== 'basic_auth' && app.auth_method !== 'github_app' && (
                             <button
                               onClick={() => handleAuthorize(app, false)}
                               className="px-3 py-1.5 text-sm font-semibold text-white bg-[#171717] rounded-[0.4rem] hover:bg-[#2a2a2a] transition-colors"

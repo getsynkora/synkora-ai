@@ -204,6 +204,32 @@ PLATFORM_TOOL_CATALOG = {
         "requires_oauth": [],
         "requires_integration": ["newsapi"],
     },
+    "openweather_tools": {
+        "description": (
+            "Current weather and hourly forecast (up to 48h) for any lat/lng via OpenWeatherMap. "
+            "Requires an OpenWeather API key integration. Prefer this over browser_tools for any "
+            "agent that needs weather data — it returns structured temperature/precipitation/wind "
+            "data instead of scraping a weather website."
+        ),
+        "requires_oauth": ["openweather"],
+        "requires_integration": ["openweather"],
+    },
+    "openmeteo_tools": {
+        "description": (
+            "Current weather and hourly forecast (up to 48h) for any lat/lng via Open-Meteo — free, "
+            "no API key required. Use this as the default weather tool when OpenWeather is not "
+            "configured. Prefer this over browser_tools for any agent that needs weather data."
+        ),
+        "requires_oauth": [],
+    },
+    "micromobility_event_tools": {
+        "description": (
+            "Event impact analysis, network health, parking compliance, battery degradation, and "
+            "ranger performance for a micromobility fleet. Requires a micromobility API integration."
+        ),
+        "requires_oauth": ["micromobility"],
+        "requires_integration": ["micromobility"],
+    },
     "document_tools": {
         "description": "Parse and extract text from PDFs, Word docs, Excel files",
         "requires_oauth": [],
@@ -265,6 +291,72 @@ PLATFORM_TOOL_CATALOG = {
     },
     "spawn_agent_tool": {
         "description": "Spawn another agent as a sub-task (multi-agent orchestration)",
+        "requires_oauth": [],
+    },
+    "tutorial_tools": {
+        "description": "Generate a tutorial from a public GitHub repo: fetch files, identify abstractions, analyze relationships, and write ordered chapters",
+        "requires_oauth": [],
+    },
+    "contract_tools": {
+        "description": "Analyze contracts and generate risk/summary reports",
+        "requires_oauth": [],
+    },
+    "followup_tools": {
+        "description": "Track, escalate, and send follow-up messages (including searching Slack mentions). Requires a Slack integration for the Slack-related actions.",
+        "requires_oauth": ["slack"],
+    },
+    "zendesk_tools": {
+        "description": "Search, create, update, and comment on Zendesk support tickets",
+        "requires_oauth": ["zendesk"],
+    },
+    "zoho_crm_tools": {
+        "description": "Search, create, update, and annotate Zoho CRM records",
+        "requires_oauth": ["zoho_crm"],
+    },
+    "events_tools": {
+        "description": "Discover local events (concerts, sports, attendance-based impact scores) via PredictHQ or Ticketmaster",
+        "requires_oauth": ["predicthq"],
+    },
+    "mapbox_tools": {
+        "description": "Generate static maps and turn-by-turn directions via Mapbox",
+        "requires_oauth": ["mapbox"],
+    },
+    "blog_site_tools": {
+        "description": "Generate a blog site and deploy it to GitHub Pages. Requires a GitHub integration for deployment.",
+        "requires_oauth": ["github"],
+    },
+    "role_tools": {
+        "description": (
+            "Multi-agent project roles: get project info/context, escalate to a human contact, "
+            "check escalation status, and list project agents/roles"
+        ),
+        "requires_oauth": [],
+    },
+    "onepassword_tools": {
+        "description": "Read, create, update, and archive 1Password items and secrets; generate secure passwords",
+        "requires_oauth": ["onepassword"],
+    },
+    "diagram_tools": {
+        "description": "Generate diagrams (flowcharts, architecture diagrams, etc.)",
+        "requires_oauth": [],
+    },
+    "infographic_tools": {
+        "description": "Generate infographics, including Slack-formatted infographics",
+        "requires_oauth": [],
+    },
+    "video_tools": {
+        "description": (
+            "Scrape a website for video content, and generate AI video via Kling or Minimax. "
+            "Video generation requires a Kling or Minimax API integration."
+        ),
+        "requires_oauth": ["kling"],
+    },
+    "recall_tools": {
+        "description": "Send a bot to record and transcribe meetings, and summarize the recording. Requires a Recall.ai integration.",
+        "requires_oauth": ["recall"],
+    },
+    "speckit_tools": {
+        "description": "Spec-driven development workflow: specify, plan, break into tasks, and commit",
         "requires_oauth": [],
     },
 }
@@ -444,6 +536,18 @@ async def platform_check_integration(provider: str, runtime_context: Any = None)
                 "provider_email": None,
                 "provider_username": github_app.app_name,
             }
+
+        # 5. Slack: a connected SlackBot (Socket Mode bot/app token) is a valid, independent
+        # credential source for internal_slack_* tools — no separate Slack OAuth app needed.
+        if provider.lower() == "slack":
+            slack_bot_id = await _resolve_slack_bot_id(db, runtime_context.tenant_id)
+            if slack_bot_id:
+                return {
+                    "connected": True,
+                    "auth_method": "slack_bot",
+                    "provider_email": None,
+                    "provider_username": None,
+                }
 
         return {"connected": False, "auth_method": None, "provider_email": None, "provider_username": None}
 
@@ -661,8 +765,8 @@ async def platform_create_agent(
             from src.services.agents.adk_tools import tool_registry
 
             available_tool_names = [t["name"] for t in tool_registry.list_tools()]
-            # Map tool_name → oauth_app_id to avoid duplicate rows with conflicting app ids
-            tool_to_oauth: dict[str, Any] = {}
+            # Map tool_name → (oauth_app_id, slack_bot_id) to avoid duplicate rows with conflicting app ids
+            tool_to_creds: dict[str, tuple[Any, Any]] = {}
 
             for cat in normalized_tools_list:
                 patterns = TOOL_CATEGORY_TO_PATTERNS.get(cat, [])
@@ -671,6 +775,7 @@ async def platform_create_agent(
                     continue
 
                 oauth_app_id = None
+                slack_bot_id = None
                 oauth_providers = (PLATFORM_TOOL_CATALOG.get(cat) or {}).get("requires_oauth") or []
                 if oauth_providers:
                     oauth_app_id = await _resolve_oauth_app_id(
@@ -679,15 +784,24 @@ async def platform_create_agent(
                         tenant_id=tenant_id,
                         user_id=runtime_context.user_id if runtime_context else None,
                     )
+                    # An already-connected SlackBot is a valid, independent credential source
+                    # for Slack tools — fall back to it when no Slack OAuth app is configured.
+                    if oauth_app_id is None and oauth_providers[0] == "slack":
+                        slack_bot_id = await _resolve_slack_bot_id(db, tenant_id, agent.id)
 
                 for tool_name in cat_tools:
-                    if tool_name not in tool_to_oauth:
-                        tool_to_oauth[tool_name] = oauth_app_id
+                    if tool_name not in tool_to_creds:
+                        tool_to_creds[tool_name] = (oauth_app_id, slack_bot_id)
 
-            for tool_name, oauth_app_id in tool_to_oauth.items():
+            for tool_name, (oauth_app_id, slack_bot_id) in tool_to_creds.items():
                 db.add(
                     AgentTool(
-                        agent_id=agent.id, tool_name=tool_name, config={}, enabled=True, oauth_app_id=oauth_app_id
+                        agent_id=agent.id,
+                        tool_name=tool_name,
+                        config={},
+                        enabled=True,
+                        oauth_app_id=oauth_app_id,
+                        slack_bot_id=slack_bot_id,
                     )
                 )
 
@@ -851,6 +965,8 @@ TOOL_CATEGORY_TO_PATTERNS: dict[str, list[str]] = {
         "analyze_*",
         "export_data_*",
         "generate_chart_from_*",
+        "list_data_sources",
+        "query_file_with_duckdb",
     ],
     "image_generation": ["internal_generate_image"],
     "document_tools": [
@@ -866,6 +982,15 @@ TOOL_CATEGORY_TO_PATTERNS: dict[str, list[str]] = {
         "internal_hn_*",
         "internal_news_*",
         "internal_fetch_rss_*",
+    ],
+    "openweather_tools": ["internal_get_weather_forecast", "internal_get_current_weather"],
+    "openmeteo_tools": ["internal_get_openmeteo_forecast", "internal_get_openmeteo_current"],
+    "micromobility_event_tools": [
+        "internal_micromobility_analyze_event_impact",
+        "internal_micromobility_get_network_health",
+        "internal_micromobility_get_parking_compliance",
+        "internal_micromobility_get_battery_degradation",
+        "internal_micromobility_get_ranger_performance",
     ],
     "github_tools": [
         "internal_github_*",
@@ -885,6 +1010,75 @@ TOOL_CATEGORY_TO_PATTERNS: dict[str, list[str]] = {
     "linkedin_tools": ["internal_linkedin_*"],
     "youtube_tools": ["internal_youtube_*"],
     "spawn_agent_tool": ["spawn_agent", "check_task", "list_background_tasks", "call_remote_agent"],
+    "tutorial_tools": [
+        "internal_fetch_repository_files",
+        "internal_identify_abstractions",
+        "internal_analyze_relationships",
+        "internal_order_chapters",
+        "internal_generate_tutorial_chapter",
+        "internal_combine_tutorial",
+    ],
+    "contract_tools": ["internal_analyze_contract", "internal_generate_contract_report"],
+    "followup_tools": [
+        "internal_create_followup_item",
+        "internal_list_pending_followups",
+        "internal_send_followup_message",
+        "internal_mark_followup_complete",
+        "internal_get_followup_history",
+        "internal_search_slack_mentions",
+        "internal_update_followup_priority",
+        "internal_escalate_followup",
+    ],
+    "zendesk_tools": [
+        "internal_search_zendesk_tickets",
+        "internal_get_zendesk_ticket",
+        "internal_list_zendesk_tickets",
+        "internal_create_zendesk_ticket",
+        "internal_update_zendesk_ticket",
+        "internal_add_zendesk_comment",
+        "internal_get_zendesk_user",
+    ],
+    "zoho_crm_tools": [
+        "internal_search_zoho_crm_records",
+        "internal_get_zoho_crm_record",
+        "internal_list_zoho_crm_records",
+        "internal_create_zoho_crm_record",
+        "internal_update_zoho_crm_record",
+        "internal_add_zoho_crm_note",
+    ],
+    "events_tools": ["internal_get_predicthq_events", "internal_get_ticketmaster_events"],
+    "mapbox_tools": ["internal_get_static_map", "internal_get_directions"],
+    "blog_site_tools": [
+        "internal_generate_blog_site",
+        "internal_create_github_repository",
+        "internal_deploy_blog_to_github",
+        "internal_enable_github_pages",
+    ],
+    "role_tools": [
+        "get_project_info",
+        "get_project_context",
+        "update_project_context",
+        "escalate_to_human",
+        "get_my_human_contact",
+        "check_escalation_status",
+        "get_project_agents",
+        "get_my_role",
+        "get_pending_escalations",
+    ],
+    "onepassword_tools": ["internal_1password_*"],
+    "diagram_tools": ["internal_generate_diagram", "internal_generate_quick_diagram"],
+    "infographic_tools": ["internal_generate_infographic", "internal_generate_slack_infographic"],
+    "video_tools": ["internal_scrape_website_for_video", "internal_generate_video"],
+    "recall_tools": [
+        "internal_recall_send_bot",
+        "internal_recall_get_bot_status",
+        "internal_recall_list_bots",
+        "internal_recall_get_transcript",
+        "internal_recall_get_recording",
+        "internal_recall_remove_bot",
+        "internal_recall_summarize_meeting",
+    ],
+    "speckit_tools": ["speckit_specify", "speckit_plan", "speckit_tasks", "speckit_commit"],
 }
 
 
@@ -957,6 +1151,7 @@ async def platform_update_agent(
                 patterns = TOOL_CATEGORY_TO_PATTERNS.get(cat, [])
 
                 oauth_app_id = None
+                slack_bot_id = None
                 oauth_providers = (PLATFORM_TOOL_CATALOG.get(cat) or {}).get("requires_oauth") or []
                 if oauth_providers:
                     oauth_app_id = await _resolve_oauth_app_id(
@@ -965,6 +1160,10 @@ async def platform_update_agent(
                         tenant_id=runtime_context.tenant_id,
                         user_id=runtime_context.user_id if runtime_context else None,
                     )
+                    # An already-connected SlackBot is a valid, independent credential source
+                    # for Slack tools — fall back to it when no Slack OAuth app is configured.
+                    if oauth_app_id is None and oauth_providers[0] == "slack":
+                        slack_bot_id = await _resolve_slack_bot_id(db, runtime_context.tenant_id, agent.id)
 
                 for tool_name in available_tool_names:
                     if any(fnmatch.fnmatch(tool_name, p) for p in patterns):
@@ -980,6 +1179,8 @@ async def platform_update_agent(
                             existing.enabled = True
                             if existing.oauth_app_id is None and oauth_app_id is not None:
                                 existing.oauth_app_id = oauth_app_id
+                            if existing.slack_bot_id is None and slack_bot_id is not None:
+                                existing.slack_bot_id = slack_bot_id
                         else:
                             db.add(
                                 AgentTool(
@@ -988,6 +1189,7 @@ async def platform_update_agent(
                                     config={},
                                     enabled=True,
                                     oauth_app_id=oauth_app_id,
+                                    slack_bot_id=slack_bot_id,
                                 )
                             )
                         tools_enabled.append(tool_name)
@@ -2186,6 +2388,44 @@ async def _resolve_oauth_app_id(db: Any, provider: str, tenant_id: Any, user_id:
             OAuthApp.tenant_id == tenant_id,
             func.lower(OAuthApp.provider) == provider.lower(),
             OAuthApp.is_active.is_(True),
+        )
+        .limit(1)
+    )
+    return result.scalar_one_or_none()
+
+
+async def _resolve_slack_bot_id(db: Any, tenant_id: Any, agent_id: Any = None) -> Any | None:
+    """
+    Resolve an active SlackBot to use as the Slack credential for internal_slack_* tools.
+
+    A connected SlackBot (Socket Mode bot/app token) is a valid, independent credential
+    source for Slack tools — it does not require a separate Slack OAuth app. Priority:
+    1. A SlackBot already linked to this specific agent
+    2. Any other active SlackBot for this tenant
+    """
+    from src.models.slack_bot import SlackBot
+
+    if agent_id:
+        result = await db.execute(
+            select(SlackBot.id)
+            .where(
+                SlackBot.agent_id == agent_id,
+                SlackBot.tenant_id == tenant_id,
+                SlackBot.is_active.is_(True),
+                SlackBot.deleted_at.is_(None),
+            )
+            .limit(1)
+        )
+        bot_id = result.scalar_one_or_none()
+        if bot_id:
+            return bot_id
+
+    result = await db.execute(
+        select(SlackBot.id)
+        .where(
+            SlackBot.tenant_id == tenant_id,
+            SlackBot.is_active.is_(True),
+            SlackBot.deleted_at.is_(None),
         )
         .limit(1)
     )

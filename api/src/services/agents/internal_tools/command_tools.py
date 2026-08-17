@@ -5,6 +5,7 @@ Provides safe command-line execution capabilities for agents with enterprise-gra
 Includes comprehensive allowlists, path validation, URL filtering, and dangerous flag detection.
 """
 
+import ast
 import json
 import logging
 import os
@@ -81,6 +82,33 @@ BLOCKED_PATHS = [
     # Application-specific directories (often containing sensitive data)
     "/home/appuser",
 ]
+
+_PATH_BOUNDARY_CHARS = ("/", " ", "'", '"', "=", ":", "\t", "\n")
+
+
+def _is_blocked_path_match(path: str, blocked: str) -> bool:
+    """Check if `blocked` appears in `path` as a real path component, not as an
+    arbitrary substring of an unrelated name.
+
+    A naive `blocked in path` substring check false-positives badly — e.g. the
+    "/sys" entry (meant to block the /sys kernel virtual filesystem) also matches
+    ".../system-architecture.md", and the "id_rsa" entry matches
+    "invalid_rsa_config.txt". Entries starting with "/" already carry their own
+    left path-boundary; bare filename entries (e.g. "id_rsa", "known_hosts")
+    need a boundary on both sides.
+    """
+    start = 0
+    while True:
+        idx = path.find(blocked, start)
+        if idx == -1:
+            return False
+        end = idx + len(blocked)
+        left_ok = blocked.startswith("/") or idx == 0 or path[idx - 1] in _PATH_BOUNDARY_CHARS
+        right_ok = end == len(path) or path[end] in _PATH_BOUNDARY_CHARS
+        if left_ok and right_ok:
+            return True
+        start = idx + 1
+
 
 # Allowlist of safe commands with their allowed subcommands
 SAFE_COMMANDS: dict[str, list[str]] = {
@@ -454,7 +482,7 @@ def _validate_path(path: str, workspace_path: str | None = None) -> bool:
 
         # Check if path matches any blocked patterns
         for blocked in BLOCKED_PATHS:
-            if real_path.startswith(blocked) or blocked in real_path:
+            if _is_blocked_path_match(real_path, blocked):
                 logger.warning(f"Path validation failed: '{real_path}' matches blocked pattern '{blocked}'")
                 return False
 
@@ -610,7 +638,7 @@ def _validate_git_commands(command_name: str, subcommand: str | None, command: l
     return True
 
 
-def _is_command_safe(command: list[str], workspace_path: str | None = None) -> bool:
+def _is_command_safe(command: list[str], workspace_path: str | None = None, skip_path_validation: bool = False) -> bool:
     """
     Check if the given command is safe to execute with comprehensive security validation.
 
@@ -626,6 +654,11 @@ def _is_command_safe(command: list[str], workspace_path: str | None = None) -> b
     Args:
         command: Command as a list of strings (e.g., ["git", "status"])
         workspace_path: The workspace directory path for file path validation
+        skip_path_validation: When True, skip local filesystem path validation entirely.
+            Use only when the command is being routed to a remote compute session, where
+            paths are resolved against the remote target's filesystem, not this container's.
+            Does NOT affect the local-execution fail-closed behavior when workspace_path
+            is unset/unresolved.
 
     Returns:
         True if command is safe to execute, False otherwise
@@ -643,7 +676,7 @@ def _is_command_safe(command: list[str], workspace_path: str | None = None) -> b
     for part in command:
         clean_part = part.replace("/dev/null", "")
         for blocked in BLOCKED_PATHS:
-            if blocked in clean_part:
+            if _is_blocked_path_match(clean_part, blocked):
                 logger.warning(f"Command part validation failed: '{part}' contains blocked pattern '{blocked}'")
                 return False
 
@@ -680,7 +713,7 @@ def _is_command_safe(command: list[str], workspace_path: str | None = None) -> b
         _check_shell_metacharacters(command),  # SECURITY: Check for command injection
         _validate_git_commands(command_name, subcommand, command),
         _validate_dangerous_flags(command_name, command),
-        _validate_file_paths(command_name, command, workspace_path),
+        skip_path_validation or _validate_file_paths(command_name, command, workspace_path),
     ]
 
     if not all(validations):
@@ -755,13 +788,23 @@ async def internal_run_command(
         try:
             # Check if it's a JSON array (e.g., '["ls", "-la"]')
             if command.strip().startswith("["):
-                command = json.loads(command)
+                try:
+                    command = json.loads(command)
+                except json.JSONDecodeError:
+                    # LLMs occasionally emit command arrays as Python-literal-style
+                    # strings rather than strict JSON — e.g. a grep regex alternation
+                    # like "a\|b" is valid Python string syntax (an unrecognized escape
+                    # is kept as a literal backslash) but invalid JSON (which requires
+                    # "\\" for a literal backslash). ast.literal_eval only evaluates
+                    # literal data structures (no code execution), so it's a safe
+                    # fallback for this otherwise well-formed command array.
+                    command = ast.literal_eval(command)
                 if not isinstance(command, list):
                     raise ValueError("JSON command must be an array")
             else:
                 # Use shlex for shell-style commands (e.g., "ls -la")
                 command = shlex.split(command)
-        except (ValueError, json.JSONDecodeError) as e:
+        except (ValueError, SyntaxError, json.JSONDecodeError) as e:
             logger.error(f"Failed to parse command string: {e}")
             return {
                 "success": False,
@@ -778,13 +821,20 @@ async def internal_run_command(
 
     _compute_session = await get_compute_session_from_config(config)
     if _compute_session is not None and _compute_session.is_remote:
-        # Check global allowlist (pass workspace_path=None to skip local path validation)
-        if not _is_command_safe(command, None):
+        # Check global allowlist. Local filesystem path validation is skipped (via
+        # skip_path_validation=True) since paths here are resolved on the remote target,
+        # not against this container's filesystem.
+        if not _is_command_safe(command, None, skip_path_validation=True):
             logger.error(f"Security check FAILED for remote command: '{_sanitize_command_for_logging(command)}'")
             return {
                 "success": False,
                 "output": "",
-                "error": "Command is not allowed. Only allowlisted commands can be executed.",
+                "error": (
+                    "Command is not allowed. Only allowlisted commands can be executed "
+                    "(scripting interpreters like python/bash/node are blocked and cannot be "
+                    "used as a workaround). To modify files, use internal_edit_file or "
+                    "internal_write_file. To inspect files, use internal_read_file or internal_grep."
+                ),
                 "return_code": -1,
             }
         # Check per-agent command override if set
@@ -841,7 +891,12 @@ async def internal_run_command(
         return {
             "success": False,
             "output": "",
-            "error": "Command is not allowed or failed security validation. File paths must be within workspace.",
+            "error": (
+                "Command is not allowed or failed security validation. File paths must be "
+                "within workspace, and scripting interpreters like python/bash/node are blocked "
+                "and cannot be used as a workaround. To modify files, use internal_edit_file or "
+                "internal_write_file. To inspect files, use internal_read_file or internal_grep."
+            ),
             "return_code": -1,
         }
 

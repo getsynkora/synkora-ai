@@ -7,31 +7,7 @@ import re
 from collections.abc import Callable
 from typing import Any
 
-_EMOJI_RE = re.compile(r"[^\x00-\x7F]+")
-
-
-def _to_slack_status(content: str) -> str:
-    """
-    Convert a stream status string to Slack assistant thread status text.
-
-    Strips emojis and normalises to 'is doing X...' so it reads naturally
-    as '<BotName> is searching the web...' in Slack.
-    Returns empty string for events that shouldn't surface as a status.
-    """
-    text = _EMOJI_RE.sub("", content).strip(" .")
-    if not text:
-        return ""
-    text_lower = text.lower()
-    # Skip sub-agent lifecycle noise
-    if text_lower.startswith(("starting:", "completed:", "starting ", "completed ")):
-        return ""
-    if not text_lower.endswith("..."):
-        text_lower += "..."
-    if not text_lower.startswith("is "):
-        text_lower = "is " + text_lower
-    return text_lower
-
-
+from slack_sdk.errors import SlackApiError
 from slack_sdk.web.async_client import AsyncWebClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -40,8 +16,63 @@ from ...models.conversation import Conversation, ConversationStatus
 from ...models.message import Message, MessageRole
 from ...models.slack_bot import SlackBot, SlackConversation
 from ...services.agents.agent_manager import AgentManager
+from .slack_status_service import SlackStatusService
 
 logger = logging.getLogger(__name__)
+
+_EMOJI_RE = re.compile(r"[^\x00-\x7F]+")
+
+# Tools that actually execute a data query and return row-level results. The metadata
+# footer (row counts / data source / table name) is only meaningful when one of these
+# ran during the turn — otherwise regex-scanning the response text produces false
+# positives on any text that merely mentions a DB product name or contains a
+# version-number-like token (e.g. a PR description mentioning "Supabase" as a
+# technology, or a "1.6" version string).
+_DATABASE_QUERY_TOOLS = {"internal_query_database", "internal_query_and_chart"}
+
+
+def _to_tool_status(description: str) -> str:
+    """
+    Convert a tool-call description into natural Slack assistant status text.
+
+    Strips emojis and normalises to 'is doing x...' so it reads as
+    '<BotName> is searching the web...' in the native Slack status indicator.
+    Truncated to fit assistant.threads.setStatus's requirement that each
+    loading message be under 51 characters.
+    """
+    MAX_LEN = 50
+    text = _EMOJI_RE.sub("", description).strip(" .")
+    if not text:
+        return ""
+    text = text[0].lower() + text[1:]
+    if not text.lower().startswith("is "):
+        text = "is " + text
+    text = text.removesuffix("...").rstrip(" .")
+    suffix = "..."
+    available = MAX_LEN - len(suffix)
+    if len(text) > available:
+        text = text[:available].rstrip()
+    return text + suffix
+
+
+def _convert_image_blocks_to_links(blocks: list[dict]) -> list[dict]:
+    """Convert `image` blocks to plain clickable-link section blocks.
+
+    Slack renders `image` blocks by having its own servers fetch `image_url`
+    directly, which fails with `invalid_blocks: downloading image failed` when
+    the URL isn't reachable from Slack's infrastructure (e.g. a local-dev
+    presigned URL). Used as a fallback so the message still gets delivered.
+    """
+    converted = []
+    for block in blocks:
+        if block.get("type") == "image" and block.get("image_url"):
+            alt_text = block.get("alt_text") or "image"
+            converted.append(
+                {"type": "section", "text": {"type": "mrkdwn", "text": f"<{block['image_url']}|{alt_text}>"}}
+            )
+        else:
+            converted.append(block)
+    return converted
 
 
 class SlackMessageHandler:
@@ -89,6 +120,38 @@ class SlackMessageHandler:
             The agent's response text, or None on error
         """
         try:
+            # Block Slack Connect (externally-shared) channels unless explicitly allowed.
+            # is_ext_shared = true external company; is_org_shared = same Enterprise Grid
+            # org (not external) and must NOT be blocked.
+            channel_info: Any = None
+            try:
+                channel_info = await client.conversations_info(channel=channel_id)
+            except Exception as e:
+                logger.warning(
+                    f"Could not fetch channel info for {channel_id} (external-share check): {e}. "
+                    "Failing open — missing channels:read/groups:read scope?"
+                )
+                channel_info = None
+
+            if (
+                channel_info
+                and channel_info.get("channel", {}).get("is_ext_shared")
+                and not slack_bot.allow_external_shared_channels
+            ):
+                decline_msg = (
+                    "This bot isn't available in externally-shared channels. An admin can enable "
+                    "this for this bot in its settings if this is expected."
+                )
+                if say:
+                    await say(decline_msg)
+                else:
+                    await client.chat_postMessage(
+                        channel=channel_id,
+                        text=decline_msg,
+                        thread_ts=thread_ts or message_ts,
+                    )
+                return decline_msg
+
             # Feedback: intercept 👍/👎 as per-message satisfaction signal
             _stripped = text.strip()
             if _stripped in ("👍", "👎", ":thumbsup:", ":thumbsdown:", "+1", "-1"):
@@ -156,9 +219,17 @@ class SlackMessageHandler:
                 )
                 return _reply
 
-            # Get or create conversation mapping
+            # Get or create conversation mapping.
+            # Slack only sets thread_ts on *replies* — the message that starts a thread has
+            # no thread_ts of its own (only its own ts, which becomes the thread root once
+            # someone replies). Normalize to "thread_ts or message_ts" so the root message
+            # and its replies always resolve to the same conversation.
             conversation = await self._get_or_create_conversation(
-                slack_bot=slack_bot, channel_id=channel_id, user_id=user_id, thread_ts=thread_ts
+                slack_bot=slack_bot,
+                channel_id=channel_id,
+                user_id=user_id,
+                thread_ts=thread_ts or message_ts,
+                message_text=text,
             )
 
             # Block AI while a human operator is handling this conversation
@@ -170,26 +241,18 @@ class SlackMessageHandler:
                     await client.chat_postMessage(channel=channel_id, text=_wait, thread_ts=thread_ts)
                 return _wait
 
-            # Fetch user and channel info in parallel (suppress individual failures)
-            user_info: Any
-            channel_info: Any
-            user_info, channel_info = await asyncio.gather(
-                client.users_info(user=user_id),
-                client.conversations_info(channel=channel_id),
-                return_exceptions=True,
-            )
-            if isinstance(user_info, Exception):
-                logger.warning(f"Could not fetch user info for {user_id}: {user_info}. Missing users:read scope?")
-                user_name = user_id
-            else:
+            # Fetch user info (channel_info was already fetched above for the
+            # external-share check, so only one call is needed here now).
+            try:
+                user_info = await client.users_info(user=user_id)
                 user_name = user_info["user"]["real_name"] or user_info["user"]["name"]
-            if isinstance(channel_info, Exception):
-                logger.warning(
-                    f"Could not fetch channel info for {channel_id}: {channel_info}. Missing channels:read scope?"
-                )
-                channel_name = channel_id
-            else:
+            except Exception as e:
+                logger.warning(f"Could not fetch user info for {user_id}: {e}. Missing users:read scope?")
+                user_name = user_id
+            if channel_info:
                 channel_name = channel_info.get("channel", {}).get("name", channel_id)
+            else:
+                channel_name = channel_id
 
             # Remove bot mention from text if present
             clean_text = self._remove_bot_mention(text, slack_bot.slack_app_id)
@@ -203,31 +266,26 @@ class SlackMessageHandler:
             # Slack context (channel, user) is passed via shared_state for tool use.
             context_message = clean_text
 
-            # Save user message with enhanced metadata
-            user_message = Message(
-                conversation_id=conversation.id,
-                role=MessageRole.USER,
-                content=context_message,
-                message_metadata={
-                    "slack_user_id": user_id,
-                    "slack_user_name": user_name,
-                    "slack_channel_id": channel_id,
-                    "slack_channel_name": channel_name,
-                    "slack_message_ts": message_ts,
-                    "slack_thread_ts": thread_ts,
-                    "original_text": text,
-                },
-            )
-            self.db_session.add(user_message)
-            conversation.increment_message_count()
-            await self.db_session.flush()
+            # Slack-specific metadata to attach to the user message. The actual message row
+            # is saved by ChatStreamService.stream_agent_response() below (via
+            # user_message_metadata) — saving it here too would create a duplicate row.
+            user_message_metadata = {
+                "slack_user_id": user_id,
+                "slack_user_name": user_name,
+                "slack_channel_id": channel_id,
+                "slack_channel_name": channel_name,
+                "slack_message_ts": message_ts,
+                "slack_thread_ts": thread_ts,
+                "original_text": text,
+            }
 
-            # Use native Slack status indicator
-            from .slack_status_service import SlackStatusService
-
-            status_service = SlackStatusService(client)
+            # Show Slack's native "<BotName> is thinking..." status indicator
+            # (assistant.threads.setStatus) below the composer while the agent
+            # works, updating it with live per-tool-call status text.
             effective_thread_ts = thread_ts or message_ts
+            status_service = SlackStatusService(client)
             await status_service.set_thinking(channel_id, effective_thread_ts)
+            first_chunk_seen = False
 
             # Get agent response using the existing chat infrastructure
             from ...models.agent import Agent
@@ -262,9 +320,12 @@ class SlackMessageHandler:
                 agent_loader=AgentLoaderService(self.agent_manager), chat_service=ChatService()
             )
 
-            # Collect the streamed response + chart events
+            # Collect the streamed response + chart/diagram events
             response_chunks = []
             chart_events: list[dict] = []
+            diagram_events: list[dict] = []
+            kb_sources: list[dict] = []
+            db_query_used = False
             async for event_data in chat_stream_service.stream_agent_response(
                 agent_name=agent.slug or agent.agent_name,
                 message=context_message,
@@ -284,6 +345,10 @@ class SlackMessageHandler:
                     "slack_user_id": user_id,
                     "slack_user_name": user_name,
                 },
+                user_message_metadata=user_message_metadata,
+                # We already merged DB history with Slack's own thread history above —
+                # don't let ChatStreamService clobber that with a plain DB/cache reload.
+                trust_provided_history=True,
             ):
                 if not event_data.startswith("data: "):
                     continue
@@ -293,6 +358,9 @@ class SlackMessageHandler:
 
                     if event_type == "chunk":
                         response_chunks.append(event_json.get("content", ""))
+                        if not first_chunk_seen:
+                            first_chunk_seen = True
+                            asyncio.ensure_future(status_service.set_generating(channel_id, effective_thread_ts))
 
                     elif event_type == "error":
                         err_content = event_json.get("content", "An error occurred")
@@ -304,34 +372,37 @@ class SlackMessageHandler:
                         if chart_obj and isinstance(chart_obj, dict):
                             chart_events.append(chart_obj)
 
-                    elif event_type == "status":
-                        # e.g. "💭 Thinking...", "📚 Searching knowledge bases..."
-                        raw = event_json.get("content", "")
-                        slack_status = _to_slack_status(raw)
+                    elif event_type == "diagram":
+                        diagram_obj = event_json.get("diagram") or event_json
+                        if diagram_obj and isinstance(diagram_obj, dict):
+                            diagram_events.append(diagram_obj)
+
+                    elif event_type == "tool_status" and event_json.get("status") == "started":
+                        description = event_json.get("description") or event_json.get("tool_name", "tool")
+                        if event_json.get("tool_name") in _DATABASE_QUERY_TOOLS:
+                            db_query_used = True
+                        slack_status = _to_tool_status(description)
                         if slack_status:
                             asyncio.ensure_future(
-                                status_service.set_status(channel_id, effective_thread_ts, slack_status)
+                                status_service.set_custom_status(channel_id, effective_thread_ts, slack_status)
                             )
 
-                    elif event_type == "tool_call" and event_json.get("status") == "started":
-                        # e.g. description="Searching the web: AI trends"
-                        desc = event_json.get("description", "")
-                        if desc:
-                            slack_status = f"is {desc.lower()}..."
-                            asyncio.ensure_future(
-                                status_service.set_status(channel_id, effective_thread_ts, slack_status)
-                            )
+                    elif event_type == "done":
+                        kb_sources = event_json.get("sources") or []
                 except Exception:
                     pass
 
             agent_response = "".join(response_chunks)
 
-            # Handle empty response
-            if not agent_response or not agent_response.strip():
+            # Handle empty response. ChatStreamService only persists an assistant message
+            # when it actually produced content, so this fallback case is the one situation
+            # where we still need to save it ourselves below.
+            response_was_empty = not agent_response or not agent_response.strip()
+            if response_was_empty:
                 logger.warning("Agent returned empty response, using fallback message")
                 agent_response = "Done! I've processed your request."
 
-            # Send response using appropriate method
+            # Posting the final message clears the native status indicator automatically.
             await self._send_response(
                 client=client,
                 say=say,
@@ -351,8 +422,23 @@ class SlackMessageHandler:
                     )
                 )
 
-            # Post metadata footer: row counts, data sources extracted from response
-            metadata_ctx = self._build_metadata_context(agent_response)
+            # Upload diagrams as images (fire-and-forget, errors are non-fatal). Diagrams
+            # render as SVG for the web chat UI, which Slack cannot preview inline, so they
+            # must be converted to PNG and uploaded as image files like chart events above.
+            if diagram_events:
+                asyncio.ensure_future(
+                    self._upload_diagrams(
+                        client=client,
+                        channel_id=channel_id,
+                        thread_ts=thread_ts or message_ts,
+                        diagrams=diagram_events,
+                    )
+                )
+
+            # Post metadata footer: row counts, data sources extracted from response.
+            # Only when a database query tool actually ran this turn — otherwise the
+            # regex scan below produces false positives on unrelated text.
+            metadata_ctx = self._build_metadata_context(agent_response) if db_query_used else None
             if metadata_ctx:
                 try:
                     await client.chat_postMessage(
@@ -364,14 +450,33 @@ class SlackMessageHandler:
                 except Exception as e:
                     logger.warning(f"Failed to post metadata footer: {e}")
 
-            # Save agent response
-            assistant_message = Message(
-                conversation_id=conversation.id,
-                role=MessageRole.ASSISTANT,
-                content=agent_response,
-            )
-            self.db_session.add(assistant_message)
-            conversation.increment_message_count()
+            # Post knowledge base sources retrieved for this turn, if any. These are the
+            # documents ChatStreamService's RAG step surfaced to the LLM as context — shown
+            # regardless of whether the final answer quoted them, so the user can see what
+            # was searched (mirrors the web chat UI's SourcesList).
+            kb_sources_ctx = self._build_kb_sources_context(kb_sources)
+            if kb_sources_ctx:
+                try:
+                    await client.chat_postMessage(
+                        channel=channel_id,
+                        thread_ts=thread_ts or message_ts,
+                        blocks=[kb_sources_ctx],
+                        text="Knowledge base sources",
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to post KB sources footer: {e}")
+
+            # Save the fallback response ourselves — ChatStreamService already saved the
+            # assistant message for any non-empty response, so saving it again here would
+            # duplicate the row.
+            if response_was_empty:
+                assistant_message = Message(
+                    conversation_id=conversation.id,
+                    role=MessageRole.ASSISTANT,
+                    content=agent_response,
+                )
+                self.db_session.add(assistant_message)
+                conversation.increment_message_count()
             await self.db_session.commit()
 
             # If this is a DM reply, check whether the bot previously sent this DM
@@ -427,33 +532,59 @@ class SlackMessageHandler:
         if not blocks:
             blocks = [{"type": "section", "text": {"type": "mrkdwn", "text": response}}]
 
-        # Check if we need to chunk the response
-        if len(blocks) > 50:  # Slack's block limit
-            block_chunks = chunk_blocks(blocks)
+        # chunk_blocks() enforces both Slack's 50-block count limit and a
+        # conservative total-serialized-size budget (see SLACK_MAX_TOTAL_PAYLOAD_CHARS
+        # in formatters.py) — a message can be rejected with `msg_blocks_too_long`
+        # even at exactly 50 blocks if their combined payload is too large, so this
+        # must always run rather than being gated behind a block-count check.
+        block_chunks = chunk_blocks(blocks)
 
+        if len(block_chunks) == 1:
+            fallback_text = format_text_for_slack(response)
+            await self._post_with_image_fallback(client, say, channel_id, thread_ts, fallback_text, blocks)
+        else:
             for i, chunk in enumerate(block_chunks):
                 fallback_text = (
                     format_text_for_slack(response) if i == 0 else f"(continued {i + 1}/{len(block_chunks)})"
                 )
-                if say:
-                    await say(text=fallback_text, blocks=chunk, thread_ts=thread_ts)
-                else:
-                    await client.chat_postMessage(
-                        channel=channel_id,
-                        text=fallback_text,
-                        blocks=chunk,
-                        thread_ts=thread_ts,
-                    )
-        else:
-            fallback_text = format_text_for_slack(response)
+                await self._post_with_image_fallback(client, say, channel_id, thread_ts, fallback_text, chunk)
+
+    async def _post_with_image_fallback(
+        self,
+        client: AsyncWebClient,
+        say: Callable[..., Any] | None,
+        channel_id: str,
+        thread_ts: str | None,
+        text: str,
+        blocks: list[dict],
+    ) -> None:
+        """Post a message, falling back to plain links if Slack can't fetch an image block.
+
+        Slack renders `image` blocks by having its own servers fetch `image_url` directly.
+        If that URL isn't reachable from Slack's infrastructure (e.g. a local-dev presigned
+        URL), the whole call fails with `invalid_blocks: downloading image failed` instead
+        of just the image — so on that specific error, retry with image blocks converted
+        to plain clickable links rather than failing the whole message.
+        """
+        try:
             if say:
-                await say(text=fallback_text, blocks=blocks, thread_ts=thread_ts)
+                await say(text=text, blocks=blocks, thread_ts=thread_ts)
+            else:
+                await client.chat_postMessage(channel=channel_id, text=text, blocks=blocks, thread_ts=thread_ts)
+        except SlackApiError as e:
+            error_data = e.response.data if e.response is not None else {}
+            is_image_fetch_failure = error_data.get("error") == "invalid_blocks" and any(
+                "image" in str(err) for err in error_data.get("errors", [])
+            )
+            if not is_image_fetch_failure:
+                raise
+            logger.warning(f"Slack couldn't fetch an image block, falling back to a link: {error_data}")
+            fallback_blocks = _convert_image_blocks_to_links(blocks)
+            if say:
+                await say(text=text, blocks=fallback_blocks, thread_ts=thread_ts)
             else:
                 await client.chat_postMessage(
-                    channel=channel_id,
-                    text=fallback_text,
-                    blocks=blocks,
-                    thread_ts=thread_ts,
+                    channel=channel_id, text=text, blocks=fallback_blocks, thread_ts=thread_ts
                 )
 
     async def _fetch_thread_context(
@@ -562,7 +693,12 @@ class SlackMessageHandler:
         return thread_context
 
     async def _get_or_create_conversation(
-        self, slack_bot: SlackBot, channel_id: str, user_id: str, thread_ts: str | None
+        self,
+        slack_bot: SlackBot,
+        channel_id: str,
+        user_id: str,
+        thread_ts: str | None,
+        message_text: str | None = None,
     ) -> Conversation:
         """Get existing conversation or create new one."""
         is_dm = channel_id.startswith("D")
@@ -589,9 +725,12 @@ class SlackMessageHandler:
             return await self.db_session.get(Conversation, slack_conv.conversation_id)
 
         # Create new conversation
+        conv_name = (
+            message_text.strip()[:60] if message_text and message_text.strip() else f"Slack conversation with {user_id}"
+        )
         conversation = Conversation(
             agent_id=slack_bot.agent_id,
-            name=f"Slack conversation with {user_id}",
+            name=conv_name,
             status=ConversationStatus.ACTIVE,
             source="slack",
         )
@@ -693,6 +832,56 @@ class SlackMessageHandler:
             except Exception as e:
                 logger.warning(f"Failed to upload chart {i}: {e}")
 
+    async def _upload_diagrams(
+        self,
+        client: AsyncWebClient,
+        channel_id: str,
+        thread_ts: str | None,
+        diagrams: list[dict],
+    ) -> None:
+        """Convert each diagram's SVG to PNG and upload to Slack.
+
+        internal_generate_diagram/internal_generate_quick_diagram render SVG for inline
+        display in the web chat UI, but Slack has no inline SVG preview — without this,
+        the LLM's tool result ("displayed to the user inline") is accurate for web chat
+        but leaves Slack with only the LLM's descriptive text and no actual image.
+        """
+        try:
+            import cairosvg
+        except ImportError:
+            logger.warning("cairosvg not available — skipping diagram upload")
+            return
+
+        for i, diagram in enumerate(diagrams):
+            try:
+                svg_content = diagram.get("svg_content")
+                if not svg_content:
+                    svg_url = diagram.get("svg_url")
+                    if not svg_url:
+                        continue
+                    import httpx
+
+                    async with httpx.AsyncClient(timeout=15.0) as http_client:
+                        resp = await http_client.get(svg_url)
+                        resp.raise_for_status()
+                        svg_content = resp.text
+
+                png_bytes = cairosvg.svg2png(bytestring=svg_content.encode(), output_width=1920)
+                if not png_bytes:
+                    continue
+
+                title = diagram.get("title") or f"Diagram {i + 1}"
+                await client.files_upload_v2(
+                    channel=channel_id,
+                    thread_ts=thread_ts,
+                    content=png_bytes,
+                    filename=f"diagram_{i + 1}.png",
+                    title=title,
+                )
+                logger.info(f"Uploaded diagram '{title}' to Slack channel {channel_id}")
+            except Exception as e:
+                logger.warning(f"Failed to upload diagram {i}: {e}")
+
     def _build_metadata_context(self, response_text: str) -> dict | None:
         """Extract query metadata from response text and build a Slack context block."""
         parts: list[dict] = []
@@ -726,6 +915,41 @@ class SlackMessageHandler:
 
         if not parts:
             return None
+
+        return {"type": "context", "elements": parts[:10]}
+
+    def _build_kb_sources_context(self, sources: list[dict]) -> dict | None:
+        """Build a Slack context block listing retrieved knowledge-base sources.
+
+        `sources` is the RAG `retrieved_sources` list from ChatStreamService (one entry
+        per retrieved chunk, may include multiple chunks per document). Dedupe by
+        document, keep each document's best-scoring chunk, and cap to the top 3.
+        """
+        if not sources:
+            return None
+
+        best_by_doc: dict[str, dict] = {}
+        for source in sources:
+            doc_key = (
+                source.get("document_id") or source.get("segment_id") or source.get("title") or source.get("source")
+            )
+            if not doc_key:
+                continue
+            existing = best_by_doc.get(doc_key)
+            if existing is None or (source.get("score") or 0) > (existing.get("score") or 0):
+                best_by_doc[doc_key] = source
+
+        top_docs = sorted(best_by_doc.values(), key=lambda s: s.get("score") or 0, reverse=True)[:3]
+        if not top_docs:
+            return None
+
+        parts: list[dict] = [{"type": "mrkdwn", "text": ":books: *Sources:*"}]
+        for doc in top_docs:
+            title = doc.get("title") or doc.get("kb_name") or "Document"
+            kb_name = doc.get("kb_name")
+            score_pct = round((doc.get("score") or 0) * 100)
+            label = f"{title} ({kb_name})" if kb_name and kb_name not in title else title
+            parts.append({"type": "mrkdwn", "text": f"{label} — {score_pct}%"})
 
         return {"type": "context", "elements": parts[:10]}
 

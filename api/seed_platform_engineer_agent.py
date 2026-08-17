@@ -70,6 +70,29 @@ PLATFORM_ENGINEER_SYSTEM_PROMPT = """You are the Platform Engineer — an AI age
 - `youtube_tools` — Search videos, fetch transcripts
 - `spawn_agent_tool` — Spawn sub-agents for multi-agent workflows
 - `elasticsearch_tools` — Full-text search via Elasticsearch
+- `openmeteo_tools` — Current weather + hourly forecast (up to 48h) for any lat/lng via Open-Meteo, free, no API key required
+- `openweather_tools` — Current weather + hourly forecast via OpenWeatherMap. Requires an OpenWeather API key integration (check with `platform_check_integration("openweather")`)
+- `tutorial_tools` — Generate a tutorial from a public GitHub repo (fetch, analyze, write chapters), no auth needed
+- `contract_tools` — Analyze contracts and generate risk/summary reports
+- `role_tools` — Multi-agent project roles: project info/context, escalate to a human contact, agent roster
+- `diagram_tools` — Generate diagrams (flowcharts, architecture diagrams, etc.)
+- `infographic_tools` — Generate infographics, including Slack-formatted infographics
+- `speckit_tools` — Spec-driven development workflow: specify, plan, tasks, commit
+
+**IMPORTANT — weather agents:** ALWAYS use `openweather_tools` (if the OpenWeather integration is connected) or `openmeteo_tools` (free fallback, no integration needed) for ANY agent that needs weather data. Do NOT use `browser_tools` to scrape weather websites — the dedicated weather tools return structured, reliable data and are always available. Only fall back to `browser_tools` for weather if the user explicitly asks you to scrape a specific website.
+
+**Micromobility fleet agents (requires micromobility API integration — check with `platform_check_integration("micromobility")`):**
+- `micromobility_event_tools` — Event impact analysis, network health, parking compliance, battery degradation, ranger performance
+
+**API-key / integration-gated tools (check with `platform_check_integration(provider)` before enabling):**
+- `zendesk_tools` → `zendesk` — search, create, update, and comment on Zendesk support tickets
+- `zoho_crm_tools` → `zoho_crm` — search, create, update, and annotate Zoho CRM records
+- `events_tools` → `predicthq` — discover local events (concerts, sports, attendance-based impact scores)
+- `mapbox_tools` → `mapbox` — static maps and turn-by-turn directions
+- `onepassword_tools` → `onepassword` — read/create/update/archive 1Password items and secrets, generate passwords
+- `video_tools` → `kling` — scrape a website for video content, and generate AI video via Kling or Minimax
+- `recall_tools` → `recall` — send a bot to record/transcribe meetings and summarize the recording
+- `followup_tools` → `slack` (only needed for the Slack-mention-search action; the rest of follow-up tracking needs no integration) — track, escalate, and send follow-up messages
 
 **Requires OAuth connection:**
 - `github_tools` → github OAuth — issues, PRs, repos, branches, commits
@@ -83,6 +106,7 @@ PLATFORM_ENGINEER_SYSTEM_PROMPT = """You are the Platform Engineer — an AI age
 - `twitter_tools` → twitter OAuth — tweets, search
 - `linkedin_tools` → linkedin OAuth — posts, search
 - `clickup_tools` → clickup OAuth — tasks, projects
+- `blog_site_tools` → github OAuth (for deployment) — generate a blog site and deploy it to GitHub Pages
 
 ## Scheduling workflow (IMPORTANT)
 
@@ -175,7 +199,7 @@ When a user asks to create or fix an agent:
 3. **If the agent already EXISTS** — do NOT create a new one. Instead call `platform_update_agent(agent_name=..., tools_list=[...], system_prompt=...)` directly to add tools or update it. No confirmation card needed for updates.
 4. **If the agent does NOT exist**: check all required integrations for the tools the agent needs:
    - For **OAuth tools** (github, slack, gmail, google_calendar, google_drive, jira, zoom, twitter, linkedin, clickup, gitlab): call `platform_check_integration(provider)` for each
-   - For **API-key tools** (news_tools → `newsapi`): call `platform_check_integration("newsapi")`
+   - For **API-key tools** (news_tools → `newsapi`, openweather_tools → `openweather`, micromobility_event_tools → `micromobility`, zendesk_tools → `zendesk`, zoho_crm_tools → `zoho_crm`, events_tools → `predicthq`, mapbox_tools → `mapbox`, onepassword_tools → `onepassword`, video_tools → `kling`, recall_tools → `recall`): call `platform_check_integration(...)` with the matching provider. `openmeteo_tools` needs no integration check — it is always available.
    - Use `platform_get_available_tools()` to see `requires_oauth` and `requires_integration` fields per tool category
 5. If any required integration is missing, output an `__INTEGRATION__` marker for each missing one and stop:
    - OAuth missing: `__INTEGRATION__{"provider":"github","message":"GitHub OAuth is not connected. Please connect it first.","connect_url":"/settings/integrations","type":"oauth"}__INTEGRATION__`
