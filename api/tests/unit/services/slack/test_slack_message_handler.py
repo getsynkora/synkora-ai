@@ -200,10 +200,26 @@ class TestUploadDiagrams:
     chat UI's inline preview, but Slack has no inline SVG rendering — _upload_diagrams
     must convert to PNG (like chart events already do) and upload as an image file."""
 
-    _TINY_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10" fill="red"/></svg>'
+    _TINY_SVG = (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10" fill="red"/></svg>'
+    )
+    _FAKE_PNG = b"\x89PNG\r\n\x1a\nfake-png-bytes"
+
+    @pytest.fixture
+    def stub_cairosvg(self, monkeypatch):
+        """cairosvg is an optional extra (needs native cairo libs) not installed in
+        CI/dev environments, and it's imported lazily inside _upload_diagrams — so it
+        must be stubbed via sys.modules rather than patched on the handler module."""
+        import sys
+        import types
+
+        fake_module = types.ModuleType("cairosvg")
+        fake_module.svg2png = MagicMock(return_value=self._FAKE_PNG)
+        monkeypatch.setitem(sys.modules, "cairosvg", fake_module)
+        return fake_module.svg2png
 
     @pytest.mark.asyncio
-    async def test_upload_diagram_with_svg_content(self, handler, mock_client):
+    async def test_upload_diagram_with_svg_content(self, handler, mock_client, stub_cairosvg):
         mock_client.files_upload_v2 = AsyncMock()
         diagrams = [{"title": "My Diagram", "svg_content": self._TINY_SVG}]
 
@@ -217,7 +233,9 @@ class TestUploadDiagrams:
         assert kwargs["content"].startswith(b"\x89PNG")
 
     @pytest.mark.asyncio
-    async def test_upload_diagram_fetches_svg_url_when_content_missing(self, handler, mock_client, monkeypatch):
+    async def test_upload_diagram_fetches_svg_url_when_content_missing(
+        self, handler, mock_client, monkeypatch, stub_cairosvg
+    ):
         import httpx
 
         class _FakeResponse:
