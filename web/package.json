@@ -47,9 +47,7 @@
     "react-plotly.js": "^2.6.0",
     "react-syntax-highlighter": "^16.1.0",
     "recharts": "^3.3.0",
-    "rehype-mermaid": "^3.0.0",
     "remark-gfm": "^4.0.1",
-    "remark-mermaid": "^0.2.0",
     "swr": "^2.2.5",
     "tailwind-merge": "^2.5.0",
     "zod": "^3.23.0",
@@ -79,7 +77,7 @@
   "pnpm": {
     "overrides": {
       "next@>=13.0.0 <15.5.15": "15.5.15",
-      "js-yaml@>=4.0.0 <4.3.0": ">=4.3.0",
+      "js-yaml@>=4.0.0 <4.3.1": ">=4.3.1",
       "glob@>=10.2.0 <10.5.0": ">=10.5.0",
       "mdast-util-to-hast@>=13.0.0 <13.2.1": ">=13.2.1",
       "minimatch@>=3.0.0 <3.1.4": "3.1.4",
@@ -100,7 +98,8 @@
       "form-data@>=4.0.0 <4.0.6": ">=4.0.6",
       "linkify-it@<=5.0.1": ">=5.0.2",
       "postcss@<=8.5.17": ">=8.5.18",
-      "sharp@<0.35.0": ">=0.35.0"
+      "sharp@<0.35.0": ">=0.35.0",
+      "nanoid@<3.3.18": ">=3.3.18"
     },
     "auditConfig": {
       "ignoreCves": [
