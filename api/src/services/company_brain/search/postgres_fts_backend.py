@@ -159,9 +159,7 @@ class PostgresFTSBackend(BaseSearchBackend):
         # Documents are deleted from data_source_documents by the caller; no separate index.
         return len(doc_ids)
 
-    async def update_tier(
-        self, tenant_id: str, knowledge_base_id: str, doc_ids: list[str], new_tier: str
-    ) -> int:
+    async def update_tier(self, tenant_id: str, knowledge_base_id: str, doc_ids: list[str], new_tier: str) -> int:
         # Tier is stored in the data_source_documents row; update done by caller.
         return len(doc_ids)
 

@@ -459,10 +459,7 @@ class HumanApprovalService:
         if len(args_preview) > 300:
             args_preview = args_preview[:297] + "..."
 
-        summary_text = (
-            f"Agent *{approval.agent_name}* wanted to call `{approval.tool_name}`:\n"
-            f"```{args_preview}```"
-        )
+        summary_text = f"Agent *{approval.agent_name}* wanted to call `{approval.tool_name}`:\n```{args_preview}```"
         if approval.status == ApprovalStatus.APPROVED:
             outcome_text = f"✅ Approved by <@{approval.responded_by}>" if approval.responded_by else "✅ Approved"
         else:

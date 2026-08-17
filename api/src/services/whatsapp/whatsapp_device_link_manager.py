@@ -418,7 +418,9 @@ async def _get_or_create_conversation(
             return conv
 
     conv_name = (
-        message_text.strip()[:60] if message_text and message_text.strip() else f"WhatsApp conversation with {user_phone}"
+        message_text.strip()[:60]
+        if message_text and message_text.strip()
+        else f"WhatsApp conversation with {user_phone}"
     )
     conv = Conversation(
         agent_id=bot.agent_id,

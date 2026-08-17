@@ -725,7 +725,9 @@ class SlackMessageHandler:
             return await self.db_session.get(Conversation, slack_conv.conversation_id)
 
         # Create new conversation
-        conv_name = message_text.strip()[:60] if message_text and message_text.strip() else f"Slack conversation with {user_id}"
+        conv_name = (
+            message_text.strip()[:60] if message_text and message_text.strip() else f"Slack conversation with {user_id}"
+        )
         conversation = Conversation(
             agent_id=slack_bot.agent_id,
             name=conv_name,
@@ -928,7 +930,9 @@ class SlackMessageHandler:
 
         best_by_doc: dict[str, dict] = {}
         for source in sources:
-            doc_key = source.get("document_id") or source.get("segment_id") or source.get("title") or source.get("source")
+            doc_key = (
+                source.get("document_id") or source.get("segment_id") or source.get("title") or source.get("source")
+            )
             if not doc_key:
                 continue
             existing = best_by_doc.get(doc_key)

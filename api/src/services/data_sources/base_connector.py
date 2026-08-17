@@ -232,7 +232,9 @@ class BaseConnector(ABC):
                 # field contract (see the abstract method above), but the Company Brain
                 # stream/chunker pipeline only reads "content". Normalize here, at the
                 # single bridging point, so every connector reaches it correctly.
-                normalized_documents = [{**doc, "content": doc.get("content") or doc.get("text", "")} for doc in documents]
+                normalized_documents = [
+                    {**doc, "content": doc.get("content") or doc.get("text", "")} for doc in documents
+                ]
                 producer = StreamProducer()
                 push_result = await producer.push(
                     kb_id=kb_id,
