@@ -795,6 +795,41 @@
     }
     #snkr-privacy-close:hover { background: rgba(23,23,23,0.08); color: #171717; }
 
+    /* ── Page context bar (page-context-awareness UI) ── */
+    .snkr-ctx-bar {
+      display: none; flex-direction: column; flex-shrink: 0;
+      background: rgba(var(--snkr-rgb,121,223,188),0.08);
+      border-bottom: 1px solid rgba(var(--snkr-rgb,121,223,188),0.25);
+    }
+    .snkr-ctx-bar.show { display: flex; }
+    .snkr-ctx-bar-row { display: flex; align-items: center; gap: 8px; padding: 8px 14px; }
+    .snkr-ctx-summary {
+      flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0;
+      background: none; border: none; cursor: pointer; padding: 0; outline: none;
+      font-family: inherit; text-align: left;
+    }
+    .snkr-ctx-icon { flex-shrink: 0; display: flex; color: var(--snkr-cd, #2d8b69); }
+    .snkr-ctx-label {
+      flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; color: #0F172A;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .snkr-ctx-chevron { flex-shrink: 0; display: flex; color: #64748B; transition: transform .15s ease; }
+    .snkr-ctx-bar.open .snkr-ctx-chevron { transform: rotate(90deg); }
+    .snkr-ctx-close {
+      flex-shrink: 0; background: none; border: none; cursor: pointer; padding: 2px;
+      display: flex; align-items: center; border-radius: 4px; color: #94A3B8; outline: none;
+      transition: background .15s, color .15s;
+    }
+    .snkr-ctx-close:hover { background: rgba(0,0,0,0.08); color: #171717; }
+    .snkr-ctx-detail {
+      display: none; flex-direction: column; gap: 4px; padding: 0 14px 10px 36px;
+      animation: snkr-in .15s ease both;
+    }
+    .snkr-ctx-bar.open .snkr-ctx-detail { display: flex; }
+    .snkr-ctx-row { display: flex; gap: 6px; font-size: 11.5px; line-height: 1.4; }
+    .snkr-ctx-row-k { color: #64748B; flex-shrink: 0; }
+    .snkr-ctx-row-v { color: #171717; font-weight: 500; overflow-wrap: anywhere; }
+
     /* ── Chat chips (in-chat suggestions) */
     #snkr-chat-chips {
       display: none; padding: 0 16px 10px; flex-direction: column; gap: 8px; flex-shrink: 0;
@@ -970,6 +1005,85 @@
     person:   '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>',
   };
 
+  // ─── Page context bar ───────────────────────────────────────────────────────
+  // Visible UI for page-context-awareness (setContext/clearContext): a small
+  // dismissible chip shown above the chat, so the visitor can see (and expand)
+  // what record the host app has attached to the conversation — not just have
+  // it silently sent to the agent. One instance is mounted on the home screen
+  // and one on the chat screen; _syncContextBar() keeps both in sync.
+
+  function _titleCase(key) {
+    return String(key).replace(/[_-]+/g, " ").replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+  }
+
+  function _contextLabel(ctx) {
+    if (!ctx) return "";
+    if (typeof ctx.summary === "string" && ctx.summary) return ctx.summary;
+    var kind = ctx.type || ctx.entity_type || ctx.page || null;
+    return kind ? _titleCase(kind) : "Page context";
+  }
+
+  function _contextRows(ctx) {
+    if (!ctx || typeof ctx !== "object") return [];
+    // "type"/"entity_type"/"page" already surface as the chip's label — skip
+    // whichever one actually supplied it so the expanded detail isn't redundant.
+    var kindKey = ctx.type ? "type" : ctx.entity_type ? "entity_type" : ctx.page ? "page" : null;
+    var rows = [];
+    Object.keys(ctx).forEach(function (key) {
+      if (key === "summary" || key === kindKey) return;
+      var value = ctx[key];
+      if (value === null || value === undefined || value === "") return;
+      if (typeof value === "object") return; // keep the chip flat/simple
+      rows.push({ label: _titleCase(key), value: String(value) });
+    });
+    return rows;
+  }
+
+  function _buildContextBarEl() {
+    var root = document.createElement("div");
+    root.className = "snkr-ctx-bar";
+
+    var row = document.createElement("div");
+    row.className = "snkr-ctx-bar-row";
+
+    var summaryBtn = document.createElement("button");
+    summaryBtn.type = "button";
+    summaryBtn.className = "snkr-ctx-summary";
+    summaryBtn.setAttribute("aria-expanded", "false");
+
+    var icon = document.createElement("span");
+    icon.className = "snkr-ctx-icon";
+    icon.innerHTML = I.fileicon;
+
+    var label = document.createElement("span");
+    label.className = "snkr-ctx-label";
+
+    var chevron = document.createElement("span");
+    chevron.className = "snkr-ctx-chevron";
+    chevron.innerHTML = I.chevron;
+
+    summaryBtn.appendChild(icon);
+    summaryBtn.appendChild(label);
+    summaryBtn.appendChild(chevron);
+
+    var closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "snkr-ctx-close";
+    closeBtn.setAttribute("aria-label", "Clear page context");
+    closeBtn.innerHTML = I.xsm;
+
+    row.appendChild(summaryBtn);
+    row.appendChild(closeBtn);
+
+    var detail = document.createElement("div");
+    detail.className = "snkr-ctx-detail";
+
+    root.appendChild(row);
+    root.appendChild(detail);
+
+    return { root: root, summaryBtn: summaryBtn, label: label, closeBtn: closeBtn, detail: detail };
+  }
+
   // ─── Widget ───────────────────────────────────────────────────────────────────
 
   function Widget(cfg) {
@@ -1040,9 +1154,12 @@
     // resets to that baseline on SPA navigation (see _navChangeHandler below) so stale
     // context from a previous page doesn't leak into a new one.
     this._pageContext = this._basePageContext();
+    this._hasCustomContext = false; // true only once the host calls setContext()
+    this._ctxBarOpen = false;       // shared expand/collapse state for the context bar(s)
+    this._ctxBars = [];             // populated by _mount() — {root,summaryBtn,label,closeBtn,detail}
     var self = this;
     this._navChangeHandler = function () {
-      self._pageContext = self._basePageContext();
+      self._clearPageContext();
     };
     global.addEventListener("synkoralocationchange", this._navChangeHandler);
     global.addEventListener("popstate", this._navChangeHandler);
@@ -1118,6 +1235,9 @@
         '<span class="snkr-greeting-sub">How can we help?</span>' +
       '</div>';
     home.appendChild(hero);
+
+    var homeCtxBar = _buildContextBarEl();
+    home.appendChild(homeCtxBar.root);
 
     var homeBody = document.createElement("div");
     homeBody.id = "snkr-home-body";
@@ -1288,8 +1408,11 @@
     var chatChips = document.createElement("div");
     chatChips.id = "snkr-chat-chips";
 
+    var chatCtxBar = _buildContextBarEl();
+
     chat.appendChild(header);
     chat.appendChild(privacyBar);
+    chat.appendChild(chatCtxBar.root);
     chat.appendChild(body);
     chat.appendChild(chatChips);
     chat.appendChild(footer);
@@ -1341,6 +1464,22 @@
     this._recIndicator = recIndicator;
     this._histOverlay = histOverlay;
     this._histBody    = histBody;
+    this._ctxBars     = [homeCtxBar, chatCtxBar];
+
+    // Page context bar: click the summary to expand/collapse details,
+    // click the close button to clear the attached context.
+    this._ctxBars.forEach(function (bar) {
+      bar.summaryBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        self._ctxBarOpen = !self._ctxBarOpen;
+        self._syncContextBar();
+      });
+      bar.closeBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        self._clearPageContext();
+      });
+    });
+    this._syncContextBar();
 
     // Code copy + image zoom (delegation)
     messages.addEventListener("click", function (e) {
@@ -1732,6 +1871,52 @@
   Widget.prototype._dismissPrivacy = function () {
     this._privacyBar.classList.remove("show");
     try { localStorage.setItem(this._privacyDismissKey(), "1"); } catch (_) {}
+  };
+
+  // ── Page context bar ─────────────────────────────────────────────────────────
+
+  Widget.prototype._setPageContext = function (context) {
+    this._pageContext = context || null;
+    this._hasCustomContext = !!context;
+    this._ctxBarOpen = false; // start collapsed on every new context
+    this._syncContextBar();
+  };
+
+  Widget.prototype._clearPageContext = function () {
+    this._pageContext = this._basePageContext();
+    this._hasCustomContext = false;
+    this._ctxBarOpen = false;
+    this._syncContextBar();
+  };
+
+  Widget.prototype._syncContextBar = function () {
+    if (!this._ctxBars) return; // called before _mount() finished wiring refs
+    var ctx = this._hasCustomContext ? this._pageContext : null;
+    var label = _contextLabel(ctx);
+    var rows = _contextRows(ctx);
+    var open = this._ctxBarOpen;
+
+    this._ctxBars.forEach(function (bar) {
+      bar.root.classList.toggle("show", !!ctx);
+      bar.root.classList.toggle("open", !!ctx && open);
+      bar.label.textContent = label;
+      bar.summaryBtn.setAttribute("aria-expanded", open ? "true" : "false");
+
+      while (bar.detail.firstChild) bar.detail.removeChild(bar.detail.firstChild);
+      rows.forEach(function (row) {
+        var r = document.createElement("div");
+        r.className = "snkr-ctx-row";
+        var k = document.createElement("span");
+        k.className = "snkr-ctx-row-k";
+        k.textContent = row.label + ":";
+        var v = document.createElement("span");
+        v.className = "snkr-ctx-row-v";
+        v.textContent = row.value;
+        r.appendChild(k);
+        r.appendChild(v);
+        bar.detail.appendChild(r);
+      });
+    });
   };
 
   // ── Chat chips (in-chat suggestions) ─────────────────────────────────────────
@@ -3053,13 +3238,13 @@
     // reset to a baseline (current URL/title) on same-page SPA navigation.
     setContext: function (id, context) {
       var w = this._i[id];
-      if (w) w._pageContext = context || null;
+      if (w) w._setPageContext(context);
     },
     // Reset page context back to the baseline derived from the current URL/title.
     //   SynkoraWidget.clearContext("widget_123");
     clearContext: function (id) {
       var w = this._i[id];
-      if (w) w._pageContext = w._basePageContext();
+      if (w) w._clearPageContext();
     },
   };
 
