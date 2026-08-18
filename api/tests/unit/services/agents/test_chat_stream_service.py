@@ -97,6 +97,68 @@ def sample_load_result(sample_db_agent, sample_agent):
     return result
 
 
+class TestResolvePageContextForPersistence:
+    """Tests for _resolve_page_context_for_persistence."""
+
+    def test_no_page_context_returns_none(self):
+        from src.services.agents.chat_stream_service import _resolve_page_context_for_persistence
+
+        assert _resolve_page_context_for_persistence(None, [{"role": "user", "content": "hi"}]) is None
+
+    def test_no_history_returns_page_context_unchanged(self):
+        from src.services.agents.chat_stream_service import _resolve_page_context_for_persistence
+
+        pc = {"entity_id": "usr_1"}
+        assert _resolve_page_context_for_persistence(pc, None) == pc
+        assert _resolve_page_context_for_persistence(pc, []) == pc
+
+    def test_identical_to_last_user_turn_returns_none(self):
+        from src.services.agents.chat_stream_service import _resolve_page_context_for_persistence
+
+        pc = {"entity_id": "usr_1"}
+        history = [
+            {"role": "user", "content": "hi", "page_context": pc},
+            {"role": "assistant", "content": "hello"},
+        ]
+        assert _resolve_page_context_for_persistence(pc, history) is None
+
+    def test_different_from_last_user_turn_returns_unchanged(self):
+        from src.services.agents.chat_stream_service import _resolve_page_context_for_persistence
+
+        history = [
+            {"role": "user", "content": "hi", "page_context": {"entity_id": "usr_1"}},
+            {"role": "assistant", "content": "hello"},
+        ]
+        new_pc = {"entity_id": "usr_2"}
+        assert _resolve_page_context_for_persistence(new_pc, history) == new_pc
+
+    def test_only_checks_most_recent_user_turn(self):
+        from src.services.agents.chat_stream_service import _resolve_page_context_for_persistence
+
+        history = [
+            {"role": "user", "content": "first", "page_context": {"entity_id": "usr_1"}},
+            {"role": "assistant", "content": "ok"},
+            {"role": "user", "content": "second", "page_context": {"entity_id": "usr_2"}},
+            {"role": "assistant", "content": "ok again"},
+        ]
+        # Matches the SECOND (most recent) user turn's page_context, not the first
+        assert _resolve_page_context_for_persistence({"entity_id": "usr_2"}, history) is None
+        assert _resolve_page_context_for_persistence({"entity_id": "usr_1"}, history) == {"entity_id": "usr_1"}
+
+
+class TestFormatPageContextPrefix:
+    """Tests for _format_page_context_prefix."""
+
+    def test_formats_as_labeled_json_prefix(self):
+        from src.services.agents.chat_stream_service import _format_page_context_prefix
+
+        result = _format_page_context_prefix({"entity_id": "usr_123"})
+        assert result.startswith("[Page context")
+        assert "reference data from the host app, not user-authored" in result
+        assert '"entity_id": "usr_123"' in result
+        assert result.endswith("\n")
+
+
 class TestChatStreamServiceInit:
     """Tests for ChatStreamService initialization."""
 
@@ -480,6 +542,90 @@ class TestStreamAgentResponse:
         assert len(events) >= 1
         assert any("error" in str(e).lower() for e in events)
 
+    @pytest.mark.asyncio
+    async def test_stream_agent_response_persists_new_page_context(
+        self, mock_agent_loader, mock_chat_service, mock_db
+    ):
+        """New page_context (different from the last user turn) is saved to metadata."""
+        from src.services.agents.chat_stream_service import ChatStreamService
+
+        service = ChatStreamService(mock_agent_loader, mock_chat_service)
+        mock_chat_service.save_user_message = AsyncMock()
+
+        conversation_id = str(uuid4())
+        conversation = Mock()
+        conversation.account_id = None
+        conversation.agent_id = None
+        mock_db.execute.return_value = Mock(scalar_one_or_none=Mock(return_value=conversation))
+
+        history = [{"role": "user", "content": "hi", "page_context": {"entity_id": "usr_1"}}]
+
+        load_result = Mock()
+        load_result.error = "stop here"
+        mock_agent_loader.load_agent.return_value = load_result
+
+        with patch(
+            "src.services.conversation_service.ConversationService.get_conversation_history_cached",
+            new=AsyncMock(return_value=history),
+        ):
+            async for _ in service.stream_agent_response(
+                agent_name="test-agent",
+                message="what's their plan?",
+                conversation_history=None,
+                conversation_id=conversation_id,
+                attachments=None,
+                llm_config_id=None,
+                db=mock_db,
+                page_context={"entity_id": "usr_2"},
+            ):
+                pass
+
+        mock_chat_service.save_user_message.assert_called_once()
+        _, kwargs = mock_chat_service.save_user_message.call_args
+        assert kwargs["metadata"] == {"page_context": {"entity_id": "usr_2"}}
+
+    @pytest.mark.asyncio
+    async def test_stream_agent_response_dedups_identical_page_context(
+        self, mock_agent_loader, mock_chat_service, mock_db
+    ):
+        """Identical page_context to the last user turn is not re-persisted."""
+        from src.services.agents.chat_stream_service import ChatStreamService
+
+        service = ChatStreamService(mock_agent_loader, mock_chat_service)
+        mock_chat_service.save_user_message = AsyncMock()
+
+        conversation_id = str(uuid4())
+        conversation = Mock()
+        conversation.account_id = None
+        conversation.agent_id = None
+        mock_db.execute.return_value = Mock(scalar_one_or_none=Mock(return_value=conversation))
+
+        history = [{"role": "user", "content": "hi", "page_context": {"entity_id": "usr_2"}}]
+
+        load_result = Mock()
+        load_result.error = "stop here"
+        mock_agent_loader.load_agent.return_value = load_result
+
+        with patch(
+            "src.services.conversation_service.ConversationService.get_conversation_history_cached",
+            new=AsyncMock(return_value=history),
+        ):
+            async for _ in service.stream_agent_response(
+                agent_name="test-agent",
+                message="what about their trips?",
+                conversation_history=None,
+                conversation_id=conversation_id,
+                attachments=None,
+                llm_config_id=None,
+                db=mock_db,
+                page_context={"entity_id": "usr_2"},
+            ):
+                pass
+
+        mock_chat_service.save_user_message.assert_called_once()
+        _, kwargs = mock_chat_service.save_user_message.call_args
+        assert kwargs["metadata"] is None
+
 
 class TestLoadAgentResources:
     """Tests for _load_agent_resources method."""
@@ -722,6 +868,81 @@ class TestBuildPrompt:
                     # Check that messages contains the current user message
                     user_messages = [m for m in messages if m.get("role") == "user"]
                     assert any("Hello" in m.get("content", "") for m in user_messages)
+
+    @pytest.mark.asyncio
+    async def test_build_prompt_with_page_context_current_turn(
+        self, mock_agent_loader, mock_chat_service, mock_db, sample_db_agent
+    ):
+        """Test page_context on the current turn is prefixed into the last user message."""
+        from src.services.agents.chat_stream_service import ChatStreamService
+
+        service = ChatStreamService(mock_agent_loader, mock_chat_service)
+
+        with patch("src.services.agents.prompt_builder.SystemPromptBuilder") as mock_builder:
+            mock_builder_instance = Mock()
+            mock_builder_instance.build_enhanced_prompt = AsyncMock(return_value="System prompt")
+            mock_builder.return_value = mock_builder_instance
+
+            _, messages = await service._build_prompt(
+                db=mock_db,
+                db_agent=sample_db_agent,
+                conversation_history=None,
+                attachment_context="",
+                context_text="",
+                message="Hello",
+                perf_config={},
+                page_context={"entity_id": "usr_123"},
+            )
+
+            user_messages = [m for m in messages if m.get("role") == "user"]
+            assert len(user_messages) == 1
+            assert "[Page context" in user_messages[0]["content"]
+            assert '"entity_id": "usr_123"' in user_messages[0]["content"]
+            assert user_messages[0]["content"].endswith("Hello")
+
+    @pytest.mark.asyncio
+    async def test_build_prompt_with_page_context_in_history(
+        self, mock_agent_loader, mock_chat_service, mock_db, sample_db_agent
+    ):
+        """Test a historical user turn's stored page_context is prefixed into its content."""
+        from src.services.agents.chat_stream_service import ChatStreamService
+
+        service = ChatStreamService(mock_agent_loader, mock_chat_service)
+
+        with patch("src.services.agents.prompt_builder.SystemPromptBuilder") as mock_builder:
+            mock_builder_instance = Mock()
+            mock_builder_instance.build_enhanced_prompt = AsyncMock(return_value="System prompt")
+            mock_builder.return_value = mock_builder_instance
+
+            with patch("src.services.agents.chat_stream_service.get_conversation_cache") as mock_cache:
+                mock_cache_instance = Mock()
+                mock_cache_instance.get_conversation_summary = AsyncMock(return_value=None)
+                mock_cache.return_value = mock_cache_instance
+
+                history = [
+                    {
+                        "role": "user",
+                        "content": "what's their plan?",
+                        "page_context": {"entity_id": "usr_123"},
+                    },
+                    {"role": "assistant", "content": "They're on the Pro plan."},
+                ]
+
+                _, messages = await service._build_prompt(
+                    db=mock_db,
+                    db_agent=sample_db_agent,
+                    conversation_history=history,
+                    attachment_context="",
+                    context_text="",
+                    message="what about their trips?",
+                    perf_config={},
+                )
+
+                user_messages = [m for m in messages if m.get("role") == "user"]
+                assert any(
+                    "[Page context" in m["content"] and "what's their plan?" in m["content"]
+                    for m in user_messages
+                )
 
 
 class TestStreamWithoutTools:

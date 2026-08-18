@@ -74,8 +74,13 @@ class ChatService:
             await db.commit()
             await db.refresh(user_message)
 
-            # Append to conversation cache
-            ChatService._append_message_to_cache(conversation_id=str(conversation_id), role="user", content=message)
+            # Append to conversation cache. Include page_context so history replay
+            # (ConversationService.get_conversation_history_cached) sees it on a
+            # cache HIT, not just on the cache-miss DB-load path.
+            page_context = (metadata or {}).get("page_context")
+            ChatService._append_message_to_cache(
+                conversation_id=str(conversation_id), role="user", content=message, page_context=page_context
+            )
 
             logger.info(f"Saved user message to conversation {conversation_id}")
             return user_message
@@ -189,7 +194,11 @@ class ChatService:
 
     @staticmethod
     def _append_message_to_cache(
-        conversation_id: str, role: str, content: str, reasoning_content: str | None = None
+        conversation_id: str,
+        role: str,
+        content: str,
+        reasoning_content: str | None = None,
+        page_context: dict[str, Any] | None = None,
     ) -> None:
         """
         Append a message to the conversation cache.
@@ -199,12 +208,17 @@ class ChatService:
             role: Message role (user/assistant)
             content: Message content
             reasoning_content: DeepSeek reasoning_content to echo back on subsequent turns
+            page_context: Host-supplied page context (widget page-context-awareness feature),
+                mirrored from message_metadata so cached history stays consistent with the
+                DB-load extraction in ConversationService.get_conversation_history_cached
         """
         try:
             cache_service = get_conversation_cache()
             message: dict = {"role": role, "content": content}
             if reasoning_content:
                 message["reasoning_content"] = reasoning_content
+            if page_context:
+                message["page_context"] = page_context
             # Run cache update in background; store a strong ref so GC
             # cannot collect the task before it completes.
             task = asyncio.create_task(cache_service.append_message(conversation_id=conversation_id, message=message))

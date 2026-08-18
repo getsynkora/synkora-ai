@@ -8,6 +8,20 @@
 
   if (global.SynkoraWidget) return;
 
+  // Patch pushState/replaceState once so SPA navigations (which don't trigger a real
+  // page load, and therefore no popstate) still emit a detectable event. Used by the
+  // page-context-awareness feature to reset stale host-supplied context on navigation.
+  (function () {
+    ["pushState", "replaceState"].forEach(function (method) {
+      var original = history[method];
+      history[method] = function () {
+        var result = original.apply(this, arguments);
+        global.dispatchEvent(new Event("synkoralocationchange"));
+        return result;
+      };
+    });
+  }());
+
   // Capture script origin at load time (document.currentScript is only available synchronously)
   var _scriptOrigin = (function () {
     try {
@@ -1021,9 +1035,26 @@
     this._recChunks        = [];
     this._chatEnded        = false;
 
+    // Page-context-awareness: host-supplied context describing what the end user is
+    // currently looking at. Defaults to a baseline derived from the current page, and
+    // resets to that baseline on SPA navigation (see _navChangeHandler below) so stale
+    // context from a previous page doesn't leak into a new one.
+    this._pageContext = this._basePageContext();
+    var self = this;
+    this._navChangeHandler = function () {
+      self._pageContext = self._basePageContext();
+    };
+    global.addEventListener("synkoralocationchange", this._navChangeHandler);
+    global.addEventListener("popstate", this._navChangeHandler);
+    global.addEventListener("hashchange", this._navChangeHandler);
+
     this._mount();
     this._loadConfig();
   }
+
+  Widget.prototype._basePageContext = function () {
+    return { url: location.href, title: document.title };
+  };
 
   Widget.prototype._mount = function () {
     var self = this;
@@ -2609,6 +2640,7 @@
         conversation_id: this.conversationId || undefined,
         user: this._user || undefined,
         user_hash: this._userHash || undefined,
+        page_context: this._pageContext || undefined,
       }),
     })
       .then(function (res) {
@@ -3007,6 +3039,28 @@
     },
     open:  function (id) { var w = this._i[id]; if (w) w.open(); },
     close: function (id) { var w = this._i[id]; if (w) w.close(); },
+    // Page-context-awareness: push arbitrary, schema-less context describing what the
+    // end user is currently looking at, so the agent understands what they mean by
+    // "this" / "that" without the user having to spell it out.
+    //
+    //   SynkoraWidget.setContext("widget_123", {
+    //     type: "user_detail",
+    //     entity_id: "usr_456",
+    //     summary: "Viewing user Jane Doe's profile (Pro plan, joined 2024-01-15)"
+    //   });
+    //
+    // Context persists across messages until replaced or cleared, and is automatically
+    // reset to a baseline (current URL/title) on same-page SPA navigation.
+    setContext: function (id, context) {
+      var w = this._i[id];
+      if (w) w._pageContext = context || null;
+    },
+    // Reset page context back to the baseline derived from the current URL/title.
+    //   SynkoraWidget.clearContext("widget_123");
+    clearContext: function (id) {
+      var w = this._i[id];
+      if (w) w._pageContext = w._basePageContext();
+    },
   };
 
 })(window);

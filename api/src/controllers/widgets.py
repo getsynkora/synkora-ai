@@ -1113,6 +1113,31 @@ async def get_widget_analytics(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to get analytics")
 
 
+_PAGE_CONTEXT_MAX_BYTES = 500
+
+
+def _cap_page_context(page_context: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Enforce a size cap and JSON-serializability check on host-supplied page_context.
+
+    Returns None (and logs a warning) if page_context is oversized or not JSON-serializable,
+    so a misbehaving host app can't bloat prompts or crash serialization downstream.
+    """
+    if page_context is None:
+        return None
+    try:
+        serialized = json.dumps(page_context)
+    except (TypeError, ValueError) as e:
+        logger.warning(f"Discarding non-JSON-serializable page_context: {e}")
+        return None
+    if len(serialized.encode("utf-8")) > _PAGE_CONTEXT_MAX_BYTES:
+        logger.warning(
+            f"Discarding oversized page_context ({len(serialized.encode('utf-8'))} bytes > "
+            f"{_PAGE_CONTEXT_MAX_BYTES} byte cap)"
+        )
+        return None
+    return page_context
+
+
 # Widget Chat Endpoints
 class WidgetChatRequest(BaseModel):
     """Request model for widget chat."""
@@ -1129,6 +1154,9 @@ class WidgetChatRequest(BaseModel):
     # Pre-chat form collected fields (optional, passed on first message)
     user_email: str | None = Field(None, description="Email collected from pre-chat form")
     user_phone: str | None = Field(None, description="Phone collected from pre-chat form")
+    page_context: dict[str, Any] | None = Field(
+        None, description="Host-app-supplied context describing what the end user is currently looking at"
+    )
 
 
 class PushRegisterRequest(BaseModel):
@@ -1268,6 +1296,9 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
         widget = await WidgetAuthMiddleware.validate_api_key(api_key, db)
         if not widget:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or inactive widget API key")
+
+        # Enforce size/serializability cap on host-supplied page_context before it's used anywhere
+        page_context = _cap_page_context(request.page_context)
 
         # Validate domain — skip check for mobile SDK requests (no Origin header) when mobile_allowed=True
         origin = http_request.headers.get("Origin") or http_request.headers.get("Referer")
@@ -1618,6 +1649,7 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
             None,  # llm_config_id
             db=None,
             shared_state=_widget_shared_state if _widget_shared_state else None,
+            page_context=page_context,
         )
 
         # Wrap stream to fire FCM push after done event

@@ -390,3 +390,46 @@ class TestGetWidgetAnalytics:
         data = response.json()
         assert data["success"] is True
         assert "summary" in data["data"]
+
+
+class TestWidgetChatRequestPageContext:
+    """Tests for WidgetChatRequest.page_context field."""
+
+    def test_page_context_defaults_to_none(self):
+        from src.controllers.widgets import WidgetChatRequest
+
+        request = WidgetChatRequest(message="hello")
+        assert request.page_context is None
+
+    def test_page_context_accepts_arbitrary_dict(self):
+        from src.controllers.widgets import WidgetChatRequest
+
+        request = WidgetChatRequest(message="hello", page_context={"entity_id": "usr_123", "type": "user_detail"})
+        assert request.page_context == {"entity_id": "usr_123", "type": "user_detail"}
+
+
+class TestCapPageContext:
+    """Tests for _cap_page_context."""
+
+    def test_none_returns_none(self):
+        from src.controllers.widgets import _cap_page_context
+
+        assert _cap_page_context(None) is None
+
+    def test_small_dict_returned_unchanged(self):
+        from src.controllers.widgets import _cap_page_context
+
+        pc = {"entity_id": "usr_123"}
+        assert _cap_page_context(pc) == pc
+
+    def test_oversized_dict_returns_none(self):
+        from src.controllers.widgets import _cap_page_context
+
+        pc = {"blob": "x" * 1000}
+        assert _cap_page_context(pc) is None
+
+    def test_non_json_serializable_returns_none(self):
+        from src.controllers.widgets import _cap_page_context
+
+        pc = {"bad": object()}
+        assert _cap_page_context(pc) is None
