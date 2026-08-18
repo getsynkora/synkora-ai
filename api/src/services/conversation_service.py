@@ -284,6 +284,12 @@ class ConversationService:
                 rc = msg.message_metadata.get("reasoning_content")
                 if rc:
                     entry["reasoning_content"] = rc
+            # Host-supplied page context (widget page-context-awareness feature).
+            # Stored per-turn so history replay reflects what was true at that turn.
+            if role == "user" and msg.message_metadata:
+                pc = msg.message_metadata.get("page_context")
+                if pc:
+                    entry["page_context"] = pc
             messages.append(entry)
 
         # Cache for future requests

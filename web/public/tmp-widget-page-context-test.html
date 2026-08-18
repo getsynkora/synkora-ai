@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Widget Page-Context Awareness — Manual Test</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; max-width: 760px; margin: 40px auto; padding: 0 20px; color: #1a1a1a; }
+    h1 { font-size: 20px; }
+    section { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+    h2 { font-size: 15px; margin-top: 0; }
+    button { padding: 8px 14px; margin: 4px 6px 4px 0; border-radius: 6px; border: 1px solid #ccc; background: #f5f5f5; cursor: pointer; font-size: 13px; }
+    button:hover { background: #e8e8e8; }
+    pre { background: #f7f7f7; padding: 10px; border-radius: 6px; font-size: 12px; overflow-x: auto; white-space: pre-wrap; }
+    code { background: #f0f0f0; padding: 1px 4px; border-radius: 3px; }
+    .hint { color: #666; font-size: 13px; }
+  </style>
+</head>
+
+<body>
+  <h1>Widget Page-Context Awareness — Manual Browser Test</h1>
+  <p class="hint">
+    Ephemeral test page, not for production. Verifies the widget behaviors that
+    can only be exercised in a real browser: <code>setContext</code>/<code>clearContext</code>
+    and the automatic reset on SPA navigation. See
+    <code>agent-test-docs/widget-page-context-test-guide.md</code> for the full backend-level
+    test coverage (dedup, size cap, agent grounding, etc.) already verified via the API directly.
+  </p>
+
+  <section>
+    <h2>1. Set page context (invoice example)</h2>
+    <p class="hint">Sets <code>page_context</code> to the same invoice payload already proven to
+      ground the agent's answer in the API-level test. After clicking, open the chat widget
+      (bottom-right bubble) and ask: <em>"What invoice am I looking at, and is it overdue?"</em></p>
+    <button id="btn-set-invoice">setContext(invoice)</button>
+    <button id="btn-clear">clearContext()</button>
+  </section>
+
+  <section>
+    <h2>2. Simulate SPA navigation (pushState)</h2>
+    <p class="hint">Click "Set page context" above first, then click this. The widget listens for
+      <code>pushState</code>/<code>popstate</code>/<code>hashchange</code> and should automatically
+      reset <code>_pageContext</code> back to the <code>{url, title}</code> baseline — losing the
+      invoice context you just set. Check the log below and/or ask the agent about the invoice
+      again; it should no longer know about it.</p>
+    <button id="btn-navigate">history.pushState(new URL)</button>
+  </section>
+
+  <section>
+    <h2>3. Current widget internal state</h2>
+    <button id="btn-inspect">Inspect widget._pageContext</button>
+    <pre id="log">(click a button above)</pre>
+  </section>
+
+  <!-- Synkora Agent Widget -->
+  <div id="synkora-widget-f8aaab27-98de-46ff-a13f-9b63a46c01ed"></div>
+  <script src="http://localhost:3005/widget.js"></script>
+  <script>
+    var WIDGET_ID = 'f8aaab27-98de-46ff-a13f-9b63a46c01ed';
+
+    SynkoraWidget.init({
+      widgetId: WIDGET_ID,
+      apiKey: 'widget_mcJ325DDL72kbGwbFVmrqpqnHKuHOWCPfYknCAFaUro',
+      containerId: 'synkora-widget-' + WIDGET_ID,
+      apiUrl: 'http://localhost:5001/api/v1',
+    });
+
+    function log(msg) {
+      var el = document.getElementById('log');
+      el.textContent = new Date().toLocaleTimeString() + ' — ' + msg;
+    }
+
+    document.getElementById('btn-set-invoice').addEventListener('click', function () {
+      SynkoraWidget.setContext(WIDGET_ID, {
+        entity_type: 'invoice',
+        invoice_id: 'INV-88213',
+        customer_name: 'Acme Rockets',
+        amount_due: '$4,250.00',
+        status: 'overdue',
+      });
+      log('setContext(invoice) called — open the chat and ask about the invoice.');
+    });
+
+    document.getElementById('btn-clear').addEventListener('click', function () {
+      SynkoraWidget.clearContext(WIDGET_ID);
+      log('clearContext() called — _pageContext reset to {url, title} baseline.');
+    });
+
+    document.getElementById('btn-navigate').addEventListener('click', function () {
+      var newUrl = location.pathname + '?nav=' + Date.now();
+      history.pushState({}, '', newUrl);
+      log('history.pushState -> ' + newUrl + ' — widget should auto-reset _pageContext now.');
+    });
+
+    document.getElementById('btn-inspect').addEventListener('click', function () {
+      var w = SynkoraWidget._i && SynkoraWidget._i[WIDGET_ID];
+      log(w ? JSON.stringify(w._pageContext) : 'widget instance not found');
+    });
+  </script>
+</body>
+
+</html>

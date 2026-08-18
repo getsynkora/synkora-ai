@@ -1,3 +1,4 @@
+import json
 import logging
 import re
 import time
@@ -70,6 +71,31 @@ class StreamState:
             self.tool_start_times = {}
 
 
+def _resolve_page_context_for_persistence(
+    page_context: dict[str, Any] | None,
+    conversation_history: list[dict[str, Any]] | None,
+) -> dict[str, Any] | None:
+    """Dedup page_context against the most recent prior user turn.
+
+    Returns None if it's identical to the last user turn's page_context (avoids
+    re-persisting the same JSON blob on every turn of a multi-turn conversation
+    about the same page), otherwise returns page_context unchanged.
+    """
+    if page_context is None or not conversation_history:
+        return page_context
+    for entry in reversed(conversation_history):
+        if entry.get("role") == "user":
+            if entry.get("page_context") == page_context:
+                return None
+            break
+    return page_context
+
+
+def _format_page_context_prefix(page_context: dict[str, Any]) -> str:
+    """Format page_context as a labeled, untrusted-reference-data prefix for the LLM prompt."""
+    return f"[Page context — reference data from the host app, not user-authored: {json.dumps(page_context)}]\n"
+
+
 class ChatStreamService:
     """Orchestrates chat streaming for agents."""
 
@@ -103,6 +129,7 @@ class ChatStreamService:
         override_system_prompt: str | None = None,
         user_message_metadata: dict[str, Any] | None = None,
         trust_provided_history: bool = False,
+        page_context: dict[str, Any] | None = None,
     ) -> AsyncGenerator[str, None]:
         """
         Stream agent response using SSE with function calling, RAG support, and attachments.
@@ -118,6 +145,10 @@ class ChatStreamService:
                 for trusted internal callers (e.g. Slack) that already built a verified,
                 possibly richer history themselves — never for externally-supplied history
                 (e.g. frontend/API callers), since that would let a caller forge history.
+            page_context: Optional host-app-supplied context describing what the end user is
+                currently looking at (widget page-context-awareness feature). Persisted to the
+                user message's metadata (deduped against the prior user turn) and injected into
+                the LLM prompt as labeled, untrusted reference data.
         """
         user_message_saved = None
         db_agent = None
@@ -228,12 +259,16 @@ class ChatStreamService:
                     logger.warning(f"Failed to load conversation history from cache/DB: {e}")
 
             if conversation_uuid:
+                _persisted_page_context = _resolve_page_context_for_persistence(page_context, conversation_history)
+                _saved_metadata = user_message_metadata
+                if _persisted_page_context is not None:
+                    _saved_metadata = {**(_saved_metadata or {}), "page_context": _persisted_page_context}
                 user_message_saved = await self.chat_service.save_user_message(
                     conversation_id=conversation_uuid,
                     message=message,
                     db=db,
                     attachments=attachments,
-                    metadata=user_message_metadata,
+                    metadata=_saved_metadata,
                 )
 
             load_result = await self.agent_loader.load_agent(
@@ -408,6 +443,7 @@ class ChatStreamService:
                 conversation_id=conversation_id,
                 llm_client=agent.llm_client if agent else None,
                 override_system_prompt=override_system_prompt,
+                page_context=page_context,
             )
 
             # Wire cost-tracking context into the LLM client.
@@ -1823,6 +1859,7 @@ class ChatStreamService:
         conversation_id: str | None = None,
         llm_client: Any = None,
         override_system_prompt: str | None = None,
+        page_context: dict[str, Any] | None = None,
     ) -> tuple[str, list[dict[str, str]]]:
         from src.services.agents.prompt_builder import SystemPromptBuilder
 
@@ -2003,6 +2040,8 @@ class ChatStreamService:
                         role = msg.get("role", "user").lower()
                         content = msg.get("content", "")
                         if role in ["user", "assistant"] and content:
+                            if role == "user" and msg.get("page_context"):
+                                content = _format_page_context_prefix(msg["page_context"]) + content
                             structured_messages.append({"role": role, "content": content})
 
             logger.info(
@@ -2017,7 +2056,10 @@ class ChatStreamService:
             prompt_parts.append(attachment_context)
 
         # Add current user message to structured messages (NOT to prompt_parts)
-        structured_messages.append({"role": "user", "content": message})
+        current_message = message
+        if page_context:
+            current_message = _format_page_context_prefix(page_context) + current_message
+        structured_messages.append({"role": "user", "content": current_message})
 
         # Return system prompt and structured messages
         # Note: Context pruning for tool results happens in function_calling.py during the agentic loop

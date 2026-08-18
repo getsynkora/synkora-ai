@@ -425,6 +425,72 @@ class TestGetConversationHistoryCached:
             assert result[0]["role"] == "user"
             mock_cache.set_conversation_history.assert_called_once()
 
+    async def test_get_history_cache_miss_includes_page_context_on_user_turn(self):
+        """Test page_context in message_metadata is folded into the user-turn history entry."""
+        mock_db = AsyncMock(spec=AsyncSession)
+        conversation_id = uuid.uuid4()
+
+        user_msg = MagicMock()
+        user_msg.role.value = "user"
+        user_msg.content = "what's their plan?"
+        user_msg.message_metadata = {"page_context": {"entity_id": "usr_123"}}
+
+        assistant_msg = MagicMock()
+        assistant_msg.role.value = "assistant"
+        assistant_msg.content = "They're on the Pro plan."
+        assistant_msg.message_metadata = None
+
+        mock_cache = AsyncMock()
+        mock_cache.get_conversation_history = AsyncMock(return_value=None)
+        mock_cache.set_conversation_history = AsyncMock()
+
+        with (
+            patch(
+                "src.services.conversation_service.get_conversation_cache",
+                return_value=mock_cache,
+            ),
+            patch.object(
+                ConversationService,
+                "get_conversation_messages",
+                new_callable=AsyncMock,
+                return_value=[user_msg, assistant_msg],
+            ),
+        ):
+            result = await ConversationService.get_conversation_history_cached(mock_db, conversation_id)
+
+        assert result[0]["page_context"] == {"entity_id": "usr_123"}
+        assert "page_context" not in result[1]
+
+    async def test_get_history_cache_miss_omits_page_context_when_absent(self):
+        """Test user turns without page_context in metadata get no page_context key."""
+        mock_db = AsyncMock(spec=AsyncSession)
+        conversation_id = uuid.uuid4()
+
+        user_msg = MagicMock()
+        user_msg.role.value = "user"
+        user_msg.content = "hello"
+        user_msg.message_metadata = None
+
+        mock_cache = AsyncMock()
+        mock_cache.get_conversation_history = AsyncMock(return_value=None)
+        mock_cache.set_conversation_history = AsyncMock()
+
+        with (
+            patch(
+                "src.services.conversation_service.get_conversation_cache",
+                return_value=mock_cache,
+            ),
+            patch.object(
+                ConversationService,
+                "get_conversation_messages",
+                new_callable=AsyncMock,
+                return_value=[user_msg],
+            ),
+        ):
+            result = await ConversationService.get_conversation_history_cached(mock_db, conversation_id)
+
+        assert "page_context" not in result[0]
+
 
 class TestInvalidateConversationCache:
     """Test cache invalidation."""
