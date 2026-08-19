@@ -796,13 +796,19 @@
     #snkr-privacy-close:hover { background: rgba(23,23,23,0.08); color: #171717; }
 
     /* ── Page context bar (page-context-awareness UI) ── */
+    /* A contained pill, not an edge-to-edge bar — on the chat screen it sits
+       inside the footer, directly above the input; on the home screen it
+       needs its own horizontal margin since it isn't nested in a padded
+       container there. */
     .snkr-ctx-bar {
       display: none; flex-direction: column; flex-shrink: 0;
       background: rgba(var(--snkr-rgb,121,223,188),0.08);
-      border-bottom: 1px solid rgba(var(--snkr-rgb,121,223,188),0.25);
+      border: 1px solid rgba(var(--snkr-rgb,121,223,188),0.25);
+      border-radius: 12px; margin: 0 14px 8px; overflow: hidden;
     }
+    #snkr-footer .snkr-ctx-bar { margin-left: 0; margin-right: 0; }
     .snkr-ctx-bar.show { display: flex; }
-    .snkr-ctx-bar-row { display: flex; align-items: center; gap: 8px; padding: 8px 14px; }
+    .snkr-ctx-bar-row { display: flex; align-items: center; gap: 8px; padding: 7px 12px; }
     .snkr-ctx-summary {
       flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0;
       background: none; border: none; cursor: pointer; padding: 0; outline: none;
@@ -822,7 +828,7 @@
     }
     .snkr-ctx-close:hover { background: rgba(0,0,0,0.08); color: #171717; }
     .snkr-ctx-detail {
-      display: none; flex-direction: column; gap: 4px; padding: 0 14px 10px 36px;
+      display: none; flex-direction: column; gap: 4px; padding: 0 12px 10px 34px;
       animation: snkr-in .15s ease both;
     }
     .snkr-ctx-bar.open .snkr-ctx-detail { display: flex; }
@@ -1408,11 +1414,14 @@
     var chatChips = document.createElement("div");
     chatChips.id = "snkr-chat-chips";
 
+    // Context chip sits directly above the input (like a "Context: X" pill
+    // anchored to the composer), not up near the header — so it's mounted
+    // inside the footer, right before the file-preview/input box.
     var chatCtxBar = _buildContextBarEl();
+    footer.insertBefore(chatCtxBar.root, footer.firstChild);
 
     chat.appendChild(header);
     chat.appendChild(privacyBar);
-    chat.appendChild(chatCtxBar.root);
     chat.appendChild(body);
     chat.appendChild(chatChips);
     chat.appendChild(footer);
@@ -1734,7 +1743,7 @@
 
   // ── Server history (identified users) ────────────────────────────────────────
 
-  Widget.prototype._loadServerHistory = function () {
+  Widget.prototype._loadServerHistory = function (forceChat) {
     var self = this;
     var url = this.apiUrl + "/widgets/chat/history?external_user_id=" + encodeURIComponent(this._user.id);
 
@@ -1748,9 +1757,14 @@
         var convId = data && data.conversation_id;
 
         if (msgs.length === 0) {
-          // No server history — show home screen as usual
-          self._showHome();
-          self._checkPioneer();
+          // No server history — show home screen as usual, unless the caller
+          // explicitly asked to land straight in the (empty) chat view.
+          if (forceChat) {
+            self._showChat();
+          } else {
+            self._showHome();
+            self._checkPioneer();
+          }
           return;
         }
 
@@ -1782,9 +1796,14 @@
         self._scroll();
       })
       .catch(function () {
-        // Network error: fall back to home screen
-        self._showHome();
-        self._checkPioneer();
+        // Network error: fall back to home screen, unless the caller explicitly
+        // asked to land straight in the (empty) chat view.
+        if (forceChat) {
+          self._showChat();
+        } else {
+          self._showHome();
+          self._checkPioneer();
+        }
       });
   };
 
@@ -2626,7 +2645,12 @@
 
   // ── Open / Close ──────────────────────────────────────────────────────────────
 
-  Widget.prototype.open = function () {
+  // opts.screen === 'chat' lets a host-app trigger (e.g. a "Send us a message"
+  // button next to a record the visitor is looking at) open straight into the
+  // conversation view instead of the home tab — typically paired with
+  // setContext() so the agent already knows what the visitor means by "this".
+  Widget.prototype.open = function (opts) {
+    var forceChat = !!(opts && opts.screen === "chat");
     this._isOpen = true;
     // Feature 5: clear notification badge
     this._badge.classList.remove("show");
@@ -2643,8 +2667,13 @@
     // This restores conversations across devices/browsers automatically.
     if (this._user && this._user.id && !this._serverHistoryLoaded && this._messages.children.length === 0) {
       this._serverHistoryLoaded = true; // set now to prevent double-fetch
-      this._loadServerHistory();
+      this._loadServerHistory(forceChat);
       return; // _loadServerHistory decides what screen to show after fetch
+    }
+
+    if (forceChat) {
+      this._showChat();
+      return;
     }
 
     // Always show home screen when opening (unless chat already has messages)
@@ -3222,7 +3251,13 @@
       this._i[cfg.widgetId] = w;
       return w;
     },
-    open:  function (id) { var w = this._i[id]; if (w) w.open(); },
+    // Pass { screen: "chat" } to open straight into the conversation view
+    // instead of the home tab — e.g. from a "Send us a message" button next
+    // to a record on your own page, typically paired with setContext():
+    //
+    //   SynkoraWidget.setContext("widget_123", { type: "rider", summary: "..." });
+    //   SynkoraWidget.open("widget_123", { screen: "chat" });
+    open:  function (id, opts) { var w = this._i[id]; if (w) w.open(opts); },
     close: function (id) { var w = this._i[id]; if (w) w.close(); },
     // Page-context-awareness: push arbitrary, schema-less context describing what the
     // end user is currently looking at, so the agent understands what they mean by
