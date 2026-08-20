@@ -55,6 +55,21 @@ class SlackConnector(BaseConnector):
             logger.error(f"Unexpected error connecting to Slack: {e}")
             return False
 
+    def _try_decrypt(self, encrypted: str, source_label: str) -> str | None:
+        """Decrypt a candidate token, or None (never raise) so the caller can fall
+        through to the next candidate in the priority chain instead of aborting
+        the whole lookup on one corrupted/stale credential."""
+        from src.services.agents.security import decrypt_value
+
+        try:
+            return decrypt_value(encrypted)
+        except Exception as e:
+            logger.warning(
+                f"Could not decrypt {source_label} for data source {self.data_source.name} "
+                f"— skipping to next credential source: {e}"
+            )
+            return None
+
     async def _get_access_token(self) -> str | None:
         """
         Get decrypted access token using user-first resolution.
@@ -64,12 +79,14 @@ class SlackConnector(BaseConnector):
         2. User's personal OAuth token (from UserOAuthToken table)
         3. Data source's direct access_token_encrypted
         4. OAuth app's admin token (fallback)
+
+        A candidate that fails to decrypt is skipped (not fatal) so one corrupted
+        or revoked credential doesn't block falling through to the next source.
         """
         from uuid import UUID as UUIDType
 
         from src.models.slack_bot import SlackBot
         from src.models.user_oauth_token import UserOAuthToken
-        from src.services.agents.security import decrypt_value
 
         # First, try to reuse an existing agent's Slack bot connection
         if self.data_source.slack_bot_id:
@@ -78,7 +95,9 @@ class SlackConnector(BaseConnector):
 
             if slack_bot and slack_bot.slack_bot_token:
                 logger.info(f"Using linked SlackBot token for data source {self.data_source.name}")
-                return decrypt_value(slack_bot.slack_bot_token)
+                token = self._try_decrypt(slack_bot.slack_bot_token, "linked SlackBot token")
+                if token:
+                    return token
 
         # Next, try to get user's personal token if OAuth app is linked
         if self.data_source.oauth_app_id:
@@ -105,7 +124,9 @@ class SlackConnector(BaseConnector):
 
                     if user_token and user_token.access_token:
                         logger.info(f"Using user's personal Slack token for data source {self.data_source.name}")
-                        return decrypt_value(user_token.access_token)
+                        token = self._try_decrypt(user_token.access_token, "user's personal token")
+                        if token:
+                            return token
             else:
                 # No specific user - try to find any user token for this tenant/oauth_app
                 # This handles cases where the data source was created before we tracked account_id
@@ -116,19 +137,25 @@ class SlackConnector(BaseConnector):
 
                 if user_token and user_token.access_token:
                     logger.info(f"Using first available user token for Slack data source {self.data_source.name}")
-                    return decrypt_value(user_token.access_token)
+                    token = self._try_decrypt(user_token.access_token, "first available user token")
+                    if token:
+                        return token
 
         # Fall back to data source's direct token
         if self.data_source.access_token_encrypted:
             logger.info(f"Using data source's direct token for {self.data_source.name}")
-            return decrypt_value(self.data_source.access_token_encrypted)
+            token = self._try_decrypt(self.data_source.access_token_encrypted, "data source's direct token")
+            if token:
+                return token
 
         # Fall back to OAuth app's admin token
         if self.data_source.oauth_app_id and self.data_source.oauth_app:
             oauth_app = self.data_source.oauth_app
             if oauth_app.access_token:
                 logger.info(f"Using OAuth app admin token for Slack data source {self.data_source.name}")
-                return decrypt_value(oauth_app.access_token)
+                token = self._try_decrypt(oauth_app.access_token, "OAuth app admin token")
+                if token:
+                    return token
 
         return None
 

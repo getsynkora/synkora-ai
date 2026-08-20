@@ -116,6 +116,7 @@ async def _mark_sync_job_failed(sync_job_id: int, error: str) -> None:
 async def _dispatch_all_syncs(tenant_id: str | None) -> dict[str, Any]:
     from sqlalchemy import select
 
+    from src.controllers.data_sources import SYNCABLE_DATA_SOURCE_TYPES
     from src.core.database import create_celery_async_session
     from src.models.data_source import DataSource, DataSourceStatus, DataSourceSyncJob, SyncStatus
 
@@ -123,6 +124,7 @@ async def _dispatch_all_syncs(tenant_id: str | None) -> dict[str, Any]:
         q = select(DataSource).where(
             DataSource.status == DataSourceStatus.ACTIVE,
             DataSource.sync_enabled.is_(True),
+            DataSource.type.in_(SYNCABLE_DATA_SOURCE_TYPES),
         )
         if tenant_id:
             from uuid import UUID

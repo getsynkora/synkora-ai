@@ -9,7 +9,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.models.data_source import DataSource
+from src.models.data_source import DataSource, DataSourceStatus
 from src.services.data_sources.document_processor import DocumentProcessor
 
 logger = logging.getLogger(__name__)
@@ -191,6 +191,17 @@ class BaseConnector(ABC):
 
             # Update data source with error
             self.data_source.last_error = error_msg
+
+            # A ConnectionError here means connect() itself failed (bad/corrupted
+            # credentials, decryption failure, revoked token, etc.) — not a
+            # transient issue expected to self-heal. Leaving status ACTIVE means
+            # the periodic sync_all_data_sources_task dispatcher keeps re-picking
+            # this data source up and failing identically forever. Mark it ERROR
+            # so it's excluded from auto-dispatch until someone fixes the
+            # credentials (which should reset status back to ACTIVE).
+            if isinstance(e, ConnectionError):
+                self.data_source.status = DataSourceStatus.ERROR
+
             await self.db.commit()
 
             return {

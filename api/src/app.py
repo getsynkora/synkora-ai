@@ -101,6 +101,11 @@ async def lifespan(app: FastAPI):  # noqa: ARG001
     # Track background tasks for cleanup
     background_tasks: list[asyncio.Task] = []
 
+    # Re-assert logging config at the point the server actually starts serving —
+    # Uvicorn's own worker init can run its own dictConfig() after create_app()
+    # already called setup_logging(), silently reverting it. See setup_logging().
+    setup_logging()
+
     # Startup
     logging.info("Starting up Synkora API...")
 
@@ -333,7 +338,9 @@ def create_app() -> FastAPI:
                     event_level=logging.ERROR,
                 ),
             ],
-            traces_sample_rate=1.0 if settings.app_debug else 0.1,
+            # 1.0 = every request becomes a Sentry transaction (previously 10% in
+            # production), so all requests are visible, not just a sample.
+            traces_sample_rate=1.0,
             profiles_sample_rate=1.0 if settings.app_debug else 0.1,
             send_default_pii=False,  # Don't send PII by default
         )
@@ -682,11 +689,20 @@ class ConnectionTerminationFilter(logging.Filter):
 
 
 def setup_logging() -> None:
-    """Setup application logging."""
+    """Setup application logging.
+
+    force=True is required under Gunicorn+UvicornWorker: the worker's own
+    logging.config.dictConfig() runs during process init and can leave the
+    root logger with no handlers (or a level higher than INFO) by the time
+    this call happens, silently making basicConfig() a no-op otherwise —
+    which drops every logger.info()/.warning() call in the app. force=True
+    strips whatever's on the root logger first, so this call always wins.
+    """
     log_level = logging.DEBUG if settings.app_debug else logging.INFO
     logging.basicConfig(
         level=log_level,
         format="[%(asctime)s] %(levelname)s in %(module)s: %(message)s",
+        force=True,
     )
 
     # Suppress noisy connection termination errors from SQLAlchemy async pool
