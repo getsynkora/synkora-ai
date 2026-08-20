@@ -59,44 +59,48 @@ class OpenAIBatchClient:
 
         Returns the batch_id string.
         """
-        client = self._make_client()
-
-        # Build JSONL content
-        lines = []
-        for req in requests:
-            msgs = list(req.messages)
-            if req.system_prompt:
-                msgs = [{"role": "system", "content": req.system_prompt}] + msgs
-            lines.append(
-                json.dumps(
-                    {
-                        "custom_id": req.custom_id,
-                        "method": "POST",
-                        "url": "/v1/chat/completions",
-                        "body": {
-                            "model": req.model or self.model,
-                            "messages": msgs,
-                            "max_completion_tokens": req.max_tokens,
-                        },
-                    }
+        # async with ensures the SDK client (and its underlying httpx.AsyncClient)
+        # closes deterministically before this coroutine returns — Celery tasks
+        # run this inside a manually-managed event loop that gets closed right
+        # after, and an unclosed client's cleanup then fires on a dead loop
+        # ("Task exception was never retrieved: ... Event loop is closed").
+        async with self._make_client() as client:
+            # Build JSONL content
+            lines = []
+            for req in requests:
+                msgs = list(req.messages)
+                if req.system_prompt:
+                    msgs = [{"role": "system", "content": req.system_prompt}] + msgs
+                lines.append(
+                    json.dumps(
+                        {
+                            "custom_id": req.custom_id,
+                            "method": "POST",
+                            "url": "/v1/chat/completions",
+                            "body": {
+                                "model": req.model or self.model,
+                                "messages": msgs,
+                                "max_completion_tokens": req.max_tokens,
+                            },
+                        }
+                    )
                 )
+            jsonl_bytes = "\n".join(lines).encode()
+
+            # Upload file
+            file_obj = await client.files.create(
+                file=("batch_requests.jsonl", jsonl_bytes, "application/jsonl"),
+                purpose="batch",
             )
-        jsonl_bytes = "\n".join(lines).encode()
 
-        # Upload file
-        file_obj = await client.files.create(
-            file=("batch_requests.jsonl", jsonl_bytes, "application/jsonl"),
-            purpose="batch",
-        )
-
-        # Create batch
-        batch = await client.batches.create(
-            input_file_id=file_obj.id,
-            endpoint="/v1/chat/completions",
-            completion_window="24h",
-        )
-        logger.info(f"OpenAI batch submitted: {batch.id} ({len(requests)} requests)")
-        return batch.id
+            # Create batch
+            batch = await client.batches.create(
+                input_file_id=file_obj.id,
+                endpoint="/v1/chat/completions",
+                completion_window="24h",
+            )
+            logger.info(f"OpenAI batch submitted: {batch.id} ({len(requests)} requests)")
+            return batch.id
 
     async def poll(self, batch_id: str) -> tuple[str, list[BatchResult] | None]:
         """
@@ -106,19 +110,19 @@ class OpenAIBatchClient:
         status values: "validating" | "in_progress" | "completed" | "failed" | "expired"
         results is None unless status == "completed".
         """
-        client = self._make_client()
-        batch = await client.batches.retrieve(batch_id)
-        status = batch.status
+        async with self._make_client() as client:
+            batch = await client.batches.retrieve(batch_id)
+            status = batch.status
 
-        if status != "completed":
-            return status, None
+            if status != "completed":
+                return status, None
 
-        if not batch.output_file_id:
-            return "failed", None
+            if not batch.output_file_id:
+                return "failed", None
 
-        # Download results
-        file_content = await client.files.content(batch.output_file_id)
-        raw_text = file_content.text if hasattr(file_content, "text") else file_content.decode()
+            # Download results
+            file_content = await client.files.content(batch.output_file_id)
+            raw_text = file_content.text if hasattr(file_content, "text") else file_content.decode()
 
         results: list[BatchResult] = []
         for line in raw_text.strip().splitlines():
@@ -169,22 +173,21 @@ class AnthropicBatchClient:
 
     async def submit(self, requests: list[BatchRequest]) -> str:
         """Submit a batch and return batch_id."""
-        client = self._make_client()
+        async with self._make_client() as client:
+            batch_requests = []
+            for req in requests:
+                params: dict = {
+                    "model": req.model or self.model,
+                    "max_tokens": req.max_tokens,
+                    "messages": req.messages,
+                }
+                if req.system_prompt:
+                    params["system"] = req.system_prompt
+                batch_requests.append({"custom_id": req.custom_id, "params": params})
 
-        batch_requests = []
-        for req in requests:
-            params: dict = {
-                "model": req.model or self.model,
-                "max_tokens": req.max_tokens,
-                "messages": req.messages,
-            }
-            if req.system_prompt:
-                params["system"] = req.system_prompt
-            batch_requests.append({"custom_id": req.custom_id, "params": params})
-
-        batch = await client.beta.messages.batches.create(requests=batch_requests)
-        logger.info(f"Anthropic batch submitted: {batch.id} ({len(requests)} requests)")
-        return batch.id
+            batch = await client.beta.messages.batches.create(requests=batch_requests)
+            logger.info(f"Anthropic batch submitted: {batch.id} ({len(requests)} requests)")
+            return batch.id
 
     async def poll(self, batch_id: str) -> tuple[str, list[BatchResult] | None]:
         """
@@ -193,32 +196,32 @@ class AnthropicBatchClient:
         Returns (status, results_or_None).
         status values: "in_progress" | "ended"
         """
-        client = self._make_client()
-        batch = await client.beta.messages.batches.retrieve(batch_id)
-        status = batch.processing_status  # "in_progress" | "ended"
+        async with self._make_client() as client:
+            batch = await client.beta.messages.batches.retrieve(batch_id)
+            status = batch.processing_status  # "in_progress" | "ended"
 
-        if status != "ended":
-            return status, None
+            if status != "ended":
+                return status, None
 
-        # Stream results
-        results: list[BatchResult] = []
-        async for result in await client.beta.messages.batches.results(batch_id):
-            custom_id = result.custom_id
-            if result.result.type == "succeeded":
-                msg = result.result.message
-                content = msg.content[0].text if msg.content else None
-                results.append(
-                    BatchResult(
-                        custom_id=custom_id,
-                        content=content,
-                        error=None,
-                        input_tokens=msg.usage.input_tokens,
-                        output_tokens=msg.usage.output_tokens,
+            # Stream results
+            results: list[BatchResult] = []
+            async for result in await client.beta.messages.batches.results(batch_id):
+                custom_id = result.custom_id
+                if result.result.type == "succeeded":
+                    msg = result.result.message
+                    content = msg.content[0].text if msg.content else None
+                    results.append(
+                        BatchResult(
+                            custom_id=custom_id,
+                            content=content,
+                            error=None,
+                            input_tokens=msg.usage.input_tokens,
+                            output_tokens=msg.usage.output_tokens,
+                        )
                     )
-                )
-            else:
-                error = getattr(result.result, "error", None)
-                results.append(BatchResult(custom_id=custom_id, content=None, error=str(error)))
+                else:
+                    error = getattr(result.result, "error", None)
+                    results.append(BatchResult(custom_id=custom_id, content=None, error=str(error)))
 
         return "completed", results
 

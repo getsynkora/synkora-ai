@@ -53,12 +53,10 @@ async def add_predefined_skill(
         Upload confirmation with file details
     """
     try:
-        import os
-
-        import boto3
         from botocore.exceptions import ClientError
 
         from src.services.agents.context_file_processor import AgentContextFileProcessor
+        from src.services.storage.s3_storage import S3StorageService
 
         # Get agent from database
         result = await db.execute(select(Agent).filter(Agent.slug == agent_slug, Agent.tenant_id == tenant_id))
@@ -70,15 +68,17 @@ async def add_predefined_skill(
         skill_id = request.skill_id
         skill_category = request.skill_category
 
-        # Fetch skill content from S3
-        skills_bucket = os.getenv("SKILLS_S3_BUCKET", "synkora-skills")
+        # Fetch skill content from S3 — reuse the same bucket/credentials/region
+        # config as the rest of the app (AWS_S3_BUCKET) instead of a separate,
+        # never-provisioned SKILLS_S3_BUCKET bucket.
+        s3_service = S3StorageService()
+        skills_bucket = s3_service.bucket_name
         s3_key = f"claude-skills/{skill_category}/{skill_id}/SKILL.md"
 
         logger.info(f"Fetching skill from S3: s3://{skills_bucket}/{s3_key}")
 
         try:
-            s3_client = boto3.client("s3")
-            response = s3_client.get_object(Bucket=skills_bucket, Key=s3_key)
+            response = s3_service.s3_client.get_object(Bucket=skills_bucket, Key=s3_key)
             skill_content = response["Body"].read().decode("utf-8")
         except ClientError as e:
             error_code = e.response.get("Error", {}).get("Code", "Unknown")

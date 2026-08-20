@@ -171,10 +171,10 @@ celery_app.conf.update(
             "task": "tasks.generate_all_daily_digests",
             "schedule": crontab(hour=23, minute=0),
         },
-        # Fan out due data source syncs (sync_frequency_minutes-based) every 5 minutes.
+        # Fan out due data source syncs (sync_frequency_minutes-based) every hour.
         "dispatch-due-data-source-syncs": {
             "task": "sync_all_data_sources_task",
-            "schedule": crontab(minute="*/5"),
+            "schedule": crontab(minute=0),
         },
         # Poll pending LLM batch jobs every 30 minutes
         "poll-llm-batches": {

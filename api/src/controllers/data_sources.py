@@ -151,6 +151,32 @@ async def get_default_tenant(db: AsyncSession) -> UUID:
     return tenant.id
 
 
+# Types with a real connector implementation, i.e. an external system that can
+# actually be polled/synced. Everything else in DataSourceType (MANUAL, WEB,
+# CUSTOM, ASANA, GOOGLE_DRIVE, CSV_FILE, ZIP_FILE, ...) is either upload-only
+# (no external source to sync from) or not yet implemented. Used both to build
+# connectors below and to keep the periodic auto-sync dispatcher (see
+# src/tasks/data_source_tasks.py) from ever queuing a sync for a type that has
+# nowhere to sync from.
+SYNCABLE_DATA_SOURCE_TYPES = frozenset(
+    {
+        DataSourceType.SLACK,
+        DataSourceType.GMAIL,
+        DataSourceType.GITHUB,
+        DataSourceType.GITLAB,
+        DataSourceType.TELEGRAM,
+        DataSourceType.DATADOG,
+        DataSourceType.DATABRICKS,
+        DataSourceType.DOCKER_LOGS,
+        DataSourceType.NOTION,
+        DataSourceType.CONFLUENCE,
+        DataSourceType.JIRA,
+        DataSourceType.CLICKUP,
+        DataSourceType.LINEAR,
+    }
+)
+
+
 def get_connector(data_source: DataSource, db: AsyncSession):
     """Get the appropriate connector for a data source."""
     if data_source.type == DataSourceType.SLACK:
@@ -361,6 +387,10 @@ async def create_data_source(
             oauth_app_id=request.oauth_app_id,
             slack_bot_id=slack_bot_uuid,
             status=initial_status,
+            # sync_enabled defaults to True at the model level for every type —
+            # force it off for types with no connector (nothing to poll), so the
+            # periodic auto-sync dispatcher never has a reason to pick these up.
+            sync_enabled=request.type in SYNCABLE_DATA_SOURCE_TYPES,
         )
 
         db.add(data_source)
@@ -734,6 +764,12 @@ async def trigger_sync(
 
         if ds.status not in (DataSourceStatus.ACTIVE, DataSourceStatus.ERROR):
             raise HTTPException(status_code=400, detail="Data source is not active. Please complete OAuth first.")
+
+        if ds.type not in SYNCABLE_DATA_SOURCE_TYPES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"{ds.type.value} data sources have no external system to sync from — nothing to trigger.",
+            )
 
         # Prevent duplicate concurrent syncs
         result = await db.execute(
