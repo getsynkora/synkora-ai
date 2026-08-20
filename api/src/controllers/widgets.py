@@ -1337,6 +1337,28 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
                 logger.error(f"HMAC verification error for widget {widget.id}: {e}")
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Identity verification failed")
 
+        # ── Sentry: tag/context every widget API call ──────────────────────────────
+        # Tags make widget calls filterable/searchable in Sentry. The logging
+        # integration (see app.py) already turns this logger.info call into a
+        # breadcrumb automatically — no separate add_breadcrumb() needed.
+        import sentry_sdk
+
+        sentry_sdk.set_tag("widget_id", str(widget.id))
+        sentry_sdk.set_tag("widget_source", request.source or "widget")
+        sentry_sdk.set_context(
+            "widget_request",
+            {
+                "widget_id": str(widget.id),
+                "source": request.source,
+                "has_user": bool(request.user),
+                "user_id": request.user.id if request.user else None,
+                "org_id": request.user.org_id if request.user else None,
+                "org_name": request.user.org_name if request.user else None,
+                "identity_verification_required": bool(widget.identity_verification_required),
+            },
+        )
+        logger.info(f"widget chat call: source={request.source} widget_id={widget.id}")
+
         # ── Widget user JWT for MCP servers ───────────────────────────────────────
         # Generate a short-lived signed JWT encoding the verified user context so
         # that MCP tools can forward it as an Authorization Bearer token.  The JWT
@@ -1363,6 +1385,14 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
                     "email": request.user.email,
                     "org_name": request.user.org_name,
                 }
+                if request.user.org_id is None:
+                    # Send as a standalone Sentry event (not just a breadcrumb) so it's
+                    # visible in Sentry's Issues list without needing an accompanying error.
+                    sentry_sdk.capture_message(
+                        f"widget MCP JWT minted with null organization_id claim "
+                        f"(source={request.source}, widget_id={widget.id}, user_id={request.user.id})",
+                        level="warning",
+                    )
                 _mcp_user_token = _jwt.encode(_payload, _secret, algorithm="HS256")
             except Exception as _jwt_err:
                 logger.warning(f"Could not generate MCP user JWT for widget {widget.id}: {_jwt_err}")

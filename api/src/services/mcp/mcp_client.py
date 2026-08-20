@@ -23,6 +23,22 @@ from src.models import AgentMCPServer, MCPServer
 logger = logging.getLogger(__name__)
 
 
+def _describe_bearer_token(token: str) -> str:
+    """Best-effort, no-verify decode of a bearer token's claims for diagnostics.
+
+    Never logs the raw token — only whether it looks like a JWT and, if so,
+    its non-sensitive claims (everything except any value under "email").
+    """
+    try:
+        import jwt as _jwt
+
+        claims = _jwt.decode(token, options={"verify_signature": False})
+        safe_claims = {k: v for k, v in claims.items() if k != "email"}
+        return f"JWT claims={safe_claims}"
+    except Exception:
+        return f"opaque token (len={len(token)})"
+
+
 class MCPClientError(Exception):
     """Base exception for MCP client errors."""
 
@@ -166,6 +182,7 @@ class MCPClient:
 
             logger.info(f"Creating HTTP transport for {server.name}")
             logger.info(f"URL: {server.url}")
+            logger.info(f"Auth: {_describe_bearer_token(auth) if auth else 'none'}")
 
             return StreamableHttpTransport(server.url, headers=headers, auth=auth)
 
@@ -237,6 +254,14 @@ class MCPClient:
                 logger.warning(f"Ping failed but connection established: {str(e)}")
 
         except Exception as e:
+            # httpx.HTTPStatusError only puts a generic "401 Unauthorized" summary in
+            # str(e) — the server's actual rejection reason is in the response body.
+            response = getattr(e, "response", None)
+            if response is not None:
+                try:
+                    logger.error(f"MCP server response body: {response.text[:1000]}")
+                except Exception:
+                    pass
             logger.error(f"Failed to connect to MCP servers: {str(e)}")
             raise MCPConnectionError(f"Failed to connect to MCP servers: {str(e)}")
 
