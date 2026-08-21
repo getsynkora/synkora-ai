@@ -1680,6 +1680,7 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
             db=None,
             shared_state=_widget_shared_state if _widget_shared_state else None,
             page_context=page_context,
+            tenant_id=widget.tenant_id,
         )
 
         # Wrap stream to fire FCM push after done event

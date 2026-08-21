@@ -123,9 +123,6 @@ class _MarkdownMessage extends StatelessWidget {
   final String content;
   final Color textColor;
 
-  bool get _containsTable =>
-      RegExp(r'^\|.+\|$', multiLine: true).hasMatch(content);
-
   @override
   Widget build(BuildContext context) {
     final styleSheet = MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
@@ -168,6 +165,12 @@ class _MarkdownMessage extends StatelessWidget {
         fontWeight: FontWeight.w700,
       ),
       tableBorder: TableBorder.all(color: const Color(0x140F172A)),
+      // flutter_markdown only wraps a table in its own scoped horizontal
+      // scrollbar (builder.dart) when the column width is Intrinsic/Fixed.
+      // The default FlexColumnWidth degenerates to zero-width columns
+      // whenever an ancestor imposes an unbounded max width, which is why
+      // this must be set explicitly rather than left at the theme default.
+      tableColumnWidth: const IntrinsicColumnWidth(),
       tableHead: Theme.of(context).textTheme.bodyMedium?.copyWith(
         color: SynkoraColors.ink,
         fontWeight: FontWeight.w700,
@@ -186,7 +189,7 @@ class _MarkdownMessage extends StatelessWidget {
       ),
     );
 
-    final markdown = MarkdownBody(
+    return MarkdownBody(
       data: content,
       shrinkWrap: true,
       selectable: true,
@@ -203,20 +206,6 @@ class _MarkdownMessage extends StatelessWidget {
         unawaited(_launchExternal(href));
       },
     );
-
-    if (_containsTable) {
-      return SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minWidth: MediaQuery.of(context).size.width * 0.56,
-          ),
-          child: markdown,
-        ),
-      );
-    }
-
-    return markdown;
   }
 }
 

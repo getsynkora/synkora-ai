@@ -83,6 +83,16 @@ class SecurityConfig(BaseSettings):
         ),
     )
 
+    mobile_oauth_redirect_scheme: str = Field(
+        default="synkora",
+        description=(
+            "Custom URL scheme the native mobile app registers to receive social login "
+            "callbacks (e.g. 'synkora' for 'synkora://auth-callback'). Social login "
+            "redirect_url values using this scheme bypass the same-host open-redirect "
+            "check, since the mobile app (not a browser) is the one receiving them."
+        ),
+    )
+
     encryption_key: str = Field(
         ...,
         description=(

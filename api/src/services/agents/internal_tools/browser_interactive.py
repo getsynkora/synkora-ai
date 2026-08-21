@@ -458,7 +458,14 @@ async def internal_browser_screenshot(
             "element_ref": ref,
             "page_url": page_url,
             "session_id": session_id,
-            "message": f"Screenshot captured. IMPORTANT: Share this EXACT URL with the user (do not modify it): {image_url}",
+            "message": (
+                f"Screenshot captured. IMPORTANT: Share this EXACT URL with the user (do not modify it): "
+                f"{image_url}\n"
+                "To post it in Slack: use internal_slack_post_blocks with an image block referencing this "
+                "URL (best resolution), or internal_slack_upload_file with file_url set to this URL to "
+                "attach it as a native Slack file. Do not call internal_slack_upload_file without either "
+                "file_content or file_url."
+            ),
         }
 
     except Exception as e:

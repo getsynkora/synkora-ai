@@ -300,6 +300,36 @@ def _compact_num(v: float) -> str:
     return f"{v:.2f}"
 
 
+def normalize_chart_dict(chart: dict[str, Any]) -> dict[str, Any]:
+    """Normalise the internal_generate_chart SSE event shape to the standard shape.
+
+    Accepts two shapes:
+      1. generate_chart_from_data / inline (already standard):
+         { chart_type, library, title, data, config, table_data }
+      2. internal_generate_chart SSE event:
+         { chart_id, chart_type, library, chart_config, chart_data }
+
+    Returns the standard shape unchanged if it's already standard.
+    """
+    # chart_config is a Chart.js config object: {"type":..., "data": {"labels":[], "datasets":[]}}
+    # chart_data is the raw data: {"labels":[], "datasets":[]}
+    if "chart_config" in chart or "chart_data" in chart:
+        chart_config_raw = chart.get("chart_config") or {}
+        chart_data_raw = chart.get("chart_data") or {}
+        return {
+            "chart_type": chart.get("chart_type") or chart_config_raw.get("type") or "bar",
+            "library": chart.get("library") or "chartjs",
+            "title": chart.get("title") or chart_config_raw.get("title") or "",
+            # data may live at chart_data directly or nested inside chart_config.data
+            "data": chart_data_raw
+            if chart_data_raw.get("labels") or chart_data_raw.get("datasets")
+            else chart_config_raw.get("data") or {},
+            "config": chart_config_raw,
+            "table_data": chart.get("table_data"),
+        }
+    return chart
+
+
 def render_chart_to_png(chart: dict[str, Any]) -> bytes | None:
     """Render a chart dict to PNG bytes.
 
@@ -312,23 +342,7 @@ def render_chart_to_png(chart: dict[str, Any]) -> bytes | None:
     Returns PNG bytes on success, None on failure.
     """
     try:
-        # Normalise internal_generate_chart format → standard format
-        # chart_config is a Chart.js config object: {"type":..., "data": {"labels":[], "datasets":[]}}
-        # chart_data is the raw data: {"labels":[], "datasets":[]}
-        if "chart_config" in chart or "chart_data" in chart:
-            chart_config_raw = chart.get("chart_config") or {}
-            chart_data_raw = chart.get("chart_data") or {}
-            chart = {
-                "chart_type": chart.get("chart_type") or chart_config_raw.get("type") or "bar",
-                "library": chart.get("library") or "chartjs",
-                "title": chart.get("title") or chart_config_raw.get("title") or "",
-                # data may live at chart_data directly or nested inside chart_config.data
-                "data": chart_data_raw
-                if chart_data_raw.get("labels") or chart_data_raw.get("datasets")
-                else chart_config_raw.get("data") or {},
-                "config": chart_config_raw,
-                "table_data": chart.get("table_data"),
-            }
+        chart = normalize_chart_dict(chart)
 
         library = (chart.get("library") or "chartjs").lower()
         chart_type = (chart.get("chart_type") or chart.get("type") or "bar").lower()

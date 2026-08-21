@@ -30,6 +30,17 @@ _EMOJI_RE = re.compile(r"[^\x00-\x7F]+")
 # technology, or a "1.6" version string).
 _DATABASE_QUERY_TOOLS = {"internal_query_database", "internal_query_and_chart"}
 
+# Module-level set keeps strong references to fire-and-forget chart/diagram/card_set/video
+# posting tasks so they aren't garbage-collected mid-flight (asyncio only holds a weak
+# reference to tasks with no other referrer).
+_background_tasks: set[asyncio.Task] = set()
+
+
+def _fire_and_forget(coro) -> None:
+    task = asyncio.create_task(coro)
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
+
 
 def _to_tool_status(description: str) -> str:
     """
@@ -279,6 +290,12 @@ class SlackMessageHandler:
                 "original_text": text,
             }
 
+            # Acknowledge receipt immediately, before any agent work starts.
+            try:
+                await client.reactions_add(channel=channel_id, timestamp=message_ts, name="eyes")
+            except SlackApiError as e:
+                logger.debug(f"Could not add eyes reaction: {e}")
+
             # Show Slack's native "<BotName> is thinking..." status indicator
             # (assistant.threads.setStatus) below the composer while the agent
             # works, updating it with live per-tool-call status text.
@@ -324,6 +341,8 @@ class SlackMessageHandler:
             response_chunks = []
             chart_events: list[dict] = []
             diagram_events: list[dict] = []
+            card_set_events: list[dict] = []
+            video_events: list[dict] = []
             kb_sources: list[dict] = []
             db_query_used = False
             async for event_data in chat_stream_service.stream_agent_response(
@@ -340,6 +359,7 @@ class SlackMessageHandler:
                 trigger_detail=f"#{channel_name}" if channel_name else f"#{channel_id}",
                 shared_state={
                     "slack_message_ts": message_ts,
+                    "slack_thread_ts": effective_thread_ts,
                     "slack_channel_id": channel_id,
                     "slack_channel_name": channel_name,
                     "slack_user_id": user_id,
@@ -377,6 +397,16 @@ class SlackMessageHandler:
                         if diagram_obj and isinstance(diagram_obj, dict):
                             diagram_events.append(diagram_obj)
 
+                    elif event_type == "card_set":
+                        cards = event_json.get("cards")
+                        if cards and isinstance(cards, list):
+                            card_set_events.append({"cards": cards})
+
+                    elif event_type == "video":
+                        video_obj = event_json.get("video") or event_json
+                        if video_obj and isinstance(video_obj, dict):
+                            video_events.append(video_obj)
+
                     elif event_type == "tool_status" and event_json.get("status") == "started":
                         description = event_json.get("description") or event_json.get("tool_name", "tool")
                         if event_json.get("tool_name") in _DATABASE_QUERY_TOOLS:
@@ -413,7 +443,7 @@ class SlackMessageHandler:
 
             # Upload charts as images (fire-and-forget, errors are non-fatal)
             if chart_events:
-                asyncio.ensure_future(
+                _fire_and_forget(
                     self._upload_charts(
                         client=client,
                         channel_id=channel_id,
@@ -426,12 +456,33 @@ class SlackMessageHandler:
             # render as SVG for the web chat UI, which Slack cannot preview inline, so they
             # must be converted to PNG and uploaded as image files like chart events above.
             if diagram_events:
-                asyncio.ensure_future(
+                _fire_and_forget(
                     self._upload_diagrams(
                         client=client,
                         channel_id=channel_id,
                         thread_ts=thread_ts or message_ts,
                         diagrams=diagram_events,
+                    )
+                )
+
+            # Post card sets (YouTube/web search/GitHub issue results) and video embeds
+            # (fire-and-forget, errors are non-fatal).
+            for card_set in card_set_events:
+                _fire_and_forget(
+                    self._post_card_set(
+                        client=client,
+                        channel_id=channel_id,
+                        thread_ts=thread_ts or message_ts,
+                        cards=card_set["cards"],
+                    )
+                )
+            for video in video_events:
+                _fire_and_forget(
+                    self._post_video(
+                        client=client,
+                        channel_id=channel_id,
+                        thread_ts=thread_ts or message_ts,
+                        video=video,
                     )
                 )
 
@@ -807,20 +858,38 @@ class SlackMessageHandler:
         thread_ts: str | None,
         charts: list[dict],
     ) -> None:
-        """Render each chart to PNG and upload to Slack."""
+        """Post each chart as a native `data_visualization` block where the chart shape
+        is supported (Slack allows at most 2 per message), falling back to a rendered
+        PNG upload for unsupported chart types or any chart beyond that cap."""
+        from .slack_rich_blocks import DATA_VIZ_MAX_BLOCKS_PER_MESSAGE, build_data_visualization_block
+
         try:
             from .slack_chart_renderer import render_chart_to_png
         except ImportError:
-            logger.warning("slack_chart_renderer not available — skipping chart upload")
-            return
+            render_chart_to_png = None
 
+        native_count = 0
         for i, chart in enumerate(charts):
+            title = chart.get("title") or f"Chart {i + 1}"
             try:
+                if native_count < DATA_VIZ_MAX_BLOCKS_PER_MESSAGE:
+                    block = build_data_visualization_block(chart)
+                    if block is not None:
+                        await client.chat_postMessage(
+                            channel=channel_id, thread_ts=thread_ts, blocks=[block], text=title
+                        )
+                        native_count += 1
+                        logger.info(f"Posted native data_visualization block '{title}' to Slack channel {channel_id}")
+                        continue
+
+                if render_chart_to_png is None:
+                    logger.warning("slack_chart_renderer not available — skipping chart upload")
+                    continue
+
                 png_bytes = render_chart_to_png(chart)
                 if not png_bytes:
                     continue
 
-                title = chart.get("title") or f"Chart {i + 1}"
                 await client.files_upload_v2(
                     channel=channel_id,
                     thread_ts=thread_ts,
@@ -831,6 +900,53 @@ class SlackMessageHandler:
                 logger.info(f"Uploaded chart '{title}' to Slack channel {channel_id}")
             except Exception as e:
                 logger.warning(f"Failed to upload chart {i}: {e}")
+
+    async def _post_card_set(
+        self,
+        client: AsyncWebClient,
+        channel_id: str,
+        thread_ts: str | None,
+        cards: list[dict],
+    ) -> None:
+        """Post a set of `card` blocks (YouTube search results, web search results,
+        GitHub issue/PR search results) as a single Slack message. Each malformed card
+        is skipped individually rather than failing the whole set."""
+        from .slack_rich_blocks import build_card_block
+
+        blocks = []
+        for card in cards:
+            try:
+                blocks.append(build_card_block(**card))
+            except Exception as e:
+                logger.warning(f"Failed to build card block: {e}")
+        if not blocks:
+            return
+        try:
+            await client.chat_postMessage(channel=channel_id, thread_ts=thread_ts, blocks=blocks, text="Results")
+        except Exception as e:
+            logger.warning(f"Failed to post card set message for channel {channel_id}: {e}")
+
+    async def _post_video(
+        self,
+        client: AsyncWebClient,
+        channel_id: str,
+        thread_ts: str | None,
+        video: dict,
+    ) -> None:
+        """Post a single `video` block (YouTube transcript tool results)."""
+        from .slack_rich_blocks import build_video_block
+
+        try:
+            block = build_video_block(**video)
+        except Exception as e:
+            logger.warning(f"Failed to build video block: {e}")
+            return
+        try:
+            await client.chat_postMessage(
+                channel=channel_id, thread_ts=thread_ts, blocks=[block], text=block["title"]["text"]
+            )
+        except Exception as e:
+            logger.warning(f"Failed to post video message for channel {channel_id}: {e}")
 
     async def _upload_diagrams(
         self,

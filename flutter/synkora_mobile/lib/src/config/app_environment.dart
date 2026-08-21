@@ -3,6 +3,11 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 
 class AppEnvironment {
+  /// Custom URL scheme this app registers (see AndroidManifest.xml / Info.plist)
+  /// to receive social login callbacks from the backend's OAuth flow. Must match
+  /// the API's MOBILE_OAUTH_REDIRECT_SCHEME setting (default: "synkora").
+  static const String mobileOAuthRedirectScheme = 'synkora';
+
   static const String _configuredApiUrl = String.fromEnvironment(
     'SYNKORA_API_URL',
     defaultValue: '',

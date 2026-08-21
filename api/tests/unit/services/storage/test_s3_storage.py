@@ -500,6 +500,119 @@ class TestCopyFile:
         assert "S3 copy failed" in str(exc_info.value)
 
 
+class TestExtractOwnKeyFromUrl:
+    """Test detection of URLs pointing at our own S3/MinIO storage.
+
+    Presigned URLs are signed with AWS_PUBLIC_ENDPOINT_URL (e.g. http://localhost:9000 in
+    dev) for browser access, but that host isn't reachable from inside a server-side
+    fetch and is correctly SSRF-blocked as "localhost". Internal tools need a way to
+    recognize "this is our own storage" and fetch bytes directly via the S3 client
+    instead of going through a public HTTP round-trip.
+    """
+
+    @pytest.fixture
+    def mock_s3_service(self):
+        with (
+            patch("src.services.storage.s3_storage.boto3"),
+            patch.dict(
+                "os.environ",
+                {
+                    "AWS_S3_BUCKET": "test-bucket",
+                    "AWS_ENDPOINT_URL": "http://minio:9000",
+                    "AWS_PUBLIC_ENDPOINT_URL": "http://localhost:9000",
+                },
+            ),
+        ):
+            from src.services.storage.s3_storage import S3StorageService
+
+            service = S3StorageService()
+            yield service
+
+    def test_matches_public_endpoint_url(self, mock_s3_service):
+        service = mock_s3_service
+
+        key = service.extract_own_key_from_url(
+            "http://localhost:9000/test-bucket/agent-uploads/shot.png?X-Amz-Algorithm=foo"
+        )
+
+        assert key == "agent-uploads/shot.png"
+
+    def test_matches_internal_endpoint_url(self, mock_s3_service):
+        service = mock_s3_service
+
+        key = service.extract_own_key_from_url("http://minio:9000/test-bucket/agent-uploads/shot.png")
+
+        assert key == "agent-uploads/shot.png"
+
+    def test_returns_none_for_unrelated_url(self, mock_s3_service):
+        service = mock_s3_service
+
+        key = service.extract_own_key_from_url("https://example.com/some/file.png")
+
+        assert key is None
+
+    def test_returns_none_for_wrong_bucket(self, mock_s3_service):
+        service = mock_s3_service
+
+        key = service.extract_own_key_from_url("http://localhost:9000/some-other-bucket/agent-uploads/shot.png")
+
+        assert key is None
+
+    def test_unquotes_key(self, mock_s3_service):
+        service = mock_s3_service
+
+        key = service.extract_own_key_from_url("http://localhost:9000/test-bucket/agent%20uploads/shot.png")
+
+        assert key == "agent uploads/shot.png"
+
+
+class TestDownloadIfOwnUrl:
+    """Test the combined detect-and-fetch helper used by internal tools."""
+
+    @pytest.fixture
+    def mock_s3_service(self):
+        with (
+            patch("src.services.storage.s3_storage.boto3") as mock_boto3,
+            patch.dict(
+                "os.environ",
+                {
+                    "AWS_S3_BUCKET": "test-bucket",
+                    "AWS_ENDPOINT_URL": "http://minio:9000",
+                    "AWS_PUBLIC_ENDPOINT_URL": "http://localhost:9000",
+                },
+            ),
+        ):
+            mock_client = MagicMock()
+            mock_boto3.client.return_value = mock_client
+
+            from src.services.storage.s3_storage import S3StorageService
+
+            service = S3StorageService()
+            service.s3_client = mock_client
+            yield service, mock_client
+
+    @pytest.mark.asyncio
+    async def test_fetches_bytes_directly_for_own_url(self, mock_s3_service):
+        service, mock_client = mock_s3_service
+        mock_body = MagicMock()
+        mock_body.read.return_value = b"screenshot bytes"
+        mock_client.get_object.return_value = {"Body": mock_body}
+
+        result = await service.download_if_own_url("http://localhost:9000/test-bucket/agent-uploads/shot.png")
+
+        assert result == b"screenshot bytes"
+        mock_client.get_object.assert_called_once_with(Bucket="test-bucket", Key="agent-uploads/shot.png")
+
+    @pytest.mark.asyncio
+    async def test_returns_none_for_non_own_url(self, mock_s3_service):
+        service, mock_client = mock_s3_service
+
+        result = await service.download_if_own_url("https://example.com/some/file.png")
+
+        assert result is None
+        mock_client.get_object.assert_not_called()
+
+
 class TestAsyncMethods:
     """Test async method wrappers."""
 

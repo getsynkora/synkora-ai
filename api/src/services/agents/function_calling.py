@@ -30,6 +30,67 @@ from src.services.observability.langfuse_service import LangfuseService
 
 logger = logging.getLogger(__name__)
 
+CARD_SET_MAX = 5
+
+
+def _link_button(text: str, url: str) -> dict:
+    """A single-button `actions` entry linking out to `url` — used by the `card_set`
+    builders below to give each card an "open in browser" affordance."""
+    return {
+        "type": "button",
+        "text": {"type": "plain_text", "text": text, "emoji": False},
+        "action_id": f"open_{uuid.uuid4().hex[:8]}",
+        "url": url,
+    }
+
+
+def _card_from_youtube_video(video: dict) -> dict:
+    card: dict[str, Any] = {"title": video.get("title") or "YouTube Video"}
+    subtitle_parts = [p for p in (video.get("channel"), video.get("published_at")) if p]
+    if subtitle_parts:
+        card["subtitle"] = " · ".join(subtitle_parts)
+    if video.get("thumbnail_url"):
+        card["hero_image_url"] = video["thumbnail_url"]
+    if video.get("url"):
+        card["actions"] = [_link_button("Watch", video["url"])]
+    return card
+
+
+def _card_from_web_result(item: dict) -> dict:
+    card: dict[str, Any] = {"title": item.get("title") or "Result"}
+    if item.get("snippet"):
+        card["body"] = item["snippet"]
+    if item.get("url"):
+        card["actions"] = [_link_button("Open", item["url"])]
+    return card
+
+
+def _card_from_github_issue(issue: dict) -> dict:
+    number = issue.get("number")
+    title = issue.get("title") or "Issue"
+    card: dict[str, Any] = {"title": f"#{number}: {title}" if number is not None else title}
+    subtitle_parts = [issue.get("state"), ", ".join(issue.get("labels") or [])]
+    subtitle = " · ".join(p for p in subtitle_parts if p)
+    if subtitle:
+        card["subtitle"] = subtitle
+    if issue.get("html_url"):
+        card["actions"] = [_link_button("View", issue["html_url"])]
+    return card
+
+
+async def _fetch_youtube_oembed(video_id: str) -> dict:
+    """Fetch title/thumbnail for a YouTube video via the public oEmbed endpoint (no API
+    key required) — the transcript tools only return `video_id` + text, not display
+    metadata, so this is needed to build a usable `video` block."""
+    import httpx
+
+    url = f"https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={video_id}&format=json"
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        response = await client.get(url)
+        response.raise_for_status()
+        data = response.json()
+    return {"title": data.get("title"), "thumbnail_url": data.get("thumbnail_url")}
+
 
 def _compact_schema(schema: dict) -> dict:
     """
@@ -988,6 +1049,53 @@ class FunctionCallingHandler:
                                 "created_at": datetime.datetime.now().isoformat(),
                             },
                         }
+
+                # Side-channel card_set/video events for tool results Slack can render as
+                # native `card`/`video` Block Kit blocks. Bypasses the LLM (it only ever
+                # produces text and cannot emit Block Kit JSON itself) — same pattern as
+                # the chart/diagram detection above.
+                if func_name == "internal_youtube_search_videos":
+                    if isinstance(result, dict) and result.get("success") and result.get("videos"):
+                        cards = [_card_from_youtube_video(v) for v in result["videos"][:CARD_SET_MAX]]
+                        if cards:
+                            yield {"type": "card_set", "cards": cards}
+
+                if func_name == "web_search":
+                    if isinstance(result, dict) and result.get("results"):
+                        cards = [_card_from_web_result(r) for r in result["results"][:CARD_SET_MAX]]
+                        if cards:
+                            yield {"type": "card_set", "cards": cards}
+
+                if func_name == "internal_github_get_issue":
+                    if isinstance(result, dict) and result.get("success") and result.get("issue"):
+                        yield {"type": "card_set", "cards": [_card_from_github_issue(result["issue"])]}
+
+                if func_name == "internal_github_list_issues":
+                    if isinstance(result, dict) and result.get("success") and result.get("issues"):
+                        cards = [_card_from_github_issue(i) for i in result["issues"][:CARD_SET_MAX]]
+                        if cards:
+                            yield {"type": "card_set", "cards": cards}
+
+                if func_name == "internal_github_search_issues":
+                    if isinstance(result, dict) and result.get("success") and result.get("items"):
+                        cards = [_card_from_github_issue(i) for i in result["items"][:CARD_SET_MAX]]
+                        if cards:
+                            yield {"type": "card_set", "cards": cards}
+
+                if func_name in ("internal_youtube_get_transcript", "internal_youtube_get_transcript_segment"):
+                    if isinstance(result, dict) and result.get("success") and result.get("video_id"):
+                        oembed = None
+                        try:
+                            oembed = await _fetch_youtube_oembed(result["video_id"])
+                        except Exception as e:
+                            logger.warning(f"YouTube oEmbed lookup failed for {result['video_id']}: {e}")
+                        if oembed and oembed.get("thumbnail_url"):
+                            yield {
+                                "type": "video",
+                                "video_url": f"https://www.youtube.com/embed/{result['video_id']}",
+                                "thumbnail_url": oembed["thumbnail_url"],
+                                "title": oembed.get("title") or "YouTube Video",
+                            }
 
             # Update conversation history with proper format
             # Generate UNIQUE tool_call IDs per call so parallel calls to the same tool

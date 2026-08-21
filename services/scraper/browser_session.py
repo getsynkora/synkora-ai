@@ -297,6 +297,18 @@ class BrowserSession:
             raise RuntimeError(f"Browser page capacity reached for session ({MAX_PAGES_PER_SESSION})")
 
         page = await self.context.new_page()
+
+        # The context's "page" event fires for every new page, including ones
+        # created via context.new_page() itself, and its handler
+        # (_on_context_page -> _register_popup) can race ahead of this method
+        # and register the page first. Reuse that registration instead of
+        # adding a second dict entry for the same underlying page — otherwise
+        # every explicit new_page() call silently consumes two page slots.
+        existing_id = next((pid for pid, p in self.pages.items() if p is page), None)
+        if existing_id:
+            self.current_page_id = existing_id
+            return existing_id, page
+
         page_id = page_id or f"page_{len(self.pages) + 1}"
         self.pages[page_id] = page
         self.current_page_id = page_id

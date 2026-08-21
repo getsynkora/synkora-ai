@@ -43,9 +43,7 @@ class TestProcessInteraction:
         mock_service_instance = AsyncMock()
         mock_service_instance.respond_to_approval = AsyncMock(return_value={"status": "approved"})
 
-        with patch(
-            "src.services.human_approval_service.HumanApprovalService", return_value=mock_service_instance
-        ):
+        with patch("src.services.human_approval_service.HumanApprovalService", return_value=mock_service_instance):
             result = await service.process_interaction(mock_slack_bot, payload)
 
         assert result == {"status": "ok"}
@@ -67,9 +65,7 @@ class TestProcessInteraction:
         mock_service_instance = AsyncMock()
         mock_service_instance.respond_to_approval = AsyncMock(return_value={"status": "rejected"})
 
-        with patch(
-            "src.services.human_approval_service.HumanApprovalService", return_value=mock_service_instance
-        ):
+        with patch("src.services.human_approval_service.HumanApprovalService", return_value=mock_service_instance):
             await service.process_interaction(mock_slack_bot, payload)
 
         call_args = mock_service_instance.respond_to_approval.call_args

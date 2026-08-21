@@ -20,6 +20,7 @@ def register_slack_tools(registry):
     """
     from src.services.agents.internal_tools.slack_tools import (
         internal_slack_add_reaction,
+        internal_slack_create_channel,
         internal_slack_join_channel,
         internal_slack_list_channels,
         internal_slack_post_blocks,
@@ -114,11 +115,21 @@ def register_slack_tools(registry):
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_slack_upload_file(
             channel_id=kwargs.get("channel_id"),
-            file_content=kwargs.get("file_content"),
+            file_content=kwargs.get("file_content", ""),
+            file_url=kwargs.get("file_url", ""),
             filename=kwargs.get("filename"),
             title=kwargs.get("title", ""),
             initial_comment=kwargs.get("initial_comment", ""),
             thread_ts=kwargs.get("thread_ts"),
+            runtime_context=runtime_context,
+            config=config,
+        )
+
+    async def internal_slack_create_channel_wrapper(config: dict[str, Any] | None = None, **kwargs):
+        runtime_context = config.get("_runtime_context") if config else None
+        return await internal_slack_create_channel(
+            name=kwargs.get("name"),
+            is_private=kwargs.get("is_private", False),
             runtime_context=runtime_context,
             config=config,
         )
@@ -320,9 +331,13 @@ def register_slack_tools(registry):
             "If internal_generate_infographic returns svg_content (for small infographics), "
             "pass it here as file_content with filename='briefing.svg'. Slack renders SVG inline.\n\n"
             "Also useful for: sharing CSV exports, PDF reports, or any file the agent generates.\n\n"
+            "If you only have a URL (e.g. the image_url returned by internal_browser_screenshot or "
+            "internal_generate_infographic), pass it as file_url — this tool will download it and "
+            "attach the bytes as a genuine Slack file. Provide either file_content or file_url, not both "
+            "(file_content wins if both are given).\n\n"
             "Prefer internal_slack_post_blocks with image_url when you have a public S3 URL, "
-            "because that renders at full resolution. Use this tool when you only have raw content "
-            "or the URL is not publicly accessible."
+            "because that renders at full resolution. Use this tool (with file_url) when you want "
+            "a real Slack-native file attachment instead of a linked image."
         ),
         parameters={
             "type": "object",
@@ -331,6 +346,10 @@ def register_slack_tools(registry):
                 "file_content": {
                     "type": "string",
                     "description": "Raw file content as a string (SVG markup, CSV text, etc.)",
+                },
+                "file_url": {
+                    "type": "string",
+                    "description": "URL to download and upload as the file, e.g. an S3 image_url from a screenshot",
                 },
                 "filename": {
                     "type": "string",
@@ -351,9 +370,34 @@ def register_slack_tools(registry):
                     "description": "Optional thread timestamp to upload into a thread",
                 },
             },
-            "required": ["channel_id", "file_content", "filename"],
+            "required": ["channel_id", "filename"],
         },
         function=internal_slack_upload_file_wrapper,
     )
 
-    logger.info("Registered 10 Slack tools")
+    registry.register_tool(
+        name="internal_slack_create_channel",
+        description=(
+            "Create a new Slack channel. Use this when asked to open/create a channel that "
+            "doesn't already exist — internal_slack_list_channels only finds existing channels. "
+            "Channel names must be lowercase, without spaces (use hyphens or underscores instead)."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Name for the new channel (lowercase, no spaces, e.g. 'bughunt-home-deriv')",
+                },
+                "is_private": {
+                    "type": "boolean",
+                    "description": "Whether to create a private channel (default False, i.e. public)",
+                    "default": False,
+                },
+            },
+            "required": ["name"],
+        },
+        function=internal_slack_create_channel_wrapper,
+    )
+
+    logger.info("Registered 11 Slack tools")

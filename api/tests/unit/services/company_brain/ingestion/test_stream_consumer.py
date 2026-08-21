@@ -45,7 +45,9 @@ async def test_process_batch_includes_knowledge_base_id_in_index_metadata():
         mock_chunk.return_value = [
             {"id": "ext-1", "chunk_index": 0, "chunk_content": "hello world this is enough content"}
         ]
-        await consumer._process_batch(kb_id=42, tenant_id="tenant-1", source_type="slack", raw_docs=raw_docs, min_tokens=1)
+        await consumer._process_batch(
+            kb_id=42, tenant_id="tenant-1", source_type="slack", raw_docs=raw_docs, min_tokens=1
+        )
 
     assert mock_search.index_documents.await_args.kwargs["knowledge_base_id"] == 42
     indexed_docs = mock_search.index_documents.await_args.kwargs["documents"]
@@ -122,6 +124,8 @@ async def test_embed_batch_uses_kb_embedding_config():
 
         result = await consumer._embed_batch(["hello"], mock_kb)
 
-    mock_svc_cls.assert_called_once_with(provider="OPENAI", model_name="text-embedding-3-small", config={"api_key": "sk-test"})
+    mock_svc_cls.assert_called_once_with(
+        provider="OPENAI", model_name="text-embedding-3-small", config={"api_key": "sk-test"}
+    )
     mock_svc.embed_texts.assert_called_once_with(["hello"], batch_size=32)
     assert result == [[0.1, 0.2, 0.3]]

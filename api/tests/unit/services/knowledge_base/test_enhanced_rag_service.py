@@ -40,9 +40,7 @@ class TestRetrieveFromKBAdvancedMode:
         mock_search_result.metadata = {"external_id": "ext-1"}
 
         mock_backend = MagicMock()
-        mock_backend.search = AsyncMock(
-            return_value=MagicMock(results=[mock_search_result])
-        )
+        mock_backend.search = AsyncMock(return_value=MagicMock(results=[mock_search_result]))
 
         with (
             patch(

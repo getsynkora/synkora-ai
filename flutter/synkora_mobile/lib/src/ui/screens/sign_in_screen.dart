@@ -153,6 +153,47 @@ class _SignInScreenState extends State<SignInScreen> {
                               ),
                             ),
                           ),
+                          const SizedBox(height: 24),
+                          Row(
+                            children: [
+                              const Expanded(
+                                child: Divider(color: SynkoraColors.border),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                                child: Text(
+                                  'or continue with',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: SynkoraColors.muted,
+                                  ),
+                                ),
+                              ),
+                              const Expanded(
+                                child: Divider(color: SynkoraColors.border),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          // Only Google is configured for this deployment (matches
+                          // web/app/(auth)/signin/page.tsx, which likewise hardcodes
+                          // a single Google button). Other providers 404 server-side
+                          // until an admin configures them, so they're omitted here too.
+                          SizedBox(
+                            width: double.infinity,
+                            child: _SocialLoginButton(
+                              label: 'Continue with Google',
+                              icon: Icons.g_mobiledata_rounded,
+                              isBusy: widget.controller.isBusy,
+                              onPressed: () async {
+                                widget.controller.clearError();
+                                await widget.controller.signInWithProvider(
+                                  'google',
+                                );
+                              },
+                            ),
+                          ),
                           const SizedBox(height: 16),
                           Text(
                             'This app uses the same Synkora account and tenant access model as the web app.',
@@ -169,6 +210,38 @@ class _SignInScreenState extends State<SignInScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SocialLoginButton extends StatelessWidget {
+  const _SocialLoginButton({
+    required this.label,
+    required this.icon,
+    required this.isBusy,
+    required this.onPressed,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool isBusy;
+  final Future<void> Function() onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: isBusy ? null : onPressed,
+      icon: Icon(icon, color: SynkoraColors.ink),
+      label: Text(
+        label,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(color: SynkoraColors.ink),
+      ),
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        side: const BorderSide(color: SynkoraColors.border),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
     );
   }

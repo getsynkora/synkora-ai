@@ -5,9 +5,11 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.services.agents.internal_tools.platform_tools import (
+    _resolve_slack_bot_id,
     platform_attach_database_connections,
     platform_attach_knowledge_base,
     platform_attach_mcp_server,
+    platform_check_integration,
     platform_disable_agent_autonomous,
     platform_get_agent_autonomous,
     platform_list_database_connections,
@@ -336,3 +338,71 @@ class TestPlatformMCPAndAutonomousTools:
         assert mock_agent.autonomous_enabled is False
         runtime_context.db_session.delete.assert_awaited_once_with(task)
         runtime_context.db_session.commit.assert_awaited_once()
+
+
+class TestResolveSlackBotId:
+    """A SlackBot connected to one agent must never be silently reused as the
+    Slack credential for a different agent — each agent needs its own bot."""
+
+    @pytest.mark.asyncio
+    async def test_does_not_fall_back_to_another_agents_bot(self):
+        db = AsyncMock(spec=AsyncSession)
+        agent_scoped_result = MagicMock()
+        agent_scoped_result.scalar_one_or_none.return_value = None
+        db.execute = AsyncMock(return_value=agent_scoped_result)
+
+        tenant_id = uuid4()
+        this_agent_id = uuid4()
+
+        result = await _resolve_slack_bot_id(db, tenant_id, this_agent_id)
+
+        assert result is None
+        # Only the agent-scoped lookup should run — no tenant-wide fallback query.
+        db.execute.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_returns_bot_linked_to_this_agent(self):
+        db = AsyncMock(spec=AsyncSession)
+        bot_id = uuid4()
+        agent_scoped_result = MagicMock()
+        agent_scoped_result.scalar_one_or_none.return_value = bot_id
+        db.execute = AsyncMock(return_value=agent_scoped_result)
+
+        result = await _resolve_slack_bot_id(db, uuid4(), uuid4())
+
+        assert result == bot_id
+
+    @pytest.mark.asyncio
+    async def test_no_agent_id_returns_none_without_querying(self):
+        db = AsyncMock(spec=AsyncSession)
+        db.execute = AsyncMock()
+
+        result = await _resolve_slack_bot_id(db, uuid4(), None)
+
+        assert result is None
+        db.execute.assert_not_awaited()
+
+
+class TestPlatformCheckIntegrationSlack:
+    """platform_check_integration('slack') must not report connected:True based on
+    another agent's SlackBot — that previously caused the Platform Engineer to tell
+    users 'Slack OAuth is already connected' when it wasn't."""
+
+    @pytest.fixture
+    def runtime_context(self):
+        ctx = MagicMock()
+        ctx.tenant_id = uuid4()
+        ctx.user_id = uuid4()
+        ctx.db_session = AsyncMock(spec=AsyncSession)
+        return ctx
+
+    @pytest.mark.asyncio
+    async def test_returns_not_connected_when_only_other_agents_bot_exists(self, runtime_context):
+        empty_result = MagicMock()
+        empty_result.first.return_value = None
+        empty_result.scalar_one_or_none.return_value = None
+        runtime_context.db_session.execute = AsyncMock(return_value=empty_result)
+
+        result = await platform_check_integration(provider="slack", runtime_context=runtime_context)
+
+        assert result["connected"] is False

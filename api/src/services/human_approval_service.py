@@ -380,37 +380,39 @@ class HumanApprovalService:
             f"Agent *{approval.agent_name}* wants to call `{approval.tool_name}`:\n"
             f"```{args_preview}```"
         )
-        blocks = self._build_approval_blocks(approval, text)
+        blocks = self._build_approval_blocks(approval, args_preview)
 
         resp = await client.chat_postMessage(channel=channel_id, text=text, blocks=blocks)
         message_ts = resp.get("ts", "")
         return {"slack_bot_id": str(bot.id), "channel_id": channel_id, "message_ts": message_ts}
 
     @staticmethod
-    def _build_approval_blocks(approval: AgentApprovalRequest, text: str) -> list[dict]:
-        """Build the Block Kit blocks for a pending approval message (summary + buttons)."""
+    def _build_approval_blocks(approval: AgentApprovalRequest, args_preview: str) -> list[dict]:
+        """Build the Block Kit blocks for a pending approval message (card + buttons)."""
+        from src.services.slack.slack_rich_blocks import build_card_block
+
+        card_block = build_card_block(
+            title="Action pending approval",
+            body=f"`{approval.tool_name}`\n{args_preview}",
+            actions=[
+                {
+                    "type": "button",
+                    "action_id": "hitl_approve",
+                    "style": "primary",
+                    "text": {"type": "plain_text", "text": "Approve"},
+                    "value": str(approval.id),
+                },
+                {
+                    "type": "button",
+                    "action_id": "hitl_reject",
+                    "style": "danger",
+                    "text": {"type": "plain_text", "text": "Reject"},
+                    "value": str(approval.id),
+                },
+            ],
+        )
         return [
-            {"type": "section", "text": {"type": "mrkdwn", "text": text}},
-            {
-                "type": "actions",
-                "block_id": "hitl_approval_actions",
-                "elements": [
-                    {
-                        "type": "button",
-                        "action_id": "hitl_approve",
-                        "style": "primary",
-                        "text": {"type": "plain_text", "text": "Approve"},
-                        "value": str(approval.id),
-                    },
-                    {
-                        "type": "button",
-                        "action_id": "hitl_reject",
-                        "style": "danger",
-                        "text": {"type": "plain_text", "text": "Reject"},
-                        "value": str(approval.id),
-                    },
-                ],
-            },
+            card_block,
             {
                 "type": "context",
                 "elements": [

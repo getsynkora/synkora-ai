@@ -48,16 +48,25 @@ def make_approval(**overrides) -> AgentApprovalRequest:
 
 
 class TestBuildApprovalBlocks:
-    def test_blocks_contain_approve_and_reject_buttons(self, service):
+    def test_card_block_has_fixed_title_and_body_with_tool_name_and_args(self, service):
         approval = make_approval()
-        blocks = HumanApprovalService._build_approval_blocks(approval, "some text")
+        blocks = HumanApprovalService._build_approval_blocks(approval, '{"to": "a@example.com"}')
 
-        actions_block = next(b for b in blocks if b["type"] == "actions")
-        elements = actions_block["elements"]
-        assert len(elements) == 2
+        card_block = next(b for b in blocks if b["type"] == "card")
+        assert card_block["title"]["text"] == "Action pending approval"
+        assert approval.tool_name in card_block["body"]["text"]
+        assert '{"to": "a@example.com"}' in card_block["body"]["text"]
 
-        approve = next(e for e in elements if e["action_id"] == "hitl_approve")
-        reject = next(e for e in elements if e["action_id"] == "hitl_reject")
+    def test_card_block_actions_contain_approve_and_reject_buttons(self, service):
+        approval = make_approval()
+        blocks = HumanApprovalService._build_approval_blocks(approval, "some args preview")
+
+        card_block = next(b for b in blocks if b["type"] == "card")
+        actions = card_block["actions"]
+        assert len(actions) == 2
+
+        approve = next(e for e in actions if e["action_id"] == "hitl_approve")
+        reject = next(e for e in actions if e["action_id"] == "hitl_reject")
 
         assert approve["value"] == str(approval.id)
         assert approve["style"] == "primary"
@@ -66,7 +75,7 @@ class TestBuildApprovalBlocks:
 
     def test_blocks_mention_free_text_fallback(self, service):
         approval = make_approval()
-        blocks = HumanApprovalService._build_approval_blocks(approval, "some text")
+        blocks = HumanApprovalService._build_approval_blocks(approval, "some args preview")
         context_block = next(b for b in blocks if b["type"] == "context")
         assert "feedback" in context_block["elements"][0]["text"]
 

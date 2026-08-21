@@ -152,6 +152,12 @@ def _validate_redirect_url(redirect_url: str, allowed_base_url: str) -> str:
         parsed_redirect = urlparse(redirect_url)
         parsed_base = urlparse(allowed_base_url)
 
+        # The native mobile app registers this custom URL scheme to receive the OAuth
+        # callback directly (no browser/cookie involved), so it can't be validated
+        # against allowed_base_url's host like a web redirect — allow it explicitly.
+        if parsed_redirect.scheme == settings.mobile_oauth_redirect_scheme:
+            return redirect_url
+
         # SECURITY: Only allow redirects to same host
         if parsed_redirect.netloc and parsed_redirect.netloc != parsed_base.netloc:
             logger.warning(f"Open redirect attempt blocked: {redirect_url} -> {parsed_redirect.netloc}")
@@ -224,7 +230,10 @@ async def token_exchange(code: str = Query(..., description="One-time exchange c
     if not tokens:
         raise HTTPException(status_code=400, detail="Invalid or expired exchange code")
 
-    response = JSONResponse(content={"access_token": tokens["access_token"]})
+    # SECURITY: refresh_token is also returned in the body (not just the HttpOnly cookie)
+    # so native mobile clients — which have no cookie jar wired up — can store it themselves,
+    # matching how /console/api/auth/signin already behaves for mobile clients.
+    response = JSONResponse(content={"access_token": tokens["access_token"], "refresh_token": tokens["refresh_token"]})
     response.set_cookie(
         key="refresh_token",
         value=tokens["refresh_token"],

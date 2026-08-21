@@ -989,7 +989,7 @@ class _ConversationRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 92,
+      height: 112,
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
         scrollDirection: Axis.horizontal,

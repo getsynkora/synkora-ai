@@ -5,6 +5,7 @@ reading messages, understanding context, and deciding when to respond.
 """
 
 import logging
+import re
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -14,7 +15,9 @@ from sqlalchemy import select
 
 from src.core.database import get_async_db
 from src.models.slack_bot import SlackBot
+from src.services.agents.internal_tools.web_tools import internal_download_url_bytes
 from src.services.agents.security import decrypt_value
+from src.services.storage.s3_storage import get_s3_storage
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +96,51 @@ async def _get_slack_client(runtime_context: dict[str, Any], config: dict[str, A
     except Exception as e:
         logger.error(f"Error getting Slack client: {e}", exc_info=True)
         return None
+
+
+def _resolve_thread_ts(thread_ts: str | None, runtime_context: dict[str, Any] | None) -> str | None:
+    """Fall back to the triggering message's thread when the LLM omits thread_ts.
+
+    Without this, tools like internal_slack_send_message/post_blocks/upload_file post
+    to the main channel whenever the LLM forgets to pass thread_ts, splitting a single
+    turn's replies between the thread and the channel. slack_message_handler.py stores
+    the effective thread timestamp in shared_state["slack_thread_ts"] so every tool call
+    within a turn defaults to the same thread unless the LLM explicitly overrides it.
+    """
+    if thread_ts:
+        return thread_ts
+    if isinstance(runtime_context, dict):
+        shared_state = runtime_context.get("shared_state") or {}
+    else:
+        shared_state = getattr(runtime_context, "shared_state", None) or {}
+    return shared_state.get("slack_thread_ts")
+
+
+def _get_requesting_slack_user_id(runtime_context: dict[str, Any] | None) -> str | None:
+    """The Slack user who sent the triggering message, if this tool call happened inside
+    a real Slack conversation (stored in shared_state by slack_message_handler.py).
+    None when triggered outside Slack (e.g. the web console) — there's no one to invite.
+    """
+    if isinstance(runtime_context, dict):
+        shared_state = runtime_context.get("shared_state") or {}
+    else:
+        shared_state = getattr(runtime_context, "shared_state", None) or {}
+    return shared_state.get("slack_user_id")
+
+
+async def _invite_requesting_user(client: Any, channel_id: str, runtime_context: dict[str, Any] | None) -> None:
+    """Invite the human who asked for this channel, so it shows up for them in Slack —
+    a newly created (or reused-but-never-joined) channel otherwise only has the bot as a
+    member. Best-effort: swallow already_in_channel and any other invite failure.
+    """
+    user_id = _get_requesting_slack_user_id(runtime_context)
+    if not user_id:
+        return
+    try:
+        await client.conversations_invite(channel=channel_id, users=user_id)
+    except SlackApiError as e:
+        if e.response.get("error") != "already_in_channel":
+            logger.warning(f"Failed to invite requesting user {user_id} to {channel_id}: {e}")
 
 
 async def internal_slack_list_channels(
@@ -386,6 +434,8 @@ async def internal_slack_send_message(
         if not client:
             return {"success": False, "error": "No Slack connection available"}
 
+        thread_ts = _resolve_thread_ts(thread_ts, runtime_context)
+
         # Format text for Slack (convert markdown to Slack's mrkdwn format)
         from src.services.slack.formatters import format_text_for_slack
 
@@ -447,6 +497,88 @@ async def internal_slack_join_channel(
     except Exception as e:
         logger.error(f"Error joining channel: {e}", exc_info=True)
         return {"success": False, "error": str(e)}
+
+
+async def internal_slack_create_channel(
+    name: str,
+    is_private: bool = False,
+    runtime_context: dict[str, Any] | None = None,
+    config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """
+    Create a new Slack channel.
+
+    Use this when the user asks you to open/create a channel that doesn't exist yet.
+    Slack channel names must be lowercase, without spaces, and use hyphens or
+    underscores instead (e.g. "bughunt-home-deriv").
+
+    Args:
+        name: Name for the new channel
+        is_private: Whether to create a private channel (default False, i.e. public)
+        runtime_context: Runtime context from agent execution
+        config: Config dict with _tool_name
+
+    Returns:
+        Dictionary with the created channel's id and name
+    """
+    try:
+        client = await _get_slack_client(runtime_context, config)
+        if not client:
+            return {"success": False, "error": "No Slack connection available"}
+
+        response = await client.conversations_create(name=name, is_private=is_private)
+
+        channel = response.get("channel", {})
+        channel_id = channel.get("id")
+        channel_name = channel.get("name", name)
+
+        await _invite_requesting_user(client, channel_id, runtime_context)
+
+        return {
+            "success": True,
+            "channel_id": channel_id,
+            "channel_name": channel_name,
+            "is_private": is_private,
+            "message": f"Successfully created #{channel_name}",
+        }
+
+    except SlackApiError as e:
+        if e.response.get("error") == "name_taken":
+            logger.info(f"Channel #{name} already exists, looking up existing channel")
+            existing = await _find_channel_by_name(client, name, include_private=is_private)
+            if existing:
+                await _invite_requesting_user(client, existing["id"], runtime_context)
+                return {
+                    "success": True,
+                    "channel_id": existing["id"],
+                    "channel_name": existing["name"],
+                    "is_private": is_private,
+                    "message": f"#{existing['name']} already exists, reusing it",
+                }
+        logger.error(f"Slack API error creating channel: {e}", exc_info=True)
+        return {"success": False, "error": str(e)}
+    except Exception as e:
+        logger.error(f"Error creating channel: {e}", exc_info=True)
+        return {"success": False, "error": str(e)}
+
+
+async def _find_channel_by_name(client: Any, name: str, include_private: bool = False) -> dict[str, Any] | None:
+    """Look up a channel by exact name via paginated conversations_list."""
+    cursor = None
+    while True:
+        response = await client.conversations_list(
+            exclude_archived=True,
+            types="public_channel,private_channel" if include_private else "public_channel",
+            cursor=cursor,
+            limit=200,
+        )
+        for channel in response.get("channels", []):
+            if channel.get("name") == name:
+                return channel
+
+        cursor = response.get("response_metadata", {}).get("next_cursor")
+        if not cursor:
+            return None
 
 
 async def internal_slack_search_messages(
@@ -647,6 +779,69 @@ async def internal_slack_send_dm(
         return {"success": False, "error": str(e)}
 
 
+_IMAGE_BLOCK_ERROR_RE = re.compile(r"json-pointer:/blocks/(\d+)/image_url")
+
+
+async def _heal_unreachable_image_blocks(
+    blocks_list: list[dict[str, Any]],
+    error: SlackApiError,
+    client: AsyncWebClient,
+    channel_id: str,
+    thread_ts: str | None,
+) -> list[dict[str, Any]] | None:
+    """On invalid_blocks "downloading image failed" errors, re-upload any failing
+    image block that points at our own storage as a file attachment instead, and
+    return the remaining blocks with those image blocks removed. Returns None if
+    the error isn't this specific failure mode, or none of the failing images are
+    ours to re-fetch (nothing we can self-heal).
+    """
+    if error.response.get("error") != "invalid_blocks":
+        return None
+
+    indices = {
+        int(m.group(1)) for err in error.response.get("errors") or [] for m in _IMAGE_BLOCK_ERROR_RE.finditer(err)
+    }
+    if not indices:
+        return None
+
+    try:
+        s3 = get_s3_storage()
+    except Exception:
+        return None
+
+    healed_blocks = list(blocks_list)
+    healed_any = False
+    for idx in sorted(indices, reverse=True):
+        if idx >= len(healed_blocks) or not isinstance(healed_blocks[idx], dict):
+            continue
+        block = healed_blocks[idx]
+        image_url = block.get("image_url")
+        if not image_url:
+            continue
+
+        content = await s3.download_if_own_url(image_url)
+        if content is None:
+            continue
+
+        filename = image_url.rsplit("/", 1)[-1].split("?")[0] or "image.png"
+        try:
+            await client.files_upload_v2(
+                channel=channel_id,
+                content=content,
+                filename=filename,
+                title=block.get("alt_text") or "Image",
+                thread_ts=thread_ts,
+            )
+        except Exception as upload_exc:
+            logger.warning(f"Failed to re-upload unreachable image block as file: {upload_exc}")
+            continue
+
+        del healed_blocks[idx]
+        healed_any = True
+
+    return healed_blocks if healed_any else None
+
+
 async def internal_slack_post_blocks(
     channel_id: str,
     blocks: str,
@@ -689,6 +884,8 @@ async def internal_slack_post_blocks(
         if not client:
             return {"success": False, "error": "No Slack connection available"}
 
+        thread_ts = _resolve_thread_ts(thread_ts, runtime_context)
+
         # Parse blocks JSON
         try:
             blocks_list = _json.loads(blocks) if isinstance(blocks, str) else blocks
@@ -698,12 +895,30 @@ async def internal_slack_post_blocks(
         if not isinstance(blocks_list, list):
             return {"success": False, "error": "blocks must be a JSON array"}
 
-        response = await client.chat_postMessage(
-            channel=channel_id,
-            blocks=blocks_list,
-            text=text or "Message",
-            thread_ts=thread_ts,
-        )
+        try:
+            response = await client.chat_postMessage(
+                channel=channel_id,
+                blocks=blocks_list,
+                text=text or "Message",
+                thread_ts=thread_ts,
+            )
+        except SlackApiError as e:
+            # Slack's OWN servers try to download image_url to render an image block.
+            # Our presigned MinIO/S3 URLs are signed with the public endpoint (e.g.
+            # http://localhost:9000 in dev), which is only reachable from our own
+            # network/browser, never from Slack's infrastructure — Slack rejects the
+            # whole message with invalid_blocks. Self-heal: fetch the image ourselves
+            # (it's our own storage), upload it as a file attachment instead, drop the
+            # failing image block(s), and retry with the rest of the message.
+            healed_blocks = await _heal_unreachable_image_blocks(blocks_list, e, client, channel_id, thread_ts)
+            if healed_blocks is None:
+                raise
+            response = await client.chat_postMessage(
+                channel=channel_id,
+                blocks=healed_blocks,
+                text=text or "Message",
+                thread_ts=thread_ts,
+            )
 
         return {
             "success": True,
@@ -723,8 +938,9 @@ async def internal_slack_post_blocks(
 
 async def internal_slack_upload_file(
     channel_id: str,
-    file_content: str,
     filename: str,
+    file_content: str = "",
+    file_url: str = "",
     title: str = "",
     initial_comment: str = "",
     thread_ts: str | None = None,
@@ -741,10 +957,15 @@ async def internal_slack_upload_file(
     For infographics: if svg_content is returned by internal_generate_infographic,
     pass it here as file_content with filename ending in .svg.
 
+    If you only have a URL (e.g. the image_url returned by internal_browser_screenshot),
+    pass it as file_url instead — this tool will download it and attach the bytes as
+    a genuine Slack file. file_content takes precedence if both are given.
+
     Args:
         channel_id: Slack channel ID (e.g. 'C1234567890')
-        file_content: Raw file content as a string (SVG markup, CSV data, etc.)
         filename: Filename including extension (e.g. 'briefing.svg', 'report.csv')
+        file_content: Raw file content as a string (SVG markup, CSV data, etc.)
+        file_url: URL to download and upload as the file (e.g. an S3 image_url)
         title: Optional display title shown above the file in Slack
         initial_comment: Optional message text posted alongside the file
         thread_ts: Optional thread timestamp to upload into a thread
@@ -760,15 +981,38 @@ async def internal_slack_upload_file(
         if not client:
             return {"success": False, "error": "No Slack connection available"}
 
-        if not file_content:
-            return {"success": False, "error": "file_content is required"}
+        if not file_content and not file_url:
+            return {"success": False, "error": "Either file_content or file_url is required"}
+
+        content: str | bytes
+        if file_content:
+            content = file_content
+        else:
+            # file_url is often our own presigned S3/MinIO URL (e.g. from
+            # internal_browser_screenshot), signed with the PUBLIC endpoint for browser
+            # access (e.g. "http://localhost:9000" in dev). Fetching that host from inside
+            # a container is correctly SSRF-blocked by the generic downloader below, so
+            # detect our own storage first and fetch bytes directly via the S3 client.
+            own_bytes: bytes | None = None
+            try:
+                own_bytes = await get_s3_storage().download_if_own_url(file_url)
+            except Exception:
+                own_bytes = None
+
+            if own_bytes is not None:
+                content = own_bytes
+            else:
+                download = await internal_download_url_bytes(file_url, config=config)
+                if "error" in download:
+                    return {"success": False, "error": f"Failed to download file_url: {download['error']}"}
+                content = download["content"]
+
+        thread_ts = _resolve_thread_ts(thread_ts, runtime_context)
 
         ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
 
-        # Use files_upload_v2 if available (newer SDK), fall back to files_upload
         upload_kwargs: dict[str, Any] = {
-            "channels": channel_id,
-            "content": file_content,
+            "content": content,
             "filename": filename,
             "filetype": ext or "auto",
         }
@@ -780,10 +1024,16 @@ async def internal_slack_upload_file(
             upload_kwargs["thread_ts"] = thread_ts
 
         try:
-            response = await client.files_upload_v2(**upload_kwargs)
+            # files_upload_v2's `channels` kwarg takes a List[str] for multi-channel
+            # uploads; passing a plain channel_id string there gets iterated character-by-
+            # character downstream (files_completeUploadExternal does ",".join(channels)),
+            # producing an invalid channel id and a misleading "channel_not_found" error.
+            # We always upload to exactly one channel, so use the singular `channel` kwarg.
+            response = await client.files_upload_v2(channel=channel_id, **upload_kwargs)
         except AttributeError:
-            # Older slack_sdk — use files_upload
-            response = await client.files_upload(**upload_kwargs)
+            # Older slack_sdk — files_upload's equivalent param is `channels`
+            # (comma-separated string, so a single channel_id works as-is).
+            response = await client.files_upload(channels=channel_id, **upload_kwargs)
 
         file_obj = response.get("file", {})
         return {
