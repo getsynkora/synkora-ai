@@ -81,9 +81,7 @@ void main() {
 
       await expectLater(
         () => service.signInWithProvider('google'),
-        throwsA(
-          predicate((e) => e.toString().contains('Sign-in failed')),
-        ),
+        throwsA(predicate((e) => e.toString().contains('Sign-in failed'))),
       );
     });
 

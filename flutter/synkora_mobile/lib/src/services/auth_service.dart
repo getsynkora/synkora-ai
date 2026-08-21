@@ -37,18 +37,21 @@ abstract class AuthService {
 }
 
 class SynkoraAuthService implements AuthService {
-  SynkoraAuthService({String? baseUrl, Dio? dio, WebAuthenticator? webAuthenticate})
-    : _dio =
-          dio ??
-          Dio(
-            BaseOptions(
-              baseUrl: baseUrl ?? AppEnvironment.apiBaseUrl,
-              connectTimeout: const Duration(seconds: 15),
-              receiveTimeout: const Duration(seconds: 30),
-              headers: const {'Content-Type': 'application/json'},
-            ),
-          ),
-      _webAuthenticate = webAuthenticate ?? FlutterWebAuth2.authenticate;
+  SynkoraAuthService({
+    String? baseUrl,
+    Dio? dio,
+    WebAuthenticator? webAuthenticate,
+  }) : _dio =
+           dio ??
+           Dio(
+             BaseOptions(
+               baseUrl: baseUrl ?? AppEnvironment.apiBaseUrl,
+               connectTimeout: const Duration(seconds: 15),
+               receiveTimeout: const Duration(seconds: 30),
+               headers: const {'Content-Type': 'application/json'},
+             ),
+           ),
+       _webAuthenticate = webAuthenticate ?? FlutterWebAuth2.authenticate;
 
   final Dio _dio;
   final WebAuthenticator _webAuthenticate;
@@ -132,13 +135,15 @@ class SynkoraAuthService implements AuthService {
 
   @override
   Future<TokenEnvelope> signInWithProvider(String provider) async {
-    final loginUrl = Uri.parse('${_dio.options.baseUrl}/api/v1/auth/$provider/login')
-        .replace(
-          queryParameters: {
-            'redirect_url': '${AppEnvironment.mobileOAuthRedirectScheme}://auth-callback',
-          },
-        )
-        .toString();
+    final loginUrl =
+        Uri.parse('${_dio.options.baseUrl}/api/v1/auth/$provider/login')
+            .replace(
+              queryParameters: {
+                'redirect_url':
+                    '${AppEnvironment.mobileOAuthRedirectScheme}://auth-callback',
+              },
+            )
+            .toString();
 
     String callbackUrl;
     try {

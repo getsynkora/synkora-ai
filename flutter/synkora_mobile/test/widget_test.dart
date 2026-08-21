@@ -53,42 +53,36 @@ void main() {
       },
     );
 
-    test(
-      'signs in via a social provider and hydrates identity',
-      () async {
-        final authService = _FakeAuthService.singleTenant();
-        final tokenStore = _FakeTokenStore();
-        final controller = SessionController(
-          authService: authService,
-          tokenStore: tokenStore,
-        );
+    test('signs in via a social provider and hydrates identity', () async {
+      final authService = _FakeAuthService.singleTenant();
+      final tokenStore = _FakeTokenStore();
+      final controller = SessionController(
+        authService: authService,
+        tokenStore: tokenStore,
+      );
 
-        await controller.signInWithProvider('google');
+      await controller.signInWithProvider('google');
 
-        expect(controller.stage, SessionStage.ready);
-        expect(controller.account?.email, 'raju@synkora.ai');
-        expect(tokenStore.saved?.accessToken, 'access-1');
-        expect(controller.isBusy, isFalse);
-      },
-    );
+      expect(controller.stage, SessionStage.ready);
+      expect(controller.account?.email, 'raju@synkora.ai');
+      expect(tokenStore.saved?.accessToken, 'access-1');
+      expect(controller.isBusy, isFalse);
+    });
 
-    test(
-      'surfaces an error when social sign-in fails',
-      () async {
-        final authService = _FakeAuthService.singleTenant()
-          ..socialLoginError = Exception('Sign-in failed');
-        final controller = SessionController(
-          authService: authService,
-          tokenStore: _FakeTokenStore(),
-        );
+    test('surfaces an error when social sign-in fails', () async {
+      final authService = _FakeAuthService.singleTenant()
+        ..socialLoginError = Exception('Sign-in failed');
+      final controller = SessionController(
+        authService: authService,
+        tokenStore: _FakeTokenStore(),
+      );
 
-        await controller.signInWithProvider('google');
+      await controller.signInWithProvider('google');
 
-        expect(controller.error, 'Sign-in failed');
-        expect(controller.isBusy, isFalse);
-        expect(controller.stage, isNot(SessionStage.ready));
-      },
-    );
+      expect(controller.error, 'Sign-in failed');
+      expect(controller.isBusy, isFalse);
+      expect(controller.stage, isNot(SessionStage.ready));
+    });
   });
 }
 

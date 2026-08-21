@@ -27,13 +27,16 @@ void main() {
       expect(callback.errorMessage, 'Sign-in failed');
     });
 
-    test('treats a success status without an exchange code as not successful', () {
-      final callback = SocialAuthCallback.fromUri(
-        Uri.parse('synkora://auth-callback?login=success&provider=google'),
-      );
+    test(
+      'treats a success status without an exchange code as not successful',
+      () {
+        final callback = SocialAuthCallback.fromUri(
+          Uri.parse('synkora://auth-callback?login=success&provider=google'),
+        );
 
-      expect(callback.isSuccess, isFalse);
-    });
+        expect(callback.isSuccess, isFalse);
+      },
+    );
 
     test('treats a missing login param as not successful', () {
       final callback = SocialAuthCallback.fromUri(
