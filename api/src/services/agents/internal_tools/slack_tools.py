@@ -798,7 +798,9 @@ async def _heal_unreachable_image_blocks(
     if error.response.get("error") != "invalid_blocks":
         return None
 
-    indices = {int(m.group(1)) for err in error.response.get("errors") or [] for m in _IMAGE_BLOCK_ERROR_RE.finditer(err)}
+    indices = {
+        int(m.group(1)) for err in error.response.get("errors") or [] for m in _IMAGE_BLOCK_ERROR_RE.finditer(err)
+    }
     if not indices:
         return None
 

@@ -854,9 +854,7 @@ class TestInternalSlackPostBlocks:
         mock_s3_storage = AsyncMock()
         mock_s3_storage.download_if_own_url.return_value = None
 
-        blocks = json.dumps(
-            [{"type": "image", "image_url": "https://example.com/not-ours.png", "alt_text": "x"}]
-        )
+        blocks = json.dumps([{"type": "image", "image_url": "https://example.com/not-ours.png", "alt_text": "x"}])
 
         with (
             patch(

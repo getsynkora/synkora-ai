@@ -42,9 +42,7 @@ class TestEnsureCollectionCreatesRealCollection:
         mock_client.create_collection = AsyncMock()
 
         with patch.object(backend, "_get_client", return_value=mock_client):
-            await backend._ensure_collection(
-                tenant_id="tenant-abc", knowledge_base_id="42", tier="hot", dense_dim=384
-            )
+            await backend._ensure_collection(tenant_id="tenant-abc", knowledge_base_id="42", tier="hot", dense_dim=384)
 
         mock_client.create_collection.assert_awaited_once()
         _, kwargs = mock_client.create_collection.call_args

@@ -543,9 +543,7 @@ class TestStreamAgentResponse:
         assert any("error" in str(e).lower() for e in events)
 
     @pytest.mark.asyncio
-    async def test_stream_agent_response_persists_new_page_context(
-        self, mock_agent_loader, mock_chat_service, mock_db
-    ):
+    async def test_stream_agent_response_persists_new_page_context(self, mock_agent_loader, mock_chat_service, mock_db):
         """New page_context (different from the last user turn) is saved to metadata."""
         from src.services.agents.chat_stream_service import ChatStreamService
 
@@ -940,8 +938,7 @@ class TestBuildPrompt:
 
                 user_messages = [m for m in messages if m.get("role") == "user"]
                 assert any(
-                    "[Page context" in m["content"] and "what's their plan?" in m["content"]
-                    for m in user_messages
+                    "[Page context" in m["content"] and "what's their plan?" in m["content"] for m in user_messages
                 )
 
 

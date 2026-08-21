@@ -266,9 +266,7 @@ class ElasticsearchBackend(BaseSearchBackend):
                 pass
         return deleted
 
-    async def update_tier(
-        self, tenant_id: str, knowledge_base_id: str, doc_ids: list[str], new_tier: str
-    ) -> int:
+    async def update_tier(self, tenant_id: str, knowledge_base_id: str, doc_ids: list[str], new_tier: str) -> int:
         client = self._get_client()
         prefix = self._index_prefix()
         updated = 0

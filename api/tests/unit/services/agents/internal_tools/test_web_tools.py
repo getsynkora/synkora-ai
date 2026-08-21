@@ -58,9 +58,7 @@ class TestInternalDownloadUrlBytes:
     async def test_blocks_unsafe_url_via_ssrf_check(self):
         from src.services.agents.internal_tools.web_tools import internal_download_url_bytes
 
-        with patch(
-            "src.services.agents.internal_tools.web_tools._is_url_safe", new_callable=AsyncMock
-        ) as mock_safe:
+        with patch("src.services.agents.internal_tools.web_tools._is_url_safe", new_callable=AsyncMock) as mock_safe:
             mock_safe.return_value = (False, "Blocked hostname: localhost")
 
             result = await internal_download_url_bytes("http://localhost/evil.png")
@@ -75,9 +73,7 @@ class TestInternalDownloadUrlBytes:
         response = _make_response(headers={"content-type": "image/png"}, chunks=[b"\x89PNG raw bytes"])
 
         with (
-            patch(
-                "src.services.agents.internal_tools.web_tools._is_url_safe", new_callable=AsyncMock
-            ) as mock_safe,
+            patch("src.services.agents.internal_tools.web_tools._is_url_safe", new_callable=AsyncMock) as mock_safe,
             patch("httpx.AsyncClient.stream", return_value=_FakeStream(response)),
         ):
             mock_safe.return_value = (True, None)
@@ -94,9 +90,7 @@ class TestInternalDownloadUrlBytes:
         response = _make_response(is_redirect=True)
 
         with (
-            patch(
-                "src.services.agents.internal_tools.web_tools._is_url_safe", new_callable=AsyncMock
-            ) as mock_safe,
+            patch("src.services.agents.internal_tools.web_tools._is_url_safe", new_callable=AsyncMock) as mock_safe,
             patch("httpx.AsyncClient.stream", return_value=_FakeStream(response)),
         ):
             mock_safe.return_value = (True, None)
@@ -113,9 +107,7 @@ class TestInternalDownloadUrlBytes:
         response = _make_response(status_code=404)
 
         with (
-            patch(
-                "src.services.agents.internal_tools.web_tools._is_url_safe", new_callable=AsyncMock
-            ) as mock_safe,
+            patch("src.services.agents.internal_tools.web_tools._is_url_safe", new_callable=AsyncMock) as mock_safe,
             patch("httpx.AsyncClient.stream", return_value=_FakeStream(response)),
         ):
             mock_safe.return_value = (True, None)
@@ -132,9 +124,7 @@ class TestInternalDownloadUrlBytes:
         response = _make_response(headers={"content-type": "image/png"}, chunks=[b"x" * 100])
 
         with (
-            patch(
-                "src.services.agents.internal_tools.web_tools._is_url_safe", new_callable=AsyncMock
-            ) as mock_safe,
+            patch("src.services.agents.internal_tools.web_tools._is_url_safe", new_callable=AsyncMock) as mock_safe,
             patch("httpx.AsyncClient.stream", return_value=_FakeStream(response)),
         ):
             mock_safe.return_value = (True, None)
@@ -163,9 +153,7 @@ class TestInternalDownloadUrlBytes:
         response.aiter_bytes = _endless_chunks
 
         with (
-            patch(
-                "src.services.agents.internal_tools.web_tools._is_url_safe", new_callable=AsyncMock
-            ) as mock_safe,
+            patch("src.services.agents.internal_tools.web_tools._is_url_safe", new_callable=AsyncMock) as mock_safe,
             patch("httpx.AsyncClient.stream", return_value=_FakeStream(response)),
         ):
             mock_safe.return_value = (True, None)
@@ -182,9 +170,7 @@ class TestInternalDownloadUrlBytes:
         from src.services.agents.internal_tools.web_tools import internal_download_url_bytes
 
         with (
-            patch(
-                "src.services.agents.internal_tools.web_tools._is_url_safe", new_callable=AsyncMock
-            ) as mock_safe,
+            patch("src.services.agents.internal_tools.web_tools._is_url_safe", new_callable=AsyncMock) as mock_safe,
             patch(
                 "httpx.AsyncClient.stream",
                 return_value=_FakeStream(aenter_exception=httpx.TimeoutException("timed out")),
@@ -202,9 +188,7 @@ class TestInternalDownloadUrlBytes:
         from src.services.agents.internal_tools.web_tools import internal_download_url_bytes
 
         with (
-            patch(
-                "src.services.agents.internal_tools.web_tools._is_url_safe", new_callable=AsyncMock
-            ) as mock_safe,
+            patch("src.services.agents.internal_tools.web_tools._is_url_safe", new_callable=AsyncMock) as mock_safe,
             patch(
                 "src.services.agents.internal_tools.web_tools._load_platform_blocked_domains",
                 return_value=["evil.com"],
@@ -221,9 +205,7 @@ class TestInternalDownloadUrlBytes:
     async def test_blocks_domain_via_config_blocklist(self):
         from src.services.agents.internal_tools.web_tools import internal_download_url_bytes
 
-        with patch(
-            "src.services.agents.internal_tools.web_tools._is_url_safe", new_callable=AsyncMock
-        ) as mock_safe:
+        with patch("src.services.agents.internal_tools.web_tools._is_url_safe", new_callable=AsyncMock) as mock_safe:
             mock_safe.return_value = (True, None)
 
             result = await internal_download_url_bytes(

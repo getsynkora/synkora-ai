@@ -262,7 +262,9 @@ class TestUploadDiagrams:
     chat UI's inline preview, but Slack has no inline SVG rendering — _upload_diagrams
     must convert to PNG (like chart events already do) and upload as an image file."""
 
-    _TINY_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10" fill="red"/></svg>'
+    _TINY_SVG = (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10" fill="red"/></svg>'
+    )
 
     @pytest.mark.asyncio
     async def test_upload_diagram_with_svg_content(self, handler, mock_client):
