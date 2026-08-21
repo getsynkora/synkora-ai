@@ -1138,3 +1138,102 @@ class TestStreamWithTools:
             assert len(state.chart_data) == 1
             assert state.chart_data[0]["type"] == "bar"
             assert state.chart_data[0]["title"] == "Test Chart"
+
+    @pytest.mark.asyncio
+    async def test_stream_with_tools_forwards_card_set_event(
+        self,
+        mock_agent_loader,
+        mock_chat_service,
+        mock_output_sanitizer,
+        mock_db,
+        sample_db_agent,
+        sample_agent,
+    ):
+        """card_set events from the tool-calling loop must be forwarded as SSE events
+        (Slack's slack_message_handler.py reads this generator directly and relies on
+        the event reaching it to post a Slack `card` block set)."""
+        from src.services.agents.chat_stream_service import ChatStreamService, StreamState
+
+        service = ChatStreamService(mock_agent_loader, mock_chat_service, output_sanitizer=mock_output_sanitizer)
+
+        state = StreamState(assistant_chunks=[], chart_data=[])
+        start_time = 1000.0
+
+        with patch("src.services.agents.function_calling.FunctionCallingHandler") as mock_handler:
+
+            async def mock_stream(*args, **kwargs):
+                yield {"type": "card_set", "cards": [{"title": "Result 1"}]}
+
+            mock_handler_instance = Mock()
+            mock_handler_instance.generate_with_functions_stream = mock_stream
+            mock_handler.return_value = mock_handler_instance
+
+            events = []
+            async for event in service._stream_with_tools(
+                agent=sample_agent,
+                db_agent=sample_db_agent,
+                prompt="test",
+                messages=[{"role": "user", "content": "test"}],
+                tool_names=["web_search"],
+                trace_id=None,
+                conversation_uuid=None,
+                user_message_id=None,
+                start_time=start_time,
+                state=state,
+                db=mock_db,
+            ):
+                events.append(event)
+
+            assert any('"type": "card_set"' in str(e) for e in events)
+
+    @pytest.mark.asyncio
+    async def test_stream_with_tools_forwards_video_event(
+        self,
+        mock_agent_loader,
+        mock_chat_service,
+        mock_output_sanitizer,
+        mock_db,
+        sample_db_agent,
+        sample_agent,
+    ):
+        """video events from the tool-calling loop must be forwarded as SSE events
+        (Slack's slack_message_handler.py reads this generator directly and relies on
+        the event reaching it to post a Slack `video` block)."""
+        from src.services.agents.chat_stream_service import ChatStreamService, StreamState
+
+        service = ChatStreamService(mock_agent_loader, mock_chat_service, output_sanitizer=mock_output_sanitizer)
+
+        state = StreamState(assistant_chunks=[], chart_data=[])
+        start_time = 1000.0
+
+        with patch("src.services.agents.function_calling.FunctionCallingHandler") as mock_handler:
+
+            async def mock_stream(*args, **kwargs):
+                yield {
+                    "type": "video",
+                    "video_url": "https://www.youtube.com/embed/abc123",
+                    "thumbnail_url": "https://img.example.com/abc123.jpg",
+                    "title": "How Slack Works",
+                }
+
+            mock_handler_instance = Mock()
+            mock_handler_instance.generate_with_functions_stream = mock_stream
+            mock_handler.return_value = mock_handler_instance
+
+            events = []
+            async for event in service._stream_with_tools(
+                agent=sample_agent,
+                db_agent=sample_db_agent,
+                prompt="test",
+                messages=[{"role": "user", "content": "test"}],
+                tool_names=["internal_youtube_get_transcript"],
+                trace_id=None,
+                conversation_uuid=None,
+                user_message_id=None,
+                start_time=start_time,
+                state=state,
+                db=mock_db,
+            ):
+                events.append(event)
+
+            assert any('"type": "video"' in str(e) for e in events)

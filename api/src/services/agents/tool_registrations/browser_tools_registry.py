@@ -6,9 +6,37 @@ Provides web scraping, content extraction, and full interactive browser automati
 """
 
 import logging
+import uuid
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+
+def _resolve_session_id(kwargs: dict[str, Any], runtime_context: Any) -> str:
+    """
+    Resolve the browser session_id for a tool call.
+
+    An explicit ``session_id`` kwarg always wins. Otherwise the session is scoped
+    to the current conversation (falling back to a stable per-tenant id for
+    background tasks with no conversation_id), mirroring
+    ``workspace_manager.get_workspace_path_from_config``'s session scoping.
+
+    Without this, every call that omits ``session_id`` would share one global
+    "default" browser session/page-pool across every tenant and conversation.
+    """
+    session_id = kwargs.get("session_id")
+    if session_id:
+        return session_id
+
+    tenant_id = getattr(runtime_context, "tenant_id", None) if runtime_context else None
+    conversation_id = getattr(runtime_context, "conversation_id", None) if runtime_context else None
+
+    if conversation_id:
+        return str(conversation_id)
+    if tenant_id:
+        tenant_uuid = tenant_id if isinstance(tenant_id, uuid.UUID) else uuid.UUID(str(tenant_id))
+        return str(uuid.uuid5(tenant_uuid, "browser_background"))
+    return "default"
 
 
 def register_browser_tools(registry):
@@ -100,7 +128,7 @@ def register_browser_tools(registry):
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_navigate(
             url=kwargs.get("url"),
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             wait_until=kwargs.get("wait_until", "load"),
             timeout_ms=kwargs.get("timeout_ms"),
@@ -111,7 +139,7 @@ def register_browser_tools(registry):
     async def browser_snapshot_wrapper(config: dict[str, Any] | None = None, **kwargs):
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_snapshot(
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             interactive_only=kwargs.get("interactive_only", True),
             max_elements=kwargs.get("max_elements", 150),
@@ -125,7 +153,7 @@ def register_browser_tools(registry):
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_click(
             ref=kwargs.get("ref"),
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             double_click=kwargs.get("double_click", False),
             button=kwargs.get("button", "left"),
@@ -141,7 +169,7 @@ def register_browser_tools(registry):
         return await internal_browser_fill(
             ref=kwargs.get("ref"),
             text=kwargs.get("text"),
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             clear_first=kwargs.get("clear_first", True),
             timeout_ms=kwargs.get("timeout_ms"),
@@ -155,7 +183,7 @@ def register_browser_tools(registry):
         return await internal_browser_type(
             ref=kwargs.get("ref"),
             text=kwargs.get("text"),
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             delay_ms=kwargs.get("delay_ms", 0),
             submit=kwargs.get("submit", False),
@@ -169,7 +197,7 @@ def register_browser_tools(registry):
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_fill_form(
             fields=kwargs.get("fields", []),
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             submit_ref=kwargs.get("submit_ref"),
             timeout_ms=kwargs.get("timeout_ms"),
@@ -182,7 +210,7 @@ def register_browser_tools(registry):
         return await internal_browser_select(
             ref=kwargs.get("ref"),
             values=kwargs.get("values", []),
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             timeout_ms=kwargs.get("timeout_ms"),
             runtime_context=runtime_context,
@@ -194,7 +222,7 @@ def register_browser_tools(registry):
         return await internal_browser_check(
             ref=kwargs.get("ref"),
             checked=kwargs.get("checked", True),
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             timeout_ms=kwargs.get("timeout_ms"),
             runtime_context=runtime_context,
@@ -205,7 +233,7 @@ def register_browser_tools(registry):
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_press(
             key=kwargs.get("key"),
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             ref=kwargs.get("ref"),
             timeout_ms=kwargs.get("timeout_ms"),
@@ -216,7 +244,7 @@ def register_browser_tools(registry):
     async def browser_wait_wrapper(config: dict[str, Any] | None = None, **kwargs):
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_wait(
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             time_ms=kwargs.get("time_ms"),
             selector=kwargs.get("selector"),
@@ -232,7 +260,7 @@ def register_browser_tools(registry):
     async def browser_screenshot_wrapper(config: dict[str, Any] | None = None, **kwargs):
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_screenshot(
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             ref=kwargs.get("ref"),
             full_page=kwargs.get("full_page", False),
@@ -245,7 +273,7 @@ def register_browser_tools(registry):
     async def browser_get_cookies_wrapper(config: dict[str, Any] | None = None, **kwargs):
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_get_cookies(
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             urls=kwargs.get("urls"),
             runtime_context=runtime_context,
@@ -256,7 +284,7 @@ def register_browser_tools(registry):
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_set_cookies(
             cookies=kwargs.get("cookies", []),
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             runtime_context=runtime_context,
             config=config,
@@ -265,7 +293,7 @@ def register_browser_tools(registry):
     async def browser_clear_cookies_wrapper(config: dict[str, Any] | None = None, **kwargs):
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_clear_cookies(
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             runtime_context=runtime_context,
             config=config,
@@ -274,7 +302,7 @@ def register_browser_tools(registry):
     async def browser_new_page_wrapper(config: dict[str, Any] | None = None, **kwargs):
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_new_page(
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             url=kwargs.get("url"),
             runtime_context=runtime_context,
             config=config,
@@ -284,7 +312,7 @@ def register_browser_tools(registry):
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_close_page(
             page_id=kwargs.get("page_id"),
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             runtime_context=runtime_context,
             config=config,
         )
@@ -292,7 +320,7 @@ def register_browser_tools(registry):
     async def browser_list_pages_wrapper(config: dict[str, Any] | None = None, **kwargs):
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_list_pages(
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             runtime_context=runtime_context,
             config=config,
         )
@@ -300,7 +328,7 @@ def register_browser_tools(registry):
     async def browser_list_frames_wrapper(config: dict[str, Any] | None = None, **kwargs):
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_list_frames(
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             runtime_context=runtime_context,
             config=config,
@@ -309,7 +337,7 @@ def register_browser_tools(registry):
     async def browser_wait_for_new_page_wrapper(config: dict[str, Any] | None = None, **kwargs):
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_wait_for_new_page(
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             timeout_ms=kwargs.get("timeout_ms", 15000),
             runtime_context=runtime_context,
             config=config,
@@ -318,7 +346,7 @@ def register_browser_tools(registry):
     async def browser_close_session_wrapper(config: dict[str, Any] | None = None, **kwargs):
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_close_session(
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             runtime_context=runtime_context,
             config=config,
         )
@@ -326,7 +354,7 @@ def register_browser_tools(registry):
     async def browser_get_console_wrapper(config: dict[str, Any] | None = None, **kwargs):
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_get_console(
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             limit=kwargs.get("limit", 50),
             runtime_context=runtime_context,
@@ -336,7 +364,7 @@ def register_browser_tools(registry):
     async def browser_get_errors_wrapper(config: dict[str, Any] | None = None, **kwargs):
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_get_errors(
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             limit=kwargs.get("limit", 20),
             runtime_context=runtime_context,
@@ -888,7 +916,7 @@ Workflow:
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_set_country(
             country_code=kwargs.get("country_code"),
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             apply_to_existing=kwargs.get("apply_to_existing", True),
             proxy_url=kwargs.get("proxy_url"),
             custom_latitude=kwargs.get("custom_latitude"),
@@ -905,7 +933,7 @@ Workflow:
             latitude=kwargs.get("latitude"),
             longitude=kwargs.get("longitude"),
             accuracy=kwargs.get("accuracy", 100),
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             runtime_context=runtime_context,
             config=config,
         )
@@ -929,7 +957,7 @@ Workflow:
     async def browser_get_current_location_wrapper(config: dict[str, Any] | None = None, **kwargs):
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_get_current_location(
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             runtime_context=runtime_context,
             config=config,
         )
@@ -938,7 +966,7 @@ Workflow:
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_set_proxy(
             proxy_url=kwargs.get("proxy_url"),
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             runtime_context=runtime_context,
             config=config,
         )
@@ -946,7 +974,7 @@ Workflow:
     async def browser_clear_proxy_wrapper(config: dict[str, Any] | None = None, **kwargs):
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_clear_proxy(
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             runtime_context=runtime_context,
             config=config,
         )
@@ -1129,7 +1157,7 @@ Popular proxy providers with country selection:
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_hover(
             ref=kwargs.get("ref"),
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             timeout_ms=kwargs.get("timeout_ms"),
             runtime_context=runtime_context,
@@ -1140,7 +1168,7 @@ Popular proxy providers with country selection:
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_scroll_into_view(
             ref=kwargs.get("ref"),
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             timeout_ms=kwargs.get("timeout_ms"),
             runtime_context=runtime_context,
@@ -1152,7 +1180,7 @@ Popular proxy providers with country selection:
         return await internal_browser_drag(
             source_ref=kwargs.get("source_ref"),
             target_ref=kwargs.get("target_ref"),
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             timeout_ms=kwargs.get("timeout_ms"),
             runtime_context=runtime_context,
@@ -1164,7 +1192,7 @@ Popular proxy providers with country selection:
         return await internal_browser_handle_dialog(
             action=kwargs.get("action", "accept"),
             prompt_text=kwargs.get("prompt_text"),
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             runtime_context=runtime_context,
             config=config,
@@ -1175,7 +1203,7 @@ Popular proxy providers with country selection:
         return await internal_browser_upload_file(
             file_ref=kwargs.get("file_ref"),
             file_paths=kwargs.get("file_paths", []),
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             timeout_ms=kwargs.get("timeout_ms"),
             runtime_context=runtime_context,
@@ -1186,7 +1214,7 @@ Popular proxy providers with country selection:
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_evaluate(
             expression=kwargs.get("expression"),
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             ref=kwargs.get("ref"),
             runtime_context=runtime_context,
@@ -1198,7 +1226,7 @@ Popular proxy providers with country selection:
         return await internal_browser_resize(
             width=kwargs.get("width"),
             height=kwargs.get("height"),
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             runtime_context=runtime_context,
             config=config,
@@ -1207,7 +1235,7 @@ Popular proxy providers with country selection:
     async def browser_pdf_wrapper(config: dict[str, Any] | None = None, **kwargs):
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_pdf(
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             path=kwargs.get("path"),
             format=kwargs.get("format", "Letter"),
@@ -1221,7 +1249,7 @@ Popular proxy providers with country selection:
         return await internal_browser_get_storage(
             storage_type=kwargs.get("storage_type", "local"),
             key=kwargs.get("key"),
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             runtime_context=runtime_context,
             config=config,
@@ -1233,7 +1261,7 @@ Popular proxy providers with country selection:
             key=kwargs.get("key"),
             value=kwargs.get("value"),
             storage_type=kwargs.get("storage_type", "local"),
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             runtime_context=runtime_context,
             config=config,
@@ -1243,7 +1271,7 @@ Popular proxy providers with country selection:
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_clear_storage(
             storage_type=kwargs.get("storage_type", "local"),
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             runtime_context=runtime_context,
             config=config,
@@ -1253,7 +1281,7 @@ Popular proxy providers with country selection:
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_set_offline(
             offline=kwargs.get("offline", True),
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             runtime_context=runtime_context,
             config=config,
@@ -1263,7 +1291,7 @@ Popular proxy providers with country selection:
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_set_extra_headers(
             headers=kwargs.get("headers", {}),
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             runtime_context=runtime_context,
             config=config,
         )
@@ -1273,7 +1301,7 @@ Popular proxy providers with country selection:
         return await internal_browser_set_http_credentials(
             username=kwargs.get("username"),
             password=kwargs.get("password"),
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             runtime_context=runtime_context,
             config=config,
         )
@@ -1282,7 +1310,7 @@ Popular proxy providers with country selection:
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_focus_page(
             page_id=kwargs.get("page_id"),
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             runtime_context=runtime_context,
             config=config,
         )
@@ -1290,7 +1318,7 @@ Popular proxy providers with country selection:
     async def browser_get_network_requests_wrapper(config: dict[str, Any] | None = None, **kwargs):
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_browser_get_network_requests(
-            session_id=kwargs.get("session_id", "default"),
+            session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             filter_type=kwargs.get("filter_pattern") or kwargs.get("filter_type"),
             limit=kwargs.get("limit", 50),

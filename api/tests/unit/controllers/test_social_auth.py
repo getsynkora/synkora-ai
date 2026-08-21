@@ -7,7 +7,8 @@ import pytest
 from fastapi import FastAPI, status
 from fastapi.testclient import TestClient
 
-from src.controllers.social_auth import router
+from src.config import settings
+from src.controllers.social_auth import _validate_redirect_url, router
 from src.core.database import get_async_db
 from src.middleware.auth_middleware import get_current_account
 
@@ -169,3 +170,50 @@ class TestAppleCallback:
             )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+class TestValidateRedirectUrl:
+    """Tests for the redirect URL validator (open-redirect protection + mobile deep link support)."""
+
+    def test_allows_mobile_custom_scheme(self):
+        """The native mobile app's registered callback scheme must be allowed through untouched."""
+        redirect = f"{settings.mobile_oauth_redirect_scheme}://auth-callback"
+
+        result = _validate_redirect_url(redirect, "https://app.example.com/signin")
+
+        assert result == redirect
+
+    def test_rejects_unrecognized_custom_scheme(self):
+        """Any other custom scheme is not the mobile app and must fall back to the safe default."""
+        result = _validate_redirect_url("evilapp://steal-tokens", "https://app.example.com/signin")
+
+        assert result == "https://app.example.com/signin"
+
+    def test_allows_same_host_web_redirect(self):
+        """Existing web same-host redirect behavior must be unaffected."""
+        result = _validate_redirect_url("https://app.example.com/dashboard", "https://app.example.com/signin")
+
+        assert result == "https://app.example.com/dashboard"
+
+
+class TestTokenExchange:
+    """Tests for the OAuth token-exchange endpoint."""
+
+    def test_returns_refresh_token_in_body(self, client):
+        """
+        Mobile clients cannot rely on the HttpOnly refresh_token cookie (no cookie jar
+        wired up), so the refresh token must also be available in the JSON body — matching
+        how the regular email/password /console/api/auth/signin endpoint already behaves.
+        """
+        test_client, _mock_db = client
+
+        with patch(
+            "src.controllers.social_auth._consume_exchange_tokens",
+            new=AsyncMock(return_value={"access_token": "at123", "refresh_token": "rt456"}),
+        ):
+            response = test_client.get("/api/v1/auth/token-exchange?code=abc")
+
+        assert response.status_code == status.HTTP_200_OK
+        body = response.json()
+        assert body["access_token"] == "at123"
+        assert body["refresh_token"] == "rt456"

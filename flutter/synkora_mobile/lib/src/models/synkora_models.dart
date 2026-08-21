@@ -77,6 +77,32 @@ class TokenEnvelope {
   }
 }
 
+class SocialAuthCallback {
+  const SocialAuthCallback({
+    required this.status,
+    this.provider,
+    this.exchangeCode,
+    this.errorMessage,
+  });
+
+  final String status;
+  final String? provider;
+  final String? exchangeCode;
+  final String? errorMessage;
+
+  bool get isSuccess => status == 'success' && exchangeCode != null;
+
+  factory SocialAuthCallback.fromUri(Uri uri) {
+    final params = uri.queryParameters;
+    return SocialAuthCallback(
+      status: _stringValue(params['login'], fallback: 'error'),
+      provider: _nullableStringValue(params['provider']),
+      exchangeCode: _nullableStringValue(params['exchange_code']),
+      errorMessage: _nullableStringValue(params['message']),
+    );
+  }
+}
+
 class SessionIdentity {
   const SessionIdentity({required this.account, required this.tenants});
 

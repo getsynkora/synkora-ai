@@ -365,6 +365,268 @@ class TestFunctionCallingHandler:
         mock_langfuse.create_generation.assert_called_once()
 
 
+class TestCardSetAndVideoEmission:
+    """internal_youtube_search_videos/web_search/GitHub issue tools and YouTube transcript
+    tools trigger a side-channel `card_set`/`video` SSE event (bypassing the LLM, which
+    can only ever produce text and cannot emit Block Kit JSON itself) so Slack can render
+    native rich blocks instead of plain auto-unfurled URLs."""
+
+    @staticmethod
+    def _tool_call_responses(func_name: str) -> tuple[MagicMock, MagicMock]:
+        response1 = MagicMock()
+        tool_call = MagicMock()
+        tool_call.function.name = func_name
+        tool_call.function.arguments = "{}"
+        response1.choices = [MagicMock()]
+        response1.choices[0].message.tool_calls = [tool_call]
+
+        response2 = MagicMock()
+        response2.choices = [MagicMock()]
+        response2.choices[0].message.tool_calls = None
+        response2.choices[0].message.content = "Final"
+        return response1, response2
+
+    async def _run_stream(self, handler, mock_llm_client, mock_tool_registry, func_name, tool_result) -> list[dict]:
+        async def mock_generator(*args, **kwargs):
+            yield "Final"
+
+        mock_llm_client.generate_content_stream_with_messages = mock_generator
+        response1, response2 = self._tool_call_responses(func_name)
+
+        with patch.object(handler, "_generate_with_tools", new_callable=AsyncMock) as mock_gen_tools:
+            mock_gen_tools.side_effect = [response1, response2]
+            mock_tool_registry.execute_tool.return_value = tool_result
+            return [c async for c in handler.generate_with_functions_stream("go")]
+
+    @pytest.mark.asyncio
+    async def test_youtube_search_videos_emits_card_set(self, handler, mock_llm_client, mock_tool_registry):
+        tool_result = {
+            "success": True,
+            "videos": [
+                {
+                    "title": "Intro to Slack",
+                    "channel": "Slack",
+                    "published_at": "2024-01-01T00:00:00Z",
+                    "url": "https://www.youtube.com/watch?v=abc123",
+                    "thumbnail_url": "https://i.ytimg.com/vi/abc123/hqdefault.jpg",
+                    "video_id": "abc123",
+                }
+            ],
+        }
+        chunks = await self._run_stream(
+            handler, mock_llm_client, mock_tool_registry, "internal_youtube_search_videos", tool_result
+        )
+
+        card_set_events = [c for c in chunks if c["type"] == "card_set"]
+        assert len(card_set_events) == 1
+        cards = card_set_events[0]["cards"]
+        assert len(cards) == 1
+        assert cards[0]["title"] == "Intro to Slack"
+        assert cards[0]["hero_image_url"] == "https://i.ytimg.com/vi/abc123/hqdefault.jpg"
+        assert cards[0]["actions"][0]["url"] == "https://www.youtube.com/watch?v=abc123"
+
+    @pytest.mark.asyncio
+    async def test_web_search_emits_card_set_capped_at_5(self, handler, mock_llm_client, mock_tool_registry):
+        tool_result = {
+            "query": "slack",
+            "results": [
+                {"title": f"Result {i}", "url": f"https://example.com/{i}", "snippet": f"Snippet {i}"} for i in range(7)
+            ],
+        }
+        chunks = await self._run_stream(handler, mock_llm_client, mock_tool_registry, "web_search", tool_result)
+
+        card_set_events = [c for c in chunks if c["type"] == "card_set"]
+        assert len(card_set_events) == 1
+        cards = card_set_events[0]["cards"]
+        assert len(cards) == 5
+        assert cards[0]["title"] == "Result 0"
+        assert cards[0]["body"] == "Snippet 0"
+
+    @pytest.mark.asyncio
+    async def test_github_get_issue_emits_card_set(self, handler, mock_llm_client, mock_tool_registry):
+        tool_result = {
+            "success": True,
+            "issue": {
+                "number": 42,
+                "title": "Bug in login",
+                "state": "open",
+                "html_url": "https://github.com/o/r/issues/42",
+                "labels": ["bug", "urgent"],
+            },
+        }
+        chunks = await self._run_stream(
+            handler, mock_llm_client, mock_tool_registry, "internal_github_get_issue", tool_result
+        )
+
+        card_set_events = [c for c in chunks if c["type"] == "card_set"]
+        assert len(card_set_events) == 1
+        cards = card_set_events[0]["cards"]
+        assert len(cards) == 1
+        assert cards[0]["title"] == "#42: Bug in login"
+        assert "open" in cards[0]["subtitle"]
+        assert "bug" in cards[0]["subtitle"]
+        assert cards[0]["actions"][0]["url"] == "https://github.com/o/r/issues/42"
+
+    @pytest.mark.asyncio
+    async def test_github_list_issues_emits_one_card_per_issue(self, handler, mock_llm_client, mock_tool_registry):
+        tool_result = {
+            "success": True,
+            "issues": [
+                {"number": 1, "title": "First", "state": "open", "html_url": "https://github.com/o/r/issues/1"},
+                {"number": 2, "title": "Second", "state": "closed", "html_url": "https://github.com/o/r/issues/2"},
+            ],
+        }
+        chunks = await self._run_stream(
+            handler, mock_llm_client, mock_tool_registry, "internal_github_list_issues", tool_result
+        )
+
+        card_set_events = [c for c in chunks if c["type"] == "card_set"]
+        assert len(card_set_events) == 1
+        cards = card_set_events[0]["cards"]
+        assert len(cards) == 2
+        assert cards[0]["title"] == "#1: First"
+        assert cards[1]["title"] == "#2: Second"
+
+    @pytest.mark.asyncio
+    async def test_github_list_issues_emits_card_set_capped_at_5(self, handler, mock_llm_client, mock_tool_registry):
+        tool_result = {
+            "success": True,
+            "issues": [
+                {"number": i, "title": f"Issue {i}", "state": "open", "html_url": f"https://github.com/o/r/issues/{i}"}
+                for i in range(7)
+            ],
+        }
+        chunks = await self._run_stream(
+            handler, mock_llm_client, mock_tool_registry, "internal_github_list_issues", tool_result
+        )
+
+        card_set_events = [c for c in chunks if c["type"] == "card_set"]
+        assert len(card_set_events[0]["cards"]) == 5
+
+    @pytest.mark.asyncio
+    async def test_github_search_issues_emits_one_card_per_item(self, handler, mock_llm_client, mock_tool_registry):
+        tool_result = {
+            "success": True,
+            "total_count": 1,
+            "items": [
+                {
+                    "number": 7,
+                    "title": "Flaky test",
+                    "state": "open",
+                    "html_url": "https://github.com/o/r/pull/7",
+                    "is_pull_request": True,
+                }
+            ],
+        }
+        chunks = await self._run_stream(
+            handler, mock_llm_client, mock_tool_registry, "internal_github_search_issues", tool_result
+        )
+
+        card_set_events = [c for c in chunks if c["type"] == "card_set"]
+        assert len(card_set_events) == 1
+        assert card_set_events[0]["cards"][0]["title"] == "#7: Flaky test"
+
+    @pytest.mark.asyncio
+    async def test_github_search_issues_emits_card_set_capped_at_5(self, handler, mock_llm_client, mock_tool_registry):
+        tool_result = {
+            "success": True,
+            "total_count": 7,
+            "items": [
+                {"number": i, "title": f"Item {i}", "state": "open", "html_url": f"https://github.com/o/r/pull/{i}"}
+                for i in range(7)
+            ],
+        }
+        chunks = await self._run_stream(
+            handler, mock_llm_client, mock_tool_registry, "internal_github_search_issues", tool_result
+        )
+
+        card_set_events = [c for c in chunks if c["type"] == "card_set"]
+        assert len(card_set_events[0]["cards"]) == 5
+
+    @pytest.mark.asyncio
+    async def test_youtube_search_videos_emits_card_set_capped_at_5(self, handler, mock_llm_client, mock_tool_registry):
+        tool_result = {
+            "success": True,
+            "videos": [
+                {"title": f"Video {i}", "url": f"https://www.youtube.com/watch?v={i}", "video_id": str(i)}
+                for i in range(7)
+            ],
+        }
+        chunks = await self._run_stream(
+            handler, mock_llm_client, mock_tool_registry, "internal_youtube_search_videos", tool_result
+        )
+
+        card_set_events = [c for c in chunks if c["type"] == "card_set"]
+        assert len(card_set_events[0]["cards"]) == 5
+
+    @pytest.mark.asyncio
+    async def test_youtube_transcript_emits_video_with_oembed_enrichment(
+        self, handler, mock_llm_client, mock_tool_registry, monkeypatch
+    ):
+        import httpx
+
+        class _FakeResponse:
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {"title": "How Slack Works", "thumbnail_url": "https://i.ytimg.com/vi/abc123/hqdefault.jpg"}
+
+        class _FakeAsyncClient:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                return False
+
+            async def get(self, url):
+                return _FakeResponse()
+
+        monkeypatch.setattr(httpx, "AsyncClient", _FakeAsyncClient)
+
+        tool_result = {"success": True, "video_id": "abc123", "full_text": "hello world"}
+        chunks = await self._run_stream(
+            handler, mock_llm_client, mock_tool_registry, "internal_youtube_get_transcript", tool_result
+        )
+
+        video_events = [c for c in chunks if c["type"] == "video"]
+        assert len(video_events) == 1
+        assert video_events[0]["video_url"] == "https://www.youtube.com/embed/abc123"
+        assert video_events[0]["thumbnail_url"] == "https://i.ytimg.com/vi/abc123/hqdefault.jpg"
+        assert video_events[0]["title"] == "How Slack Works"
+
+    @pytest.mark.asyncio
+    async def test_youtube_transcript_skips_video_event_when_oembed_fails(
+        self, handler, mock_llm_client, mock_tool_registry, monkeypatch
+    ):
+        import httpx
+
+        class _FailingAsyncClient:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                return False
+
+            async def get(self, url):
+                raise httpx.ConnectError("boom")
+
+        monkeypatch.setattr(httpx, "AsyncClient", _FailingAsyncClient)
+
+        tool_result = {"success": True, "video_id": "abc123", "full_text": "hello world"}
+        chunks = await self._run_stream(
+            handler, mock_llm_client, mock_tool_registry, "internal_youtube_get_transcript", tool_result
+        )
+
+        assert [c for c in chunks if c["type"] == "video"] == []
+
+
 # ---------------------------------------------------------------------------
 # _compact_schema
 # ---------------------------------------------------------------------------

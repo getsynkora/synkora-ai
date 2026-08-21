@@ -537,17 +537,11 @@ async def platform_check_integration(provider: str, runtime_context: Any = None)
                 "provider_username": github_app.app_name,
             }
 
-        # 5. Slack: a connected SlackBot (Socket Mode bot/app token) is a valid, independent
-        # credential source for internal_slack_* tools — no separate Slack OAuth app needed.
-        if provider.lower() == "slack":
-            slack_bot_id = await _resolve_slack_bot_id(db, runtime_context.tenant_id)
-            if slack_bot_id:
-                return {
-                    "connected": True,
-                    "auth_method": "slack_bot",
-                    "provider_email": None,
-                    "provider_username": None,
-                }
+        # Note: Slack can also be satisfied per-agent by a dedicated SlackBot (Socket Mode
+        # bot/app token) instead of an OAuth app — see _resolve_slack_bot_id. That check is
+        # intentionally NOT done here because this function has no agent context yet (it's
+        # called before the target agent exists): a SlackBot is a credential dedicated to
+        # one specific agent and must never be reported as "connected" for a different one.
 
         return {"connected": False, "auth_method": None, "provider_email": None, "provider_username": None}
 
@@ -2399,30 +2393,20 @@ async def _resolve_slack_bot_id(db: Any, tenant_id: Any, agent_id: Any = None) -
     Resolve an active SlackBot to use as the Slack credential for internal_slack_* tools.
 
     A connected SlackBot (Socket Mode bot/app token) is a valid, independent credential
-    source for Slack tools — it does not require a separate Slack OAuth app. Priority:
-    1. A SlackBot already linked to this specific agent
-    2. Any other active SlackBot for this tenant
+    source for Slack tools — it does not require a separate Slack OAuth app. However, a
+    bot is a dedicated credential for the agent it was connected to: it must NEVER be
+    silently reused as another agent's Slack credential, so there is no tenant-wide
+    fallback here — only a bot already linked to this exact agent counts.
     """
     from src.models.slack_bot import SlackBot
 
-    if agent_id:
-        result = await db.execute(
-            select(SlackBot.id)
-            .where(
-                SlackBot.agent_id == agent_id,
-                SlackBot.tenant_id == tenant_id,
-                SlackBot.is_active.is_(True),
-                SlackBot.deleted_at.is_(None),
-            )
-            .limit(1)
-        )
-        bot_id = result.scalar_one_or_none()
-        if bot_id:
-            return bot_id
+    if not agent_id:
+        return None
 
     result = await db.execute(
         select(SlackBot.id)
         .where(
+            SlackBot.agent_id == agent_id,
             SlackBot.tenant_id == tenant_id,
             SlackBot.is_active.is_(True),
             SlackBot.deleted_at.is_(None),

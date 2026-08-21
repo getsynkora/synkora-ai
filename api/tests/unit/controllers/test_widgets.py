@@ -433,3 +433,86 @@ class TestCapPageContext:
 
         pc = {"bad": object()}
         assert _cap_page_context(pc) is None
+
+
+class TestWidgetChatTenantId:
+    """Regression test: /widgets/chat must pass tenant_id to stream_agent_response
+    so Agent Lens can record the real session name instead of falling back to
+    the "Conversation" placeholder.
+    """
+
+    def test_widget_chat_passes_tenant_id_to_stream_agent_response(self, client, monkeypatch):
+        test_client, tenant_id, mock_db = client
+
+        agent_id = uuid.uuid4()
+        widget_id = uuid.uuid4()
+        mock_widget = _create_mock_widget(widget_id, agent_id, tenant_id)
+        mock_widget.enable_agent_routing = False
+        mock_widget.identity_verification_required = False
+        mock_widget.identity_secret = None
+        mock_widget.mobile_allowed = False
+
+        mock_agent = _create_mock_agent(agent_id, tenant_id)
+        mock_agent.slug = "test-agent"
+
+        from src.middleware.widget_auth import WidgetAuthMiddleware
+
+        monkeypatch.setattr(WidgetAuthMiddleware, "validate_api_key", AsyncMock(return_value=mock_widget))
+        monkeypatch.setattr(WidgetAuthMiddleware, "validate_domain", MagicMock(return_value=True))
+        monkeypatch.setattr(WidgetAuthMiddleware, "check_rate_limit_async", AsyncMock(return_value=True))
+
+        from src.services.security.advanced_prompt_scanner import advanced_prompt_scanner
+
+        monkeypatch.setattr(
+            advanced_prompt_scanner,
+            "scan_comprehensive_async",
+            AsyncMock(return_value={"is_safe": True, "risk_score": 0}),
+        )
+
+        agent_result = MagicMock()
+        agent_result.scalar_one_or_none.return_value = mock_agent
+
+        analytics_result = MagicMock()
+        analytics_result.scalar_one_or_none.return_value = None
+
+        hc_result = MagicMock()
+        hc_result.scalar_one_or_none.return_value = None
+
+        mock_db.execute = AsyncMock(side_effect=[agent_result, analytics_result, hc_result])
+        mock_db.commit = AsyncMock()
+        mock_db.close = AsyncMock()
+
+        def mock_add(obj):
+            if not getattr(obj, "id", None):
+                obj.id = uuid.uuid4()
+
+        mock_db.add.side_effect = mock_add
+        mock_db.refresh = AsyncMock()
+
+        from src.services.conversation_service import ConversationService
+
+        monkeypatch.setattr(ConversationService, "get_conversation_history_cached", AsyncMock(return_value=[]))
+
+        async def _empty_stream(*args, **kwargs):
+            return
+            yield  # pragma: no cover
+
+        captured = {}
+
+        def fake_stream_agent_response(*args, **kwargs):
+            captured["kwargs"] = kwargs
+            captured["args"] = args
+            return _empty_stream()
+
+        from src.services.agents.chat_stream_service import ChatStreamService
+
+        monkeypatch.setattr(ChatStreamService, "stream_agent_response", fake_stream_agent_response)
+
+        response = test_client.post(
+            "/widgets/chat",
+            headers={"X-Widget-API-Key": "widget_test_api_key_12345"},
+            json={"message": "Hello there"},
+        )
+
+        assert response.status_code == 200
+        assert captured["kwargs"].get("tenant_id") == mock_widget.tenant_id

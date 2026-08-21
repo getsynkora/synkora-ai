@@ -1336,7 +1336,7 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
             except Exception as e:
                 logger.error(f"HMAC verification error for widget {widget.id}: {e}")
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Identity verification failed")
-
+        
         # ── Sentry: tag/context every widget API call ──────────────────────────────
         # Tags make widget calls filterable/searchable in Sentry. The logging
         # integration (see app.py) already turns this logger.info call into a
@@ -1358,6 +1358,7 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
             },
         )
         logger.info(f"widget chat call: source={request.source} widget_id={widget.id}")
+
 
         # ── Widget user JWT for MCP servers ───────────────────────────────────────
         # Generate a short-lived signed JWT encoding the verified user context so
@@ -1680,6 +1681,7 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
             db=None,
             shared_state=_widget_shared_state if _widget_shared_state else None,
             page_context=page_context,
+            tenant_id=widget.tenant_id,
         )
 
         # Wrap stream to fire FCM push after done event

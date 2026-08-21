@@ -6,6 +6,7 @@ import os
 from datetime import UTC, datetime
 from io import BytesIO
 from typing import BinaryIO
+from urllib.parse import unquote, urlsplit
 from uuid import UUID
 
 import boto3
@@ -57,6 +58,11 @@ class S3StorageService:
         if endpoint_url:
             session_kwargs["endpoint_url"] = endpoint_url
 
+        # Remembered so extract_own_key_from_url() can recognize URLs pointing at our
+        # own storage (signed with either endpoint) without re-reading env vars.
+        self.internal_endpoint_url = endpoint_url
+        self.public_endpoint_url = os.getenv("AWS_PUBLIC_ENDPOINT_URL")
+
         # Force signature version 4 for MinIO compatibility
         # This ensures presigned URLs use X-Amz-Expires instead of Expires
         boto_config = Config(
@@ -69,7 +75,7 @@ class S3StorageService:
 
         # Create a separate client for presigned URLs using public endpoint
         # This ensures browser-accessible URLs have correct host in signature
-        public_endpoint = os.getenv("AWS_PUBLIC_ENDPOINT_URL")
+        public_endpoint = self.public_endpoint_url
         logger.debug(f"S3 config: endpoint_url={endpoint_url}, public_endpoint={public_endpoint}")
 
         if endpoint_url and public_endpoint and endpoint_url != public_endpoint:
@@ -448,6 +454,37 @@ class S3StorageService:
             # Assume it's already a key
             key = s3_url
 
+        return self.download_file(key)
+
+    def extract_own_key_from_url(self, url: str) -> str | None:
+        """
+        Return the S3 object key if `url` points at this service's own storage
+        (matches our internal or public endpoint + bucket), or None otherwise.
+
+        Presigned URLs are signed with AWS_PUBLIC_ENDPOINT_URL for browser access
+        (e.g. "http://localhost:9000" in dev), which isn't reachable from a
+        server-side fetch and gets correctly SSRF-blocked. This lets callers
+        recognize "this is our own storage" and fetch bytes directly via the S3
+        client instead, without weakening SSRF protection for any other URL.
+        """
+        parsed = urlsplit(url)
+        origin = f"{parsed.scheme}://{parsed.netloc}"
+
+        known_origins = {o for o in (self.internal_endpoint_url, self.public_endpoint_url) if o}
+        if origin not in known_origins:
+            return None
+
+        prefix = f"/{self.bucket_name}/"
+        if not parsed.path.startswith(prefix):
+            return None
+
+        return unquote(parsed.path[len(prefix) :])
+
+    async def download_if_own_url(self, url: str) -> bytes | None:
+        """Download bytes directly via the S3 client if `url` is our own storage, else None."""
+        key = self.extract_own_key_from_url(url)
+        if key is None:
+            return None
         return self.download_file(key)
 
     async def upload_file_streaming(

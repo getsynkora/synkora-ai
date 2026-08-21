@@ -102,6 +102,29 @@ class SessionController extends ChangeNotifier {
     }
   }
 
+  Future<void> signInWithProvider(String provider) async {
+    _isBusy = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final tokens = await _authService.signInWithProvider(provider);
+      _applyTokens(tokens);
+      final identity = await _authService.getCurrentIdentity(
+        tokens.accessToken,
+      );
+      await _hydrateIdentity(
+        identity,
+        preferredTenantId: tokens.tenantId,
+        forceTenantSelection: identity.tenants.length > 1,
+      );
+    } catch (error) {
+      _error = error.toString().replaceFirst('Exception: ', '');
+      _isBusy = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> selectTenant(String tenantId) async {
     final target = _tenants.cast<TenantMembership?>().firstWhere(
       (tenant) => tenant?.tenantId == tenantId,

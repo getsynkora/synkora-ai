@@ -24,6 +24,9 @@ MAX_CONTENT_LENGTH = 50000
 # Request timeout in seconds
 REQUEST_TIMEOUT = 30
 
+# Maximum bytes to download via internal_download_url_bytes
+MAX_DOWNLOAD_BYTES = 20 * 1024 * 1024  # 20MB
+
 # User agent for HTTP requests
 USER_AGENT = "AI-Agent/1.0 (Web Fetch Tool)"
 
@@ -230,6 +233,79 @@ async def _fetch_via_jina(url: str, max_length: int = MAX_CONTENT_LENGTH) -> dic
         }
     except Exception as e:
         return {"url": url, "error": f"Jina Reader fetch failed: {str(e)}"}
+
+
+async def internal_download_url_bytes(
+    url: str, max_bytes: int = MAX_DOWNLOAD_BYTES, config: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    """
+    Safely download raw bytes from a URL, enforcing SSRF protection and a size cap.
+
+    Unlike internal_web_fetch (which returns text/HTML content), this returns the
+    raw response body so callers can re-host it elsewhere (e.g. attach a
+    screenshot's S3 URL as a genuine Slack file upload).
+
+    Does not follow redirects — a redirect response is treated as an error so
+    that the SSRF check on the original URL cannot be bypassed via a hop.
+
+    Streams the response body and aborts as soon as max_bytes is exceeded,
+    rather than buffering the entire body before checking the size cap.
+
+    Args:
+        url: URL to download
+        max_bytes: Maximum allowed response size in bytes
+        config: Optional configuration dictionary (may contain "blocked_domains")
+
+    Returns a dict with either "content" (bytes) and "content_type", or "error".
+    """
+    if not url or not url.startswith(("http://", "https://")):
+        return {"error": "Invalid URL. Must start with http:// or https://"}
+
+    is_safe, error = await _is_url_safe(url)
+    if not is_safe:
+        return {"error": f"URL blocked for security: {error}"}
+
+    # Domain blocklist check (platform-level + any passed via config)
+    platform_blocked = _load_platform_blocked_domains()
+    agent_blocked: list[str] = (config or {}).get("blocked_domains", []) if config else []
+    all_blocked = platform_blocked + agent_blocked
+    if all_blocked and _is_domain_blocked(url, all_blocked):
+        parsed_host = urlparse(url).hostname or url
+        logger.warning("URL blocked by domain blocklist: %s", parsed_host)
+        return {"error": f"URL blocked by domain policy: {parsed_host}"}
+
+    try:
+        async with (
+            httpx.AsyncClient(
+                timeout=REQUEST_TIMEOUT,
+                follow_redirects=False,
+                headers={"User-Agent": USER_AGENT},
+            ) as client,
+            client.stream("GET", url) as response,
+        ):
+            if response.is_redirect:
+                return {"error": "Redirects are not supported for downloads; provide a direct URL"}
+
+            if response.status_code >= 400:
+                return {"error": f"HTTP {response.status_code}: {response.reason_phrase}"}
+
+            chunks: list[bytes] = []
+            total_bytes = 0
+            async for chunk in response.aiter_bytes():
+                total_bytes += len(chunk)
+                if total_bytes > max_bytes:
+                    return {"error": f"File exceeds maximum size of {max_bytes} bytes"}
+                chunks.append(chunk)
+
+            return {"content": b"".join(chunks), "content_type": response.headers.get("content-type", "")}
+
+    except httpx.TimeoutException:
+        return {"error": f"Request timed out after {REQUEST_TIMEOUT} seconds"}
+    except httpx.ConnectError as e:
+        return {"error": f"Connection error: {str(e)}"}
+    except Exception as e:
+        logger.warning(f"Error downloading URL {url}: {e}", exc_info=True)
+        return {"error": f"Failed to download URL: {str(e)}"}
 
 
 async def internal_web_fetch(

@@ -2438,6 +2438,18 @@ class ChatStreamService:
                     form_payload = {k: v for k, v in event.items() if k != "type"}
                     yield await generate_sse_event("form", form_payload)
 
+                elif event["type"] == "card_set":
+                    # Slack-only side channel (rendered as native `card` blocks by
+                    # slack_message_handler.py) — not persisted to conversation state.
+                    card_set_payload = {k: v for k, v in event.items() if k != "type"}
+                    yield await generate_sse_event("card_set", card_set_payload)
+
+                elif event["type"] == "video":
+                    # Slack-only side channel (rendered as a native `video` block by
+                    # slack_message_handler.py) — not persisted to conversation state.
+                    video_payload = {k: v for k, v in event.items() if k != "type"}
+                    yield await generate_sse_event("video", video_payload)
+
                 elif event["type"] == "vehicle_map":
                     map_payload = {k: v for k, v in event.items() if k != "type"}
                     yield await generate_sse_event("vehicle_map", map_payload)

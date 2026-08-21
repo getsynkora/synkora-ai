@@ -1,10 +1,25 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 
 import '../config/app_environment.dart';
 import '../models/synkora_models.dart';
 
+/// Opens [url] in a system browser/webview and resolves with the final redirect
+/// URL once the browser navigates to [callbackUrlScheme]. Abstracted as a typedef
+/// so tests can substitute a fake instead of driving a real browser.
+typedef WebAuthenticator =
+    Future<String> Function({
+      required String url,
+      required String callbackUrlScheme,
+    });
+
 abstract class AuthService {
   Future<AuthSession> signIn({required String email, required String password});
+
+  /// Signs in via a social provider (google, microsoft, apple) using the
+  /// backend's browser-redirect OAuth flow, capturing the callback through the
+  /// app's registered custom URL scheme.
+  Future<TokenEnvelope> signInWithProvider(String provider);
 
   Future<TokenEnvelope> refresh({
     required String refreshToken,
@@ -22,17 +37,21 @@ abstract class AuthService {
 }
 
 class SynkoraAuthService implements AuthService {
-  SynkoraAuthService({String? baseUrl})
-    : _dio = Dio(
-        BaseOptions(
-          baseUrl: baseUrl ?? AppEnvironment.apiBaseUrl,
-          connectTimeout: const Duration(seconds: 15),
-          receiveTimeout: const Duration(seconds: 30),
-          headers: const {'Content-Type': 'application/json'},
-        ),
-      );
+  SynkoraAuthService({String? baseUrl, Dio? dio, WebAuthenticator? webAuthenticate})
+    : _dio =
+          dio ??
+          Dio(
+            BaseOptions(
+              baseUrl: baseUrl ?? AppEnvironment.apiBaseUrl,
+              connectTimeout: const Duration(seconds: 15),
+              receiveTimeout: const Duration(seconds: 30),
+              headers: const {'Content-Type': 'application/json'},
+            ),
+          ),
+      _webAuthenticate = webAuthenticate ?? FlutterWebAuth2.authenticate;
 
   final Dio _dio;
+  final WebAuthenticator _webAuthenticate;
 
   @override
   Future<SessionIdentity> getCurrentIdentity(String accessToken) async {
@@ -106,6 +125,42 @@ class SynkoraAuthService implements AuthService {
         data: {'email': email, 'password': password},
       );
       return AuthSession.fromJson(response.data ?? const {});
+    } on DioException catch (error) {
+      throw _wrap(error);
+    }
+  }
+
+  @override
+  Future<TokenEnvelope> signInWithProvider(String provider) async {
+    final loginUrl = Uri.parse('${_dio.options.baseUrl}/api/v1/auth/$provider/login')
+        .replace(
+          queryParameters: {
+            'redirect_url': '${AppEnvironment.mobileOAuthRedirectScheme}://auth-callback',
+          },
+        )
+        .toString();
+
+    String callbackUrl;
+    try {
+      callbackUrl = await _webAuthenticate(
+        url: loginUrl,
+        callbackUrlScheme: AppEnvironment.mobileOAuthRedirectScheme,
+      );
+    } catch (_) {
+      throw Exception('Sign-in was cancelled or could not be completed.');
+    }
+
+    final callback = SocialAuthCallback.fromUri(Uri.parse(callbackUrl));
+    if (!callback.isSuccess) {
+      throw Exception(callback.errorMessage ?? 'Sign-in was not completed.');
+    }
+
+    try {
+      final response = await _dio.get<Map<String, dynamic>>(
+        '/api/v1/auth/token-exchange',
+        queryParameters: {'code': callback.exchangeCode},
+      );
+      return TokenEnvelope.fromJson(response.data ?? const {});
     } on DioException catch (error) {
       throw _wrap(error);
     }

@@ -288,9 +288,7 @@ class WhatsAppWebhookService:
 
         # Create new conversation
         conv_name = (
-            message_text.strip()[:60]
-            if message_text and message_text.strip()
-            else f"WhatsApp conversation with {user_phone}"
+            message_text.strip()[:60] if message_text and message_text.strip() else f"WhatsApp conversation with {user_phone}"
         )
         conversation = Conversation(
             agent_id=bot.agent_id,
