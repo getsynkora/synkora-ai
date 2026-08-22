@@ -22,7 +22,7 @@ export function ChatScreen({ agentName = 'platform_engineer_agent' }: Props) {
   const [messages, setMessages] = useState<ParsedMessage[]>([])
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
-  const [conversationId] = useState<string | null>(null)
+  const [conversationId, setConversationId] = useState<string | null>(null)
   const [peProvider, setPeProvider] = useState<string>('')
   const [peModelName, setPeModelName] = useState<string>('')
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -148,6 +148,18 @@ export function ChatScreen({ agentName = 'platform_engineer_agent' }: Props) {
               }
               return next
             })
+          }
+
+          if (data.type === 'done') {
+            // Server generates/reuses the real conversation on first message and
+            // returns it here — capture it so every subsequent message (including
+            // the __CONFIRMED__ action-confirm flow) continues the same
+            // conversation server-side instead of silently starting a new one
+            // each time (which is what "Conversation X not found" traced back to).
+            const metadata = data.metadata as { conversation_id?: string } | undefined
+            if (metadata?.conversation_id) {
+              setConversationId(metadata.conversation_id)
+            }
           }
         }
       }
@@ -303,6 +315,13 @@ export function ChatScreen({ agentName = 'platform_engineer_agent' }: Props) {
               }
               return next
             })
+          }
+
+          if (data.type === 'done') {
+            const metadata = data.metadata as { conversation_id?: string } | undefined
+            if (metadata?.conversation_id) {
+              setConversationId(metadata.conversation_id)
+            }
           }
         }
       }
