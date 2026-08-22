@@ -288,7 +288,30 @@ class BotWorker:
                 jitter = random.uniform(0, self.config.startup_jitter_max)
                 await asyncio.sleep(jitter)
 
-                await self._start_bot(bot_id, db)
+                await self._claim_and_start_bot(bot_id, db)
+
+    async def _claim_and_start_bot(self, bot_id: str, db: AsyncSession) -> bool:
+        """Atomically claim a bot before starting it.
+
+        Multiple workers can independently decide the same bot needs (re)starting
+        at roughly the same time — e.g. several new pods racing through
+        _claim_assigned_bots() during a scale-up, or _claim_orphaned_bots()
+        running on multiple workers within the same 15s window. Without this,
+        two workers can both start a live connection for the same bot
+        simultaneously (Telegram rejects the duplicate loudly with a Conflict
+        error; Slack Socket Mode does not error, it just silently runs two
+        independent connections/handler instances for the same bot). Only the
+        worker that wins the atomic claim lock proceeds.
+        """
+        loop = asyncio.get_event_loop()
+        won = await loop.run_in_executor(None, lambda: self.redis_state.try_claim_bot_lock(bot_id, self.worker_id))
+        if not won:
+            logger.debug(f"Bot {bot_id} claim lock held by another worker, skipping")
+            return False
+        try:
+            return await self._start_bot(bot_id, db)
+        finally:
+            await loop.run_in_executor(None, lambda: self.redis_state.release_bot_lock(bot_id))
 
     async def _get_all_active_bot_ids(self, db: AsyncSession) -> list[str]:
         """Get all active bot IDs from the database.
@@ -940,13 +963,13 @@ class BotWorker:
 
         async with get_async_session_factory()() as db:
             if event.event_type == BotEventType.ACTIVATE:
-                await self._start_bot(event.bot_id, db)
+                await self._claim_and_start_bot(event.bot_id, db)
             elif event.event_type == BotEventType.DEACTIVATE:
                 await self._stop_bot(event.bot_id)
             elif event.event_type == BotEventType.RESTART:
                 await self._stop_bot(event.bot_id)
                 await asyncio.sleep(1)
-                await self._start_bot(event.bot_id, db)
+                await self._claim_and_start_bot(event.bot_id, db)
 
     async def _command_listener_loop(self) -> None:
         """Listen for direct commands via Redis pub/sub."""
@@ -984,13 +1007,13 @@ class BotWorker:
 
         async with get_async_session_factory()() as db:
             if action == "start_bot" and bot_id:
-                await self._start_bot(bot_id, db)
+                await self._claim_and_start_bot(bot_id, db)
             elif action == "stop_bot" and bot_id:
                 await self._stop_bot(bot_id)
             elif action == "restart_bot" and bot_id:
                 await self._stop_bot(bot_id)
                 await asyncio.sleep(1)
-                await self._start_bot(bot_id, db)
+                await self._claim_and_start_bot(bot_id, db)
             else:
                 logger.warning(f"Unknown command: {command}")
 
@@ -1048,4 +1071,4 @@ class BotWorker:
                                 logger.debug(f"Bot {bot_id} is owned by healthy worker {assigned_worker}, skipping")
                                 continue
                     logger.info(f"Claiming orphaned bot {bot_id}")
-                    await self._start_bot(bot_id, db)
+                    await self._claim_and_start_bot(bot_id, db)
