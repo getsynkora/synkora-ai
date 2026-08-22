@@ -120,6 +120,7 @@ class BotRedisState:
     KEY_BOT_ASSIGNMENTS = "bot_worker:assignments"  # Hash: bot_id -> worker_id
     KEY_BOT_EVENTS = "bot_worker:events"  # Stream: bot lifecycle events
     KEY_WORKER_COMMANDS = "bot_worker:commands:"  # Pub/sub: commands to specific worker
+    KEY_BOT_CLAIM_LOCK = "bot_worker:claim_lock:"  # String w/ TTL: bot_id -> claiming worker_id
 
     def __init__(self, redis_client: redis.Redis):
         """Initialize with a Redis client.
@@ -247,6 +248,32 @@ class BotRedisState:
         return self.redis.zrangebyscore(self.KEY_WORKER_HEARTBEATS, "-inf", cutoff)
 
     # ==================== Bot Assignment Management ====================
+
+    def try_claim_bot_lock(self, bot_id: str, worker_id: str, ttl_seconds: int = 30) -> bool:
+        """Atomically claim the right to start a bot.
+
+        assign_bot() is a plain HSET (last-write-wins) with no compare-and-swap,
+        so two workers independently deciding "this bot looks orphaned, I'll
+        start it" can both pass that check and both start duplicate connections
+        (visible as Telegram's "Conflict: terminated by other getUpdates
+        request", and silently for Slack Socket Mode, which doesn't error on
+        duplicate connections the same way). This lock closes that race: only
+        the worker that wins the atomic SET NX may proceed to _start_bot().
+
+        The TTL is a safety net, not the primary release mechanism — release_bot_lock()
+        should be called once assign_bot() has recorded ownership (success or
+        failure), but if the claiming worker dies before that, the lock still
+        expires on its own instead of permanently blocking reassignment.
+
+        Returns:
+            True if this worker won the claim, False if another worker holds it.
+        """
+        key = f"{self.KEY_BOT_CLAIM_LOCK}{bot_id}"
+        return bool(self.redis.set(key, worker_id, nx=True, ex=ttl_seconds))
+
+    def release_bot_lock(self, bot_id: str) -> None:
+        """Release a claim lock acquired via try_claim_bot_lock()."""
+        self.redis.delete(f"{self.KEY_BOT_CLAIM_LOCK}{bot_id}")
 
     def assign_bot(self, bot_id: str, worker_id: str, bot_type: BotType) -> None:
         """Assign a bot to a worker.
