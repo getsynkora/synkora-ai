@@ -183,8 +183,9 @@ class BotWorker:
         # Start health server
         await self._health_server.start()
 
-        # Register with Redis
-        self.redis_state.register_worker(self.worker_id, self.capacity)
+        # Register with Redis (blocking call run in executor — see _heartbeat_loop)
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, lambda: self.redis_state.register_worker(self.worker_id, self.capacity))
 
         # Wait for peer workers to register before building the ring.
         # Without this, two pods starting in parallel both see only themselves,
@@ -199,7 +200,8 @@ class BotWorker:
 
         # Snapshot the current stream tail so the event listener only processes
         # events that arrive AFTER this pod starts — not historical replays.
-        self._last_event_id = self.redis_state.get_latest_event_id()
+        # Blocking call run in executor — see _heartbeat_loop.
+        self._last_event_id = await loop.run_in_executor(None, self.redis_state.get_latest_event_id)
 
         # Start background tasks
         self._heartbeat_task = asyncio.create_task(self._heartbeat_loop())
@@ -233,8 +235,13 @@ class BotWorker:
         # Stop all bot connections
         await self._stop_all_bots()
 
-        # Unregister from Redis
-        self.redis_state.unregister_worker(self.worker_id)
+        # Unregister from Redis (blocking call run in executor — see _heartbeat_loop).
+        # On the graceful-shutdown path this matters most: if this stalls past
+        # terminationGracePeriodSeconds, k8s SIGKILLs before it completes, leaving
+        # a stale heartbeat entry that only clears once heartbeat_timeout elapses
+        # naturally — exactly the kind of delayed dead-worker detection this whole
+        # executor-wrapping pass is fixing.
+        await asyncio.get_event_loop().run_in_executor(None, lambda: self.redis_state.unregister_worker(self.worker_id))
 
         # Stop health server
         await self._health_server.stop()
@@ -243,7 +250,12 @@ class BotWorker:
 
     async def _rebuild_hash_ring(self) -> None:
         """Rebuild the consistent hash ring from current healthy workers."""
-        healthy_workers = self.redis_state.get_healthy_workers(self.config.heartbeat_timeout)
+        # Blocking Redis call run in executor — see _heartbeat_loop. Called every
+        # cycle of _dead_worker_check_loop (every 15s) plus at startup.
+        loop = asyncio.get_event_loop()
+        healthy_workers = await loop.run_in_executor(
+            None, lambda: self.redis_state.get_healthy_workers(self.config.heartbeat_timeout)
+        )
 
         # Clear and rebuild ring
         self._hash_ring = ConsistentHash(replicas=self.config.hash_replicas)
@@ -409,8 +421,10 @@ class BotWorker:
                 "bot_name": slack_bot.bot_name,
             }
 
-            # Update Redis assignment
-            self.redis_state.assign_bot(bot_id, self.worker_id, BotType.SLACK)
+            # Update Redis assignment (blocking call run in executor — see _heartbeat_loop)
+            await asyncio.get_event_loop().run_in_executor(
+                None, lambda: self.redis_state.assign_bot(bot_id, self.worker_id, BotType.SLACK)
+            )
 
             # Update database (columns are TIMESTAMP WITHOUT TIME ZONE — strip tzinfo)
             now_naive = datetime.now(UTC).replace(tzinfo=None)
@@ -458,8 +472,10 @@ class BotWorker:
                 "bot_name": telegram_bot.bot_name,
             }
 
-            # Update Redis assignment
-            self.redis_state.assign_bot(bot_id, self.worker_id, BotType.TELEGRAM)
+            # Update Redis assignment (blocking call run in executor — see _heartbeat_loop)
+            await asyncio.get_event_loop().run_in_executor(
+                None, lambda: self.redis_state.assign_bot(bot_id, self.worker_id, BotType.TELEGRAM)
+            )
 
             # Update database (columns are TIMESTAMP WITHOUT TIME ZONE — strip tzinfo)
             now_naive = datetime.now(UTC).replace(tzinfo=None)
@@ -592,7 +608,10 @@ class BotWorker:
         thread.start()
         self._whatsapp_clients[bot_id]["thread"] = thread
 
-        self.redis_state.assign_bot(bot_id, self.worker_id, BotType.WHATSAPP)
+        # Blocking call run in executor — see _heartbeat_loop
+        await asyncio.get_event_loop().run_in_executor(
+            None, lambda: self.redis_state.assign_bot(bot_id, self.worker_id, BotType.WHATSAPP)
+        )
 
         async with get_async_session_factory()() as db:
             bot = await db.get(WhatsAppBot, whatsapp_bot.id)
@@ -827,8 +846,8 @@ class BotWorker:
             # Remove from active bots
             del self._active_bots[bot_id]
 
-            # Update Redis
-            self.redis_state.unassign_bot(bot_id)
+            # Update Redis (blocking call run in executor — see _heartbeat_loop)
+            await asyncio.get_event_loop().run_in_executor(None, lambda: self.redis_state.unassign_bot(bot_id))
 
             logger.info(f"Stopped {bot_type} bot {bot_id}")
             return True
@@ -855,9 +874,20 @@ class BotWorker:
 
     async def _heartbeat_loop(self) -> None:
         """Send periodic heartbeats to Redis."""
+        loop = asyncio.get_event_loop()
         while not self._is_shutting_down:
             try:
-                self.redis_state.send_heartbeat(self.worker_id, self.active_bot_count)
+                # Run blocking Redis call in executor to not block the event loop —
+                # this loop runs every heartbeat_interval seconds on the same loop
+                # as the health server and Slack Bolt app. A synchronous call here
+                # stalls both: any Redis latency freezes health checks (causing k8s
+                # to kill+restart the pod) and Slack message handling simultaneously,
+                # while — if the blocking call happens to complete right as the
+                # process is dying — still refreshing the heartbeat timestamp, which
+                # delays get_dead_workers() from ever recognizing the worker as dead.
+                await loop.run_in_executor(
+                    None, lambda: self.redis_state.send_heartbeat(self.worker_id, self.active_bot_count)
+                )
             except Exception as e:
                 logger.error(f"Heartbeat error: {e}")
 
@@ -921,7 +951,8 @@ class BotWorker:
     async def _command_listener_loop(self) -> None:
         """Listen for direct commands via Redis pub/sub."""
         loop = asyncio.get_event_loop()
-        pubsub = self.redis_state.subscribe_to_commands(self.worker_id)
+        # Blocking call run in executor — see _heartbeat_loop
+        pubsub = await loop.run_in_executor(None, lambda: self.redis_state.subscribe_to_commands(self.worker_id))
 
         while not self._is_shutting_down:
             try:
@@ -965,18 +996,23 @@ class BotWorker:
 
     async def _dead_worker_check_loop(self) -> None:
         """Periodically check for dead workers and ensure our assigned bots are running."""
+        loop = asyncio.get_event_loop()
         while not self._is_shutting_down:
             try:
                 # Check every 15 seconds
                 await asyncio.sleep(15)
 
-                # Find dead workers
-                dead_workers = self.redis_state.get_dead_workers(self.config.heartbeat_timeout)
+                # Blocking Redis calls run in executor — see _heartbeat_loop for why
+                # this matters (a sync call here stalls health checks + Slack
+                # handling on every cycle, not just dead-worker detection latency).
+                dead_workers = await loop.run_in_executor(
+                    None, lambda: self.redis_state.get_dead_workers(self.config.heartbeat_timeout)
+                )
 
                 if dead_workers:
                     logger.info(f"Found {len(dead_workers)} dead workers: {dead_workers}")
                     for worker_id in dead_workers:
-                        self.redis_state.unregister_worker(worker_id)
+                        await loop.run_in_executor(None, lambda w=worker_id: self.redis_state.unregister_worker(w))
 
                 # Rebuild ring every cycle — picks up workers that gracefully
                 # unregistered without being detected as dead (e.g. old pod during
@@ -991,6 +1027,7 @@ class BotWorker:
 
     async def _claim_orphaned_bots(self) -> None:
         """Claim bots that were previously assigned to dead workers."""
+        loop = asyncio.get_event_loop()
         async with get_async_session_factory()() as db:
             all_bot_ids = await self._get_all_active_bot_ids(db)
             my_bots = self._hash_ring.get_keys_for_node(self.worker_id, all_bot_ids)
@@ -999,11 +1036,14 @@ class BotWorker:
                 if bot_id not in self._active_bots:
                     # Skip if Redis says a healthy worker already owns this bot — only claim
                     # truly orphaned bots (unassigned or assigned to a now-dead worker).
-                    existing = self.redis_state.get_bot_assignment(bot_id)
+                    # Blocking Redis calls run in executor — see _heartbeat_loop.
+                    existing = await loop.run_in_executor(None, lambda b=bot_id: self.redis_state.get_bot_assignment(b))
                     if existing:
                         assigned_worker, _ = existing
                         if assigned_worker != self.worker_id:
-                            healthy = self.redis_state.get_healthy_workers(self.config.heartbeat_timeout)
+                            healthy = await loop.run_in_executor(
+                                None, lambda: self.redis_state.get_healthy_workers(self.config.heartbeat_timeout)
+                            )
                             if assigned_worker in healthy:
                                 logger.debug(f"Bot {bot_id} is owned by healthy worker {assigned_worker}, skipping")
                                 continue
