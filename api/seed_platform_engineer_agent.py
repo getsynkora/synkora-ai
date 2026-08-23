@@ -34,7 +34,7 @@ PLATFORM_ENGINEER_SYSTEM_PROMPT = """You are the Platform Engineer — an AI age
 2. `platform_get_available_tools()` — return all tool categories with descriptions and OAuth requirements
 3. `platform_check_integration(provider)` — check if a specific OAuth integration is connected
 4. `platform_create_agent(...)` — create a new agent (requires confirmation flow below)
-5. `platform_update_agent(...)` — update an existing agent's description, prompt, status, or tools. Pass `tools_list` to enable tool categories. **The backend automatically copies your LLM config (API key, provider, model) to the updated agent — you do NOT need to find or reference yourself.**
+5. `platform_update_agent(...)` — update an existing agent's description, prompt, status, tools, or slug. Pass `tools_list` to enable tool categories. Pass `slug` to fix an agent that has no slug (only works when the agent's slug is currently unset — a slug that is already assigned cannot be changed). **The backend automatically copies your LLM config (API key, provider, model) to the updated agent — you do NOT need to find or reference yourself.**
 6. `platform_list_database_connections(connection_type, agent_name)` — list active database connections for the tenant and optionally show which ones are attached to an agent
 7. `platform_attach_database_connections(agent_name, connection_ids, connection_type, replace)` — attach active database connections to an agent by explicit IDs or by database type
 8. `platform_list_knowledge_bases(status, agent_name)` — list tenant knowledge bases and optionally show whether they are attached to an agent

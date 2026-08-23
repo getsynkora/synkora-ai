@@ -123,14 +123,21 @@ spec:
         value: 10
         periodSeconds: 60
     scaleUp:
-      stabilizationWindowSeconds: 0
+      # Every replica-count change reshuffles the consistent-hash bot-to-worker
+      # assignment, forcing live Slack/Telegram connections to tear down and
+      # reconnect elsewhere. For a stateful workload like this, connection
+      # stability matters far more than reacting to a CPU blip within 15s —
+      # matching scaleDown's window so brief spikes don't trigger a burst of
+      # new pods (and the resulting bot reassignment) that settles back down
+      # 5 minutes later anyway.
+      stabilizationWindowSeconds: 300
       policies:
       - type: Percent
         value: 100
-        periodSeconds: 15
+        periodSeconds: 60
       - type: Pods
-        value: 4
-        periodSeconds: 15
+        value: 2
+        periodSeconds: 60
       selectPolicy: Max
 ---
 apiVersion: policy/v1

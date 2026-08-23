@@ -93,6 +93,7 @@ def register_platform_tools(registry) -> None:
             tools_list=kwargs.get("tools_list"),
             image_llm_provider=kwargs.get("image_llm_provider"),
             image_llm_model=kwargs.get("image_llm_model"),
+            slug=kwargs.get("slug"),
             runtime_context=runtime_context,
         )
 
@@ -340,9 +341,12 @@ def register_platform_tools(registry) -> None:
     registry.register_tool(
         name="platform_update_agent",
         description=(
-            "Update an existing agent's description, system prompt, status, or tools. "
+            "Update an existing agent's description, system prompt, status, tools, or slug. "
             "Use tools_list to add tool capabilities to an existing agent — pass the same "
             "tool category names used in platform_create_agent (e.g. browser_tools, scheduler_tools). "
+            "Use slug to fix an agent that has no slug (e.g. one created before slug generation "
+            "was added) — this only works when the agent's slug is currently unset; a slug that is "
+            "already assigned cannot be changed. "
             "Only updates fields that are explicitly provided."
         ),
         parameters={
@@ -379,6 +383,13 @@ def register_platform_tools(registry) -> None:
                 "image_llm_model": {
                     "type": "string",
                     "description": "Optional image model to assign, e.g. gpt-image-2.",
+                },
+                "slug": {
+                    "type": "string",
+                    "description": (
+                        "New URL slug to assign (optional). Only works when the agent currently "
+                        "has no slug — a slug that is already set cannot be changed."
+                    ),
                 },
             },
             "required": ["agent_name"],

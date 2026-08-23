@@ -35,7 +35,7 @@ export function AgentBuilderSidebar({ onInsertContent, currentContext }: AgentBu
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [conversationId] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const suggestionPrompts: SuggestionPrompt[] = [
@@ -179,6 +179,17 @@ export function AgentBuilderSidebar({ onInsertContent, currentContext }: AgentBu
               }
               return newMessages;
             });
+          }
+
+          if (data.type === 'done') {
+            // Server generates/reuses the real conversation on first message and
+            // returns it here — capture it so subsequent messages continue the
+            // same conversation server-side instead of silently starting a new
+            // one each time (which surfaces later as "Conversation X not found").
+            const metadata = data.metadata as { conversation_id?: string } | undefined;
+            if (metadata?.conversation_id) {
+              setConversationId(metadata.conversation_id);
+            }
           }
         }
       }
