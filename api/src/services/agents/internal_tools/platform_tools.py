@@ -627,6 +627,15 @@ async def platform_create_agent(
             # Append a short suffix
             agent_name_slug = f"{agent_name_slug}_{uuid4().hex[:4]}"
 
+        # Build a globally-unique slug for URL routing (Agent.slug is unique across all
+        # tenants, unlike agent_name which is only unique per-tenant).
+        base_slug = re.sub(r"[^a-z0-9-]", "-", name.lower())
+        base_slug = re.sub(r"-+", "-", base_slug).strip("-") or "agent"
+        agent_slug = base_slug
+        existing_slug = await db.execute(select(Agent).where(Agent.slug == agent_slug))
+        if existing_slug.scalar_one_or_none():
+            agent_slug = f"{base_slug}-{uuid4().hex[:6]}"
+
         # Inherit full LLM config from PE's per-tenant config when no api_key supplied
         llm_temperature: float = 0.7
         llm_max_tokens: int = 4096
@@ -696,6 +705,7 @@ async def platform_create_agent(
             id=uuid4(),
             tenant_id=tenant_id,
             agent_name=agent_name_slug,
+            slug=agent_slug,
             agent_type=agent_type,
             description=description,
             system_prompt=system_prompt,
@@ -843,6 +853,7 @@ async def platform_create_agent(
         return {
             "success": True,
             "agent_name": agent_name_slug,
+            "slug": agent_slug,
             "agent_id": str(agent.id),
             "message": f"Agent '{agent_name_slug}' created successfully.{attached_msg}",
             "knowledge_bases_attached": kb_results,
@@ -1084,10 +1095,11 @@ async def platform_update_agent(
     tools_list: list[str] | None = None,
     image_llm_provider: str | None = None,
     image_llm_model: str | None = None,
+    slug: str | None = None,
     runtime_context: Any = None,
 ) -> dict:
     """
-    Update an existing agent's description, system prompt, status, or tools.
+    Update an existing agent's description, system prompt, status, tools, or slug.
 
     Only updates fields that are explicitly provided (not None).
     Security: always scoped to the current tenant.
@@ -1100,6 +1112,9 @@ async def platform_update_agent(
         tools_list: List of tool category names to enable (optional).
                     Uses the same categories as platform_create_agent.
                     Adds tools without removing existing ones.
+        slug: New URL slug to assign (optional). Only allowed when the agent
+              currently has no slug (e.g. agents created before slug generation
+              was added). A slug that is already set cannot be changed.
 
     Returns:
         dict with success and message
@@ -1130,6 +1145,25 @@ async def platform_update_agent(
             if status.upper() not in ("ACTIVE", "INACTIVE"):
                 return {"success": False, "message": "status must be ACTIVE or INACTIVE"}
             agent.status = status.upper()
+
+        if slug is not None:
+            if agent.slug:
+                return {
+                    "success": False,
+                    "message": f"Agent '{agent_name}' already has a slug ('{agent.slug}') and it cannot be changed.",
+                }
+            import re
+
+            new_slug = re.sub(r"[^a-z0-9-]", "-", slug.lower())
+            new_slug = re.sub(r"-+", "-", new_slug).strip("-")
+            if not new_slug:
+                return {"success": False, "message": "slug must contain at least one letter or number"}
+            existing_slug = (
+                await db.execute(select(Agent).where(Agent.slug == new_slug, Agent.id != agent.id))
+            ).scalar_one_or_none()
+            if existing_slug:
+                return {"success": False, "message": f"Slug '{new_slug}' is already in use by another agent"}
+            agent.slug = new_slug
 
         # Enable tools via AgentTool rows (direct pattern match, not capability groups)
         tools_enabled: list[str] = []
@@ -1284,7 +1318,9 @@ async def platform_update_agent(
         msg = f"Agent '{agent_name}' updated successfully."
         if tools_enabled:
             msg += f" Enabled {len(tools_enabled)} tools."
-        return {"success": True, "message": msg, "tools_enabled": tools_enabled}
+        if slug is not None and agent.slug:
+            msg += f" Slug set to '{agent.slug}'."
+        return {"success": True, "message": msg, "tools_enabled": tools_enabled, "slug": agent.slug}
 
     except Exception as e:
         logger.exception("Error updating agent")
