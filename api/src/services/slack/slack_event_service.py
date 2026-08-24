@@ -142,6 +142,7 @@ class SlackEventService:
             thread_ts=thread_ts,
             client=client,
             say=None,  # Event mode uses client.chat_postMessage
+            is_bot_sender=bool(event.get("bot_id")),
         )
 
     async def _handle_message_event(self, slack_bot: SlackBot, event: dict[str, Any], payload: dict[str, Any]) -> None:

@@ -142,7 +142,7 @@ class SlackSocketService:
 
         @app.event("app_mention")
         async def handle_app_mention(event, say, client):
-            """Handle @mentions of the bot."""
+            """Handle @mentions of the bot — including mentions from another agent's bot."""
             await self._handle_message(
                 slack_bot=slack_bot,
                 channel_id=event["channel"],
@@ -152,6 +152,7 @@ class SlackSocketService:
                 thread_ts=event.get("thread_ts"),
                 say=say,
                 client=client,
+                is_bot_sender=bool(event.get("bot_id")),
             )
 
         @app.event("message")
@@ -242,6 +243,7 @@ class SlackSocketService:
         thread_ts: str | None,
         say,
         client: AsyncWebClient,
+        is_bot_sender: bool = False,
     ) -> None:
         """Delegate message handling to the shared SlackMessageHandler."""
         handler = SlackMessageHandler(self.db_session, self.agent_manager)
@@ -254,6 +256,7 @@ class SlackSocketService:
             thread_ts=thread_ts,
             client=client,
             say=say,
+            is_bot_sender=is_bot_sender,
         )
 
     async def _handle_app_home_opened(self, slack_bot: SlackBot, event: dict, client: AsyncWebClient) -> None:
