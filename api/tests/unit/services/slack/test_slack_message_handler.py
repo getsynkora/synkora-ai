@@ -1,6 +1,7 @@
 """Tests for SlackMessageHandler externally-shared-channel blocking."""
 
-from unittest.mock import AsyncMock, MagicMock
+import json
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
@@ -43,6 +44,21 @@ def mock_slack_bot():
 def mock_client():
     client = AsyncMock()
     return client
+
+
+class TestRemoveBotMention:
+    """_remove_bot_mention must strip using the bot's Slack *user* id, not its App ID —
+    Slack's <@...> mention syntax embeds the former, never the latter."""
+
+    def test_strips_matching_bot_user_id(self, handler):
+        assert handler._remove_bot_mention("<@U0BOTID> please review", "U0BOTID") == "please review"
+
+    def test_leaves_text_unchanged_when_bot_user_id_is_none(self, handler):
+        """Bots not yet backfilled with a slack_bot_user_id must not crash; text passes through."""
+        assert handler._remove_bot_mention("<@U0BOTID> hello", None) == "<@U0BOTID> hello"
+
+    def test_does_not_strip_a_different_users_mention(self, handler):
+        assert handler._remove_bot_mention("<@U0OTHER> hi <@U0BOTID>", "U0BOTID") == "<@U0OTHER> hi"
 
 
 class TestExternalSharedChannelBlock:
@@ -255,6 +271,101 @@ class TestAckReactionAndThinkingStatus:
 
         handler._get_or_create_conversation.assert_called_once()
         assert result is None  # generic error path returns None after RuntimeError
+
+
+class TestBotSenderReplyGating:
+    """Ping-pong between two Synkora bots is fine, but each bot must only reply when it
+    actually has something to say. When is_bot_sender=True: (1) the agent is told in-context
+    it may skip replying, and (2) a genuinely empty response is honored as "no reply" instead
+    of being replaced with a filler message. Human-facing messages are unaffected."""
+
+    @pytest.fixture
+    def wired_handler(self, handler, mock_client, mock_db_session):
+        """Wire handle_message's internals up to (mocked) agent/conversation/streaming seams
+        so execution reaches the empty-response branch instead of erroring out early."""
+        mock_client.conversations_info = AsyncMock(
+            return_value={"channel": {"is_ext_shared": False, "is_org_shared": False}}
+        )
+        mock_client.users_info = AsyncMock(return_value={"user": {"real_name": "OtherBot", "name": "otherbot"}})
+        mock_client.reactions_add = AsyncMock()
+        mock_client.api_call = AsyncMock(return_value={"ok": True})
+
+        handler._get_or_create_conversation = AsyncMock(
+            return_value=MagicMock(id=uuid4(), handoff_status=None, increment_message_count=MagicMock())
+        )
+        handler._fetch_thread_context = AsyncMock(return_value=[])
+        mock_db_session.get = AsyncMock(return_value=MagicMock(slug="test-agent", agent_name="test_agent"))
+
+        return handler
+
+    async def _run(self, wired_handler, mock_client, is_bot_sender, response_chunks):
+        captured_kwargs = {}
+
+        async def fake_stream(**kwargs):
+            captured_kwargs.update(kwargs)
+            for chunk in response_chunks:
+                yield f"data: {json.dumps({'type': 'chunk', 'content': chunk})}"
+
+        with (
+            patch(
+                "src.services.conversation_service.ConversationService.get_conversation_history_cached",
+                new=AsyncMock(return_value=[]),
+            ),
+            patch("src.services.agents.chat_stream_service.ChatStreamService") as MockChatStreamService,
+        ):
+            MockChatStreamService.return_value.stream_agent_response = fake_stream
+            result = await wired_handler.handle_message(
+                slack_bot=MagicMock(
+                    id=uuid4(), agent_id=uuid4(), tenant_id=uuid4(), created_by=None, slack_bot_user_id="U0BOTID"
+                ),
+                channel_id="C123",
+                user_id="U-BOT",
+                text="<@U0BOTID> hello",
+                message_ts="123.456",
+                thread_ts=None,
+                client=mock_client,
+                say=None,  # force the client.chat_postMessage path so we can assert on it
+                is_bot_sender=is_bot_sender,
+            )
+        return result, captured_kwargs
+
+    @pytest.mark.asyncio
+    async def test_bot_sender_empty_response_sends_nothing(self, wired_handler, mock_client):
+        result, _ = await self._run(wired_handler, mock_client, is_bot_sender=True, response_chunks=[])
+
+        assert result is None
+        mock_client.chat_postMessage.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_bot_sender_context_message_includes_permission_to_skip(self, wired_handler, mock_client):
+        _, captured_kwargs = await self._run(wired_handler, mock_client, is_bot_sender=True, response_chunks=["ok"])
+
+        sent_message = captured_kwargs["message"]
+        assert "from another bot/agent" in sent_message
+        assert "respond with" in sent_message
+        assert sent_message.endswith("hello")  # the mention itself is still stripped
+
+    @pytest.mark.asyncio
+    async def test_human_sender_context_message_has_no_bot_note(self, wired_handler, mock_client):
+        _, captured_kwargs = await self._run(wired_handler, mock_client, is_bot_sender=False, response_chunks=["ok"])
+
+        assert captured_kwargs["message"] == "hello"
+
+    @pytest.mark.asyncio
+    async def test_human_sender_empty_response_gets_filler_message(self, wired_handler, mock_client):
+        result, _ = await self._run(wired_handler, mock_client, is_bot_sender=False, response_chunks=[])
+
+        assert result == "Done! I've processed your request."
+        mock_client.chat_postMessage.assert_called_once()
+        assert mock_client.chat_postMessage.call_args.kwargs["text"] == "Done! I've processed your request."
+
+    @pytest.mark.asyncio
+    async def test_bot_sender_non_empty_response_still_sent(self, wired_handler, mock_client):
+        result, _ = await self._run(wired_handler, mock_client, is_bot_sender=True, response_chunks=["Thanks, done."])
+
+        assert result == "Thanks, done."
+        mock_client.chat_postMessage.assert_called_once()
+        assert mock_client.chat_postMessage.call_args.kwargs["text"] == "Thanks, done."
 
 
 class TestUploadDiagrams:

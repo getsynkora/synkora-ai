@@ -95,6 +95,69 @@ class TestSlackBotManager:
             mock_db_session.refresh.assert_called_once()
 
     @pytest.mark.asyncio
+    async def test_create_bot_captures_bot_user_id(self, manager, mock_db_session):
+        """auth.test's user_id (Slack's own id for the bot) must be stored for @-mention support."""
+        with (
+            patch("src.services.slack.slack_bot_manager.encrypt_value", return_value="enc"),
+            patch(
+                "slack_sdk.web.async_client.AsyncWebClient.auth_test",
+                new=AsyncMock(return_value={"user_id": "U0BOTID"}),
+            ),
+        ):
+            result = await manager.create_bot(
+                agent_id=uuid4(),
+                tenant_id=uuid4(),
+                bot_name="New Bot",
+                slack_app_id="A123",
+                slack_bot_token="xoxb-token",
+                slack_app_token="xapp-token",
+            )
+
+        assert result.slack_bot_user_id == "U0BOTID"
+
+    @pytest.mark.asyncio
+    async def test_create_bot_bot_user_id_lookup_failure_does_not_block_creation(self, manager, mock_db_session):
+        """A Slack API error while fetching the bot's user id must not prevent bot creation."""
+        from slack_sdk.errors import SlackApiError
+
+        with (
+            patch("src.services.slack.slack_bot_manager.encrypt_value", return_value="enc"),
+            patch(
+                "slack_sdk.web.async_client.AsyncWebClient.auth_test",
+                new=AsyncMock(side_effect=SlackApiError("invalid_auth", response={"error": "invalid_auth"})),
+            ),
+        ):
+            result = await manager.create_bot(
+                agent_id=uuid4(),
+                tenant_id=uuid4(),
+                bot_name="New Bot",
+                slack_app_id="A123",
+                slack_bot_token="xoxb-bad-token",
+                slack_app_token="xapp-token",
+            )
+
+        assert isinstance(result, SlackBot)
+        assert result.slack_bot_user_id is None
+        mock_db_session.commit.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_update_bot_token_rotation_refreshes_bot_user_id(self, manager, mock_db_session, mock_slack_bot):
+        """Rotating a bot's token must re-fetch and store its (possibly new) bot_user_id."""
+        mock_db_session.get.return_value = mock_slack_bot
+        mock_slack_bot.slack_bot_user_id = "U0OLD"
+
+        with (
+            patch("src.services.slack.slack_bot_manager.encrypt_value", return_value="enc"),
+            patch(
+                "slack_sdk.web.async_client.AsyncWebClient.auth_test",
+                new=AsyncMock(return_value={"user_id": "U0NEW"}),
+            ),
+        ):
+            await manager.update_bot(bot_id=mock_slack_bot.id, slack_bot_token="new-token")
+
+        assert mock_slack_bot.slack_bot_user_id == "U0NEW"
+
+    @pytest.mark.asyncio
     async def test_create_bot_default_blocks_external_shared(self, manager, mock_db_session):
         with patch("src.services.slack.slack_bot_manager.encrypt_value", return_value="enc"):
             result = await manager.create_bot(
