@@ -21,6 +21,7 @@ def register_slack_tools(registry):
     from src.services.agents.internal_tools.slack_tools import (
         internal_slack_add_reaction,
         internal_slack_create_channel,
+        internal_slack_find_user,
         internal_slack_join_channel,
         internal_slack_list_channels,
         internal_slack_post_blocks,
@@ -37,6 +38,14 @@ def register_slack_tools(registry):
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_slack_list_channels(
             include_private=kwargs.get("include_private", False), runtime_context=runtime_context, config=config
+        )
+
+    async def internal_slack_find_user_wrapper(config: dict[str, Any] | None = None, **kwargs):
+        runtime_context = config.get("_runtime_context") if config else None
+        return await internal_slack_find_user(
+            query=kwargs.get("query"),
+            runtime_context=runtime_context,
+            config=config,
         )
 
     async def internal_slack_read_channel_messages_wrapper(config: dict[str, Any] | None = None, **kwargs):
@@ -172,6 +181,24 @@ def register_slack_tools(registry):
     )
 
     registry.register_tool(
+        name="internal_slack_find_user",
+        description=(
+            "Look up a Slack user's ID by name, display name, or email. Slack mentions "
+            "(<@USER_ID> to tag someone) and internal_slack_send_dm both require the person's "
+            "Slack user ID, not their name — call this first whenever you only know a name and "
+            "need to tag or DM them. Returns multiple_matches with candidates if the name is ambiguous."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "Name, display name, or email to search for"},
+            },
+            "required": ["query"],
+        },
+        function=internal_slack_find_user_wrapper,
+    )
+
+    registry.register_tool(
         name="internal_slack_read_thread",
         description="Read all messages in a specific thread. Use this when you see a thread with replies and want to understand the full conversation context before responding.",
         parameters={
@@ -187,7 +214,13 @@ def register_slack_tools(registry):
 
     registry.register_tool(
         name="internal_slack_send_message",
-        description="Send a message to a Slack channel or thread. Only call this tool when the user explicitly asks you to send or post a message to a specific channel or thread. Do not call this tool to echo, summarize, or follow up on a response you have already given.",
+        description=(
+            "Send a message to a Slack channel or thread. Only call this tool when the user explicitly "
+            "asks you to send or post a message to a specific channel or thread. Do not call this tool "
+            "to echo, summarize, or follow up on a response you have already given. To @-mention/tag a "
+            'person or another bot, embed <@USER_ID> in the text (e.g. "<@U0123ABC> please review") — '
+            "if you only know their name, call internal_slack_find_user first to resolve it to an ID."
+        ),
         parameters={
             "type": "object",
             "properties": {
@@ -263,7 +296,10 @@ def register_slack_tools(registry):
             "properties": {
                 "user_id": {
                     "type": "string",
-                    "description": "Slack user ID (e.g., 'U1234567890'). This is the unique identifier for the user, not their display name.",
+                    "description": (
+                        "Slack user ID (e.g., 'U1234567890'). This is the unique identifier for the user, "
+                        "not their display name — call internal_slack_find_user first if you only have a name."
+                    ),
                 },
                 "text": {"type": "string", "description": "Message text to send to the user"},
                 "report_back_channel_id": {
@@ -298,7 +334,9 @@ def register_slack_tools(registry):
             "returned by internal_generate_infographic (uploaded to S3). "
             "If S3 is not configured, use internal_slack_upload_file with svg_content instead.\n\n"
             "Other useful block types: section (text), divider, context (small text), "
-            "actions (buttons), header (bold title)."
+            "actions (buttons), header (bold title).\n\n"
+            'To @-mention/tag a person or bot inside block text, embed <@USER_ID> (e.g. "<@U0123ABC>") — '
+            "call internal_slack_find_user first if you only know their name."
         ),
         parameters={
             "type": "object",
@@ -400,4 +438,4 @@ def register_slack_tools(registry):
         function=internal_slack_create_channel_wrapper,
     )
 
-    logger.info("Registered 11 Slack tools")
+    logger.info("Registered 12 Slack tools")

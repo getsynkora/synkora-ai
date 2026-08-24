@@ -305,6 +305,7 @@ async def internal_slack_read_channel_messages(
             messages.append(
                 {
                     "text": msg.get("text", ""),
+                    "user_id": user_id,
                     "user_name": sender_name,
                     "user_display_name": display_name,
                     "is_bot": is_bot_msg,
@@ -384,6 +385,7 @@ async def internal_slack_read_thread(
             messages.append(
                 {
                     "text": msg.get("text", ""),
+                    "user_id": user_id,
                     "user_name": user.get("name"),
                     "timestamp": msg.get("ts"),
                     "is_parent": msg.get("ts") == thread_ts,
@@ -610,6 +612,7 @@ async def internal_slack_search_messages(
             matches.append(
                 {
                     "text": match.get("text", ""),
+                    "user_id": match.get("user", ""),
                     "username": match.get("username", ""),
                     "channel_name": match.get("channel", {}).get("name", ""),
                     "channel_id": match.get("channel", {}).get("id", ""),
@@ -675,6 +678,93 @@ async def internal_slack_add_reaction(
         return {"success": False, "error": str(e)}
     except Exception as e:
         logger.error(f"Error adding reaction: {e}", exc_info=True)
+        return {"success": False, "error": str(e)}
+
+
+async def internal_slack_find_user(
+    query: str,
+    runtime_context: dict[str, Any] | None = None,
+    config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """
+    Look up a Slack user's ID by name, display name, or email.
+
+    Slack mentions (<@USER_ID> to tag someone) and internal_slack_send_dm both need the
+    person's Slack user ID (e.g. "U0123ABC"), not their name — use this tool first whenever
+    you only know a person's name and need to tag or DM them.
+
+    Args:
+        query: Name, display name, or email address to search for
+        runtime_context: Runtime context from agent execution
+        config: Config dict with _tool_name
+
+    Returns:
+        On a single match: {"success": True, "user_id": ..., "name": ..., "display_name": ...,
+        "email": ...}. On multiple matches: {"success": True, "multiple_matches": True,
+        "candidates": [...]} — ask the user to clarify which one. On no match: {"success": False,
+        "error": ...}.
+    """
+    try:
+        client = await _get_slack_client(runtime_context, config)
+        if not client:
+            return {"success": False, "error": "No Slack connection available"}
+
+        query_stripped = query.strip()
+
+        if "@" in query_stripped and " " not in query_stripped:
+            try:
+                response = await client.users_lookupByEmail(email=query_stripped)
+                user = response.get("user", {})
+                profile = user.get("profile", {})
+                return {
+                    "success": True,
+                    "user_id": user.get("id"),
+                    "name": user.get("real_name") or user.get("name"),
+                    "display_name": profile.get("display_name", ""),
+                    "email": profile.get("email", ""),
+                }
+            except SlackApiError:
+                pass  # Not an email, or lookup failed — fall through to name search
+
+        query_lower = query_stripped.lower().lstrip("@")
+        exact_matches: list[dict[str, Any]] = []
+        partial_matches: list[dict[str, Any]] = []
+        cursor = None
+        while True:
+            response = await client.users_list(cursor=cursor, limit=200)
+            for user in response.get("members", []):
+                if user.get("is_bot") or user.get("deleted") or user.get("id") == "USLACKBOT":
+                    continue
+                profile = user.get("profile", {})
+                names_lower = [
+                    n.lower() for n in (user.get("real_name"), user.get("name"), profile.get("display_name")) if n
+                ]
+                entry = {
+                    "user_id": user.get("id"),
+                    "name": user.get("real_name") or user.get("name"),
+                    "display_name": profile.get("display_name", ""),
+                    "email": profile.get("email", ""),
+                }
+                if query_lower in names_lower:
+                    exact_matches.append(entry)
+                elif any(query_lower in n for n in names_lower):
+                    partial_matches.append(entry)
+            cursor = response.get("response_metadata", {}).get("next_cursor") or None
+            if not cursor:
+                break
+
+        matches = exact_matches or partial_matches
+        if not matches:
+            return {"success": False, "error": f"No Slack user found matching '{query}'"}
+        if len(matches) == 1:
+            return {"success": True, **matches[0]}
+        return {"success": True, "multiple_matches": True, "candidates": matches[:10]}
+
+    except SlackApiError as e:
+        logger.error(f"Slack API error in find_user: {e}", exc_info=True)
+        return {"success": False, "error": str(e)}
+    except Exception as e:
+        logger.error(f"Error finding user: {e}", exc_info=True)
         return {"success": False, "error": str(e)}
 
 
