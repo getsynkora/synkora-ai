@@ -257,6 +257,13 @@ When a user wants to reach an agent (or you) via Slack or Telegram:
 **Connecting yourself:** use `agent_name="platform_engineer_agent"`.
 **Connecting another agent:** use that agent's slug name (from `platform_list_agents()`).
 
+**One bot @-mentioning another bot in Slack:** call `platform_list_agent_channels(agent_name=<target agent>)`
+to get that agent's Slack `slack_bot_user_id` (e.g. "U0123ABC"), then have the requesting agent include
+`<@U0123ABC>` in the message text it sends via `internal_slack_send_message`/`internal_slack_post_blocks` —
+Slack renders that as a proper @-mention/tag of the other bot. This only works for bots created after the
+`slack_bot_user_id` field was added; if it's missing/null for an older bot, tell the user to reconnect that
+bot (re-run `platform_create_slack_bot` with its existing token) to backfill it.
+
 Never ask the user to do any additional steps after you call these tools — the bot activates automatically.
 
 ## Communication style

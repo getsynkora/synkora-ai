@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ...config.redis import get_redis
 from ...models.agent import Agent
 from ...models.slack_bot import SlackBot
-from ...services.agents.security import encrypt_value
+from ...services.agents.security import decrypt_value, encrypt_value
 from ...services.bot_worker.bot_deployment_service import BotDeploymentService
 
 logger = logging.getLogger(__name__)
@@ -70,6 +70,10 @@ class SlackBotManager:
             if connection_mode == "event" and not signing_secret:
                 raise ValueError("Signing secret is required for Event Mode")
 
+            # Fetch the bot's own Slack user id (needed to @-mention this bot from
+            # another agent's bot) — best-effort, don't fail bot creation over it.
+            slack_bot_user_id = await self._fetch_bot_user_id(slack_bot_token)
+
             # Encrypt tokens
             encrypted_bot_token = encrypt_value(slack_bot_token)
             encrypted_app_token = encrypt_value(slack_app_token) if slack_app_token else None
@@ -86,6 +90,7 @@ class SlackBotManager:
                 slack_app_token=encrypted_app_token,
                 slack_workspace_id=slack_workspace_id,
                 slack_workspace_name=slack_workspace_name,
+                slack_bot_user_id=slack_bot_user_id,
                 connection_mode=connection_mode,
                 signing_secret=encrypted_signing_secret,
                 is_active=True,
@@ -111,6 +116,23 @@ class SlackBotManager:
             await self.db_session.rollback()
             logger.error(f"Failed to create Slack bot: {str(e)}")
             raise
+
+    async def _fetch_bot_user_id(self, slack_bot_token: str) -> str | None:
+        """Look up this bot's own Slack user id via auth.test, for @-mention support.
+
+        Best-effort: returns None (rather than raising) on any Slack API error so a
+        bad/rate-limited call never blocks bot creation.
+        """
+        from slack_sdk.errors import SlackApiError
+        from slack_sdk.web.async_client import AsyncWebClient
+
+        try:
+            client = AsyncWebClient(token=slack_bot_token)
+            response = await client.auth_test()
+            return response.get("user_id")
+        except SlackApiError as e:
+            logger.warning(f"auth.test failed while fetching bot user id: {e}")
+            return None
 
     def _generate_webhook_url(self, bot_id: UUID) -> str:
         """Generate the webhook URL for Event Mode.
@@ -188,6 +210,7 @@ class SlackBotManager:
 
             if slack_bot_token is not None:
                 slack_bot.slack_bot_token = encrypt_value(slack_bot_token)
+                slack_bot.slack_bot_user_id = await self._fetch_bot_user_id(slack_bot_token)
 
             if slack_app_token is not None:
                 slack_bot.slack_app_token = encrypt_value(slack_app_token)
@@ -324,6 +347,13 @@ class SlackBotManager:
                 if not slack_bot.webhook_url:
                     slack_bot.webhook_url = self._generate_webhook_url(bot_id)
 
+                # Backfill bot_user_id for bots created before that field existed —
+                # Event Mode has no Socket connection step to piggyback this on.
+                if not slack_bot.slack_bot_user_id:
+                    slack_bot.slack_bot_user_id = await self._fetch_bot_user_id(
+                        decrypt_value(slack_bot.slack_bot_token)
+                    )
+
                 await self.db_session.commit()
                 logger.info(f"Event Mode Slack bot {bot_id} marked as connected")
                 return True
@@ -398,6 +428,10 @@ class SlackBotManager:
                 # Event Mode: Just refresh connection status
                 slack_bot.connection_status = "connected"
                 slack_bot.last_connected_at = datetime.utcnow()
+                if not slack_bot.slack_bot_user_id:
+                    slack_bot.slack_bot_user_id = await self._fetch_bot_user_id(
+                        decrypt_value(slack_bot.slack_bot_token)
+                    )
                 await self.db_session.commit()
                 logger.info(f"Event Mode Slack bot {bot_id} restarted (refreshed status)")
                 return True

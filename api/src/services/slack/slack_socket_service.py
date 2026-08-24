@@ -60,18 +60,21 @@ class SlackSocketService:
             # Create Slack app
             app = AsyncApp(token=bot_token)
 
-            # Auto-detect workspace info if not set
-            if not slack_bot.slack_workspace_id:
+            # Auto-detect workspace info and this bot's own Slack user id (for @-mention
+            # support) if not already set — backfills bots created before that field existed.
+            if not slack_bot.slack_workspace_id or not slack_bot.slack_bot_user_id:
                 try:
                     client = AsyncWebClient(token=bot_token)
                     auth_response = await client.auth_test()
                     slack_bot.slack_workspace_id = auth_response["team_id"]
                     slack_bot.slack_workspace_name = auth_response["team"]
+                    slack_bot.slack_bot_user_id = auth_response.get("user_id")
                     logger.info(
-                        f"Auto-detected workspace: {slack_bot.slack_workspace_name} ({slack_bot.slack_workspace_id})"
+                        f"Auto-detected workspace: {slack_bot.slack_workspace_name} ({slack_bot.slack_workspace_id}), "
+                        f"bot_user_id: {slack_bot.slack_bot_user_id}"
                     )
                 except Exception as e:
-                    logger.warning(f"Failed to auto-detect workspace info: {str(e)}")
+                    logger.warning(f"Failed to auto-detect workspace/bot user info: {str(e)}")
 
             # Register event handlers
             self._register_event_handlers(app, slack_bot)
