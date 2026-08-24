@@ -266,7 +266,7 @@ class SlackMessageHandler:
                 channel_name = channel_id
 
             # Remove bot mention from text if present
-            clean_text = self._remove_bot_mention(text, slack_bot.slack_app_id)
+            clean_text = self._remove_bot_mention(text, slack_bot.slack_bot_user_id)
 
             logger.info(f"Slack message: Channel: #{channel_name} (ID: {channel_id}), Message TS: {message_ts}")
 
@@ -1069,11 +1069,17 @@ class SlackMessageHandler:
 
         return {"type": "context", "elements": parts[:10]}
 
-    def _remove_bot_mention(self, text: str, app_id: str) -> str:
-        """Remove bot mention from message text."""
+    def _remove_bot_mention(self, text: str, bot_user_id: str | None) -> str:
+        """Remove this bot's own @-mention from message text.
+
+        Slack's <@...> mention syntax embeds the bot's Slack *user* id (U.../B...),
+        not its App ID — bot_user_id must be SlackBot.slack_bot_user_id, not slack_app_id.
+        """
+        if not bot_user_id:
+            return text.strip()
         import re
 
-        pattern = f"<@{app_id}>"
+        pattern = f"<@{bot_user_id}>"
         return re.sub(pattern, "", text).strip()
 
     async def _extract_user_mentions(self, text: str, client: AsyncWebClient) -> list[dict[str, str]]:
