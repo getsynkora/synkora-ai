@@ -707,7 +707,7 @@ def register_platform_tools(registry) -> None:
             "then collect the Bot Token (xoxb-...) and App Token (xapp-...) before calling this. "
             "For Event Mode, collect the Signing Secret instead of the App Token. "
             "The result includes slack_bot_user_id (Slack's own user id for this bot) — "
-            "use f\"<@{slack_bot_user_id}>\" in a message to @-mention this bot from another agent's bot."
+            'use f"<@{slack_bot_user_id}>" in a message to @-mention this bot from another agent\'s bot.'
         ),
         parameters={
             "type": "object",
@@ -764,7 +764,7 @@ def register_platform_tools(registry) -> None:
             "List all Slack and Telegram bots connected to a given agent. "
             "Use this to check which channels an agent is available on, or to find bot_ids before disconnecting. "
             "Each Slack entry includes slack_bot_user_id — to have one agent's bot @-mention another "
-            "agent's bot, call this for the target agent and embed f\"<@{slack_bot_user_id}>\" in the message text."
+            'agent\'s bot, call this for the target agent and embed f"<@{slack_bot_user_id}>" in the message text.'
         ),
         parameters={
             "type": "object",
