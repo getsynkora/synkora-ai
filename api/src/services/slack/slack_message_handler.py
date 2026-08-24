@@ -113,6 +113,7 @@ class SlackMessageHandler:
         thread_ts: str | None,
         client: AsyncWebClient,
         say: Callable[..., Any] | None = None,
+        is_bot_sender: bool = False,
     ) -> str | None:
         """
         Handle incoming Slack message and generate agent response.
@@ -126,9 +127,14 @@ class SlackMessageHandler:
             thread_ts: Thread timestamp (for threaded conversations)
             client: Slack web client
             say: Optional Slack say function (for Socket Mode). If None, uses client.chat_postMessage
+            is_bot_sender: True if this message/mention was authored by another Slack bot
+                (e.g. another Synkora agent), not a human. When True, the agent is told it
+                may skip replying, and a genuinely empty response is left unanswered instead
+                of being replaced with a filler message — this is what lets two bots have a
+                real back-and-forth without being forced to always have the last word.
 
         Returns:
-            The agent's response text, or None on error
+            The agent's response text, or None on error / no reply needed
         """
         try:
             # Block Slack Connect (externally-shared) channels unless explicitly allowed.
@@ -266,7 +272,7 @@ class SlackMessageHandler:
                 channel_name = channel_id
 
             # Remove bot mention from text if present
-            clean_text = self._remove_bot_mention(text, slack_bot.slack_app_id)
+            clean_text = self._remove_bot_mention(text, slack_bot.slack_bot_user_id)
 
             logger.info(f"Slack message: Channel: #{channel_name} (ID: {channel_id}), Message TS: {message_ts}")
 
@@ -276,6 +282,18 @@ class SlackMessageHandler:
             # direct message, causing it to say it "lacks a Slack tool to reply."
             # Slack context (channel, user) is passed via shared_state for tool use.
             context_message = clean_text
+
+            if is_bot_sender:
+                # Give the agent explicit permission to stay silent — without this, a
+                # genuinely empty response below is treated as an error and gets a filler
+                # reply substituted, which would force every bot-to-bot exchange to keep
+                # going forever. The agent decides per-message whether a reply adds value.
+                context_message = (
+                    f"[This message is from another bot/agent ({user_name}), not a human. "
+                    "Only reply if a response is genuinely needed — to answer a direct question, "
+                    "correct something, or take an action. If no reply is needed, respond with "
+                    "nothing at all rather than acknowledging or restating.]\n\n" + clean_text
+                )
 
             # Slack-specific metadata to attach to the user message. The actual message row
             # is saved by ChatStreamService.stream_agent_response() below (via
@@ -423,11 +441,20 @@ class SlackMessageHandler:
                     pass
 
             agent_response = "".join(response_chunks)
-
-            # Handle empty response. ChatStreamService only persists an assistant message
-            # when it actually produced content, so this fallback case is the one situation
-            # where we still need to save it ourselves below.
             response_was_empty = not agent_response or not agent_response.strip()
+
+            if response_was_empty and is_bot_sender:
+                # The agent deliberately chose not to reply to another bot's message — respect
+                # that instead of forcing a filler response, so bot-to-bot exchanges can end
+                # naturally (only replying when something actually needs saying) rather than
+                # ping-ponging forever.
+                logger.info(f"Agent chose not to reply to bot-authored mention in channel {channel_id}")
+                await status_service.clear_status(channel_id, effective_thread_ts)
+                return None
+
+            # Handle empty response for a human-facing turn. ChatStreamService only persists
+            # an assistant message when it actually produced content, so this fallback case is
+            # the one situation where we still need to save it ourselves below.
             if response_was_empty:
                 logger.warning("Agent returned empty response, using fallback message")
                 agent_response = "Done! I've processed your request."
@@ -1069,11 +1096,17 @@ class SlackMessageHandler:
 
         return {"type": "context", "elements": parts[:10]}
 
-    def _remove_bot_mention(self, text: str, app_id: str) -> str:
-        """Remove bot mention from message text."""
+    def _remove_bot_mention(self, text: str, bot_user_id: str | None) -> str:
+        """Remove this bot's own @-mention from message text.
+
+        Slack's <@...> mention syntax embeds the bot's Slack *user* id (U.../B...),
+        not its App ID — bot_user_id must be SlackBot.slack_bot_user_id, not slack_app_id.
+        """
+        if not bot_user_id:
+            return text.strip()
         import re
 
-        pattern = f"<@{app_id}>"
+        pattern = f"<@{bot_user_id}>"
         return re.sub(pattern, "", text).strip()
 
     async def _extract_user_mentions(self, text: str, client: AsyncWebClient) -> list[dict[str, str]]:

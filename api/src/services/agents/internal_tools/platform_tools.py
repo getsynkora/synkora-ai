@@ -2504,7 +2504,9 @@ async def platform_create_slack_bot(
         app_id: Slack App ID (optional — shown in app settings at api.slack.com)
 
     Returns:
-        dict with success, bot_id, workspace_name, and webhook_url (Event Mode only)
+        dict with success, bot_id, workspace_name, webhook_url (Event Mode only), and
+        slack_bot_user_id (Slack's own user id for this bot, e.g. "U0123ABC" — use
+        f"<@{slack_bot_user_id}>" in a message to @-mention this bot from another agent).
     """
     if not runtime_context or not runtime_context.tenant_id:
         return {"success": False, "message": "No tenant context available"}
@@ -2548,6 +2550,8 @@ async def platform_create_slack_bot(
         }
         if slack_bot.webhook_url:
             result["webhook_url"] = slack_bot.webhook_url
+        if slack_bot.slack_bot_user_id:
+            result["slack_bot_user_id"] = slack_bot.slack_bot_user_id
         return result
 
     except Exception as e:
@@ -2633,7 +2637,10 @@ async def platform_list_agent_channels(
         agent_name: Slug name of the agent
 
     Returns:
-        dict with slack (list) and telegram (list) channel summaries
+        dict with slack (list) and telegram (list) channel summaries. Each Slack entry
+        includes slack_bot_user_id (Slack's own user id for that bot, e.g. "U0123ABC") —
+        use f"<@{slack_bot_user_id}>" in a message to @-mention that agent's bot from
+        another agent's bot.
     """
     if not runtime_context or not runtime_context.tenant_id:
         return {"error": "No tenant context available"}
@@ -2677,6 +2684,7 @@ async def platform_list_agent_channels(
                     "status": b.connection_status,
                     "is_active": b.is_active,
                     "connection_mode": b.connection_mode,
+                    "slack_bot_user_id": b.slack_bot_user_id,
                 }
                 for b in slack_bots
             ],

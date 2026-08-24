@@ -123,6 +123,197 @@ class TestInternalSlackReadChannelMessages:
 
             assert result["success"] is False
 
+    @pytest.mark.asyncio
+    async def test_messages_include_raw_slack_user_id(self):
+        """The raw Slack user id must be surfaced so agents can @-mention someone from
+        recent history — previously it was fetched only to resolve a display name, then
+        discarded, leaving no way to construct a <@USER_ID> mention."""
+        from src.services.agents.internal_tools.slack_tools import internal_slack_read_channel_messages
+
+        mock_slack_client = AsyncMock()
+        mock_slack_client.conversations_history.return_value = {
+            "messages": [
+                {"text": "hi there", "user": "U0HUMAN", "ts": "1.1"},
+            ]
+        }
+        mock_slack_client.conversations_info.return_value = {"channel": {"name": "general"}}
+        mock_slack_client.users_info.return_value = {"user": {"real_name": "Jane Doe", "profile": {}}}
+
+        with patch(
+            "src.services.agents.internal_tools.slack_tools._get_slack_client", new_callable=AsyncMock
+        ) as mock_get:
+            mock_get.return_value = mock_slack_client
+
+            result = await internal_slack_read_channel_messages(channel_id="C123", runtime_context={})
+
+            assert result["success"] is True
+            assert result["messages"][0]["user_id"] == "U0HUMAN"
+            assert result["messages"][0]["user_name"] == "Jane Doe"
+
+
+class TestInternalSlackFindUser:
+    """Tests for internal_slack_find_user function."""
+
+    @pytest.mark.asyncio
+    async def test_returns_error_without_slack_client(self):
+        from src.services.agents.internal_tools.slack_tools import internal_slack_find_user
+
+        with patch(
+            "src.services.agents.internal_tools.slack_tools._get_slack_client", new_callable=AsyncMock
+        ) as mock_get:
+            mock_get.return_value = None
+
+            result = await internal_slack_find_user(query="Jane", runtime_context={})
+
+            assert result["success"] is False
+
+    @pytest.mark.asyncio
+    async def test_resolves_by_email(self):
+        from src.services.agents.internal_tools.slack_tools import internal_slack_find_user
+
+        mock_slack_client = AsyncMock()
+        mock_slack_client.users_lookupByEmail.return_value = {
+            "user": {
+                "id": "U0JANE",
+                "real_name": "Jane Doe",
+                "profile": {"display_name": "jdoe", "email": "jane@example.com"},
+            }
+        }
+
+        with patch(
+            "src.services.agents.internal_tools.slack_tools._get_slack_client", new_callable=AsyncMock
+        ) as mock_get:
+            mock_get.return_value = mock_slack_client
+
+            result = await internal_slack_find_user(query="jane@example.com", runtime_context={})
+
+            assert result["success"] is True
+            assert result["user_id"] == "U0JANE"
+            mock_slack_client.users_lookupByEmail.assert_called_once_with(email="jane@example.com")
+
+    @pytest.mark.asyncio
+    async def test_resolves_single_exact_name_match(self):
+        from src.services.agents.internal_tools.slack_tools import internal_slack_find_user
+
+        mock_slack_client = AsyncMock()
+        mock_slack_client.users_list.return_value = {
+            "members": [
+                {
+                    "id": "U0JANE",
+                    "is_bot": False,
+                    "deleted": False,
+                    "real_name": "Jane Doe",
+                    "name": "jane",
+                    "profile": {"display_name": "jdoe", "email": "jane@example.com"},
+                },
+                {
+                    "id": "U0JOHN",
+                    "is_bot": False,
+                    "deleted": False,
+                    "real_name": "John Smith",
+                    "name": "john",
+                    "profile": {"display_name": "jsmith", "email": "john@example.com"},
+                },
+            ],
+            "response_metadata": {"next_cursor": ""},
+        }
+
+        with patch(
+            "src.services.agents.internal_tools.slack_tools._get_slack_client", new_callable=AsyncMock
+        ) as mock_get:
+            mock_get.return_value = mock_slack_client
+
+            result = await internal_slack_find_user(query="Jane Doe", runtime_context={})
+
+            assert result["success"] is True
+            assert result["user_id"] == "U0JANE"
+            assert "multiple_matches" not in result
+
+    @pytest.mark.asyncio
+    async def test_ambiguous_partial_match_returns_candidates(self):
+        from src.services.agents.internal_tools.slack_tools import internal_slack_find_user
+
+        mock_slack_client = AsyncMock()
+        mock_slack_client.users_list.return_value = {
+            "members": [
+                {
+                    "id": "U0JANE",
+                    "is_bot": False,
+                    "deleted": False,
+                    "real_name": "Jane Anderson",
+                    "name": "jane.a",
+                    "profile": {},
+                },
+                {
+                    "id": "U0JANET",
+                    "is_bot": False,
+                    "deleted": False,
+                    "real_name": "Janet Baker",
+                    "name": "janet",
+                    "profile": {},
+                },
+            ],
+            "response_metadata": {"next_cursor": ""},
+        }
+
+        with patch(
+            "src.services.agents.internal_tools.slack_tools._get_slack_client", new_callable=AsyncMock
+        ) as mock_get:
+            mock_get.return_value = mock_slack_client
+
+            result = await internal_slack_find_user(query="jane", runtime_context={})
+
+            assert result["success"] is True
+            assert result["multiple_matches"] is True
+            assert {c["user_id"] for c in result["candidates"]} == {"U0JANE", "U0JANET"}
+
+    @pytest.mark.asyncio
+    async def test_no_match_returns_failure(self):
+        from src.services.agents.internal_tools.slack_tools import internal_slack_find_user
+
+        mock_slack_client = AsyncMock()
+        mock_slack_client.users_list.return_value = {"members": [], "response_metadata": {"next_cursor": ""}}
+
+        with patch(
+            "src.services.agents.internal_tools.slack_tools._get_slack_client", new_callable=AsyncMock
+        ) as mock_get:
+            mock_get.return_value = mock_slack_client
+
+            result = await internal_slack_find_user(query="Nobody", runtime_context={})
+
+            assert result["success"] is False
+
+    @pytest.mark.asyncio
+    async def test_skips_bots_and_deleted_users(self):
+        from src.services.agents.internal_tools.slack_tools import internal_slack_find_user
+
+        mock_slack_client = AsyncMock()
+        mock_slack_client.users_list.return_value = {
+            "members": [
+                {"id": "B0BOT", "is_bot": True, "deleted": False, "real_name": "Jane Bot", "name": "jane_bot"},
+                {"id": "U0GONE", "is_bot": False, "deleted": True, "real_name": "Jane Gone", "name": "jane_gone"},
+                {
+                    "id": "U0JANE",
+                    "is_bot": False,
+                    "deleted": False,
+                    "real_name": "Jane Doe",
+                    "name": "jane",
+                    "profile": {},
+                },
+            ],
+            "response_metadata": {"next_cursor": ""},
+        }
+
+        with patch(
+            "src.services.agents.internal_tools.slack_tools._get_slack_client", new_callable=AsyncMock
+        ) as mock_get:
+            mock_get.return_value = mock_slack_client
+
+            result = await internal_slack_find_user(query="jane", runtime_context={})
+
+            assert result["success"] is True
+            assert result["user_id"] == "U0JANE"
+
 
 class TestInternalSlackSendMessage:
     """Tests for internal_slack_send_message function."""

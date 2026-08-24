@@ -34,6 +34,10 @@ class SlackBot(Base):
     slack_workspace_id = Column(String(255), nullable=True)
     slack_workspace_name = Column(String(255), nullable=True)
 
+    # Slack's own user id for this bot (U.../B...), fetched via auth.test on creation.
+    # Used to @-mention this bot from another bot/agent, e.g. f"<@{slack_bot_user_id}>".
+    slack_bot_user_id = Column(String(255), nullable=True)
+
     # Ownership — account that created/connected this bot (used to resolve OAuth tokens for scheduled runs)
     created_by = Column(UUID(as_uuid=True), ForeignKey("accounts.id", ondelete="SET NULL"), nullable=True)
 

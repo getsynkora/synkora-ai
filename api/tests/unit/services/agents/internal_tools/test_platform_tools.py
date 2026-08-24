@@ -10,11 +10,13 @@ from src.services.agents.internal_tools.platform_tools import (
     platform_attach_knowledge_base,
     platform_attach_mcp_server,
     platform_check_integration,
+    platform_create_agent,
     platform_disable_agent_autonomous,
     platform_get_agent_autonomous,
     platform_list_database_connections,
     platform_list_knowledge_bases,
     platform_set_agent_autonomous,
+    platform_update_agent,
 )
 
 
@@ -406,3 +408,167 @@ class TestPlatformCheckIntegrationSlack:
         result = await platform_check_integration(provider="slack", runtime_context=runtime_context)
 
         assert result["connected"] is False
+
+
+class TestPlatformCreateAgentSlug:
+    """platform_create_agent must always set Agent.slug — the chat-builder creation path
+    previously only set agent_name, leaving slug NULL and breaking /agents/<slug>/* routing."""
+
+    @pytest.fixture
+    def runtime_context(self):
+        ctx = MagicMock()
+        ctx.tenant_id = uuid4()
+        ctx.user_id = uuid4()
+        ctx.db_session = AsyncMock(spec=AsyncSession)
+        ctx.conversation_id = None
+        return ctx
+
+    @staticmethod
+    def _no_match_result():
+        result = MagicMock()
+        result.scalar_one_or_none.return_value = None
+        return result
+
+    @pytest.mark.asyncio
+    async def test_generates_slug_from_name(self, runtime_context):
+        db = runtime_context.db_session
+        db.add = MagicMock()
+        db.flush = AsyncMock()
+        db.commit = AsyncMock()
+        db.execute = AsyncMock(side_effect=[self._no_match_result(), self._no_match_result()])
+
+        with patch("src.services.billing.plan_restriction_service.PlanRestrictionService") as MockRestriction:
+            MockRestriction.return_value.enforce_agent_limit = AsyncMock()
+
+            result = await platform_create_agent(
+                name="Product Agent!",
+                description="desc",
+                system_prompt="prompt",
+                llm_provider="openai",
+                llm_model="gpt-4o",
+                api_key="sk-test",
+                runtime_context=runtime_context,
+            )
+
+        assert result["success"] is True
+        assert result["slug"] == "product-agent"
+        created_agent = db.add.call_args_list[0].args[0]
+        assert created_agent.slug == "product-agent"
+
+    @pytest.mark.asyncio
+    async def test_appends_suffix_on_slug_collision(self, runtime_context):
+        """Agent.slug is unique across ALL tenants (unlike agent_name, per-tenant only) —
+        a collision must be disambiguated rather than raising an IntegrityError later."""
+        db = runtime_context.db_session
+        db.add = MagicMock()
+        db.flush = AsyncMock()
+        db.commit = AsyncMock()
+
+        slug_conflict = MagicMock()
+        slug_conflict.scalar_one_or_none.return_value = MagicMock()  # another agent already has this slug
+        db.execute = AsyncMock(side_effect=[self._no_match_result(), slug_conflict])
+
+        with patch("src.services.billing.plan_restriction_service.PlanRestrictionService") as MockRestriction:
+            MockRestriction.return_value.enforce_agent_limit = AsyncMock()
+
+            result = await platform_create_agent(
+                name="Product Agent",
+                description="desc",
+                system_prompt="prompt",
+                llm_provider="openai",
+                llm_model="gpt-4o",
+                api_key="sk-test",
+                runtime_context=runtime_context,
+            )
+
+        assert result["success"] is True
+        assert result["slug"] != "product-agent"
+        assert result["slug"].startswith("product-agent-")
+
+
+class TestPlatformUpdateAgentSlug:
+    """platform_update_agent's slug param lets Platform Engineer backfill agents created
+    before slug generation existed, but only while the slug is still unset — slugs are
+    otherwise immutable (mirrors the REST update endpoint's immutable-slug rule)."""
+
+    @pytest.fixture
+    def runtime_context(self):
+        ctx = MagicMock()
+        ctx.tenant_id = uuid4()
+        ctx.user_id = uuid4()
+        ctx.db_session = AsyncMock(spec=AsyncSession)
+        return ctx
+
+    @pytest.fixture
+    def mock_agent(self):
+        agent = MagicMock()
+        agent.id = uuid4()
+        agent.agent_name = "product_agent"
+        agent.slug = None
+        agent.status = "ACTIVE"
+        return agent
+
+    @staticmethod
+    def _result_for(value):
+        result = MagicMock()
+        result.scalar_one_or_none.return_value = value
+        return result
+
+    @pytest.mark.asyncio
+    async def test_sets_slug_when_currently_unset(self, runtime_context, mock_agent):
+        db = runtime_context.db_session
+        db.commit = AsyncMock()
+
+        existing_llm = MagicMock(api_key="enc-key", provider="openai", model_name="gpt-4o", api_base=None)
+        existing_llm.additional_params = {}
+        db.execute = AsyncMock(
+            side_effect=[
+                self._result_for(mock_agent),  # agent lookup by agent_name
+                self._result_for(None),  # slug uniqueness check: no conflict
+                self._result_for(existing_llm),  # existing AgentLLMConfig already has an api_key
+            ]
+        )
+
+        result = await platform_update_agent(
+            agent_name="product_agent", slug="  Product Agent!! ", runtime_context=runtime_context
+        )
+
+        assert result["success"] is True
+        assert result["slug"] == "product-agent"
+        assert mock_agent.slug == "product-agent"
+        db.commit.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_refuses_to_change_an_already_set_slug(self, runtime_context, mock_agent):
+        mock_agent.slug = "already-set"
+        db = runtime_context.db_session
+        db.commit = AsyncMock()
+        db.execute = AsyncMock(return_value=self._result_for(mock_agent))
+
+        result = await platform_update_agent(
+            agent_name="product_agent", slug="new-slug", runtime_context=runtime_context
+        )
+
+        assert result["success"] is False
+        assert "already-set" in result["message"]
+        assert mock_agent.slug == "already-set"  # unchanged
+        db.commit.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_refuses_slug_already_used_by_another_agent(self, runtime_context, mock_agent):
+        db = runtime_context.db_session
+        db.commit = AsyncMock()
+        db.execute = AsyncMock(
+            side_effect=[
+                self._result_for(mock_agent),  # agent lookup
+                self._result_for(MagicMock()),  # slug taken by a different agent
+            ]
+        )
+
+        result = await platform_update_agent(
+            agent_name="product_agent", slug="taken-slug", runtime_context=runtime_context
+        )
+
+        assert result["success"] is False
+        assert mock_agent.slug is None  # left untouched
+        db.commit.assert_not_awaited()

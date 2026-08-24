@@ -162,7 +162,80 @@ class TestSlackSocketService:
                 thread_ts="ts1",
                 client=mock_client,
                 say=mock_say,
+                is_bot_sender=False,
             )
+
+    @pytest.mark.asyncio
+    async def test_handle_message_forwards_is_bot_sender_flag(self, service, mock_slack_bot, mock_db_session):
+        """_handle_message must forward an explicit is_bot_sender=True through to the handler."""
+        mock_client = MagicMock()
+        mock_say = AsyncMock()
+
+        with patch("src.services.slack.slack_socket_service.SlackMessageHandler") as MockHandler:
+            mock_handler_instance = AsyncMock()
+            MockHandler.return_value = mock_handler_instance
+
+            await service._handle_message(
+                slack_bot=mock_slack_bot,
+                channel_id="C1",
+                user_id="U1",
+                text="hello",
+                message_ts="123456.789",
+                thread_ts="ts1",
+                say=mock_say,
+                client=mock_client,
+                is_bot_sender=True,
+            )
+
+            mock_handler_instance.handle_message.assert_awaited_once_with(
+                slack_bot=mock_slack_bot,
+                channel_id="C1",
+                user_id="U1",
+                text="hello",
+                message_ts="123456.789",
+                thread_ts="ts1",
+                client=mock_client,
+                say=mock_say,
+                is_bot_sender=True,
+            )
+
+    @pytest.mark.asyncio
+    async def test_app_mention_sets_is_bot_sender_from_event_bot_id(self, service, mock_slack_bot):
+        """The registered app_mention handler must derive is_bot_sender from event['bot_id']."""
+        captured = {}
+
+        class FakeApp:
+            def event(self, name):
+                def decorator(fn):
+                    captured[name] = fn
+                    return fn
+
+                return decorator
+
+            def action(self, name):
+                def decorator(fn):
+                    return fn
+
+                return decorator
+
+        with patch.object(service, "_handle_message", new=AsyncMock()) as mock_handle_message:
+            service._register_event_handlers(FakeApp(), mock_slack_bot)
+
+            # A human mention (no bot_id) -> is_bot_sender=False
+            await captured["app_mention"](
+                event={"channel": "C1", "user": "U1", "text": "hi", "ts": "1.1"},
+                say=AsyncMock(),
+                client=MagicMock(),
+            )
+            assert mock_handle_message.await_args.kwargs["is_bot_sender"] is False
+
+            # A mention forwarded from another bot's message -> is_bot_sender=True
+            await captured["app_mention"](
+                event={"channel": "C1", "user": "U-BOT", "text": "<@U2> hi", "ts": "1.2", "bot_id": "B999"},
+                say=AsyncMock(),
+                client=MagicMock(),
+            )
+            assert mock_handle_message.await_args.kwargs["is_bot_sender"] is True
 
     @pytest.mark.asyncio
     async def test_handle_message_error_propagates(self, service, mock_slack_bot, mock_db_session):
