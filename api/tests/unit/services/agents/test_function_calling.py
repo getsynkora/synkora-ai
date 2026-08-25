@@ -237,6 +237,34 @@ class TestFunctionCallingHandler:
             # 3. Text content (final answer)
             assert any(c["type"] == "text" and c["content"] == "Final" for c in chunks)
 
+    @pytest.mark.asyncio
+    async def test_generate_with_functions_stream_never_sends_empty_message_list(
+        self, handler, mock_llm_client, mock_tool_registry
+    ):
+        """A structured `messages` list whose only entry has empty content (e.g. a bare
+        Slack @mention with no other text) must not collapse the conversation history down
+        to just the system message — providers like Anthropic reject a messages array with
+        no user/assistant turn at all ("at least one message is required")."""
+        with patch.object(handler, "_generate_with_tools", new_callable=AsyncMock) as mock_gen_tools:
+            response = MagicMock()
+            response.choices = [MagicMock()]
+            response.choices[0].message.tool_calls = None
+            response.choices[0].message.content = "ok"
+            mock_gen_tools.return_value = response
+
+            chunks = [
+                c
+                async for c in handler.generate_with_functions_stream(
+                    "System prompt", messages=[{"role": "user", "content": ""}]
+                )
+            ]
+
+            assert any(c["type"] == "text" for c in chunks)
+            conversation_history = mock_gen_tools.call_args[0][0]
+            non_system_turns = [m for m in conversation_history if m["role"] != "system"]
+            assert len(non_system_turns) >= 1
+            assert non_system_turns[0]["content"]  # must be truthy, not ""
+
     def test_extract_text_response(self, handler):
         # OpenAI style
         response = MagicMock()

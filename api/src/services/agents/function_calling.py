@@ -427,6 +427,13 @@ class FunctionCallingHandler:
                         if isinstance(rc, str) and rc:
                             entry["reasoning_content"] = rc
                     conversation_history.append(entry)
+            if len(conversation_history) == 1:
+                # Every message had empty/falsy content and got filtered out above, leaving
+                # only the system entry. Anthropic (and others) reject a messages array with
+                # no user/assistant turn at all ("at least one message is required") — never
+                # let that reach the provider.
+                logger.warning("All conversation turns had empty content; substituting a placeholder user message")
+                conversation_history.append({"role": "user", "content": "Hi!"})
             logger.info(f"📝 Using structured conversation: {len(messages)} messages passed to LLM")
         else:
             conversation_history = [{"role": "user", "content": prompt + pii_system_note}]
