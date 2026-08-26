@@ -1045,8 +1045,28 @@ class BotWorker:
                 # Self-heal: start any bots that should be ours but aren't running.
                 await self._claim_orphaned_bots()
 
+                # Release any bots we're running that the freshly-rebuilt ring no
+                # longer assigns to us (e.g. a new worker joined during a scale-up).
+                # Without this, an existing worker never learns it lost ownership and
+                # keeps its connection alive forever alongside the new owner's —
+                # Telegram rejects the resulting duplicate poller loudly (Conflict:
+                # terminated by other getUpdates request), Slack Socket Mode just
+                # silently runs two connections for the same bot.
+                await self._release_unowned_bots()
+
             except Exception as e:
                 logger.error(f"Dead worker check error: {e}")
+
+    async def _release_unowned_bots(self) -> None:
+        """Stop bots we're currently running that the current hash ring assigns elsewhere."""
+        async with get_async_session_factory()() as db:
+            all_bot_ids = await self._get_all_active_bot_ids(db)
+        my_bots = set(self._hash_ring.get_keys_for_node(self.worker_id, all_bot_ids))
+
+        for bot_id in list(self._active_bots.keys()):
+            if bot_id not in my_bots:
+                logger.info(f"Releasing bot {bot_id} — no longer assigned to this worker per current hash ring")
+                await self._stop_bot(bot_id)
 
     async def _claim_orphaned_bots(self) -> None:
         """Claim bots that were previously assigned to dead workers."""
