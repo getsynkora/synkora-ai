@@ -69,7 +69,7 @@ dependencies = [
     "google-api-python-client>=2.185.0",
     "gspread>=6.0.0,<7.0.0",
     # Remote Compute (SSH backend for AgentCompute remote_server type)
-    "asyncssh>=2.14.0,<3.0.0",
+    "asyncssh>=2.23.1,<3.0.0",  # CVE-2026-54591 fixed in 2.23.1
     # Data Source Integrations
     "slack-sdk>=3.33.0,<4.0.0",
     "slack-bolt>=1.21.0,<2.0.0",
