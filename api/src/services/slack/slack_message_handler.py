@@ -274,6 +274,14 @@ class SlackMessageHandler:
             # Remove bot mention from text if present
             clean_text = self._remove_bot_mention(text, slack_bot.slack_bot_user_id)
 
+            if not clean_text.strip():
+                # A bare @mention with no other text (e.g. just "@bot"), or any other message
+                # that resolves to empty after stripping, must never be forwarded as-is: some
+                # tool-calling code paths silently drop an empty-content turn entirely, which
+                # can collapse the whole messages list to zero entries and get a 400 from the
+                # LLM provider ("at least one message is required").
+                clean_text = "Hi!"
+
             logger.info(f"Slack message: Channel: #{channel_name} (ID: {channel_id}), Message TS: {message_ts}")
 
             # The agent receives only the clean user text — no raw Slack metadata.

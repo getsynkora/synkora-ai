@@ -298,7 +298,7 @@ class TestBotSenderReplyGating:
 
         return handler
 
-    async def _run(self, wired_handler, mock_client, is_bot_sender, response_chunks):
+    async def _run(self, wired_handler, mock_client, is_bot_sender, response_chunks, text="<@U0BOTID> hello"):
         captured_kwargs = {}
 
         async def fake_stream(**kwargs):
@@ -320,7 +320,7 @@ class TestBotSenderReplyGating:
                 ),
                 channel_id="C123",
                 user_id="U-BOT",
-                text="<@U0BOTID> hello",
+                text=text,
                 message_ts="123.456",
                 thread_ts=None,
                 client=mock_client,
@@ -366,6 +366,18 @@ class TestBotSenderReplyGating:
         assert result == "Thanks, done."
         mock_client.chat_postMessage.assert_called_once()
         assert mock_client.chat_postMessage.call_args.kwargs["text"] == "Thanks, done."
+
+    @pytest.mark.asyncio
+    async def test_bare_mention_with_no_other_text_is_not_sent_as_empty_message(self, wired_handler, mock_client):
+        """A message that's just "@bot" with nothing else must never reach the agent as an
+        empty string — some tool-calling code paths silently drop an empty-content turn,
+        which can collapse the whole messages list to zero entries and get a 400 back from
+        the LLM provider ("at least one message is required")."""
+        _, captured_kwargs = await self._run(
+            wired_handler, mock_client, is_bot_sender=False, response_chunks=["Hi there!"], text="<@U0BOTID>"
+        )
+
+        assert captured_kwargs["message"].strip() != ""
 
 
 class TestUploadDiagrams:
