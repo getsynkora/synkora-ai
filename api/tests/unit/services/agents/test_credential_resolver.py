@@ -272,6 +272,12 @@ class TestGetGitlabToken:
         assert mock_oauth_app.access_token == "enc:new-access-token"
         assert mock_oauth_app.refresh_token == "enc:new-refresh-token"
         assert mock_oauth_app.token_expires_at is not None
+        # OAuthApp.token_expires_at is a plain (non-tz) DateTime column — a tz-aware
+        # value here makes asyncpg reject the write with a DataError at commit time
+        # ("can't subtract offset-naive and offset-aware datetimes"). A mocked
+        # oauth_app can't reproduce that failure itself, so this assertion is the
+        # regression guard for it.
+        assert mock_oauth_app.token_expires_at.tzinfo is None
         mock_db_session.commit.assert_awaited_once()
 
     @pytest.mark.asyncio
@@ -403,6 +409,9 @@ class TestGetJiraCredentials:
         assert credentials["cloud_id"] == "cloud-123"
         mock_jira_oauth.refresh_token.assert_awaited_once_with("old-decrypted-refresh-token")
         assert mock_oauth_app.access_token == "enc:new-jira-token"
+        # OAuthApp.token_expires_at is a plain (non-tz) DateTime column — regression
+        # guard, see the matching GitLab test for why this must be naive.
+        assert mock_oauth_app.token_expires_at.tzinfo is None
         mock_db_session.commit.assert_awaited_once()
 
     @pytest.mark.asyncio

@@ -512,8 +512,12 @@ class CredentialResolver:
                     if token_data.get("refresh_token"):
                         oauth_app.refresh_token = encrypt_value(token_data["refresh_token"])
                     expires_in = token_data.get("expires_in")
+                    # OAuthApp.token_expires_at is a plain (non-tz) DateTime column — unlike
+                    # UserOAuthToken's DateTime(timezone=True) — so it must be stored naive,
+                    # or asyncpg rejects the write ("can't subtract offset-naive and
+                    # offset-aware datetimes").
                     oauth_app.token_expires_at = (
-                        datetime.now(UTC) + timedelta(seconds=expires_in) if expires_in else None
+                        (datetime.now(UTC) + timedelta(seconds=expires_in)).replace(tzinfo=None) if expires_in else None
                     )
                     await self.db.commit()
                     logger.info(f"✅ Successfully refreshed GitLab token for app '{oauth_app.app_name}'")
@@ -1014,7 +1018,12 @@ class CredentialResolver:
                     if "expires_in" in token_data:
                         from datetime import timedelta
 
-                        oauth_app.token_expires_at = datetime.now(UTC) + timedelta(seconds=token_data["expires_in"])
+                        # OAuthApp.token_expires_at is a plain (non-tz) DateTime column —
+                        # must be stored naive or asyncpg rejects the write ("can't
+                        # subtract offset-naive and offset-aware datetimes").
+                        oauth_app.token_expires_at = (
+                            datetime.now(UTC) + timedelta(seconds=token_data["expires_in"])
+                        ).replace(tzinfo=None)
 
                     await self.db.commit()
 
@@ -1220,7 +1229,12 @@ class CredentialResolver:
                     if "expires_in" in token_data:
                         from datetime import timedelta
 
-                        oauth_app.token_expires_at = datetime.now(UTC) + timedelta(seconds=token_data["expires_in"])
+                        # OAuthApp.token_expires_at is a plain (non-tz) DateTime column —
+                        # must be stored naive or asyncpg rejects the write ("can't
+                        # subtract offset-naive and offset-aware datetimes").
+                        oauth_app.token_expires_at = (
+                            datetime.now(UTC) + timedelta(seconds=token_data["expires_in"])
+                        ).replace(tzinfo=None)
 
                     await self.db.commit()
 
@@ -1411,7 +1425,12 @@ class CredentialResolver:
                     if "expires_in" in token_data:
                         from datetime import timedelta
 
-                        oauth_app.token_expires_at = datetime.now(UTC) + timedelta(seconds=token_data["expires_in"])
+                        # OAuthApp.token_expires_at is a plain (non-tz) DateTime column —
+                        # must be stored naive or asyncpg rejects the write ("can't
+                        # subtract offset-naive and offset-aware datetimes").
+                        oauth_app.token_expires_at = (
+                            datetime.now(UTC) + timedelta(seconds=token_data["expires_in"])
+                        ).replace(tzinfo=None)
 
                     await self.db.commit()
 
@@ -1808,8 +1827,12 @@ class CredentialResolver:
                         if token_data.get("refresh_token"):
                             oauth_app.refresh_token = encrypt_value(token_data["refresh_token"])
                         expires_in = token_data.get("expires_in")
+                        # OAuthApp.token_expires_at is a plain (non-tz) DateTime column —
+                        # must be stored naive or asyncpg rejects the write.
                         oauth_app.token_expires_at = (
-                            datetime.now(UTC) + timedelta(seconds=expires_in) if expires_in else None
+                            (datetime.now(UTC) + timedelta(seconds=expires_in)).replace(tzinfo=None)
+                            if expires_in
+                            else None
                         )
                         await self.db.commit()
                         logger.info(f"✅ Successfully refreshed Jira token for app '{oauth_app.app_name}'")
