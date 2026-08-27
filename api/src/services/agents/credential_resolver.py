@@ -372,22 +372,28 @@ class CredentialResolver:
             logger.error(f"Failed to get GitHub context: {e}", exc_info=True)
             return context
 
-    async def get_gitlab_token(self, tool_name: str) -> tuple[str | None, str | None]:
+    async def get_gitlab_token(self, tool_name: str, retry_refresh: bool = True) -> tuple[str | None, str | None]:
         """
         Get GitLab access token and base URL for a tool.
+        Automatically refreshes expired OAuth tokens using refresh_token
+        (GitLab OAuth access tokens expire, typically after 2 hours).
 
         Uses user-first resolution: checks for user's personal token first,
         then falls back to OAuthApp token.
 
         Args:
             tool_name: Name of the tool requesting GitLab access
+            retry_refresh: Whether to attempt token refresh if expired (default True)
 
         Returns:
             Tuple of (access_token, base_url) or (None, None) if not configured
         """
+        from datetime import datetime, timedelta
+
         from src.models.agent_tool import AgentTool
         from src.models.oauth_app import OAuthApp
-        from src.services.agents.security import decrypt_value
+        from src.services.agents.security import decrypt_value, encrypt_value
+        from src.services.oauth.gitlab_oauth import GitLabOAuth
 
         try:
             # Find tool configuration
@@ -419,29 +425,120 @@ class CredentialResolver:
             if oauth_app.config and isinstance(oauth_app.config, dict):
                 base_url = oauth_app.config.get("base_url", base_url)
 
+            client_id = oauth_app.client_id
+            client_secret = decrypt_value(oauth_app.client_secret) if oauth_app.client_secret else None
+
+            def _make_gitlab_oauth() -> GitLabOAuth:
+                return GitLabOAuth(
+                    client_id=client_id,
+                    client_secret=client_secret,
+                    redirect_uri=oauth_app.redirect_uri,
+                    base_url=base_url,
+                )
+
             # Try user token first (user-first resolution)
-            try:
-                user_token = await self._get_user_token(oauth_app.id)
-                if user_token:
+            user_token_record = await self._get_user_token_record(oauth_app.id)
+            if user_token_record:
+                user_token_expired = False
+                if user_token_record.token_expires_at:
+                    now = datetime.now(UTC)
+                    expires_at = user_token_record.token_expires_at
+                    if expires_at.tzinfo is None:
+                        expires_at = expires_at.replace(tzinfo=UTC)
+                    user_token_expired = expires_at <= now
+
+                if not user_token_expired:
                     logger.info(
                         f"✅ Using user's personal GitLab token for tool '{tool_name}' "
                         f"(OAuth app: '{oauth_app.app_name}')"
                     )
-                    return user_token, base_url
-            except Exception as e:
-                logger.warning(f"Failed to use user token for GitLab: {e}")
+                    return user_token_record.access_token, base_url
+
+                if retry_refresh and user_token_record.refresh_token and client_id and client_secret:
+                    try:
+                        logger.info("🔄 Refreshing expired user GitLab token...")
+                        gitlab_oauth = _make_gitlab_oauth()
+                        # UserOAuthToken.access_token/.refresh_token are auto-encrypting
+                        # properties — the getter already returns plaintext, no manual
+                        # decrypt_value() needed (unlike OAuthApp's plain Text columns below).
+                        token_data = await gitlab_oauth.refresh_token(user_token_record.refresh_token)
+
+                        user_token_record.access_token = token_data["access_token"]
+                        if token_data.get("refresh_token"):
+                            user_token_record.refresh_token = token_data["refresh_token"]
+                        user_token_record.token_expires_at = gitlab_oauth.calculate_token_expiry(
+                            token_data.get("expires_in")
+                        )
+                        await self.db.commit()
+                        logger.info("✅ Successfully refreshed user GitLab token")
+                        return token_data["access_token"], base_url
+                    except Exception as refresh_error:
+                        logger.error(f"Failed to refresh user GitLab token: {refresh_error}", exc_info=True)
+                        # Fall through to try the OAuthApp-level token
+                else:
+                    logger.warning("User GitLab token expired but no refresh token available")
 
             # Fall back to OAuthApp token
-            token = None
-            if oauth_app.auth_method == "oauth" and oauth_app.access_token:
-                token = decrypt_value(oauth_app.access_token)
-            elif oauth_app.auth_method == "api_token" and oauth_app.api_token:
+            if oauth_app.auth_method == "api_token" and oauth_app.api_token:
                 token = decrypt_value(oauth_app.api_token)
+                logger.info(f"✅ Using GitLab API token for tool '{tool_name}' (OAuth app: '{oauth_app.app_name}')")
+                return token, base_url
 
-            if not token:
+            if oauth_app.auth_method != "oauth" or not oauth_app.access_token:
                 logger.warning(f"No valid token for GitLab OAuth app {oauth_app.app_name}")
                 return None, None
 
+            app_token_expired = False
+            if oauth_app.token_expires_at:
+                now = datetime.now(UTC)
+                expires_at = oauth_app.token_expires_at
+                if expires_at.tzinfo is None:
+                    expires_at = expires_at.replace(tzinfo=UTC)
+                app_token_expired = expires_at <= now
+                if app_token_expired:
+                    logger.info(f"🔄 GitLab token expired for app '{oauth_app.app_name}', will refresh")
+
+            if app_token_expired and retry_refresh and oauth_app.refresh_token:
+                if not client_id or not client_secret:
+                    logger.error(f"Missing client credentials for GitLab OAuth app '{oauth_app.app_name}'")
+                    return None, None
+                try:
+                    logger.info(f"🔄 Refreshing expired GitLab token for app '{oauth_app.app_name}'...")
+                    refresh_token = decrypt_value(oauth_app.refresh_token)
+                    gitlab_oauth = _make_gitlab_oauth()
+                    token_data = await gitlab_oauth.refresh_token(refresh_token)
+
+                    oauth_app.access_token = encrypt_value(token_data["access_token"])
+                    if token_data.get("refresh_token"):
+                        oauth_app.refresh_token = encrypt_value(token_data["refresh_token"])
+                    expires_in = token_data.get("expires_in")
+                    oauth_app.token_expires_at = (
+                        datetime.now(UTC) + timedelta(seconds=expires_in) if expires_in else None
+                    )
+                    await self.db.commit()
+                    logger.info(f"✅ Successfully refreshed GitLab token for app '{oauth_app.app_name}'")
+                    return token_data["access_token"], base_url
+                except Exception as refresh_error:
+                    logger.error(f"Failed to refresh GitLab token: {refresh_error}", exc_info=True)
+                    error_str = str(refresh_error).lower()
+                    if "invalid_grant" in error_str or "invalid token" in error_str:
+                        logger.error(
+                            f"❌ GitLab refresh token is invalid for app '{oauth_app.app_name}'. "
+                            f"User must reconnect their GitLab account."
+                        )
+                        oauth_app.access_token = None
+                        oauth_app.token_expires_at = None
+                        await self.db.commit()
+                    return None, None
+
+            if app_token_expired:
+                logger.error(
+                    f"❌ GitLab token expired for app '{oauth_app.app_name}' but no refresh token available. "
+                    f"User needs to re-authenticate with GitLab."
+                )
+                return None, None
+
+            token = decrypt_value(oauth_app.access_token)
             logger.info(
                 f"✅ Using GitLab token for tool '{tool_name}' "
                 f"(OAuth app: '{oauth_app.app_name}', auth_method: {oauth_app.auth_method})"
@@ -1534,25 +1631,31 @@ class CredentialResolver:
             logger.error(f"Failed to get ClickUp token: {e}", exc_info=True)
             return None
 
-    async def get_jira_credentials(self, tool_name: str) -> dict[str, Any] | None:
+    async def get_jira_credentials(self, tool_name: str, retry_refresh: bool = True) -> dict[str, Any] | None:
         """
         Get Jira credentials for the given tool.
         Supports both OAuth (Bearer token) and API token (Basic Auth).
+        Automatically refreshes expired OAuth access tokens using refresh_token
+        (Atlassian access tokens expire after 1 hour).
 
         Uses user-first resolution: checks for user's personal token first,
         then falls back to OAuthApp token.
 
         Args:
             tool_name: Name of the Jira tool requesting access
+            retry_refresh: Whether to attempt token refresh if expired (default True)
 
         Returns:
             Dictionary with Jira credentials or None if not configured.
             For OAuth: {auth_type: 'oauth', cloud_id, access_token, domain}
             For API token: {auth_type: 'basic', domain, email, api_token}
         """
+        from datetime import datetime, timedelta
+
         from src.models.agent_tool import AgentTool
         from src.models.oauth_app import OAuthApp
-        from src.services.agents.security import decrypt_value
+        from src.services.agents.security import decrypt_value, encrypt_value
+        from src.services.oauth.jira_oauth import JiraOAuth
 
         try:
             # Get agent tool configuration
@@ -1618,43 +1721,134 @@ class CredentialResolver:
                     logger.warning(f"No cloud_id found in Jira OAuth app '{oauth_app.app_name}' config")
                     return None
 
-                # Try user token first (user-first resolution)
-                user_token = await self._get_user_token(oauth_app.id)
-                if user_token:
-                    logger.info(
-                        f"✅ Resolved Jira OAuth token for tool '{tool_name}' "
-                        f"using user's personal token (OAuth app: '{oauth_app.app_name}')"
+                client_id = oauth_app.client_id
+                client_secret = decrypt_value(oauth_app.client_secret) if oauth_app.client_secret else None
+
+                def _make_jira_oauth() -> JiraOAuth:
+                    return JiraOAuth(
+                        client_id=client_id, client_secret=client_secret, redirect_uri=oauth_app.redirect_uri
                     )
-                    return {
-                        "auth_type": "oauth",
-                        "cloud_id": cloud_id,
-                        "access_token": user_token,
-                        "domain": domain,
-                    }
+
+                # Try user token first (user-first resolution)
+                user_token_record = await self._get_user_token_record(oauth_app.id)
+                if user_token_record:
+                    user_token_expired = False
+                    if user_token_record.token_expires_at:
+                        now = datetime.now(UTC)
+                        expires_at = user_token_record.token_expires_at
+                        if expires_at.tzinfo is None:
+                            expires_at = expires_at.replace(tzinfo=UTC)
+                        user_token_expired = expires_at <= now
+
+                    if not user_token_expired:
+                        logger.info(
+                            f"✅ Resolved Jira OAuth token for tool '{tool_name}' "
+                            f"using user's personal token (OAuth app: '{oauth_app.app_name}')"
+                        )
+                        return {
+                            "auth_type": "oauth",
+                            "cloud_id": cloud_id,
+                            "access_token": user_token_record.access_token,
+                            "domain": domain,
+                        }
+
+                    if retry_refresh and user_token_record.refresh_token and client_id and client_secret:
+                        try:
+                            logger.info("🔄 Refreshing expired user Jira token...")
+                            # UserOAuthToken.access_token/.refresh_token are auto-encrypting
+                            # properties — the getter already returns plaintext.
+                            token_data = await _make_jira_oauth().refresh_token(user_token_record.refresh_token)
+
+                            user_token_record.access_token = token_data["access_token"]
+                            if token_data.get("refresh_token"):
+                                user_token_record.refresh_token = token_data["refresh_token"]
+                            expires_in = token_data.get("expires_in")
+                            user_token_record.token_expires_at = (
+                                datetime.now(UTC) + timedelta(seconds=expires_in) if expires_in else None
+                            )
+                            await self.db.commit()
+                            logger.info("✅ Successfully refreshed user Jira token")
+                            return {
+                                "auth_type": "oauth",
+                                "cloud_id": cloud_id,
+                                "access_token": token_data["access_token"],
+                                "domain": domain,
+                            }
+                        except Exception as refresh_error:
+                            logger.error(f"Failed to refresh user Jira token: {refresh_error}", exc_info=True)
+                            # Fall through to try the OAuthApp-level token
+                    else:
+                        logger.warning("User Jira token expired but no refresh token available")
 
                 # Fall back to OAuthApp token
-                if oauth_app.access_token:
-                    access_token = decrypt_value(oauth_app.access_token)
-                    cloud_id = config.get("cloud_id")
-                    domain = config.get("cloud_url", "").replace("https://", "").replace(".atlassian.net", "")
+                if not oauth_app.access_token:
+                    logger.warning(f"No valid token found in Jira OAuth app '{oauth_app.app_name}'")
+                    return None
 
-                    if not cloud_id:
-                        logger.warning(f"No cloud_id found in Jira OAuth app '{oauth_app.app_name}' config")
+                app_token_expired = False
+                if oauth_app.token_expires_at:
+                    now = datetime.now(UTC)
+                    expires_at = oauth_app.token_expires_at
+                    if expires_at.tzinfo is None:
+                        expires_at = expires_at.replace(tzinfo=UTC)
+                    app_token_expired = expires_at <= now
+                    if app_token_expired:
+                        logger.info(f"🔄 Jira token expired for app '{oauth_app.app_name}', will refresh")
+
+                if app_token_expired and retry_refresh and oauth_app.refresh_token:
+                    if not client_id or not client_secret:
+                        logger.error(f"Missing client credentials for Jira OAuth app '{oauth_app.app_name}'")
+                        return None
+                    try:
+                        logger.info(f"🔄 Refreshing expired Jira token for app '{oauth_app.app_name}'...")
+                        refresh_token = decrypt_value(oauth_app.refresh_token)
+                        token_data = await _make_jira_oauth().refresh_token(refresh_token)
+
+                        oauth_app.access_token = encrypt_value(token_data["access_token"])
+                        if token_data.get("refresh_token"):
+                            oauth_app.refresh_token = encrypt_value(token_data["refresh_token"])
+                        expires_in = token_data.get("expires_in")
+                        oauth_app.token_expires_at = (
+                            datetime.now(UTC) + timedelta(seconds=expires_in) if expires_in else None
+                        )
+                        await self.db.commit()
+                        logger.info(f"✅ Successfully refreshed Jira token for app '{oauth_app.app_name}'")
+                        return {
+                            "auth_type": "oauth",
+                            "cloud_id": cloud_id,
+                            "access_token": token_data["access_token"],
+                            "domain": domain,
+                        }
+                    except Exception as refresh_error:
+                        logger.error(f"Failed to refresh Jira token: {refresh_error}", exc_info=True)
+                        error_str = str(refresh_error).lower()
+                        if "invalid_grant" in error_str or "invalid token" in error_str:
+                            logger.error(
+                                f"❌ Jira refresh token is invalid for app '{oauth_app.app_name}'. "
+                                f"User must reconnect their Jira account."
+                            )
+                            oauth_app.access_token = None
+                            oauth_app.token_expires_at = None
+                            await self.db.commit()
                         return None
 
-                    logger.info(
-                        f"✅ Resolved Jira OAuth token for tool '{tool_name}' "
-                        f"using app '{oauth_app.app_name}' (fallback)"
+                if app_token_expired:
+                    logger.error(
+                        f"❌ Jira token expired for app '{oauth_app.app_name}' but no refresh token available. "
+                        f"User needs to re-authenticate with Jira."
                     )
-                    return {
-                        "auth_type": "oauth",
-                        "cloud_id": cloud_id,
-                        "access_token": access_token,
-                        "domain": domain,
-                    }
+                    return None
 
-                logger.warning(f"No valid token found in Jira OAuth app '{oauth_app.app_name}'")
-                return None
+                access_token = decrypt_value(oauth_app.access_token)
+                logger.info(
+                    f"✅ Resolved Jira OAuth token for tool '{tool_name}' using app '{oauth_app.app_name}' (fallback)"
+                )
+                return {
+                    "auth_type": "oauth",
+                    "cloud_id": cloud_id,
+                    "access_token": access_token,
+                    "domain": domain,
+                }
 
         except Exception as e:
             logger.error(f"Failed to get Jira credentials: {e}", exc_info=True)
