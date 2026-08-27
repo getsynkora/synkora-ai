@@ -188,3 +188,235 @@ class TestCredentialResolver:
     async def test_resolve_for_tool_unknown(self, resolver):
         result = await resolver.resolve_for_tool("tool", "unknown_type")
         assert result is None
+
+
+class TestGetGitlabToken:
+    """GitLabOAuth.refresh_token() was implemented but never called anywhere — expired
+    GitLab tokens (they expire ~2h) just failed outright instead of refreshing."""
+
+    @pytest.fixture
+    def mock_db_session(self):
+        return AsyncMock(spec=AsyncSession)
+
+    @pytest.fixture
+    def runtime_context(self, mock_db_session):
+        return RuntimeContext(tenant_id=uuid.uuid4(), agent_id=uuid.uuid4(), db_session=mock_db_session)
+
+    @pytest.fixture
+    def resolver(self, runtime_context):
+        return CredentialResolver(runtime_context)
+
+    @pytest.fixture
+    def mock_oauth_app(self):
+        app = MagicMock()
+        app.id = uuid.uuid4()
+        app.app_name = "My GitLab"
+        app.auth_method = "oauth"
+        app.config = {"base_url": "https://gitlab.com"}
+        app.client_id = "client-id"
+        app.client_secret = "encrypted-secret"
+        app.redirect_uri = "https://app.example.com/callback"
+        app.access_token = "encrypted-access-token"
+        app.refresh_token = "encrypted-refresh-token"
+        app.token_expires_at = None
+        app.api_token = None
+        return app
+
+    def _mock_agent_tool_and_app_lookup(self, mock_db_session, mock_oauth_app):
+        mock_tool = MagicMock()
+        mock_tool.oauth_app_id = mock_oauth_app.id
+        result_tool = MagicMock()
+        result_tool.scalar_one_or_none.return_value = mock_tool
+        result_app = MagicMock()
+        result_app.scalar_one_or_none.return_value = mock_oauth_app
+        mock_db_session.execute = AsyncMock(side_effect=[result_tool, result_app])
+
+    @pytest.mark.asyncio
+    async def test_returns_app_token_directly_when_not_expired(self, resolver, mock_db_session, mock_oauth_app):
+        self._mock_agent_tool_and_app_lookup(mock_db_session, mock_oauth_app)
+
+        with (
+            patch.object(resolver, "_get_user_token_record", return_value=None),
+            patch("src.services.agents.security.decrypt_value", return_value="plain-access-token"),
+        ):
+            token, base_url = await resolver.get_gitlab_token("internal_gitlab_tool")
+
+        assert token == "plain-access-token"
+        assert base_url == "https://gitlab.com"
+        mock_db_session.commit.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_refreshes_expired_app_token_and_persists_it(self, resolver, mock_db_session, mock_oauth_app):
+        from datetime import UTC, datetime, timedelta
+
+        mock_oauth_app.token_expires_at = datetime.now(UTC) - timedelta(minutes=5)
+        self._mock_agent_tool_and_app_lookup(mock_db_session, mock_oauth_app)
+        mock_db_session.commit = AsyncMock()
+
+        mock_gitlab_oauth = AsyncMock()
+        mock_gitlab_oauth.refresh_token = AsyncMock(
+            return_value={"access_token": "new-access-token", "refresh_token": "new-refresh-token", "expires_in": 7200}
+        )
+
+        with (
+            patch.object(resolver, "_get_user_token_record", return_value=None),
+            patch("src.services.agents.security.decrypt_value", return_value="old-decrypted-refresh-token"),
+            patch("src.services.agents.security.encrypt_value", side_effect=lambda v: f"enc:{v}"),
+            patch("src.services.oauth.gitlab_oauth.GitLabOAuth", return_value=mock_gitlab_oauth),
+        ):
+            token, base_url = await resolver.get_gitlab_token("internal_gitlab_tool")
+
+        assert token == "new-access-token"
+        assert base_url == "https://gitlab.com"
+        mock_gitlab_oauth.refresh_token.assert_awaited_once_with("old-decrypted-refresh-token")
+        assert mock_oauth_app.access_token == "enc:new-access-token"
+        assert mock_oauth_app.refresh_token == "enc:new-refresh-token"
+        assert mock_oauth_app.token_expires_at is not None
+        mock_db_session.commit.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_invalid_grant_on_refresh_clears_token_and_returns_none(
+        self, resolver, mock_db_session, mock_oauth_app
+    ):
+        from datetime import UTC, datetime, timedelta
+
+        mock_oauth_app.token_expires_at = datetime.now(UTC) - timedelta(minutes=5)
+        self._mock_agent_tool_and_app_lookup(mock_db_session, mock_oauth_app)
+        mock_db_session.commit = AsyncMock()
+
+        mock_gitlab_oauth = AsyncMock()
+        mock_gitlab_oauth.refresh_token = AsyncMock(side_effect=ValueError("invalid_grant: token revoked"))
+
+        with (
+            patch.object(resolver, "_get_user_token_record", return_value=None),
+            patch("src.services.agents.security.decrypt_value", return_value="stale-refresh-token"),
+            patch("src.services.oauth.gitlab_oauth.GitLabOAuth", return_value=mock_gitlab_oauth),
+        ):
+            token, base_url = await resolver.get_gitlab_token("internal_gitlab_tool")
+
+        assert (token, base_url) == (None, None)
+        assert mock_oauth_app.access_token is None
+        assert mock_oauth_app.token_expires_at is None
+
+    @pytest.mark.asyncio
+    async def test_refreshes_expired_user_token_without_double_encrypting(
+        self, resolver, mock_db_session, mock_oauth_app
+    ):
+        """UserOAuthToken.access_token/.refresh_token are auto-encrypting properties —
+        the new plaintext token must be assigned directly, never wrapped in encrypt_value
+        (which would double-encrypt it, unlike OAuthApp's plain Text columns)."""
+        from datetime import UTC, datetime, timedelta
+
+        self._mock_agent_tool_and_app_lookup(mock_db_session, mock_oauth_app)
+        mock_db_session.commit = AsyncMock()
+
+        mock_user_token = MagicMock()
+        mock_user_token.token_expires_at = datetime.now(UTC) - timedelta(minutes=5)
+        mock_user_token.refresh_token = "plaintext-user-refresh-token"  # property getter already decrypts
+
+        mock_gitlab_oauth = AsyncMock()
+        mock_gitlab_oauth.refresh_token = AsyncMock(
+            return_value={"access_token": "new-user-access-token", "expires_in": 7200}
+        )
+
+        # encrypt_value must NEVER be called on the user-token branch's new access token
+        encrypt_spy = MagicMock(side_effect=lambda v: f"enc:{v}")
+
+        with (
+            patch.object(resolver, "_get_user_token_record", return_value=mock_user_token),
+            patch("src.services.agents.security.decrypt_value", return_value="decrypted-client-secret"),
+            patch("src.services.agents.security.encrypt_value", encrypt_spy),
+            patch("src.services.oauth.gitlab_oauth.GitLabOAuth", return_value=mock_gitlab_oauth),
+        ):
+            token, base_url = await resolver.get_gitlab_token("internal_gitlab_tool")
+
+        assert token == "new-user-access-token"
+        mock_gitlab_oauth.refresh_token.assert_awaited_once_with("plaintext-user-refresh-token")
+        # Assigned as plain text — the model's own setter property handles encryption.
+        assert mock_user_token.access_token == "new-user-access-token"
+        encrypt_spy.assert_not_called()
+
+
+class TestGetJiraCredentials:
+    """get_jira_credentials had the same missing-refresh gap as GitLab — Atlassian
+    access tokens expire after 1 hour."""
+
+    @pytest.fixture
+    def mock_db_session(self):
+        return AsyncMock(spec=AsyncSession)
+
+    @pytest.fixture
+    def runtime_context(self, mock_db_session):
+        return RuntimeContext(tenant_id=uuid.uuid4(), agent_id=uuid.uuid4(), db_session=mock_db_session)
+
+    @pytest.fixture
+    def resolver(self, runtime_context):
+        return CredentialResolver(runtime_context)
+
+    @pytest.fixture
+    def mock_oauth_app(self):
+        app = MagicMock()
+        app.id = uuid.uuid4()
+        app.app_name = "My Jira"
+        app.auth_method = "oauth"
+        app.config = {"cloud_id": "cloud-123", "cloud_url": "https://myteam.atlassian.net"}
+        app.client_id = "client-id"
+        app.client_secret = "encrypted-secret"
+        app.redirect_uri = "https://app.example.com/callback"
+        app.access_token = "encrypted-access-token"
+        app.refresh_token = "encrypted-refresh-token"
+        app.token_expires_at = None
+        app.api_token = None
+        return app
+
+    def _mock_agent_tool_and_app_lookup(self, mock_db_session, mock_oauth_app):
+        mock_tool = MagicMock()
+        mock_tool.oauth_app_id = mock_oauth_app.id
+        result_tool = MagicMock()
+        result_tool.scalar_one_or_none.return_value = mock_tool
+        result_app = MagicMock()
+        result_app.scalar_one_or_none.return_value = mock_oauth_app
+        mock_db_session.execute = AsyncMock(side_effect=[result_tool, result_app])
+
+    @pytest.mark.asyncio
+    async def test_refreshes_expired_app_token_and_persists_it(self, resolver, mock_db_session, mock_oauth_app):
+        from datetime import UTC, datetime, timedelta
+
+        mock_oauth_app.token_expires_at = datetime.now(UTC) - timedelta(minutes=5)
+        self._mock_agent_tool_and_app_lookup(mock_db_session, mock_oauth_app)
+        mock_db_session.commit = AsyncMock()
+
+        mock_jira_oauth = AsyncMock()
+        mock_jira_oauth.refresh_token = AsyncMock(
+            return_value={"access_token": "new-jira-token", "refresh_token": "new-jira-refresh", "expires_in": 3600}
+        )
+
+        with (
+            patch.object(resolver, "_get_user_token_record", return_value=None),
+            patch("src.services.agents.security.decrypt_value", return_value="old-decrypted-refresh-token"),
+            patch("src.services.agents.security.encrypt_value", side_effect=lambda v: f"enc:{v}"),
+            patch("src.services.oauth.jira_oauth.JiraOAuth", return_value=mock_jira_oauth),
+        ):
+            credentials = await resolver.get_jira_credentials("internal_get_jira_issue")
+
+        assert credentials["access_token"] == "new-jira-token"
+        assert credentials["cloud_id"] == "cloud-123"
+        mock_jira_oauth.refresh_token.assert_awaited_once_with("old-decrypted-refresh-token")
+        assert mock_oauth_app.access_token == "enc:new-jira-token"
+        mock_db_session.commit.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_no_refresh_token_available_returns_none(self, resolver, mock_db_session, mock_oauth_app):
+        from datetime import UTC, datetime, timedelta
+
+        mock_oauth_app.token_expires_at = datetime.now(UTC) - timedelta(minutes=5)
+        mock_oauth_app.refresh_token = None
+        self._mock_agent_tool_and_app_lookup(mock_db_session, mock_oauth_app)
+
+        with (
+            patch.object(resolver, "_get_user_token_record", return_value=None),
+            patch("src.services.agents.security.decrypt_value", return_value="unused"),
+        ):
+            credentials = await resolver.get_jira_credentials("internal_get_jira_issue")
+
+        assert credentials is None
