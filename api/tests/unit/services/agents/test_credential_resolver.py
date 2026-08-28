@@ -429,3 +429,87 @@ class TestGetJiraCredentials:
             credentials = await resolver.get_jira_credentials("internal_get_jira_issue")
 
         assert credentials is None
+
+
+class TestResolveUserTokenValue:
+    """Every OAuth provider callback (all 16 in src/controllers/oauth/) used to call
+    encrypt_value() before assigning to UserOAuthToken.access_token/.refresh_token — but
+    those are auto-encrypting properties, so this double-encrypted every personal OAuth
+    connection ever saved. Some read paths here also called decrypt_value() a second time
+    on top of the property's own decryption, which happened to cancel the double-encrypt
+    out by accident for those rows. Both write-side bugs are now fixed at the source, but
+    existing DB rows saved before the fix are still double-encrypted, so the read path
+    must keep working for both old (double-encrypted) and new (correctly single-encrypted)
+    rows without a data migration."""
+
+    def test_returns_plaintext_value_unchanged_when_not_further_encrypted(self):
+        """New rows: the property already decrypted once, giving real plaintext. A second
+        decrypt attempt must fail (it's not valid ciphertext) and the plaintext must be
+        returned as-is, not swallowed or corrupted."""
+        from src.services.agents.credential_resolver import CredentialResolver
+
+        plaintext = "glpat-realtoken1234567890"
+        assert CredentialResolver._resolve_user_token_value(plaintext) == plaintext
+
+    def test_unwraps_one_extra_layer_for_legacy_double_encrypted_rows(self):
+        """Legacy rows: the stored value was encrypt_value(encrypt_value(real)). The
+        property's own decryption already peels one layer by the time this helper sees
+        it, leaving one layer of ciphertext — this must unwrap that remaining layer and
+        return the original real plaintext."""
+        from src.services.agents.credential_resolver import CredentialResolver
+        from src.services.agents.security import encrypt_value
+
+        real_token = "glpat-realtoken1234567890"
+        # Simulates what the property getter hands back for a legacy double-encrypted
+        # row: one layer of encryption already stripped by the property, one left.
+        value_as_seen_by_helper = encrypt_value(real_token)
+
+        assert CredentialResolver._resolve_user_token_value(value_as_seen_by_helper) == real_token
+
+    def test_returns_none_for_none(self):
+        from src.services.agents.credential_resolver import CredentialResolver
+
+        assert CredentialResolver._resolve_user_token_value(None) is None
+
+
+class TestUserOAuthTokenRoundTrip:
+    """Integration-level proof against the real model + real encryption (not mocked) that
+    both the old buggy save path and the newly-fixed save path resolve to the same
+    plaintext via _get_user_token() — i.e. the fix doesn't require a data migration and
+    doesn't break access to tokens saved before it shipped."""
+
+    @pytest.mark.asyncio
+    async def test_get_user_token_resolves_both_legacy_and_fixed_rows(self, async_db_session, tenant, account):
+        from src.models.oauth_app import OAuthApp
+        from src.models.user_oauth_token import UserOAuthToken
+        from src.services.agents.security import encrypt_value
+
+        real_token_legacy = "glpat-legacy-real-token"
+        real_token_fixed = "glpat-fixed-real-token"
+
+        oauth_app_legacy = OAuthApp(tenant_id=tenant.id, provider="gitlab", app_name="legacy-app", auth_method="oauth")
+        oauth_app_fixed = OAuthApp(tenant_id=tenant.id, provider="gitlab", app_name="fixed-app", auth_method="oauth")
+        async_db_session.add_all([oauth_app_legacy, oauth_app_fixed])
+        await async_db_session.flush()
+
+        legacy_row = UserOAuthToken(account_id=account.id, oauth_app_id=oauth_app_legacy.id)
+        # Reproduces the old bug: encrypt_value() called before assigning to the
+        # auto-encrypting property, i.e. double-encrypted at rest.
+        legacy_row.access_token = encrypt_value(real_token_legacy)
+
+        fixed_row = UserOAuthToken(account_id=account.id, oauth_app_id=oauth_app_fixed.id)
+        # The fixed behavior: assign the real plaintext directly.
+        fixed_row.access_token = real_token_fixed
+
+        async_db_session.add_all([legacy_row, fixed_row])
+        await async_db_session.commit()
+
+        resolver_legacy = CredentialResolver(
+            RuntimeContext(tenant_id=tenant.id, agent_id=uuid.uuid4(), db_session=async_db_session, user_id=account.id)
+        )
+        resolver_fixed = CredentialResolver(
+            RuntimeContext(tenant_id=tenant.id, agent_id=uuid.uuid4(), db_session=async_db_session, user_id=account.id)
+        )
+
+        assert await resolver_legacy._get_user_token(oauth_app_legacy.id) == real_token_legacy
+        assert await resolver_fixed._get_user_token(oauth_app_fixed.id) == real_token_fixed

@@ -875,7 +875,14 @@ class TestUserTokens:
         assert "api token" in response.json()["detail"].lower()
 
     def test_save_api_token_create_success(self, authenticated_client):
-        """POST /user-tokens/api-token — creates new token; must not crash with tenant_id error."""
+        """POST /user-tokens/api-token — creates new token; must not crash with tenant_id error.
+
+        UserOAuthToken.access_token is an auto-encrypting property (see
+        src/models/user_oauth_token.py) — the endpoint must assign the raw plaintext
+        token directly and let the property encrypt it. Calling encrypt_value() first
+        (the original bug across every OAuth provider callback in this codebase) would
+        double-encrypt it, producing a token that never decrypts back to the original.
+        """
         test_client, mock_db, tenant_id, mock_account = authenticated_client
 
         mock_app = _create_mock_oauth_app(auth_method="api_token")
@@ -895,17 +902,24 @@ class TestUserTokens:
         mock_db.add = MagicMock()
         mock_db.commit = AsyncMock()
 
-        with patch("src.controllers.oauth.tokens.encrypt_value", return_value="encrypted"):
-            response = test_client.post(
-                "/api/v1/oauth/user-tokens/api-token",
-                json={"oauth_app_id": 1, "api_token": "mytoken"},
-            )
+        response = test_client.post(
+            "/api/v1/oauth/user-tokens/api-token",
+            json={"oauth_app_id": 1, "api_token": "mytoken"},
+        )
 
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["success"] is True
+        # The UserOAuthToken passed to db.add() must carry the raw plaintext token —
+        # not something pre-encrypted by the endpoint itself.
+        added_token = mock_db.add.call_args.args[0]
+        assert added_token.access_token == "mytoken"
 
     def test_save_api_token_update_existing(self, authenticated_client):
-        """POST /user-tokens/api-token — updates existing token."""
+        """POST /user-tokens/api-token — updates existing token.
+
+        See test_save_api_token_create_success for why the assigned value must be the
+        raw plaintext, not an encrypt_value()-wrapped one.
+        """
         test_client, mock_db, tenant_id, mock_account = authenticated_client
 
         mock_app = _create_mock_oauth_app(auth_method="api_token")
@@ -923,15 +937,14 @@ class TestUserTokens:
         mock_db.execute = multi_execute
         mock_db.commit = AsyncMock()
 
-        with patch("src.controllers.oauth.tokens.encrypt_value", return_value="encrypted"):
-            response = test_client.post(
-                "/api/v1/oauth/user-tokens/api-token",
-                json={"oauth_app_id": 1, "api_token": "newtoken"},
-            )
+        response = test_client.post(
+            "/api/v1/oauth/user-tokens/api-token",
+            json={"oauth_app_id": 1, "api_token": "newtoken"},
+        )
 
         assert response.status_code == status.HTTP_200_OK
         assert response.json()["success"] is True
-        assert mock_existing_token.access_token == "encrypted"
+        assert mock_existing_token.access_token == "newtoken"
 
 
 class TestAuthorizeWithAuthenticatedUser:

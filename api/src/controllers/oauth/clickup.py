@@ -158,7 +158,11 @@ async def clickup_callback(
 
             if existing_token:
                 # Update existing token
-                existing_token.access_token = encrypt_value(access_token)
+                # UserOAuthToken.access_token/.refresh_token are auto-encrypting
+                # properties — assigning an already-encrypted value here would
+                # double-encrypt it, producing a token that never decrypts back
+                # to something usable.
+                existing_token.access_token = access_token
                 existing_token.provider_user_id = str(user_info.get("id"))
                 existing_token.provider_email = user_email
                 existing_token.provider_username = username
@@ -168,7 +172,8 @@ async def clickup_callback(
                 user_token = UserOAuthToken(
                     account_id=uuid.UUID(account_id),
                     oauth_app_id=oauth_app_id,
-                    access_token=encrypt_value(access_token),
+                    # See comment above — this property encrypts on assignment.
+                    access_token=access_token,
                     provider_user_id=str(user_info.get("id")),
                     provider_email=user_email,
                     provider_username=username,
