@@ -441,12 +441,16 @@ class TestProcessWebhookEvent:
         assert sample_event.status == "completed"
         mock_db.close.assert_called_once()
 
+    @patch("src.core.database.reset_async_engine")
+    @patch("src.core.database.create_celery_async_session")
     @patch("src.services.agents.chat_stream_service.ChatStreamService.stream_agent_response")
     @patch("src.tasks.agent_tasks.SessionLocal")
     def test_process_webhook_event_message_formatting(
         self,
         mock_session_local,
         mock_stream_agent,
+        mock_create_async_session,
+        mock_reset_engine,
         mock_db,
         sample_webhook,
         sample_event,
@@ -469,6 +473,13 @@ class TestProcessWebhookEvent:
 
         mock_db.query.side_effect = [webhook_query, event_query, agent_query]
 
+        # Mock async session used inside process_agent() for Conversation creation —
+        # without this, a real INSERT runs against the test DB with sample_agent's
+        # fake uuid4() id, which no Agent row backs, and fails on the FK constraint.
+        mock_create, _ = _make_async_session_mock()
+        mock_create_async_session.side_effect = mock_create.side_effect
+        mock_create_async_session.return_value = mock_create.return_value
+
         async def mock_agent_stream(*args, **kwargs):
             yield "data: " + json.dumps({"type": "chunk", "content": "OK"})
 
@@ -482,12 +493,16 @@ class TestProcessWebhookEvent:
 
         mock_db.close.assert_called_once()
 
+    @patch("src.core.database.reset_async_engine")
+    @patch("src.core.database.create_celery_async_session")
     @patch("src.services.agents.chat_stream_service.ChatStreamService.stream_agent_response")
     @patch("src.tasks.agent_tasks.SessionLocal")
     def test_process_webhook_event_response_truncation(
         self,
         mock_session_local,
         mock_stream_agent,
+        mock_create_async_session,
+        mock_reset_engine,
         mock_db,
         sample_webhook,
         sample_event,
@@ -509,6 +524,12 @@ class TestProcessWebhookEvent:
         agent_query.filter.return_value.first.return_value = sample_agent
 
         mock_db.query.side_effect = [webhook_query, event_query, agent_query]
+
+        # Mock async session used inside process_agent() for Conversation creation —
+        # see comment in test_process_webhook_event_message_formatting.
+        mock_create, _ = _make_async_session_mock()
+        mock_create_async_session.side_effect = mock_create.side_effect
+        mock_create_async_session.return_value = mock_create.return_value
 
         long_content = "A" * 6000
 
