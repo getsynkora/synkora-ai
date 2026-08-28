@@ -17,7 +17,6 @@ from ...middleware.auth_middleware import get_current_account, get_current_tenan
 from ...models.oauth_app import OAuthApp
 from ...models.tenant import Account
 from ...models.user_oauth_token import UserOAuthToken
-from ...services.agents.security import encrypt_value
 from .base import (
     SaveUserApiTokenRequest,
     _get_oauth_app_secure,
@@ -154,7 +153,11 @@ async def save_user_api_token(
 
         if existing_token:
             # Update existing token
-            existing_token.access_token = encrypt_value(data.api_token)
+            # UserOAuthToken.access_token is an auto-encrypting property —
+            # assigning an already-encrypted value here would double-encrypt
+            # it, producing a token that never decrypts back to something
+            # usable.
+            existing_token.access_token = data.api_token
             existing_token.refresh_token = None  # API tokens don't have refresh tokens
             await db.commit()
             logger.info(f"User {current_account.id} updated API token for {oauth_app.provider}")
@@ -163,7 +166,8 @@ async def save_user_api_token(
             new_token = UserOAuthToken(
                 account_id=current_account.id,
                 oauth_app_id=data.oauth_app_id,
-                access_token=encrypt_value(data.api_token),
+                # See comment above — this property encrypts on assignment.
+                access_token=data.api_token,
                 refresh_token=None,
                 provider_user_id=None,
                 provider_email=current_account.email,  # Use account email as identifier

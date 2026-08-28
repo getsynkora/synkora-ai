@@ -103,6 +103,31 @@ class CredentialResolver:
 
         return None
 
+    @staticmethod
+    def _resolve_user_token_value(value: str | None) -> str | None:
+        """Read a UserOAuthToken.access_token/.refresh_token property value.
+
+        UserOAuthToken.access_token/.refresh_token are auto-encrypting properties —
+        reading them already returns plaintext. Every OAuth provider callback used to
+        call encrypt_value() before assigning to them, which double-encrypted the
+        value (the property setter encrypted it a second time); some resolver code
+        here also called decrypt_value() a second time on read, which happened to
+        cancel that out for those legacy rows. Both bugs are now fixed at the source
+        (the callbacks no longer double-encrypt), but existing DB rows saved before
+        that fix are still double-encrypted. This stays resilient to both: try
+        decrypting once more — if the value was legacy double-encrypted, this
+        unwraps the leftover layer; if it's already plaintext (new, correctly-saved
+        rows), decryption fails and the value is used as-is.
+        """
+        if value is None:
+            return None
+        from src.services.agents.security import decrypt_value
+
+        try:
+            return decrypt_value(value)
+        except Exception:
+            return value
+
     async def _get_user_token(self, oauth_app_id: int) -> str | None:
         """
         Get user's personal token (simple lookup without refresh).
@@ -116,11 +141,9 @@ class CredentialResolver:
         Returns:
             Decrypted access token string or None if not found
         """
-        from src.services.agents.security import decrypt_value
-
         user_token_record = await self._get_user_token_record(oauth_app_id)
         if user_token_record and user_token_record.access_token:
-            return decrypt_value(user_token_record.access_token)
+            return self._resolve_user_token_value(user_token_record.access_token)
         return None
 
     async def get_github_client(self, tool_name: str, owner: str | None = None, repo: str | None = None) -> Any | None:
@@ -933,7 +956,7 @@ class CredentialResolver:
                         # Get credentials from OAuth app (client_id is plain text, client_secret is encrypted)
                         client_id = oauth_app.client_id
                         client_secret = decrypt_value(oauth_app.client_secret) if oauth_app.client_secret else None
-                        refresh_token = decrypt_value(user_token_record.refresh_token)
+                        refresh_token = self._resolve_user_token_value(user_token_record.refresh_token)
 
                         if client_id and client_secret:
                             zoom_oauth = ZoomOAuth(
@@ -943,9 +966,12 @@ class CredentialResolver:
                             token_data = await zoom_oauth.refresh_access_token(refresh_token)
 
                             # Update user token record
-                            user_token_record.access_token = encrypt_value(token_data["access_token"])
+                            # UserOAuthToken.access_token/.refresh_token are auto-encrypting
+                            # properties — assigning an already-encrypted value here would
+                            # double-encrypt it.
+                            user_token_record.access_token = token_data["access_token"]
                             if "refresh_token" in token_data:
-                                user_token_record.refresh_token = encrypt_value(token_data["refresh_token"])
+                                user_token_record.refresh_token = token_data["refresh_token"]
                             if "expires_in" in token_data:
                                 from datetime import timedelta
 
@@ -963,7 +989,7 @@ class CredentialResolver:
 
                 elif not user_token_expired:
                     # Token is still valid
-                    token = decrypt_value(user_token_record.access_token)
+                    token = self._resolve_user_token_value(user_token_record.access_token)
                     logger.info(
                         f"✅ Resolved Zoom token for tool '{tool_name}' "
                         f"using user's personal token (OAuth app: '{oauth_app.app_name}')"
@@ -1146,7 +1172,7 @@ class CredentialResolver:
                         # Get credentials from OAuth app (client_id is plain text, client_secret is encrypted)
                         client_id = oauth_app.client_id
                         client_secret = decrypt_value(oauth_app.client_secret) if oauth_app.client_secret else None
-                        refresh_token = decrypt_value(user_token_record.refresh_token)
+                        refresh_token = self._resolve_user_token_value(user_token_record.refresh_token)
 
                         if client_id and client_secret:
                             google_oauth = GoogleCalendarOAuth(
@@ -1156,9 +1182,12 @@ class CredentialResolver:
                             token_data = await google_oauth.refresh_token(refresh_token)
 
                             # Update user token record
-                            user_token_record.access_token = encrypt_value(token_data["access_token"])
+                            # UserOAuthToken.access_token/.refresh_token are auto-encrypting
+                            # properties — assigning an already-encrypted value here would
+                            # double-encrypt it.
+                            user_token_record.access_token = token_data["access_token"]
                             if "refresh_token" in token_data:
-                                user_token_record.refresh_token = encrypt_value(token_data["refresh_token"])
+                                user_token_record.refresh_token = token_data["refresh_token"]
                             if "expires_in" in token_data:
                                 from datetime import timedelta
 
@@ -1176,7 +1205,7 @@ class CredentialResolver:
 
                 elif not user_token_expired:
                     # Token is still valid
-                    token = decrypt_value(user_token_record.access_token)
+                    token = self._resolve_user_token_value(user_token_record.access_token)
                     logger.info(
                         f"✅ Resolved Google Calendar token for tool '{tool_name}' "
                         f"using user's personal token (OAuth app: '{oauth_app.app_name}')"
@@ -1342,7 +1371,7 @@ class CredentialResolver:
                         # Get credentials from OAuth app (client_id is plain text, client_secret is encrypted)
                         client_id = oauth_app.client_id
                         client_secret = decrypt_value(oauth_app.client_secret) if oauth_app.client_secret else None
-                        refresh_token = decrypt_value(user_token_record.refresh_token)
+                        refresh_token = self._resolve_user_token_value(user_token_record.refresh_token)
 
                         if client_id and client_secret:
                             google_oauth = GoogleDriveOAuth(
@@ -1352,9 +1381,12 @@ class CredentialResolver:
                             token_data = await google_oauth.refresh_token(refresh_token)
 
                             # Update user token record
-                            user_token_record.access_token = encrypt_value(token_data["access_token"])
+                            # UserOAuthToken.access_token/.refresh_token are auto-encrypting
+                            # properties — assigning an already-encrypted value here would
+                            # double-encrypt it.
+                            user_token_record.access_token = token_data["access_token"]
                             if "refresh_token" in token_data:
-                                user_token_record.refresh_token = encrypt_value(token_data["refresh_token"])
+                                user_token_record.refresh_token = token_data["refresh_token"]
                             if "expires_in" in token_data:
                                 from datetime import timedelta
 
@@ -1372,7 +1404,7 @@ class CredentialResolver:
 
                 elif not user_token_expired:
                     # Token is still valid
-                    token = decrypt_value(user_token_record.access_token)
+                    token = self._resolve_user_token_value(user_token_record.access_token)
                     logger.info(
                         f"✅ Resolved Google Drive token for tool '{tool_name}' "
                         f"using user's personal token (OAuth app: '{oauth_app.app_name}')"
@@ -2536,7 +2568,7 @@ class CredentialResolver:
                         logger.info("🔄 Refreshing expired user Twitter token...")
                         client_id = oauth_app.client_id
                         client_secret = decrypt_value(oauth_app.client_secret) if oauth_app.client_secret else None
-                        refresh_token = decrypt_value(user_token_record.refresh_token)
+                        refresh_token = self._resolve_user_token_value(user_token_record.refresh_token)
 
                         if client_id and client_secret:
                             twitter_oauth = TwitterOAuth(
@@ -2544,9 +2576,12 @@ class CredentialResolver:
                             )
                             token_data = await twitter_oauth.refresh_access_token(refresh_token)
 
-                            user_token_record.access_token = encrypt_value(token_data["access_token"])
+                            # UserOAuthToken.access_token/.refresh_token are auto-encrypting
+                            # properties — assigning an already-encrypted value here would
+                            # double-encrypt it.
+                            user_token_record.access_token = token_data["access_token"]
                             if "refresh_token" in token_data:
-                                user_token_record.refresh_token = encrypt_value(token_data["refresh_token"])
+                                user_token_record.refresh_token = token_data["refresh_token"]
                             if "expires_in" in token_data:
                                 from datetime import timedelta
 
@@ -2561,7 +2596,7 @@ class CredentialResolver:
                         logger.error(f"Failed to refresh user Twitter token: {refresh_error}", exc_info=True)
 
                 elif not user_token_expired:
-                    token = decrypt_value(user_token_record.access_token)
+                    token = self._resolve_user_token_value(user_token_record.access_token)
                     logger.info(
                         f"✅ Resolved Twitter token for tool '{tool_name}' "
                         f"using user's personal token (OAuth app: '{oauth_app.app_name}')"
@@ -2646,7 +2681,7 @@ class CredentialResolver:
                         logger.info("🔄 Refreshing expired user LinkedIn token...")
                         client_id = oauth_app.client_id
                         client_secret = decrypt_value(oauth_app.client_secret) if oauth_app.client_secret else None
-                        refresh_token = decrypt_value(user_token_record.refresh_token)
+                        refresh_token = self._resolve_user_token_value(user_token_record.refresh_token)
 
                         if client_id and client_secret:
                             linkedin_oauth = LinkedInOAuth(
@@ -2654,9 +2689,12 @@ class CredentialResolver:
                             )
                             token_data = await linkedin_oauth.refresh_access_token(refresh_token)
 
-                            user_token_record.access_token = encrypt_value(token_data["access_token"])
+                            # UserOAuthToken.access_token/.refresh_token are auto-encrypting
+                            # properties — assigning an already-encrypted value here would
+                            # double-encrypt it.
+                            user_token_record.access_token = token_data["access_token"]
                             if "refresh_token" in token_data:
-                                user_token_record.refresh_token = encrypt_value(token_data["refresh_token"])
+                                user_token_record.refresh_token = token_data["refresh_token"]
                             if "expires_in" in token_data:
                                 from datetime import timedelta
 
@@ -2671,7 +2709,7 @@ class CredentialResolver:
                         logger.error(f"Failed to refresh user LinkedIn token: {refresh_error}", exc_info=True)
 
                 elif not user_token_expired:
-                    token = decrypt_value(user_token_record.access_token)
+                    token = self._resolve_user_token_value(user_token_record.access_token)
                     logger.info(
                         f"✅ Resolved LinkedIn token for tool '{tool_name}' "
                         f"using user's personal token (OAuth app: '{oauth_app.app_name}')"

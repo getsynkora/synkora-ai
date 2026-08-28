@@ -178,9 +178,13 @@ async def gmail_callback(
 
             if existing_token:
                 # Update existing token
-                existing_token.access_token = encrypt_value(json.dumps(credentials_json))
+                # UserOAuthToken.access_token/.refresh_token are auto-encrypting
+                # properties — assigning an already-encrypted value here would
+                # double-encrypt it, producing a token that never decrypts back
+                # to something usable.
+                existing_token.access_token = json.dumps(credentials_json)
                 if token_data.get("refresh_token"):
-                    existing_token.refresh_token = encrypt_value(token_data["refresh_token"])
+                    existing_token.refresh_token = token_data["refresh_token"]
                 existing_token.provider_user_id = user_info.get("id")
                 existing_token.provider_email = user_email
                 existing_token.provider_display_name = user_info.get("name")
@@ -189,10 +193,9 @@ async def gmail_callback(
                 user_token = UserOAuthToken(
                     account_id=uuid.UUID(account_id),
                     oauth_app_id=oauth_app_id,
-                    access_token=encrypt_value(json.dumps(credentials_json)),
-                    refresh_token=encrypt_value(token_data["refresh_token"])
-                    if token_data.get("refresh_token")
-                    else None,
+                    # See comment above — these properties encrypt on assignment.
+                    access_token=json.dumps(credentials_json),
+                    refresh_token=token_data.get("refresh_token"),
                     provider_user_id=user_info.get("id"),
                     provider_email=user_email,
                     provider_display_name=user_info.get("name"),
@@ -380,9 +383,13 @@ async def google_calendar_callback(
 
             if existing_token:
                 # Update existing token
-                existing_token.access_token = encrypt_value(token_data["access_token"])
+                # UserOAuthToken.access_token/.refresh_token are auto-encrypting
+                # properties — assigning an already-encrypted value here would
+                # double-encrypt it, producing a token that never decrypts back
+                # to something usable.
+                existing_token.access_token = token_data["access_token"]
                 if token_data.get("refresh_token"):
-                    existing_token.refresh_token = encrypt_value(token_data["refresh_token"])
+                    existing_token.refresh_token = token_data["refresh_token"]
                 existing_token.token_expires_at = token_expires_at
                 existing_token.provider_user_id = user_info.get("id")
                 existing_token.provider_email = user_email
@@ -392,10 +399,9 @@ async def google_calendar_callback(
                 user_token = UserOAuthToken(
                     account_id=uuid.UUID(account_id),
                     oauth_app_id=oauth_app_id,
-                    access_token=encrypt_value(token_data["access_token"]),
-                    refresh_token=encrypt_value(token_data["refresh_token"])
-                    if token_data.get("refresh_token")
-                    else None,
+                    # See comment above — these properties encrypt on assignment.
+                    access_token=token_data["access_token"],
+                    refresh_token=token_data.get("refresh_token"),
                     token_expires_at=token_expires_at,
                     provider_user_id=user_info.get("id"),
                     provider_email=user_email,
@@ -590,9 +596,13 @@ async def google_drive_callback(
 
             if existing_token:
                 # Update existing token
-                existing_token.access_token = encrypt_value(token_data["access_token"])
+                # UserOAuthToken.access_token/.refresh_token are auto-encrypting
+                # properties — assigning an already-encrypted value here would
+                # double-encrypt it, producing a token that never decrypts back
+                # to something usable.
+                existing_token.access_token = token_data["access_token"]
                 if token_data.get("refresh_token"):
-                    existing_token.refresh_token = encrypt_value(token_data["refresh_token"])
+                    existing_token.refresh_token = token_data["refresh_token"]
                 existing_token.token_expires_at = token_expires_at
                 existing_token.provider_user_id = user_info.get("id")
                 existing_token.provider_email = user_email
@@ -602,10 +612,9 @@ async def google_drive_callback(
                 user_token = UserOAuthToken(
                     account_id=uuid.UUID(account_id),
                     oauth_app_id=oauth_app_id,
-                    access_token=encrypt_value(token_data["access_token"]),
-                    refresh_token=encrypt_value(token_data["refresh_token"])
-                    if token_data.get("refresh_token")
-                    else None,
+                    # See comment above — these properties encrypt on assignment.
+                    access_token=token_data["access_token"],
+                    refresh_token=token_data.get("refresh_token"),
                     token_expires_at=token_expires_at,
                     provider_user_id=user_info.get("id"),
                     provider_email=user_email,

@@ -164,9 +164,13 @@ async def salesforce_callback(
             )
             existing = result.scalar_one_or_none()
             if existing:
-                existing.access_token = encrypt_value(access_token)
+                # UserOAuthToken.access_token/.refresh_token are auto-encrypting
+                # properties — assigning an already-encrypted value here would
+                # double-encrypt it, producing a token that never decrypts back
+                # to something usable.
+                existing.access_token = access_token
                 if refresh_token:
-                    existing.refresh_token = encrypt_value(refresh_token)
+                    existing.refresh_token = refresh_token
                 existing.token_expires_at = token_expires_at
                 existing.provider_user_id = user_info.get("id")
                 existing.provider_email = user_email
@@ -176,8 +180,9 @@ async def salesforce_callback(
                     UserOAuthToken(
                         account_id=uuid.UUID(account_id),
                         oauth_app_id=oauth_app_id,
-                        access_token=encrypt_value(access_token),
-                        refresh_token=encrypt_value(refresh_token) if refresh_token else None,
+                        # See comment above — these properties encrypt on assignment.
+                        access_token=access_token,
+                        refresh_token=refresh_token,
                         token_expires_at=token_expires_at,
                         provider_user_id=user_info.get("id"),
                         provider_email=user_email,

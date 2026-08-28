@@ -143,7 +143,11 @@ async def intercom_callback(
             )
             existing = result.scalar_one_or_none()
             if existing:
-                existing.access_token = encrypt_value(access_token)
+                # UserOAuthToken.access_token is an auto-encrypting property —
+                # assigning an already-encrypted value here would double-encrypt
+                # it, producing a token that never decrypts back to something
+                # usable.
+                existing.access_token = access_token
                 existing.token_expires_at = None
                 existing.provider_user_id = user_info.get("id")
                 existing.provider_email = user_email
@@ -153,7 +157,8 @@ async def intercom_callback(
                     UserOAuthToken(
                         account_id=uuid.UUID(account_id),
                         oauth_app_id=oauth_app_id,
-                        access_token=encrypt_value(access_token),
+                        # See comment above — this property encrypts on assignment.
+                        access_token=access_token,
                         token_expires_at=None,
                         provider_user_id=user_info.get("id"),
                         provider_email=user_email,

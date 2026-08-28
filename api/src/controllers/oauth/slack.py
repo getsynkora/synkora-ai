@@ -159,7 +159,11 @@ async def slack_callback(
 
             if existing_token:
                 # Update existing token
-                existing_token.access_token = encrypt_value(token_data["access_token"])
+                # UserOAuthToken.access_token/.refresh_token are auto-encrypting
+                # properties — assigning an already-encrypted value here would
+                # double-encrypt it, producing a token that never decrypts back
+                # to something usable.
+                existing_token.access_token = token_data["access_token"]
                 existing_token.provider_user_id = authed_user.get("id")
                 existing_token.provider_display_name = team_name
                 existing_token.scopes = token_data.get("scope", "")
@@ -168,7 +172,8 @@ async def slack_callback(
                 user_token = UserOAuthToken(
                     account_id=uuid.UUID(account_id),
                     oauth_app_id=oauth_app_id,
-                    access_token=encrypt_value(token_data["access_token"]),
+                    # See comment above — this property encrypts on assignment.
+                    access_token=token_data["access_token"],
                     provider_user_id=authed_user.get("id"),
                     provider_display_name=team_name,
                     scopes=token_data.get("scope", ""),

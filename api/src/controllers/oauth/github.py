@@ -166,7 +166,11 @@ async def github_callback(
 
             if existing_token:
                 # Update existing token
-                existing_token.access_token = encrypt_value(token)
+                # UserOAuthToken.access_token/.refresh_token are auto-encrypting
+                # properties — assigning an already-encrypted value here would
+                # double-encrypt it, producing a token that never decrypts back
+                # to something usable.
+                existing_token.access_token = token
                 existing_token.provider_user_id = str(user_info.get("id"))
                 existing_token.provider_email = user_info.get("email")
                 existing_token.provider_username = user_info.get("login")
@@ -177,7 +181,8 @@ async def github_callback(
                 user_token = UserOAuthToken(
                     account_id=uuid.UUID(account_id),
                     oauth_app_id=oauth_app_id,
-                    access_token=encrypt_value(token),
+                    # See comment above — this property encrypts on assignment.
+                    access_token=token,
                     provider_user_id=str(user_info.get("id")),
                     provider_email=user_info.get("email"),
                     provider_username=user_info.get("login"),
