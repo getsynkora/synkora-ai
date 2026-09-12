@@ -77,8 +77,6 @@ class TestStorageService:
             # Verify file written
             mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
             mock_write_bytes.assert_called_once_with(file_content)
-            handle = mock_file()
-            handle.write.assert_called_with(file_content)
 
     @pytest.mark.asyncio
     async def test_upload_file_validation_error_size(self, storage_service, mock_storage_config):

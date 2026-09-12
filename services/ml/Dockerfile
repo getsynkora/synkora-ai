@@ -6,9 +6,7 @@ ARG EMBEDDING_MODEL_REVISION
 ARG RERANK_MODEL_REVISION
 RUN test -n "$EMBEDDING_MODEL_REVISION" && test -n "$RERANK_MODEL_REVISION"
 ENV EMBEDDING_MODEL_REVISION=$EMBEDDING_MODEL_REVISION \
-    RERANK_MODEL_REVISION=$RERANK_MODEL_REVISION \
-    HF_HUB_OFFLINE=1 \
-    TRANSFORMERS_OFFLINE=1
+    RERANK_MODEL_REVISION=$RERANK_MODEL_REVISION
 RUN pip install --no-cache-dir \
     fastapi==0.136.1 \
     'uvicorn[standard]==0.41.0' \
@@ -19,12 +17,18 @@ RUN pip install --no-cache-dir \
 
 COPY app.py .
 
-# Pre-download models at build time so startup is instant (no runtime download)
+# Pre-download models at build time so startup is instant (no runtime download).
+# Needs real network access, so this must run before HF_HUB_OFFLINE/TRANSFORMERS_OFFLINE
+# are set below — those env vars are for the running service only, to guarantee it
+# never phones home and only ever serves the pinned revisions baked into this image.
 RUN python -c "\
 from sentence_transformers import SentenceTransformer; \
 from sentence_transformers.cross_encoder import CrossEncoder; \
 SentenceTransformer('all-MiniLM-L6-v2', revision='$EMBEDDING_MODEL_REVISION'); \
 CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2', revision='$RERANK_MODEL_REVISION')"
+
+ENV HF_HUB_OFFLINE=1 \
+    TRANSFORMERS_OFFLINE=1
 
 EXPOSE 5002
 

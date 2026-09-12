@@ -598,7 +598,10 @@ class TestCardSetAndVideoEmission:
                 pass
 
             def json(self):
-                return {"title": "How Slack Works", "thumbnail_url": "https://i.ytimg.com/vi/abc123/hqdefault.jpg"}
+                return {
+                    "title": "How Slack Works",
+                    "thumbnail_url": "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+                }
 
         async def _fake_fetch_public_url(url, **kwargs):
             return _FakeResponse()
@@ -607,15 +610,18 @@ class TestCardSetAndVideoEmission:
         # fetch_public_url() helper rather than calling httpx directly.
         monkeypatch.setattr(public_http, "fetch_public_url", _fake_fetch_public_url)
 
-        tool_result = {"success": True, "video_id": "abc123", "full_text": "hello world"}
+        # Real YouTube video IDs are exactly 11 chars — _fetch_youtube_oembed()
+        # now strictly validates that before ever fetching, so a shorter test
+        # ID would short-circuit before the mock is exercised at all.
+        tool_result = {"success": True, "video_id": "dQw4w9WgXcQ", "full_text": "hello world"}
         chunks = await self._run_stream(
             handler, mock_llm_client, mock_tool_registry, "internal_youtube_get_transcript", tool_result
         )
 
         video_events = [c for c in chunks if c["type"] == "video"]
         assert len(video_events) == 1
-        assert video_events[0]["video_url"] == "https://www.youtube.com/embed/abc123"
-        assert video_events[0]["thumbnail_url"] == "https://i.ytimg.com/vi/abc123/hqdefault.jpg"
+        assert video_events[0]["video_url"] == "https://www.youtube.com/embed/dQw4w9WgXcQ"
+        assert video_events[0]["thumbnail_url"] == "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg"
         assert video_events[0]["title"] == "How Slack Works"
 
     @pytest.mark.asyncio
@@ -633,7 +639,7 @@ class TestCardSetAndVideoEmission:
         # fetch_public_url() helper rather than calling httpx directly.
         monkeypatch.setattr(public_http, "fetch_public_url", _failing_fetch_public_url)
 
-        tool_result = {"success": True, "video_id": "abc123", "full_text": "hello world"}
+        tool_result = {"success": True, "video_id": "dQw4w9WgXcQ", "full_text": "hello world"}
         chunks = await self._run_stream(
             handler, mock_llm_client, mock_tool_registry, "internal_youtube_get_transcript", tool_result
         )
