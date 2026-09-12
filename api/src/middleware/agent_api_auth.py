@@ -4,10 +4,12 @@ Agent API authentication middleware.
 Validates agent API keys and enforces rate limiting, permissions, and usage tracking.
 """
 
+import asyncio
 import hmac
 import logging
 import time
 import uuid
+from dataclasses import dataclass
 
 from fastapi import Depends, Header, HTTPException, Request, status
 from sqlalchemy import select
@@ -118,6 +120,22 @@ class AgentApiAuthMiddleware:
         return matched_record
 
     @staticmethod
+    async def enforce_request_controls(request: Request, api_key: AgentApiKey) -> None:
+        """Apply stored key policy consistently to every API-key entry point."""
+        client_ip = request.client.host if request.client else ""
+        if not AgentApiKeyService.validate_ip_address(api_key, client_ip):
+            raise HTTPException(403, "IP address not allowed for this API key")
+        if not AgentApiKeyService.validate_origin(api_key, request.headers.get("Origin")):
+            raise HTTPException(403, "Origin not allowed for this API key")
+        try:
+            allowed, error = await asyncio.to_thread(AgentApiKeyService.check_rate_limit, api_key)
+        except Exception as exc:
+            logger.warning("API key rate-limit service unavailable", exc_info=True)
+            raise HTTPException(503, "API key rate-limit service unavailable") from exc
+        if not allowed:
+            raise HTTPException(429, error or "Rate limit exceeded", headers={"Retry-After": "60"})
+
+    @staticmethod
     async def authenticate_request(
         request: Request,
         required_permission: str | None = None,
@@ -165,23 +183,7 @@ class AgentApiAuthMiddleware:
                         headers={"WWW-Authenticate": "Bearer"},
                     )
 
-                # Validate IP address
-                client_ip = request.client.host if request.client else None
-                if client_ip and not AgentApiKeyService.validate_ip_address(api_key_record, client_ip):
-                    logger.warning(f"IP address {client_ip} not allowed for API key {api_key_record.id}")
-                    raise HTTPException(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        detail="IP address not allowed for this API key",
-                    )
-
-                # Validate origin (CORS)
-                origin = request.headers.get("Origin")
-                if origin and not AgentApiKeyService.validate_origin(api_key_record, origin):
-                    logger.warning(f"Origin {origin} not allowed for API key {api_key_record.id}")
-                    raise HTTPException(
-                        status_code=status.HTTP_403_FORBIDDEN,
-                        detail="Origin not allowed for this API key",
-                    )
+                await AgentApiAuthMiddleware.enforce_request_controls(request, api_key_record)
 
                 # Check permission
                 if required_permission and not AgentApiKeyService.check_permission(api_key_record, required_permission):
@@ -189,20 +191,6 @@ class AgentApiAuthMiddleware:
                     raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail=f"API key does not have required permission: {required_permission}",
-                    )
-
-                # Check rate limit
-                is_allowed, error_message = AgentApiKeyService.check_rate_limit(api_key_record)
-                if not is_allowed:
-                    logger.warning(f"Rate limit exceeded for API key {api_key_record.id}: {error_message}")
-                    raise HTTPException(
-                        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                        detail=error_message,
-                        headers={
-                            "Retry-After": "60",  # Suggest retry after 60 seconds
-                            "X-RateLimit-Limit": str(api_key_record.rate_limit_per_minute),
-                            "X-RateLimit-Remaining": "0",
-                        },
                     )
 
                 # Store API key in request state for later use
@@ -309,70 +297,46 @@ def require_permission(permission: str):
     return check_permission
 
 
-async def get_tenant_from_jwt_or_api_key(
+@dataclass(frozen=True)
+class HandoffAccess:
+    tenant_id: uuid.UUID
+    agent_id: uuid.UUID | None = None
+    permissions: frozenset[str] | None = None  # None denotes an authenticated account.
+
+    def require(self, permission: str) -> None:
+        if self.permissions is not None and permission not in self.permissions and "*" not in self.permissions:
+            raise HTTPException(403, f"API key requires {permission} permission")
+
+
+async def get_handoff_access(
+    request: Request,
     authorization: str | None = Header(None),
     db: AsyncSession = Depends(get_async_db),
-) -> uuid.UUID:
-    """
-    Dual-mode auth dependency for management endpoints (e.g. handoff API).
-
-    Accepts either:
-      - A Synkora account JWT:  Authorization: Bearer <jwt>
-      - An AgentApiKey:        Authorization: Bearer sk_live_...
-
-    Returns the tenant UUID so route handlers stay identical.
-    """
-    if not authorization:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    parts = authorization.split()
+) -> HandoffAccess:
+    """Retain the key's agent and permissions throughout handoff authorization."""
+    parts = (authorization or "").split()
     if len(parts) != 2 or parts[0].lower() != "bearer":
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authorization format. Use: Bearer <token>",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
+        raise HTTPException(401, "Authentication required", headers={"WWW-Authenticate": "Bearer"})
     token = parts[1]
-
-    # AgentApiKey path — sk_live_... keys
     if token.startswith("sk_"):
-        api_key_record = await AgentApiAuthMiddleware.validate_api_key(token, db)
-        if not api_key_record:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid or expired API key",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        return api_key_record.tenant_id
+        key = await AgentApiAuthMiddleware.validate_api_key(token, db)
+        if key is None:
+            raise HTTPException(401, "Invalid or expired API key")
+        if key.agent_id is None:
+            raise HTTPException(403, "Handoff API keys must be scoped to an agent")
+        await AgentApiAuthMiddleware.enforce_request_controls(request, key)
+        return HandoffAccess(key.tenant_id, key.agent_id, frozenset(key.permissions or []))
+    from src.middleware.auth_middleware import authenticate_tenant_token
 
-    # JWT path — standard account token
-    try:
-        from src.services import AuthService
+    _, tenant_id = await authenticate_tenant_token(token, db)
+    return HandoffAccess(tenant_id)
 
-        payload = AuthService.decode_token(token)
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
 
-    if "tenant_id" not in payload:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tenant context required",
-        )
+async def require_handoff_read(access: HandoffAccess = Depends(get_handoff_access)) -> HandoffAccess:
+    access.require("handoff:read")
+    return access
 
-    try:
-        return uuid.UUID(payload["tenant_id"])
-    except (ValueError, AttributeError):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+
+async def require_handoff_write(access: HandoffAccess = Depends(get_handoff_access)) -> HandoffAccess:
+    access.require("handoff:write")
+    return access

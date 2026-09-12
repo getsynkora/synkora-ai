@@ -3,8 +3,8 @@
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_async_db
@@ -17,6 +17,7 @@ from src.schemas.load_testing import (
     TestConnectionResponse,
     UpdateMonitoringIntegrationRequest,
 )
+from src.services.security.monitoring_http import monitoring_request
 
 logger = logging.getLogger(__name__)
 
@@ -71,31 +72,43 @@ async def create_monitoring_integration(
     except Exception as e:
         logger.error(f"Error creating monitoring integration: {e}", exc_info=True)
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("", response_model=MonitoringIntegrationListResponse)
 async def list_monitoring_integrations(
     tenant_id: UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
 ):
-    """List all monitoring integrations."""
+    """List monitoring integrations (paginated)."""
     try:
+        # Get total count
+        count_result = await db.execute(
+            select(func.count(MonitoringIntegration.id)).filter(
+                MonitoringIntegration.tenant_id == tenant_id
+            )
+        )
+        total = count_result.scalar() or 0
+
         result = await db.execute(
             select(MonitoringIntegration)
             .filter(MonitoringIntegration.tenant_id == tenant_id)
             .order_by(MonitoringIntegration.created_at.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
         )
         integrations = result.scalars().all()
 
         return MonitoringIntegrationListResponse(
             items=[_integration_to_response(i) for i in integrations],
-            total=len(integrations),
+            total=total,
         )
 
     except Exception as e:
         logger.error(f"Error listing monitoring integrations: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/{integration_id}", response_model=MonitoringIntegrationResponse)
@@ -113,7 +126,7 @@ async def get_monitoring_integration(
         raise
     except Exception as e:
         logger.error(f"Error getting monitoring integration: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.put("/{integration_id}", response_model=MonitoringIntegrationResponse)
@@ -148,7 +161,7 @@ async def update_monitoring_integration(
     except Exception as e:
         logger.error(f"Error updating monitoring integration: {e}", exc_info=True)
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.delete("/{integration_id}", status_code=204)
@@ -171,7 +184,7 @@ async def delete_monitoring_integration(
     except Exception as e:
         logger.error(f"Error deleting monitoring integration: {e}", exc_info=True)
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/{integration_id}/test", response_model=TestConnectionResponse)
@@ -192,19 +205,19 @@ async def test_monitoring_connection(
         details = {}
 
         if provider == MonitoringProvider.DATADOG:
-            success, message, details = await _test_datadog(config)
+            success, message, details = await _test_datadog(config, tenant_id=tenant_id)
         elif provider == MonitoringProvider.OPENTELEMETRY:
-            success, message, details = await _test_otlp(config)
+            success, message, details = await _test_otlp(config, tenant_id=tenant_id)
         elif provider == MonitoringProvider.GRAFANA_CLOUD:
-            success, message, details = await _test_grafana_cloud(config)
+            success, message, details = await _test_grafana_cloud(config, tenant_id=tenant_id)
         elif provider == MonitoringProvider.PROMETHEUS:
-            success, message, details = await _test_prometheus(config)
+            success, message, details = await _test_prometheus(config, tenant_id=tenant_id)
         elif provider == MonitoringProvider.WEBHOOK:
-            success, message, details = await _test_webhook(config)
+            success, message, details = await _test_webhook(config, tenant_id=tenant_id)
         elif provider == MonitoringProvider.SLACK:
-            success, message, details = await _test_slack(config)
+            success, message, details = await _test_slack(config, tenant_id=tenant_id)
         elif provider == MonitoringProvider.PAGERDUTY:
-            success, message, details = await _test_pagerduty(config)
+            success, message, details = await _test_pagerduty(config, tenant_id=tenant_id)
         else:
             message = f"Testing not supported for provider: {provider.value}"
 
@@ -223,7 +236,7 @@ async def test_monitoring_connection(
         raise
     except Exception as e:
         logger.error(f"Error testing monitoring connection: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/providers/schema")
@@ -240,224 +253,85 @@ async def get_provider_schemas():
 # ============================================================================
 
 
-async def _test_datadog(config: dict) -> tuple[bool, str, dict]:
-    """Test DataDog connection."""
-    import asyncio
-
-    import requests
-
+async def _test_request(method: str, url: str, *, tenant_id: UUID | None = None, **kwargs) -> tuple[bool, str, dict]:
     try:
-        api_key = config.get("api_key")
-        app_key = config.get("app_key")
-        site = config.get("site", "datadoghq.com")
-
-        loop = asyncio.get_running_loop()
-        response = await loop.run_in_executor(
-            None,
-            lambda: requests.get(
-                f"https://api.{site}/api/v1/validate",
-                headers={
-                    "DD-API-KEY": api_key,
-                    "DD-APPLICATION-KEY": app_key,
-                },
-                timeout=10,
-            ),
-        )
-
-        if response.status_code == 200:
-            return True, "Connection successful", {"valid": True}
-        else:
-            return False, f"Connection failed: {response.text}", {}
-
-    except Exception as e:
-        return False, f"Connection error: {str(e)}", {}
+        response = await monitoring_request(method, url, tenant_id=tenant_id, **kwargs)
+        if 200 <= response.status_code < 300:
+            return True, "Connection successful", {"status_code": response.status_code}
+        return False, f"Connection failed: HTTP {response.status_code}", {}
+    except Exception:
+        # Never return destination bodies, credentials, or internal addresses.
+        return False, "Connection failed or destination is not permitted", {}
 
 
-async def _test_otlp(config: dict) -> tuple[bool, str, dict]:
-    """Test OTLP endpoint connection."""
-    import asyncio
-
-    import requests
-
-    try:
-        endpoint = config.get("endpoint")
-        headers = config.get("headers", {})
-
-        # Simple health check
-        loop = asyncio.get_running_loop()
-        response = await loop.run_in_executor(None, lambda: requests.options(endpoint, headers=headers, timeout=10))
-
-        if response.status_code < 500:
-            return True, "Endpoint reachable", {"status_code": response.status_code}
-        else:
-            return False, f"Endpoint error: {response.status_code}", {}
-
-    except Exception as e:
-        return False, f"Connection error: {str(e)}", {}
+async def _test_datadog(config: dict, *, tenant_id: UUID | None = None) -> tuple[bool, str, dict]:
+    return await _test_request(
+        "GET",
+        f"https://api.{config.get('site', 'datadoghq.com')}/api/v1/validate",
+        tenant_id=tenant_id,
+        headers={"DD-API-KEY": config.get("api_key"), "DD-APPLICATION-KEY": config.get("app_key")},
+    )
 
 
-async def _test_grafana_cloud(config: dict) -> tuple[bool, str, dict]:
-    """Test Grafana Cloud connection."""
-    import asyncio
-
-    import requests
-
-    try:
-        prometheus_url = config.get("prometheus_url")
-        username = config.get("username")
-        api_key = config.get("api_key")
-
-        # Test Prometheus remote write endpoint
-        loop = asyncio.get_running_loop()
-        response = await loop.run_in_executor(
-            None,
-            lambda: requests.get(
-                f"{prometheus_url}/api/v1/query?query=up",
-                auth=(username, api_key),
-                timeout=10,
-            ),
-        )
-
-        if response.status_code == 200:
-            return True, "Connection successful", {"status": "active"}
-        else:
-            return False, f"Connection failed: {response.status_code}", {}
-
-    except Exception as e:
-        return False, f"Connection error: {str(e)}", {}
+async def _test_otlp(config: dict, *, tenant_id: UUID | None = None) -> tuple[bool, str, dict]:
+    return await _test_request(
+        "OPTIONS", config.get("endpoint"), tenant_id=tenant_id, headers=config.get("headers", {})
+    )
 
 
-async def _test_prometheus(config: dict) -> tuple[bool, str, dict]:
-    """Test Prometheus Pushgateway connection."""
-    import asyncio
-
-    import requests
-
-    try:
-        pushgateway_url = config.get("pushgateway_url")
-        basic_auth = config.get("basic_auth")
-
-        auth = None
-        if basic_auth:
-            auth = (basic_auth.get("username"), basic_auth.get("password"))
-
-        loop = asyncio.get_running_loop()
-        response = await loop.run_in_executor(
-            None,
-            lambda: requests.get(
-                f"{pushgateway_url}/metrics",
-                auth=auth,
-                timeout=10,
-            ),
-        )
-
-        if response.status_code == 200:
-            return True, "Pushgateway reachable", {}
-        else:
-            return False, f"Connection failed: {response.status_code}", {}
-
-    except Exception as e:
-        return False, f"Connection error: {str(e)}", {}
+async def _test_grafana_cloud(config: dict, *, tenant_id: UUID | None = None) -> tuple[bool, str, dict]:
+    return await _test_request(
+        "GET",
+        f"{config.get('prometheus_url', '').rstrip('/')}/api/v1/query?query=up",
+        tenant_id=tenant_id,
+        auth=(config.get("username"), config.get("api_key")),
+    )
 
 
-async def _test_webhook(config: dict) -> tuple[bool, str, dict]:
-    """Test webhook endpoint connection."""
-    import asyncio
-
-    import requests
-
-    try:
-        url = config.get("url")
-        method = config.get("method", "POST")
-        headers = config.get("headers", {})
-
-        # Send test payload
-        loop = asyncio.get_running_loop()
-        response = await loop.run_in_executor(
-            None,
-            lambda: requests.request(
-                method=method,
-                url=url,
-                headers={**headers, "Content-Type": "application/json"},
-                json={"test": True, "source": "synkora"},
-                timeout=10,
-            ),
-        )
-
-        if response.status_code < 400:
-            return True, "Webhook test successful", {"status_code": response.status_code}
-        else:
-            return False, f"Webhook error: {response.status_code}", {}
-
-    except Exception as e:
-        return False, f"Connection error: {str(e)}", {}
+async def _test_prometheus(config: dict, *, tenant_id: UUID | None = None) -> tuple[bool, str, dict]:
+    credentials = config.get("basic_auth")
+    auth = (credentials.get("username"), credentials.get("password")) if credentials else None
+    return await _test_request(
+        "GET",
+        f"{config.get('pushgateway_url', '').rstrip('/')}/metrics",
+        tenant_id=tenant_id,
+        auth=auth,
+    )
 
 
-async def _test_slack(config: dict) -> tuple[bool, str, dict]:
-    """Test Slack webhook connection."""
-    import asyncio
-
-    import requests
-
-    try:
-        webhook_url = config.get("webhook_url")
-
-        loop = asyncio.get_running_loop()
-        response = await loop.run_in_executor(
-            None,
-            lambda: requests.post(
-                webhook_url,
-                json={"text": "Synkora monitoring test - connection verified"},
-                timeout=10,
-            ),
-        )
-
-        if response.status_code == 200:
-            return True, "Slack webhook test successful", {}
-        else:
-            return False, f"Slack error: {response.text}", {}
-
-    except Exception as e:
-        return False, f"Connection error: {str(e)}", {}
+async def _test_webhook(config: dict, *, tenant_id: UUID | None = None) -> tuple[bool, str, dict]:
+    method = str(config.get("method", "POST")).upper()
+    if method not in {"POST", "PUT", "PATCH"}:
+        return False, "Webhook tests support POST, PUT and PATCH only", {}
+    return await _test_request(
+        method,
+        config.get("url"),
+        tenant_id=tenant_id,
+        headers=config.get("headers", {}),
+        json={"test": True, "source": "synkora"},
+    )
 
 
-async def _test_pagerduty(config: dict) -> tuple[bool, str, dict]:
-    """Test PagerDuty integration."""
-    import asyncio
+async def _test_slack(config: dict, *, tenant_id: UUID | None = None) -> tuple[bool, str, dict]:
+    return await _test_request(
+        "POST",
+        config.get("webhook_url"),
+        tenant_id=tenant_id,
+        json={"text": "Synkora monitoring test - connection verified"},
+    )
 
-    import requests
 
-    try:
-        routing_key = config.get("routing_key")
-
-        # Verify routing key by attempting an event submission
-        loop = asyncio.get_running_loop()
-        response = await loop.run_in_executor(
-            None,
-            lambda: requests.post(
-                "https://events.pagerduty.com/v2/enqueue",
-                json={
-                    "routing_key": routing_key,
-                    "event_action": "trigger",
-                    "payload": {
-                        "summary": "Synkora monitoring test",
-                        "severity": "info",
-                        "source": "synkora-test",
-                    },
-                },
-                timeout=10,
-            ),
-        )
-
-        if response.status_code == 202:
-            # Acknowledge the test event
-            data = response.json()
-            return True, "PagerDuty test successful", {"dedup_key": data.get("dedup_key")}
-        else:
-            return False, f"PagerDuty error: {response.text}", {}
-
-    except Exception as e:
-        return False, f"Connection error: {str(e)}", {}
+async def _test_pagerduty(config: dict, *, tenant_id: UUID | None = None) -> tuple[bool, str, dict]:
+    return await _test_request(
+        "POST",
+        "https://events.pagerduty.com/v2/enqueue",
+        tenant_id=tenant_id,
+        json={
+            "routing_key": config.get("routing_key"),
+            "event_action": "trigger",
+            "payload": {"summary": "Synkora monitoring test", "severity": "info", "source": "synkora-test"},
+        },
+    )
 
 
 # ============================================================================

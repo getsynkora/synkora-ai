@@ -16,6 +16,7 @@ Mounts at /api/v1/agents and provides:
 
 import logging
 import uuid
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
@@ -25,6 +26,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.database import get_async_db
 from src.middleware.auth_middleware import get_current_tenant_id
 from src.models.agent import Agent
+from src.models.conversation import Conversation
+from src.models.message import Message
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -49,15 +52,15 @@ async def _get_agent(agent_slug: str, tenant_id, db: AsyncSession) -> Agent:
 
 
 class FeedbackRequest(BaseModel):
-    message_id: str
+    message_id: uuid.UUID
     channel: str = Field(default="console", description="widget/slack/whatsapp/teams/console")
-    rating: int = Field(..., description="1 for thumbs up, -1 for thumbs down")
-    comment: str | None = None
+    rating: Literal[-1, 1]
+    comment: str | None = Field(default=None, max_length=4000)
     trace_id: str | None = None
 
 
 class OutcomeRequest(BaseModel):
-    conversation_id: str
+    conversation_id: uuid.UUID
     helpful: bool
     trace_id: str | None = None
 
@@ -93,16 +96,29 @@ async def submit_feedback(
     """Record per-message user feedback (thumbs up/down)."""
     agent = await _get_agent(agent_slug, tenant_id, db)
 
+    owned = (
+        await db.execute(
+            select(Message.id)
+            .join(Conversation, Message.conversation_id == Conversation.id)
+            .where(
+                Message.id == body.message_id,
+                Conversation.agent_id == agent.id,
+            )
+        )
+    ).scalar_one_or_none()
+    if owned is None:
+        raise HTTPException(404, "Message not found")
+
     from src.services.eval.feedback_service import record_feedback
 
     record_feedback(
-        message_id=body.message_id,
+        message_id=str(body.message_id),
         agent_id=agent.id,
         tenant_id=tenant_id,
         channel=body.channel,
         rating=body.rating,
         comment=body.comment,
-        trace_id=body.trace_id,
+        trace_id=None,  # Client-supplied trace IDs are not authorization evidence.
     )
 
 
@@ -121,14 +137,25 @@ async def submit_outcome(
     """Record explicit session outcome from 'Did this help?' prompt."""
     agent = await _get_agent(agent_slug, tenant_id, db)
 
+    owned = (
+        await db.execute(
+            select(Conversation.id).where(
+                Conversation.id == body.conversation_id,
+                Conversation.agent_id == agent.id,
+            )
+        )
+    ).scalar_one_or_none()
+    if owned is None:
+        raise HTTPException(404, "Conversation not found")
+
     from src.services.eval.outcome_service import record_explicit_outcome
 
     record_explicit_outcome(
-        conversation_id=uuid.UUID(body.conversation_id),
+        conversation_id=body.conversation_id,
         agent_id=agent.id,
         tenant_id=tenant_id,
         helpful=body.helpful,
-        trace_id=body.trace_id,
+        trace_id=None,  # Client-supplied trace IDs are not authorization evidence.
     )
 
 
@@ -227,14 +254,17 @@ async def create_case(
     agent = await _get_agent(agent_slug, tenant_id, db)
     from src.services.eval.dataset_service import create_case as svc_create
 
-    return await svc_create(
-        dataset_id=dataset_id,
-        agent_id=agent.id,
-        tenant_id=tenant_id,
-        input=body.input,
-        expected_criteria=body.expected_criteria,
-        tags=body.tags,
-    )
+    try:
+        return await svc_create(
+            dataset_id=dataset_id,
+            agent_id=agent.id,
+            tenant_id=tenant_id,
+            input=body.input,
+            expected_criteria=body.expected_criteria,
+            tags=body.tags,
+        )
+    except ValueError as exc:
+        raise HTTPException(404, "Dataset not found") from exc
 
 
 @router.get("/{agent_slug}/eval/datasets/{dataset_id}/cases")

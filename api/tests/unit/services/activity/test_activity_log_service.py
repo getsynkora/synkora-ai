@@ -16,7 +16,7 @@ class TestActivityLogService:
         session.add = MagicMock()
         session.commit = AsyncMock()
         session.refresh = AsyncMock()
-        session.execute = AsyncMock()
+        session.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=None)))
         session.delete = AsyncMock()
         return session
 

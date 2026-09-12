@@ -73,7 +73,7 @@ async def list_user_tokens(
 
     except Exception as e:
         logger.error(f"List user tokens error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.delete("/user-tokens/{token_id}")
@@ -118,7 +118,7 @@ async def delete_user_token(
     except Exception as e:
         logger.error(f"Delete user token error: {e}", exc_info=True)
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/user-tokens/api-token")
@@ -184,7 +184,7 @@ async def save_user_api_token(
     except Exception as e:
         logger.error(f"Save user API token error: {e}", exc_info=True)
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/apps/{app_id}/connection-status")
@@ -261,7 +261,7 @@ async def get_user_connection_status(
         raise
     except Exception as e:
         logger.error(f"Get user connection status error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # =============================================================================
@@ -314,7 +314,7 @@ async def list_platform_apps(
 
     except Exception as e:
         logger.error(f"List platform apps error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.put("/platform-apps/{provider}/toggle")
@@ -382,7 +382,7 @@ async def toggle_platform_app(
         raise
     except Exception as e:
         logger.error(f"Toggle platform app error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/platform-apps/status")
@@ -427,4 +427,4 @@ async def get_platform_apps_status(
 
     except Exception as e:
         logger.error(f"Get platform apps status error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")

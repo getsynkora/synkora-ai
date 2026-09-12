@@ -15,7 +15,8 @@ from sqlalchemy.orm import selectinload
 
 from src.controllers.agents.models import AgentResponse, AttachMCPServerRequest
 from src.core.database import get_async_db
-from src.middleware.auth_middleware import get_current_tenant_id
+from src.middleware.auth_middleware import get_current_tenant_id, require_role
+from src.models import AccountRole
 from src.models.agent import Agent
 from src.services.agents.agent_manager import AgentManager
 
@@ -30,7 +31,9 @@ agent_manager = AgentManager()
 # Agent-MCP Server Management Endpoints
 
 
-@agents_mcp_servers_router.post("/{agent_id}/mcp-servers", response_model=AgentResponse)
+@agents_mcp_servers_router.post(
+    "/{agent_id}/mcp-servers", response_model=AgentResponse, dependencies=[Depends(require_role(AccountRole.ADMIN))]
+)
 async def attach_mcp_server(
     agent_id: str,
     request: AttachMCPServerRequest,
@@ -106,9 +109,11 @@ async def attach_mcp_server(
 
         # Evict the cached client so next request reconnects with the updated server list.
         try:
+            from src.services.cache import get_agent_cache
             from src.services.mcp import mcp_client_manager
 
             await mcp_client_manager.close_agent_client(agent_uuid)
+            await get_agent_cache().invalidate_agent(agent_id=str(agent_uuid))
         except Exception:
             pass
 
@@ -156,13 +161,8 @@ async def list_agent_mcp_servers(
         except ValueError:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid agent ID format")
 
-        # SECURITY: Single OR query to prevent timing attacks
-        # Checks: (agent belongs to tenant) OR (agent is public)
-        from sqlalchemy import or_
-
-        result = await db.execute(
-            select(Agent).filter(Agent.id == agent_uuid, or_(Agent.tenant_id == tenant_id, Agent.is_public.is_(True)))
-        )
+        # Public execution does not grant access to private integration configuration.
+        result = await db.execute(select(Agent).filter(Agent.id == agent_uuid, Agent.tenant_id == tenant_id))
         agent = result.scalar_one_or_none()
         if not agent:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent with ID '{agent_id}' not found")
@@ -203,7 +203,11 @@ async def list_agent_mcp_servers(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to list MCP servers")
 
 
-@agents_mcp_servers_router.put("/{agent_id}/mcp-servers/{mcp_server_id}/config", response_model=AgentResponse)
+@agents_mcp_servers_router.put(
+    "/{agent_id}/mcp-servers/{mcp_server_id}/config",
+    response_model=AgentResponse,
+    dependencies=[Depends(require_role(AccountRole.ADMIN))],
+)
 async def update_mcp_config(
     agent_id: str,
     mcp_server_id: str,
@@ -263,9 +267,11 @@ async def update_mcp_config(
         # Invalidate the in-memory tool discovery cache so the next chat picks up
         # the updated enabled_tools list without waiting for a reconnect.
         try:
+            from src.services.cache import get_agent_cache
             from src.services.mcp import mcp_client_manager
 
             mcp_client_manager.invalidate_tools_cache(agent_uuid)
+            await get_agent_cache().invalidate_agent(agent_id=str(agent_uuid))
         except Exception:
             pass
 
@@ -284,7 +290,11 @@ async def update_mcp_config(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update configuration")
 
 
-@agents_mcp_servers_router.delete("/{agent_id}/mcp-servers/{mcp_server_id}", response_model=AgentResponse)
+@agents_mcp_servers_router.delete(
+    "/{agent_id}/mcp-servers/{mcp_server_id}",
+    response_model=AgentResponse,
+    dependencies=[Depends(require_role(AccountRole.ADMIN))],
+)
 async def detach_mcp_server(
     agent_id: str,
     mcp_server_id: str,
@@ -341,9 +351,11 @@ async def detach_mcp_server(
 
         # Evict the cached client so next request reconnects without the removed server.
         try:
+            from src.services.cache import get_agent_cache
             from src.services.mcp import mcp_client_manager
 
             await mcp_client_manager.close_agent_client(agent_uuid)
+            await get_agent_cache().invalidate_agent(agent_id=str(agent_uuid))
         except Exception:
             pass
 

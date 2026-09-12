@@ -16,6 +16,7 @@ class TestSQLiteConnector:
         class MockCursor:
             def __init__(self):
                 self.fetchall = AsyncMock()
+                self.fetchmany = AsyncMock()
                 self.fetchone = AsyncMock()
                 self.description = [("col1",), ("col2",)]
                 self.close = AsyncMock()
@@ -40,12 +41,15 @@ class TestSQLiteConnector:
         # execute returns the cursor immediately, which handles await/async with
         conn.execute = MagicMock(return_value=mock_cursor)
         conn.close = AsyncMock()
+        conn._execute = AsyncMock()
+        conn.set_progress_handler = AsyncMock()
         conn.row_factory = None
         return conn
 
     @pytest.mark.asyncio
     async def test_connect_success(self, connector, mock_conn):
         with (
+            patch("src.services.database.sqlite_connector.local_database_path", return_value="/tmp/test.db"),
             patch("src.services.database.sqlite_connector.Path") as MockPath,
             patch("src.services.database.sqlite_connector.aiosqlite.connect", new_callable=AsyncMock) as mock_connect,
         ):
@@ -58,7 +62,7 @@ class TestSQLiteConnector:
             assert connector._connection == mock_conn
             mock_connect.assert_called_once()
             # Verify foreign keys enabled
-            mock_conn.execute.assert_called_with("PRAGMA foreign_keys = ON")
+            mock_conn.execute.assert_any_call("PRAGMA foreign_keys = ON")
 
     @pytest.mark.asyncio
     async def test_connect_failure(self, connector):
@@ -88,7 +92,7 @@ class TestSQLiteConnector:
         # let's ensure the rows behave like mappings.
         # But implementation does `result_rows = [dict(row) for row in rows]`.
         # If row is a dict, dict(row) works.
-        mock_cursor.fetchall.return_value = [{"col1": "val1", "col2": "val2"}]
+        mock_cursor.fetchmany.return_value = [{"col1": "val1", "col2": "val2"}]
 
         result = await connector.execute_query("SELECT * FROM table")
 
@@ -99,7 +103,7 @@ class TestSQLiteConnector:
     @pytest.mark.asyncio
     async def test_execute_query_error(self, connector, mock_conn, mock_cursor):
         connector._connection = mock_conn
-        mock_cursor.fetchall.side_effect = Exception("Query Error")
+        mock_cursor.fetchmany.side_effect = Exception("Query Error")
 
         result = await connector.execute_query("SELECT * FROM table")
 

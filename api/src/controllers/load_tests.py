@@ -77,7 +77,7 @@ async def create_load_test(
     except Exception as e:
         logger.error(f"Error creating load test: {e}", exc_info=True)
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("", response_model=LoadTestListResponse)
@@ -131,7 +131,7 @@ async def list_load_tests(
         raise
     except Exception as e:
         logger.error(f"Error listing load tests: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/{load_test_id}", response_model=LoadTestResponse)
@@ -149,7 +149,7 @@ async def get_load_test(
         raise
     except Exception as e:
         logger.error(f"Error getting load test: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.put("/{load_test_id}", response_model=LoadTestResponse)
@@ -205,7 +205,7 @@ async def update_load_test(
     except Exception as e:
         logger.error(f"Error updating load test: {e}", exc_info=True)
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.delete("/{load_test_id}", status_code=204)
@@ -232,7 +232,7 @@ async def delete_load_test(
     except Exception as e:
         logger.error(f"Error deleting load test: {e}", exc_info=True)
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # ============================================================================
@@ -262,7 +262,7 @@ async def list_scenarios(
         raise
     except Exception as e:
         logger.error(f"Error listing scenarios: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/{load_test_id}/scenarios", response_model=TestScenarioResponse, status_code=201)
@@ -308,7 +308,7 @@ async def create_scenario(
     except Exception as e:
         logger.error(f"Error creating scenario: {e}", exc_info=True)
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.put("/{load_test_id}/scenarios/{scenario_id}", response_model=TestScenarioResponse)
@@ -362,7 +362,7 @@ async def update_scenario(
     except Exception as e:
         logger.error(f"Error updating scenario: {e}", exc_info=True)
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.delete("/{load_test_id}/scenarios/{scenario_id}", status_code=204)
@@ -396,7 +396,7 @@ async def delete_scenario(
     except Exception as e:
         logger.error(f"Error deleting scenario: {e}", exc_info=True)
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # ============================================================================

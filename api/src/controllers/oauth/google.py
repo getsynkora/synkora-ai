@@ -17,13 +17,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.utils.config_helper import get_app_base_url
 
 from ...core.database import get_async_db
-from ...middleware.auth_middleware import get_optional_account, get_optional_tenant_id
+from ...middleware.auth_middleware import get_current_account, get_current_tenant_id
 from ...models.tenant import Account
 from ...models.user_oauth_token import UserOAuthToken
 from ...services.agents.security import decrypt_value, encrypt_value
 from ...services.oauth.gmail_oauth import GmailOAuth
 from ...services.security.oauth_state_service import create_oauth_state, get_oauth_state
 from .base import (
+    _authorize_oauth_connection,
+    _get_callback_oauth_app,
     _get_oauth_app_secure,
     _get_or_create_tenant_clone,
     _safe_error_redirect,
@@ -46,8 +48,8 @@ async def gmail_authorize(
     oauth_app_id: int = Query(..., description="OAuth app ID to authorize"),
     redirect_url: str = Query(None, description="Frontend redirect URL after OAuth"),
     user_level: bool = Query(False, description="Store token at user level instead of app level"),
-    current_account: Account | None = Depends(get_optional_account),
-    tenant_id: uuid.UUID | None = Depends(get_optional_tenant_id),
+    current_account: Account = Depends(get_current_account),
+    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
@@ -62,8 +64,9 @@ async def gmail_authorize(
             raise HTTPException(status_code=401, detail="Authentication required for user-level OAuth")
 
         # SECURITY: Validate OAuth app belongs to current tenant when authenticated (prevents IDOR)
-        # tenant_id comes from JWT via get_optional_tenant_id dependency
-        oauth_app = await _get_oauth_app_secure(db, oauth_app_id, tenant_id=tenant_id)
+        # tenant_id comes from JWT via get_current_tenant_id dependency
+        await _authorize_oauth_connection(db, current_account, tenant_id, user_level)
+        oauth_app = await _get_oauth_app_secure(db, oauth_app_id, tenant_id=tenant_id, require_tenant=True)
         if not oauth_app:
             raise HTTPException(status_code=404, detail="OAuth app not found")
 
@@ -93,7 +96,8 @@ async def gmail_authorize(
                 "oauth_app_id": oauth_app_id,
                 "redirect_url": redirect_url,
                 "user_level": user_level,
-                "account_id": str(current_account.id) if current_account and user_level else None,
+                "account_id": str(current_account.id),
+                "auth_version": current_account.auth_version or 0,
                 "tenant_id": str(tenant_id) if tenant_id else None,
             }
         )
@@ -106,9 +110,11 @@ async def gmail_authorize(
         logger.info(f"Initiating Gmail OAuth for app {oauth_app_id} (user_level={user_level})")
         return RedirectResponse(url=auth_url)
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Gmail OAuth authorization error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/gmail/callback")
@@ -136,7 +142,7 @@ async def gmail_callback(
         account_id = state_data.get("account_id")
 
         # SECURITY: Get OAuth app (state is already validated from Redis)
-        oauth_app = await _get_oauth_app_secure(db, oauth_app_id)
+        oauth_app = await _get_callback_oauth_app(db, state_data)
         if not oauth_app:
             raise HTTPException(status_code=404, detail="OAuth app not found")
 
@@ -157,12 +163,15 @@ async def gmail_callback(
         user_info = await oauth.get_user_info(token_data["access_token"])
         user_email = user_info.get("email", "")
 
-        # Store full credentials for Gmail to support refresh
+        # Store credentials for Gmail to support refresh.
+        # SECURITY: Do NOT store client_secret here — it would persist the
+        # decrypted secret in the token blob.  The credential_resolver already
+        # has access to the OAuthApp record at refresh time and can look up
+        # client_secret directly from the encrypted column.
         credentials_json = {
             "access_token": token_data["access_token"],
             "refresh_token": token_data.get("refresh_token"),
             "client_id": client_id,
-            "client_secret": client_secret,
             "token_uri": "https://oauth2.googleapis.com/token",
         }
 
@@ -256,8 +265,8 @@ async def google_calendar_authorize(
     oauth_app_id: int = Query(..., description="OAuth app ID to authorize"),
     redirect_url: str = Query(None, description="Frontend redirect URL after OAuth"),
     user_level: bool = Query(False, description="Store token at user level instead of app level"),
-    current_account: Account | None = Depends(get_optional_account),
-    tenant_id: uuid.UUID | None = Depends(get_optional_tenant_id),
+    current_account: Account = Depends(get_current_account),
+    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
@@ -272,8 +281,9 @@ async def google_calendar_authorize(
             raise HTTPException(status_code=401, detail="Authentication required for user-level OAuth")
 
         # SECURITY: Validate OAuth app belongs to current tenant when authenticated (prevents IDOR)
-        # tenant_id comes from JWT via get_optional_tenant_id dependency
-        oauth_app = await _get_oauth_app_secure(db, oauth_app_id, tenant_id=tenant_id)
+        # tenant_id comes from JWT via get_current_tenant_id dependency
+        await _authorize_oauth_connection(db, current_account, tenant_id, user_level)
+        oauth_app = await _get_oauth_app_secure(db, oauth_app_id, tenant_id=tenant_id, require_tenant=True)
         if not oauth_app:
             raise HTTPException(status_code=404, detail="OAuth app not found")
 
@@ -301,7 +311,8 @@ async def google_calendar_authorize(
                 "oauth_app_id": oauth_app_id,
                 "redirect_url": redirect_url,
                 "user_level": user_level,
-                "account_id": str(current_account.id) if current_account and user_level else None,
+                "account_id": str(current_account.id),
+                "auth_version": current_account.auth_version or 0,
                 "tenant_id": str(tenant_id) if tenant_id else None,
             }
         )
@@ -314,9 +325,11 @@ async def google_calendar_authorize(
         logger.info(f"Initiating Google Calendar OAuth for app {oauth_app_id} (user_level={user_level})")
         return RedirectResponse(url=auth_url)
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Google Calendar OAuth authorization error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/google_calendar/callback")
@@ -343,7 +356,7 @@ async def google_calendar_callback(
         account_id = state_data.get("account_id")
 
         # SECURITY: Get OAuth app (state is already validated from Redis)
-        oauth_app = await _get_oauth_app_secure(db, oauth_app_id)
+        oauth_app = await _get_callback_oauth_app(db, state_data)
         if not oauth_app:
             raise HTTPException(status_code=404, detail="OAuth app not found")
 
@@ -468,8 +481,8 @@ async def google_drive_authorize(
     oauth_app_id: int = Query(..., description="OAuth app ID to authorize"),
     redirect_url: str = Query(None, description="Frontend redirect URL after OAuth"),
     user_level: bool = Query(False, description="Store token at user level instead of app level"),
-    current_account: Account | None = Depends(get_optional_account),
-    tenant_id: uuid.UUID | None = Depends(get_optional_tenant_id),
+    current_account: Account = Depends(get_current_account),
+    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
@@ -484,8 +497,9 @@ async def google_drive_authorize(
             raise HTTPException(status_code=401, detail="Authentication required for user-level OAuth")
 
         # SECURITY: Validate OAuth app belongs to current tenant when authenticated (prevents IDOR)
-        # tenant_id comes from JWT via get_optional_tenant_id dependency
-        oauth_app = await _get_oauth_app_secure(db, oauth_app_id, tenant_id=tenant_id)
+        # tenant_id comes from JWT via get_current_tenant_id dependency
+        await _authorize_oauth_connection(db, current_account, tenant_id, user_level)
+        oauth_app = await _get_oauth_app_secure(db, oauth_app_id, tenant_id=tenant_id, require_tenant=True)
         if not oauth_app:
             raise HTTPException(status_code=404, detail="OAuth app not found")
 
@@ -513,7 +527,8 @@ async def google_drive_authorize(
                 "oauth_app_id": oauth_app_id,
                 "redirect_url": redirect_url,
                 "user_level": user_level,
-                "account_id": str(current_account.id) if current_account and user_level else None,
+                "account_id": str(current_account.id),
+                "auth_version": current_account.auth_version or 0,
                 "tenant_id": str(tenant_id) if tenant_id else None,
             }
         )
@@ -526,9 +541,11 @@ async def google_drive_authorize(
         logger.info(f"Initiating Google Drive OAuth for app {oauth_app_id} (user_level={user_level})")
         return RedirectResponse(url=auth_url)
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Google Drive OAuth authorization error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/google_drive/callback")
@@ -556,7 +573,7 @@ async def google_drive_callback(
         account_id = state_data.get("account_id")
 
         # SECURITY: Get OAuth app (state is already validated from Redis)
-        oauth_app = await _get_oauth_app_secure(db, oauth_app_id)
+        oauth_app = await _get_callback_oauth_app(db, state_data)
         if not oauth_app:
             raise HTTPException(status_code=404, detail="OAuth app not found")
 

@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.core.database import get_async_db
-from src.middleware.agent_api_auth import get_tenant_from_jwt_or_api_key
+from src.middleware.agent_api_auth import HandoffAccess, require_handoff_read, require_handoff_write
 from src.models.agent import Agent
 from src.models.conversation import Conversation
 from src.models.message import Message, MessageRole, MessageStatus
@@ -49,25 +49,29 @@ class HandoffAssignBody(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-async def _get_conversation_for_tenant(
+def _scoped_conversations(access: HandoffAccess):
+    query = (
+        select(Conversation).join(Agent, Agent.id == Conversation.agent_id).where(Agent.tenant_id == access.tenant_id)
+    )
+    if access.agent_id is not None:
+        query = query.where(Agent.id == access.agent_id)
+    return query
+
+
+async def _get_conversation_for_access(
     conversation_id: uuid.UUID,
-    tenant_id: uuid.UUID,
+    access: HandoffAccess,
     db: AsyncSession,
+    *,
+    with_messages: bool = False,
 ) -> Conversation:
-    """Load conversation and verify it belongs to the tenant via its agent."""
-    result = await db.execute(select(Conversation).filter(Conversation.id == conversation_id))
+    query = _scoped_conversations(access).where(Conversation.id == conversation_id)
+    if with_messages:
+        query = query.options(selectinload(Conversation.messages))
+    result = await db.execute(query)
     conv = result.scalar_one_or_none()
-    if not conv:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
-
-    if not conv.agent_id:
-        # Conversations without an agent cannot be scoped to a tenant — deny access.
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
-
-    agent_result = await db.execute(select(Agent).filter(Agent.id == conv.agent_id, Agent.tenant_id == tenant_id))
-    if not agent_result.scalar_one_or_none():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
-
+    if conv is None:
+        raise HTTPException(404, "Conversation not found")
     return conv
 
 
@@ -123,7 +127,7 @@ async def list_handoffs(
     handoff_status: Literal["active", "resolved", "all"] = Query("active", alias="status"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    tenant_id: uuid.UUID = Depends(get_tenant_from_jwt_or_api_key),
+    access: HandoffAccess = Depends(require_handoff_read),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
@@ -134,7 +138,7 @@ async def list_handoffs(
         page:      page number (default: 1)
         page_size: results per page (default: 20, max: 100)
     """
-    base_q = select(Conversation).join(Agent, Agent.id == Conversation.agent_id).filter(Agent.tenant_id == tenant_id)
+    base_q = _scoped_conversations(access)
 
     if handoff_status != "all":
         base_q = base_q.filter(Conversation.handoff_status == handoff_status)
@@ -173,25 +177,13 @@ async def list_handoffs(
 @router.get("/conversations/{conversation_id}/handoff", status_code=status.HTTP_200_OK)
 async def get_handoff_detail(
     conversation_id: uuid.UUID,
-    tenant_id: uuid.UUID = Depends(get_tenant_from_jwt_or_api_key),
+    access: HandoffAccess = Depends(require_handoff_read),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
     Get full detail for a single handoff conversation, including all messages.
     """
-    result = await db.execute(
-        select(Conversation).options(selectinload(Conversation.messages)).filter(Conversation.id == conversation_id)
-    )
-    conv = result.scalar_one_or_none()
-    if not conv:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
-
-    # Tenant check
-    if not conv.agent_id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
-    agent_result = await db.execute(select(Agent).filter(Agent.id == conv.agent_id, Agent.tenant_id == tenant_id))
-    if not agent_result.scalar_one_or_none():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+    conv = await _get_conversation_for_access(conversation_id, access, db, with_messages=True)
 
     if conv.handoff_status == "none":
         raise HTTPException(
@@ -208,14 +200,14 @@ async def get_conversation_messages(
     conversation_id: uuid.UUID,
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
-    tenant_id: uuid.UUID = Depends(get_tenant_from_jwt_or_api_key),
+    access: HandoffAccess = Depends(require_handoff_read),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
     Get paginated message history for any conversation (not just handoffs).
     Useful for operators reviewing the full chat before responding.
     """
-    conv = await _get_conversation_for_tenant(conversation_id, tenant_id, db)
+    conv = await _get_conversation_for_access(conversation_id, access, db)
 
     count_result = await db.execute(select(func.count()).where(Message.conversation_id == conv.id))
     total = count_result.scalar_one()
@@ -247,7 +239,7 @@ async def get_conversation_messages(
 async def handoff_reply(
     conversation_id: uuid.UUID,
     body: HandoffReplyBody,
-    tenant_id: uuid.UUID = Depends(get_tenant_from_jwt_or_api_key),
+    access: HandoffAccess = Depends(require_handoff_write),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
@@ -255,7 +247,7 @@ async def handoff_reply(
     The message is persisted and broadcast via WebSocket so the widget / Flutter
     client receives it in real time.
     """
-    conv = await _get_conversation_for_tenant(conversation_id, tenant_id, db)
+    conv = await _get_conversation_for_access(conversation_id, access, db)
 
     if conv.handoff_status != "active":
         raise HTTPException(
@@ -292,14 +284,14 @@ async def handoff_reply(
 @router.post("/conversations/{conversation_id}/handoff/resolve", status_code=status.HTTP_200_OK)
 async def handoff_resolve(
     conversation_id: uuid.UUID,
-    tenant_id: uuid.UUID = Depends(get_tenant_from_jwt_or_api_key),
+    access: HandoffAccess = Depends(require_handoff_write),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
     Resolve an active handoff — marks it resolved and resumes AI handling.
     A system message is added so the customer sees the transition.
     """
-    conv = await _get_conversation_for_tenant(conversation_id, tenant_id, db)
+    conv = await _get_conversation_for_access(conversation_id, access, db)
 
     if conv.handoff_status not in ("active", "resolved"):
         raise HTTPException(
@@ -335,7 +327,7 @@ async def handoff_resolve(
 @router.post("/conversations/{conversation_id}/handoff/reopen", status_code=status.HTTP_200_OK)
 async def handoff_reopen(
     conversation_id: uuid.UUID,
-    tenant_id: uuid.UUID = Depends(get_tenant_from_jwt_or_api_key),
+    access: HandoffAccess = Depends(require_handoff_write),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
@@ -343,7 +335,7 @@ async def handoff_reopen(
     Useful when a customer replies after resolution and the operator wants to
     take back control before letting the AI respond.
     """
-    conv = await _get_conversation_for_tenant(conversation_id, tenant_id, db)
+    conv = await _get_conversation_for_access(conversation_id, access, db)
 
     if conv.handoff_status != "resolved":
         raise HTTPException(
@@ -383,14 +375,14 @@ async def handoff_reopen(
 async def handoff_assign(
     conversation_id: uuid.UUID,
     body: HandoffAssignBody,
-    tenant_id: uuid.UUID = Depends(get_tenant_from_jwt_or_api_key),
+    access: HandoffAccess = Depends(require_handoff_write),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
     Assign a handoff conversation to a specific operator.
     Stores operator info in the conversation metadata and broadcasts the assignment.
     """
-    conv = await _get_conversation_for_tenant(conversation_id, tenant_id, db)
+    conv = await _get_conversation_for_access(conversation_id, access, db)
 
     if conv.handoff_status != "active":
         raise HTTPException(

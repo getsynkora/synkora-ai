@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import FastAPI, status
@@ -216,7 +216,7 @@ class TestCreateMCPServer:
         data = response.json()
         assert data["success"] is True
 
-    def test_create_stdio_server_success(self, client):
+    def test_create_stdio_server_rejected(self, client):
         """Test creating a stdio MCP server."""
         test_client, mock_db = client
 
@@ -242,7 +242,8 @@ class TestCreateMCPServer:
             },
         )
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        mock_db.add.assert_not_called()
 
     def test_create_http_server_missing_url(self, client):
         """Test creating HTTP server without URL."""
@@ -363,7 +364,12 @@ class TestTestMCPServer:
 
         setup_db_execute_mock(mock_db, mock_server)
 
-        response = test_client.post(f"/api/v1/mcp/servers/{server_id}/test")
+        with patch("src.services.mcp.mcp_client.MCPClient") as factory:
+            factory.return_value.__aenter__ = AsyncMock(return_value=factory.return_value)
+            factory.return_value.__aexit__ = AsyncMock()
+            factory.return_value.discover_tools = AsyncMock(return_value=[])
+            response = test_client.post(f"/api/v1/mcp/servers/{server_id}/test")
+            factory.return_value.discover_tools.assert_awaited_once()
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()

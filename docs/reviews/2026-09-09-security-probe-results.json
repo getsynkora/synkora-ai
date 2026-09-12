@@ -1,0 +1,20 @@
+{
+  "unsafe_behaviors_reproduced": {
+    "command_accepts_untrusted_executable_basename": true,
+    "command_accepts_awk_environment_read": true,
+    "command_accepts_find_child_execution": true,
+    "explicit_verify_full_disables_certificate_validation": true,
+    "claude_cli_inherits_parent_marker": true,
+    "widget_mints_signed_claims_without_identity_verification": true,
+    "rss_dispatches_loopback_url_without_policy": true,
+    "recall_unsigned_request_reaches_handler_without_secret": true,
+    "anonymous_predicate_accepts_identified_users_conversation": true,
+    "tenant_dependency_accepts_stale_claim_without_membership_lookup": true,
+    "duckdb_comment_satisfies_data_source_validation": true,
+    "duckdb_accepts_unscoped_s3_object": true,
+    "sandbox_tenant_A_command_reads_tenant_B_marker": true,
+    "saml_and_mfa_policy_errors_continue_login": true,
+    "password_reset_succeeds_after_revocation_failure": true,
+    "widget_history_ignores_required_identity_verification": true
+  }
+}

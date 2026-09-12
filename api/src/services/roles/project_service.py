@@ -14,7 +14,7 @@ from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from src.models import Agent, Project, ProjectAgent, ProjectStatus
+from src.models import Agent, KnowledgeBase, Project, ProjectAgent, ProjectStatus
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +24,15 @@ class ProjectService:
 
     def __init__(self, db: AsyncSession):
         self.db = db
+
+    async def _validate_knowledge_base(self, knowledge_base_id: int | None, tenant_id: UUID) -> None:
+        if knowledge_base_id is None:
+            return
+        result = await self.db.execute(
+            select(KnowledgeBase.id).where(KnowledgeBase.id == knowledge_base_id, KnowledgeBase.tenant_id == tenant_id)
+        )
+        if result.scalar_one_or_none() is None:
+            raise ValueError("Knowledge base not found")
 
     async def create_project(
         self,
@@ -50,6 +59,7 @@ class ProjectService:
         Returns:
             Created Project instance
         """
+        await self._validate_knowledge_base(knowledge_base_id, tenant_id)
         project = Project(
             tenant_id=tenant_id,
             name=name,
@@ -68,27 +78,34 @@ class ProjectService:
         logger.info(f"Created project: {name} (id={project.id})")
         return project
 
-    async def get_project(self, project_id: UUID) -> Project | None:
-        """Get a project by ID."""
-        result = await self.db.execute(select(Project).filter(Project.id == project_id))
+    async def get_project(self, project_id: UUID, tenant_id: UUID | None = None) -> Project | None:
+        """Get a project by ID, optionally scoped to a tenant."""
+        stmt = select(Project).filter(Project.id == project_id)
+        if tenant_id is not None:
+            stmt = stmt.filter(Project.tenant_id == tenant_id)
+        result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def get_project_with_agents(self, project_id: UUID) -> dict[str, Any] | None:
+    async def get_project_with_agents(self, project_id: UUID, tenant_id: UUID | None = None) -> dict[str, Any] | None:
         """
         Get a project with its associated agents.
 
         Args:
             project_id: Project ID
+            tenant_id: Optional tenant ID for access control
 
         Returns:
             Dictionary with project data and agents list
         """
         # Eager load agents and their associated agent details to prevent N+1 queries
-        result = await self.db.execute(
+        stmt = (
             select(Project)
             .options(joinedload(Project.agents).joinedload(ProjectAgent.agent))
             .filter(Project.id == project_id)
         )
+        if tenant_id is not None:
+            stmt = stmt.filter(Project.tenant_id == tenant_id)
+        result = await self.db.execute(stmt)
         project = result.unique().scalar_one_or_none()
         if not project:
             return None
@@ -160,6 +177,9 @@ class ProjectService:
             logger.warning(f"Project not found or access denied: {project_id}")
             return None
 
+        if "knowledge_base_id" in kwargs:
+            await self._validate_knowledge_base(kwargs["knowledge_base_id"], tenant_id)
+
         # Update allowed fields
         allowed_fields = {
             "name",
@@ -212,17 +232,18 @@ class ProjectService:
 
     # Shared Context Management
 
-    async def get_context(self, project_id: UUID) -> dict[str, Any] | None:
+    async def get_context(self, project_id: UUID, tenant_id: UUID | None = None) -> dict[str, Any] | None:
         """
         Get shared context for a project.
 
         Args:
             project_id: Project ID
+            tenant_id: Optional tenant ID for access control
 
         Returns:
             Shared context dictionary or None if project not found
         """
-        project = await self.get_project(project_id)
+        project = await self.get_project(project_id, tenant_id=tenant_id)
         if not project:
             return None
         return project.shared_context or {}
@@ -411,22 +432,26 @@ class ProjectService:
         logger.info(f"Removed agent {agent_id} from project {project_id}")
         return True
 
-    async def get_project_agents(self, project_id: UUID) -> list[Agent]:
+    async def get_project_agents(self, project_id: UUID, tenant_id: UUID | None = None) -> list[Agent]:
         """
         Get all agents for a project.
 
         Args:
             project_id: Project ID
+            tenant_id: Optional tenant ID for access control
 
         Returns:
             List of Agent instances
         """
         # Eager load agents to prevent N+1 queries
-        result = await self.db.execute(
+        stmt = (
             select(Project)
             .options(joinedload(Project.agents).joinedload(ProjectAgent.agent))
             .filter(Project.id == project_id)
         )
+        if tenant_id is not None:
+            stmt = stmt.filter(Project.tenant_id == tenant_id)
+        result = await self.db.execute(stmt)
         project = result.unique().scalar_one_or_none()
         if not project:
             return []

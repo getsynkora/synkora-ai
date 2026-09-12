@@ -85,6 +85,8 @@ async def vapi_webhook(
     Vapi POSTs here for every call event. The shared secret is verified before
     processing any payload, so forged requests are rejected early.
     """
+    if not x_vapi_secret:
+        raise HTTPException(status_code=401, detail="Webhook authentication required")
     raw_body = await request.body()
 
     try:
@@ -94,31 +96,53 @@ async def vapi_webhook(
     except Exception:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON")
 
-    # Resolve agent slug from payload to look up the vapi secret
-    call_obj = payload.get("message", payload).get("call", {})
-    phone_number_str = call_obj.get("phoneNumber", {}).get("number", "")
-
+    call_data = payload.get("message", payload) if isinstance(payload, dict) else None
+    call_obj = call_data.get("call", {}) if isinstance(call_data, dict) else None
+    if not isinstance(call_obj, dict):
+        raise HTTPException(400, "Invalid call payload")
+    call_id = call_obj.get("id") or call_data.get("callId")
+    if not isinstance(call_id, str) or not call_id or len(call_id) > 255:
+        raise HTTPException(400, "Invalid call ID")
     provider = get_call_provider("vapi")
 
-    # Signature check: only if a secret is configured
-    if x_vapi_secret is not None:
-        # Resolve secret from PhoneNumber → Agent → phone_config
-        from src.models.phone_number import PhoneNumber
+    # Serialize creation and ownership checks for the provider's global call ID.
+    # The provider's transaction commits/rolls back before this lock is released.
+    import hashlib
 
-        result = await db.execute(
-            select(PhoneNumber).where(
-                PhoneNumber.phone_number == phone_number_str,
-                PhoneNumber.is_active.is_(True),
-            )
-        )
-        phone_record = result.scalar_one_or_none()
-        secret = ""
-        if phone_record:
-            agent = await db.get(Agent, phone_record.agent_id)
-            secret = (agent.phone_config or {}).get("webhook_secret", "") if agent else ""
+    from sqlalchemy import text
 
-        if secret and not provider.verify_signature(raw_body, {"x-vapi-secret": x_vapi_secret}, secret):
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid signature")
+    lock_id = int.from_bytes(hashlib.sha256(("vapi:" + call_id).encode()).digest()[:8], "big", signed=True)
+    await db.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": lock_id})
+    result = await db.execute(
+        select(PhoneCall).where(PhoneCall.provider == "vapi", PhoneCall.provider_call_id == call_id)
+    )
+    existing = result.scalar_one_or_none()
+    agent = await db.get(Agent, existing.agent_id) if existing else None
+
+    phone_number = (call_obj.get("phoneNumber") or {}).get("number")
+    assistant_id = call_obj.get("assistantId")
+    routed_agent = None
+    if phone_number:
+        record = await provider._find_phone_number(phone_number, db)
+        if not record:
+            raise HTTPException(401, "Unknown webhook integration")
+        routed_agent = await db.get(Agent, record.agent_id)
+    elif assistant_id:
+        routed_agent = await provider._find_agent_by_assistant_id(assistant_id, db)
+    if routed_agent and agent and routed_agent.id != agent.id:
+        raise HTTPException(401, "Webhook call ownership mismatch")
+    agent = agent or routed_agent
+    if not agent or not agent.is_active:
+        raise HTTPException(401, "Unknown webhook integration")
+    if assistant_id and (agent.phone_config or {}).get("vapi_assistant_id") != assistant_id:
+        raise HTTPException(401, "Webhook assistant mismatch")
+    secret = (agent.phone_config or {}).get("webhook_secret")
+    if not secret or not provider.verify_signature(raw_body, {"x-vapi-secret": x_vapi_secret}, secret):
+        raise HTTPException(401, "Invalid webhook credentials")
+    if call_data.get("type") == "call-started" and existing:
+        return JSONResponse(content={})
+    if call_data.get("type") != "call-started" and not existing:
+        raise HTTPException(404, "Unknown call")
 
     response = await provider.handle_webhook(payload, dict(request.headers), db)
     return JSONResponse(content=response)

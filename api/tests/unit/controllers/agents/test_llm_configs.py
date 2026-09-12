@@ -35,11 +35,17 @@ def mock_llm_config_service():
 
 
 @pytest.fixture
-def client():
+def client(monkeypatch):
     from fastapi import FastAPI
+
+    from src.middleware.auth_middleware import get_current_account
+    from src.services.auth_service import AuthService
 
     app = FastAPI()
     app.include_router(router)
+    # These tests exercise successful administrator operations; denial is covered separately.
+    app.dependency_overrides[get_current_account] = lambda: MagicMock(id=uuid.uuid4())
+    monkeypatch.setattr(AuthService, "check_permission", AsyncMock(return_value=True))
     return TestClient(app)
 
 

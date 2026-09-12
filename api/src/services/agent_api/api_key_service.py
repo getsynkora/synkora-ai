@@ -22,6 +22,24 @@ from src.services.agents.security import decrypt_value, encrypt_value
 logger = logging.getLogger(__name__)
 
 
+# Existing key names are retained so deployment does not reset active quotas.
+_QUOTA_SCRIPT = """
+local now = tonumber(ARGV[1])
+local windows = {60, 3600, 86400}
+for i = 1, 3 do
+    redis.call('ZREMRANGEBYSCORE', KEYS[i], '-inf', now - windows[i])
+    if redis.call('ZCARD', KEYS[i]) >= tonumber(ARGV[i + 2]) then
+        return i
+    end
+end
+for i = 1, 3 do
+    redis.call('ZADD', KEYS[i], now, ARGV[2])
+    redis.call('EXPIRE', KEYS[i], windows[i] + 60)
+end
+return 0
+"""
+
+
 def _get_redis_client():
     """
     Get Redis client for rate limiting.
@@ -254,39 +272,69 @@ class AgentApiKeyService:
 
     @staticmethod
     def validate_origin(api_key: AgentApiKey, origin: str | None) -> bool:
-        """
-        Validate request origin against allowed origins.
+        """Match URL origins and legacy hostname patterns on DNS label boundaries.
 
-        Args:
-            api_key: API key record
-            origin: Request origin header
-
-        Returns:
-            True if origin is allowed, False otherwise
+        URL entries constrain scheme and effective port. Bare hostname entries
+        retain their existing scheme/port-independent meaning.
         """
-        # If no origin restrictions, allow all
+        import ipaddress
+        import re
+        from urllib.parse import urlsplit
+
         if not api_key.allowed_origins:
             return True
 
-        # If no origin provided, reject
-        if not origin:
+        def parse(value: str, *, pattern: bool = False):
+            if (
+                not isinstance(value, str)
+                or not value
+                or any(c.isspace() or ord(c) < 32 for c in value)
+                or "\\" in value
+            ):
+                raise ValueError("Invalid origin")
+            explicit_scheme = "://" in value
+            if not pattern and not explicit_scheme:
+                raise ValueError("Origin requires a scheme")
+            parsed = urlsplit(value if explicit_scheme else "https://" + value)
+            if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+                raise ValueError("Invalid origin scheme or host")
+            if parsed.username is not None or parsed.password is not None or parsed.query or parsed.fragment:
+                raise ValueError("Origin cannot contain credentials, query or fragment")
+            if parsed.path not in (("", "/") if pattern else ("",)):
+                raise ValueError("Origin cannot contain a path")
+            host = parsed.hostname
+            wildcard = pattern and host.startswith("*.")
+            if wildcard:
+                host = host[2:]
+            host = host.removesuffix(".").encode("idna").decode("ascii").lower()
+            if ":" in host:
+                host = str(ipaddress.IPv6Address(host))
+                if wildcard:
+                    raise ValueError("IP addresses cannot be wildcard origins")
+            elif any(not re.fullmatch(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", label) for label in host.split(".")):
+                raise ValueError("Invalid hostname")
+            port = parsed.port
+            if explicit_scheme and port is None:
+                port = 443 if parsed.scheme == "https" else 80
+            return parsed.scheme if explicit_scheme else None, host, port, wildcard
+
+        try:
+            scheme, host, port, _ = parse(origin)
+        except (ValueError, UnicodeError, TypeError):
             return False
-
-        # Extract domain from origin (remove protocol and port)
-        domain = origin.replace("http://", "").replace("https://", "").split(":")[0]
-
-        # Check if domain matches any allowed origin
-        for allowed_origin in api_key.allowed_origins:
-            if allowed_origin == "*":
+        for allowed in api_key.allowed_origins:
+            if allowed == "*":
                 return True
-            if allowed_origin.startswith("*."):
-                # Wildcard subdomain matching
-                base_domain = allowed_origin[2:]
-                if domain.endswith(base_domain):
-                    return True
-            elif domain == allowed_origin:
+            try:
+                allowed_scheme, allowed_host, allowed_port, wildcard = parse(allowed, pattern=True)
+            except (ValueError, UnicodeError, TypeError):
+                continue
+            if allowed_scheme is not None and allowed_scheme != scheme:
+                continue
+            if allowed_port is not None and allowed_port != port:
+                continue
+            if host.endswith("." + allowed_host) if wildcard else host == allowed_host:
                 return True
-
         return False
 
     @staticmethod
@@ -348,45 +396,15 @@ class AgentApiKeyService:
     def _check_rate_limit_redis(
         redis_client, key_id: str, current_time: float, api_key: AgentApiKey
     ) -> tuple[bool, str | None]:
-        """Check rate limits using Redis sorted sets."""
-        # Redis keys for different time windows
-        minute_key = f"api_rate:{key_id}:minute"
-        hour_key = f"api_rate:{key_id}:hour"
-        day_key = f"api_rate:{key_id}:day"
-
-        minute_ago = current_time - 60
-        hour_ago = current_time - 3600
-        day_ago = current_time - 86400
-
-        # Check per-minute limit
-        redis_client.zremrangebyscore(minute_key, 0, minute_ago)
-        minute_count = redis_client.zcard(minute_key)
-        if minute_count >= api_key.rate_limit_per_minute:
-            return False, f"Rate limit exceeded: {api_key.rate_limit_per_minute} requests per minute"
-
-        # Check per-hour limit
-        redis_client.zremrangebyscore(hour_key, 0, hour_ago)
-        hour_count = redis_client.zcard(hour_key)
-        if hour_count >= api_key.rate_limit_per_hour:
-            return False, f"Rate limit exceeded: {api_key.rate_limit_per_hour} requests per hour"
-
-        # Check per-day limit
-        redis_client.zremrangebyscore(day_key, 0, day_ago)
-        day_count = redis_client.zcard(day_key)
-        if day_count >= api_key.rate_limit_per_day:
-            return False, f"Rate limit exceeded: {api_key.rate_limit_per_day} requests per day"
-
-        # Add current request with timestamp as score
-        request_id = f"{current_time}"
-        redis_client.zadd(minute_key, {request_id: current_time})
-        redis_client.zadd(hour_key, {request_id: current_time})
-        redis_client.zadd(day_key, {request_id: current_time})
-
-        # Set TTL on keys (slightly longer than window + buffer)
-        redis_client.expire(minute_key, 120)  # 2 minutes
-        redis_client.expire(hour_key, 3660)  # 1 hour + 1 minute
-        redis_client.expire(day_key, 86460)  # 1 day + 1 minute
-
+        """Atomically check and reserve all quota windows on Redis."""
+        keys = [f"api_rate:{key_id}:{window}" for window in ("minute", "hour", "day")]
+        limits = [api_key.rate_limit_per_minute, api_key.rate_limit_per_hour, api_key.rate_limit_per_day]
+        rejected = int(redis_client.eval(_QUOTA_SCRIPT, 3, *keys, current_time, secrets.token_hex(16), *limits))
+        if rejected:
+            if rejected not in (1, 2, 3):
+                raise RuntimeError("Invalid quota response")
+            window = ("minute", "hour", "day")[rejected - 1]
+            return False, f"Rate limit exceeded: {limits[rejected - 1]} requests per {window}"
         return True, None
 
     @staticmethod

@@ -237,7 +237,7 @@ async def create_knowledge_base(
         logger.error(f"Error creating knowledge base: {e}")
         logger.error(f"Traceback: {traceback.format_exc()}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("", response_model=list[KnowledgeBaseResponse])
@@ -283,7 +283,7 @@ async def list_knowledge_bases(
 
     except Exception as e:
         logger.error(f"Error listing knowledge bases: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/{kb_id}", response_model=KnowledgeBaseResponse)
@@ -334,7 +334,7 @@ async def get_knowledge_base(
         raise
     except Exception as e:
         logger.error(f"Error getting knowledge base: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.put("/{kb_id}", response_model=KnowledgeBaseResponse)
@@ -425,7 +425,7 @@ async def update_knowledge_base(
     except Exception as e:
         logger.error(f"Error updating knowledge base: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.delete("/{kb_id}", status_code=204)
@@ -462,7 +462,7 @@ async def delete_knowledge_base(
     except Exception as e:
         logger.error(f"Error deleting knowledge base: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/{kb_id}/stats", response_model=KnowledgeBaseStatsResponse)
@@ -521,7 +521,7 @@ async def get_knowledge_base_stats(
         raise
     except Exception as e:
         logger.error(f"Error getting knowledge base stats: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/{kb_id}/search", response_model=list[SearchResult])
@@ -569,7 +569,7 @@ async def search_knowledge_base(
         raise
     except Exception as e:
         logger.error(f"Error searching knowledge base: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 class DocumentUploadResponse(BaseModel):
@@ -863,7 +863,7 @@ async def upload_documents(
         raise
     except Exception as e:
         logger.error(f"Error uploading documents: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/{kb_id}/documents/text", response_model=DocumentUploadResponse)
@@ -937,7 +937,7 @@ async def add_text_content(
         raise
     except Exception as e:
         logger.error(f"Error adding text content: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/{kb_id}/documents/crawl", response_model=DocumentUploadResponse)
@@ -1019,7 +1019,7 @@ async def crawl_website(
         raise
     except Exception as e:
         logger.error(f"Error queuing website crawl: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # Document Browser Models
@@ -1185,7 +1185,7 @@ async def list_documents(
         raise
     except Exception as e:
         logger.error(f"Error listing documents: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/{kb_id}/documents/{doc_id}", response_model=DocumentDetailResponse)
@@ -1254,7 +1254,7 @@ async def get_document_details(
                 logger.info(f"Generated presigned URL for document {doc.id}: {presigned_url[:50]}...")
             except Exception as e:
                 logger.error(f"Failed to generate presigned URL for document {doc.id}: {e}")
-                raise HTTPException(status_code=500, detail=f"Failed to generate presigned URL: {str(e)}")
+                raise HTTPException(status_code=500, detail="Failed to generate presigned URL")
 
         return DocumentDetailResponse(
             id=str(doc.id),
@@ -1280,7 +1280,7 @@ async def get_document_details(
         raise
     except Exception as e:
         logger.error(f"Error getting document details: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.delete("/{kb_id}/documents/{doc_id}", status_code=204)
@@ -1319,7 +1319,7 @@ async def delete_document(
     except Exception as e:
         logger.error(f"Error deleting document: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/{kb_id}/documents/{doc_id}/reprocess", status_code=202)
@@ -1378,7 +1378,7 @@ async def reprocess_document(
     except Exception as e:
         logger.error(f"Error reprocessing document: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/{kb_id}/documents/{doc_id}/cancel", status_code=200)
@@ -1417,7 +1417,7 @@ async def cancel_document_processing(
     except Exception as e:
         logger.error(f"Error cancelling document: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/{kb_id}/documents/bulk-delete", status_code=204)
@@ -1456,7 +1456,7 @@ async def bulk_delete_documents(
     except Exception as e:
         logger.error(f"Error bulk deleting documents: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/{kb_id}/documents/{doc_id}/download")
@@ -1560,4 +1560,4 @@ async def download_document(
         raise
     except Exception as e:
         logger.error(f"Error downloading document: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")

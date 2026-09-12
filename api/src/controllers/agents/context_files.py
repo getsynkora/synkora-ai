@@ -13,7 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.controllers.agents.models import AgentResponse
 from src.core.database import get_async_db
-from src.middleware.auth_middleware import get_current_tenant_id
+from src.middleware.auth_middleware import get_current_tenant_id, require_role
+from src.models import AccountRole
 from src.models.agent import Agent
 from src.services.agents.agent_manager import AgentManager
 from src.services.security.file_security import FileSecurityService
@@ -39,7 +40,11 @@ MAX_UPLOAD_SIZE_BYTES = 50 * 1024 * 1024
 ALLOWED_EXTENSIONS = {".txt", ".md", ".pdf", ".docx", ".csv", ".json", ".xml", ".html", ".htm"}
 
 
-@agents_context_files_router.post("/{agent_slug}/context-files/upload", response_model=AgentResponse)
+@agents_context_files_router.post(
+    "/{agent_slug}/context-files/upload",
+    response_model=AgentResponse,
+    dependencies=[Depends(require_role(AccountRole.ADMIN))],
+)
 async def upload_context_file(
     agent_slug: str,
     file: UploadFile = File(...),
@@ -355,7 +360,11 @@ def is_file_editable(filename: str) -> bool:
     return any(lower_filename.endswith(ext) for ext in EDITABLE_EXTENSIONS)
 
 
-@agents_context_files_router.put("/context-files/{file_id}/content", response_model=AgentResponse)
+@agents_context_files_router.put(
+    "/context-files/{file_id}/content",
+    response_model=AgentResponse,
+    dependencies=[Depends(require_role(AccountRole.ADMIN))],
+)
 async def update_context_file_content(
     file_id: str,
     request: UpdateContextFileRequest,
@@ -458,7 +467,9 @@ class PatchContextFileRequest(BaseModel):
     description: str | None = None
 
 
-@agents_context_files_router.patch("/context-files/{file_id}", response_model=AgentResponse)
+@agents_context_files_router.patch(
+    "/context-files/{file_id}", response_model=AgentResponse, dependencies=[Depends(require_role(AccountRole.ADMIN))]
+)
 async def patch_context_file(
     file_id: str,
     request: PatchContextFileRequest,
@@ -534,7 +545,9 @@ async def patch_context_file(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update context file")
 
 
-@agents_context_files_router.delete("/context-files/{file_id}", response_model=AgentResponse)
+@agents_context_files_router.delete(
+    "/context-files/{file_id}", response_model=AgentResponse, dependencies=[Depends(require_role(AccountRole.ADMIN))]
+)
 async def delete_context_file(
     file_id: str,
     tenant_id: uuid.UUID = Depends(get_current_tenant_id),

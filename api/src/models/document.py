@@ -173,7 +173,7 @@ class Document(BaseModel):
             "source_updated_at": self.source_updated_at.isoformat() if self.source_updated_at else None,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
-            "segment_count": len(self.segments) if self.segments else 0,
+            "segment_count": self.segment_count,
         }
 
     @property
@@ -188,7 +188,13 @@ class Document(BaseModel):
 
     @property
     def segment_count(self) -> int:
-        """Get number of segments."""
+        """Get number of segments.
+
+        Prefers a cached _segment_count (set via column_property or manual
+        annotation) to avoid lazy-loading the full segments collection.
+        """
+        if hasattr(self, "_segment_count") and self._segment_count is not None:
+            return self._segment_count
         return len(self.segments) if self.segments else 0
 
     def update_from_dict(self, data: dict[str, Any], _exclude: set[str] | None = None) -> None:

@@ -27,9 +27,12 @@ class SynkoraChatController extends ChangeNotifier {
     this.sessionId,
     this.user,
     this.userHash,
+    String? identityToken,
     CacheDatabase? cacheDatabase,
   }) : _client = client {
     _cache = LocalCache(cacheDatabase ?? CacheDatabase());
+    _client.setIdentity(
+        userId: user?.id ?? userId, userHash: userHash, token: identityToken);
   }
 
   // ---------------------------------------------------------------------------
@@ -233,16 +236,15 @@ class SynkoraChatController extends ChangeNotifier {
 
     try {
       // If only userId is provided (no WidgetUser), synthesise a minimal user
-    // context so the API stamps external_user_id + source on the conversation.
-    // If pre-chat form was filled, include name from form.
-    final effectiveUser = user ?? (userId != null
-        ? WidgetUser(id: userId!, name: _preChatName)
-        : null);
+      // context so the API stamps external_user_id + source on the conversation.
+      // If pre-chat form was filled, include name from form.
+      final effectiveUser = user ??
+          (userId != null ? WidgetUser(id: userId!, name: _preChatName) : null);
 
-    final shouldForceNew = _forceNewOnNextSend;
-    _forceNewOnNextSend = false;
+      final shouldForceNew = _forceNewOnNextSend;
+      _forceNewOnNextSend = false;
 
-    final stream = _client.sendMessage(
+      final stream = _client.sendMessage(
         text,
         conversationId: _conversationId,
         sessionId: sessionId,
@@ -258,7 +260,8 @@ class SynkoraChatController extends ChangeNotifier {
           buffer.write(event.content);
           _updateStreamingMessage(streamingId, buffer.toString());
         } else if (event is DoneEvent) {
-          final isNewConversation = event.conversationId != null && event.conversationId != _conversationId;
+          final isNewConversation = event.conversationId != null &&
+              event.conversationId != _conversationId;
           _conversationId = event.conversationId ?? _conversationId;
           _resetInactivityTimer();
           _finalizeStreamingMessage(streamingId, buffer.toString());

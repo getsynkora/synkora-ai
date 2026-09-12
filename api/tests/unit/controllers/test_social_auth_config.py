@@ -7,7 +7,7 @@ import pytest
 from fastapi import FastAPI, status
 from fastapi.testclient import TestClient
 
-from src.controllers.social_auth_config import router
+from src.controllers.social_auth_config import require_provider_admin, router
 from src.core.database import get_async_db
 from src.middleware.auth_middleware import get_current_tenant_id
 
@@ -32,6 +32,8 @@ def client(mock_db_session, mock_tenant_id):
 
     app.dependency_overrides[get_async_db] = mock_db
     app.dependency_overrides[get_current_tenant_id] = lambda: mock_tenant_id
+    # CRUD tests use an authorized administrator; boundary tests cover denied roles.
+    app.dependency_overrides[require_provider_admin] = lambda: None
 
     yield TestClient(app), mock_db_session, mock_tenant_id
 

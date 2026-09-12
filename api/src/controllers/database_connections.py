@@ -8,9 +8,9 @@ import logging
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_async_db
@@ -78,7 +78,7 @@ def _make_connector(db_type: DatabaseConnectionType, connection: "DatabaseConnec
         case DatabaseConnectionType.MONGODB:
             return MongoDBConnector(database_connection=connection)
         case DatabaseConnectionType.SQLITE:
-            return SQLiteConnector(database_path=connection.database_path)
+            return SQLiteConnector(database_path=connection.database_path, tenant_id=connection.tenant_id)
         case DatabaseConnectionType.ELASTICSEARCH:
             return ElasticsearchConnector(database_connection=connection)
         case DatabaseConnectionType.BIGQUERY:
@@ -352,34 +352,46 @@ async def create_database_connection(
         )
 
 
-@router.get("", response_model=list[DatabaseConnectionResponse])
+@router.get("")
 async def list_database_connections(
     db: AsyncSession = Depends(get_async_db),
     current_account: Account = Depends(get_current_account),
     tenant_id: UUID = Depends(get_current_tenant_id),
-) -> list[DatabaseConnectionResponse]:
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+):
     """
-    List all database connections for the current tenant.
+    List database connections for the current tenant (paginated).
 
     Args:
         db: Database session
         current_account: Authenticated user
         tenant_id: Current tenant ID
+        page: Page number (1-based)
+        page_size: Items per page (max 100)
 
     Returns:
-        List of database connections
+        Paginated list of database connections
     """
     try:
+        # Get total count
+        count_result = await db.execute(
+            select(func.count(DatabaseConnection.id)).where(DatabaseConnection.tenant_id == tenant_id)
+        )
+        total = count_result.scalar() or 0
+
         stmt = (
             select(DatabaseConnection)
             .where(DatabaseConnection.tenant_id == tenant_id)
             .order_by(DatabaseConnection.created_at.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
         )
 
         result = await db.execute(stmt)
         connections = result.scalars().all()
 
-        return [
+        items = [
             DatabaseConnectionResponse(
                 id=str(conn.id),
                 tenant_id=str(conn.tenant_id),
@@ -399,6 +411,8 @@ async def list_database_connections(
             )
             for conn in connections
         ]
+
+        return {"items": items, "total": total, "page": page, "page_size": page_size}
 
     except Exception as e:
         logger.error(f"Error listing database connections: {e}", exc_info=True)

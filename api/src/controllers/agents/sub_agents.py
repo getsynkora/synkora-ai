@@ -13,7 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.core.database import get_async_db
-from src.middleware.auth_middleware import get_current_tenant_id
+from src.middleware.auth_middleware import get_current_tenant_id, require_role
+from src.models import AccountRole
 from src.models.agent import Agent
 from src.models.agent_sub_agent import AgentSubAgent
 
@@ -128,7 +129,7 @@ async def list_sub_agents(
     }
 
 
-@router.post("")
+@router.post("", dependencies=[Depends(require_role(AccountRole.ADMIN))])
 async def add_sub_agent(
     agent_slug: str,
     sub_agent_data: SubAgentCreate,
@@ -217,7 +218,7 @@ async def add_sub_agent(
     }
 
 
-@router.patch("/{sub_agent_relationship_id}")
+@router.patch("/{sub_agent_relationship_id}", dependencies=[Depends(require_role(AccountRole.ADMIN))])
 async def update_sub_agent(
     agent_slug: str,
     sub_agent_relationship_id: UUID,
@@ -288,7 +289,7 @@ async def update_sub_agent(
     }
 
 
-@router.delete("/{sub_agent_relationship_id}")
+@router.delete("/{sub_agent_relationship_id}", dependencies=[Depends(require_role(AccountRole.ADMIN))])
 async def remove_sub_agent(
     agent_slug: str,
     sub_agent_relationship_id: UUID,

@@ -40,6 +40,7 @@ class SynkoraChatWidget extends StatefulWidget {
   final String? sessionId;
   final WidgetUser? user;
   final String? userHash;
+  final String? identityToken;
   final SynkoraChatController? controller;
   final Color? primaryColor;
   final VoidCallback? onClose;
@@ -54,6 +55,7 @@ class SynkoraChatWidget extends StatefulWidget {
     this.sessionId,
     this.user,
     this.userHash,
+    this.identityToken,
     this.controller,
     this.primaryColor,
     this.onClose,
@@ -95,6 +97,7 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
         sessionId: widget.sessionId,
         user: widget.user,
         userHash: widget.userHash,
+        identityToken: widget.identityToken,
       );
     }
     _controller.init();
@@ -223,8 +226,8 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
             ),
             child: Text(
               'Clear',
-              style: ChatTextStyles.txtStyleSemiB14
-                  .copyWith(color: Colors.white),
+              style:
+                  ChatTextStyles.txtStyleSemiB14.copyWith(color: Colors.white),
             ),
           ),
         ],
@@ -237,9 +240,7 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
   }
 
   Color get _primary =>
-      widget.primaryColor ??
-      _controller.config?.theme.primaryColor ??
-      _kTeal;
+      widget.primaryColor ?? _controller.config?.theme.primaryColor ?? _kTeal;
 
   /// Returns black or white depending on the luminance of [bg].
   Color _onColor(Color bg) =>
@@ -298,26 +299,23 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
                         message: _controller.error!,
                         onRetry: _controller.retry,
                       ),
-
                     Expanded(
                       child: _controller.isLoading
                           ? _LoadingIndicator(primaryColor: _primary)
                           : _buildBody(config),
                     ),
-
                     if (showInputBar)
                       _InputBar(
                         controller: _inputController,
                         focusNode: _focusNode,
-                        placeholder: config?.theme.placeholder ?? 'Type a message...',
+                        placeholder:
+                            config?.theme.placeholder ?? 'Type a message...',
                         primaryColor: _primary,
                         isStreaming: _controller.isStreaming,
                         onSend: _send,
                         agentName: _formatAgentName(config?.agentName ?? ''),
                       ),
-
-                    if (showHandoff)
-                      const _HandoffFooter(),
+                    if (showHandoff) const _HandoffFooter(),
                   ],
                 ),
         );
@@ -363,7 +361,8 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
                 ),
                 Text(
                   _appBarSubtitle,
-                  style: ChatTextStyles.txtStyleRegular12.copyWith(color: fgSubtle),
+                  style: ChatTextStyles.txtStyleRegular12
+                      .copyWith(color: fgSubtle),
                 ),
               ],
             ),
@@ -372,7 +371,8 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
       ),
       actions: [
         // New chat — only shown inside a messages view
-        if (_overlay == _OverlayView.chatMessages && _controller.hasConversationContent)
+        if (_overlay == _OverlayView.chatMessages &&
+            _controller.hasConversationContent)
           IconButton(
             icon: Icon(Icons.add_comment_outlined, color: fg),
             tooltip: 'New chat',
@@ -435,11 +435,12 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
     // Main tabs
     if (_tabIndex == _kTabHome) {
       // Find last ongoing (active) session for the home card
-      final ongoingSession = _controller.sessions
-          .where((s) => s.isActive)
-          .isNotEmpty
-          ? _controller.sessions.firstWhere((s) => s.isActive)
-          : (_controller.sessions.isNotEmpty ? _controller.sessions.first : null);
+      final ongoingSession =
+          _controller.sessions.where((s) => s.isActive).isNotEmpty
+              ? _controller.sessions.firstWhere((s) => s.isActive)
+              : (_controller.sessions.isNotEmpty
+                  ? _controller.sessions.first
+                  : null);
 
       return _HomeScreen(
         config: config,
@@ -470,7 +471,8 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
     if (_controller.isCurrentSessionClosed) {
       return Column(
         children: [
-          Expanded(child: _MessageList(
+          Expanded(
+              child: _MessageList(
             messages: _controller.messages,
             scrollController: _scrollController,
             primaryColor: _primary,
@@ -679,8 +681,7 @@ class _HomeScreen extends StatelessWidget {
                           ],
                         ),
                       ),
-                      Icon(Icons.arrow_forward,
-                          color: primaryColor, size: 20),
+                      Icon(Icons.arrow_forward, color: primaryColor, size: 20),
                     ],
                   ),
                 ),
@@ -819,15 +820,14 @@ class _FaqRow extends StatelessWidget {
             child: Row(
               children: [
                 if (prompt.icon.isNotEmpty) ...[
-                  Text(prompt.icon,
-                      style: ChatTextStyles.txtStyleRegular16),
+                  Text(prompt.icon, style: ChatTextStyles.txtStyleRegular16),
                   const SizedBox(width: 10),
                 ],
                 Expanded(
                   child: Text(
                     prompt.title,
-                    style: ChatTextStyles.txtStyleRegular14
-                        .copyWith(color: _kInk),
+                    style:
+                        ChatTextStyles.txtStyleRegular14.copyWith(color: _kInk),
                   ),
                 ),
                 Icon(Icons.chevron_right, color: _kMuted, size: 18),
@@ -892,14 +892,12 @@ class _SessionsScreen extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               'No previous sessions',
-              style:
-                  ChatTextStyles.txtStyleSemiB14.copyWith(color: _kMuted),
+              style: ChatTextStyles.txtStyleSemiB14.copyWith(color: _kMuted),
             ),
             const SizedBox(height: 8),
             Text(
               'Start a new chat to begin',
-              style:
-                  ChatTextStyles.txtStyleRegular12.copyWith(color: _kMuted),
+              style: ChatTextStyles.txtStyleRegular12.copyWith(color: _kMuted),
             ),
             const SizedBox(height: 24),
             FilledButton.icon(
@@ -934,9 +932,7 @@ class _SessionsScreen extends StatelessWidget {
               agentAvatarUrl: agentAvatarUrl,
               timeLabel: _relativeTime(session.lastActivityAt),
               onTap: () => onSessionTap(session),
-              onClose: session.isActive
-                  ? () => onSessionClose(session)
-                  : null,
+              onClose: session.isActive ? () => onSessionClose(session) : null,
             );
           },
         ),
@@ -1007,7 +1003,8 @@ class _SessionCard extends StatelessWidget {
                 : CircleAvatar(
                     radius: 22,
                     backgroundColor: primaryColor.withValues(alpha: 0.12),
-                    child: Icon(Icons.auto_awesome, size: 18, color: primaryColor),
+                    child:
+                        Icon(Icons.auto_awesome, size: 18, color: primaryColor),
                   ),
             const SizedBox(width: 12),
             Expanded(
@@ -1017,7 +1014,8 @@ class _SessionCard extends StatelessWidget {
                   // Agent name
                   Text(
                     agentName,
-                    style: ChatTextStyles.txtStyleSemiB14.copyWith(color: _kInk),
+                    style:
+                        ChatTextStyles.txtStyleSemiB14.copyWith(color: _kInk),
                   ),
                   const SizedBox(height: 2),
                   // Last message preview
@@ -1025,13 +1023,15 @@ class _SessionCard extends StatelessWidget {
                     session.firstMessage ?? 'Conversation',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: ChatTextStyles.txtStyleRegular12.copyWith(color: _kMuted),
+                    style: ChatTextStyles.txtStyleRegular12
+                        .copyWith(color: _kMuted),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     session.isActive ? 'Active' : 'Closed',
                     style: ChatTextStyles.txtStyleRegular12.copyWith(
-                      color: session.isActive ? const Color(0xFF22C55E) : _kMuted,
+                      color:
+                          session.isActive ? const Color(0xFF22C55E) : _kMuted,
                     ),
                   ),
                 ],
@@ -1042,7 +1042,8 @@ class _SessionCard extends StatelessWidget {
               children: [
                 Text(
                   timeLabel,
-                  style: ChatTextStyles.txtStyleRegular12.copyWith(color: _kMuted),
+                  style:
+                      ChatTextStyles.txtStyleRegular12.copyWith(color: _kMuted),
                 ),
                 if (onClose != null) ...[
                   const SizedBox(height: 4),
@@ -1114,8 +1115,7 @@ class _PreChatFormScreenState extends State<_PreChatFormScreen> {
           const SizedBox(height: 6),
           Text(
             'Share a bit about yourself so we can help you better. All fields are optional.',
-            style:
-                ChatTextStyles.txtStyleRegular13.copyWith(color: _kMuted),
+            style: ChatTextStyles.txtStyleRegular13.copyWith(color: _kMuted),
           ),
           const SizedBox(height: 24),
           if (cfg.showName) ...[
@@ -1177,8 +1177,8 @@ class _PreChatFormScreenState extends State<_PreChatFormScreen> {
                 onPressed: widget.onSkip,
                 child: Text(
                   'Skip',
-                  style: ChatTextStyles.txtStyleRegular13
-                      .copyWith(color: _kMuted),
+                  style:
+                      ChatTextStyles.txtStyleRegular13.copyWith(color: _kMuted),
                 ),
               ),
             ),
@@ -1462,8 +1462,8 @@ class _ApprovalCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(10)),
                     ),
                     child: Text('Reject',
-                        style: ChatTextStyles.txtStyleSemiB14.copyWith(
-                            color: const Color(0xFF78350F))),
+                        style: ChatTextStyles.txtStyleSemiB14
+                            .copyWith(color: const Color(0xFF78350F))),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -1544,8 +1544,7 @@ class _ErrorBanner extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(
           children: [
-            const Icon(Icons.error_outline,
-                color: Color(0xFFC45F34), size: 16),
+            const Icon(Icons.error_outline, color: Color(0xFFC45F34), size: 16),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -1557,8 +1556,7 @@ class _ErrorBanner extends StatelessWidget {
             TextButton(
               onPressed: onRetry,
               style: TextButton.styleFrom(foregroundColor: _kInk),
-              child: Text('Retry',
-                  style: ChatTextStyles.txtStyleSemiB13),
+              child: Text('Retry', style: ChatTextStyles.txtStyleSemiB13),
             ),
           ],
         ),
@@ -1620,18 +1618,16 @@ class _InputBar extends StatelessWidget {
                             .copyWith(color: _kMuted),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
-                          borderSide:
-                              const BorderSide(color: _kBorder),
+                          borderSide: const BorderSide(color: _kBorder),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
-                          borderSide:
-                              const BorderSide(color: _kBorder),
+                          borderSide: const BorderSide(color: _kBorder),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide(
-                              color: primaryColor, width: 1.5),
+                          borderSide:
+                              BorderSide(color: primaryColor, width: 1.5),
                         ),
                         filled: true,
                         fillColor: _kBg,
@@ -1676,8 +1672,8 @@ class _InputBar extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
                 'Powered by $agentName',
-                style: ChatTextStyles.txtStyleRegular11
-                    .copyWith(color: _kMuted),
+                style:
+                    ChatTextStyles.txtStyleRegular11.copyWith(color: _kMuted),
               ),
             ),
           ],
@@ -1742,8 +1738,7 @@ class _ConnectionErrorState extends StatelessWidget {
                 const SizedBox(height: 16),
                 Text(
                   'Connection issue',
-                  style:
-                      ChatTextStyles.txtStyleBoldB16.copyWith(color: _kInk),
+                  style: ChatTextStyles.txtStyleBoldB16.copyWith(color: _kInk),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -1762,8 +1757,8 @@ class _ConnectionErrorState extends StatelessWidget {
                   ),
                   child: Text(
                     'Expected: $baseUrl',
-                    style: ChatTextStyles.txtStyleSemiB13
-                        .copyWith(color: _kInk),
+                    style:
+                        ChatTextStyles.txtStyleSemiB13.copyWith(color: _kInk),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -1790,7 +1785,6 @@ class _ConnectionErrorState extends StatelessWidget {
     );
   }
 }
-
 
 // ---------------------------------------------------------------------------
 // Bottom navigation bar

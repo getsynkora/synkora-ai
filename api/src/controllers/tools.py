@@ -71,7 +71,7 @@ async def get_tool_configurations(
         return configs
     except Exception as e:
         logger.error(f"Failed to get tool configurations: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/config")
@@ -129,7 +129,7 @@ async def save_tool_configuration(
         return {"success": True, "message": f"Configuration for {tool_name} saved successfully"}
     except Exception as e:
         logger.error(f"Failed to save tool configuration: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/test/{tool_name}")

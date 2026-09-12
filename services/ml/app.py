@@ -11,13 +11,16 @@ Endpoints:
 """
 
 import logging
+import os
+import hmac
 import time
 from contextlib import asynccontextmanager
 from typing import Any
 
 import numpy as np
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -34,23 +37,37 @@ TOOL_INDEX_TTL = 3600  # 1 hour
 
 DEFAULT_EMBED_MODEL = "all-MiniLM-L6-v2"
 DEFAULT_RERANK_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+EMBED_MODEL_REVISION = os.environ.get("EMBEDDING_MODEL_REVISION", "")
+RERANK_MODEL_REVISION = os.environ.get("RERANK_MODEL_REVISION", "")
 
 
 def _get_embed_model(model_name: str):
+    if model_name != DEFAULT_EMBED_MODEL:
+        raise HTTPException(400, "Embedding model is not approved")
     if model_name not in _embed_models:
         from sentence_transformers import SentenceTransformer
 
         logger.info(f"Loading embedding model: {model_name}")
-        _embed_models[model_name] = SentenceTransformer(model_name)
+        if not EMBED_MODEL_REVISION:
+            raise HTTPException(503, "Embedding model revision is not configured")
+        _embed_models[model_name] = SentenceTransformer(
+            model_name, revision=EMBED_MODEL_REVISION, local_files_only=True
+        )
     return _embed_models[model_name]
 
 
 def _get_rerank_model(model_name: str):
+    if model_name != DEFAULT_RERANK_MODEL:
+        raise HTTPException(400, "Reranking model is not approved")
     if model_name not in _rerank_models:
         from sentence_transformers import CrossEncoder
 
         logger.info(f"Loading cross-encoder model: {model_name}")
-        _rerank_models[model_name] = CrossEncoder(model_name)
+        if not RERANK_MODEL_REVISION:
+            raise HTTPException(503, "Reranking model revision is not configured")
+        _rerank_models[model_name] = CrossEncoder(
+            model_name, revision=RERANK_MODEL_REVISION, local_files_only=True
+        )
     return _rerank_models[model_name]
 
 
@@ -61,6 +78,11 @@ def _get_rerank_model(model_name: str):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    key = os.environ.get("ML_API_KEY", "")
+    if len(key) < 32 or key.startswith("dev-"):
+        raise RuntimeError(
+            "ML_API_KEY must be a nondefault secret of at least 32 characters"
+        )
     # Eagerly load default models
     try:
         _get_embed_model(DEFAULT_EMBED_MODEL)
@@ -73,13 +95,25 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Synkora ML Service", lifespan=lifespan)
 
 
+@app.middleware("http")
+async def authenticate_service(request: Request, call_next):
+    if request.url.path != "/health":
+        key = os.environ.get("ML_API_KEY", "")
+        supplied = request.headers.get("X-ML-Key", "")
+        if len(key) < 32 or not hmac.compare_digest(key, supplied):
+            return JSONResponse(
+                {"detail": "Service authentication required"}, status_code=401
+            )
+    return await call_next(request)
+
+
 # ---------------------------------------------------------------------------
 # Schemas
 # ---------------------------------------------------------------------------
 
 
 class EmbedRequest(BaseModel):
-    texts: list[str]
+    texts: list[str] = Field(min_length=1, max_length=256)
     model: str = DEFAULT_EMBED_MODEL
 
 
@@ -99,7 +133,7 @@ class RerankResultItem(BaseModel):
 
 class RerankRequest(BaseModel):
     query: str
-    results: list[dict[str, Any]]
+    results: list[dict[str, Any]] = Field(max_length=256)
     top_k: int = 5
     score_weight: float = 0.3
     model: str = DEFAULT_RERANK_MODEL
@@ -117,7 +151,7 @@ class ToolDef(BaseModel):
 
 class ToolInitRequest(BaseModel):
     agent_id: str
-    tools: list[ToolDef]
+    tools: list[ToolDef] = Field(max_length=2000)
 
 
 class ToolInitResponse(BaseModel):
@@ -128,7 +162,7 @@ class ToolInitResponse(BaseModel):
 class ToolSearchRequest(BaseModel):
     agent_id: str
     query: str
-    limit: int = 15
+    limit: int = Field(default=15, ge=1, le=100)
     threshold: float = 0.3
 
 
@@ -157,9 +191,11 @@ async def embed(req: EmbedRequest):
             embeddings=[emb.tolist() for emb in embeddings],
             dimension=int(embeddings.shape[1]),
         )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Embed error: {e}")
-        raise HTTPException(500, str(e)) from e
+        raise HTTPException(500, "ML operation failed") from e
 
 
 @app.post("/v1/rerank", response_model=RerankResponse)
@@ -179,9 +215,13 @@ async def rerank(req: RerankRequest):
         norm_scores = [(s - min_s) / score_range for s in raw_scores]
 
         items = []
-        for i, (result, rerank_score) in enumerate(zip(req.results, norm_scores, strict=False)):
+        for i, (result, rerank_score) in enumerate(
+            zip(req.results, norm_scores, strict=False)
+        ):
             original_score = float(result.get("score", 0))
-            combined = (1 - req.score_weight) * rerank_score + req.score_weight * original_score
+            combined = (
+                1 - req.score_weight
+            ) * rerank_score + req.score_weight * original_score
             items.append(
                 RerankResultItem(
                     id=result.get("id", f"result_{i}"),
@@ -199,9 +239,11 @@ async def rerank(req: RerankRequest):
             item.rank = rank
 
         return RerankResponse(results=top_items)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Rerank error: {e}")
-        raise HTTPException(500, str(e)) from e
+        raise HTTPException(500, "ML operation failed") from e
 
 
 @app.post("/v1/tools/initialize", response_model=ToolInitResponse)
@@ -232,23 +274,35 @@ async def tools_initialize(req: ToolInitRequest):
         index = faiss.IndexFlatIP(embeddings.shape[1])
         index.add(embeddings)
 
+        now = time.time()
+        for key in list(_tool_indexes):
+            if now - _tool_indexes[key]["ts"] > TOOL_INDEX_TTL:
+                del _tool_indexes[key]
+        if req.agent_id not in _tool_indexes and len(_tool_indexes) >= 1000:
+            raise HTTPException(503, "Tool index capacity reached")
         _tool_indexes[req.agent_id] = {
             "index": index,
             "tool_names": tool_names,
             "ts": time.time(),
         }
-        logger.info(f"Tool index built for agent {req.agent_id}: {len(tool_names)} tools")
+        logger.info(
+            f"Tool index built for agent {req.agent_id}: {len(tool_names)} tools"
+        )
         return ToolInitResponse(success=True, count=len(tool_names))
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Tool init error: {e}")
-        raise HTTPException(500, str(e)) from e
+        raise HTTPException(500, "ML operation failed") from e
 
 
 @app.post("/v1/tools/search", response_model=ToolSearchResponse)
 async def tools_search(req: ToolSearchRequest):
     # Evict expired indexes
     now = time.time()
-    expired = [aid for aid, v in _tool_indexes.items() if now - v["ts"] > TOOL_INDEX_TTL]
+    expired = [
+        aid for aid, v in _tool_indexes.items() if now - v["ts"] > TOOL_INDEX_TTL
+    ]
     for aid in expired:
         del _tool_indexes[aid]
 
@@ -272,9 +326,11 @@ async def tools_search(req: ToolSearchRequest):
                 tools.append({"name": entry["tool_names"][idx], "score": float(score)})
 
         return ToolSearchResponse(tools=tools)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Tool search error: {e}")
-        raise HTTPException(500, str(e)) from e
+        raise HTTPException(500, "ML operation failed") from e
 
 
 if __name__ == "__main__":

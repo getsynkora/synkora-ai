@@ -141,7 +141,9 @@ class TaskExecutor:
         """
         # Get database connection
         result = await self.db.execute(
-            select(DatabaseConnection).filter(DatabaseConnection.id == task.database_connection_id)
+            select(DatabaseConnection).filter(
+                DatabaseConnection.id == task.database_connection_id, DatabaseConnection.tenant_id == task.tenant_id
+            )
         )
         db_connection = result.scalar_one_or_none()
 

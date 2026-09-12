@@ -167,11 +167,68 @@ class HumanApprovalService:
             return "reject"
         return "unclear"
 
+    async def handle_chat_reply(
+        self,
+        agent_slug: str,
+        conversation_id: str | None,
+        reply_text: str,
+        account_id: UUID,
+        tenant_id: UUID,
+        db: AsyncSession,
+    ) -> str | None:
+        """Resolve approvals only through a conversation owned by this tenant member."""
+        from src.models.agent import Agent
+        from src.models.conversation import Conversation
+        from src.models.tenant import TenantAccountJoin
+
+        if not conversation_id:
+            return None
+        try:
+            conversation_uuid = UUID(str(conversation_id))
+        except ValueError:
+            return None
+        result = await db.execute(
+            select(AgentApprovalRequest)
+            .join(Agent, Agent.id == AgentApprovalRequest.agent_id)
+            .join(Conversation, Conversation.id == AgentApprovalRequest.conversation_id)
+            .join(TenantAccountJoin, TenantAccountJoin.tenant_id == AgentApprovalRequest.tenant_id)
+            .where(
+                AgentApprovalRequest.tenant_id == tenant_id,
+                AgentApprovalRequest.conversation_id == conversation_uuid,
+                AgentApprovalRequest.notification_channel == "chat",
+                AgentApprovalRequest.status == ApprovalStatus.PENDING,
+                Agent.tenant_id == tenant_id,
+                Agent.slug == agent_slug,
+                Conversation.agent_id == Agent.id,
+                Conversation.account_id == account_id,
+                TenantAccountJoin.account_id == account_id,
+            )
+            .order_by(AgentApprovalRequest.created_at.desc())
+            .limit(1)
+        )
+        approval = result.scalar_one_or_none()
+        if approval is None:
+            return None
+        return await self.handle_reply(
+            approval.id,
+            reply_text,
+            db,
+            tenant_id=tenant_id,
+            agent_id=approval.agent_id,
+            account_id=account_id,
+            conversation_id=conversation_uuid,
+        )
+
     async def handle_reply(
         self,
         approval_id: UUID,
         reply_text: str,
         db: AsyncSession,
+        *,
+        tenant_id: UUID,
+        agent_id: UUID,
+        account_id: UUID | None = None,
+        conversation_id: UUID | None = None,
     ) -> Literal["approved", "rejected", "feedback", "unclear", "expired", "not_found"]:
         """
         Process a user reply for a pending approval.
@@ -181,10 +238,37 @@ class HumanApprovalService:
         On feedback: marks REJECTED, fires a new run with feedback injected.
         Returns a string status for the caller to form a reply message.
         """
-        result = await db.execute(select(AgentApprovalRequest).filter(AgentApprovalRequest.id == approval_id))
+        query = select(AgentApprovalRequest).where(
+            AgentApprovalRequest.id == approval_id,
+            AgentApprovalRequest.tenant_id == tenant_id,
+            AgentApprovalRequest.agent_id == agent_id,
+        )
+        result = await db.execute(query.with_for_update())
         approval = result.scalar_one_or_none()
         if not approval:
             return "not_found"
+        if approval.notification_channel == "chat":
+            from src.models.agent import Agent
+            from src.models.conversation import Conversation
+            from src.models.tenant import TenantAccountJoin
+
+            if account_id is None or conversation_id != approval.conversation_id:
+                return "not_found"
+            authorized = await db.scalar(
+                select(Conversation.id)
+                .join(Agent, Agent.id == Conversation.agent_id)
+                .join(TenantAccountJoin, TenantAccountJoin.tenant_id == Agent.tenant_id)
+                .where(
+                    Conversation.id == conversation_id,
+                    Conversation.agent_id == agent_id,
+                    Conversation.account_id == account_id,
+                    Agent.tenant_id == tenant_id,
+                    TenantAccountJoin.account_id == account_id,
+                )
+            )
+            if authorized is None:
+                return "not_found"
+            approval.responded_by = str(account_id)
 
         # Check expiry
         if datetime.now(UTC) > approval.expires_at:
@@ -233,9 +317,13 @@ class HumanApprovalService:
         feedback_text: str | None,
         db: AsyncSession,
         responded_by: str | None = None,
+        tenant_id: UUID | None = None,
     ) -> dict:
         """Handle a dashboard-originated or button-click respond action."""
-        result = await db.execute(select(AgentApprovalRequest).filter(AgentApprovalRequest.id == approval_id))
+        stmt = select(AgentApprovalRequest).filter(AgentApprovalRequest.id == approval_id)
+        if tenant_id is not None:
+            stmt = stmt.filter(AgentApprovalRequest.tenant_id == tenant_id)
+        result = await db.execute(stmt)
         approval = result.scalar_one_or_none()
         if not approval:
             raise ValueError(f"Approval {approval_id} not found")
@@ -585,6 +673,9 @@ class HumanApprovalService:
                 "channel": approval.notification_channel,
             },
         }
-        # Broadcast to all connected users (tenant filtering is not yet in the base manager;
-        # the frontend will ignore events for other agents).
+        # TODO: SECURITY — broadcast() sends to ALL connected WebSocket clients across all
+        # tenants. The connection_manager needs a tenant-scoped broadcast method (e.g.
+        # broadcast_to_tenant(tenant_id, message)) so approval events are not leaked to
+        # other tenants' dashboards. Currently the frontend filters by agent_name, but
+        # the raw event data (approval_id, tool_name) is still visible on the wire.
         await connection_manager.broadcast(message)

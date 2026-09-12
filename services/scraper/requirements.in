@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+playwright
+crawl4ai
+beautifulsoup4
+python-dateutil
+pydantic

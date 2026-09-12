@@ -124,6 +124,13 @@ class ADKToolRegistry:
         self.tools: dict[str, dict[str, Any]] = {}
         self._register_default_tools()
 
+    def fork(self) -> "ADKToolRegistry":
+        """Copy definitions without rebuilding built-ins; runtime bindings stay local."""
+        registry = object.__new__(ADKToolRegistry)
+        registry.tools = self.tools.copy()
+        registry._request_owned = True
+        return registry
+
     def _register_default_tools(self):
         """Register all default tools."""
         # Internal tools
@@ -1650,8 +1657,12 @@ internal_write_file instead. To inspect files, use internal_read_file or interna
         function: Callable,
         requires_auth: str | None = None,  # NEW PARAMETER
         tool_category: str | None = None,  # "action" | "read" | None
+        retry_safe: bool = False,
     ):
         """Register a new tool with optional auth requirement and category."""
+        existing = self.tools.get(name)
+        if getattr(self, "_request_owned", False) and existing and existing["function"] is not function:
+            raise ValueError(f"Ambiguous tool name: {name}")
         self.tools[name] = {
             "name": name,
             "description": description,
@@ -1659,6 +1670,7 @@ internal_write_file instead. To inspect files, use internal_read_file or interna
             "function": function,
             "requires_auth": requires_auth,  # Store auth requirement
             "tool_category": tool_category,  # Used by HITL approval gate
+            "retry_safe": retry_safe,
         }
         auth_info = f" (requires_auth: {requires_auth})" if requires_auth else ""
         logger.info(f"Registered tool: {name}{auth_info}")
@@ -1840,7 +1852,7 @@ internal_write_file instead. To inspect files, use internal_read_file or interna
         try:
             from uuid import UUID
 
-            from src.models import AgentTool, CustomTool
+            from src.models import Agent, AgentTool, CustomTool
             from src.services.custom_tools import OpenAPIParser, ToolExecutor
 
             # Get agent's custom tools
@@ -1861,7 +1873,11 @@ internal_write_file instead. To inspect files, use internal_read_file or interna
             # Load all required CustomTool rows in a single IN query (avoids N+1).
             unique_custom_tool_ids = list({at.custom_tool_id for at in agent_tools if at.custom_tool_id})
             ct_result = await db.execute(
-                select(CustomTool).filter(CustomTool.id.in_(unique_custom_tool_ids), CustomTool.enabled)
+                select(CustomTool).filter(
+                    CustomTool.id.in_(unique_custom_tool_ids),
+                    CustomTool.enabled,
+                    CustomTool.tenant_id == select(Agent.tenant_id).where(Agent.id == agent_uuid).scalar_subquery(),
+                )
             )
             custom_tools_by_id = {ct.id: ct for ct in ct_result.scalars().all()}
 
@@ -2042,15 +2058,173 @@ internal_write_file instead. To inspect files, use internal_read_file or interna
                 credential instead of the static server token.
         """
         try:
+            import re as _re
             from uuid import UUID
 
             from sqlalchemy.orm import selectinload
 
             from src.models import AgentMCPServer
+            from src.services.cache import get_agent_cache
             from src.services.mcp import mcp_client_manager
+
+            def serialize_mcp_tool(tool_def: Any, server_name: str, enabled_tools: list[str]) -> dict[str, Any] | None:
+                from fastapi.encoders import jsonable_encoder
+
+                tool_name = tool_def.name if hasattr(tool_def, "name") else str(tool_def)
+
+                if enabled_tools:
+                    tool_name_without_prefix = tool_name
+                    exact_prefix = f"{server_name}_"
+                    if tool_name.startswith(exact_prefix):
+                        tool_name_without_prefix = tool_name[len(exact_prefix) :]
+
+                    if tool_name not in enabled_tools and tool_name_without_prefix not in enabled_tools:
+                        logger.debug(f"Skipping tool {tool_name} - not in enabled_tools list")
+                        return None
+
+                tool_description = tool_def.description if hasattr(tool_def, "description") else ""
+                tool_input_schema = tool_def.inputSchema if hasattr(tool_def, "inputSchema") else {}
+                if hasattr(tool_input_schema, "model_dump"):
+                    tool_input_schema = tool_input_schema.model_dump()
+                elif hasattr(tool_input_schema, "dict"):
+                    tool_input_schema = tool_input_schema.dict()
+
+                sanitized_tool_name = _re.sub(r"[^a-zA-Z0-9_-]", "_", tool_name)
+                return jsonable_encoder(
+                    {
+                        "server_name": server_name,
+                        "tool_name": tool_name,
+                        "sanitized_tool_name": sanitized_tool_name,
+                        "description": tool_description,
+                        "input_schema": tool_input_schema or {},
+                    }
+                )
+
+            def create_mcp_tool_wrapper(mcp_client, mcp_tool_name, mcp_server_name, _shared_state):
+                async def mcp_tool_wrapper(config: dict[str, Any] | None = None, **kwargs):
+                    try:
+                        # If the caller injected a per-request user token (e.g. widget
+                        # identity JWT), open a fresh client with that token so the
+                        # MCP server receives the correct Authorization header.
+                        _user_token = (_shared_state or {}).get("mcp_user_token")
+                        if _user_token:
+                            from uuid import UUID as _UUID
+
+                            from src.core.database import get_async_session_factory as _gsf
+                            from src.services.mcp import mcp_client_manager
+
+                            _agent_uuid = _UUID(agent_id)
+                            _per_req_client = None
+                            async with _gsf()() as _db:
+                                _per_req_client = await mcp_client_manager.get_agent_client_with_user_token(
+                                    agent_id=_agent_uuid,
+                                    db=_db,
+                                    user_token=_user_token,
+                                )
+                            if _per_req_client:
+                                try:
+                                    result = await _per_req_client.execute_tool(
+                                        tool_name=mcp_tool_name,
+                                        arguments=kwargs,
+                                        server_name=mcp_server_name,
+                                    )
+                                finally:
+                                    await _per_req_client.disconnect()
+                            else:
+                                return {
+                                    "success": False,
+                                    "error": "MCP connection failed for the current user; authentication is required.",
+                                }
+                        else:
+                            # Reconcile configuration before dispatch, including after
+                            # an administrator revokes or rotates a server mid-run.
+                            from uuid import UUID as _UUID
+
+                            from src.core.database import get_async_session_factory as _gsf
+                            from src.services.mcp import mcp_client_manager
+
+                            async with _gsf()() as _db:
+                                current_client = await mcp_client_manager.get_agent_client(_UUID(agent_id), _db)
+                            if current_client is None or current_client.config_revision != mcp_client.config_revision:
+                                return {"success": False, "error": "MCP configuration changed; start a new request."}
+                            result = await current_client.execute_tool(
+                                tool_name=mcp_tool_name, arguments=kwargs, server_name=mcp_server_name
+                            )
+
+                        # Extract content from CallToolResult object
+                        # FastMCP returns CallToolResult with content array
+                        if hasattr(result, "content") and result.content:
+                            # Extract text from content array
+                            content_parts = []
+                            for content_item in result.content:
+                                if hasattr(content_item, "text"):
+                                    content_parts.append(content_item.text)
+                                elif hasattr(content_item, "type") and content_item.type == "text":
+                                    content_parts.append(str(content_item))
+
+                            # If we extracted text, return it
+                            if content_parts:
+                                combined_text = "\n".join(content_parts)
+                                # Try to parse as JSON if it looks like JSON
+                                try:
+                                    import json
+
+                                    return json.loads(combined_text)
+                                except (json.JSONDecodeError, ValueError):
+                                    # Not JSON, return as text
+                                    return {"result": combined_text}
+
+                        if isinstance(result, dict):
+                            return result
+                        else:
+                            return {"result": str(result)}
+
+                    except Exception as e:
+                        logger.warning(f"MCP tool execution error ({mcp_server_name}.{mcp_tool_name}): {e}")
+                        return {"error": str(e)}
+
+                return mcp_tool_wrapper
+
+            def register_cached_tools(client, tool_records: list[dict[str, Any]]) -> list[str]:
+                # Validate the entire batch before installing any bindings.
+                names = [
+                    record.get("sanitized_tool_name") or _re.sub(r"[^a-zA-Z0-9_-]", "_", record.get("tool_name", ""))
+                    for record in tool_records
+                ]
+                if len(names) != len(set(names)) or any(name in self.tools for name in names):
+                    raise ValueError("Ambiguous MCP tool names; configure unique names before using this agent")
+                registered: list[str] = []
+                for tool_record in tool_records:
+                    server_name = tool_record.get("server_name", "")
+                    tool_name = tool_record.get("tool_name", "")
+                    sanitized_tool_name = tool_record.get("sanitized_tool_name") or _re.sub(
+                        r"[^a-zA-Z0-9_-]", "_", tool_name
+                    )
+                    if not server_name or not tool_name or not sanitized_tool_name:
+                        continue
+
+                    if sanitized_tool_name != tool_name:
+                        logger.debug(f"MCP tool name sanitized: '{tool_name}' → '{sanitized_tool_name}'")
+                    self.register_tool(
+                        name=sanitized_tool_name,
+                        description=tool_record.get("description", ""),
+                        parameters=tool_record.get("input_schema") or {},
+                        function=create_mcp_tool_wrapper(client, tool_name, server_name, shared_state),
+                    )
+                    registered.append(sanitized_tool_name)
+                return registered
 
             # Get agent's MCP server associations with config (eager-load mcp_server to avoid lazy load in async)
             agent_uuid = UUID(agent_id)
+            cache = get_agent_cache()
+            client = await mcp_client_manager.get_agent_client(agent_id=agent_uuid, db=db)
+            if client is None:
+                return []
+            schema_cache_id = f"{agent_id}:{client.config_revision}"
+            cached_tools = await cache.get_mcp_tools(schema_cache_id)
+            if cached_tools is not None:
+                return register_cached_tools(client, cached_tools)
+
             result = await db.execute(
                 select(AgentMCPServer)
                 .filter(AgentMCPServer.agent_id == agent_uuid, AgentMCPServer.is_active)
@@ -2064,17 +2238,14 @@ internal_write_file instead. To inspect files, use internal_read_file or interna
 
             logger.info(f"Loading MCP tools for agent {agent_id}, found {len(associations)} MCP server associations")
 
-            # Get the single MCP client that manages all servers for this agent
-            client = await mcp_client_manager.get_agent_client(agent_id=agent_uuid, db=db)
-
-            if not client:
-                logger.warning(f"No MCP client available for agent {agent_id}")
-                return
-
             registered_tool_names: list[str] = []
+            cache_records: list[dict[str, Any]] = []
 
+            discovery_complete = True
             # Load tools from each MCP server
             for assoc in associations:
+                if assoc.mcp_server.status != "ACTIVE":
+                    continue
                 try:
                     server_name = assoc.mcp_server.name
 
@@ -2087,140 +2258,13 @@ internal_write_file instead. To inspect files, use internal_read_file or interna
                     # Filter tools based on enabled_tools config
                     tools_to_register = []
                     for tool_def in all_tools:
-                        # FastMCP returns Tool objects with attributes
-                        tool_name = tool_def.name if hasattr(tool_def, "name") else str(tool_def)
-
-                        # If enabled_tools is specified and not empty, only register tools in the list
-                        if enabled_tools:
-                            # FastMCP adds server name prefix in multi-server mode
-                            # Database stores tool names without prefix, so we need to check both:
-                            # 1. Tool name with prefix (e.g., "GitHub_list_branches")
-                            # 2. Tool name without prefix (e.g., "list_branches")
-
-                            # Try to match with prefix removed
-                            tool_name_without_prefix = tool_name
-
-                            # Remove exact server name prefix (e.g., "GitHub_")
-                            exact_prefix = f"{server_name}_"
-                            if tool_name.startswith(exact_prefix):
-                                tool_name_without_prefix = tool_name[len(exact_prefix) :]
-
-                            # Check if either the full name or name without prefix is in enabled_tools
-                            if tool_name not in enabled_tools and tool_name_without_prefix not in enabled_tools:
-                                logger.debug(f"Skipping tool {tool_name} - not in enabled_tools list")
-                                continue
-
-                        tools_to_register.append(tool_def)
+                        tool_record = serialize_mcp_tool(tool_def, server_name, enabled_tools)
+                        if tool_record:
+                            tools_to_register.append(tool_record)
+                            cache_records.append(tool_record)
 
                     # Register filtered tools
-                    for tool_def in tools_to_register:
-                        import re as _re
-
-                        # FastMCP returns Tool objects with attributes
-                        tool_name = tool_def.name if hasattr(tool_def, "name") else str(tool_def)
-                        tool_description = tool_def.description if hasattr(tool_def, "description") else ""
-                        tool_input_schema = tool_def.inputSchema if hasattr(tool_def, "inputSchema") else {}
-
-                        # OpenAI / Anthropic require tool names to match ^[a-zA-Z0-9_-]+$.
-                        # FastMCP may prefix tools with the server name (e.g. a server named
-                        # "my server" produces "my server_tool_name"). Characters like spaces
-                        # are accepted in the tools list on the first LLM call but rejected
-                        # when the name appears in tool_calls in conversation history on
-                        # subsequent calls, causing a 400 Bad Request.
-                        # Sanitize for the registry (what the LLM sees) while keeping the
-                        # original FastMCP name for the actual call_tool() invocation.
-                        sanitized_tool_name = _re.sub(r"[^a-zA-Z0-9_-]", "_", tool_name)
-
-                        # Create a wrapper function that captures the client and tool name.
-                        # ``_shared_state`` is the mutable dict from stream_agent_response —
-                        # checked at execution time (not registration time) so the
-                        # per-request ``mcp_user_token`` set by the widget handler is visible.
-                        def create_mcp_tool_wrapper(mcp_client, mcp_tool_name, mcp_server_name, _shared_state):
-                            async def mcp_tool_wrapper(config: dict[str, Any] | None = None, **kwargs):
-                                try:
-                                    # If the caller injected a per-request user token (e.g. widget
-                                    # identity JWT), open a fresh client with that token so the
-                                    # MCP server receives the correct Authorization header.
-                                    _user_token = (_shared_state or {}).get("mcp_user_token")
-                                    if _user_token:
-                                        from uuid import UUID as _UUID
-
-                                        from src.core.database import get_async_session_factory as _gsf
-                                        from src.services.mcp import mcp_client_manager
-
-                                        _agent_uuid = _UUID(agent_id)
-                                        _per_req_client = None
-                                        async with _gsf()() as _db:
-                                            _per_req_client = await mcp_client_manager.get_agent_client_with_user_token(
-                                                agent_id=_agent_uuid,
-                                                db=_db,
-                                                user_token=_user_token,
-                                            )
-                                        if _per_req_client:
-                                            try:
-                                                result = await _per_req_client.execute_tool(
-                                                    tool_name=mcp_tool_name,
-                                                    arguments=kwargs,
-                                                    server_name=mcp_server_name,
-                                                )
-                                            finally:
-                                                await _per_req_client.disconnect()
-                                        else:
-                                            # Fall back to cached client if per-request setup failed
-                                            result = await mcp_client.execute_tool(
-                                                tool_name=mcp_tool_name, arguments=kwargs, server_name=mcp_server_name
-                                            )
-                                    else:
-                                        # Normal path — use the cached shared client
-                                        result = await mcp_client.execute_tool(
-                                            tool_name=mcp_tool_name, arguments=kwargs, server_name=mcp_server_name
-                                        )
-
-                                    # Extract content from CallToolResult object
-                                    # FastMCP returns CallToolResult with content array
-                                    if hasattr(result, "content") and result.content:
-                                        # Extract text from content array
-                                        content_parts = []
-                                        for content_item in result.content:
-                                            if hasattr(content_item, "text"):
-                                                content_parts.append(content_item.text)
-                                            elif hasattr(content_item, "type") and content_item.type == "text":
-                                                content_parts.append(str(content_item))
-
-                                        # If we extracted text, return it
-                                        if content_parts:
-                                            combined_text = "\n".join(content_parts)
-                                            # Try to parse as JSON if it looks like JSON
-                                            try:
-                                                import json
-
-                                                return json.loads(combined_text)
-                                            except (json.JSONDecodeError, ValueError):
-                                                # Not JSON, return as text
-                                                return {"result": combined_text}
-
-                                    if isinstance(result, dict):
-                                        return result
-                                    else:
-                                        return {"result": str(result)}
-
-                                except Exception as e:
-                                    logger.warning(f"MCP tool execution error ({mcp_server_name}.{mcp_tool_name}): {e}")
-                                    return {"error": str(e)}
-
-                            return mcp_tool_wrapper
-
-                        # Register with sanitized name (LLM-visible, valid identifier).
-                        # The wrapper still uses the original tool_name for call_tool().
-                        if sanitized_tool_name != tool_name:
-                            logger.debug(f"MCP tool name sanitized: '{tool_name}' → '{sanitized_tool_name}'")
-                        self.register_tool(
-                            name=sanitized_tool_name,
-                            description=tool_description,
-                            parameters=tool_input_schema,
-                            function=create_mcp_tool_wrapper(client, tool_name, server_name, shared_state),
-                        )
-                        registered_tool_names.append(sanitized_tool_name)
+                    registered_tool_names.extend(register_cached_tools(client, tools_to_register))
 
                     if enabled_tools:
                         logger.info(
@@ -2231,7 +2275,11 @@ internal_write_file instead. To inspect files, use internal_read_file or interna
                         logger.info(f"Loaded all {len(tools_to_register)} tools from MCP server: {server_name}")
 
                 except Exception as e:
+                    discovery_complete = False
                     logger.error(f"Failed to load tools from MCP server {server_name}: {e}")
+
+            if discovery_complete:
+                await cache.set_mcp_tools(schema_cache_id, cache_records, ttl=300)
 
             return registered_tool_names
 

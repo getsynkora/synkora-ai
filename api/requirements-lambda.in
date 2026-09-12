@@ -1,0 +1,2 @@
+# Additional Lambda runtime installed alongside the frozen application graph.
+awslambdaric==2.0.8

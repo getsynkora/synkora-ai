@@ -18,6 +18,8 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
+from src.services.security.elasticsearch_transport import elasticsearch_tls_options
+
 logger = logging.getLogger(__name__)
 
 
@@ -35,7 +37,7 @@ async def _get_es_client():
     return AsyncElasticsearch(
         [settings.elasticsearch_url],
         basic_auth=(settings.elasticsearch_username, settings.elasticsearch_password),
-        verify_certs=False,
+        **elasticsearch_tls_options(),
         request_timeout=30,
     )
 

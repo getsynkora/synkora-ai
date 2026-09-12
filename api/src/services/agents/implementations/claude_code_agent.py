@@ -95,11 +95,11 @@ class ClaudeCodeAgent(BaseAgent):
         Build environment variables for the CLI subprocess.
 
         Includes:
-        - Current process environment (PATH, HOME, NODE_PATH, etc.)
+        - Runtime discovery environment only; unrelated API secrets are not inherited
         - ANTHROPIC_API_KEY for authentication
         - ANTHROPIC_BASE_URL for LiteLLM/custom endpoints (if configured)
         """
-        cli_env = {k: v for k, v in os.environ.items() if v is not None}
+        cli_env = {k: os.environ[k] for k in ("PATH", "HOME", "LANG", "LC_ALL", "TMPDIR") if k in os.environ}
         cli_env["ANTHROPIC_API_KEY"] = self._get_api_key()
 
         base_url = self._get_base_url()

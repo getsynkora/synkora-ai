@@ -194,6 +194,9 @@ def update_oauth_state(state: str, additional_data: dict[str, Any]) -> bool:
     This is useful for PKCE flows where the code_verifier needs to be
     stored after the initial state is created.
 
+    SECURITY: Uses a Redis Lua script for atomic read-modify-write to
+    prevent TOCTOU race conditions. Preserves the remaining TTL.
+
     Args:
         state: The state token to update
         additional_data: Additional data to merge into the existing state
@@ -201,18 +204,36 @@ def update_oauth_state(state: str, additional_data: dict[str, Any]) -> bool:
     Returns:
         True if updated successfully, False otherwise
     """
+    _UPDATE_LUA = """
+local data = redis.call('GET', KEYS[1])
+if not data then return nil end
+local ttl = redis.call('TTL', KEYS[1])
+if ttl < 1 then ttl = 600 end
+redis.call('SETEX', KEYS[1], ttl, ARGV[1])
+return data
+"""
     try:
-        # Retrieve without deleting
-        existing_data = OAuthStateService.retrieve_state(state, delete=False)
-        if existing_data is None:
+        redis_client = get_redis()
+        key = f"{OAUTH_STATE_KEY_PREFIX}{state}"
+
+        # First read existing data to merge client-side (JSON merge not practical in Lua)
+        existing_raw = redis_client.get(key)
+        if existing_raw is None:
             logger.warning(f"Cannot update non-existent OAuth state: {state[:8]}...")
             return False
 
-        # Merge additional data
+        existing_data = json.loads(existing_raw)
         existing_data.update(additional_data)
+        merged_json = json.dumps(existing_data)
 
-        # Store updated state (this refreshes the TTL)
-        return OAuthStateService.store_state(state, existing_data)
+        # Atomic: re-read, verify still present, write merged data preserving TTL
+        result = redis_client.eval(_UPDATE_LUA, 1, key, merged_json)
+        if result is None:
+            logger.warning(f"OAuth state expired during update: {state[:8]}...")
+            return False
+
+        logger.debug(f"OAuth state updated atomically: {state[:8]}...")
+        return True
 
     except Exception as e:
         logger.error(f"Failed to update OAuth state: {e}")

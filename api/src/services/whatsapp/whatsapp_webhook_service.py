@@ -125,8 +125,19 @@ class WhatsAppWebhookService:
                     from src.models.message import Message
                     from src.services.eval.feedback_service import record_feedback
 
+                    # Scope to conversations belonging to this bot's user, not globally
+                    _conv_q = select(WhatsAppConversation.conversation_id).where(
+                        WhatsAppConversation.whatsapp_bot_id == bot.id,
+                        WhatsAppConversation.whatsapp_user_id == from_number,
+                    )
                     _msg_result = await self.db_session.execute(
-                        select(Message).filter(Message.role == "assistant").order_by(Message.created_at.desc()).limit(1)
+                        select(Message)
+                        .filter(
+                            Message.role == "assistant",
+                            Message.conversation_id.in_(_conv_q),
+                        )
+                        .order_by(Message.created_at.desc())
+                        .limit(1)
                     )
                     _last_msg = _msg_result.scalar_one_or_none()
                     if _last_msg:
@@ -155,7 +166,13 @@ class WhatsAppWebhookService:
                 _approval_svc = HumanApprovalService(self.db_session)
                 _decision = _approval_svc.parse_reply(text)
                 if _decision != "unclear":
-                    await _approval_svc.handle_reply(_uuid_mod.UUID(_approval_id_str), text, self.db_session)
+                    await _approval_svc.handle_reply(
+                        _uuid_mod.UUID(_approval_id_str),
+                        text,
+                        self.db_session,
+                        tenant_id=bot.tenant_id,
+                        agent_id=bot.agent_id,
+                    )
                     _reply = "Got it! Proceeding." if _decision == "approve" else "Got it! Action cancelled."
                     await _redis.delete(_hitl_key)
                     await self._send_message(bot, from_number, _reply)

@@ -12,8 +12,8 @@ Backends:
 
 import logging
 import os
-import subprocess
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -102,8 +102,8 @@ class LocalComputeSession(ComputeSession):
     """
     Local compute session — wraps the existing workspace.
 
-    Backward-compatible backend used when no remote compute is assigned.
-    Command execution uses subprocess directly (same as command_tools.py).
+    Compatibility adapter for local files. Command execution is forbidden;
+    tenant commands require an isolated compute session.
     """
 
     def __init__(self, workspace_path: str | None, max_output_chars: int = 8000) -> None:
@@ -125,35 +125,13 @@ class LocalComputeSession(ComputeSession):
         timeout: int = 300,
         input_text: str | None = None,
     ) -> dict[str, Any]:
-        """Execute command locally using subprocess."""
-        try:
-            result = subprocess.run(
-                command,
-                capture_output=True,
-                text=True,
-                check=False,
-                cwd=cwd or self._workspace_path,
-                input=input_text,
-                timeout=timeout,
-            )
-            stdout = result.stdout
-            if len(stdout) > self._max_output_chars:
-                stdout = stdout[: self._max_output_chars] + "\n[OUTPUT TRUNCATED]"
-            return {
-                "success": result.returncode == 0,
-                "output": stdout,
-                "error": result.stderr if result.returncode != 0 else "",
-                "return_code": result.returncode,
-            }
-        except subprocess.TimeoutExpired:
-            return {
-                "success": False,
-                "output": "",
-                "error": f"Command timed out after {timeout}s",
-                "return_code": -1,
-            }
-        except Exception as e:
-            return {"success": False, "output": "", "error": str(e), "return_code": -1}
+        """Local application-process execution is forbidden for tenant commands."""
+        return {
+            "success": False,
+            "output": "",
+            "return_code": -1,
+            "error": "Isolated compute is required for command execution",
+        }
 
     async def read_file(
         self,
@@ -163,6 +141,11 @@ class LocalComputeSession(ComputeSession):
     ) -> dict[str, Any]:
         """Read file lines locally."""
         try:
+            if self._workspace_path:
+                resolved = Path(path).resolve()
+                workspace = Path(self._workspace_path).resolve()
+                if not resolved.is_relative_to(workspace):
+                    return {"success": False, "content": "", "total_lines": 0, "error": "Path escapes workspace"}
             with open(path, encoding="utf-8", errors="replace") as fh:
                 all_lines = fh.readlines()
             selected = all_lines[start_line - 1 : start_line - 1 + max_lines]
@@ -180,6 +163,11 @@ class LocalComputeSession(ComputeSession):
     async def write_file(self, path: str, content: str) -> dict[str, Any]:
         """Write content to a local file."""
         try:
+            if self._workspace_path:
+                resolved = Path(path).resolve()
+                workspace = Path(self._workspace_path).resolve()
+                if not resolved.is_relative_to(workspace):
+                    return {"success": False, "error": "Path escapes workspace"}
             parent = os.path.dirname(path)
             if parent:
                 os.makedirs(parent, exist_ok=True)
@@ -215,3 +203,6 @@ class LocalComputeSession(ComputeSession):
 
     async def file_exists(self, path: str) -> bool:
         return os.path.exists(path)
+
+    async def close(self) -> None:
+        """The compatibility adapter owns no external resources."""

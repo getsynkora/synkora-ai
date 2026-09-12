@@ -1,0 +1,57 @@
+{
+  "scope": "All registry packages in api/uv.lock, including development and optional packages",
+  "packages_checked": 305,
+  "vulnerable_packages": [
+    {
+      "name": "ecdsa",
+      "version": "0.19.2",
+      "vulns": [
+        {
+          "id": "PYSEC-2026-1325",
+          "fix_versions": [],
+          "aliases": [
+            "CVE-2024-23342",
+            "GHSA-wj6h-64fc-37mp"
+          ],
+          "description": "python-ecdsa has been found to be subject to a Minerva timing attack on the P-256 curve. Using the `ecdsa.SigningKey.sign_digest()` API function and timing signatures an attacker can leak the internal nonce which may allow for private key discovery. Both ECDSA signatures, key generation, and ECDH operations are affected. ECDSA signature verification is unaffected. The python-ecdsa project considers side channel attacks out of scope for the project and there is no planned fix."
+        }
+      ]
+    },
+    {
+      "name": "thrift",
+      "version": "0.16.0",
+      "vulns": [
+        {
+          "id": "CVE-2026-41608",
+          "fix_versions": [
+            "0.24.0"
+          ],
+          "aliases": [
+            "GHSA-6pjx-3pjc-mrj8"
+          ],
+          "description": "Improper Handling of Highly Compressed Data (Data Amplification) vulnerability in Apache Thrift Python bindings.  This issue affects Apache Thrift: before 0.24.0.  Users are recommended to upgrade to version 0.24.0, which fixes the issue."
+        },
+        {
+          "id": "CVE-2026-43871",
+          "fix_versions": [
+            "0.24.0"
+          ],
+          "aliases": [
+            "GHSA-8wv5-x4w7-5gww"
+          ],
+          "description": "Loop with Unreachable Exit Condition ('Infinite Loop') vulnerability in Apache Thrift Python, Go, PHP and Java bindings.This issue affects Apache Thrift: before 0.24.0.  Users are recommended to upgrade to version 0.24.0, which fixes the issue."
+        },
+        {
+          "id": "CVE-2026-66053",
+          "fix_versions": [
+            "0.24.0"
+          ],
+          "aliases": [
+            "GHSA-hwrj-9rr4-24xh"
+          ],
+          "description": "Improper Validation of Certificate with Host Mismatch vulnerability in Apache Thrift Python bindings.  This issue affects Apache Thrift: before 0.24.0.  Users are recommended to upgrade to version 0.24.0, which fixes the issue.  This replaces\u00a0CVE-2026-41603"
+        }
+      ]
+    }
+  ]
+}

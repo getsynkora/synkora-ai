@@ -48,6 +48,9 @@ def create_synkora_mcp_config(
 
     from src.services.agents.adk_tools import tool_registry
 
+    if runtime_context is not None and runtime_context.tool_registry is not None:
+        tool_registry = runtime_context.tool_registry
+
     # Load tool definitions from registry
     all_tools = tool_registry.list_tools()
     tool_map = {t["name"]: t for t in all_tools}

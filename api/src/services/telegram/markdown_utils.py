@@ -12,6 +12,27 @@ import re
 # Telegram's per-message character limit
 MAX_MESSAGE_LENGTH = 4096
 
+# Pre-compiled regex patterns for markdown parsing (avoids recompilation on every call)
+_RE_FENCED_OPEN = re.compile(r"^```(\w*)\s*$")
+_RE_FENCED_CLOSE = re.compile(r"^```\s*$")
+_RE_TABLE_SEP = re.compile(r"^\|?[\s:\-|]+\|")
+_RE_HEADING = re.compile(r"^(#{1,6})\s+(.+)$")
+_RE_BLOCKQUOTE = re.compile(r"^>\s?")
+_RE_UL = re.compile(r"^[-*+]\s+")
+_RE_OL = re.compile(r"^\d+\.\s+")
+_RE_HR = re.compile(r"^[-*_]{3,}\s*$")
+_RE_INLINE_CODE = re.compile(r"`([^`\n]+)`")
+_RE_IMAGE = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
+_RE_IMAGE_SRC = re.compile(r"^https?://", re.IGNORECASE)
+_RE_LINK = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+_RE_LINK_SAFE = re.compile(r"^(https?://|mailto:|/)", re.IGNORECASE)
+_RE_BOLD_STAR = re.compile(r"\*\*(.+?)\*\*")
+_RE_BOLD_UNDER = re.compile(r"__(.+?)__")
+_RE_ITALIC_STAR = re.compile(r"\*([^*\n]+)\*")
+_RE_ITALIC_UNDER = re.compile(r"_([^_\n\s][^_\n]*)_")
+_RE_STRIKE = re.compile(r"~~(.+?)~~")
+_RE_PLACEHOLDER = re.compile(r"\x00(\d+)\x00")
+
 
 def md_to_telegram_html(text: str) -> str:
     """
@@ -32,12 +53,12 @@ def md_to_telegram_html(text: str) -> str:
         line = lines[i]
 
         # ── Fenced code block ─────────────────────────────────────────────
-        fm = re.match(r"^```(\w*)\s*$", line)
+        fm = _RE_FENCED_OPEN.match(line)
         if fm:
             lang = fm.group(1)
             code_lines: list[str] = []
             i += 1
-            while i < len(lines) and not re.match(r"^```\s*$", lines[i]):
+            while i < len(lines) and not _RE_FENCED_CLOSE.match(lines[i]):
                 code_lines.append(lines[i])
                 i += 1
             i += 1  # skip closing ```
@@ -49,7 +70,7 @@ def md_to_telegram_html(text: str) -> str:
             continue
 
         # ── Table ─────────────────────────────────────────────────────────
-        if "|" in line and i + 1 < len(lines) and re.match(r"^\|?[\s:\-|]+\|", lines[i + 1]):
+        if "|" in line and i + 1 < len(lines) and _RE_TABLE_SEP.match(lines[i + 1]):
             headers = _parse_cells(line)
             i += 2  # skip header + separator row
             rows: list[list[str]] = []
@@ -60,7 +81,7 @@ def md_to_telegram_html(text: str) -> str:
             continue
 
         # ── Heading ───────────────────────────────────────────────────────
-        hm = re.match(r"^(#{1,6})\s+(.+)$", line)
+        hm = _RE_HEADING.match(line)
         if hm:
             content = _inline_to_html(hm.group(2))
             blocks.append(f"<b>{content}</b>")
@@ -68,31 +89,31 @@ def md_to_telegram_html(text: str) -> str:
             continue
 
         # ── Blockquote ────────────────────────────────────────────────────
-        if re.match(r"^>\s?", line):
+        if _RE_BLOCKQUOTE.match(line):
             bq_lines: list[str] = []
-            while i < len(lines) and re.match(r"^>\s?", lines[i]):
-                bq_lines.append(re.sub(r"^>\s?", "", lines[i]))
+            while i < len(lines) and _RE_BLOCKQUOTE.match(lines[i]):
+                bq_lines.append(_RE_BLOCKQUOTE.sub("", lines[i]))
                 i += 1
             inner = "\n".join(_inline_to_html(line_text) for line_text in bq_lines)
             blocks.append(f"<blockquote>{inner}</blockquote>")
             continue
 
         # ── Unordered list ────────────────────────────────────────────────
-        if re.match(r"^[-*+]\s+", line):
+        if _RE_UL.match(line):
             items: list[str] = []
-            while i < len(lines) and re.match(r"^[-*+]\s+", lines[i]):
-                content = _inline_to_html(re.sub(r"^[-*+]\s+", "", lines[i]))
+            while i < len(lines) and _RE_UL.match(lines[i]):
+                content = _inline_to_html(_RE_UL.sub("", lines[i]))
                 items.append(f"• {content}")
                 i += 1
             blocks.append("\n".join(items))
             continue
 
         # ── Ordered list ──────────────────────────────────────────────────
-        if re.match(r"^\d+\.\s+", line):
+        if _RE_OL.match(line):
             items = []
             num = 1
-            while i < len(lines) and re.match(r"^\d+\.\s+", lines[i]):
-                content = _inline_to_html(re.sub(r"^\d+\.\s+", "", lines[i]))
+            while i < len(lines) and _RE_OL.match(lines[i]):
+                content = _inline_to_html(_RE_OL.sub("", lines[i]))
                 items.append(f"{num}. {content}")
                 i += 1
                 num += 1
@@ -100,7 +121,7 @@ def md_to_telegram_html(text: str) -> str:
             continue
 
         # ── Horizontal rule ───────────────────────────────────────────────
-        if re.match(r"^[-*_]{3,}\s*$", line.strip()):
+        if _RE_HR.match(line.strip()):
             blocks.append("──────────────────")
             i += 1
             continue
@@ -116,12 +137,12 @@ def md_to_telegram_html(text: str) -> str:
         while (
             i < len(lines)
             and lines[i].strip() != ""
-            and not re.match(r"^#{1,6}\s", lines[i])
-            and not re.match(r"^[-*+]\s+", lines[i])
-            and not re.match(r"^\d+\.\s+", lines[i])
-            and not re.match(r"^>\s?", lines[i])
-            and not re.match(r"^```", lines[i])
-            and not re.match(r"^[-*_]{3,}\s*$", lines[i].strip())
+            and not _RE_HEADING.match(lines[i])
+            and not _RE_UL.match(lines[i])
+            and not _RE_OL.match(lines[i])
+            and not _RE_BLOCKQUOTE.match(lines[i])
+            and not lines[i].startswith("```")
+            and not _RE_HR.match(lines[i].strip())
             and "|" not in lines[i]
         ):
             p_lines.append(lines[i])
@@ -229,42 +250,42 @@ def _inline_to_html(text: str) -> str:
         ph.append(f"<code>{html.escape(m.group(1))}</code>")
         return f"\x00{len(ph) - 1}\x00"
 
-    s = re.sub(r"`([^`\n]+)`", protect_code, s)
+    s = _RE_INLINE_CODE.sub(protect_code, s)
 
     # Images → link with alt text (Telegram can't embed images inline)
     def protect_image(m: re.Match) -> str:
         alt, src = m.group(1), m.group(2)
-        if re.match(r"^https?://", src, re.IGNORECASE):
+        if _RE_IMAGE_SRC.match(src):
             ph.append(f'<a href="{html.escape(src)}">{html.escape(alt or "image")}</a>')
         else:
             ph.append(html.escape(alt or ""))
         return f"\x00{len(ph) - 1}\x00"
 
-    s = re.sub(r"!\[([^\]]*)\]\(([^)]+)\)", protect_image, s)
+    s = _RE_IMAGE.sub(protect_image, s)
 
     # Links (safe protocols only)
     def protect_link(m: re.Match) -> str:
         label, href = m.group(1), m.group(2)
-        if not re.match(r"^(https?://|mailto:|/)", href, re.IGNORECASE):
+        if not _RE_LINK_SAFE.match(href):
             ph.append(html.escape(label))
         else:
             ph.append(f'<a href="{html.escape(href)}">{html.escape(label)}</a>')
         return f"\x00{len(ph) - 1}\x00"
 
-    s = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", protect_link, s)
+    s = _RE_LINK.sub(protect_link, s)
 
     # Escape HTML entities in remaining plain text
     s = html.escape(s)
 
     # Bold
-    s = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", s)
-    s = re.sub(r"__(.+?)__", r"<b>\1</b>", s)
+    s = _RE_BOLD_STAR.sub(r"<b>\1</b>", s)
+    s = _RE_BOLD_UNDER.sub(r"<b>\1</b>", s)
     # Italic
-    s = re.sub(r"\*([^*\n]+)\*", r"<i>\1</i>", s)
-    s = re.sub(r"_([^_\n\s][^_\n]*)_", r"<i>\1</i>", s)
+    s = _RE_ITALIC_STAR.sub(r"<i>\1</i>", s)
+    s = _RE_ITALIC_UNDER.sub(r"<i>\1</i>", s)
     # Strikethrough
-    s = re.sub(r"~~(.+?)~~", r"<s>\1</s>", s)
+    s = _RE_STRIKE.sub(r"<s>\1</s>", s)
 
     # Restore placeholders
-    s = re.sub(r"\x00(\d+)\x00", lambda m: ph[int(m.group(1))], s)
+    s = _RE_PLACEHOLDER.sub(lambda m: ph[int(m.group(1))], s)
     return s

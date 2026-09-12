@@ -1,21 +1,4 @@
-"""
-DuckDB database connector — in-process analytics engine.
-
-DuckDB is unique among the connectors in this package:
-
-- **No server required** — the engine runs inside the Python process.
-- **In-memory or file-based** — pass ``:memory:`` (default) for ephemeral
-  analysis or an absolute path to a ``.duckdb`` file for persistence.
-- **Direct file querying** — DuckDB can query CSV, Parquet, JSON, and Arrow
-  files without first importing them: ``SELECT * FROM read_csv_auto('path')``.
-- **S3 / HTTP access** — with the ``httpfs`` extension loaded, DuckDB reads
-  files from ``s3://``, ``https://``, and other remote URLs.
-- **PostgreSQL federation** — the ``postgres_scanner`` extension lets DuckDB
-  query a live PostgreSQL database as if it were a local table.
-
-Because DuckDB's Python API is synchronous, every blocking call is dispatched
-to a thread-pool executor so the asyncio event loop is never blocked.
-"""
+"""Tenant-scoped local analytics with filesystem/network access disabled."""
 
 import asyncio
 import logging
@@ -23,7 +6,7 @@ import re
 from typing import Any
 
 from src.models.database_connection import DatabaseConnection
-from src.services.agents.security import decrypt_value
+from src.services.security.local_databases import local_database_path
 
 logger = logging.getLogger(__name__)
 
@@ -70,16 +53,9 @@ class DuckDBConnector:
     ``run_in_executor`` so they do not block the asyncio event loop.
 
     Connection parameters (from ``DatabaseConnection`` model):
-        - ``database_path`` — path to ``.duckdb`` file or ``:memory:``
-          (default ``":memory:"``).
-        - ``connection_params.extensions`` — list of DuckDB extension names to
-          install and load, e.g. ``["httpfs", "postgres_scanner"]``.
-        - ``connection_params.s3_region`` — AWS region (default
-          ``"us-east-1"``).
-        - ``connection_params.s3_access_key_id`` — AWS access key (optional).
-        - ``connection_params.s3_secret_access_key`` — AWS secret key
-          (optional; may also be stored encrypted in
-          ``password_encrypted``).
+        - ``database_path`` — operator-provisioned filename under
+          LOCAL_DATABASE_ROOT/<tenant UUID>/, or ``:memory:``.
+        Persistent files open read-only. Extensions and remote file access are disabled.
 
     The interface mirrors ``PostgreSQLConnector`` and ``MySQLConnector``.
     """
@@ -94,8 +70,7 @@ class DuckDBConnector:
 
         Args:
             database_connection: DatabaseConnection model instance.
-            timeout: Reserved for future use (DuckDB does not yet expose a
-                     per-query timeout at the Python API level).
+            timeout: Query deadline in seconds, capped at 30 seconds.
         """
         self.database_connection = database_connection
         self.timeout = timeout
@@ -116,12 +91,7 @@ class DuckDBConnector:
 
     async def connect(self) -> bool:
         """
-        Open (or create) a DuckDB database and load requested extensions.
-
-        Extensions listed in ``connection_params.extensions`` are installed
-        (if not already present) and then loaded.  If S3 credentials are
-        provided, the ``SET`` statements are executed immediately so that
-        subsequent queries can access ``s3://`` URLs.
+        Open a restricted in-memory or read-only tenant database.
 
         Returns:
             True on success, False on failure.
@@ -133,91 +103,30 @@ class DuckDBConnector:
             return False
 
         try:
-            conn_params = self.database_connection.connection_params or {}
-            database_path: str = self.database_connection.database_path or ":memory:"
-            extensions: list[str] = conn_params.get("extensions", [])
+            database_path = local_database_path(
+                self.database_connection.database_path, self.database_connection.tenant_id, memory=True
+            )
+            if (self.database_connection.connection_params or {}).get("extensions"):
+                raise ValueError("Extensions are disabled for local analytics")
 
-            # Open the connection in the executor
             def _open() -> Any:
-                return duckdb.connect(database_path)
+                return duckdb.connect(
+                    database_path,
+                    read_only=database_path != ":memory:",
+                    config={
+                        "enable_external_access": "false",
+                        "autoload_known_extensions": "false",
+                        "autoinstall_known_extensions": "false",
+                        "allow_community_extensions": "false",
+                        "allow_unsigned_extensions": "false",
+                        "lock_configuration": "true",
+                        "memory_limit": "128MB",
+                        "threads": "1",
+                        "max_temp_directory_size": "0B",
+                    },
+                )
 
             conn = await self._run_sync(_open)
-
-            # Install / load extensions
-            for ext in extensions:
-                # Sanitise extension name before embedding in SQL
-                safe_ext = re.sub(r"[^a-zA-Z0-9_]", "", ext)
-                if safe_ext != ext:
-                    logger.warning("Extension name sanitised '%s' -> '%s'", ext, safe_ext)
-
-                def _load_ext(c=conn, e=safe_ext):
-                    c.execute(f"INSTALL '{e}'")
-                    c.execute(f"LOAD '{e}'")
-
-                await self._run_sync(_load_ext)
-                logger.debug("Loaded DuckDB extension: %s", safe_ext)
-
-            # Configure S3 credentials if provided
-            s3_region: str = conn_params.get("s3_region", "us-east-1")
-            s3_access_key: str | None = conn_params.get("s3_access_key_id")
-            # Secret may come from connection_params or the encrypted password field
-            s3_secret: str | None = conn_params.get("s3_secret_access_key")
-            if not s3_secret and self.database_connection.password_encrypted:
-                try:
-                    s3_secret = decrypt_value(self.database_connection.password_encrypted)
-                except Exception:
-                    s3_secret = None
-
-            if s3_access_key and s3_secret:
-                # Validate region against an allowlist; escape credentials to
-                # prevent SQL injection via DuckDB's string-based SET commands.
-                _VALID_S3_REGIONS = {
-                    "af-south-1",
-                    "ap-east-1",
-                    "ap-northeast-1",
-                    "ap-northeast-2",
-                    "ap-northeast-3",
-                    "ap-south-1",
-                    "ap-south-2",
-                    "ap-southeast-1",
-                    "ap-southeast-2",
-                    "ap-southeast-3",
-                    "ap-southeast-4",
-                    "ca-central-1",
-                    "ca-west-1",
-                    "eu-central-1",
-                    "eu-central-2",
-                    "eu-north-1",
-                    "eu-south-1",
-                    "eu-south-2",
-                    "eu-west-1",
-                    "eu-west-2",
-                    "eu-west-3",
-                    "il-central-1",
-                    "me-central-1",
-                    "me-south-1",
-                    "sa-east-1",
-                    "us-east-1",
-                    "us-east-2",
-                    "us-gov-east-1",
-                    "us-gov-west-1",
-                    "us-west-1",
-                    "us-west-2",
-                }
-                if s3_region not in _VALID_S3_REGIONS:
-                    raise ValueError(f"Invalid S3 region: {s3_region!r}")
-
-                def _esc(v: str) -> str:
-                    """Escape single quotes for DuckDB SET string literals."""
-                    return v.replace("'", "''")
-
-                def _set_s3(c=conn, region=s3_region, key=s3_access_key, secret=s3_secret):
-                    c.execute(f"SET s3_region='{_esc(region)}'")
-                    c.execute(f"SET s3_access_key_id='{_esc(key)}'")
-                    c.execute(f"SET s3_secret_access_key='{_esc(secret)}'")
-
-                await self._run_sync(_set_s3)
-                logger.debug("S3 credentials configured for DuckDB (region=%s)", s3_region)
 
             self._conn = conn
             logger.info("DuckDB opened: %s", database_path)
@@ -246,10 +155,8 @@ class DuckDBConnector:
         """
         Execute a SQL query (or DuckDB special form) and return results.
 
-        DuckDB supports standard SQL as well as special functions like
-        ``read_csv_auto()``, ``read_parquet()``, and ``read_json_auto()``.
-        Results are fetched as a pandas DataFrame, then converted to a list of
-        plain Python dicts so callers receive a JSON-serialisable structure.
+        Standard SQL runs with external access disabled. Results are limited
+        to 10,000 rows and approximately 2 MiB, with a query deadline.
 
         Args:
             query:  SQL string.  Positional parameters use ``?`` placeholders.
@@ -269,19 +176,30 @@ class DuckDBConnector:
             }
 
         try:
+            if len(query.encode("utf-8")) > 65536:
+                raise ValueError("Query is too large")
 
             def _execute(c=self._conn, q=query, p=params):
                 if p:
                     rel = c.execute(q, p)
                 else:
                     rel = c.execute(q)
-                df = rel.fetchdf()
-                return df
+                columns = [item[0] for item in rel.description]
+                rows = rel.fetchmany(10001)
+                if len(rows) > 10000 or sum(len(str(row)) for row in rows) > 2 * 1024 * 1024:
+                    raise ValueError("Query result exceeds the limit")
+                return columns, [dict(zip(columns, row, strict=True)) for row in rows]
 
-            df = await self._run_sync(_execute)
-
-            columns: list[str] = list(df.columns)
-            rows: list[dict] = df.to_dict(orient="records")
+            pending = self._run_sync(_execute)
+            try:
+                columns, rows = await asyncio.wait_for(asyncio.shield(pending), timeout=min(self.timeout, 30))
+            except (TimeoutError, asyncio.CancelledError):
+                self._conn.interrupt()
+                try:
+                    await pending
+                except Exception:
+                    pass
+                raise
 
             return {
                 "success": True,

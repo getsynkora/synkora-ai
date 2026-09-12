@@ -84,6 +84,7 @@ class AuthService:
         tenant_id: uuid.UUID | None = None,
         role: AccountRole | None = None,
         token_version: int = 0,
+        auth_version: int = 0,
     ) -> str:
         """
         Generate a JWT access token.
@@ -105,6 +106,7 @@ class AuthService:
             "type": "access",
             "iss": settings.jwt_issuer,
             "aud": settings.jwt_audience,
+            "av": auth_version,  # Durable account credential version
             "ver": token_version,  # Token version for revocation
         }
 
@@ -120,6 +122,7 @@ class AuthService:
         account_id: uuid.UUID,
         family_id: str | None = None,
         token_version: int = 0,
+        auth_version: int = 0,
     ) -> str:
         """
         Generate a JWT refresh token with rotation support.
@@ -140,6 +143,7 @@ class AuthService:
             "type": "refresh",
             "iss": settings.jwt_issuer,
             "aud": settings.jwt_audience,
+            "av": auth_version,  # Durable account credential version
             "ver": token_version,  # Token version for revocation
         }
 
@@ -148,6 +152,13 @@ class AuthService:
             payload["fid"] = family_id
 
         return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+
+    @staticmethod
+    def validate_account_auth_version(payload: dict, account: Account) -> None:
+        version = payload.get("av", 0)
+        current = account.auth_version or 0
+        if type(version) is not int or version != current:
+            raise ValueError("Session predates a password reset; please sign in again")
 
     @staticmethod
     def decode_token(token: str, verify_audience: bool = True) -> dict:
@@ -209,7 +220,7 @@ class AuthService:
             return None
 
     @staticmethod
-    def _check_account_lockout(email: str) -> tuple[bool, str | None]:
+    async def _check_account_lockout(email: str) -> tuple[bool, str | None]:
         """
         Check if account is locked due to too many failed attempts.
 
@@ -220,6 +231,7 @@ class AuthService:
         Returns:
             Tuple of (is_locked, message)
         """
+        import asyncio
         import time
 
         redis_client = AuthService._get_redis_client()
@@ -235,15 +247,14 @@ class AuthService:
             # Use Redis sorted set for sliding window tracking
             hour_ago = now - AuthService._LOCKOUT_WINDOW
 
-            # Remove old attempts
-            redis_client.zremrangebyscore(redis_key, 0, hour_ago)
-
-            # Get current attempt count
-            attempt_count = redis_client.zcard(redis_key)
+            # SECURITY: Offload synchronous Redis calls to a thread to avoid
+            # blocking the async event loop.
+            await asyncio.to_thread(redis_client.zremrangebyscore, redis_key, 0, hour_ago)
+            attempt_count = await asyncio.to_thread(redis_client.zcard, redis_key)
 
             if attempt_count >= AuthService._LOCKOUT_THRESHOLD:
                 # Get most recent attempt timestamp
-                recent = redis_client.zrange(redis_key, -1, -1, withscores=True)
+                recent = await asyncio.to_thread(redis_client.zrange, redis_key, -1, -1, withscores=True)
                 if recent:
                     last_attempt = recent[0][1]
                     if (now - last_attempt) < AuthService._LOCKOUT_DURATION:
@@ -257,7 +268,7 @@ class AuthService:
                         )
                     else:
                         # Lockout expired, clear attempts
-                        redis_client.delete(redis_key)
+                        await asyncio.to_thread(redis_client.delete, redis_key)
 
             return False, None
 
@@ -272,13 +283,14 @@ class AuthService:
             return False, None
 
     @staticmethod
-    def _record_failed_attempt(email: str) -> None:
+    async def _record_failed_attempt(email: str) -> None:
         """
         Record a failed login attempt.
 
         SECURITY: Uses Redis for distributed tracking. Fails silently if Redis
         is unavailable — a Redis outage must not break the auth flow.
         """
+        import asyncio
         import time
 
         redis_client = AuthService._get_redis_client()
@@ -290,13 +302,13 @@ class AuthService:
             key = email.lower()
             redis_key = f"auth:lockout:{key}"
 
-            # Add attempt with timestamp as score
-            redis_client.zadd(redis_key, {str(now): now})
-            # Set expiry on the key (lockout window + buffer)
-            redis_client.expire(redis_key, AuthService._LOCKOUT_WINDOW + 60)
+            # SECURITY: Offload synchronous Redis calls to a thread to avoid
+            # blocking the async event loop.
+            await asyncio.to_thread(redis_client.zadd, redis_key, {str(now): now})
+            await asyncio.to_thread(redis_client.expire, redis_key, AuthService._LOCKOUT_WINDOW + 60)
 
             # Emit lockout alert when threshold is crossed
-            attempt_count = redis_client.zcard(redis_key)
+            attempt_count = await asyncio.to_thread(redis_client.zcard, redis_key)
             if attempt_count >= AuthService._LOCKOUT_THRESHOLD:
                 AuthService._notify_lockout(account_id=key, ip=None)
 
@@ -319,14 +331,20 @@ class AuthService:
         logger.warning("Account locked: account_id=%s ip=%s", account_id, ip)
 
     @staticmethod
-    def _clear_failed_attempts(email: str) -> None:
+    async def _clear_failed_attempts(email: str) -> None:
         """Clear failed attempts on successful login."""
+        import asyncio
+
         key = email.lower()
         redis_key = f"auth:lockout:{key}"
 
         try:
             redis_client = AuthService._get_redis_client()
-            redis_client.delete(redis_key)
+            if redis_client is None:
+                return
+            # SECURITY: Offload synchronous Redis call to a thread to avoid
+            # blocking the async event loop.
+            await asyncio.to_thread(redis_client.delete, redis_key)
         except Exception as e:
             # Non-critical operation - log but don't fail login
             logger.warning(f"Failed to clear login attempts: {e}")
@@ -348,7 +366,7 @@ class AuthService:
             ValueError: If account is locked due to too many failed attempts
         """
         # SECURITY: Check if account is locked
-        is_locked, lock_message = AuthService._check_account_lockout(email)
+        is_locked, lock_message = await AuthService._check_account_lockout(email)
         if is_locked:
             raise ValueError(lock_message)
 
@@ -356,15 +374,15 @@ class AuthService:
         account = result.scalar_one_or_none()
 
         if not account:
-            AuthService._record_failed_attempt(email)
+            await AuthService._record_failed_attempt(email)
             return None
 
         if not account.password_hash:
-            AuthService._record_failed_attempt(email)
+            await AuthService._record_failed_attempt(email)
             return None
 
         if not AuthService.verify_password(password, account.password_hash):
-            AuthService._record_failed_attempt(email)
+            await AuthService._record_failed_attempt(email)
             return None
 
         # Check if account is active
@@ -372,7 +390,7 @@ class AuthService:
             return None
 
         # Clear failed attempts on successful login
-        AuthService._clear_failed_attempts(email)
+        await AuthService._clear_failed_attempts(email)
         return account
 
     @staticmethod
@@ -716,6 +734,11 @@ class AuthService:
         if not account:
             return None
 
+        # SECURITY: SCIM-provisioned accounts use SSO exclusively and must not
+        # be able to set a local password via the reset flow.
+        if getattr(account, "auth_provider", None) == "scim":
+            raise ValueError("This account is managed via SSO/SCIM and cannot reset its password directly.")
+
         # Generate reset token
         reset_token = AuthService.generate_reset_token()
 
@@ -746,11 +769,16 @@ class AuthService:
         """
         # SECURITY: Hash the incoming token and compare with stored hash
         token_hash = AuthService.hash_token(token)
-        result = await db.execute(select(Account).filter_by(reset_token=token_hash))
+        result = await db.execute(select(Account).filter_by(reset_token=token_hash).with_for_update())
         account = result.scalar_one_or_none()
 
         if not account:
             return None
+
+        # SECURITY: SCIM-provisioned accounts use SSO exclusively and must not
+        # be able to set a local password via the reset flow.
+        if getattr(account, "auth_provider", None) == "scim":
+            raise ValueError("This account is managed via SSO/SCIM and cannot reset its password directly.")
 
         # Check if token is expired
         if account.reset_token_expires_at:
@@ -772,6 +800,7 @@ class AuthService:
         # Update password and clear reset token
         new_hash = AuthService.hash_password(new_password)
         account.password_hash = new_hash
+        account.auth_version = (account.auth_version or 0) + 1
         account.reset_token = None
         account.reset_token_expires_at = None
 
@@ -779,20 +808,20 @@ class AuthService:
         updated_history = [new_hash] + history
         account.password_history = updated_history[:12]
 
+        # Revoke before committing the reset. A failed revocation must not report
+        # successful account recovery or consume the reset token.
+        from src.services.security.token_blacklist import TokenBlacklistService
+
+        try:
+            revoked = TokenBlacklistService().blacklist_all_account_tokens(account.id)
+            if not revoked:
+                raise RuntimeError("Session revocation unavailable")
+        except Exception:
+            await db.rollback()
+            raise RuntimeError("Password reset is temporarily unavailable; please retry") from None
+
         await db.commit()
         await db.refresh(account)
-
-        # SECURITY: Invalidate all existing sessions after password reset
-        # This ensures any stolen tokens become invalid after password change
-        try:
-            from src.services.security.token_blacklist import TokenBlacklistService
-
-            blacklist_service = TokenBlacklistService()
-            blacklist_service.blacklist_all_account_tokens(account.id)
-            logger.info(f"Invalidated all sessions for account {account.id} after password reset")
-        except Exception as e:
-            # Log but don't fail the password reset if blacklist fails
-            logger.warning(f"Failed to invalidate sessions after password reset: {e}")
 
         return account
 

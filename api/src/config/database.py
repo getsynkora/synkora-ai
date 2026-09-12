@@ -1,7 +1,7 @@
 """Database configuration."""
 
 from typing import Any
-from urllib.parse import quote_plus
+from urllib.parse import parse_qsl, quote_plus, urlencode
 
 from pydantic import Field, NonNegativeInt, computed_field
 from pydantic_settings import BaseSettings
@@ -101,12 +101,12 @@ class DatabaseConfig(BaseSettings):
     )
 
     def _apply_ssl(self, db_extras: str) -> str:
-        """Append sslmode=require for non-development/test environments unless already set."""
+        """Append sslmode=verify-full for non-development/test environments unless already set."""
         import os
 
         app_env = os.getenv("APP_ENV", "development")
         if app_env not in ("development", "test", "testing") and "sslmode=" not in db_extras:
-            db_extras = (db_extras + "&sslmode=require").lstrip("&") if db_extras else "sslmode=require"
+            db_extras = (db_extras + "&sslmode=verify-full").lstrip("&") if db_extras else "sslmode=verify-full"
         return db_extras
 
     @computed_field  # type: ignore[misc]
@@ -134,13 +134,17 @@ class DatabaseConfig(BaseSettings):
         concept). SSL for asyncpg is passed via connect_args['ssl'] instead, so we
         strip any 'sslmode=*' segment from db_extras here.
         """
-        import re
-
         db_extras = (
             f"{self.db_extras}&client_encoding={self.db_charset}" if self.db_charset else self.db_extras
         ).strip("&")
         # Remove sslmode=* — asyncpg doesn't recognise it; ssl is set via connect_args.
-        db_extras = re.sub(r"sslmode=[^&]*", "", db_extras).strip("&")
+        db_extras = urlencode(
+            [
+                (key, value)
+                for key, value in parse_qsl(db_extras)
+                if key not in {"sslmode", "sslrootcert", "sslcert", "sslkey"}
+            ]
+        )
         db_extras = f"?{db_extras}" if db_extras else ""
         return (
             f"{self.sqlalchemy_async_database_uri_scheme}://"
@@ -186,21 +190,24 @@ class DatabaseConfig(BaseSettings):
             "command_timeout": 30,  # Statement timeout in seconds
         }
 
-        # If DB_EXTRAS contains sslmode=require (or any non-disable sslmode), pass ssl=True
-        # to asyncpg.  asyncpg does not accept 'sslmode' as a keyword argument.
-        # _apply_ssl() will have added sslmode=require for production if not already present.
-        effective_extras = self._apply_ssl(self.db_extras or "")
-        if effective_extras and "sslmode=" in effective_extras:
-            import re
+        extras = dict(parse_qsl(self._apply_ssl(self.db_extras or "")))
+        mode = extras.get("sslmode")
+        if mode == "disable":
+            connect_args["ssl"] = False
+        elif mode:
+            import ssl
 
-            m = re.search(r"sslmode=(\w+)", effective_extras)
-            if m and m.group(1) not in ("disable",):
-                import ssl as _ssl
-
-                _ctx = _ssl.create_default_context()
-                _ctx.check_hostname = False
-                _ctx.verify_mode = _ssl.CERT_NONE
-                connect_args["ssl"] = _ctx
+            if mode not in {"require", "verify-ca", "verify-full"}:
+                raise ValueError("Use sslmode=verify-full, verify-ca, require, or disable")
+            # Never silently downgrade a requested verified connection. 'require'
+            # also verifies the server; production defaults to verify-full.
+            ca = extras.get("sslrootcert")
+            context = ssl.create_default_context(cafile=None if ca in {None, "system"} else ca)
+            context.check_hostname = mode != "verify-ca"
+            context.verify_mode = ssl.CERT_REQUIRED
+            if extras.get("sslcert"):
+                context.load_cert_chain(extras["sslcert"], extras.get("sslkey"))
+            connect_args["ssl"] = context
 
         if self.pgbouncer_enabled:
             # PgBouncer transaction mode does not support named prepared statements.

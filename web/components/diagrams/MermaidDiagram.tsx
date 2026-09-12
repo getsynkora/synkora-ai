@@ -2,8 +2,20 @@
 
 import { useEffect, useRef, useState, useId } from 'react'
 import { Copy, Download, Maximize2, Minimize2, Check } from 'lucide-react'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import dynamic from 'next/dynamic'
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
+
+// Lazy-load the Prism parser — only needed when diagram rendering fails and the
+// raw code fallback is shown.
+const SyntaxHighlighter = dynamic(
+  () => import('react-syntax-highlighter').then((m) => ({ default: m.Prism })),
+  {
+    ssr: false,
+    loading: () => (
+      <pre className="bg-gray-900 text-gray-100 p-4 text-[13px] font-mono overflow-x-auto whitespace-pre">{}</pre>
+    ),
+  }
+)
 import DOMPurify from 'dompurify'
 
 interface MermaidDiagramProps {

@@ -27,6 +27,45 @@ class SchedulerService:
         self.task_executor = TaskExecutor(db)
         self.cron_validator = CronValidator()
 
+    async def _validate_references(self, tenant_id: uuid.UUID, task_type: str, config: dict) -> None:
+        """Validate JSON resource references before persisting a task."""
+        from pydantic import BaseModel, ConfigDict
+
+        from src.models.agent import Agent
+        from src.models.database_connection import DatabaseConnection
+        from src.models.followup import FollowupItem
+
+        class FollowupConfig(BaseModel):
+            model_config = ConfigDict(extra="allow")
+            agent_id: uuid.UUID
+            followup_item_id: uuid.UUID
+
+        if task_type == "followup_reminder":
+            references = FollowupConfig.model_validate(config)
+            followup = await self.db.scalar(
+                select(FollowupItem.id).where(
+                    FollowupItem.id == references.followup_item_id,
+                    FollowupItem.agent_id == references.agent_id,
+                    FollowupItem.tenant_id == tenant_id,
+                )
+            )
+            if followup is None:
+                raise ValueError("Follow-up is unavailable in this tenant")
+        if task_type in {"agent_task", "autonomous_agent", "followup_reminder"} or config.get("agent_id"):
+            agent_id = uuid.UUID(str(config.get("agent_id", "")))
+            agent = await self.db.scalar(select(Agent.id).where(Agent.id == agent_id, Agent.tenant_id == tenant_id))
+            if agent is None:
+                raise ValueError("Agent is unavailable in this tenant")
+        if task_type in {"database_query", "chart_generation"} or config.get("database_connection_id"):
+            connection = await self.db.scalar(
+                select(DatabaseConnection.id).where(
+                    DatabaseConnection.id == config.get("database_connection_id"),
+                    DatabaseConnection.tenant_id == tenant_id,
+                )
+            )
+            if connection is None:
+                raise ValueError("Database connection is unavailable in this tenant")
+
     async def create_task(
         self,
         tenant_id: uuid.UUID,
@@ -69,6 +108,8 @@ class SchedulerService:
             task_config["database_connection_id"] = database_connection_id
         if query is not None:
             task_config["query"] = query
+
+        await self._validate_references(tenant_id, task_type, task_config)
 
         task = ScheduledTask(
             tenant_id=tenant_id,
@@ -122,6 +163,8 @@ class SchedulerService:
         """
         task_config = config or {}
 
+        await self._validate_references(tenant_id, task_type, task_config)
+
         task = ScheduledTask(
             tenant_id=tenant_id,
             name=name,
@@ -145,18 +188,21 @@ class SchedulerService:
 
         return task
 
-    async def update_task(self, task_id: uuid.UUID, **kwargs) -> ScheduledTask:
+    async def update_task(self, task_id: uuid.UUID, tenant_id: uuid.UUID, **kwargs) -> ScheduledTask:
         """
         Update a scheduled task
 
         Args:
             task_id: ID of the task to update
+            tenant_id: Tenant ID for access control
             **kwargs: Fields to update
 
         Returns:
             Updated ScheduledTask
         """
-        result = await self.db.execute(select(ScheduledTask).filter(ScheduledTask.id == task_id))
+        result = await self.db.execute(
+            select(ScheduledTask).filter(ScheduledTask.id == task_id, ScheduledTask.tenant_id == tenant_id)
+        )
         task = result.scalar_one_or_none()
 
         if not task:
@@ -176,6 +222,13 @@ class SchedulerService:
             kwargs["config"] = kwargs.get("config", {})
             kwargs["config"]["query"] = kwargs.pop("query")
 
+        if "database_connection_id" in kwargs:
+            kwargs["config"] = dict(kwargs.get("config", task.config) or {})
+            kwargs["config"]["database_connection_id"] = kwargs.pop("database_connection_id")
+        await self._validate_references(
+            task.tenant_id, kwargs.get("task_type", task.task_type), kwargs.get("config", task.config) or {}
+        )
+
         # Update fields
         for key, value in kwargs.items():
             if hasattr(task, key):
@@ -189,14 +242,17 @@ class SchedulerService:
 
         return task
 
-    async def delete_task(self, task_id: uuid.UUID) -> None:
+    async def delete_task(self, task_id: uuid.UUID, tenant_id: uuid.UUID) -> None:
         """
         Delete a scheduled task
 
         Args:
             task_id: ID of the task to delete
+            tenant_id: Tenant ID for access control
         """
-        result = await self.db.execute(select(ScheduledTask).filter(ScheduledTask.id == task_id))
+        result = await self.db.execute(
+            select(ScheduledTask).filter(ScheduledTask.id == task_id, ScheduledTask.tenant_id == tenant_id)
+        )
         task = result.scalar_one_or_none()
 
         if not task:
@@ -207,17 +263,21 @@ class SchedulerService:
 
         logger.info(f"Deleted scheduled task {task_id}")
 
-    async def get_task(self, task_id: uuid.UUID) -> ScheduledTask | None:
+    async def get_task(self, task_id: uuid.UUID, tenant_id: uuid.UUID | None = None) -> ScheduledTask | None:
         """
-        Get a scheduled task by ID
+        Get a scheduled task by ID, optionally scoped to a tenant.
 
         Args:
             task_id: ID of the task
+            tenant_id: Optional tenant ID for access control
 
         Returns:
             ScheduledTask or None
         """
-        result = await self.db.execute(select(ScheduledTask).filter(ScheduledTask.id == task_id))
+        stmt = select(ScheduledTask).filter(ScheduledTask.id == task_id)
+        if tenant_id is not None:
+            stmt = stmt.filter(ScheduledTask.tenant_id == tenant_id)
+        result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
 
     async def list_tasks(self, tenant_id: uuid.UUID, skip: int = 0, limit: int = 100) -> list[ScheduledTask]:
@@ -433,17 +493,18 @@ class SchedulerService:
             logger.error(f"Error getting next run time for task {task_id}: {str(e)}")
             return None
 
-    async def toggle_task(self, task_id: uuid.UUID) -> ScheduledTask:
+    async def toggle_task(self, task_id: uuid.UUID, tenant_id: uuid.UUID) -> ScheduledTask:
         """
         Toggle a task's active status
 
         Args:
             task_id: ID of the task
+            tenant_id: Tenant ID for access control
 
         Returns:
             Updated ScheduledTask
         """
-        task = await self.get_task(task_id)
+        task = await self.get_task(task_id, tenant_id=tenant_id)
 
         if not task:
             raise ValueError(f"Task {task_id} not found")

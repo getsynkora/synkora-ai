@@ -148,17 +148,21 @@ async def update_team_member(
             update_data["role"] = member_data.get_normalized_role()
 
         # SECURITY: Only an existing owner can promote another member to owner
-        if update_data.get("role", "").lower() == "owner":
+        if (update_data.get("role") or "").lower() == "owner":
             if not current_member or current_member["role"].lower() != "owner":
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Only organization owners can transfer ownership",
                 )
 
-        updated_member = await team_service.update_team_member(tenant_id, account_id, **update_data)
+        updated_member = await team_service.update_team_member(
+            tenant_id, account_id, actor_id=current_account.id, **update_data
+        )
 
         return updated_member
 
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e)) from e
     except HTTPException:
         raise
     except ValueError as e:
@@ -190,10 +194,14 @@ async def remove_team_member(
         if account_id == str(current_account.id):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot remove yourself from the team")
 
-        await team_service.remove_team_member(tenant_id, account_id)
+        await team_service.remove_team_member(tenant_id, account_id, actor_id=current_account.id)
 
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e)) from e
     except HTTPException:
         raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.error(f"Error removing team member: {str(e)}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to remove team member")

@@ -33,6 +33,14 @@ class AgenticConfig:
     tool_retry_attempts: int = 2
     tool_retry_delay: float = 1.0
     thinking_enabled: bool = False
+    max_parallel_tools: int = 4
+    run_timeout_seconds: float = 3600
+
+    def __post_init__(self):
+        if not 1 <= self.max_parallel_tools <= 64:
+            raise ValueError("max_parallel_tools must be between 1 and 64")
+        if not 0 < self.run_timeout_seconds <= 3600:
+            raise ValueError("run_timeout_seconds must be positive and at most 3600")
 
 
 class AgentType(StrEnum):

@@ -21,16 +21,30 @@ spec:
         app: synkora
         component: ml
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
       imagePullSecrets:
       - name: ecr-registry-secret
       containers:
       - name: ml
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
         image: ML_IMAGE_PLACEHOLDER
         imagePullPolicy: Always
         ports:
         - containerPort: 5002
           name: http
           protocol: TCP
+        env:
+        - name: ML_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: synkora-secrets
+              key: ML_API_KEY
         resources:
           requests:
             memory: "1.5Gi"

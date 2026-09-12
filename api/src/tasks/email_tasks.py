@@ -3,6 +3,7 @@ Celery tasks for email operations.
 """
 
 import logging
+import random
 import uuid
 from typing import Any
 
@@ -111,7 +112,7 @@ def send_email_task(
         return asyncio.run(_send_email())
     except Exception as exc:
         logger.error(f"❌ Error sending email to {to_email}: {exc}", exc_info=True)
-        raise self.retry(exc=exc, countdown=60 * (2**self.request.retries))
+        raise self.retry(exc=exc, countdown=60 * (2**self.request.retries) + random.uniform(0, 30))
 
 
 @celery_app.task(name="send_verification_email_task", bind=True, max_retries=3, default_retry_delay=30)
@@ -152,7 +153,7 @@ def send_verification_email_task(self, account_id: str, base_url: str = "https:/
         return asyncio.run(_send_verification_email())
     except Exception as exc:
         logger.error(f"❌ Error sending verification email for account {account_id}: {exc}", exc_info=True)
-        raise self.retry(exc=exc, countdown=30 * (2**self.request.retries))
+        raise self.retry(exc=exc, countdown=30 * (2**self.request.retries) + random.uniform(0, 30))
 
 
 @celery_app.task(name="send_welcome_email_task", bind=True, max_retries=3, default_retry_delay=30)
@@ -217,7 +218,7 @@ def send_welcome_email_task(self, account_id: str, base_url: str = "https://synk
         return asyncio.run(_send_welcome_email())
     except Exception as exc:
         logger.error(f"❌ Error sending welcome email for account {account_id}: {exc}", exc_info=True)
-        raise self.retry(exc=exc, countdown=30 * (2**self.request.retries))
+        raise self.retry(exc=exc, countdown=30 * (2**self.request.retries) + random.uniform(0, 30))
 
 
 @celery_app.task(name="send_password_reset_email_task", bind=True, max_retries=3, default_retry_delay=30)
@@ -275,7 +276,7 @@ def send_password_reset_email_task(
         return asyncio.run(_send_password_reset_email())
     except Exception as exc:
         logger.error(f"❌ Error sending password reset email to {email}: {exc}", exc_info=True)
-        raise self.retry(exc=exc, countdown=30 * (2**self.request.retries))
+        raise self.retry(exc=exc, countdown=30 * (2**self.request.retries) + random.uniform(0, 30))
 
 
 @celery_app.task(name="send_bulk_emails_task", bind=True)
@@ -408,7 +409,7 @@ def send_team_invitation_email_task(
         return asyncio.run(_send_team_invitation())
     except Exception as exc:
         logger.error(f"❌ Error sending team invitation to {to_email}: {exc}", exc_info=True)
-        raise self.retry(exc=exc, countdown=60 * (2**self.request.retries))
+        raise self.retry(exc=exc, countdown=60 * (2**self.request.retries) + random.uniform(0, 30))
 
 
 @celery_app.task(

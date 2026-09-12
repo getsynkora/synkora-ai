@@ -115,8 +115,7 @@ class SecurityConfig(BaseSettings):
         default="",
         description=(
             "HMAC secret used to chain audit log entries for tamper detection. "
-            "If empty, audit log entries will not be chained and tampering cannot be detected. "
-            "MUST be set in production. "
+            "If empty, the validated SECRET_KEY is used. Set a dedicated stable secret in production. "
             'Generate with: python -c "import secrets; print(secrets.token_hex(32))"'
         ),
     )

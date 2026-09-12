@@ -11,6 +11,7 @@ class TestToolExecutor:
     @pytest.fixture
     def mock_parser(self):
         parser = MagicMock(spec=OpenAPIParser)
+        parser.server_url = "https://api.example.com"
         parser.get_tool_definition.return_value = {
             "operation_id": "test_operation",
             "method": "GET",

@@ -4,7 +4,7 @@ ComputeSessionResolver — resolves the correct ComputeSession for a tool call.
 Resolution order (first non-None wins):
   1. config["_compute_session"] — explicit injection (tests / per-call override).
   2. RuntimeContext.compute_session  — resolved once per conversation.
-  3. None — caller falls back to legacy local workspace behaviour.
+  3. None — command tools refuse execution without an isolated session.
 
 ``build_compute_session_for_agent()`` is called at RuntimeContext creation time
 (chat service, autonomous agent executor, etc.) to load the AgentCompute record
@@ -28,7 +28,7 @@ async def get_compute_session_from_config(
     """
     Return the active ComputeSession for a tool call, or None.
 
-    None means "use local workspace" (backward-compatible fallback).
+    None means command execution is unavailable; file tools retain scoped local access.
     """
     # 1. Explicit per-call injection (useful for tests)
     if config and "_compute_session" in config:
@@ -56,10 +56,8 @@ async def build_compute_session_for_agent(
     """
     Build and return a ComputeSession from an agent's AgentCompute DB record.
 
-    Returns None when:
-      - No AgentCompute record exists (agent uses local workspace).
-      - compute_type is LOCAL.
-      - Backend provisioning fails (logs error, falls back to local).
+    Unconfigured and legacy LOCAL agents use the isolated platform backend.
+    Provisioning failures propagate; commands never fall back to the API process.
 
     Called once at RuntimeContext creation time, never per tool call.
 
@@ -82,17 +80,8 @@ async def build_compute_session_for_agent(
         result = await db_session.execute(stmt)
         compute = result.scalar_one_or_none()
 
-        if compute is None:
-            logger.debug(f"No active AgentCompute for agent {agent_id}; using local workspace")
-            return None
-
-        # ── LOCAL ───────────────────────────────────────────────────────────────
-        if compute.compute_type == ComputeType.LOCAL:
-            logger.debug(f"Agent {agent_id} has LOCAL compute; using workspace manager")
-            return None
-
-        # ── PLATFORM_MANAGED ────────────────────────────────────────────────────
-        if compute.compute_type == ComputeType.PLATFORM_MANAGED:
+        # Legacy "local" and unconfigured agents also use the isolated service.
+        if compute is None or compute.compute_type in (ComputeType.LOCAL, ComputeType.PLATFORM_MANAGED):
             if tenant_id is None:
                 raise RuntimeError(
                     f"Agent {agent_id} uses PLATFORM_MANAGED compute but tenant_id was not "

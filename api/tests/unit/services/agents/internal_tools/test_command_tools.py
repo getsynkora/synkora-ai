@@ -1,5 +1,4 @@
-import subprocess
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -150,142 +149,54 @@ class TestCommandToolsHelpers:
 
 
 class TestInternalRunCommand:
-    """Tests for internal_run_command with workspace path mocking."""
-
-    MOCK_WORKSPACE = "/tmp/synkora/workspaces/tenant1/conv1"
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("command", [["echo", "hello"], ["xargs", "sh", "-c"], ["ls"]])
+    async def test_no_application_process_execution(self, command):
+        with patch("subprocess.run") as run:
+            result = await internal_run_command(command, config={"_compute_session": None}, input_text="echo injected")
+        assert not result["success"]
+        assert "Isolated compute" in result["error"]
+        run.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_internal_run_command_string_with_regex_backslash(self):
-        """LLMs occasionally emit a command array as a Python-literal-style string
-        rather than strict JSON (e.g. a grep alternation regex like "a\\|b" is valid
-        Python string syntax but invalid JSON, since JSON requires "\\\\" for a literal
-        backslash). This must be parsed via the ast.literal_eval fallback instead of
-        rejecting an otherwise well-formed command."""
-        with (
-            patch(
-                "src.services.agents.internal_tools.command_tools._get_workspace_path", return_value=self.MOCK_WORKSPACE
-            ),
-            patch("os.path.isdir", return_value=True),
-            patch("subprocess.run") as mock_run,
-        ):
-            mock_run.return_value.returncode = 0
-            mock_run.return_value.stdout = "agent.py:10:sub_agents"
-            mock_run.return_value.stderr = ""
-
-            cmd = (
-                r'["grep", "-n", "sub_agents\|root_agent\|LlmAgent", '
-                r'"/tmp/synkora/workspaces/tenant1/conv1/agent.py"]'
-            )
-            result = await internal_run_command(cmd)
-
-            assert result["success"] is True
-            called_command = mock_run.call_args.args[0]
-            assert called_command[2] == "sub_agents\\|root_agent\\|LlmAgent"
+    async def test_remote_execution_and_regex_parsing(self):
+        session = MagicMock(is_remote=True)
+        session.exec_command = AsyncMock(return_value={"success": True, "output": "matched"})
+        command = r'["grep", "-n", "first\|second", "agent.py"]'
+        result = await internal_run_command(command, config={"_compute_session": session})
+        assert result["success"]
+        assert session.exec_command.call_args.kwargs["command"][2] == r"first\|second"
 
     @pytest.mark.asyncio
-    async def test_internal_run_command_success(self):
-        with (
-            patch(
-                "src.services.agents.internal_tools.command_tools._get_workspace_path", return_value=self.MOCK_WORKSPACE
-            ),
-            patch("src.services.agents.internal_tools.command_tools._is_command_safe", return_value=True),
-            patch("os.path.isdir", return_value=True),
-            patch("subprocess.run") as mock_run,
-        ):
-            mock_run.return_value.returncode = 0
-            mock_run.return_value.stdout = "success output"
-            mock_run.return_value.stderr = ""
-
-            result = await internal_run_command(["echo", "hello"])
-
-            assert result["success"] is True
-            assert result["output"] == "success output"
-            mock_run.assert_called_once()
+    @pytest.mark.parametrize("command", [["xargs", "sh", "-c"], ["curl", "--url=http://ml:5002"], ["bash", "-c", "id"]])
+    async def test_unsafe_remote_commands_do_not_dispatch(self, command):
+        session = MagicMock(is_remote=True)
+        session.exec_command = AsyncMock()
+        result = await internal_run_command(command, config={"_compute_session": session})
+        assert not result["success"]
+        session.exec_command.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_internal_run_command_failure(self):
-        with (
-            patch(
-                "src.services.agents.internal_tools.command_tools._get_workspace_path", return_value=self.MOCK_WORKSPACE
-            ),
-            patch("src.services.agents.internal_tools.command_tools._is_command_safe", return_value=True),
-            patch("os.path.isdir", return_value=True),
-            patch("subprocess.run") as mock_run,
-        ):
-            mock_run.return_value.returncode = 1
-            mock_run.return_value.stdout = ""
-            mock_run.return_value.stderr = "error output"
+    async def test_agent_command_restriction(self):
+        session = MagicMock(is_remote=True)
+        session.exec_command = AsyncMock()
+        result = await internal_run_command(
+            ["echo", "hello"], config={"_compute_session": session, "_allowed_commands_override": ["ls"]}
+        )
+        assert not result["success"]
+        session.exec_command.assert_not_called()
 
-            result = await internal_run_command(["ls", "nonexistent"])
 
-            assert result["success"] is False
-            assert result["error"] == "error output"
+@pytest.mark.parametrize(
+    "command",
+    [
+        ["/tmp/workspace/ls"],
+        ["awk", 'BEGIN {print ENVIRON["SYNTHETIC_SECRET"]}'],
+        ["find", ".", "-exec", "sh", "-c", "echo marker", "{}", "+"],
+        ["find", ".", "-execdir", "sh", "-c", "echo marker", "{}", "+"],
+    ],
+)
+def test_reviewed_local_command_bypasses_rejected(command):
+    from src.services.agents.internal_tools.command_tools import _is_command_safe
 
-    @pytest.mark.asyncio
-    async def test_internal_run_command_unsafe(self):
-        with (
-            patch(
-                "src.services.agents.internal_tools.command_tools._get_workspace_path", return_value=self.MOCK_WORKSPACE
-            ),
-            patch("os.path.isdir", return_value=True),
-            patch("src.services.agents.internal_tools.command_tools._is_command_safe", return_value=False),
-        ):
-            result = await internal_run_command(["rm", "-rf", "/"])
-            assert result["success"] is False
-            assert "security validation" in result["error"]
-
-    @pytest.mark.asyncio
-    async def test_internal_run_command_timeout(self):
-        with (
-            patch(
-                "src.services.agents.internal_tools.command_tools._get_workspace_path", return_value=self.MOCK_WORKSPACE
-            ),
-            patch("os.path.isdir", return_value=True),
-            patch("src.services.agents.internal_tools.command_tools._is_command_safe", return_value=True),
-            patch("subprocess.run", side_effect=subprocess.TimeoutExpired(["sleep"], 1)),
-        ):
-            result = await internal_run_command(["sleep", "10"], timeout=1)
-            assert result["success"] is False
-            assert "timed out" in result["error"]
-
-    @pytest.mark.asyncio
-    async def test_internal_run_command_not_found(self):
-        with (
-            patch(
-                "src.services.agents.internal_tools.command_tools._get_workspace_path", return_value=self.MOCK_WORKSPACE
-            ),
-            patch("os.path.isdir", return_value=True),
-            patch("src.services.agents.internal_tools.command_tools._is_command_safe", return_value=True),
-            patch("subprocess.run", side_effect=FileNotFoundError),
-        ):
-            result = await internal_run_command(["unknown_cmd"])
-            assert result["success"] is False
-            assert "not found" in result["error"]
-
-    @pytest.mark.asyncio
-    async def test_internal_run_command_invalid_cwd(self):
-        """Test that command execution fails when working directory doesn't exist."""
-        with (
-            patch(
-                "src.services.agents.internal_tools.command_tools._get_workspace_path", return_value=self.MOCK_WORKSPACE
-            ),
-            patch("os.path.isdir", return_value=False),
-        ):
-            result = await internal_run_command(["ls"], working_directory="/invalid/path")
-            assert result["success"] is False
-            assert "does not exist" in result["error"]
-
-    @pytest.mark.asyncio
-    async def test_internal_run_command_no_workspace(self):
-        """Test that command execution works even without workspace (uses current dir)."""
-        with (
-            patch("src.services.agents.internal_tools.command_tools._get_workspace_path", return_value=None),
-            patch("src.services.agents.internal_tools.command_tools._is_command_safe", return_value=True),
-            patch("subprocess.run") as mock_run,
-        ):
-            mock_run.return_value.returncode = 0
-            mock_run.return_value.stdout = "hello"
-            mock_run.return_value.stderr = ""
-
-            result = await internal_run_command(["echo", "hello"])
-            assert result["success"] is True
+    assert not _is_command_safe(command, "/tmp/workspace")

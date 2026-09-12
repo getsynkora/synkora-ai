@@ -85,7 +85,7 @@ async def _validate_cloud_provider_config(
                 return
             await validate_digitalocean_credentials(token=api_token)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+        raise HTTPException(status_code=400, detail="Internal server error") from e
 
 
 @router.get("/apps")
@@ -188,7 +188,7 @@ async def list_oauth_apps(
 
     except Exception as e:
         logger.error(f"List OAuth apps error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/apps/{app_id}")
@@ -217,7 +217,7 @@ async def get_oauth_app(
         raise
     except Exception as e:
         logger.error(f"Get OAuth app error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/apps")
@@ -324,7 +324,7 @@ async def create_oauth_app(
     except Exception as e:
         logger.error(f"Create OAuth app error: {e}", exc_info=True)
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.put("/apps/{app_id}")
@@ -439,7 +439,7 @@ async def update_oauth_app(
     except Exception as e:
         logger.error(f"Update OAuth app error: {e}", exc_info=True)
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.delete("/apps/{app_id}")

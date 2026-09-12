@@ -3,7 +3,7 @@
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, ConfigDict, EmailStr
 from sqlalchemy import select
@@ -60,22 +60,42 @@ async def toggle_subscriptions(
     return {"agent_id": str(agent_id), "allow_subscriptions": agent.allow_subscriptions}
 
 
-@router.get("/{agent_id}/subscribers", response_model=list[SubscriptionResponse])
+@router.get("/{agent_id}/subscribers")
 async def list_subscribers(
     agent_id: UUID,
     db: AsyncSession = Depends(get_async_db),
     account=Depends(get_current_account),
     tenant_id: int = Depends(get_current_tenant_id),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
 ):
-    """List all subscribers for an agent (owner only)."""
+    """List subscribers for an agent (owner only, paginated)."""
     result = await db.execute(select(Agent).filter(Agent.id == agent_id, Agent.tenant_id == tenant_id))
     agent = result.scalar_one_or_none()
     if not agent:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
 
-    result = await db.execute(select(AgentSubscription).filter(AgentSubscription.agent_id == agent_id))
+    from sqlalchemy import func
+
+    count_result = await db.execute(
+        select(func.count(AgentSubscription.id)).filter(AgentSubscription.agent_id == agent_id)
+    )
+    total = count_result.scalar() or 0
+
+    result = await db.execute(
+        select(AgentSubscription)
+        .filter(AgentSubscription.agent_id == agent_id)
+        .order_by(AgentSubscription.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
     subs = result.scalars().all()
-    return [SubscriptionResponse.model_validate(s) for s in subs]
+    return {
+        "items": [SubscriptionResponse.model_validate(s) for s in subs],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }
 
 
 @router.delete("/{agent_id}/subscribers/{subscription_id}", status_code=status.HTTP_204_NO_CONTENT)

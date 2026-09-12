@@ -7,8 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_async_db
-from src.middleware.auth_middleware import require_role
-from src.models import AccountRole
+from src.middleware.auth_middleware import require_platform_admin
 from src.services.billing.platform_settings_service import PlatformSettingsService
 
 router = APIRouter(prefix="/platform-settings", tags=["Platform Settings"])
@@ -45,9 +44,7 @@ class StripeConnectionTest(BaseModel):
 
 
 @router.get("", response_model=PlatformSettingsResponse)
-async def get_platform_settings(
-    db: AsyncSession = Depends(get_async_db), _: None = Depends(require_role(AccountRole.ADMIN))
-):
+async def get_platform_settings(db: AsyncSession = Depends(get_async_db), _: None = Depends(require_platform_admin)):
     """
     Get current platform settings
 
@@ -65,7 +62,7 @@ async def get_platform_settings(
 
 @router.put("/stripe-keys", response_model=PlatformSettingsResponse)
 async def update_stripe_keys(
-    data: StripeKeysUpdate, db: AsyncSession = Depends(get_async_db), _: None = Depends(require_role(AccountRole.ADMIN))
+    data: StripeKeysUpdate, db: AsyncSession = Depends(get_async_db), _: None = Depends(require_platform_admin)
 ):
     """
     Update Stripe API keys
@@ -87,7 +84,7 @@ async def update_stripe_keys(
 
 
 @router.post("/stripe/enable", response_model=PlatformSettingsResponse)
-async def enable_stripe(db: AsyncSession = Depends(get_async_db), _: None = Depends(require_role(AccountRole.ADMIN))):
+async def enable_stripe(db: AsyncSession = Depends(get_async_db), _: None = Depends(require_platform_admin)):
     """
     Enable Stripe integration
 
@@ -109,7 +106,7 @@ async def enable_stripe(db: AsyncSession = Depends(get_async_db), _: None = Depe
 
 
 @router.post("/stripe/disable", response_model=PlatformSettingsResponse)
-async def disable_stripe(db: AsyncSession = Depends(get_async_db), _: None = Depends(require_role(AccountRole.ADMIN))):
+async def disable_stripe(db: AsyncSession = Depends(get_async_db), _: None = Depends(require_platform_admin)):
     """
     Disable Stripe integration
 
@@ -126,9 +123,7 @@ async def disable_stripe(db: AsyncSession = Depends(get_async_db), _: None = Dep
 
 
 @router.post("/stripe/test", response_model=StripeConnectionTest)
-async def test_stripe_connection(
-    db: AsyncSession = Depends(get_async_db), _: None = Depends(require_role(AccountRole.ADMIN))
-):
+async def test_stripe_connection(db: AsyncSession = Depends(get_async_db), _: None = Depends(require_platform_admin)):
     """
     Test Stripe connection with current keys
 
@@ -145,9 +140,7 @@ async def test_stripe_connection(
 
 
 @router.delete("/stripe-keys", response_model=PlatformSettingsResponse)
-async def clear_stripe_keys(
-    db: AsyncSession = Depends(get_async_db), _: None = Depends(require_role(AccountRole.ADMIN))
-):
+async def clear_stripe_keys(db: AsyncSession = Depends(get_async_db), _: None = Depends(require_platform_admin)):
     """
     Clear all Stripe keys (useful for testing or reconfiguration)
 

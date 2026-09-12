@@ -179,12 +179,13 @@ class ConnectionManager:
                 "tenant_id": tenant_id,
             }
 
-            logger.debug(
-                f"WebSocket connected: user={user_id}, tenant={tenant_id}, "
-                f"user_connections={len(self.active_connections[user_id])}, "
-                f"tenant_connections={self.tenant_connections[tenant_id]}, "
-                f"total_connections={self.get_connection_count()}"
-            )
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.debug(
+                    f"WebSocket connected: user={user_id}, tenant={tenant_id}, "
+                    f"user_connections={len(self.active_connections[user_id])}, "
+                    f"tenant_connections={self.tenant_connections[tenant_id]}, "
+                    f"total_connections={self.get_connection_count()}"
+                )
 
         # Send connection confirmation
         await self.send_personal_message(
@@ -232,10 +233,11 @@ class ConnectionManager:
         # Remove metadata
         del self.connection_metadata[websocket]
 
-        logger.debug(
-            f"WebSocket disconnected: user={user_id}, tenant={tenant_id}, "
-            f"total_connections={self.get_connection_count()}"
-        )
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(
+                f"WebSocket disconnected: user={user_id}, tenant={tenant_id}, "
+                f"total_connections={self.get_connection_count()}"
+            )
 
     async def send_personal_message(
         self,
@@ -555,6 +557,37 @@ class ConnectionManager:
     def get_tenant_connection_count(self, tenant_id: UUID) -> int:
         """Get connection count for a specific tenant."""
         return self.tenant_connections.get(tenant_id, 0)
+
+    async def ping_connections(self) -> int:
+        """Send ping to all connections, remove dead ones.
+
+        Returns the number of dead connections removed.
+
+        This should be called periodically (e.g. every 30s) from a background
+        task to detect and clean up connections where the client has silently
+        disconnected (network drop, browser crash, etc.).
+
+        Example usage in a FastAPI lifespan or startup event::
+
+            async def _ws_ping_loop():
+                while True:
+                    await asyncio.sleep(30)
+                    removed = await connection_manager.ping_connections()
+                    if removed:
+                        logger.info(f"Removed {removed} dead WebSocket connections")
+
+            asyncio.create_task(_ws_ping_loop())
+        """
+        removed = 0
+        # Iterate over a snapshot of all connections to avoid mutation during iteration
+        all_websockets = list(self.connection_metadata.keys())
+        for websocket in all_websockets:
+            try:
+                await websocket.send_json({"type": "ping"})
+            except Exception:
+                self.disconnect(websocket)
+                removed += 1
+        return removed
 
 
 class DistributedConnectionManager(ConnectionManager):

@@ -1,5 +1,6 @@
 """RAG (Retrieval Augmented Generation) service using Google ADK and external vector stores."""
 
+import asyncio
 import logging
 from typing import Any
 
@@ -106,7 +107,9 @@ class RAGService:
         """
         try:
             embedding_service = self.get_embedding_service(knowledge_base)
-            return embedding_service.embed_text(text)
+            # PERFORMANCE: embed_text() uses synchronous SDK calls that block the
+            # event loop. Offload to a thread so other coroutines can proceed.
+            return await asyncio.to_thread(embedding_service.embed_text, text)
         except Exception as e:
             logger.error(f"Error generating embedding: {e}")
             raise
@@ -254,46 +257,51 @@ class RAGService:
         )
         agent_kbs = list(result.scalars().all())
 
-        for agent_kb in agent_kbs:
+        # PERFORMANCE: Search all KBs in parallel — each KB search (embedding +
+        # vector query) is independent and typically network-bound.
+        async def _search_single_kb(agent_kb):
             kb = agent_kb.knowledge_base
+            # Generate query embedding (wrapped in to_thread below via generate_embedding)
+            query_embedding = await self.generate_embedding(query, kb)
 
-            try:
-                # Generate query embedding
-                query_embedding = await self.generate_embedding(query, kb)
+            # Get vector DB provider
+            vector_db = self.get_vector_db(kb)
 
-                # Get vector DB provider
-                vector_db = self.get_vector_db(kb)
+            # Determine search parameters from retrieval config
+            config = agent_kb.retrieval_config or {}
+            search_limit = limit or config.get("max_results", 5)
+            search_threshold = score_threshold or config.get("min_score", 0.7)
 
-                # Determine search parameters from retrieval config
-                config = agent_kb.retrieval_config or {}
-                search_limit = limit or config.get("max_results", 5)
-                search_threshold = score_threshold or config.get("min_score", 0.7)
+            # Get collection/index name from vector_db_config
+            collection_name = (
+                kb.vector_db_config.get("index_name") or kb.vector_db_config.get("collection_name") or f"kb-{kb.id}"
+            )
 
-                # Get collection/index name from vector_db_config
-                # For Pinecone, this should be the index_name specified in the UI
-                collection_name = (
-                    kb.vector_db_config.get("index_name") or kb.vector_db_config.get("collection_name") or f"kb-{kb.id}"
-                )
+            # Use KB ID as namespace for Pinecone multi-tenancy
+            namespace = str(kb.id)
+            results = await asyncio.to_thread(
+                vector_db.search,
+                collection_name=collection_name,
+                query_vector=query_embedding,
+                limit=search_limit,
+                score_threshold=search_threshold,
+                namespace=namespace,
+            )
 
-                # Use KB ID as namespace for Pinecone multi-tenancy
-                namespace = str(kb.id)
-                results = vector_db.search(
-                    collection_name=collection_name,
-                    query_vector=query_embedding,
-                    limit=search_limit,
-                    score_threshold=search_threshold,
-                    namespace=namespace,
-                )
+            # Add KB metadata to results
+            for result in results:
+                result["knowledge_base_id"] = kb.id
+                result["knowledge_base_name"] = kb.name
 
-                # Add KB metadata to results
-                for result in results:
-                    result["knowledge_base_id"] = kb.id
-                    result["knowledge_base_name"] = kb.name
-                    all_results.append(result)
+            return results
 
-            except Exception as e:
-                logger.error(f"Error retrieving from KB {kb.id}: {e}")
+        tasks = [_search_single_kb(agent_kb) for agent_kb in agent_kbs]
+        results_list = await asyncio.gather(*tasks, return_exceptions=True)
+        for results in results_list:
+            if isinstance(results, Exception):
+                logger.error(f"KB search failed: {results}")
                 continue
+            all_results.extend(results)
 
         # Sort by score
         all_results.sort(key=lambda x: x.get("score", 0), reverse=True)
@@ -519,8 +527,9 @@ Please answer the user's query using the retrieved context above. If the context
                 batch_chunks = chunks[i : i + batch_size]
 
                 # Generate embeddings using batch method for efficiency
+                # PERFORMANCE: Offload synchronous embedding call to thread pool
                 embedding_service = self.get_embedding_service(knowledge_base)
-                embeddings = embedding_service.embed_texts(batch_chunks)
+                embeddings = await asyncio.to_thread(embedding_service.embed_texts, batch_chunks)
 
                 # Prepare vectors for insertion
                 vectors = []

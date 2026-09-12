@@ -2,11 +2,29 @@
 Platform Settings Service - Manages platform-wide Stripe configuration
 """
 
+import time
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.platform_settings import PlatformSettings
 from src.services.agents.security import decrypt_value, encrypt_value
+
+# Process-local cache for the singleton PlatformSettings row.
+# Avoids a DB round-trip on every call to get_settings() (called by most
+# billing/Stripe helper methods, often multiple times per request).
+_settings_cache: dict[str, object] = {"data": None, "expires": 0.0}
+_CACHE_TTL = 60  # seconds
+
+
+def invalidate_platform_settings_cache() -> None:
+    """Invalidate the process-local PlatformSettings cache.
+
+    Call this from any write endpoint that mutates PlatformSettings so that
+    subsequent reads within the same process pick up the change immediately.
+    """
+    _settings_cache["data"] = None
+    _settings_cache["expires"] = 0.0
 
 
 class PlatformSettingsService:
@@ -18,8 +36,16 @@ class PlatformSettingsService:
     async def get_settings(self) -> PlatformSettings:
         """
         Get platform settings (singleton pattern)
-        Creates default settings if none exist
+        Creates default settings if none exist.
+
+        Uses a process-local cache with a 60-second TTL to avoid hitting
+        the database on every call.
         """
+        now = time.monotonic()
+        cached = _settings_cache["data"]
+        if cached is not None and _settings_cache["expires"] > now:
+            return cached  # type: ignore[return-value]
+
         result = await self.db.execute(select(PlatformSettings))
         settings = result.scalar_one_or_none()
 
@@ -29,6 +55,9 @@ class PlatformSettingsService:
             self.db.add(settings)
             await self.db.commit()
             await self.db.refresh(settings)
+
+        _settings_cache["data"] = settings
+        _settings_cache["expires"] = now + _CACHE_TTL
 
         return settings
 
@@ -59,6 +88,7 @@ class PlatformSettingsService:
 
         await self.db.commit()
         await self.db.refresh(settings)
+        invalidate_platform_settings_cache()
 
         return settings
 
@@ -81,6 +111,7 @@ class PlatformSettingsService:
 
         await self.db.commit()
         await self.db.refresh(settings)
+        invalidate_platform_settings_cache()
 
         return settings
 
@@ -96,6 +127,7 @@ class PlatformSettingsService:
 
         await self.db.commit()
         await self.db.refresh(settings)
+        invalidate_platform_settings_cache()
 
         return settings
 
@@ -173,6 +205,7 @@ class PlatformSettingsService:
 
         await self.db.commit()
         await self.db.refresh(settings)
+        invalidate_platform_settings_cache()
 
         return settings
 

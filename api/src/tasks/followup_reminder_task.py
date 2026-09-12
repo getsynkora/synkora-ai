@@ -49,10 +49,36 @@ def execute_followup_reminder(
 
         db = next(get_db())
         try:
+            # Reload authoritative scope and references; queue payloads are not authority.
+            task = (
+                db.query(ScheduledTask)
+                .filter(
+                    ScheduledTask.id == uuid.UUID(task_id),
+                    ScheduledTask.tenant_id == uuid.UUID(tenant_id),
+                    ScheduledTask.task_type == "followup_reminder",
+                    ScheduledTask.is_active.is_(True),
+                )
+                .first()
+            )
+            if task is None:
+                return {"success": False, "error": "Scheduled task unavailable"}
+            tenant_id = str(task.tenant_id)
+            agent_id = str(uuid.UUID(str(task.config.get("agent_id", ""))))
+            followup_item_id = str(uuid.UUID(str(task.config.get("followup_item_id", ""))))
+            from src.models.agent import Agent
+
+            agent = db.query(Agent).filter(Agent.id == uuid.UUID(agent_id), Agent.tenant_id == task.tenant_id).first()
+            if agent is None:
+                return {"success": False, "error": "Agent unavailable in this tenant"}
+
             # Get followup item
             followup_item = (
                 db.query(FollowupItem)
-                .filter(FollowupItem.id == uuid.UUID(followup_item_id), FollowupItem.agent_id == uuid.UUID(agent_id))
+                .filter(
+                    FollowupItem.id == uuid.UUID(followup_item_id),
+                    FollowupItem.agent_id == uuid.UUID(agent_id),
+                    FollowupItem.tenant_id == task.tenant_id,
+                )
                 .first()
             )
 
@@ -293,7 +319,8 @@ def process_due_followups() -> dict[str, Any]:
                         db.query(ScheduledTask)
                         .filter(
                             ScheduledTask.task_type == "followup_reminder",
-                            ScheduledTask.task_config["followup_item_id"].as_string() == str(followup.id),
+                            ScheduledTask.tenant_id == followup.tenant_id,
+                            ScheduledTask.config["followup_item_id"].as_string() == str(followup.id),
                             ScheduledTask.is_active,
                         )
                         .first()
@@ -305,7 +332,7 @@ def process_due_followups() -> dict[str, Any]:
                             task_id=str(scheduled_task.id),
                             tenant_id=str(followup.tenant_id),
                             agent_id=str(followup.agent_id),
-                            task_config=scheduled_task.task_config,
+                            task_config=scheduled_task.config,
                         )
                         results.append({"followup_id": str(followup.id), "result": result})
                     else:

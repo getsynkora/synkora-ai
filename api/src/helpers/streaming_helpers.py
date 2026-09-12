@@ -13,8 +13,6 @@ import uuid
 from collections.abc import AsyncGenerator
 from typing import Any
 
-import numpy as np
-
 logger = logging.getLogger(__name__)
 
 
@@ -34,14 +32,6 @@ def convert_to_json_serializable(obj: Any) -> Any:
         return [convert_to_json_serializable(item) for item in obj]
     elif isinstance(obj, tuple):
         return tuple(convert_to_json_serializable(item) for item in obj)
-    elif isinstance(obj, (np.integer,)):
-        return int(obj)
-    elif isinstance(obj, (np.floating,)):
-        return float(obj)
-    elif isinstance(obj, np.ndarray):
-        return obj.tolist()
-    elif isinstance(obj, np.bool_):
-        return bool(obj)
     elif isinstance(obj, (datetime.datetime, datetime.date, datetime.time)):
         return obj.isoformat()
     elif isinstance(obj, decimal.Decimal):
@@ -49,6 +39,19 @@ def convert_to_json_serializable(obj: Any) -> Any:
     elif isinstance(obj, uuid.UUID):
         return str(obj)
     else:
+        try:
+            import numpy as np
+
+            if isinstance(obj, (np.integer,)):
+                return int(obj)
+            elif isinstance(obj, (np.floating,)):
+                return float(obj)
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()
+            elif isinstance(obj, np.bool_):
+                return bool(obj)
+        except ImportError:
+            pass
         return obj
 
 

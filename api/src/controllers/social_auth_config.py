@@ -9,17 +9,38 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_async_db
-from src.middleware.auth_middleware import get_current_tenant_id
+from src.middleware.auth_middleware import get_current_account, get_current_tenant_id, require_role
+from src.models import AccountRole, Tenant
+from src.models.tenant import TenantType
 from src.services.social_auth.provider_config_service import (
     SocialAuthProviderConfigService,
 )
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/v1/social-auth-config", tags=["social-auth-config"])
+
+async def require_provider_admin(
+    tenant_id: UUID = Depends(get_current_tenant_id),
+    account=Depends(get_current_account),
+    db: AsyncSession = Depends(get_async_db),
+    _role=Depends(require_role(AccountRole.ADMIN)),
+):
+    tenant = (await db.execute(select(Tenant).where(Tenant.id == tenant_id))).scalar_one_or_none()
+    if tenant is None:
+        raise HTTPException(404, "Tenant not found")
+    if tenant.tenant_type == TenantType.PLATFORM and account.is_platform_admin not in (True, "true"):
+        raise HTTPException(403, "Platform administrator required")
+
+
+router = APIRouter(
+    prefix="/api/v1/social-auth-config",
+    tags=["social-auth-config"],
+    dependencies=[Depends(require_provider_admin)],
+)
 
 
 # Request/Response Models

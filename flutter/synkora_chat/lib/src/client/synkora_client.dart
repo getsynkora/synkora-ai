@@ -12,11 +12,32 @@ class SynkoraClient {
   final String baseUrl;
 
   late final Dio _dio;
+  String? identityToken;
+  String? sessionToken;
+  final void Function(String token)? onSessionToken;
 
-  SynkoraClient({required this.widgetKey, required String baseUrl})
-    : baseUrl = baseUrl.endsWith('/')
-          ? baseUrl.substring(0, baseUrl.length - 1)
-          : baseUrl {
+  /// Restore a capability saved by the host app, alongside its conversation ID.
+  void restoreAnonymousSession(String token) {
+    sessionToken = token;
+    _dio.options.headers['X-Widget-Session-Token'] = token;
+  }
+
+  /// Call when your backend refreshes the short-lived identity assertion.
+  void setIdentity({String? userId, String? userHash, String? token}) {
+    identityToken = token;
+    _dio.options.headers.remove('X-Widget-User-Id');
+    _dio.options.headers.remove('X-Widget-User-Hash');
+    _dio.options.headers.remove('X-Widget-Identity-Token');
+    if (userId != null) _dio.options.headers['X-Widget-User-Id'] = userId;
+    if (userHash != null) _dio.options.headers['X-Widget-User-Hash'] = userHash;
+    if (token != null) _dio.options.headers['X-Widget-Identity-Token'] = token;
+  }
+
+  SynkoraClient(
+      {required this.widgetKey, required String baseUrl, this.onSessionToken})
+      : baseUrl = baseUrl.endsWith('/')
+            ? baseUrl.substring(0, baseUrl.length - 1)
+            : baseUrl {
     _dio = Dio(
       BaseOptions(
         baseUrl: this.baseUrl,
@@ -97,6 +118,8 @@ class SynkoraClient {
         if (sessionId != null) 'session_id': sessionId,
         if (user != null) 'user': user.toJson(),
         if (userHash != null) 'user_hash': userHash,
+        if (identityToken != null) 'identity_token': identityToken,
+        if (sessionToken != null) 'session_token': sessionToken,
         if (forceNew) 'force_new': true,
         if (userEmail != null) 'user_email': userEmail,
         if (userPhone != null) 'user_phone': userPhone,
@@ -142,6 +165,11 @@ class SynkoraClient {
 
           try {
             final parsed = jsonDecode(dataLine) as Map<String, dynamic>;
+            final metadata = parsed['metadata'];
+            if (metadata is Map && metadata['session_token'] is String) {
+              restoreAnonymousSession(metadata['session_token'] as String);
+              onSessionToken?.call(sessionToken!);
+            }
             final event = _parseEvent(parsed);
             if (event != null) {
               controller.add(event);
@@ -177,8 +205,7 @@ class SynkoraClient {
         );
       case 'done':
         // conversation_id may be top-level or inside metadata
-        final convId =
-            json['conversation_id'] as String? ??
+        final convId = json['conversation_id'] as String? ??
             (json['metadata'] as Map<String, dynamic>?)?['conversation_id']
                 as String?;
         return DoneEvent(convId);
@@ -215,8 +242,10 @@ class SynkoraClient {
       final queryParams = <String, dynamic>{
         'limit': limit,
         if (conversationId != null) 'conversation_id': conversationId,
-        if (conversationId == null && userId != null) 'external_user_id': userId,
-        if (conversationId == null && sessionId != null) 'session_id': sessionId,
+        if (conversationId == null && userId != null)
+          'external_user_id': userId,
+        if (conversationId == null && sessionId != null)
+          'session_id': sessionId,
       };
 
       final response = await _dio.get<Map<String, dynamic>>(
@@ -351,8 +380,7 @@ class SynkoraClient {
 
   ChatMessage _messageFromJson(Map<String, dynamic> j) {
     return ChatMessage(
-      id:
-          j['id'] as String? ??
+      id: j['id'] as String? ??
           j['message_id'] as String? ??
           DateTime.now().millisecondsSinceEpoch.toString(),
       role: _parseRole(j['role'] as String?),

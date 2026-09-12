@@ -224,11 +224,11 @@ class ScraperServiceClient:
         return await self._browser("/v1/browser/handle-dialog", {"session_id": session_id, **kwargs})
 
     async def browser_upload_file(
-        self, file_ref: str, file_paths: list[str], session_id: str = "default", **kwargs
+        self, file_ref: str, files: list[dict[str, str]], session_id: str = "default", **kwargs
     ) -> dict[str, Any]:
         return await self._browser(
             "/v1/browser/upload-file",
-            {"file_ref": file_ref, "file_paths": file_paths, "session_id": session_id, **kwargs},
+            {"file_ref": file_ref, "files": files, "session_id": session_id, **kwargs},
         )
 
     # -----------------------------------------------------------------------

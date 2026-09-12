@@ -1,0 +1,35 @@
+{
+  "review_date": "2026-09-10",
+  "scope": "current working tree including preexisting uncommitted changes",
+  "head": "e59c7c267681d476ce78870da747c648a5e3ace8",
+  "sha256": {
+    "api/src/controllers/okta_sso.py": "af01e469f8383ccbc869abb021c327a4bd3f5dcc50bb85d4a0060d5c0476de0e",
+    "api/src/services/sso/okta_sso.py": "ff0d893a5043c9f57e378575c3f7f205d2881b5ad1026c4d6ea3a14ac50c89cb",
+    "api/src/controllers/monitoring_integrations.py": "d20775844130fa16aeb30bd8121777f29bca20e0c083e47caee16f299010cc96",
+    "api/src/middleware/cors_middleware.py": "a677c743fd80dfb400b403e4ed1cdd5e1343ed3794649740bddf20599c4861fb",
+    "api/src/controllers/console/auth.py": "37c9c1d2040f6ab5a04314d199a624318d7760d72398eda6f0cf3bf2f5c30479",
+    "api/src/controllers/data_analysis.py": "e28f0db2a2870bad0b8fc8bcdae2bea49083d703b4d8c010666b7a22fc93d3d2",
+    "api/src/controllers/custom_tools.py": "967abf416ca7af3fc807c2c911e6f7a678a692f5cbfc7868c4793c19ccfd22d5",
+    "api/src/services/security/url_validator.py": "77974348090b1508db5fa6ee5403c8cf433792cc24ab4b4a4f075f7e64f5693d",
+    "api/src/config/settings.py": "23a5a868adc8e828727e04fd01659862a0811a51813d53e2ff725c1fbc5479b9",
+    "api/uv.lock": "613438c7026ed18d08d1e7f606bb2f18eb146b7e77ea33f596a5759933509339",
+    "web/pnpm-lock.yaml": "4bd2dcc7624d85ad3995741e8184c5241381f9485ed79a91261db1c46ff9cd52"
+  },
+  "probes": {
+    "okta_mutation_without_role_input": true,
+    "monitoring_internal_destination_forwarded": "http://127.0.0.1:5002/v1/tools/initialize",
+    "monitoring_arbitrary_method_forwarded": "DELETE",
+    "monitoring_error_body_returned": true,
+    "widget_policy_applies_to_refresh_route": true,
+    "widget_policy_allows_credentials": true,
+    "dashboard_wrong_port_accepted": true,
+    "dashboard_wrong_scheme_accepted": true,
+    "empty_key_download_forgery_accepted": true
+  },
+  "tests": {
+    "backend_distinct_passed": 437,
+    "frontend_passed": 123,
+    "frontend_files": 11
+  },
+  "limitations": "Synthetic probes; no live network targets or browser attack execution."
+}

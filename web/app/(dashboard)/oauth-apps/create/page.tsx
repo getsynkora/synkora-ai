@@ -815,12 +815,14 @@ export default function CreateOAuthAppPage() {
     }
   }
 
-  const handleAuthorize = () => {
+  const handleAuthorize = async () => {
     if (!createdApp) return
-    
-    const redirectUrl = encodeURIComponent(window.location.origin + '/oauth-apps')
-    const authUrl = `${API_URL}/api/v1/oauth/${formData.provider.toLowerCase()}/authorize?oauth_app_id=${createdApp.id}&redirect_url=${redirectUrl}`
-    window.location.href = authUrl
+    try {
+      const result = await apiClient.initiateOAuth(createdApp.id, window.location.origin + '/oauth-apps', false)
+      window.location.href = result.auth_url
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to initiate OAuth')
+    }
   }
 
   return (

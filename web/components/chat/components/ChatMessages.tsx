@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Attachment, FormDefinition, Message, SuggestionPrompt } from '../types'
 import { ChatMessage } from './ChatMessage'
@@ -60,7 +60,13 @@ interface ChatMessagesProps {
 
 /**
  * ChatMessages - Scrollable container for displaying chat messages
- * Implements auto-scroll and virtual scrolling for performance
+ * Renders recent messages first, with older history loaded explicitly.
+ *
+ * Performance: Uses a `visibleCount` windowing approach (default 50 messages)
+ * to limit DOM nodes. For conversations with hundreds of messages, consider
+ * replacing this with `@tanstack/react-virtual` for true virtualization —
+ * it would recycle DOM nodes as the user scrolls, reducing memory usage and
+ * improving scroll performance in very long threads.
  */
 export function ChatMessages({
   messages,
@@ -89,6 +95,42 @@ export function ChatMessages({
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const shouldAutoScrollRef = useRef(true)
+  const [visibleCount, setVisibleCount] = useState(50)
+  const historyAnchorRef = useRef<{ height: number; top: number } | null>(null)
+  const previousLengthRef = useRef(messages.length)
+  const firstVisibleIndex = Math.max(0, messages.length - visibleCount)
+
+  useEffect(() => {
+    setVisibleCount(50)
+    shouldAutoScrollRef.current = true
+    historyAnchorRef.current = null
+  }, [conversationId, agentName])
+
+  useLayoutEffect(() => {
+    const added = messages.length - previousLengthRef.current
+    previousLengthRef.current = messages.length
+    if (added > 0 && !shouldAutoScrollRef.current) {
+      setVisibleCount(count => count + added)
+    }
+  }, [messages.length])
+
+  useLayoutEffect(() => {
+    const anchor = historyAnchorRef.current
+    const container = containerRef.current
+    if (anchor && container) {
+      container.scrollTop = anchor.top + container.scrollHeight - anchor.height
+      historyAnchorRef.current = null
+    }
+  }, [visibleCount])
+
+  const showOlderMessages = () => {
+    const container = containerRef.current
+    if (container) {
+      historyAnchorRef.current = { height: container.scrollHeight, top: container.scrollTop }
+    }
+    shouldAutoScrollRef.current = false
+    setVisibleCount(count => count + 50)
+  }
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -128,8 +170,13 @@ export function ChatMessages({
         />
       ) : (
         <div className="mx-auto max-w-[68rem] space-y-5">
-          {messages.map((message, index) => {
-            const isLastMessage = index === messages.length - 1
+          {firstVisibleIndex > 0 && (
+            <button type="button" onClick={showOlderMessages} className="mx-auto block rounded px-3 py-2 text-sm underline">
+              Show earlier messages ({firstVisibleIndex})
+            </button>
+          )}
+          {messages.slice(firstVisibleIndex).map((message, index) => {
+            const isLastMessage = firstVisibleIndex + index === messages.length - 1
             const isStreamingMessage = isStreaming && isLastMessage
 
             return (

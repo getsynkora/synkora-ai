@@ -1,4 +1,3 @@
-import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, mock_open, patch
 
@@ -324,18 +323,8 @@ class TestInternalFileTools:
             assert len(result["items"]) == 3
 
     @pytest.mark.asyncio
-    async def test_internal_directory_tree(self):
-        with (
-            patch("src.services.agents.internal_tools.file_tools._validate_directory_path", return_value=(True, None)),
-            patch("subprocess.run") as mock_run,
-        ):
-            mock_run.return_value.stdout = "tree output"
-            mock_run.return_value.returncode = 0
-
-            result = await internal_directory_tree("/tmp")
-            assert result["tree"] == "tree output"
-
-            # Test subprocess error
-            mock_run.side_effect = subprocess.CalledProcessError(1, "tree", stderr="error")
-            result = await internal_directory_tree("/tmp")
-            assert "error" in result["error"]
+    async def test_internal_directory_tree_requires_isolation(self):
+        with patch("subprocess.run") as run:
+            result = await internal_directory_tree("/tmp", config={"_compute_session": None})
+        assert "Isolated compute" in result["error"]
+        run.assert_not_called()

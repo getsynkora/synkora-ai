@@ -1,9 +1,21 @@
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/cjs/styles/prism'
 import remarkGfm from 'remark-gfm'
+
+// Lazy-load the Prism parser (~480 KB with all grammars) — only downloaded when
+// a code block appears in the content. The style JSON is tiny and imported normally.
+const SyntaxHighlighter = dynamic(
+  () => import('react-syntax-highlighter').then((m) => ({ default: m.Prism })),
+  {
+    ssr: false,
+    loading: () => (
+      <pre className="bg-gray-100 p-4 rounded"><code>Loading...</code></pre>
+    ),
+  }
+)
 
 export default function MarkdownContent({ content }: { content: string }) {
   const blocks = parseEditorialBlocks(content)

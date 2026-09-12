@@ -10,11 +10,13 @@ import asyncio
 import json
 import logging
 import os
+from contextlib import asynccontextmanager
 from typing import Any
 from uuid import UUID
 
+import httpx
 from fastmcp import Client
-from fastmcp.client.transports import StdioTransport, StreamableHttpTransport
+from fastmcp.client.transports import StreamableHttpTransport
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,19 +26,8 @@ logger = logging.getLogger(__name__)
 
 
 def _describe_bearer_token(token: str) -> str:
-    """Best-effort, no-verify decode of a bearer token's claims for diagnostics.
-
-    Never logs the raw token — only whether it looks like a JWT and, if so,
-    its non-sensitive claims (everything except any value under "email").
-    """
-    try:
-        import jwt as _jwt
-
-        claims = _jwt.decode(token, options={"verify_signature": False})
-        safe_claims = {k: v for k, v in claims.items() if k != "email"}
-        return f"JWT claims={safe_claims}"
-    except Exception:
-        return f"opaque token (len={len(token)})"
+    """Describe authentication without decoding or logging identity claims."""
+    return "bearer token present" if token else "none"
 
 
 class MCPClientError(Exception):
@@ -91,6 +82,71 @@ class MCPClient:
         self._client_context = None
         self._client: Client | None = None
         self._tools_cache: dict[str, list[dict[str, Any]]] = {}
+        self._tools_cache_times: dict[str, float] = {}
+        self.config_revision = ""
+        self._owner_task = None
+        self._connect_lock = asyncio.Lock()
+        self._close_requested = asyncio.Event()
+        self._idle = asyncio.Event()
+        self._idle.set()
+        self._active = 0
+        self._retired = False
+
+    async def connect(self) -> None:
+        async with self._connect_lock:
+            if self._retired:
+                raise MCPConnectionError("MCP connection is retired; acquire a current connection")
+            if self._client is not None:
+                return
+            await self._connect_owned()
+
+    async def _connect_owned(self) -> None:
+        """Keep transport context entry/exit in the same owning task."""
+        ready = asyncio.get_running_loop().create_future()
+
+        async def own_connection():
+            try:
+                await self._open_connection()
+                ready.set_result(None)
+                await self._close_requested.wait()
+                await self._idle.wait()
+            except BaseException as exc:
+                if not ready.done():
+                    ready.set_exception(exc)
+            finally:
+                await self._close_connection()
+
+        self._owner_task = asyncio.create_task(own_connection())
+        try:
+            await asyncio.wait_for(asyncio.shield(ready), self.timeout)
+        except BaseException:
+            self._owner_task.cancel()
+            await asyncio.gather(self._owner_task, return_exceptions=True)
+            # Consume an exception published during cancellation to avoid orphan warnings.
+            if ready.done() and not ready.cancelled():
+                ready.exception()
+            raise
+
+    async def disconnect(self) -> None:
+        self._retired = True
+        self._close_requested.set()
+        if self._owner_task:
+            await asyncio.shield(self._owner_task)
+        else:
+            await self._close_connection()
+
+    @asynccontextmanager
+    async def _operation(self):
+        if self._retired:
+            raise MCPConnectionError("MCP configuration changed; acquire a current connection")
+        self._active += 1
+        self._idle.clear()
+        try:
+            yield
+        finally:
+            self._active -= 1
+            if not self._active:
+                self._idle.set()
 
     async def __aenter__(self):
         """Async context manager entry."""
@@ -111,7 +167,7 @@ class MCPClient:
         Returns:
             Dictionary of headers
         """
-        headers = {"Accept": "application/json", "User-Agent": "synkora-mcp-client"}
+        headers = httpx.Headers({"Accept": "application/json", "User-Agent": "synkora-mcp-client"})
 
         # Add custom headers from server config
         if server.headers:
@@ -132,7 +188,7 @@ class MCPClient:
                 if api_key:
                     headers[header_name] = api_key
 
-        return headers
+        return dict(headers)
 
     def _create_transport(self, server: MCPServer):
         """
@@ -150,28 +206,16 @@ class MCPClient:
         transport_type = getattr(server, "transport_type", "http")
 
         if transport_type == "stdio":
-            # Stdio transport for local MCP servers
-            if not server.command:
-                raise ValueError(f"Command required for stdio transport: {server.name}")
-
-            # Build environment variables
-            env = dict(os.environ)  # Start with current environment
-            if server.env_vars:
-                env.update(server.env_vars)
-
-            logger.info(f"Creating stdio transport for {server.name}")
-            logger.info(f"Command: {server.command}")
-            logger.info(f"Args: {server.args}")
-            logger.info(f"Env vars: {list(server.env_vars.keys()) if server.env_vars else []}")
-
-            # Create stdio transport
-            return StdioTransport(command=server.command, args=server.args or [], env=env)
+            raise MCPConnectionError(
+                "Command-based MCP servers cannot run inside the API. "
+                "Deploy the server in an isolated runner and configure its HTTP endpoint."
+            )
         else:
             # HTTP/SSE transport (existing)
             if not server.url:
                 raise ValueError(f"URL required for HTTP transport: {server.name}")
 
-            headers = self._build_headers(server)
+            headers = httpx.Headers(self._build_headers(server))
 
             # Extract auth token if present for Bearer auth
             auth = None
@@ -184,9 +228,16 @@ class MCPClient:
             logger.info(f"URL: {server.url}")
             logger.info(f"Auth: {_describe_bearer_token(auth) if auth else 'none'}")
 
-            return StreamableHttpTransport(server.url, headers=headers, auth=auth)
+            from src.services.mcp.http_transport import mcp_http_client_factory
 
-    async def connect(self) -> None:
+            return StreamableHttpTransport(
+                server.url,
+                headers=dict(headers),
+                auth=auth,
+                httpx_client_factory=mcp_http_client_factory(server.url),
+            )
+
+    async def _open_connection(self) -> None:
         """
         Connect to all MCP servers using FastMCP Client.
 
@@ -208,40 +259,16 @@ class MCPClient:
                 logger.info(f"Creating MCP client for {server.name} ({transport_type})")
                 self._client_context = Client(transport)
             else:
-                # Multiple servers mode - use config-based approach
-                # Note: For mixed transports, we need to handle each type appropriately
-                mcp_config = {"mcpServers": {}}
+                # Use the same guarded transport for every server; raw config URLs
+                # would bypass the HTTP factory used in the single-server path.
+                from fastmcp import FastMCP
 
+                composite = FastMCP("Synkora MCP Router")
                 for name, server in self.servers.items():
-                    transport_type = getattr(server, "transport_type", "http")
-
-                    if transport_type == "stdio":
-                        # For stdio, we need to provide command configuration
-                        env = dict(os.environ)
-                        if server.env_vars:
-                            env.update(server.env_vars)
-
-                        mcp_config["mcpServers"][name] = {
-                            "command": server.command,
-                            "args": server.args or [],
-                            "env": env,
-                        }
-                    else:
-                        # For HTTP, use URL-based config
-                        headers = self._build_headers(server)
-
-                        # Extract auth token if present
-                        auth = None
-                        if "Authorization" in headers:
-                            auth_header = headers.pop("Authorization")
-                            if auth_header.startswith("Bearer "):
-                                auth = auth_header[7:]
-
-                        mcp_config["mcpServers"][name] = {"url": server.url, "headers": headers, "auth": auth}
-
-                # Create client with multi-server config
-                logger.info(f"Creating MCP client with {len(self.servers)} servers")
-                self._client_context = Client(mcp_config)
+                    transport = self._create_transport(server)
+                    proxy = FastMCP.as_proxy(Client(transport))
+                    composite.mount(proxy, name)
+                self._client_context = Client(composite)
 
             # Enter the context manager
             self._client = await self._client_context.__aenter__()
@@ -254,18 +281,10 @@ class MCPClient:
                 logger.warning(f"Ping failed but connection established: {str(e)}")
 
         except Exception as e:
-            # httpx.HTTPStatusError only puts a generic "401 Unauthorized" summary in
-            # str(e) — the server's actual rejection reason is in the response body.
-            response = getattr(e, "response", None)
-            if response is not None:
-                try:
-                    logger.error(f"MCP server response body: {response.text[:1000]}")
-                except Exception:
-                    pass
-            logger.error(f"Failed to connect to MCP servers: {str(e)}")
-            raise MCPConnectionError(f"Failed to connect to MCP servers: {str(e)}")
+            logger.warning("MCP connection failed (%s)", type(e).__name__)
+            raise MCPConnectionError("MCP connection failed") from e
 
-    async def disconnect(self) -> None:
+    async def _close_connection(self) -> None:
         """Disconnect from all MCP servers."""
         if self._client_context:
             try:
@@ -292,8 +311,13 @@ class MCPClient:
             MCPConnectionError: If discovery fails
         """
         cache_key = server_name or "all"
+        now = asyncio.get_running_loop().time()
 
-        if cache_key in self._tools_cache and not force_refresh:
+        if (
+            cache_key in self._tools_cache
+            and not force_refresh
+            and now - self._tools_cache_times.get(cache_key, 0) < 300
+        ):
             return self._tools_cache[cache_key]
 
         if not self._client:
@@ -303,13 +327,23 @@ class MCPClient:
             logger.info("Discovering tools from MCP servers")
 
             # FastMCP Client handles tool discovery automatically
-            tools = await self._client.list_tools()
+            async with self._operation():
+                tools = await self._client.list_tools()
             logger.debug(f"MCP tools discovered: {tools}")
             # Note: When multiple servers are configured, tool filtering by server
             # should be handled at a higher level (e.g., in adk_tools.py) using
             # the enabled_tools configuration rather than name prefixes
 
+            if server_name and len(self.servers) > 1:
+
+                def owner(tool):
+                    name = tool.name if hasattr(tool, "name") else tool.get("name", "")
+                    matches = [server for server in self.servers if name.startswith(f"{server}_")]
+                    return max(matches, key=len) if matches else None
+
+                tools = [tool for tool in tools if owner(tool) == server_name]
             self._tools_cache[cache_key] = tools
+            self._tools_cache_times[cache_key] = now
             logger.info(f"Discovered {len(tools)} tools")
 
             return tools
@@ -338,78 +372,21 @@ class MCPClient:
         if not self._client:
             raise MCPConnectionError("Not connected to MCP servers")
 
-        # Log the request details
-        logger.info("=== MCP Tool Execution Request ===")
-        logger.info(f"Tool: {tool_name}")
-        logger.info(f"Server: {server_name}")
-        logger.info(f"Arguments: {json.dumps(arguments, indent=2)}")
-
-        # Log server configuration
-        if server_name and server_name in self.servers:
-            server = self.servers[server_name]
-            logger.info(f"Server URL: {server.url}")
-            logger.info(f"Auth Type: {server.auth_type}")
-            logger.info(f"Has auth_config: {bool(server.auth_config)}")
-            if server.auth_config:
-                # Log auth config without exposing full token
-                auth_keys = list(server.auth_config.keys())
-                logger.info(f"Auth config keys: {auth_keys}")
-                if "token" in server.auth_config:
-                    token = server.auth_config["token"]
-                    logger.info(f"Token present: Yes (length: {len(token)})")
+        logger.info("Executing MCP tool %s on server %s", tool_name, server_name)
 
         # Per-call timeout (seconds). Keeps slow MCP tools from consuming the
         # entire outer task budget and killing the whole agent run.
         _TOOL_TIMEOUT = 120
 
-        # Execute with retries
-        last_error = None
-        for attempt in range(self.max_retries):
-            try:
-                logger.info(f"Attempt {attempt + 1}/{self.max_retries}: Calling FastMCP client.call_tool()")
-
-                # FastMCP Client handles session management and tool execution
-                result = await asyncio.wait_for(
-                    self._client.call_tool(name=tool_name, arguments=arguments),
-                    timeout=_TOOL_TIMEOUT,
+        # A transport failure does not prove a remote write failed. Never replay here.
+        try:
+            async with self._operation():
+                return await asyncio.wait_for(
+                    self._client.call_tool(name=tool_name, arguments=arguments), timeout=_TOOL_TIMEOUT
                 )
-
-                logger.info("=== MCP Tool Execution Response ===")
-                logger.info("Success: True")
-                logger.info(f"Result type: {type(result)}")
-                logger.info(f"Result: {json.dumps(result, indent=2) if isinstance(result, dict) else str(result)}")
-
-                return result
-
-            except asyncio.CancelledError:
-                # Outer task was cancelled (e.g. parent wait_for fired) — do not retry,
-                # just propagate so the caller can handle it cleanly.
-                raise
-
-            except Exception as e:
-                last_error = e
-                error_msg = str(e)
-
-                # Auth errors will never succeed on retry — fail fast
-                _auth_keywords = ("authentication", "unauthorized", "401", "forbidden", "403", "jwt", "token")
-                if any(kw in error_msg.lower() for kw in _auth_keywords):
-                    logger.warning(f"MCP auth error for tool {tool_name} (not retrying): {error_msg}")
-                    break
-
-                logger.error("=== MCP Tool Execution Error ===")
-                logger.error(f"Attempt: {attempt + 1}/{self.max_retries}")
-                logger.error(f"Error type: {type(e).__name__}")
-                logger.error(f"Error message: {error_msg}")
-                logger.error("Error details:", exc_info=True)
-
-                if attempt < self.max_retries - 1:
-                    # Exponential backoff
-                    await asyncio.sleep(2**attempt)
-                    logger.warning(f"Retrying after {2**attempt} seconds...")
-
-        raise MCPToolExecutionError(
-            f"Failed to execute tool {tool_name} after {self.max_retries} attempts: {str(last_error)}"
-        )
+        except Exception as exc:
+            logger.warning("MCP tool %s failed (%s)", tool_name, type(exc).__name__)
+            raise MCPToolExecutionError(f"MCP tool {tool_name} failed; completion may be unknown") from exc
 
     async def get_tool_schema(self, tool_name: str, server_name: str | None = None) -> dict[str, Any] | None:
         """
@@ -442,51 +419,90 @@ class MCPClientManager:
     """
 
     def __init__(self):
-        """Initialize MCP client manager."""
+        from weakref import WeakValueDictionary
+
         self._clients: dict[UUID, MCPClient] = {}
+        self._locks = WeakValueDictionary()
+        self._last_used = {}
+        self.max_clients = max(1, int(os.getenv("MCP_MAX_CACHED_CLIENTS", "128")))
+        self.idle_seconds = max(1, int(os.getenv("MCP_CLIENT_IDLE_SECONDS", "300")))
 
     async def get_agent_client(self, agent_id: UUID, db: AsyncSession) -> MCPClient | None:
-        """
-        Get or create an MCP client for an agent with all its servers.
+        """Single-flight acquisition reconciled against authoritative configuration."""
+        import hashlib
+        import time
 
-        Args:
-            agent_id: Agent ID
-            db: Async database session
-
-        Returns:
-            MCP client instance or None if no servers configured
-        """
-        if agent_id in self._clients:
-            return self._clients[agent_id]
-
-        # Get agent's MCP server associations
         from sqlalchemy.orm import selectinload
 
-        result = await db.execute(
-            select(AgentMCPServer)
-            .options(selectinload(AgentMCPServer.mcp_server))
-            .filter(AgentMCPServer.agent_id == agent_id, AgentMCPServer.is_active)
-        )
-        associations = list(result.scalars().all())
+        lock = self._locks.setdefault(agent_id, asyncio.Lock())
+        async with lock:
+            result = await db.execute(
+                select(AgentMCPServer)
+                .options(selectinload(AgentMCPServer.mcp_server))
+                .filter(AgentMCPServer.agent_id == agent_id, AgentMCPServer.is_active)
+                .execution_options(populate_existing=True)
+            )
+            associations = [a for a in result.scalars().all() if a.mcp_server.status == "ACTIVE"]
+            if not associations:
+                await self.close_agent_client(agent_id)
+                return None
 
-        if not associations:
-            return None
+            servers = [a.mcp_server for a in associations]
+            revision_data = sorted(
+                [
+                    {
+                        "id": str(server.id),
+                        "tenant": str(server.tenant_id),
+                        "name": server.name,
+                        "url": server.url,
+                        "transport": server.transport_type,
+                        "command": server.command,
+                        "args": server.args,
+                        "env": server.env_vars,
+                        "auth_type": server.auth_type,
+                        "auth": server.auth_config,
+                        "headers": server.headers,
+                        "binding": assoc.mcp_config,
+                    }
+                    for assoc, server in zip(associations, servers, strict=True)
+                ],
+                key=lambda value: value["id"],
+            )
+            revision = hashlib.sha256(json.dumps(revision_data, sort_keys=True).encode()).hexdigest()
+            now = time.monotonic()
+            cached = self._clients.get(agent_id)
+            if cached is not None and cached.config_revision == revision and not cached._retired:
+                self._last_used[agent_id] = now
+                return cached
+            await self.close_agent_client(agent_id)
 
-        # Collect all servers for this agent
-        servers = [assoc.mcp_server for assoc in associations]
+            # Retire only idle entries. Never interrupt a running remote operation.
+            for key in sorted(self._clients, key=lambda key: self._last_used.get(key, 0)):
+                candidate = self._clients.get(key)
+                if (
+                    candidate is not None
+                    and candidate._client is not None
+                    and not candidate._active
+                    and (
+                        len(self._clients) >= self.max_clients or now - self._last_used.get(key, 0) >= self.idle_seconds
+                    )
+                ):
+                    await self.close_agent_client(key)
+            if len(self._clients) >= self.max_clients:
+                raise MCPConnectionError("MCP connection capacity reached; try again later")
 
-        try:
-            # Create single client for all servers
-            client = MCPClient(servers=servers, timeout=30, max_retries=3)
-
-            await client.connect()
+            client = MCPClient(servers=servers, timeout=30)
+            client.config_revision = revision
+            # Reserve capacity before awaiting connection to bound concurrent cold starts.
             self._clients[agent_id] = client
-
-            return client
-
-        except Exception as e:
-            logger.error(f"Failed to create MCP client for agent {agent_id}: {str(e)}")
-            return None
+            self._last_used[agent_id] = now
+            try:
+                await client.connect()
+                return client
+            except BaseException:
+                self._clients.pop(agent_id, None)
+                self._last_used.pop(agent_id, None)
+                raise
 
     async def close_agent_client(self, agent_id: UUID) -> None:
         """
@@ -495,13 +511,10 @@ class MCPClientManager:
         Args:
             agent_id: Agent ID
         """
-        if agent_id in self._clients:
-            try:
-                await self._clients[agent_id].disconnect()
-            except Exception as e:
-                logger.error(f"Error closing MCP client for agent {agent_id}: {str(e)}")
-            finally:
-                del self._clients[agent_id]
+        client = self._clients.pop(agent_id, None)
+        self._last_used.pop(agent_id, None)
+        if client is not None:
+            await client.disconnect()
 
     def invalidate_tools_cache(self, agent_id: UUID) -> None:
         """
@@ -542,7 +555,7 @@ class MCPClientManager:
             .options(selectinload(AgentMCPServer.mcp_server))
             .filter(AgentMCPServer.agent_id == agent_id, AgentMCPServer.is_active)
         )
-        associations = list(result.scalars().all())
+        associations = [a for a in result.scalars().all() if a.mcp_server.status == "ACTIVE"]
 
         if not associations:
             return None

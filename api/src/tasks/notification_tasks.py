@@ -4,6 +4,7 @@ Celery tasks for notification operations (Slack, Teams, WhatsApp, etc.).
 
 import json
 import logging
+import random
 import uuid
 from datetime import UTC, datetime
 from typing import Any
@@ -91,7 +92,7 @@ def send_slack_notification_task(
     except Exception as exc:
         logger.error(f"❌ Error sending Slack notification: {exc}", exc_info=True)
         try:
-            raise self.retry(exc=exc, countdown=60 * (2**self.request.retries))
+            raise self.retry(exc=exc, countdown=60 * (2**self.request.retries) + random.uniform(0, 30))
         except MaxRetriesExceededError:
             _store_failed_notification(
                 notification_type="slack",
@@ -141,7 +142,7 @@ def send_teams_notification_task(
     except Exception as exc:
         logger.error(f"❌ Error sending Teams notification: {exc}", exc_info=True)
         try:
-            raise self.retry(exc=exc, countdown=60 * (2**self.request.retries))
+            raise self.retry(exc=exc, countdown=60 * (2**self.request.retries) + random.uniform(0, 30))
         except MaxRetriesExceededError:
             _store_failed_notification(
                 notification_type="teams",
@@ -188,7 +189,7 @@ def send_whatsapp_notification_task(self, phone_number: str, message: str, tenan
     except Exception as exc:
         logger.error(f"❌ Error sending WhatsApp notification: {exc}", exc_info=True)
         try:
-            raise self.retry(exc=exc, countdown=60 * (2**self.request.retries))
+            raise self.retry(exc=exc, countdown=60 * (2**self.request.retries) + random.uniform(0, 30))
         except MaxRetriesExceededError:
             _store_failed_notification(
                 notification_type="whatsapp",
@@ -244,7 +245,7 @@ def send_webhook_notification_task(
     except Exception as exc:
         logger.error(f"❌ Error sending webhook: {exc}", exc_info=True)
         try:
-            raise self.retry(exc=exc, countdown=60 * (2**self.request.retries))
+            raise self.retry(exc=exc, countdown=60 * (2**self.request.retries) + random.uniform(0, 30))
         except MaxRetriesExceededError:
             _store_failed_notification(
                 notification_type="webhook",
@@ -441,7 +442,7 @@ def send_task_notification(self, execution_id: int) -> dict[str, Any]:
     except Exception as exc:
         logger.error(f"❌ Error sending task notification: {exc}", exc_info=True)
         try:
-            raise self.retry(exc=exc, countdown=60 * (2**self.request.retries))
+            raise self.retry(exc=exc, countdown=60 * (2**self.request.retries) + random.uniform(0, 30))
         except MaxRetriesExceededError:
             _store_failed_notification(
                 notification_type="task_notification",

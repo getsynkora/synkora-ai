@@ -60,12 +60,16 @@ class AgentCacheService:
         """Build cache key with prefix."""
         return f"agent_cache:{prefix}:{identifier}"
 
-    def _agent_config_key(self, slug: str, tenant_id: str = "") -> str:
-        """Build tenant-scoped cache key for agent config."""
-        identifier = f"{tenant_id}:{slug}" if tenant_id else slug
-        return self._build_key("config", identifier)
+    def _agent_config_key(self, slug: str, tenant_id: str) -> str:
+        """Build tenant-scoped cache key for agent config.
 
-    async def get_agent_config(self, slug: str, tenant_id: str = "") -> dict | None:
+        tenant_id is required to prevent cross-tenant cache collisions.
+        """
+        if not tenant_id:
+            raise ValueError("tenant_id is required for agent config cache keys to prevent cross-tenant collisions")
+        return self._build_key("config", f"{tenant_id}:{slug}")
+
+    async def get_agent_config(self, slug: str, tenant_id: str) -> dict | None:
         """
         Get cached agent configuration.
 
@@ -94,7 +98,7 @@ class AgentCacheService:
             logger.error(f"Error getting cached agent config: {e}")
             return None
 
-    async def set_agent_config(self, slug: str, config: dict, tenant_id: str = "", ttl: int = None) -> bool:
+    async def set_agent_config(self, slug: str, config: dict, tenant_id: str, ttl: int = None) -> bool:
         """
         Cache agent configuration.
 
@@ -158,6 +162,43 @@ class AgentCacheService:
             return True
         except Exception as e:
             logger.error(f"Error caching agent tools: {e}")
+            return False
+
+    async def get_mcp_tools(self, agent_id: str) -> list | None:
+        """Get cached MCP tool schemas for an agent."""
+        redis = self._get_redis()
+        if not redis:
+            return None
+
+        try:
+            key = self._build_key("mcp_tools", agent_id)
+            cached_data = await redis.get(key)
+
+            if cached_data:
+                logger.info(f"Cache HIT: MCP tools for agent ID '{agent_id}'")
+                return json.loads(cached_data)
+
+            return None
+        except Exception as e:
+            logger.error(f"Error getting cached MCP tools: {e}")
+            return None
+
+    async def set_mcp_tools(self, agent_id: str, tools: list, ttl: int = None) -> bool:
+        """Cache MCP tool schemas for an agent."""
+        redis = self._get_redis()
+        if not redis:
+            return False
+
+        try:
+            key = self._build_key("mcp_tools", agent_id)
+            ttl = ttl or self.default_ttl
+
+            await redis.setex(key, timedelta(seconds=ttl), json.dumps(tools))
+
+            logger.info(f"Cached {len(tools)} MCP tools for agent ID '{agent_id}' (TTL: {ttl}s)")
+            return True
+        except Exception as e:
+            logger.error(f"Error caching MCP tools: {e}")
             return False
 
     async def get_agents_list(self, tenant_id: str, page: int = 1, page_size: int = 10) -> dict | None:
@@ -404,7 +445,7 @@ class AgentCacheService:
         Args:
             slug: Agent slug (for config cache)
             agent_id: Agent ID (for tools, KBs cache)
-            tenant_id: Tenant ID — required to correctly target the tenant-scoped config key
+            tenant_id: Tenant ID — required when slug is provided to correctly target the tenant-scoped config key
             broadcast: Whether to broadcast invalidation to other pods (default: True)
         """
         redis = self._get_redis()
@@ -414,13 +455,18 @@ class AgentCacheService:
         try:
             keys_to_delete = []
 
-            if slug:
+            if slug and tenant_id:
                 keys_to_delete.append(self._agent_config_key(slug, tenant_id))
                 # Also invalidate the routing LLM-configs cache (keyed by slug)
                 keys_to_delete.append(self._build_key("llm_configs", slug))
+            elif slug:
+                # No tenant_id available (e.g. pub/sub cross-pod invalidation) —
+                # skip config key deletion; TTL will expire it.  Log for visibility.
+                logger.debug(f"Skipping config cache invalidation for slug={slug}: no tenant_id provided")
 
             if agent_id:
                 keys_to_delete.append(self._build_key("tools", agent_id))
+                keys_to_delete.append(self._build_key("mcp_tools", agent_id))
                 keys_to_delete.append(self._build_key("kbs", agent_id))
                 keys_to_delete.append(self._build_key("context_files", agent_id))
 

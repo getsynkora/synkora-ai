@@ -97,11 +97,13 @@ from .platform_settings import PlatformSettings
 from .project import Project, ProjectStatus
 from .project_agent import ProjectAgent
 from .proxy_config import ProxyConfig, ProxyProvider
+from .recall_webhook_receipt import RecallWebhookReceipt
 from .review_analytics import PeriodType, ReviewAnalytics, SentimentTrend
 from .role import Role
 from .role_permission import RolePermission
 from .saml_config import SAMLConfig
 from .scheduled_task import ScheduledTask, TaskExecution, TaskNotification
+from .scim_membership import SCIMMembership
 from .scim_token import SCIMToken
 from .slack_bot import SlackBot, SlackConversation
 from .social_auth_provider import AccountProvider, SocialAuthProvider
@@ -364,6 +366,8 @@ __all__ = [
     "MonitoringProvider",
     # SCIM models
     "SCIMToken",
+    "SCIMMembership",
     # Portal models
     "TenantPortal",
+    "RecallWebhookReceipt",
 ]

@@ -75,7 +75,7 @@ dependencies = [
     "slack-bolt>=1.21.0,<2.0.0",
     "python-telegram-bot>=21.0,<22.0.0",
     # Email Services
-    "sendgrid>=6.11.0,<7.0.0",
+    "sendgrid>=6.12.5,<7.0.0",
     # Push Notifications
     "firebase-admin>=6.0.0,<7.0.0",
     # SSO & SAML
@@ -84,6 +84,8 @@ dependencies = [
     "python3-saml>=1.16.0,<2.0.0",
     # python-dateutil used by various date parsing helpers
     "python-dateutil>=2.8.2,<3.0.0",
+    # XML security
+    "defusedxml>=0.7.1,<1.0.0",
     # AWS S3 Storage
     "boto3>=1.35.0,<2.0.0",
     # Document Processing & Image Extraction
@@ -96,7 +98,7 @@ dependencies = [
     "aiomysql>=0.2.0,<1.0.0",           # MySQL  — native async pool
     "motor>=3.3.0,<4.0.0",              # MongoDB — native async
     "gcloud-aio-bigquery>=7.0.0,<8.0.0", # BigQuery — native asyncio via aiohttp
-    "snowflake-connector-python>=4.4.0,<5.0.0",  # Snowflake — async job API + poll
+    "snowflake-connector-python>=4.7.1,<5.0.0",  # Snowflake — async job API + poll
     "aioodbc>=0.5.0,<1.0.0",            # SQL Server — native async ODBC pool
     "pyodbc>=5.0.0,<6.0.0",             # SQL Server — ODBC driver (required by aioodbc)
     "clickhouse-connect>=0.7.0,<1.0.0", # ClickHouse — native async HTTP
@@ -107,7 +109,7 @@ dependencies = [
     "matplotlib>=3.7.0,<4.0.0",  # Server-side chart rendering for Slack
     "openpyxl>=3.1.0,<4.0.0",
     "pyarrow>=23.0.1",
-    "databricks-sql-connector>=3.0.0,<4.0.0",
+    "databricks-sql-connector>=4.4.0,<5.0.0",
     "docker>=6.1.0,<8.0.0",
     "datadog-api-client>=2.0.0,<3.0.0",
     # Document Generation
@@ -136,8 +138,8 @@ dependencies = [
     "stripe>=11.1.0,<12.0.0",
     # Transitive dependency version pins — force minimum safe versions for known CVEs
     "authlib>=1.6.11",          # CVE-2026-27962, CVE-2026-28490, GHSA-jj8c-mmj3-mmgv (via fastmcp)
-    "tornado>=6.5.6",           # CVE-2026-31958, CVE-2026-35536, CVE-2026-49854 (via flower)
-    "ecdsa>=0.19.2",            # CVE-2024-23342, CVE-2026-33936 (via sendgrid)
+    "tornado>=6.5.8",           # CVE-2026-31958, CVE-2026-35536, CVE-2026-49854 (via flower)
+    "thrift>=0.24.0,<0.25.0",   # Supported by Databricks 4.4; security fixes
     "pyasn1>=0.6.4",            # CVE-2026-30922 + PYSEC-2026-3455/3456/3457 (via google-auth)
     "pygments>=2.20.0",         # CVE-2026-4539 (via rich)
     "pynacl>=1.6.2",              # CVE-2025-69277 (via asyncssh/snowflake)
@@ -152,9 +154,9 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     # Testing
-    "pytest>=8.3.0,<9.0.0",
+    "pytest>=9.0.3,<10.0.0",
     "pytest-cov>=6.0.0,<7.0.0",
-    "pytest-asyncio>=0.24.0,<1.0.0",
+    "pytest-asyncio>=1.3.0,<2.0.0",
     "pytest-mock>=3.14.0,<4.0.0",
     "faker>=33.0.0,<34.0.0",
     "factory-boy>=3.3.0,<4.0.0",

@@ -6,6 +6,7 @@ When a user logs out, their tokens are blacklisted until they expire.
 """
 
 import hashlib
+import hmac
 import logging
 import uuid
 
@@ -138,11 +139,16 @@ class TokenBlacklistService:
         try:
             key = f"{ACCOUNT_TOKENS_PREFIX}{account_id}:version"
             version = self.redis.get(key)
+            # Accounts that have never had their tokens revoked have no Redis key;
+            # return 0 which matches the default "ver" claim in JWTs.
             return int(version) if version else 0
 
         except Exception as e:
+            # SECURITY: Fail closed — return -1 which will never match any valid
+            # token version (JWT "ver" claim starts at 0), so all tokens are
+            # rejected when Redis is unavailable rather than silently restored.
             logger.error(f"Failed to get token version: {e}")
-            return 0
+            return -1
 
     def store_refresh_token_family(self, account_id: uuid.UUID, family_id: str, refresh_token_hash: str) -> bool:
         """
@@ -185,7 +191,12 @@ class TokenBlacklistService:
         try:
             key = f"{REFRESH_TOKEN_FAMILY_PREFIX}{account_id}:{family_id}"
             stored_hash = self.redis.get(key)
-            return stored_hash == refresh_token_hash
+            if stored_hash is None:
+                return False
+            # SECURITY: Use constant-time comparison to prevent timing attacks
+            if isinstance(stored_hash, bytes):
+                stored_hash = stored_hash.decode()
+            return hmac.compare_digest(stored_hash, refresh_token_hash)
 
         except Exception as e:
             logger.warning(f"Failed to validate refresh token family: {e}")
@@ -233,7 +244,7 @@ class TokenBlacklistService:
         try:
             key = f"session:created:{account_id}:{family_id}"
             # TTL matches the refresh token lifetime so it auto-expires
-            self.redis.setex(key, settings.jwt_refresh_token_expires, str(created_at_ts))
+            self.redis.set(key, str(created_at_ts), ex=settings.jwt_refresh_token_expires, nx=True)
             return True
         except Exception as e:
             logger.warning(f"Failed to store session created_at: {e}")

@@ -14,7 +14,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_async_db
-from src.middleware.auth_middleware import get_current_account, get_current_tenant_id
+from src.middleware.auth_middleware import get_current_account, get_current_tenant_id, require_role
+from src.models import AccountRole
 from src.models.agent import Agent
 from src.models.agent_version import AgentVersion
 from src.services.agents.agent_version_service import create_version, list_versions, restore_version
@@ -137,7 +138,9 @@ async def get_agent_version(
     return _version_to_detail(version)
 
 
-@versions_router.post("/{agent_slug}/versions/{version_number}/restore")
+@versions_router.post(
+    "/{agent_slug}/versions/{version_number}/restore", dependencies=[Depends(require_role(AccountRole.ADMIN))]
+)
 async def restore_agent_version(
     agent_slug: str,
     version_number: int,

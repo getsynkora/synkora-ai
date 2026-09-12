@@ -34,9 +34,20 @@ def _check_rate_limit(bot_id: str, max_per_minute: int = 60, max_per_hour: int =
     """
     import time
 
+    global _rate_limit_cache
+
     now = time.time()
     minute_ago = now - 60
     hour_ago = now - 3600
+
+    # PERFORMANCE: Evict stale entries when dict grows too large to prevent
+    # unbounded memory growth from many unique bot IDs over time.
+    if len(_rate_limit_cache) > 10000:
+        _rate_limit_cache = {
+            k: [t for t in v if t > hour_ago]
+            for k, v in _rate_limit_cache.items()
+            if any(t > hour_ago for t in v)
+        }
 
     if bot_id not in _rate_limit_cache:
         _rate_limit_cache[bot_id] = []

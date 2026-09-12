@@ -10,8 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
 
 from src.core.database import get_async_db
-from src.middleware.auth_middleware import get_current_account, get_current_tenant_id
-from src.models import Account
+from src.middleware.auth_middleware import get_current_account, get_current_tenant_id, require_role
+from src.models import Account, AccountRole
 from src.models.agent import Agent
 from src.models.database_connection import DatabaseConnection
 from src.services.cache import get_agent_cache
@@ -68,7 +68,7 @@ async def get_agent_database_connections(
     ]
 
 
-@router.put("/{agent_slug}/database-connections")
+@router.put("/{agent_slug}/database-connections", dependencies=[Depends(require_role(AccountRole.ADMIN))])
 async def update_agent_database_connections(
     agent_slug: str,
     body: AgentDatabaseConnectionsUpdate,

@@ -229,10 +229,15 @@ class ConversationService:
         Returns:
             List of messages
         """
-        query = select(Message).where(Message.conversation_id == conversation_id).order_by(Message.created_at.asc())
+        MAX_MESSAGES = 1000
+        effective_limit = min(limit, MAX_MESSAGES) if limit else MAX_MESSAGES
 
-        if limit:
-            query = query.limit(limit)
+        query = (
+            select(Message)
+            .where(Message.conversation_id == conversation_id)
+            .order_by(Message.created_at.asc())
+            .limit(effective_limit)
+        )
 
         result = await db.execute(query)
         return list(result.scalars().all())

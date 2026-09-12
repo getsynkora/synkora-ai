@@ -338,7 +338,7 @@ class TestFunctionCallingHandler:
     @pytest.mark.asyncio
     async def test_generate_google_with_tools(self, handler, mock_llm_client):
         handler.provider = "google"
-        handler.llm_client._client.models.generate_content.return_value = "response"
+        handler.llm_client._client.aio.models.generate_content = AsyncMock(return_value="response")
 
         with (
             patch("google.genai.types.GenerateContentConfig"),
@@ -347,7 +347,7 @@ class TestFunctionCallingHandler:
         ):
             result = await handler._generate_google_with_tools([], 0.7, 100)
             assert result == "response"
-            handler.llm_client._client.models.generate_content.assert_called()
+            handler.llm_client._client.aio.models.generate_content.assert_awaited()
 
     @pytest.mark.asyncio
     async def test_generate_openai_with_litellm(self, handler):

@@ -245,7 +245,8 @@ class TestUpdateTeamMember:
         mock_result.scalar_one_or_none.return_value = member
         mock_db.execute.return_value = mock_result
 
-        await team_service.update_team_member(tenant_id, str(account_id), role="ADMIN")
+        team_service._authorize_member_change = AsyncMock()
+        await team_service.update_team_member(tenant_id, str(account_id), role="ADMIN", actor_id=uuid.uuid4())
 
         assert member.role == "ADMIN"
         mock_db.commit.assert_called_once()
@@ -256,8 +257,9 @@ class TestUpdateTeamMember:
         mock_result.scalar_one_or_none.return_value = None
         mock_db.execute.return_value = mock_result
 
+        team_service._authorize_member_change = AsyncMock()
         with pytest.raises(ValueError) as exc_info:
-            await team_service.update_team_member(uuid.uuid4(), str(uuid.uuid4()), role="ADMIN")
+            await team_service.update_team_member(uuid.uuid4(), str(uuid.uuid4()), role="ADMIN", actor_id=uuid.uuid4())
 
         assert "not found" in str(exc_info.value).lower()
 
@@ -291,7 +293,8 @@ class TestRemoveTeamMember:
         mock_result.scalar_one_or_none.return_value = member
         mock_db.execute.return_value = mock_result
 
-        await team_service.remove_team_member(uuid.uuid4(), str(uuid.uuid4()))
+        team_service._authorize_member_change = AsyncMock()
+        await team_service.remove_team_member(uuid.uuid4(), str(uuid.uuid4()), actor_id=uuid.uuid4())
 
         mock_db.delete.assert_called_once_with(member)
         mock_db.commit.assert_called_once()
@@ -302,8 +305,9 @@ class TestRemoveTeamMember:
         mock_result.scalar_one_or_none.return_value = None
         mock_db.execute.return_value = mock_result
 
+        team_service._authorize_member_change = AsyncMock()
         with pytest.raises(ValueError) as exc_info:
-            await team_service.remove_team_member(uuid.uuid4(), str(uuid.uuid4()))
+            await team_service.remove_team_member(uuid.uuid4(), str(uuid.uuid4()), actor_id=uuid.uuid4())
 
         assert "not found" in str(exc_info.value).lower()
 

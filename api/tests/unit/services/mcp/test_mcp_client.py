@@ -1,4 +1,6 @@
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import uuid4
 
 import pytest
 
@@ -44,15 +46,15 @@ class TestMCPClient:
         assert client._client is not None
 
     @pytest.mark.asyncio
-    async def test_connect_stdio_success(self, mock_server, mock_fastmcp_client):
+    async def test_connect_stdio_rejected(self, mock_server, mock_fastmcp_client):
         mock_server.transport_type = "stdio"
         mock_server.command = "python"
         mock_server.args = ["script.py"]
 
         client = MCPClient([mock_server])
-        await client.connect()
-
-        mock_fastmcp_client.assert_called_once()
+        with pytest.raises(MCPConnectionError):
+            await client.connect()
+        mock_fastmcp_client.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_connect_failure(self, mock_server, mock_fastmcp_client):
@@ -86,7 +88,7 @@ class TestMCPClient:
         client._client.call_tool.assert_called_with(name="tool1", arguments={"arg": "val"})
 
     @pytest.mark.asyncio
-    async def test_execute_tool_failure_retry(self, mock_server, mock_fastmcp_client):
+    async def test_execute_tool_failure_is_not_replayed(self, mock_server, mock_fastmcp_client):
         client = MCPClient([mock_server], max_retries=2)
         await client.connect()
 
@@ -95,7 +97,7 @@ class TestMCPClient:
         with pytest.raises(MCPToolExecutionError):
             await client.execute_tool("tool1", {})
 
-        assert client._client.call_tool.call_count == 2
+        assert client._client.call_tool.call_count == 1
 
 
 class TestMCPClientManager:
@@ -105,19 +107,29 @@ class TestMCPClientManager:
 
     @pytest.fixture
     def mock_db(self):
-        return AsyncMock()
+        server = SimpleNamespace(
+            id=uuid4(),
+            tenant_id=uuid4(),
+            name="server1",
+            url="https://tools.example.com/mcp",
+            status="ACTIVE",
+            transport_type="http",
+            command=None,
+            args=[],
+            env_vars={},
+            auth_type="none",
+            auth_config={},
+            headers={},
+        )
+        association = SimpleNamespace(mcp_server=server, mcp_config={})
+        result = MagicMock()
+        result.scalars.return_value.all.return_value = [association]
+        db = AsyncMock()
+        db.execute.return_value = result
+        return db
 
     @pytest.mark.asyncio
     async def test_get_agent_client_create_new(self, manager, mock_db):
-        mock_assoc = MagicMock()
-        mock_assoc.mcp_server = MagicMock(spec=MCPServer)
-        mock_assoc.mcp_server.name = "server1"
-        mock_assoc.mcp_server.url = "http://localhost"
-
-        mock_result = MagicMock()
-        mock_result.scalars.return_value.all.return_value = [mock_assoc]
-        mock_db.execute = AsyncMock(return_value=mock_result)
-
         with patch("src.services.mcp.mcp_client.MCPClient") as MockMCPClient:
             mock_instance = MockMCPClient.return_value
             mock_instance.connect = AsyncMock()
@@ -130,12 +142,14 @@ class TestMCPClientManager:
 
     @pytest.mark.asyncio
     async def test_get_agent_client_cached(self, manager, mock_db):
-        mock_client = MagicMock()
-        manager._clients["agent-id"] = mock_client
-
-        client = await manager.get_agent_client("agent-id", mock_db)
-        assert client == mock_client
-        mock_db.execute.assert_not_called()
+        with patch("src.services.mcp.mcp_client.MCPClient") as factory:
+            factory.return_value.connect = AsyncMock()
+            factory.return_value._retired = False
+            first = await manager.get_agent_client("agent-id", mock_db)
+            second = await manager.get_agent_client("agent-id", mock_db)
+        assert second is first
+        assert mock_db.execute.await_count == 2  # Reconcile revocation even on a warm client.
+        factory.return_value.connect.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_close_agent_client(self, manager):

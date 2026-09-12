@@ -3,12 +3,11 @@
 import asyncio
 import inspect
 import logging
-import os
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, desc, func, select
+from sqlalchemy import and_, delete, desc, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.database import get_async_session_factory
@@ -61,6 +60,11 @@ class ActivityLogService:
         details: dict | None = None,
         ip_address: str | None = None,
         user_agent: str | None = None,
+        *,
+        activity_type=None,
+        description: str | None = None,
+        status: str = "success",
+        error_message: str | None = None,
     ) -> ActivityLog:
         """Create an audit entry inside the current transaction."""
         # Import ActivityType here to avoid circular imports if any
@@ -68,16 +72,59 @@ class ActivityLogService:
 
         # Map basic actions to ActivityType if possible, or default to SYSTEM/RESOURCE
         # This logic might need to be more sophisticated based on resource_type
-        activity_type = ActivityType.SYSTEM
+        if activity_type is None:
+            activity_type = ActivityType.SYSTEM
+            if resource_type == "agent":
+                activity_type = ActivityType.AGENT
+            elif resource_type == "conversation":
+                activity_type = ActivityType.CONVERSATION
+            elif resource_type == "team_member":
+                activity_type = ActivityType.TEAM
+            elif action in ["login", "logout"]:
+                activity_type = ActivityType.AUTH
 
-        if resource_type == "agent":
-            activity_type = ActivityType.AGENT
-        elif resource_type == "conversation":
-            activity_type = ActivityType.CONVERSATION
-        elif resource_type == "team_member":
-            activity_type = ActivityType.TEAM
-        elif action in ["login", "logout"]:
-            activity_type = ActivityType.AUTH
+        # Serialize chain appends across API/worker processes, for this transaction.
+        #
+        # PERFORMANCE NOTE: pg_advisory_xact_lock serializes ALL audit writes for a
+        # given tenant within a single transaction. Under high write throughput this
+        # becomes the bottleneck -- every concurrent audit write for the same tenant
+        # blocks on this lock until the previous transaction commits.
+        #
+        # The lock is required for chain integrity: each entry's HMAC includes the
+        # previous entry's hash (prev_hash), creating a tamper-evident linked chain.
+        # Without serialization, two concurrent inserts could both read the same
+        # prev_hash and produce a forked chain that fails verification.
+        #
+        # Future optimizations to reduce contention:
+        #   1. Batch audit writes: accumulate events in Redis/memory and flush them
+        #      in a single serialized batch every N seconds (amortizes lock cost).
+        #   2. Use a per-tenant sequence number instead of advisory locks -- each
+        #      writer claims the next sequence via UPDATE ... RETURNING, then
+        #      computes the chain hash using the claimed predecessor.
+        #   3. Move to an append-only Merkle tree structure that allows limited
+        #      parallelism with periodic root reconciliation.
+        import hashlib
+
+        from src.config.settings import settings
+
+        secret_key = settings.audit_chain_secret or settings.secret_key
+        if len(secret_key) < 32:
+            raise ValueError("A strong audit signing key is required")
+        lock_key = int.from_bytes(hashlib.sha256(f"audit:{tenant_id}".encode()).digest()[:8], "big", signed=True)
+        await self.db.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": lock_key})
+
+        prev_result = await self.db.execute(
+            select(ActivityLog)
+            .where(ActivityLog.tenant_id == tenant_id)
+            .order_by(ActivityLog.created_at.desc(), ActivityLog.id.desc())
+            .limit(1)
+        )
+        previous = await _resolve_sync_or_async(prev_result.scalar_one_or_none())
+        prev_hash = (previous.entry_hash if previous else None) or ("0" * 64)
+        created_at = datetime.now(UTC)
+        # Keep the chain order monotonic even if worker clocks differ or move back.
+        if previous and previous.created_at >= created_at:
+            created_at = previous.created_at + timedelta(microseconds=1)
 
         log_entry = ActivityLog(
             tenant_id=tenant_id,
@@ -89,40 +136,39 @@ class ActivityLogService:
             activity_metadata=details or {},
             ip_address=ip_address,
             user_agent=user_agent,
-            created_at=datetime.now(UTC),
+            description=description,
+            status=status,
+            error_message=error_message,
+            created_at=created_at,
         )
 
         self.db.add(log_entry)
         # Flush so the ORM assigns the PK (UUID) before we compute the chain hash
         await self.db.flush()
 
-        # Compute HMAC chain hash — fetch the previous entry's hash for this tenant
-        try:
-            prev_result = await self.db.execute(
-                select(ActivityLog.entry_hash)
-                .where(ActivityLog.tenant_id == tenant_id)
-                .where(ActivityLog.id != log_entry.id)
-                .order_by(ActivityLog.created_at.desc())
-                .limit(1)
-            )
-            prev_hash = await _resolve_sync_or_async(prev_result.scalar())
-            prev_hash = prev_hash or ("0" * 64)  # Genesis hash for first entry
-
-            # Prefer AUDIT_CHAIN_SECRET; fall back to SECRET_KEY so existing
-            # deployments that have not yet set AUDIT_CHAIN_SECRET still get chain hashes.
-            secret_key = os.getenv("AUDIT_CHAIN_SECRET") or os.getenv("SECRET_KEY", "")
-            log_entry.entry_hash = ActivityLog.compute_hash(
-                entry_id=str(log_entry.id),
-                action=log_entry.action,
-                account_id=str(log_entry.account_id) if log_entry.account_id else None,
-                tenant_id=str(log_entry.tenant_id) if log_entry.tenant_id else None,
-                activity_type=str(log_entry.activity_type),
-                created_at=log_entry.created_at.isoformat() if log_entry.created_at else "",
-                prev_hash=prev_hash,
-                secret_key=secret_key,
-            )
-        except Exception:
-            pass  # Hash computation failure must not block the audit write
+        # Version and predecessor are persisted so verification survives format upgrades.
+        log_entry.activity_metadata = {
+            **(details or {}),
+            "_audit": {"version": 2, "prev_hash": prev_hash},
+        }
+        log_entry.entry_hash = ActivityLog.compute_hash(
+            entry_id=str(log_entry.id),
+            action=log_entry.action,
+            account_id=str(log_entry.account_id) if log_entry.account_id else None,
+            tenant_id=str(log_entry.tenant_id) if log_entry.tenant_id else None,
+            activity_type=str(log_entry.activity_type),
+            created_at=log_entry.created_at.isoformat(),
+            prev_hash=prev_hash,
+            secret_key=secret_key,
+            resource_type=log_entry.resource_type,
+            resource_id=log_entry.resource_id,
+            description=log_entry.description,
+            activity_metadata=log_entry.activity_metadata,
+            ip_address=log_entry.ip_address,
+            user_agent=log_entry.user_agent,
+            status=log_entry.status or "success",
+            error_message=log_entry.error_message,
+        )
 
         return log_entry
 
@@ -433,15 +479,8 @@ class ActivityLogService:
         if tenant_id:
             conditions.append(ActivityLog.tenant_id == tenant_id)
 
-        stmt = select(ActivityLog).filter(and_(*conditions))
+        stmt = delete(ActivityLog).where(and_(*conditions))
         result = await self.db.execute(stmt)
-        logs_to_delete = result.scalars().all()
-
-        count = len(logs_to_delete)
-
-        for log in logs_to_delete:
-            await self.db.delete(log)
-
         await self.db.commit()
 
-        return count
+        return result.rowcount

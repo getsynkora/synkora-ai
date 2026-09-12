@@ -1,0 +1,4 @@
+# Keep these dependencies aligned with api/uv.lock.
+fastapi
+uvicorn
+pydantic

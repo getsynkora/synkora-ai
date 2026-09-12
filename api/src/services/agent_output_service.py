@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
+import html as html_mod
 import httpx
 import markdown as md_lib
 from jinja2.sandbox import SandboxedEnvironment
@@ -78,6 +79,8 @@ def _markdown_to_html(text: str) -> str:
 
 def _build_agent_email_html(body_html: str, agent_name: str = "Agent", subject: str = "Agent Report") -> str:
     """Wrap rendered HTML content in a styled email template."""
+    agent_name = html_mod.escape(agent_name)
+    subject = html_mod.escape(subject)
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -316,15 +319,16 @@ class WebhookOutputProvider:
             },
         }
 
-        async with httpx.AsyncClient() as client:
-            response = await client.request(method, url, json=payload, headers=headers, timeout=30.0)
-            response.raise_for_status()
+        from src.services.security.public_http import request_checked_url
 
-            return {
-                "success": True,
-                "status_code": response.status_code,
-                "response_body": response.text[:500],  # Truncate for storage
-            }
+        response = await request_checked_url(method, url, json=payload, headers=headers, timeout=30.0, max_bytes=512_000)
+        response.raise_for_status()
+
+        return {
+            "success": True,
+            "status_code": response.status_code,
+            "response_body": response.text[:500],  # Truncate for storage
+        }
 
 
 class DiscordOutputProvider:
@@ -344,15 +348,18 @@ class DiscordOutputProvider:
         if not webhook_url:
             raise ValueError("No Discord webhook_url in config")
 
+        from src.services.security.public_http import request_checked_url
+
         username = config.get("username", "Agent")
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                webhook_url,
-                json={"content": message[:2000], "username": username},  # Discord 2000 char limit
-                timeout=30.0,
-            )
-            response.raise_for_status()
-            return {"success": True, "status_code": response.status_code}
+        response = await request_checked_url(
+            "POST",
+            webhook_url,
+            json={"content": message[:2000], "username": username},  # Discord 2000 char limit
+            timeout=30.0,
+            max_bytes=512_000,
+        )
+        response.raise_for_status()
+        return {"success": True, "status_code": response.status_code}
 
 
 class MSTeamsOutputProvider:
@@ -386,10 +393,11 @@ class MSTeamsOutputProvider:
                 }
             ],
         }
-        async with httpx.AsyncClient() as client:
-            response = await client.post(webhook_url, json=payload, timeout=30.0)
-            response.raise_for_status()
-            return {"success": True, "status_code": response.status_code}
+        from src.services.security.public_http import request_checked_url
+
+        response = await request_checked_url("POST", webhook_url, json=payload, timeout=30.0, max_bytes=512_000)
+        response.raise_for_status()
+        return {"success": True, "status_code": response.status_code}
 
 
 class AgentOutputService:
@@ -502,14 +510,28 @@ class AgentOutputService:
             # Get OAuth app if needed
             oauth_app = None
             if output_config.oauth_app_id:
-                result = await self.db.execute(select(OAuthApp).filter(OAuthApp.id == output_config.oauth_app_id))
+                result = await self.db.execute(
+                    select(OAuthApp).filter(
+                        OAuthApp.id == output_config.oauth_app_id, OAuthApp.tenant_id == output_config.tenant_id
+                    )
+                )
                 oauth_app = result.scalar_one_or_none()
+                if oauth_app is None:
+                    raise ValueError("Output credential is unavailable in this tenant")
+                if oauth_app.provider.lower() != str(output_config.provider):
+                    raise ValueError("Output credential provider does not match")
 
             # Get Slack bot if needed
             slack_bot = None
             if output_config.slack_bot_id:
-                result = await self.db.execute(select(SlackBot).filter(SlackBot.id == output_config.slack_bot_id))
+                result = await self.db.execute(
+                    select(SlackBot).filter(
+                        SlackBot.id == output_config.slack_bot_id, SlackBot.tenant_id == output_config.tenant_id
+                    )
+                )
                 slack_bot = result.scalar_one_or_none()
+                if slack_bot is None:
+                    raise ValueError("Output credential is unavailable in this tenant")
 
             # Send to provider
             provider = self.providers.get(output_config.provider)
@@ -553,17 +575,21 @@ class AgentOutputService:
         await self.db.commit()
         return delivery
 
-    async def retry_failed_delivery(self, delivery_id: UUID) -> AgentOutputDelivery:
+    async def retry_failed_delivery(self, delivery_id: UUID, tenant_id: UUID | None = None) -> AgentOutputDelivery:
         """
         Retry a failed delivery.
 
         Args:
             delivery_id: Delivery UUID
+            tenant_id: Tenant ID for access control
 
         Returns:
             Updated delivery record
         """
-        result = await self.db.execute(select(AgentOutputDelivery).filter(AgentOutputDelivery.id == delivery_id))
+        stmt = select(AgentOutputDelivery).filter(AgentOutputDelivery.id == delivery_id)
+        if tenant_id is not None:
+            stmt = stmt.filter(AgentOutputDelivery.tenant_id == tenant_id)
+        result = await self.db.execute(stmt)
         delivery = result.scalar_one_or_none()
         if not delivery:
             raise ValueError(f"Delivery {delivery_id} not found")
@@ -584,14 +610,28 @@ class AgentOutputService:
             # Get OAuth app if needed
             oauth_app = None
             if output_config.oauth_app_id:
-                result = await self.db.execute(select(OAuthApp).filter(OAuthApp.id == output_config.oauth_app_id))
+                result = await self.db.execute(
+                    select(OAuthApp).filter(
+                        OAuthApp.id == output_config.oauth_app_id, OAuthApp.tenant_id == output_config.tenant_id
+                    )
+                )
                 oauth_app = result.scalar_one_or_none()
+                if oauth_app is None:
+                    raise ValueError("Output credential is unavailable in this tenant")
+                if oauth_app.provider.lower() != str(output_config.provider):
+                    raise ValueError("Output credential provider does not match")
 
             # Get Slack bot if needed
             slack_bot = None
             if output_config.slack_bot_id:
-                result = await self.db.execute(select(SlackBot).filter(SlackBot.id == output_config.slack_bot_id))
+                result = await self.db.execute(
+                    select(SlackBot).filter(
+                        SlackBot.id == output_config.slack_bot_id, SlackBot.tenant_id == output_config.tenant_id
+                    )
+                )
                 slack_bot = result.scalar_one_or_none()
+                if slack_bot is None:
+                    raise ValueError("Output credential is unavailable in this tenant")
 
             # Send to provider
             provider = self.providers.get(output_config.provider)

@@ -16,7 +16,8 @@ from sqlalchemy.orm import selectinload
 
 from src.controllers.agents.models import AgentResponse
 from src.core.database import get_async_db
-from src.middleware.auth_middleware import get_current_account, get_current_tenant_id
+from src.middleware.auth_middleware import get_current_account, get_current_tenant_id, require_role
+from src.models import AccountRole
 from src.models.agent import Agent
 from src.models.tenant import Account
 from src.services.agents.adk_tools import tool_registry
@@ -134,7 +135,55 @@ async def list_agent_tools(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to list agent tools")
 
 
-@agents_tools_router.post("/{agent_id}/tools", response_model=AgentResponse)
+async def _authorize_oauth_connections(db: AsyncSession, tenant_id: uuid.UUID, app_ids) -> None:
+    """Validate the complete assignment before changing any tool."""
+    from src.models.oauth_app import OAuthApp
+
+    requested = {app_id for app_id in app_ids if app_id is not None}
+    if not requested:
+        return
+    result = await db.execute(
+        select(OAuthApp.id).where(
+            OAuthApp.id.in_(requested),
+            OAuthApp.is_active.is_(True),
+            (OAuthApp.tenant_id == tenant_id) | OAuthApp.is_platform_app.is_(True),
+        )
+    )
+    if set(result.scalars().all()) != requested:
+        raise HTTPException(status_code=404, detail="OAuth connection not available")
+
+
+async def _authorize_tool_connections(db: AsyncSession, tenant_id: uuid.UUID, request):
+    """Authorize non-OAuth references before assigning credentials to an agent."""
+    from src.models.custom_tool import CustomTool
+    from src.models.slack_bot import SlackBot
+    from src.services.custom_tools import OpenAPIParser
+
+    try:
+        bot_id = uuid.UUID(request.slack_bot_id) if request.slack_bot_id else None
+        custom_id = uuid.UUID(request.custom_tool_id) if request.custom_tool_id else None
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid connection ID")
+    if bot_id:
+        result = await db.execute(select(SlackBot.id).where(SlackBot.id == bot_id, SlackBot.tenant_id == tenant_id))
+        if result.scalar_one_or_none() is None:
+            raise HTTPException(status_code=404, detail="Slack connection not available")
+    if custom_id:
+        result = await db.execute(
+            select(CustomTool).where(CustomTool.id == custom_id, CustomTool.tenant_id == tenant_id)
+        )
+        custom = result.scalar_one_or_none()
+        if custom is None:
+            raise HTTPException(status_code=404, detail="Custom tool not available")
+        parser = OpenAPIParser(schema=custom.openapi_schema, server_url=custom.server_url)
+        if not request.operation_id or not parser.get_tool_definition(request.operation_id):
+            raise HTTPException(status_code=400, detail="Custom tool operation not available")
+    return bot_id, custom_id
+
+
+@agents_tools_router.post(
+    "/{agent_id}/tools", response_model=AgentResponse, dependencies=[Depends(require_role(AccountRole.ADMIN))]
+)
 async def save_agent_tool(
     agent_id: str,
     request: SaveAgentToolRequest,
@@ -172,20 +221,21 @@ async def save_agent_tool(
         if not agent:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent with ID '{agent_id}' not found")
 
+        await _authorize_oauth_connections(db, tenant_id, [request.oauth_app_id])
+        slack_bot_uuid, custom_tool_uuid = await _authorize_tool_connections(db, tenant_id, request)
+
         # Check if tool already exists for this agent
         existing_result = await db.execute(
             select(AgentTool).filter(AgentTool.agent_id == agent_uuid, AgentTool.tool_name == request.tool_name)
         )
         existing_tool = existing_result.scalar_one_or_none()
 
-        slack_bot_uuid = uuid.UUID(request.slack_bot_id) if request.slack_bot_id else None
-
         if existing_tool:
             # Update existing tool
             existing_tool.config = request.config
             existing_tool.enabled = request.enabled
             existing_tool.oauth_app_id = request.oauth_app_id
-            existing_tool.custom_tool_id = uuid.UUID(request.custom_tool_id) if request.custom_tool_id else None
+            existing_tool.custom_tool_id = custom_tool_uuid
             existing_tool.operation_id = request.operation_id
             existing_tool.slack_bot_id = slack_bot_uuid
             message = f"Tool '{request.tool_name}' updated successfully"
@@ -197,7 +247,7 @@ async def save_agent_tool(
                 config=request.config,
                 enabled=request.enabled,
                 oauth_app_id=request.oauth_app_id,
-                custom_tool_id=uuid.UUID(request.custom_tool_id) if request.custom_tool_id else None,
+                custom_tool_id=custom_tool_uuid,
                 operation_id=request.operation_id,
                 slack_bot_id=slack_bot_uuid,
             )
@@ -226,7 +276,11 @@ class TestToolRequest(BaseModel):
     config: dict[str, Any] = Field(..., description="Tool configuration to test")
 
 
-@agents_tools_router.post("/{agent_id}/tools/{tool_name}/test", response_model=AgentResponse)
+@agents_tools_router.post(
+    "/{agent_id}/tools/{tool_name}/test",
+    response_model=AgentResponse,
+    dependencies=[Depends(require_role(AccountRole.ADMIN))],
+)
 async def test_agent_tool(
     agent_id: str,
     tool_name: str,
@@ -311,7 +365,9 @@ async def test_agent_tool(
         )
 
 
-@agents_tools_router.delete("/{agent_id}/tools/{tool_id}", response_model=AgentResponse)
+@agents_tools_router.delete(
+    "/{agent_id}/tools/{tool_id}", response_model=AgentResponse, dependencies=[Depends(require_role(AccountRole.ADMIN))]
+)
 async def delete_agent_tool(
     agent_id: str,
     tool_id: str,
@@ -653,7 +709,11 @@ class EnableCapabilitiesBulkRequest(BaseModel):
 
 # NOTE: Bulk endpoint MUST be defined BEFORE the parameterized /{capability_id} endpoint
 # Otherwise FastAPI will match "bulk" as a capability_id parameter
-@agents_tools_router.post("/{agent_id}/capabilities/bulk", response_model=AgentResponse)
+@agents_tools_router.post(
+    "/{agent_id}/capabilities/bulk",
+    response_model=AgentResponse,
+    dependencies=[Depends(require_role(AccountRole.ADMIN))],
+)
 async def enable_capabilities_bulk(
     agent_id: str,
     request: EnableCapabilitiesBulkRequest,
@@ -725,6 +785,7 @@ async def enable_capabilities_bulk(
         # Enable each tool
         enabled_tools = []
         oauth_app_ids = request.oauth_app_ids or {}
+        await _authorize_oauth_connections(db, tenant_id, oauth_app_ids.values())
 
         for tool_name in all_tools_to_enable:
             # Determine which OAuth app to use based on tool name and capability
@@ -781,7 +842,11 @@ async def enable_capabilities_bulk(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to enable capabilities")
 
 
-@agents_tools_router.post("/{agent_id}/capabilities/{capability_id}", response_model=AgentResponse)
+@agents_tools_router.post(
+    "/{agent_id}/capabilities/{capability_id}",
+    response_model=AgentResponse,
+    dependencies=[Depends(require_role(AccountRole.ADMIN))],
+)
 async def enable_capability(
     agent_id: str,
     capability_id: str,
@@ -841,6 +906,7 @@ async def enable_capability(
         # Enable each tool
         enabled_tools = []
         oauth_app_id = request.oauth_app_id if request else None
+        await _authorize_oauth_connections(db, tenant_id, [oauth_app_id])
 
         for tool_name in matched_tools:
             # Check if tool already exists
@@ -888,7 +954,11 @@ async def enable_capability(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to enable capability")
 
 
-@agents_tools_router.delete("/{agent_id}/capabilities/{capability_id}", response_model=AgentResponse)
+@agents_tools_router.delete(
+    "/{agent_id}/capabilities/{capability_id}",
+    response_model=AgentResponse,
+    dependencies=[Depends(require_role(AccountRole.ADMIN))],
+)
 async def disable_capability(
     agent_id: str,
     capability_id: str,

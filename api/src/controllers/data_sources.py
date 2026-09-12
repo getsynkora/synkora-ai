@@ -413,7 +413,7 @@ async def create_data_source(
     except Exception as e:
         logger.error(f"Error creating data source: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("", response_model=list[DataSourceResponse])
@@ -438,7 +438,7 @@ async def list_data_sources(
 
     except Exception as e:
         logger.error(f"Error listing data sources: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/{ds_id}", response_model=DataSourceResponse)
@@ -469,7 +469,7 @@ async def get_data_source(
         raise
     except Exception as e:
         logger.error(f"Error getting data source: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.put("/{ds_id}", response_model=DataSourceResponse)
@@ -516,7 +516,7 @@ async def update_data_source(
     except Exception as e:
         logger.error(f"Error updating data source: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.delete("/{ds_id}", status_code=204)
@@ -547,7 +547,7 @@ async def delete_data_source(
     except Exception as e:
         logger.error(f"Error deleting data source: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 class LinkOAuthAppRequest(BaseModel):
@@ -639,7 +639,7 @@ async def link_oauth_app_to_data_source(
     except Exception as e:
         logger.error(f"Error linking OAuth app: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/{ds_id}/oauth-url")
@@ -672,7 +672,7 @@ async def get_oauth_url(
         raise
     except Exception as e:
         logger.error(f"Error getting OAuth URL: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/{ds_id}/oauth-callback")
@@ -706,7 +706,7 @@ async def handle_oauth_callback(
         raise
     except Exception as e:
         logger.error(f"Error handling OAuth callback: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/{ds_id}/test-connection", response_model=ConnectionTestResponse)
@@ -738,7 +738,7 @@ async def test_connection(
         raise
     except Exception as e:
         logger.error(f"Error testing connection: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/{ds_id}/sync", response_model=SyncJobResponse, status_code=202)
@@ -797,7 +797,7 @@ async def trigger_sync(
         raise
     except Exception as e:
         logger.error(f"Error triggering sync: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/{ds_id}/sync-status", response_model=SyncStatusResponse)
@@ -830,7 +830,7 @@ async def get_sync_status(
         raise
     except Exception as e:
         logger.error(f"Error getting sync status: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 class SyncHistoryItem(BaseModel):
@@ -899,7 +899,7 @@ async def get_sync_history(
         raise
     except Exception as e:
         logger.error(f"Error getting sync history: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # ---------------------------------------------------------------------------

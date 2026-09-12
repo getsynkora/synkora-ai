@@ -133,13 +133,14 @@ async def internal_render_newsletter(
 
     async def _fetch_og_image(url: str) -> str | None:
         try:
-            async with httpx.AsyncClient(timeout=6.0, follow_redirects=True) as client:
-                r = await client.get(url, headers={"User-Agent": "AI-Agent/1.0"})
-                text = r.text
-                m = re.search(r'property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']', text, re.I)
-                if not m:
-                    m = re.search(r'content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']', text, re.I)
-                return m.group(1) if m else None
+            from src.services.security.public_http import fetch_public_url
+
+            r = await fetch_public_url(url, timeout=6.0, headers={"User-Agent": "AI-Agent/1.0"})
+            text = r.text
+            m = re.search(r'property=["\']og:image["\'][^>]+content=["\']([^"\']+)["\']', text, re.I)
+            if not m:
+                m = re.search(r'content=["\']([^"\']+)["\'][^>]+property=["\']og:image["\']', text, re.I)
+            return m.group(1) if m else None
         except Exception:
             return None
 
@@ -279,6 +280,6 @@ async def internal_render_newsletter(
         )
     except Exception as exc:
         logger.warning(f"Redis unavailable, returning inline HTML: {exc}")
-        return {"success": True, "html": final_html, "subject": subject, "pdf_url": pdf_url, "image_url": image_url}
+        return {"success": True, "html": final_html, "subject": subject, "pdf_url": pdf_s3_key, "image_url": image_s3_key}
 
     return {"success": True, "subject": subject, "body": render_key}

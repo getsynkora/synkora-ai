@@ -254,7 +254,7 @@ class TestExportReport:
                 return_value={
                     "success": True,
                     "format": "csv",
-                    "file_path": "/exports/report.csv",
+                    "file_path": f"reports/{tenant_id}/report.csv",
                     "file_name": "report.csv",
                     "file_size": 1024,
                 }
@@ -281,7 +281,7 @@ class TestExportReport:
                 return_value={
                     "success": True,
                     "format": "xlsx",
-                    "file_path": "/exports/report.xlsx",
+                    "file_path": f"reports/{tenant_id}/report.xlsx",
                     "file_name": "report.xlsx",
                     "file_size": 2048,
                 }
@@ -303,7 +303,7 @@ class TestExportReport:
                 return_value={
                     "success": True,
                     "format": "json",
-                    "file_path": "/exports/report.json",
+                    "file_path": f"reports/{tenant_id}/report.json",
                     "file_name": "report.json",
                     "file_size": 512,
                 }
@@ -325,7 +325,7 @@ class TestExportReport:
                 return_value={
                     "success": True,
                     "format": "html",
-                    "file_path": "/exports/report.html",
+                    "file_path": f"reports/{tenant_id}/report.html",
                     "file_name": "report.html",
                 }
             )

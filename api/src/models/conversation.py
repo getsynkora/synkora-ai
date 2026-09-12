@@ -48,7 +48,7 @@ class Conversation(Base, UUIDMixin, TimestampMixin, SoftDeleteMixin):
     # Basic info
     name: Mapped[str] = mapped_column(String(255), nullable=False, default="New Conversation")
     summary: Mapped[str | None] = mapped_column(Text)
-    session_id: Mapped[str | None] = mapped_column(String(255))
+    session_id: Mapped[str | None] = mapped_column(String(255), index=True)
 
     # Status
     status: Mapped[ConversationStatus] = mapped_column(

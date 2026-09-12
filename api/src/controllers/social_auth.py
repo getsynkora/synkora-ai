@@ -33,6 +33,7 @@ from ..services.auth_service import AuthService
 from ..services.oauth.apple_oauth import AppleOAuth
 from ..services.oauth.google_oauth import GoogleOAuth
 from ..services.oauth.microsoft_oauth import MicrosoftOAuth
+from ..services.session_service import SessionService
 from ..services.social_auth import AccountLinkingService
 
 COOKIE_SECURE = settings.is_production
@@ -92,9 +93,8 @@ async def _get_oauth_state(state: str) -> dict[str, Any] | None:
     """
     try:
         redis = _get_redis_client()
-        data = await redis.get(f"oauth_state:{state}")
+        data = await redis.getdel(f"oauth_state:{state}")
         if data:
-            await redis.delete(f"oauth_state:{state}")
             return json.loads(data)
         return None
     except RuntimeError:
@@ -120,9 +120,8 @@ async def _consume_exchange_tokens(code: str) -> dict[str, str] | None:
     """Atomically retrieve and delete the exchange token pair. Returns None if expired/invalid."""
     try:
         redis = _get_redis_client()
-        data = await redis.get(f"oauth_exchange:{code}")
+        data = await redis.getdel(f"oauth_exchange:{code}")
         if data:
-            await redis.delete(f"oauth_exchange:{code}")
             return json.loads(data)
         return None
     except RuntimeError:
@@ -360,7 +359,7 @@ async def google_login(
 
     except Exception as e:
         logger.error(f"Google social login error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/google/callback")
@@ -455,16 +454,11 @@ async def google_callback(
 
         logger.info(f"Found tenant membership: tenant_id={membership.tenant_id}, role={membership.role}")
 
-        # Generate JWT tokens with current token version to avoid stale-token rejection
-        from src.services.security.token_blacklist import get_token_blacklist_service
-
-        blacklist_service = get_token_blacklist_service()
-        token_version = blacklist_service.get_account_token_version(account.id)
-
-        access_token = AuthService.generate_access_token(
-            account_id=account.id, tenant_id=membership.tenant_id, role=membership.role, token_version=token_version
-        )
-        refresh_token = AuthService.generate_refresh_token(account_id=account.id, token_version=token_version)
+        # SECURITY: Use SessionService to create a proper session with
+        # refresh-token family tracking (rotation, theft detection, max lifetime).
+        session_data = await SessionService.create_session(db, account, membership.tenant_id)
+        access_token = session_data["access_token"]
+        refresh_token = session_data["refresh_token"]
 
         logger.info(
             f"Generated tokens - access_token length: {len(access_token)}, refresh_token length: {len(refresh_token)}"
@@ -541,7 +535,7 @@ async def microsoft_login(
 
     except Exception as e:
         logger.error(f"Microsoft social login error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/microsoft/callback")
@@ -635,19 +629,12 @@ async def microsoft_callback(
             logger.error(f"No tenant membership found for account {account.id}")
             raise HTTPException(status_code=500, detail="User account has no tenant association")
 
-        # Generate JWT tokens with current token version to avoid stale-token rejection
-        from src.services.security.token_blacklist import get_token_blacklist_service
-
-        blacklist_service = get_token_blacklist_service()
-        token_version = blacklist_service.get_account_token_version(account.id)
-
-        access_token = AuthService.generate_access_token(
-            account_id=account.id, tenant_id=membership.tenant_id, role=membership.role, token_version=token_version
-        )
-        refresh_token = AuthService.generate_refresh_token(account_id=account.id, token_version=token_version)
+        # SECURITY: Use SessionService to create a proper session with
+        # refresh-token family tracking (rotation, theft detection, max lifetime).
+        session_data = await SessionService.create_session(db, account, membership.tenant_id)
 
         exchange_code = secrets.token_urlsafe(32)
-        await _store_exchange_tokens(exchange_code, access_token, refresh_token)
+        await _store_exchange_tokens(exchange_code, session_data["access_token"], session_data["refresh_token"])
 
         final_redirect_url = f"{redirect_url}?login=success&provider=microsoft&exchange_code={exchange_code}"
         return RedirectResponse(url=final_redirect_url, status_code=302)
@@ -712,7 +699,7 @@ async def apple_login(
 
     except Exception as e:
         logger.error(f"Apple social login error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/apple/callback")
@@ -809,19 +796,12 @@ async def apple_callback(request: Request, db: AsyncSession = Depends(get_async_
             logger.error(f"No tenant membership found for account {account.id}")
             raise HTTPException(status_code=500, detail="User account has no tenant association")
 
-        # Generate JWT tokens with current token version to avoid stale-token rejection
-        from src.services.security.token_blacklist import get_token_blacklist_service
-
-        blacklist_service = get_token_blacklist_service()
-        token_version = blacklist_service.get_account_token_version(account.id)
-
-        access_token = AuthService.generate_access_token(
-            account_id=account.id, tenant_id=membership.tenant_id, role=membership.role, token_version=token_version
-        )
-        refresh_token = AuthService.generate_refresh_token(account_id=account.id, token_version=token_version)
+        # SECURITY: Use SessionService to create a proper session with
+        # refresh-token family tracking (rotation, theft detection, max lifetime).
+        session_data = await SessionService.create_session(db, account, membership.tenant_id)
 
         exchange_code = secrets.token_urlsafe(32)
-        await _store_exchange_tokens(exchange_code, access_token, refresh_token)
+        await _store_exchange_tokens(exchange_code, session_data["access_token"], session_data["refresh_token"])
 
         final_redirect_url = f"{redirect_url}?login=success&provider=apple&exchange_code={exchange_code}"
         return RedirectResponse(url=final_redirect_url, status_code=302)
@@ -866,7 +846,7 @@ async def get_linked_providers(
 
     except Exception as e:
         logger.error(f"Get linked providers error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/link-provider")
@@ -880,25 +860,10 @@ async def link_provider(
 
     This is used when a user wants to add another login method to their existing account.
     """
-    try:
-        await AccountLinkingService.link_provider_to_account(
-            db=db,
-            account_id=current_account.id,
-            provider=data.provider,
-            provider_user_id=data.provider_user_id,
-            provider_email=data.provider_email,
-            provider_data=data.provider_data,
-        )
-
-        logger.info(f"Linked {data.provider} provider to account {current_account.id}")
-
-        return {"success": True, "message": f"{data.provider.title()} account linked successfully"}
-
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logger.error(f"Link provider error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+    raise HTTPException(
+        status_code=410,
+        detail="Direct identity linking is disabled. Provider ownership must be verified through OAuth.",
+    )
 
 
 @router.delete("/unlink-provider/{provider}")
@@ -923,7 +888,7 @@ async def unlink_provider(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Unlink provider error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/provider-status/{provider}")
@@ -956,4 +921,4 @@ async def get_provider_status(
 
     except Exception as e:
         logger.error(f"Get provider status error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")

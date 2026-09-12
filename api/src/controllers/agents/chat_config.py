@@ -13,8 +13,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
 
+from src.middleware.auth_middleware import require_role
+from src.models import AccountRole
+
 from ...core.database import get_async_db
-from ...middleware.auth_middleware import get_current_tenant_id
+from ...middleware.auth_middleware import get_current_tenant_id, get_current_tenant_id_optional
 from ...models.agent import Agent
 
 logger = logging.getLogger(__name__)
@@ -39,13 +42,29 @@ class ChatConfigUpdate(BaseModel):
 
 
 @router.get("/agents/{agent_id}/chat-config")
-async def get_agent_chat_config(agent_id: uuid.UUID, db: AsyncSession = Depends(get_async_db)):
+async def get_agent_chat_config(
+    agent_id: uuid.UUID,
+    db: AsyncSession = Depends(get_async_db),
+    tenant_id: uuid.UUID | None = Depends(get_current_tenant_id_optional),
+):
     """
-    Get chat configuration for an agent
-    This endpoint can be called without authentication for public access
+    Get chat configuration for an agent.
+
+    SECURITY: Returns config only if:
+      - The agent is public (widget/embed access, no auth needed), OR
+      - The caller is authenticated and belongs to the agent's tenant.
     """
     try:
-        result = await db.execute(select(Agent).filter(Agent.id == agent_id))
+        from sqlalchemy import or_
+
+        # Build tenant-or-public filter to prevent cross-tenant exposure
+        filters = [Agent.id == agent_id]
+        if tenant_id:
+            filters.append(or_(Agent.tenant_id == tenant_id, Agent.is_public.is_(True)))
+        else:
+            filters.append(Agent.is_public.is_(True))
+
+        result = await db.execute(select(Agent).filter(*filters))
         agent = result.scalar_one_or_none()
 
         if not agent:
@@ -73,10 +92,10 @@ async def get_agent_chat_config(agent_id: uuid.UUID, db: AsyncSession = Depends(
         raise
     except Exception as e:
         logger.error(f"Error fetching agent chat config: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.put("/agents/{agent_id}/chat-config")
+@router.put("/agents/{agent_id}/chat-config", dependencies=[Depends(require_role(AccountRole.ADMIN))])
 async def update_agent_chat_config(
     agent_id: uuid.UUID,
     config_data: ChatConfigUpdate,

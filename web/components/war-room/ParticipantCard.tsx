@@ -1,9 +1,21 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
+
+// Lazy-load the Prism parser (~480 KB with all grammars) — only downloaded when
+// a code block appears in a participant's message.
+const SyntaxHighlighter = dynamic(
+  () => import('react-syntax-highlighter').then((m) => ({ default: m.Prism })),
+  {
+    ssr: false,
+    loading: () => (
+      <pre className="bg-gray-900 text-gray-100 p-4 text-[13px] font-mono overflow-x-auto whitespace-pre">{}</pre>
+    ),
+  }
+)
 import { BadgeCheck, ExternalLink, Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { useState, useCallback } from 'react'

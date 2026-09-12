@@ -80,7 +80,7 @@ async def create_proxy_config(
     except Exception as e:
         logger.error(f"Error creating proxy config: {e}", exc_info=True)
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("", response_model=ProxyConfigListResponse)
@@ -108,7 +108,7 @@ async def list_proxy_configs(
 
     except Exception as e:
         logger.error(f"Error listing proxy configs: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/{config_id}", response_model=ProxyConfigResponse)
@@ -126,7 +126,7 @@ async def get_proxy_config(
         raise
     except Exception as e:
         logger.error(f"Error getting proxy config: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.put("/{config_id}", response_model=ProxyConfigResponse)
@@ -166,7 +166,7 @@ async def update_proxy_config(
     except Exception as e:
         logger.error(f"Error updating proxy config: {e}", exc_info=True)
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.delete("/{config_id}", status_code=204)
@@ -189,7 +189,7 @@ async def delete_proxy_config(
     except Exception as e:
         logger.error(f"Error deleting proxy config: {e}", exc_info=True)
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/{config_id}/regenerate-key", response_model=CreateProxyConfigResponse)
@@ -234,7 +234,7 @@ async def regenerate_api_key(
     except Exception as e:
         logger.error(f"Error regenerating API key: {e}", exc_info=True)
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/{config_id}/usage", response_model=ProxyUsageResponse)
@@ -278,7 +278,7 @@ async def get_proxy_usage(
         raise
     except Exception as e:
         logger.error(f"Error getting proxy usage: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # ============================================================================

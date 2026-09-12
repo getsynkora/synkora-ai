@@ -144,6 +144,14 @@ class ActivityLog(BaseModel):
         created_at: str,
         prev_hash: str,
         secret_key: str,
+        resource_type: str | None = None,
+        resource_id: str | None = None,
+        description: str | None = None,
+        activity_metadata: dict | None = None,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+        status: str = "success",
+        error_message: str | None = None,
     ) -> str:
         """
         Compute HMAC-SHA256 for this log entry chained with the previous entry.
@@ -153,17 +161,32 @@ class ActivityLog(BaseModel):
         """
         import hashlib
         import hmac as _hmac
+        import json
 
-        payload = "|".join(
-            [
-                str(entry_id),
-                str(action),
-                str(account_id or ""),
-                str(tenant_id or ""),
-                str(activity_type),
-                str(created_at),
-                str(prev_hash),
-            ]
+        if not secret_key or len(secret_key) < 32:
+            raise ValueError("A strong audit signing key is required")
+        payload = json.dumps(
+            {
+                "version": 2,
+                "entry_id": str(entry_id),
+                "action": action,
+                "account_id": str(account_id) if account_id else None,
+                "tenant_id": str(tenant_id) if tenant_id else None,
+                "activity_type": str(activity_type),
+                "created_at": created_at,
+                "prev_hash": prev_hash,
+                "resource_type": resource_type,
+                "resource_id": str(resource_id) if resource_id else None,
+                "description": description,
+                "activity_metadata": activity_metadata or {},
+                "ip_address": ip_address,
+                "user_agent": user_agent,
+                "status": status,
+                "error_message": error_message,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
         )
         return _hmac.new(
             secret_key.encode(),

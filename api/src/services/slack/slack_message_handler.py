@@ -175,11 +175,20 @@ class SlackMessageHandler:
                 try:
                     from src.services.eval.feedback_service import record_feedback
 
-                    # Find the most recent assistant message in this channel
+                    # Find the most recent assistant message scoped to this bot's
+                    # conversation in this channel/thread (prevents cross-tenant leaks).
+                    _thread_key = thread_ts or message_ts
+                    _conv_q = select(SlackConversation.conversation_id).where(
+                        SlackConversation.slack_bot_id == slack_bot.id,
+                        SlackConversation.slack_channel_id == channel_id,
+                        *([SlackConversation.slack_thread_ts == _thread_key] if _thread_key else []),
+                    )
                     _msg_result = await self.db_session.execute(
                         select(Message)
-                        .join(Message.conversation)
-                        .filter(Message.role == "assistant")
+                        .filter(
+                            Message.role == "assistant",
+                            Message.conversation_id.in_(_conv_q),
+                        )
                         .order_by(Message.created_at.desc())
                         .limit(1)
                     )
@@ -213,7 +222,13 @@ class SlackMessageHandler:
                 import uuid as _uuid_mod
 
                 _approval_svc = HumanApprovalService(self.db_session)
-                _result = await _approval_svc.handle_reply(_uuid_mod.UUID(_approval_id_str), text, self.db_session)
+                _result = await _approval_svc.handle_reply(
+                    _uuid_mod.UUID(_approval_id_str),
+                    text,
+                    self.db_session,
+                    tenant_id=slack_bot.tenant_id,
+                    agent_id=slack_bot.agent_id,
+                )
                 if _result == "approved":
                     _reply = "Got it! Proceeding with the action."
                 elif _result == "rejected":

@@ -240,40 +240,45 @@ class TestAccountLockout:
         with patch("src.services.auth_service.AuthService._get_redis_client", return_value=self.redis_mock):
             yield
 
-    def test_no_lockout_initially(self):
+    @pytest.mark.asyncio
+    async def test_no_lockout_initially(self):
         """Test that account is not locked initially."""
         self.redis_mock.zcard.return_value = 0
-        is_locked, message = AuthService._check_account_lockout("test@example.com")
+        is_locked, message = await AuthService._check_account_lockout("test@example.com")
         assert is_locked is False
         assert message is None
 
-    def test_record_failed_attempt(self):
+    @pytest.mark.asyncio
+    async def test_record_failed_attempt(self):
         """Test recording failed login attempts."""
         email = "test@example.com"
-        AuthService._record_failed_attempt(email)
+        await AuthService._record_failed_attempt(email)
 
         self.redis_mock.zadd.assert_called_once()
         self.redis_mock.expire.assert_called_once()
 
-    def test_lockout_after_threshold(self):
+    @pytest.mark.asyncio
+    async def test_lockout_after_threshold(self):
         """Test account locks after threshold failed attempts."""
         self.redis_mock.zcard.return_value = AuthService._LOCKOUT_THRESHOLD
         self.redis_mock.zrange.return_value = [("ts", time.time())]
 
-        is_locked, message = AuthService._check_account_lockout("test@example.com")
+        is_locked, message = await AuthService._check_account_lockout("test@example.com")
         assert is_locked is True
         assert "locked" in message.lower()
 
-    def test_clear_failed_attempts(self):
+    @pytest.mark.asyncio
+    async def test_clear_failed_attempts(self):
         """Test clearing failed attempts on successful login."""
-        AuthService._clear_failed_attempts("test@example.com")
+        await AuthService._clear_failed_attempts("test@example.com")
         self.redis_mock.delete.assert_called_once()
 
-    def test_case_insensitive_lockout(self):
+    @pytest.mark.asyncio
+    async def test_case_insensitive_lockout(self):
         """Test lockout is case insensitive."""
-        AuthService._record_failed_attempt("Test@Example.com")
-        AuthService._record_failed_attempt("TEST@EXAMPLE.COM")
-        AuthService._record_failed_attempt("test@example.com")
+        await AuthService._record_failed_attempt("Test@Example.com")
+        await AuthService._record_failed_attempt("TEST@EXAMPLE.COM")
+        await AuthService._record_failed_attempt("test@example.com")
 
         # All three should use the same lowercased key
         calls = self.redis_mock.zadd.call_args_list
@@ -307,6 +312,7 @@ class TestAuthenticate:
         hashed = AuthService.hash_password(password)
 
         account = MagicMock()
+        account.auth_version = 0
         account.email = email
         account.password_hash = hashed
         account.status = AccountStatus.ACTIVE
@@ -325,6 +331,7 @@ class TestAuthenticate:
         hashed = AuthService.hash_password("correct_password")
 
         account = MagicMock()
+        account.auth_version = 0
         account.email = email
         account.password_hash = hashed
         account.status = AccountStatus.ACTIVE
@@ -354,6 +361,7 @@ class TestAuthenticate:
         hashed = AuthService.hash_password(password)
 
         account = MagicMock()
+        account.auth_version = 0
         account.email = email
         account.password_hash = hashed
         account.status = AccountStatus.INACTIVE
@@ -380,6 +388,7 @@ class TestAuthenticate:
     async def test_authenticate_no_password_hash(self, mock_db):
         """Test authentication when account has no password hash."""
         account = MagicMock()
+        account.auth_version = 0
         account.email = "user@example.com"
         account.password_hash = None
 
@@ -501,6 +510,7 @@ class TestPasswordReset:
         token_hash = AuthService.hash_token(token)
 
         account = MagicMock()
+        account.auth_version = 0
         account.reset_token = token_hash
         account.reset_token_expires_at = (datetime.now(UTC) + timedelta(hours=1)).isoformat()
 
@@ -508,7 +518,11 @@ class TestPasswordReset:
         mock_result.scalar_one_or_none.return_value = account
         mock_db.execute = AsyncMock(return_value=mock_result)
 
-        result = await AuthService.reset_password(mock_db, token, "new_password")
+        with patch(
+            "src.services.security.token_blacklist.TokenBlacklistService.blacklist_all_account_tokens",
+            return_value=True,
+        ):
+            result = await AuthService.reset_password(mock_db, token, "new_password")
 
         assert result == account
         assert account.reset_token is None
@@ -530,6 +544,7 @@ class TestPasswordReset:
         token_hash = AuthService.hash_token(token)
 
         account = MagicMock()
+        account.auth_version = 0
         account.reset_token = token_hash
         account.reset_token_expires_at = (datetime.now(UTC) - timedelta(hours=1)).isoformat()
 
@@ -537,7 +552,11 @@ class TestPasswordReset:
         mock_result.scalar_one_or_none.return_value = account
         mock_db.execute = AsyncMock(return_value=mock_result)
 
-        result = await AuthService.reset_password(mock_db, token, "new_password")
+        with patch(
+            "src.services.security.token_blacklist.TokenBlacklistService.blacklist_all_account_tokens",
+            return_value=True,
+        ):
+            result = await AuthService.reset_password(mock_db, token, "new_password")
 
         assert result is None
 
@@ -556,6 +575,7 @@ class TestEmailVerification:
         token_hash = AuthService.hash_token(token)
 
         account = MagicMock()
+        account.auth_version = 0
         account.email_verification_token = token_hash
         account.status = AccountStatus.INACTIVE
         account.email_verification_sent_at = None  # no expiry check needed

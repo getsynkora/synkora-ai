@@ -364,6 +364,7 @@ class TestGetJiraCredentials:
         app = MagicMock()
         app.id = uuid.uuid4()
         app.app_name = "My Jira"
+        app.is_platform_app = False
         app.auth_method = "oauth"
         app.config = {"cloud_id": "cloud-123", "cloud_url": "https://myteam.atlassian.net"}
         app.client_id = "client-id"
@@ -398,7 +399,7 @@ class TestGetJiraCredentials:
         )
 
         with (
-            patch.object(resolver, "_get_user_token_record", return_value=None),
+            patch.object(resolver, "_get_personal_provider_token_record", return_value=None),
             patch("src.services.agents.security.decrypt_value", return_value="old-decrypted-refresh-token"),
             patch("src.services.agents.security.encrypt_value", side_effect=lambda v: f"enc:{v}"),
             patch("src.services.oauth.jira_oauth.JiraOAuth", return_value=mock_jira_oauth),
@@ -423,7 +424,7 @@ class TestGetJiraCredentials:
         self._mock_agent_tool_and_app_lookup(mock_db_session, mock_oauth_app)
 
         with (
-            patch.object(resolver, "_get_user_token_record", return_value=None),
+            patch.object(resolver, "_get_personal_provider_token_record", return_value=None),
             patch("src.services.agents.security.decrypt_value", return_value="unused"),
         ):
             credentials = await resolver.get_jira_credentials("internal_get_jira_issue")

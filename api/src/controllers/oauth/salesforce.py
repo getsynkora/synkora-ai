@@ -2,8 +2,8 @@
 Salesforce OAuth Controller.
 
 Handles Salesforce OAuth 2.0 authorization and callback.
-The instance_url returned in the token response is stored in OAuthApp.config
-so the credential resolver can build correct API URLs per tenant.
+The instance_url is stored with the personal token for user connections, or
+in the tenant OAuthApp config for shared connections.
 
 Supports production (login.salesforce.com) and sandbox (test.salesforce.com)
 via config.is_sandbox = true.
@@ -21,14 +21,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.utils.config_helper import get_app_base_url
 
 from ...core.database import get_async_db
-from ...middleware.auth_middleware import get_optional_account, get_optional_tenant_id
+from ...middleware.auth_middleware import get_current_account, get_current_tenant_id
 from ...models.tenant import Account
 from ...models.user_oauth_token import UserOAuthToken
 from ...services.agents.security import decrypt_value, encrypt_value
 from ...services.oauth.salesforce_oauth import SalesforceOAuth
 from ...services.security.oauth_state_service import create_oauth_state, get_oauth_state
 from .base import (
+    _authorize_oauth_connection,
+    _get_callback_oauth_app,
     _get_oauth_app_secure,
+    _get_or_create_tenant_clone,
     _safe_error_redirect,
     _safe_success_redirect,
 )
@@ -43,8 +46,8 @@ async def salesforce_authorize(
     oauth_app_id: int = Query(...),
     redirect_url: str = Query(None),
     user_level: bool = Query(False),
-    current_account: Account | None = Depends(get_optional_account),
-    tenant_id: uuid.UUID | None = Depends(get_optional_tenant_id),
+    current_account: Account = Depends(get_current_account),
+    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
     """Initiate Salesforce OAuth authorization."""
@@ -52,7 +55,8 @@ async def salesforce_authorize(
         if user_level and not current_account:
             raise HTTPException(status_code=401, detail="Authentication required for user-level OAuth")
 
-        oauth_app = await _get_oauth_app_secure(db, oauth_app_id, tenant_id=tenant_id)
+        await _authorize_oauth_connection(db, current_account, tenant_id, user_level)
+        oauth_app = await _get_oauth_app_secure(db, oauth_app_id, tenant_id=tenant_id, require_tenant=True)
         if not oauth_app:
             raise HTTPException(status_code=404, detail="OAuth app not found")
 
@@ -75,7 +79,9 @@ async def salesforce_authorize(
                 "redirect_url": redirect_url,
                 "user_level": user_level,
                 "is_sandbox": is_sandbox,
-                "account_id": str(current_account.id) if current_account and user_level else None,
+                "account_id": str(current_account.id),
+                "auth_version": current_account.auth_version or 0,
+                "tenant_id": str(tenant_id),
             }
         )
         if not state:
@@ -101,7 +107,7 @@ async def salesforce_authorize(
         raise
     except Exception as e:
         logger.error("Salesforce OAuth authorization error: %s", e, exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/salesforce/callback")
@@ -122,7 +128,7 @@ async def salesforce_callback(
         account_id = state_data.get("account_id")
         is_sandbox = state_data.get("is_sandbox", False)
 
-        oauth_app = await _get_oauth_app_secure(db, oauth_app_id)
+        oauth_app = await _get_callback_oauth_app(db, state_data)
         if not oauth_app:
             raise HTTPException(status_code=404, detail="OAuth app not found")
 
@@ -146,11 +152,10 @@ async def salesforce_callback(
         expires_in = token_data.get("expires_in")
         token_expires_at = datetime.now(UTC) + timedelta(seconds=expires_in) if expires_in else None
 
-        # Persist the instance_url in config — required for all API calls
-        config = oauth_app.config or {}
-        config["instance_url"] = instance_url
-        config["is_sandbox"] = is_sandbox
-        oauth_app.config = config
+        if oauth_app.is_platform_app and not user_level:
+            oauth_app = await _get_or_create_tenant_clone(db, oauth_app, uuid.UUID(state_data["tenant_id"]))
+
+        personal_config = {"instance_url": instance_url, "is_sandbox": is_sandbox}
 
         user_info = await oauth.get_user_info(access_token, instance_url=instance_url)
         user_email = user_info.get("email", "")
@@ -168,6 +173,7 @@ async def salesforce_callback(
                 # properties — assigning an already-encrypted value here would
                 # double-encrypt it, producing a token that never decrypts back
                 # to something usable.
+                existing.provider_config = personal_config
                 existing.access_token = access_token
                 if refresh_token:
                     existing.refresh_token = refresh_token
@@ -184,6 +190,7 @@ async def salesforce_callback(
                         access_token=access_token,
                         refresh_token=refresh_token,
                         token_expires_at=token_expires_at,
+                        provider_config=personal_config,
                         provider_user_id=user_info.get("id"),
                         provider_email=user_email,
                         provider_display_name=user_info.get("name"),
@@ -196,6 +203,7 @@ async def salesforce_callback(
                 instance_url,
             )
         else:
+            oauth_app.config = {**(oauth_app.config or {}), **personal_config}
             oauth_app.access_token = encrypt_value(access_token)
             if refresh_token:
                 oauth_app.refresh_token = encrypt_value(refresh_token)

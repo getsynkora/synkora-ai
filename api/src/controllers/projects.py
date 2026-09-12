@@ -142,7 +142,7 @@ async def list_projects(
         ]
     except Exception as e:
         logger.error(f"Error listing projects: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("", response_model=ProjectResponse, status_code=201)
@@ -177,10 +177,12 @@ async def create_project(
             created_at=project.created_at.isoformat() if project.created_at else None,
             updated_at=project.updated_at.isoformat() if project.updated_at else None,
         )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.error(f"Error creating project: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/{project_id}", response_model=ProjectWithAgentsResponse)
@@ -190,14 +192,13 @@ async def get_project(
     """Get a project with its agents."""
     try:
         service = ProjectService(db)
-        result = await service.get_project_with_agents(UUID(project_id))
+        # SECURITY: Pass tenant_id into the query to prevent cross-tenant reads
+        result = await service.get_project_with_agents(UUID(project_id), tenant_id=tenant_id)
 
         if not result:
             raise HTTPException(status_code=404, detail="Project not found")
 
         project_data = result["project"]
-        if project_data.get("tenant_id") and UUID(project_data["tenant_id"]) != tenant_id:
-            raise HTTPException(status_code=404, detail="Project not found")
 
         return ProjectWithAgentsResponse(
             id=project_data["id"],
@@ -228,7 +229,7 @@ async def get_project(
         raise
     except Exception as e:
         logger.error(f"Error getting project: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.put("/{project_id}", response_model=ProjectResponse)
@@ -272,7 +273,7 @@ async def update_project(
     except Exception as e:
         logger.error(f"Error updating project: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.delete("/{project_id}", status_code=204)
@@ -296,7 +297,7 @@ async def delete_project(
     except Exception as e:
         logger.error(f"Error deleting project: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # Shared Context Endpoints
@@ -309,9 +310,10 @@ async def get_project_context(
     """Get shared context for a project."""
     try:
         service = ProjectService(db)
-        project = await service.get_project(UUID(project_id))
+        # SECURITY: Pass tenant_id into the query to prevent cross-tenant reads
+        project = await service.get_project(UUID(project_id), tenant_id=tenant_id)
 
-        if not project or project.tenant_id != tenant_id:
+        if not project:
             raise HTTPException(status_code=404, detail="Project not found")
 
         return {"success": True, "data": {"project_id": str(project.id), "context": project.shared_context or {}}}
@@ -321,7 +323,7 @@ async def get_project_context(
         raise
     except Exception as e:
         logger.error(f"Error getting context: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.put("/{project_id}/context")
@@ -350,7 +352,7 @@ async def update_project_context(
     except Exception as e:
         logger.error(f"Error updating context: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.patch("/{project_id}/context")
@@ -379,7 +381,7 @@ async def set_context_value(
     except Exception as e:
         logger.error(f"Error setting context value: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.delete("/{project_id}/context/{key}")
@@ -406,7 +408,7 @@ async def delete_context_key(
     except Exception as e:
         logger.error(f"Error deleting context key: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # Project-Agent Management
@@ -442,7 +444,7 @@ async def add_agent_to_project(
     except Exception as e:
         logger.error(f"Error adding agent to project: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.delete("/{project_id}/agents/{agent_id}", status_code=204)
@@ -471,7 +473,7 @@ async def remove_agent_from_project(
     except Exception as e:
         logger.error(f"Error removing agent from project: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/{project_id}/agents", response_model=list[AgentSummary])
@@ -482,12 +484,12 @@ async def get_project_agents(
     try:
         service = ProjectService(db)
 
-        # Verify project belongs to tenant
-        project = await service.get_project(UUID(project_id))
-        if not project or project.tenant_id != tenant_id:
+        # SECURITY: Pass tenant_id into the query to prevent cross-tenant reads
+        project = await service.get_project(UUID(project_id), tenant_id=tenant_id)
+        if not project:
             raise HTTPException(status_code=404, detail="Project not found")
 
-        agents = await service.get_project_agents(UUID(project_id))
+        agents = await service.get_project_agents(UUID(project_id), tenant_id=tenant_id)
 
         return [
             AgentSummary(
@@ -506,4 +508,4 @@ async def get_project_agents(
         raise
     except Exception as e:
         logger.error(f"Error getting project agents: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
