@@ -183,9 +183,21 @@ class TestPlanRestrictionService:
                 "features": {"advanced_analytics": True},
             }
 
-            # Mock all scalar counts
+            # get_usage_stats runs a single query with one scalar subquery per
+            # resource, returning one row with a labeled column per resource.
+            mock_row = MagicMock()
+            mock_row.agents = 1
+            mock_row.team_members = 1
+            mock_row.knowledge_bases = 1
+            mock_row.mcp_servers = 1
+            mock_row.custom_tools = 1
+            mock_row.database_connections = 1
+            mock_row.data_sources = 1
+            mock_row.scheduled_tasks = 1
+            mock_row.widgets = 1
+            mock_row.slack_bots = 1
             mock_result = MagicMock()
-            mock_result.scalar.return_value = 1
+            mock_result.one.return_value = mock_row
             mock_db.execute.return_value = mock_result
 
             stats = await service.get_usage_stats(uuid4())

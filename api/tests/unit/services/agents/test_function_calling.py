@@ -591,7 +591,7 @@ class TestCardSetAndVideoEmission:
     async def test_youtube_transcript_emits_video_with_oembed_enrichment(
         self, handler, mock_llm_client, mock_tool_registry, monkeypatch
     ):
-        import httpx
+        import src.services.security.public_http as public_http
 
         class _FakeResponse:
             def raise_for_status(self):
@@ -600,20 +600,12 @@ class TestCardSetAndVideoEmission:
             def json(self):
                 return {"title": "How Slack Works", "thumbnail_url": "https://i.ytimg.com/vi/abc123/hqdefault.jpg"}
 
-        class _FakeAsyncClient:
-            def __init__(self, *args, **kwargs):
-                pass
+        async def _fake_fetch_public_url(url, **kwargs):
+            return _FakeResponse()
 
-            async def __aenter__(self):
-                return self
-
-            async def __aexit__(self, *args):
-                return False
-
-            async def get(self, url):
-                return _FakeResponse()
-
-        monkeypatch.setattr(httpx, "AsyncClient", _FakeAsyncClient)
+        # _fetch_youtube_oembed() now fetches through the SSRF-hardened
+        # fetch_public_url() helper rather than calling httpx directly.
+        monkeypatch.setattr(public_http, "fetch_public_url", _fake_fetch_public_url)
 
         tool_result = {"success": True, "video_id": "abc123", "full_text": "hello world"}
         chunks = await self._run_stream(
@@ -632,20 +624,14 @@ class TestCardSetAndVideoEmission:
     ):
         import httpx
 
-        class _FailingAsyncClient:
-            def __init__(self, *args, **kwargs):
-                pass
+        import src.services.security.public_http as public_http
 
-            async def __aenter__(self):
-                return self
+        async def _failing_fetch_public_url(url, **kwargs):
+            raise httpx.ConnectError("boom")
 
-            async def __aexit__(self, *args):
-                return False
-
-            async def get(self, url):
-                raise httpx.ConnectError("boom")
-
-        monkeypatch.setattr(httpx, "AsyncClient", _FailingAsyncClient)
+        # _fetch_youtube_oembed() now fetches through the SSRF-hardened
+        # fetch_public_url() helper rather than calling httpx directly.
+        monkeypatch.setattr(public_http, "fetch_public_url", _failing_fetch_public_url)
 
         tool_result = {"success": True, "video_id": "abc123", "full_text": "hello world"}
         chunks = await self._run_stream(

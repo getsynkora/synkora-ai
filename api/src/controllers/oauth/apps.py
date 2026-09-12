@@ -85,7 +85,9 @@ async def _validate_cloud_provider_config(
                 return
             await validate_digitalocean_credentials(token=api_token)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail="Internal server error") from e
+        # validate_*_credentials() raise ValueError with a deliberately safe,
+        # user-actionable message (see credential_validators.py) — surface it.
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.get("/apps")

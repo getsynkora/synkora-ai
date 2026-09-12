@@ -357,6 +357,8 @@ async def google_login(
 
         return RedirectResponse(url=auth_url)
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Google social login error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -533,6 +535,8 @@ async def microsoft_login(
 
         return RedirectResponse(url=auth_url)
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Microsoft social login error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -697,6 +701,8 @@ async def apple_login(
 
         return RedirectResponse(url=auth_url)
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Apple social login error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")

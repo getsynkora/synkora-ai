@@ -161,6 +161,10 @@ dev = [
     "faker>=33.0.0,<34.0.0",
     "factory-boy>=3.3.0,<4.0.0",
     "moto[cloudwatch,cloudwatchlogs,ec2,securityhub,sts]>=5.0.0,<6.0.0",
+    # Import-only: exercises services/scraper/app.py's upload-path security
+    # boundary from tests/unit/services/security/test_browser_upload_boundary.py.
+    # No browser binaries are launched, so `playwright install` isn't needed.
+    "playwright>=1.62.0,<2.0.0",
 
     # Code Quality
     "ruff>=0.8.0,<1.0.0",

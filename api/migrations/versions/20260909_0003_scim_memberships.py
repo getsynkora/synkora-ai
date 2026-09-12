@@ -21,7 +21,7 @@ def upgrade():
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.UniqueConstraint("tenant_id", "account_id", name="uq_scim_membership"),
-        sa.CheckConstraint("role IN ('normal', 'admin', 'owner')", name="ck_scim_membership_role"),
+        sa.CheckConstraint("role IN ('NORMAL', 'EDITOR', 'ADMIN', 'OWNER')", name="ck_scim_membership_role"),
     )
     op.create_index("ix_scim_memberships_tenant_id", "scim_memberships", ["tenant_id"])
 

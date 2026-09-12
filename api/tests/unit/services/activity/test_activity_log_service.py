@@ -138,15 +138,13 @@ class TestActivityLogService:
 
     @pytest.mark.asyncio
     async def test_delete_old_logs(self, service, mock_db):
-        log1 = MagicMock(spec=ActivityLog)
-        log2 = MagicMock(spec=ActivityLog)
-
+        # delete_old_logs issues a single bulk DELETE rather than
+        # select-then-delete-per-row, so the count comes from rowcount.
         mock_result = MagicMock()
-        mock_result.scalars.return_value.all.return_value = [log1, log2]
+        mock_result.rowcount = 2
         mock_db.execute.return_value = mock_result
 
         count = await service.delete_old_logs(days=30, tenant_id=uuid4())
 
         assert count == 2
-        assert mock_db.delete.call_count == 2
         mock_db.commit.assert_called_once()

@@ -139,7 +139,7 @@ class TestScheduledTasksController:
         data = response.json()
         assert data["id"] == str(task_id)
 
-        mock_service.get_task.assert_called_with(task_id)
+        mock_service.get_task.assert_called_with(task_id, tenant_id=tenant_id)
 
     def test_update_scheduled_task(self, client):
         test_client, tenant_id, mock_service_cls = client
@@ -159,7 +159,7 @@ class TestScheduledTasksController:
         data = response.json()
         assert data["name"] == "Updated Task"
 
-        mock_service.update_task.assert_called_with(task_id, name="Updated Task")
+        mock_service.update_task.assert_called_with(task_id, tenant_id=tenant_id, name="Updated Task")
 
     def test_delete_scheduled_task(self, client):
         test_client, tenant_id, mock_service_cls = client
@@ -174,7 +174,7 @@ class TestScheduledTasksController:
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
 
-        mock_service.delete_task.assert_called_with(task_id)
+        mock_service.delete_task.assert_called_with(task_id, tenant_id=tenant_id)
 
     def test_execute_scheduled_task(self, client):
         test_client, tenant_id, mock_service_cls = client
@@ -208,7 +208,7 @@ class TestScheduledTasksController:
         data = response.json()
         assert data["is_active"] is False
 
-        mock_service.toggle_task.assert_called_with(task_id)
+        mock_service.toggle_task.assert_called_with(task_id, tenant_id=tenant_id)
 
     def test_validate_cron_expression(self, client):
         test_client, tenant_id, mock_service_cls = client

@@ -4,10 +4,22 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.platform_settings import PlatformSettings
-from src.services.billing.platform_settings_service import PlatformSettingsService
+from src.services.billing.platform_settings_service import (
+    PlatformSettingsService,
+    invalidate_platform_settings_cache,
+)
 
 
 class TestPlatformSettingsService:
+    @pytest.fixture(autouse=True)
+    def _reset_settings_cache(self):
+        # The service keeps a process-local cache of the settings singleton;
+        # clear it before and after each test so tests don't leak state into
+        # one another via that module-level cache.
+        invalidate_platform_settings_cache()
+        yield
+        invalidate_platform_settings_cache()
+
     @pytest.fixture
     def mock_db(self):
         session = AsyncMock(spec=AsyncSession)

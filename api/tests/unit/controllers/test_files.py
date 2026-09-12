@@ -151,7 +151,7 @@ class TestUploadFile:
 
         response = test_client.post("/files/upload", files=files, data=data)
 
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.status_code == status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
 
     def test_upload_avatar_agent_not_found(self, client):
         """Test avatar upload for non-existent agent."""

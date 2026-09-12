@@ -527,6 +527,12 @@ class AgentRoleService:
         if not source:
             return None
 
+        # SECURITY: Explicitly re-verify authorization instead of trusting that get_role's
+        # tenant scoping was applied — only the requesting tenant's own roles or system
+        # templates may be cloned.
+        if source.tenant_id != tenant_id and not source.is_system_template:
+            return None
+
         return await self.create_role(
             tenant_id=tenant_id,
             role_type=AgentRoleType.CUSTOM.value,

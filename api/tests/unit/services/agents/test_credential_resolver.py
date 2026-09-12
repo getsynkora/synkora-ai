@@ -480,7 +480,9 @@ class TestUserOAuthTokenRoundTrip:
     doesn't break access to tokens saved before it shipped."""
 
     @pytest.mark.asyncio
-    async def test_get_user_token_resolves_both_legacy_and_fixed_rows(self, async_db_session, tenant, account):
+    async def test_get_user_token_resolves_both_legacy_and_fixed_rows(
+        self, async_db_session, tenant, account, tenant_member
+    ):
         from src.models.oauth_app import OAuthApp
         from src.models.user_oauth_token import UserOAuthToken
         from src.services.agents.security import encrypt_value

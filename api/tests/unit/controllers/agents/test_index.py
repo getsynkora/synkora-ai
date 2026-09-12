@@ -104,73 +104,106 @@ def sample_create_request():
 
 
 class TestConvertS3UriToPresignedUrl:
-    """Tests for convert_s3_uri_to_presigned_url helper."""
+    """Tests for convert_s3_uri_to_presigned_url helper.
+
+    The helper now requires the caller's tenant_id and re-derives (and
+    authorizes) the storage key via validate_avatar_reference() /
+    tenant_object_key() rather than trusting the raw URI, so foreign or
+    unowned references are never returned or signed.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _reset_storage_service_singleton(self):
+        # index.py caches a module-level S3StorageService singleton; clear it
+        # so each test's S3StorageService patch actually takes effect.
+        import src.controllers.agents.index as index_module
+
+        index_module._storage_service = None
+        yield
+        index_module._storage_service = None
 
     def test_returns_none_for_none_input(self):
         """Test None input returns None."""
         from src.controllers.agents.index import convert_s3_uri_to_presigned_url
 
-        assert convert_s3_uri_to_presigned_url(None) is None
+        assert convert_s3_uri_to_presigned_url(None, uuid4()) is None
 
     def test_returns_empty_for_empty_input(self):
         """Test empty string input returns empty string."""
         from src.controllers.agents.index import convert_s3_uri_to_presigned_url
 
-        assert convert_s3_uri_to_presigned_url("") == ""
+        assert convert_s3_uri_to_presigned_url("", uuid4()) == ""
 
-    def test_returns_http_url_unchanged(self):
-        """Test HTTP URLs pass through unchanged."""
+    @patch("src.controllers.agents.index.S3StorageService")
+    def test_returns_http_url_unchanged(self, mock_storage):
+        """Test HTTP URLs pointing outside our own storage pass through unchanged."""
         from src.controllers.agents.index import convert_s3_uri_to_presigned_url
+
+        mock_service = Mock()
+        mock_service.extract_own_key_from_url.return_value = None
+        mock_storage.return_value = mock_service
 
         http_url = "http://example.com/image.png"
-        assert convert_s3_uri_to_presigned_url(http_url) == http_url
+        assert convert_s3_uri_to_presigned_url(http_url, uuid4()) == http_url
 
-    def test_returns_https_url_unchanged(self):
-        """Test HTTPS URLs pass through unchanged."""
+    @patch("src.controllers.agents.index.S3StorageService")
+    def test_returns_https_url_unchanged(self, mock_storage):
+        """Test HTTPS URLs pointing outside our own storage pass through unchanged."""
         from src.controllers.agents.index import convert_s3_uri_to_presigned_url
 
+        mock_service = Mock()
+        mock_service.extract_own_key_from_url.return_value = None
+        mock_storage.return_value = mock_service
+
         https_url = "https://example.com/image.png"
-        assert convert_s3_uri_to_presigned_url(https_url) == https_url
+        assert convert_s3_uri_to_presigned_url(https_url, uuid4()) == https_url
 
     @patch("src.controllers.agents.index.S3StorageService")
     def test_converts_s3_uri_to_presigned_url(self, mock_storage):
-        """Test S3 URI is converted to presigned URL."""
+        """Test S3 URI owned by the tenant is converted to a presigned URL."""
         from src.controllers.agents.index import convert_s3_uri_to_presigned_url
 
+        tenant_id = uuid4()
         mock_service = Mock()
+        mock_service.bucket_name = "bucket"
         mock_service.generate_presigned_url.return_value = "https://s3.amazonaws.com/presigned"
         mock_storage.return_value = mock_service
 
-        result = convert_s3_uri_to_presigned_url("s3://bucket/key.png")
+        result = convert_s3_uri_to_presigned_url("s3://bucket/key.png", tenant_id)
 
         assert result == "https://s3.amazonaws.com/presigned"
-        mock_service.generate_presigned_url.assert_called_once()
+        mock_service.generate_presigned_url.assert_called_once_with(
+            f"s3://bucket/tenants/{tenant_id}/key.png", expiration=3600
+        )
 
     @patch("src.controllers.agents.index.S3StorageService")
     def test_converts_path_to_presigned_url(self, mock_storage):
-        """Test key path is converted to presigned URL."""
+        """Test a relative key path is scoped to the tenant and signed."""
         from src.controllers.agents.index import convert_s3_uri_to_presigned_url
 
+        tenant_id = uuid4()
         mock_service = Mock()
+        mock_service.bucket_name = "bucket"
         mock_service.generate_presigned_url.return_value = "https://s3.amazonaws.com/presigned"
         mock_storage.return_value = mock_service
 
-        result = convert_s3_uri_to_presigned_url("uploads/avatar.png")
+        result = convert_s3_uri_to_presigned_url("uploads/avatar.png", tenant_id)
 
         assert result == "https://s3.amazonaws.com/presigned"
+        mock_service.generate_presigned_url.assert_called_once_with(
+            f"s3://bucket/tenants/{tenant_id}/uploads/avatar.png", expiration=3600
+        )
 
-    @patch("src.controllers.agents.index._storage_service", None)
     @patch("src.controllers.agents.index.S3StorageService")
-    def test_returns_original_on_exception(self, mock_storage):
-        """Test original URI returned on S3 exception."""
+    def test_returns_none_on_exception(self, mock_storage):
+        """Legacy/foreign references that fail authorization must not be returned or signed."""
         from src.controllers.agents.index import convert_s3_uri_to_presigned_url
 
         mock_storage.side_effect = Exception("S3 error")
 
-        s3_uri = "s3://bucket/key.png"
-        result = convert_s3_uri_to_presigned_url(s3_uri)
+        result = convert_s3_uri_to_presigned_url("s3://bucket/key.png", uuid4())
 
-        assert result == s3_uri
+        assert result is None
 
 
 class TestCreateAgent:
