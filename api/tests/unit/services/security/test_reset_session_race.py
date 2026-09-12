@@ -41,6 +41,7 @@ async def test_login_using_old_password_cannot_survive_overlapping_reset(monkeyp
     blacklist.blacklist_all_account_tokens.side_effect = revoke
     monkeypatch.setattr("src.services.security.token_blacklist.TokenBlacklistService", lambda: blacklist)
     monkeypatch.setattr("src.services.session_service.get_token_blacklist_service", lambda: blacklist)
+
     async def _mock_lockout(*_):
         return (False, "")
 
@@ -82,7 +83,7 @@ def test_durable_version_rejects_legacy_and_stale_tokens_after_reset():
     account = SimpleNamespace(auth_version=0)
     AuthService.validate_account_auth_version({}, account)  # Existing sessions survive rollout.
     account.auth_version = 1
-    for payload in [{}, {'av':0}, {'av':True}, {'av':'1'}]:
+    for payload in [{}, {"av": 0}, {"av": True}, {"av": "1"}]:
         with pytest.raises(ValueError):
             AuthService.validate_account_auth_version(payload, account)
-    AuthService.validate_account_auth_version({'av':1}, account)
+    AuthService.validate_account_auth_version({"av": 1}, account)

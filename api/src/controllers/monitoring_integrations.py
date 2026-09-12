@@ -86,9 +86,7 @@ async def list_monitoring_integrations(
     try:
         # Get total count
         count_result = await db.execute(
-            select(func.count(MonitoringIntegration.id)).filter(
-                MonitoringIntegration.tenant_id == tenant_id
-            )
+            select(func.count(MonitoringIntegration.id)).filter(MonitoringIntegration.tenant_id == tenant_id)
         )
         total = count_result.scalar() or 0
 

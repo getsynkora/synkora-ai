@@ -261,7 +261,9 @@ async def import_from_url(
             raise HTTPException(status_code=400, detail="Unable to import a valid public OpenAPI document") from exc
 
         # Validate it's an OpenAPI schema
-        if not isinstance(openapi_schema, dict) or ("openapi" not in openapi_schema and "swagger" not in openapi_schema):
+        if not isinstance(openapi_schema, dict) or (
+            "openapi" not in openapi_schema and "swagger" not in openapi_schema
+        ):
             raise HTTPException(
                 status_code=400,
                 detail="URL does not point to a valid OpenAPI/Swagger schema",

@@ -103,39 +103,69 @@ class EmailService:
             if provider_name == "sendgrid":
                 return await asyncio.to_thread(
                     self._send_via_sendgrid,
-                    to_email=to_email, subject=subject, html_content=html_content,
-                    text_content=text_content, from_email=_from, from_name=_name, config=config_data,
+                    to_email=to_email,
+                    subject=subject,
+                    html_content=html_content,
+                    text_content=text_content,
+                    from_email=_from,
+                    from_name=_name,
+                    config=config_data,
                 )
             elif provider_name == "mailgun":
                 return await asyncio.to_thread(
                     self._send_via_mailgun,
-                    to_email=to_email, subject=subject, html_content=html_content,
-                    text_content=text_content, from_email=_from, from_name=_name, config=config_data,
+                    to_email=to_email,
+                    subject=subject,
+                    html_content=html_content,
+                    text_content=text_content,
+                    from_email=_from,
+                    from_name=_name,
+                    config=config_data,
                 )
             elif provider_name == "brevo":
                 return await asyncio.to_thread(
                     self._send_via_brevo,
-                    to_email=to_email, subject=subject, html_content=html_content,
-                    text_content=text_content, from_email=_from, from_name=_name, config=config_data,
+                    to_email=to_email,
+                    subject=subject,
+                    html_content=html_content,
+                    text_content=text_content,
+                    from_email=_from,
+                    from_name=_name,
+                    config=config_data,
                 )
             elif provider_name == "resend":
                 return await asyncio.to_thread(
                     self._send_via_resend,
-                    to_email=to_email, subject=subject, html_content=html_content,
-                    text_content=text_content, from_email=_from, from_name=_name, config=config_data,
+                    to_email=to_email,
+                    subject=subject,
+                    html_content=html_content,
+                    text_content=text_content,
+                    from_email=_from,
+                    from_name=_name,
+                    config=config_data,
                 )
             elif provider_name == "mailtrap":
                 return await asyncio.to_thread(
                     self._send_via_mailtrap,
-                    to_email=to_email, subject=subject, html_content=html_content,
-                    text_content=text_content, from_email=_from, from_name=_name, config=config_data,
+                    to_email=to_email,
+                    subject=subject,
+                    html_content=html_content,
+                    text_content=text_content,
+                    from_email=_from,
+                    from_name=_name,
+                    config=config_data,
                 )
             else:  # smtp
                 return await asyncio.to_thread(
                     self._send_via_smtp,
-                    to_email=to_email, subject=subject, html_content=html_content,
-                    text_content=text_content, from_email=_from, from_name=_name,
-                    config=config_data, attachments=attachments,
+                    to_email=to_email,
+                    subject=subject,
+                    html_content=html_content,
+                    text_content=text_content,
+                    from_email=_from,
+                    from_name=_name,
+                    config=config_data,
+                    attachments=attachments,
                 )
         except Exception as e:
             logger.error(f"Failed to send email: {str(e)}")

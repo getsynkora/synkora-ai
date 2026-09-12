@@ -5,6 +5,7 @@ This service handles sending agent responses to configured outputs
 (Slack, Email, Webhook, etc.) and tracks delivery status.
 """
 
+import html as html_mod
 import logging
 import re
 import traceback
@@ -12,7 +13,6 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-import html as html_mod
 import httpx
 import markdown as md_lib
 from jinja2.sandbox import SandboxedEnvironment
@@ -321,7 +321,9 @@ class WebhookOutputProvider:
 
         from src.services.security.public_http import request_checked_url
 
-        response = await request_checked_url(method, url, json=payload, headers=headers, timeout=30.0, max_bytes=512_000)
+        response = await request_checked_url(
+            method, url, json=payload, headers=headers, timeout=30.0, max_bytes=512_000
+        )
         response.raise_for_status()
 
         return {

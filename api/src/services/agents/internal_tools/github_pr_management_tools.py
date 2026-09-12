@@ -632,9 +632,7 @@ async def _find_existing_pr(
     """Find an existing open PR for the given branches."""
     try:
         params = {"head": f"{repo_owner}:{head_branch}", "base": base_branch, "state": "open"}
-        result = await _make_github_request(
-            "GET", f"/repos/{repo_owner}/{repo_name}/pulls", token, params=params
-        )
+        result = await _make_github_request("GET", f"/repos/{repo_owner}/{repo_name}/pulls", token, params=params)
         if isinstance(result, list) and result:
             return result[0]
         return None

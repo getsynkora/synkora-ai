@@ -8,11 +8,11 @@ Provides news fetching capabilities:
 
 import logging
 import re
-import defusedxml.ElementTree as SafeET
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from typing import Any
 
+import defusedxml.ElementTree as SafeET
 import httpx
 
 logger = logging.getLogger(__name__)

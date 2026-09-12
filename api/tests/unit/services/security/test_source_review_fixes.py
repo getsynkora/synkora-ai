@@ -345,11 +345,12 @@ async def test_refresh_enforces_absolute_age_before_rotation(monkeypatch, age):
 
 
 def test_followup_worker_reloads_task_and_filters_child_tenant(monkeypatch):
+    from sqlalchemy import and_
+
     from src.models.agent import Agent
     from src.models.followup import FollowupItem
     from src.models.scheduled_task import ScheduledTask
     from src.tasks import followup_reminder_task as worker
-    from sqlalchemy import and_
 
     tenant, agent, followup, task_id = uuid4(), uuid4(), uuid4(), uuid4()
     task = SimpleNamespace(tenant_id=tenant, config={"agent_id": str(agent), "followup_item_id": str(followup)})

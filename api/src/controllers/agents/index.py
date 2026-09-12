@@ -1687,6 +1687,4 @@ async def clone_agent(
     except Exception as e:
         await db.rollback()
         logger.error(f"Failed to clone agent: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to clone agent"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to clone agent")

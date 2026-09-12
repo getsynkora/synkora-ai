@@ -1,7 +1,7 @@
 """Unit tests for query_file_with_duckdb agent tool."""
 
-from unittest.mock import AsyncMock, patch
 from types import SimpleNamespace
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pandas as pd

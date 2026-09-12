@@ -280,6 +280,12 @@ async def internal_render_newsletter(
         )
     except Exception as exc:
         logger.warning(f"Redis unavailable, returning inline HTML: {exc}")
-        return {"success": True, "html": final_html, "subject": subject, "pdf_url": pdf_s3_key, "image_url": image_s3_key}
+        return {
+            "success": True,
+            "html": final_html,
+            "subject": subject,
+            "pdf_url": pdf_s3_key,
+            "image_url": image_s3_key,
+        }
 
     return {"success": True, "subject": subject, "body": render_key}

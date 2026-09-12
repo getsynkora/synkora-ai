@@ -450,7 +450,10 @@ class TestWidgetChatTenantId:
         mock_widget.enable_agent_routing = False
         mock_widget.identity_verification_required = False
         mock_widget.identity_secret = "test-secret"
-        monkeypatch.setattr("src.services.security.widget_identity.decrypt_value", lambda value: "synthetic-widget-test-key-longer-than-32-bytes")
+        monkeypatch.setattr(
+            "src.services.security.widget_identity.decrypt_value",
+            lambda value: "synthetic-widget-test-key-longer-than-32-bytes",
+        )
         mock_widget.mobile_allowed = False
 
         mock_agent = _create_mock_agent(agent_id, tenant_id)

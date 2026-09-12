@@ -1024,9 +1024,7 @@ def _session_to_schema(session: DebateSession, requesting_account_id: uuid.UUID 
             leaking the token to non-creators.
     """
     # SECURITY: Only the debate creator should see the share_token
-    include_share_token = (
-        requesting_account_id is not None and session.created_by == requesting_account_id
-    )
+    include_share_token = requesting_account_id is not None and session.created_by == requesting_account_id
 
     return {
         "id": str(session.id),

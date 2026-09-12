@@ -209,7 +209,18 @@ async def update_mcp_server(
                     raise HTTPException(status_code=400, detail="URL is required for HTTP transport")
 
         # Update fields — only allow known safe attributes
-        updatable = {"name", "url", "description", "transport_type", "command", "args", "env", "headers", "config", "status"}
+        updatable = {
+            "name",
+            "url",
+            "description",
+            "transport_type",
+            "command",
+            "args",
+            "env",
+            "headers",
+            "config",
+            "status",
+        }
         for key, value in update_data.items():
             if key in updatable:
                 setattr(server, key, value)

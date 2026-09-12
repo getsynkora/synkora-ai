@@ -305,9 +305,7 @@ async def list_voices(
 
     except Exception as e:
         logger.error(f"Error listing voices: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to list voices"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to list voices")
 
 
 @voice_router.get("/providers", response_model=VoiceResponse)
