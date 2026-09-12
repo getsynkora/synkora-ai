@@ -337,6 +337,13 @@ services:
     build:
       context: ./services/ml
       dockerfile: Dockerfile
+      # Pinned HuggingFace model revisions (supply-chain: the build fails
+      # rather than trusting an upstream model update at build time). Bump
+      # deliberately here and in docker-build.yml / deploy-production.yml
+      # after reviewing the new revision.
+      args:
+        EMBEDDING_MODEL_REVISION: 1110a243fdf4706b3f48f1d95db1a4f5529b4d41
+        RERANK_MODEL_REVISION: 233902d25c440f23af6f7d6e94d2946bac0bee0a
     container_name: synkora-ml
     environment:
       - ML_API_KEY=${ML_API_KEY:?Set a random ML_API_KEY of at least 32 characters}
