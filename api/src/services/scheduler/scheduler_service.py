@@ -57,9 +57,13 @@ class SchedulerService:
             if agent is None:
                 raise ValueError("Agent is unavailable in this tenant")
         if task_type in {"database_query", "chart_generation"} or config.get("database_connection_id"):
+            try:
+                database_connection_id = uuid.UUID(str(config.get("database_connection_id", "")))
+            except ValueError as e:
+                raise ValueError("Database connection is unavailable in this tenant") from e
             connection = await self.db.scalar(
                 select(DatabaseConnection.id).where(
-                    DatabaseConnection.id == config.get("database_connection_id"),
+                    DatabaseConnection.id == database_connection_id,
                     DatabaseConnection.tenant_id == tenant_id,
                 )
             )

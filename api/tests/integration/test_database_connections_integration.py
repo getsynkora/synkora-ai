@@ -97,7 +97,7 @@ class TestDatabaseConnectionsCRUDIntegration:
         list_response = client.get("/api/v1/database-connections", headers=headers)
         assert list_response.status_code == status.HTTP_200_OK
         list_data = list_response.json()
-        connection_ids = [c["id"] for c in list_data]
+        connection_ids = [c["id"] for c in list_data["items"]]
         assert connection_id in connection_ids
 
         # 4. Update Database Connection
@@ -601,14 +601,14 @@ class TestDatabaseConnectionsTenantIsolation:
         # List connections for tenant 1
         list_response1 = client.get("/api/v1/database-connections", headers=headers1)
         assert list_response1.status_code == status.HTTP_200_OK
-        names1 = [c["name"] for c in list_response1.json()]
+        names1 = [c["name"] for c in list_response1.json()["items"]]
         assert conn_name_1 in names1
         assert conn_name_2 not in names1
 
         # List connections for tenant 2
         list_response2 = client.get("/api/v1/database-connections", headers=headers2)
         assert list_response2.status_code == status.HTTP_200_OK
-        names2 = [c["name"] for c in list_response2.json()]
+        names2 = [c["name"] for c in list_response2.json()["items"]]
         assert conn_name_2 in names2
         assert conn_name_1 not in names2
 
