@@ -1,6 +1,6 @@
 """Feature configuration."""
 
-from pydantic import Field, computed_field
+from pydantic import Field, computed_field, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -138,6 +138,17 @@ class VectorDBConfig(BaseSettings):
         default=None,
         description="Milvus port",
     )
+
+    @field_validator("milvus_port", mode="before")
+    @classmethod
+    def _empty_milvus_port_to_none(cls, value: object) -> object:
+        # .env.example ships MILVUS_PORT= (empty) as an "unset" placeholder for
+        # every optional field it documents. Unlike the str | None fields
+        # here, an empty string isn't valid input for an int field, so it
+        # fails validation instead of falling back to the default.
+        if value == "":
+            return None
+        return value
 
     milvus_user: str | None = Field(
         default=None,
