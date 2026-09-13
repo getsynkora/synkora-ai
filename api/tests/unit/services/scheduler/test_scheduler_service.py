@@ -42,13 +42,17 @@ class TestSchedulerService:
     async def test_create_task(self, scheduler_service, mock_db_session):
         tenant_id = uuid.uuid4()
         created_by = uuid.uuid4()
+        # DatabaseConnection.id is a UUID column (like every BaseModel PK) despite
+        # create_task()'s stale `int` type hint; _validate_references() now checks
+        # the format up front, so this must be a real UUID.
+        database_connection_id = uuid.uuid4()
 
         task = await scheduler_service.create_task(
             tenant_id=tenant_id,
             name="Test Task",
             task_type="database_query",
             schedule="0 0 * * *",
-            database_connection_id=1,
+            database_connection_id=database_connection_id,
             query="SELECT 1",
             created_by=created_by,
         )
@@ -58,7 +62,7 @@ class TestSchedulerService:
         assert task.name == "Test Task"
         assert task.cron_expression == "0 0 * * *"  # Check cron_expression instead of schedule
         assert task.schedule_type == "cron"
-        assert task.config == {"database_connection_id": 1, "query": "SELECT 1"}  # Check config
+        assert task.config == {"database_connection_id": database_connection_id, "query": "SELECT 1"}  # Check config
         assert task.created_by == created_by
 
         mock_db_session.add.assert_called_once()
