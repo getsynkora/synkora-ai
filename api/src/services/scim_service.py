@@ -1,14 +1,4 @@
-"""SCIM 2.0 user provisioning service.
-
-Implements RFC 7643 / 7644 operations for User resources.
-The SCIM identity maps directly to the platform Account model:
-  - SCIM userName  <->  Account.email
-  - SCIM id        <->  Account.id (UUID)
-  - SCIM active    <->  Account.status == AccountStatus.ACTIVE
-
-All operations are scoped to the tenant_id extracted from the validated SCIM
-bearer token, so there is zero risk of cross-tenant data leakage.
-"""
+"""Tenant-scoped SCIM provisioning; global login identity is never mutable through SCIM."""
 
 import hashlib
 import logging
@@ -17,12 +7,12 @@ import secrets
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.models.scim_membership import SCIMMembership
 from src.models.scim_token import SCIMToken
 from src.models.tenant import Account, AccountRole, AccountStatus, TenantAccountJoin
-from src.services.session_service import SessionService
 
 logger = logging.getLogger(__name__)
 
@@ -161,355 +151,214 @@ async def validate_scim_token(db: AsyncSession, token: str) -> SCIMToken | None:
 # ---------------------------------------------------------------------------
 
 
-async def list_users(
-    db: AsyncSession,
-    tenant_id: uuid.UUID,
-    start_index: int = 1,
-    count: int = 100,
-    filter_str: str | None = None,
-) -> dict:
-    """
-    Return a SCIM ListResponse for Users belonging to tenant_id.
-
-    Only accounts that are members of the tenant are included.
-
-    Args:
-        db: Async database session
-        tenant_id: Tenant scope
-        start_index: 1-based offset (SCIM spec)
-        count: Page size (max 200 enforced)
-        filter_str: Optional SCIM filter string (only userName eq supported)
-
-    Returns:
-        SCIM ListResponse dict
-    """
-    count = min(count, 200)
-    offset = max(start_index - 1, 0)
-
-    # Base query — join through TenantAccountJoin to scope to tenant
-    base_q = (
-        select(Account)
-        .join(TenantAccountJoin, TenantAccountJoin.account_id == Account.id)
-        .filter(TenantAccountJoin.tenant_id == tenant_id)
+def _resources(tenant_id):
+    return (
+        select(Account, SCIMMembership, TenantAccountJoin)
+        .outerjoin(SCIMMembership, and_(SCIMMembership.account_id == Account.id, SCIMMembership.tenant_id == tenant_id))
+        .outerjoin(
+            TenantAccountJoin,
+            and_(TenantAccountJoin.account_id == Account.id, TenantAccountJoin.tenant_id == tenant_id),
+        )
+        .where(or_(SCIMMembership.id.isnot(None), TenantAccountJoin.id.isnot(None)))
     )
-    base_q = _apply_filter(base_q, filter_str)
 
-    # Total count
-    count_q = select(func.count()).select_from(base_q.subquery())
-    total_result = await db.execute(count_q)
-    total = total_result.scalar() or 0
 
-    # Paginated rows
-    rows_result = await db.execute(base_q.offset(offset).limit(count))
-    accounts = rows_result.scalars().all()
+def _resource(account, profile, membership, tenant_id):
+    data = _account_to_scim(account, tenant_id)
+    data["active"] = membership is not None and account.status == AccountStatus.ACTIVE
+    if profile and profile.display_name is not None:
+        name = profile.display_name
+        data["displayName"] = name
+        data["name"] = {
+            "formatted": name,
+            "givenName": name.split(" ", 1)[0],
+            "familyName": name.split(" ", 1)[1] if " " in name else "",
+        }
+    return data
 
+
+async def _locked_resource(db, tenant_id, user_id):
+    try:
+        user_id = uuid.UUID(str(user_id))
+    except ValueError:
+        return None
+    # Serialize lifecycle changes without locking nullable outer-join rows.
+    await db.execute(
+        select(Account.id)
+        .where(Account.id == user_id, Account.id.in_(_resources(tenant_id).with_only_columns(Account.id)))
+        .with_for_update()
+    )
+    result = await db.execute(_resources(tenant_id).where(Account.id == user_id))
+    return result.first()
+
+
+async def list_users(db, tenant_id, start_index=1, count=100, filter_str=None):
+    count = max(0, min(count, 200))
+    query = _apply_filter(_resources(tenant_id), filter_str)
+    total = (await db.execute(select(func.count()).select_from(query.subquery()))).scalar() or 0
+    rows = (await db.execute(query.order_by(Account.id).offset(max(start_index - 1, 0)).limit(count))).all()
     return {
         "schemas": [_SCHEMA_LIST],
         "totalResults": total,
         "startIndex": start_index,
-        "itemsPerPage": len(accounts),
-        "Resources": [_account_to_scim(a, tenant_id) for a in accounts],
+        "itemsPerPage": len(rows),
+        "Resources": [_resource(*row, tenant_id) for row in rows],
     }
 
 
-async def get_user(db: AsyncSession, tenant_id: uuid.UUID, scim_user_id: str) -> dict | None:
-    """
-    Return a SCIM User resource by UUID, scoped to tenant_id.
-
-    Args:
-        db: Async database session
-        tenant_id: Tenant scope
-        scim_user_id: String UUID of the account
-
-    Returns:
-        SCIM User dict or None if not found / not in tenant
-    """
+async def get_user(db, tenant_id, scim_user_id):
     try:
-        user_uuid = uuid.UUID(scim_user_id)
+        user_id = uuid.UUID(scim_user_id)
     except ValueError:
         return None
-
-    result = await db.execute(
-        select(Account)
-        .join(TenantAccountJoin, TenantAccountJoin.account_id == Account.id)
-        .filter(Account.id == user_uuid, TenantAccountJoin.tenant_id == tenant_id)
-    )
-    account = result.scalar_one_or_none()
-    if not account:
-        return None
-    return _account_to_scim(account, tenant_id)
+    row = (await db.execute(_resources(tenant_id).where(Account.id == user_id))).first()
+    return _resource(*row, tenant_id) if row else None
 
 
-async def create_user(db: AsyncSession, tenant_id: uuid.UUID, scim_data: dict) -> dict:
-    """
-    Provision a new user for tenant_id via SCIM.
-
-    Creates an Account (if email not already registered) and links it to the
-    tenant via TenantAccountJoin.
-
-    Args:
-        db: Async database session
-        tenant_id: Tenant scope
-        scim_data: Parsed SCIM User payload
-
-    Returns:
-        SCIM User dict for the created account
-
-    Raises:
-        ValueError: If userName (email) is missing or already exists in tenant
-    """
+async def create_user(db, tenant_id, scim_data):
+    if not isinstance(scim_data, dict) or not isinstance(scim_data.get("userName", ""), str):
+        raise ValueError("userName must be a string")
     email = scim_data.get("userName", "").strip().lower()
     if not email:
         raise ValueError("userName is required")
-
-    name = _parse_name(scim_data)
     active = scim_data.get("active", True)
-    status = AccountStatus.ACTIVE if active else AccountStatus.INACTIVE
-
-    # Check if account already exists globally
-    existing_result = await db.execute(select(Account).filter(Account.email == email))
-    account = existing_result.scalar_one_or_none()
-
-    if account:
-        # Check if already a member of this tenant
-        membership_result = await db.execute(
-            select(TenantAccountJoin).filter(
-                TenantAccountJoin.tenant_id == tenant_id,
-                TenantAccountJoin.account_id == account.id,
-            )
+    if not isinstance(active, bool):
+        raise ValueError("active must be a boolean")
+    account = (await db.execute(select(Account).where(Account.email == email))).scalar_one_or_none()
+    if account is not None:
+        # An email match does not authorize attaching an existing global identity.
+        raise ValueError(
+            "User cannot be provisioned; use the verified membership/invitation flow for existing accounts"
         )
-        if membership_result.scalar_one_or_none():
-            raise ValueError(f"User {email} already exists in tenant")
-    else:
-        # Create new account
-        account = Account(
-            name=name or email.split("@")[0],
-            email=email,
-            status=status,
-            auth_provider="scim",
-        )
-        db.add(account)
-        await db.flush()  # populate account.id
-
-    # Link account to tenant
-    join = TenantAccountJoin(
-        tenant_id=tenant_id,
-        account_id=account.id,
-        role=AccountRole.NORMAL,
+    name = _parse_name(scim_data) or email.split("@")[0]
+    account = Account(name=name, email=email, status=AccountStatus.ACTIVE, auth_provider="scim")
+    db.add(account)
+    await db.flush()
+    profile = SCIMMembership(
+        tenant_id=tenant_id, account_id=account.id, display_name=name, role=AccountRole.NORMAL.value
     )
-    db.add(join)
+    db.add(profile)
+    membership = None
+    if active:
+        membership = TenantAccountJoin(tenant_id=tenant_id, account_id=account.id, role=AccountRole.NORMAL)
+        db.add(membership)
     await db.commit()
     await db.refresh(account)
-    return _account_to_scim(account, tenant_id)
+    return _resource(account, profile, membership, tenant_id)
 
 
-async def update_user(db: AsyncSession, tenant_id: uuid.UUID, scim_user_id: str, scim_data: dict) -> dict | None:
-    """
-    Full replace (PUT) of a SCIM User resource.
+def _validate_fields(account, values):
+    allowed = {"username", "active", "name", "displayname", "externalid", "emails", "schemas", "id", "meta"}
+    if not isinstance(values, dict) or any(not isinstance(k, str) or k.lower() not in allowed for k in values):
+        raise ValueError("Unsupported SCIM fields")
+    values = {key.lower(): value for key, value in values.items()}
+    if "username" in values and (
+        not isinstance(values["username"], str) or values["username"].strip().lower() != account.email.lower()
+    ):
+        raise ValueError("SCIM cannot change global login identity")
+    if "emails" in values:
+        emails = values["emails"]
+        if not isinstance(emails, list) or any(
+            not isinstance(e, dict)
+            or not isinstance(e.get("value"), str)
+            or e["value"].lower() != account.email.lower()
+            for e in emails
+        ):
+            raise ValueError("SCIM cannot change global login identity")
+    if "active" in values and not isinstance(values["active"], bool):
+        raise ValueError("active must be a boolean")
+    name = values.get("displayname")
+    if "name" in values:
+        if not isinstance(values["name"], dict):
+            raise ValueError("name must be an object")
+        name = _parse_name({"name": values["name"]})
+    if name is not None and (not isinstance(name, str) or len(name) > 255):
+        raise ValueError("Invalid display name")
+    return values.get("active"), name
 
-    Args:
-        db: Async database session
-        tenant_id: Tenant scope
-        scim_user_id: String UUID of the account
-        scim_data: Parsed SCIM User payload
 
-    Returns:
-        Updated SCIM User dict, or None if not found
-    """
-    try:
-        user_uuid = uuid.UUID(scim_user_id)
-    except ValueError:
-        return None
-
-    result = await db.execute(
-        select(Account)
-        .join(TenantAccountJoin, TenantAccountJoin.account_id == Account.id)
-        .filter(Account.id == user_uuid, TenantAccountJoin.tenant_id == tenant_id)
-    )
-    account = result.scalar_one_or_none()
-    if not account:
-        return None
-
-    name = _parse_name(scim_data)
-    if name:
-        account.name = name
-
-    email = scim_data.get("userName", "").strip().lower()
-    if email and email != account.email:
-        account.email = email
-
-    active = scim_data.get("active", True)
-    account.status = AccountStatus.ACTIVE if active else AccountStatus.INACTIVE
-
+async def _apply_local(db, tenant_id, row, active, name):
+    account, profile, membership = row
+    if profile is None:
+        profile = SCIMMembership(
+            tenant_id=tenant_id, account_id=account.id, display_name=account.name, role=membership.role.value
+        )
+        db.add(profile)
+    if name is not None:
+        profile.display_name = name
+    if active is False and membership is not None:
+        profile.role = membership.role.value
+        profile.membership_attributes = {
+            "role_id": str(membership.role_id) if membership.role_id else None,
+            "custom_permissions": membership.custom_permissions,
+            "invited_by": str(membership.invited_by) if membership.invited_by else None,
+            "joined_at": membership.joined_at,
+        }
+        await db.delete(membership)
+        membership = None
+    elif active is True and membership is None:
+        saved = profile.membership_attributes or {}
+        membership = TenantAccountJoin(
+            tenant_id=tenant_id,
+            account_id=account.id,
+            role=AccountRole(profile.role),
+            role_id=uuid.UUID(saved["role_id"]) if saved.get("role_id") else None,
+            custom_permissions=saved.get("custom_permissions"),
+            invited_by=uuid.UUID(saved["invited_by"]) if saved.get("invited_by") else None,
+            joined_at=saved.get("joined_at"),
+        )
+        db.add(membership)
     await db.commit()
-    await db.refresh(account)
-    return _account_to_scim(account, tenant_id)
+    return _resource(account, profile, membership, tenant_id)
 
 
-async def patch_user(db: AsyncSession, tenant_id: uuid.UUID, scim_user_id: str, patch_ops: list) -> dict | None:
-    """
-    Partial update (PATCH) of a SCIM User resource.
-
-    Supports the Operations array from RFC 7644 §3.5.2.
-
-    Args:
-        db: Async database session
-        tenant_id: Tenant scope
-        scim_user_id: String UUID of the account
-        patch_ops: List of SCIM patch operation dicts
-
-    Returns:
-        Updated SCIM User dict, or None if not found
-    """
-    try:
-        user_uuid = uuid.UUID(scim_user_id)
-    except ValueError:
+async def update_user(db, tenant_id, scim_user_id, scim_data):
+    row = await _locked_resource(db, tenant_id, scim_user_id)
+    if row is None:
         return None
+    active, name = _validate_fields(row[0], scim_data)
+    return await _apply_local(db, tenant_id, row, True if active is None else active, name)
 
-    result = await db.execute(
-        select(Account)
-        .join(TenantAccountJoin, TenantAccountJoin.account_id == Account.id)
-        .filter(Account.id == user_uuid, TenantAccountJoin.tenant_id == tenant_id)
-    )
-    account = result.scalar_one_or_none()
-    if not account:
+
+async def patch_user(db, tenant_id, scim_user_id, patch_ops):
+    row = await _locked_resource(db, tenant_id, scim_user_id)
+    if row is None:
         return None
-
-    # Strict whitelist of valid SCIM User path values (lowercased for comparison).
-    # Any path outside this set — including empty string or None — is rejected.
-    _VALID_PATHS = {
-        "username",
-        "active",
-        "name",
-        "emails",
-        "name.givenname",
-        "name.familyname",
-        "displayname",
-        "externalid",
-    }
-
-    _SCIM_ERROR_SCHEMA = ["urn:ietf:params:scim:api:messages:2.0:Error"]
-
+    active, name = None, None
+    # Validate every operation before changing any persistent object.
     for op in patch_ops:
-        op_name = (op.get("op") or "").lower()
-        raw_path = op.get("path")
-        path = (raw_path or "").strip().lower()
+        if not isinstance(op, dict) or str(op.get("op", "")).lower() not in {"add", "replace"}:
+            raise ValueError("Unsupported SCIM operation")
+        path = str(op.get("path") or "").lower()
         value = op.get("value")
-
-        if op_name == "replace":
-            if path == "":
-                # replace without path — value must be a dict; validate all keys
-                if not isinstance(value, dict):
-                    raise ValueError("replace without path requires a dict value")
-                invalid_keys = {k.lower() for k in value} - _VALID_PATHS
-                if invalid_keys:
-                    raise ValueError(f"Unsupported SCIM path(s) in replace value: {', '.join(sorted(invalid_keys))}")
-                # Apply whitelisted fields from the value dict
-                if "active" in value:
-                    account.status = AccountStatus.ACTIVE if value["active"] else AccountStatus.INACTIVE
-                if "userName" in value:
-                    email = value["userName"].strip().lower()
-                    if email:
-                        account.email = email
-                if "name" in value:
-                    name = _parse_name(value)
-                    if name:
-                        account.name = name
-            elif path not in _VALID_PATHS:
-                raise ValueError(f"Unsupported SCIM path: {raw_path!r}")
-            elif path == "active":
-                if isinstance(value, bool):
-                    account.status = AccountStatus.ACTIVE if value else AccountStatus.INACTIVE
-                elif isinstance(value, dict) and "active" in value:
-                    account.status = AccountStatus.ACTIVE if value["active"] else AccountStatus.INACTIVE
-            elif path == "username":
-                email = (value or "").strip().lower()
-                if email:
-                    account.email = email
-            elif path in ("name", "name.givenname", "name.familyname"):
-                if value:
-                    name = _parse_name(value) if isinstance(value, dict) else str(value)
-                    if name:
-                        account.name = name
-            elif path == "displayname":
-                if value:
-                    account.name = value
-
-        elif op_name == "add":
-            if path == "":
-                # add without path — validate keys in value dict
-                if not isinstance(value, dict):
-                    raise ValueError("add without path requires a dict value")
-                invalid_keys = {k.lower() for k in value} - _VALID_PATHS
-                if invalid_keys:
-                    raise ValueError(f"Unsupported SCIM path(s) in add value: {', '.join(sorted(invalid_keys))}")
-            elif path not in _VALID_PATHS:
-                raise ValueError(f"Unsupported SCIM path: {raw_path!r}")
-            # Handle add operations the same as replace for our supported fields
-            if isinstance(value, dict):
-                if "active" in value:
-                    account.status = AccountStatus.ACTIVE if value["active"] else AccountStatus.INACTIVE
-                if "userName" in value:
-                    email = value["userName"].strip().lower()
-                    if email:
-                        account.email = email
-
-    await db.commit()
-    await db.refresh(account)
-    return _account_to_scim(account, tenant_id)
+        if path in {"name.givenname", "name.familyname"}:
+            if not isinstance(value, str):
+                raise ValueError("Invalid name")
+            current = name if name is not None else (row[1].display_name if row[1] else row[0].name) or ""
+            parts = current.split(" ", 1)
+            value = {
+                "givenName": value if path.endswith("givenname") else parts[0],
+                "familyName": value if path.endswith("familyname") else (parts[1] if len(parts) > 1 else ""),
+            }
+            path = "name"
+        next_active, next_name = _validate_fields(row[0], {path: value} if path else value)
+        if next_active is not None:
+            active = next_active
+        if next_name is not None:
+            name = next_name
+    return await _apply_local(db, tenant_id, row, active, name)
 
 
-async def delete_user(db: AsyncSession, tenant_id: uuid.UUID, scim_user_id: str) -> bool:
-    """
-    Soft-delete (deactivate) a user within a tenant.
-
-    Per SCIM spec, DELETE deactivates the user rather than destroying the record.
-    The TenantAccountJoin is removed so the user no longer appears in SCIM
-    listings for this tenant; the Account record itself is set to INACTIVE.
-
-    Args:
-        db: Async database session
-        tenant_id: Tenant scope
-        scim_user_id: String UUID of the account
-
-    Returns:
-        True if found and deactivated, False if not found
-    """
-    try:
-        user_uuid = uuid.UUID(scim_user_id)
-    except ValueError:
+async def delete_user(db, tenant_id, scim_user_id):
+    row = await _locked_resource(db, tenant_id, scim_user_id)
+    if row is None:
         return False
-
-    result = await db.execute(
-        select(Account)
-        .join(TenantAccountJoin, TenantAccountJoin.account_id == Account.id)
-        .filter(Account.id == user_uuid, TenantAccountJoin.tenant_id == tenant_id)
-    )
-    account = result.scalar_one_or_none()
-    if not account:
-        return False
-
-    # Deactivate account
-    account.status = AccountStatus.INACTIVE
-
-    # Remove from tenant membership
-    join_result = await db.execute(
-        select(TenantAccountJoin).filter(
-            TenantAccountJoin.tenant_id == tenant_id,
-            TenantAccountJoin.account_id == account.id,
-        )
-    )
-    join = join_result.scalar_one_or_none()
-    if join:
-        await db.delete(join)
-
-    # Revoke all active JWT sessions so existing tokens are immediately invalidated.
-    # This must happen before commit so the account record is visible to revoke_session.
-    try:
-        await SessionService.revoke_session(db, account_id=account.id)
-    except Exception:
-        logger.warning("Failed to revoke sessions for SCIM-deprovisioned account %s", account.id, exc_info=True)
-
+    _, profile, membership = row
+    if membership is not None:
+        await db.delete(membership)
+    if profile is not None:
+        await db.delete(profile)
+    # Live membership checks revoke only this tenant's access. Other sessions survive.
     await db.commit()
     return True
 

@@ -15,7 +15,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.controllers.agents.models import AgentResponse
 from src.core.database import get_async_db
-from src.middleware.auth_middleware import get_current_tenant_id
+from src.middleware.auth_middleware import get_current_tenant_id, require_role
+from src.models import AccountRole
 from src.models.agent import Agent
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,9 @@ class AddSkillRequest(BaseModel):
     skill_category: str
 
 
-@agents_skills_router.post("/{agent_slug}/skills/add", response_model=AgentResponse)
+@agents_skills_router.post(
+    "/{agent_slug}/skills/add", response_model=AgentResponse, dependencies=[Depends(require_role(AccountRole.ADMIN))]
+)
 async def add_predefined_skill(
     agent_slug: str,
     request: AddSkillRequest,

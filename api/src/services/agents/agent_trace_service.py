@@ -13,6 +13,8 @@ import logging
 from datetime import UTC, datetime
 from uuid import UUID
 
+from src.services.security.elasticsearch_transport import elasticsearch_tls_options
+
 logger = logging.getLogger(__name__)
 
 # Strong refs prevent GC before background tasks complete
@@ -63,7 +65,7 @@ async def _get_es_client():
     _es_client = AsyncElasticsearch(
         [settings.elasticsearch_url],
         basic_auth=(settings.elasticsearch_username, settings.elasticsearch_password),
-        verify_certs=False,
+        **elasticsearch_tls_options(),
         request_timeout=5,
     )
     return _es_client

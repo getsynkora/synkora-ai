@@ -99,7 +99,7 @@ async def list_roles(
         ]
     except Exception as e:
         logger.error(f"Error listing roles: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/types")
@@ -147,7 +147,7 @@ async def create_role(
     except Exception as e:
         logger.error(f"Error creating role: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/{role_id}", response_model=RoleResponse)
@@ -157,13 +157,10 @@ async def get_role(
     """Get a specific role."""
     try:
         service = AgentRoleService(db)
-        role = await service.get_role(UUID(role_id))
+        # SECURITY: Pass tenant_id to filter in the query itself (prevents cross-tenant reads)
+        role = await service.get_role(UUID(role_id), tenant_id=tenant_id)
 
         if not role:
-            raise HTTPException(status_code=404, detail="Role not found")
-
-        # Check access (tenant role or system template)
-        if not role.is_system_template and role.tenant_id != tenant_id:
             raise HTTPException(status_code=404, detail="Role not found")
 
         return RoleResponse(
@@ -184,7 +181,7 @@ async def get_role(
         raise
     except Exception as e:
         logger.error(f"Error getting role: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.put("/{role_id}", response_model=RoleResponse)
@@ -225,7 +222,7 @@ async def update_role(
     except Exception as e:
         logger.error(f"Error updating role: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.delete("/{role_id}", status_code=204)
@@ -251,7 +248,7 @@ async def delete_role(
     except Exception as e:
         logger.error(f"Error deleting role: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/{role_id}/clone", response_model=RoleResponse, status_code=201)
@@ -289,7 +286,7 @@ async def clone_role(
     except Exception as e:
         logger.error(f"Error cloning role: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/seed", status_code=201)
@@ -316,4 +313,4 @@ async def seed_system_roles(tenant_id: UUID = Depends(get_current_tenant_id), db
     except Exception as e:
         logger.error(f"Error seeding roles: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")

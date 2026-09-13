@@ -5,6 +5,8 @@ Registers all browser automation tools with the ADK tool registry.
 Provides web scraping, content extraction, and full interactive browser automation.
 """
 
+import hashlib
+import json
 import logging
 import uuid
 from typing import Any
@@ -13,30 +15,19 @@ logger = logging.getLogger(__name__)
 
 
 def _resolve_session_id(kwargs: dict[str, Any], runtime_context: Any) -> str:
-    """
-    Resolve the browser session_id for a tool call.
-
-    An explicit ``session_id`` kwarg always wins. Otherwise the session is scoped
-    to the current conversation (falling back to a stable per-tenant id for
-    background tasks with no conversation_id), mirroring
-    ``workspace_manager.get_workspace_path_from_config``'s session scoping.
-
-    Without this, every call that omits ``session_id`` would share one global
-    "default" browser session/page-pool across every tenant and conversation.
-    """
-    session_id = kwargs.get("session_id")
-    if session_id:
-        return session_id
-
+    """Scope caller-selected labels to trusted tenant, conversation and principal."""
     tenant_id = getattr(runtime_context, "tenant_id", None) if runtime_context else None
     conversation_id = getattr(runtime_context, "conversation_id", None) if runtime_context else None
-
-    if conversation_id:
-        return str(conversation_id)
-    if tenant_id:
-        tenant_uuid = tenant_id if isinstance(tenant_id, uuid.UUID) else uuid.UUID(str(tenant_id))
-        return str(uuid.uuid5(tenant_uuid, "browser_background"))
-    return "default"
+    if not tenant_id:
+        raise ValueError("Verified tenant context is required for browser access")
+    scope = [
+        str(uuid.UUID(str(tenant_id))),
+        str(conversation_id or "background"),
+        str(getattr(runtime_context, "agent_id", None) or ""),
+        str(getattr(runtime_context, "user_id", None) or ""),
+        str(kwargs.get("session_id") or "default"),
+    ]
+    return "scoped-" + hashlib.sha256(json.dumps(scope).encode()).hexdigest()
 
 
 def register_browser_tools(registry):

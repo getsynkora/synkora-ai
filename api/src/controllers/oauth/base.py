@@ -116,6 +116,55 @@ async def _get_oauth_app_secure(
     return oauth_app
 
 
+async def _authorize_oauth_connection(
+    db: AsyncSession, account: Account, tenant_id: uuid.UUID, user_level: bool
+) -> None:
+    """Personal connections require membership; shared credentials require update permission."""
+    from src.models import AccountStatus, TenantAccountJoin
+    from src.services.permissions.permission_service import PermissionService
+
+    if account is None or tenant_id is None or account.status != AccountStatus.ACTIVE:
+        raise HTTPException(401, "Authentication required")
+    result = await db.execute(
+        select(TenantAccountJoin).where(
+            TenantAccountJoin.account_id == account.id,
+            TenantAccountJoin.tenant_id == tenant_id,
+        )
+    )
+    if result.scalar_one_or_none() is None:
+        raise HTTPException(403, "Tenant access is no longer available")
+    if not user_level and not await PermissionService(db).check_permission(
+        account.id, tenant_id, "oauth_apps", "update"
+    ):
+        raise HTTPException(403, "Permission required to manage shared OAuth connections")
+
+
+async def _get_callback_oauth_app(db: AsyncSession, state_data: dict) -> OAuthApp:
+    """Revalidate the initiating account before exchanging or storing provider credentials."""
+    from src.services.auth_service import AuthService
+
+    try:
+        account_id = uuid.UUID(state_data["account_id"])
+        tenant_id = uuid.UUID(state_data["tenant_id"])
+        auth_version = state_data["auth_version"]
+        user_level = state_data["user_level"]
+        if type(auth_version) is not int or type(user_level) is not bool:
+            raise ValueError("Invalid OAuth state")
+    except (KeyError, TypeError, ValueError, AttributeError) as exc:
+        raise HTTPException(401, "Restart OAuth authorization while signed in") from exc
+    result = await db.execute(select(Account).where(Account.id == account_id))
+    account = result.scalar_one_or_none()
+    await _authorize_oauth_connection(db, account, tenant_id, user_level)
+    try:
+        AuthService.validate_account_auth_version({"av": auth_version}, account)
+    except ValueError as exc:
+        raise HTTPException(401, "Restart OAuth authorization while signed in") from exc
+    app = await _get_oauth_app_secure(db, state_data["oauth_app_id"], tenant_id=tenant_id, require_tenant=True)
+    if app is None:
+        raise HTTPException(404, "OAuth app not found")
+    return app
+
+
 def _safe_error_redirect(
     redirect_url: str | None,
     default_path: str,
@@ -470,12 +519,26 @@ async def initiate_oauth(
         auth_url: The OAuth provider's authorization URL to redirect to
     """
     try:
-        # SECURITY: Validate OAuth app belongs to current tenant (prevents IDOR)
-        oauth_app = await _get_oauth_app_secure(db, data.oauth_app_id, tenant_id=tenant_id)
+        await _authorize_oauth_connection(db, current_account, tenant_id, data.user_level)
+        oauth_app = await _get_oauth_app_secure(db, data.oauth_app_id, tenant_id=tenant_id, require_tenant=True)
         if not oauth_app:
             raise HTTPException(status_code=404, detail="OAuth app not found")
 
         provider = oauth_app.provider.lower()
+        # Keep provider-specific configuration and PKCE behavior in their handlers.
+        if provider in {"hubspot", "salesforce", "intercom", "micromobility"} and oauth_app.auth_method == "oauth":
+            from importlib import import_module
+
+            handler = getattr(import_module(f"src.controllers.oauth.{provider}"), f"{provider}_authorize")
+            response = await handler(
+                oauth_app_id=data.oauth_app_id,
+                redirect_url=data.redirect_url,
+                user_level=data.user_level,
+                current_account=current_account,
+                tenant_id=tenant_id,
+                db=db,
+            )
+            return {"auth_url": response.headers["location"], "provider": provider}
         base_url = await get_app_base_url(db, oauth_app.tenant_id or tenant_id)
         redirect_url = data.redirect_url or f"{base_url}/oauth-apps"
 
@@ -506,7 +569,8 @@ async def initiate_oauth(
                 "oauth_app_id": data.oauth_app_id,
                 "redirect_url": redirect_url,
                 "user_level": data.user_level,
-                "account_id": str(current_account.id) if data.user_level else None,
+                "account_id": str(current_account.id),
+                "auth_version": current_account.auth_version or 0,
                 "tenant_id": str(tenant_id),
             }
         )
@@ -624,4 +688,4 @@ async def initiate_oauth(
         raise
     except Exception as e:
         logger.error(f"OAuth initiation error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")

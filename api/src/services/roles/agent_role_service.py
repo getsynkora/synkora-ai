@@ -319,9 +319,18 @@ class AgentRoleService:
         logger.info(f"Created agent role: {role_name} (type={role_type})")
         return role
 
-    async def get_role(self, role_id: UUID) -> AgentRole | None:
-        """Get a role by ID."""
-        result = await self.db.execute(select(AgentRole).filter(AgentRole.id == role_id))
+    async def get_role(self, role_id: UUID, tenant_id: UUID | None = None) -> AgentRole | None:
+        """Get a role by ID, optionally scoped to a tenant (or system templates)."""
+        if tenant_id is not None:
+            # SECURITY: Only return if the role belongs to the tenant or is a system template
+            result = await self.db.execute(
+                select(AgentRole).filter(
+                    AgentRole.id == role_id,
+                    or_(AgentRole.tenant_id == tenant_id, AgentRole.is_system_template),
+                )
+            )
+        else:
+            result = await self.db.execute(select(AgentRole).filter(AgentRole.id == role_id))
         return result.scalar_one_or_none()
 
     async def get_role_by_type(self, tenant_id: UUID, role_type: str) -> AgentRole | None:
@@ -514,8 +523,14 @@ class AgentRoleService:
         Returns:
             New AgentRole instance or None if source not found
         """
-        source = await self.get_role(role_id)
+        source = await self.get_role(role_id, tenant_id=tenant_id)
         if not source:
+            return None
+
+        # SECURITY: Explicitly re-verify authorization instead of trusting that get_role's
+        # tenant scoping was applied — only the requesting tenant's own roles or system
+        # templates may be cloned.
+        if source.tenant_id != tenant_id and not source.is_system_template:
             return None
 
         return await self.create_role(

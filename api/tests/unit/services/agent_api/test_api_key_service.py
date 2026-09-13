@@ -160,7 +160,7 @@ class TestAgentApiKeyService:
 
         with patch("src.services.agent_api.api_key_service._get_redis_client", return_value=mock_redis):
             # No rate limit exceeded - all counts return 0
-            mock_redis.zcard.return_value = 0
+            mock_redis.eval.return_value = 0
 
             allowed, error = AgentApiKeyService.check_rate_limit(mock_api_key)
             assert allowed is True
@@ -168,7 +168,7 @@ class TestAgentApiKeyService:
 
             # Test minute limit exceeded
             mock_api_key.rate_limit_per_minute = 1
-            mock_redis.zcard.side_effect = [2, 0, 0]  # minute exceeded, hour ok, day ok
+            mock_redis.eval.return_value = 1  # minute exceeded, hour ok, day ok
 
             allowed, error = AgentApiKeyService.check_rate_limit(mock_api_key)
             assert allowed is False
@@ -282,7 +282,7 @@ class TestAgentApiKeyService:
         with patch("src.services.agent_api.api_key_service._get_redis_client", return_value=mock_redis):
             # Hour limit exceeded
             mock_api_key.rate_limit_per_hour = 1
-            mock_redis.zcard.side_effect = [0, 2, 0]  # minute ok, hour exceeded, day ok
+            mock_redis.eval.return_value = 2  # minute ok, hour exceeded, day ok
 
             allowed, error = AgentApiKeyService.check_rate_limit(mock_api_key)
             assert allowed is False
@@ -291,7 +291,7 @@ class TestAgentApiKeyService:
             # Day limit exceeded
             mock_api_key.rate_limit_per_hour = 1000  # reset
             mock_api_key.rate_limit_per_day = 1
-            mock_redis.zcard.side_effect = [0, 0, 2]  # minute ok, hour ok, day exceeded
+            mock_redis.eval.return_value = 3  # minute ok, hour ok, day exceeded
 
             allowed, error = AgentApiKeyService.check_rate_limit(mock_api_key)
             assert allowed is False

@@ -355,6 +355,7 @@ class TestADKToolRegistryExecution:
         mock_db = AsyncMock()
         mock_server = MagicMock()
         mock_server.name = "server1"
+        mock_server.status = "ACTIVE"
         mock_server.config = {"url": "http://mcp"}
 
         mock_assoc = MagicMock()

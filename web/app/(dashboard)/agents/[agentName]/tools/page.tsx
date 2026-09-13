@@ -1414,12 +1414,19 @@ export default function AgentToolsPage() {
     }
   };
 
-  const handleOAuthConnect = () => {
+  const handleOAuthConnect = async () => {
     if (!agent?.id || !selectedTool) return;
-    
-    const redirectUrl = encodeURIComponent(window.location.href);
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
-    window.location.href = `${apiUrl}/api/v1/oauth/github/authorize?agent_id=${agent.id}&tool_name=${selectedTool.name}&redirect_url=${redirectUrl}`;
+    const oauthAppId = Number(toolConfig['oauth_app_id']);
+    if (!Number.isInteger(oauthAppId) || oauthAppId <= 0) {
+      toast.error('Select an OAuth connection first');
+      return;
+    }
+    try {
+      const result = await apiClient.initiateOAuth(oauthAppId, window.location.href, false);
+      window.location.href = result.auth_url;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to initiate OAuth');
+    }
   };
 
   const handleOAuthDisconnect = async () => {

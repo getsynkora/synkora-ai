@@ -9,7 +9,9 @@ import csv
 import os
 import tempfile
 from unittest.mock import MagicMock
+from uuid import UUID
 
+import duckdb
 import pytest
 
 from src.services.database.duckdb_connector import DuckDBConnector, _validate_identifier
@@ -22,6 +24,7 @@ from src.services.database.duckdb_connector import DuckDBConnector, _validate_id
 def _mock_connection(database_path: str = ":memory:", connection_params: dict | None = None) -> MagicMock:
     """Return a minimal mock of DatabaseConnection."""
     conn = MagicMock()
+    conn.tenant_id = UUID("11111111-1111-4111-8111-111111111111")
     conn.database_path = database_path
     conn.connection_params = connection_params or {}
     conn.password_encrypted = None
@@ -78,13 +81,16 @@ class TestDuckDBConnectorLifecycle:
         assert conn._conn is None
 
     @pytest.mark.asyncio
-    async def test_connect_file_based(self, tmp_path):
-        db_file = str(tmp_path / "test.duckdb")
-        conn = DuckDBConnector(_mock_connection(database_path=db_file))
-        ok = await conn.connect()
-        assert ok is True
+    async def test_connect_file_based(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("LOCAL_DATABASE_ROOT", str(tmp_path))
+        folder = tmp_path / "11111111-1111-4111-8111-111111111111"
+        folder.mkdir()
+        db_file = folder / "test.duckdb"
+        duckdb.connect(str(db_file)).close()
+        conn = DuckDBConnector(_mock_connection(database_path="test.duckdb"))
+        assert await conn.connect()
         await conn.disconnect()
-        assert os.path.exists(db_file)
+        assert db_file.exists()
 
     @pytest.mark.asyncio
     async def test_test_connection_returns_42(self):
@@ -176,10 +182,8 @@ class TestDuckDBCSVReading:
             writer.writerow(["bob", "87"])
 
         result = await connector.execute_query(f"SELECT * FROM read_csv_auto('{csv_file}') ORDER BY name")
-        assert result["success"] is True
-        assert result["row_count"] == 2
-        assert result["columns"] == ["name", "score"]
-        assert result["rows"][0]["name"] == "alice"
+        assert result["success"] is False
+        assert "disabled" in result["error"].lower()
 
     @pytest.mark.asyncio
     async def test_csv_aggregation(self, connector, tmp_path):
@@ -196,11 +200,8 @@ class TestDuckDBCSVReading:
             f"SELECT category, COUNT(*) AS cnt, SUM(value::INTEGER) AS total "
             f"FROM read_csv_auto('{csv_file}') GROUP BY category ORDER BY category"
         )
-        assert result["success"] is True
-        assert result["row_count"] == 2
-        rows_by_cat = {r["category"]: r for r in result["rows"]}
-        assert rows_by_cat["A"]["cnt"] == 5
-        assert rows_by_cat["B"]["total"] == 60
+        assert result["success"] is False
+        assert "disabled" in result["error"].lower()
 
 
 # ---------------------------------------------------------------------------

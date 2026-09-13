@@ -16,13 +16,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.utils.config_helper import get_app_base_url
 
 from ...core.database import get_async_db
-from ...middleware.auth_middleware import get_optional_account, get_optional_tenant_id
+from ...middleware.auth_middleware import get_current_account, get_current_tenant_id
 from ...models.tenant import Account
 from ...models.user_oauth_token import UserOAuthToken
 from ...services.agents.security import decrypt_value, encrypt_value
 from ...services.oauth.jira_oauth import JiraOAuth
 from ...services.security.oauth_state_service import create_oauth_state, get_oauth_state
 from .base import (
+    _authorize_oauth_connection,
+    _get_callback_oauth_app,
     _get_oauth_app_secure,
     _get_or_create_tenant_clone,
     _safe_error_redirect,
@@ -39,8 +41,8 @@ async def jira_authorize(
     oauth_app_id: int = Query(..., description="OAuth app ID to authorize"),
     redirect_url: str = Query(None, description="Frontend redirect URL after OAuth"),
     user_level: bool = Query(False, description="Store token at user level instead of app level"),
-    current_account: Account | None = Depends(get_optional_account),
-    tenant_id: uuid.UUID | None = Depends(get_optional_tenant_id),
+    current_account: Account = Depends(get_current_account),
+    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
@@ -53,8 +55,9 @@ async def jira_authorize(
             raise HTTPException(status_code=401, detail="Authentication required for user-level OAuth")
 
         # SECURITY: Validate OAuth app belongs to current tenant when authenticated (prevents IDOR)
-        # tenant_id comes from JWT via get_optional_tenant_id dependency
-        oauth_app = await _get_oauth_app_secure(db, oauth_app_id, tenant_id=tenant_id)
+        # tenant_id comes from JWT via get_current_tenant_id dependency
+        await _authorize_oauth_connection(db, current_account, tenant_id, user_level)
+        oauth_app = await _get_oauth_app_secure(db, oauth_app_id, tenant_id=tenant_id, require_tenant=True)
         if not oauth_app:
             raise HTTPException(status_code=404, detail="OAuth app not found")
 
@@ -84,7 +87,8 @@ async def jira_authorize(
                 "oauth_app_id": oauth_app_id,
                 "redirect_url": redirect_url,
                 "user_level": user_level,
-                "account_id": str(current_account.id) if current_account and user_level else None,
+                "account_id": str(current_account.id),
+                "auth_version": current_account.auth_version or 0,
                 "tenant_id": str(tenant_id) if tenant_id else None,
             }
         )
@@ -104,9 +108,11 @@ async def jira_authorize(
         logger.info(f"Initiating Jira OAuth for app {oauth_app_id} (user_level={user_level})")
         return RedirectResponse(url=auth_url)
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Jira OAuth authorization error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/jira/callback")
@@ -129,7 +135,7 @@ async def jira_callback(
         account_id = state_data.get("account_id")
 
         # SECURITY: Get OAuth app (state is already validated from Redis)
-        oauth_app = await _get_oauth_app_secure(db, oauth_app_id)
+        oauth_app = await _get_callback_oauth_app(db, state_data)
         if not oauth_app:
             raise HTTPException(status_code=404, detail="OAuth app not found")
 
@@ -165,6 +171,7 @@ async def jira_callback(
             token_expires_at = datetime.now(UTC) + timedelta(seconds=token_data["expires_in"])
 
         # Store token based on user_level flag
+        personal_config = {"cloud_id": cloud_id, "cloud_url": user_info.get("cloud_url", "")}
         if user_level and account_id:
             # Store in UserOAuthToken (per-user)
             result = await db.execute(
@@ -180,6 +187,7 @@ async def jira_callback(
                 # properties — assigning an already-encrypted value here would
                 # double-encrypt it, producing a token that never decrypts back
                 # to something usable.
+                existing_token.provider_config = personal_config
                 existing_token.access_token = access_token
                 if refresh_token:
                     existing_token.refresh_token = refresh_token
@@ -196,19 +204,12 @@ async def jira_callback(
                     access_token=access_token,
                     refresh_token=refresh_token,
                     token_expires_at=token_expires_at,
+                    provider_config=personal_config,
                     provider_user_id=user_info.get("account_id"),
                     provider_email=user_email,
                     provider_display_name=user_info.get("name"),
                 )
                 db.add(user_token)
-
-            # Store cloud_id in OAuthApp config (shared across all users)
-            if cloud_id:
-                old_cloud_id = (oauth_app.config or {}).get("cloud_id")
-                logger.info(f"Jira OAuth - OLD cloud_id in DB: {old_cloud_id}, NEW cloud_id from Jira: {cloud_id}")
-                new_config = {**(oauth_app.config or {}), "cloud_id": cloud_id}
-                oauth_app.config = new_config
-                logger.info(f"Jira OAuth - Updated config: {oauth_app.config}")
 
             logger.info(f"Jira OAuth successful (user-level) for app {oauth_app_id}, user {user_email}")
         else:
@@ -227,7 +228,7 @@ async def jira_callback(
             if cloud_id:
                 old_cloud_id = (oauth_app.config or {}).get("cloud_id")
                 logger.info(f"Jira OAuth - OLD cloud_id in DB: {old_cloud_id}, NEW cloud_id from Jira: {cloud_id}")
-                new_config = {**(oauth_app.config or {}), "cloud_id": cloud_id}
+                new_config = {**(oauth_app.config or {}), **personal_config}
                 oauth_app.config = new_config
                 logger.info(f"Jira OAuth - Updated config: {oauth_app.config}")
             logger.info(f"Jira OAuth successful (app-level) for app {oauth_app_id}, user {user_email}")

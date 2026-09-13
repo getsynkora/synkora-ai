@@ -19,12 +19,14 @@ from src.services.agents.tool_registrations.browser_tools_registry import (
 
 @pytest.mark.unit
 class TestResolveSessionId:
-    def test_explicit_kwarg_wins_over_runtime_context(self):
+    def test_explicit_kwarg_is_namespaced(self):
         runtime_context = SimpleNamespace(tenant_id=uuid.uuid4(), conversation_id=uuid.uuid4())
 
         result = _resolve_session_id({"session_id": "custom-session"}, runtime_context)
 
-        assert result == "custom-session"
+        assert result != "custom-session"
+        foreign = SimpleNamespace(tenant_id=uuid.uuid4(), conversation_id=runtime_context.conversation_id)
+        assert result != _resolve_session_id({"session_id": "custom-session"}, foreign)
 
     def test_scopes_to_conversation_id_when_no_explicit_session_id(self):
         conversation_id = uuid.uuid4()
@@ -32,7 +34,8 @@ class TestResolveSessionId:
 
         result = _resolve_session_id({}, runtime_context)
 
-        assert result == str(conversation_id)
+        assert result != "default"
+        assert result == _resolve_session_id({}, runtime_context)
 
     def test_falls_back_to_stable_per_tenant_id_when_no_conversation_id(self):
         """Background tasks (e.g. Celery) have no conversation_id."""
@@ -45,10 +48,9 @@ class TestResolveSessionId:
         # Deterministic: same tenant always resolves to the same fallback session.
         assert result == _resolve_session_id({}, SimpleNamespace(tenant_id=tenant_id, conversation_id=None))
 
-    def test_falls_back_to_default_when_no_runtime_context(self):
-        result = _resolve_session_id({}, None)
-
-        assert result == "default"
+    def test_rejects_missing_runtime_context(self):
+        with pytest.raises(ValueError, match="tenant"):
+            _resolve_session_id({}, None)
 
     def test_different_conversations_resolve_to_different_session_ids(self):
         runtime_context_a = SimpleNamespace(tenant_id=uuid.uuid4(), conversation_id=uuid.uuid4())
@@ -85,7 +87,7 @@ class TestBrowserNavigateWrapperSessionScoping:
 
             await wrapper(config={"_runtime_context": runtime_context}, url="https://deriv.com")
 
-            assert mock_fn.call_args.kwargs["session_id"] == str(conversation_id)
+            assert mock_fn.call_args.kwargs["session_id"] == _resolve_session_id({}, runtime_context)
 
     @pytest.mark.asyncio
     async def test_explicit_session_id_still_respected(self):
@@ -109,4 +111,6 @@ class TestBrowserNavigateWrapperSessionScoping:
                 session_id="my-explicit-session",
             )
 
-            assert mock_fn.call_args.kwargs["session_id"] == "my-explicit-session"
+            assert mock_fn.call_args.kwargs["session_id"] == _resolve_session_id(
+                {"session_id": "my-explicit-session"}, runtime_context
+            )

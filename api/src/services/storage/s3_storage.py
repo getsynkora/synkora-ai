@@ -19,6 +19,17 @@ logger = logging.getLogger(__name__)
 class S3StorageService:
     """Service for managing file storage in AWS S3."""
 
+    # PERFORMANCE: Cache boto3 clients at class level so they're created once
+    # and reused across all instances. boto3 clients are thread-safe and creating
+    # them is expensive (credential resolution, endpoint discovery, etc.).
+    _cached_s3_client = None
+    _cached_presigned_client = None
+    _cached_bucket_name: str | None = None
+    _cached_region: str | None = None
+    _cached_internal_endpoint_url: str | None = None
+    _cached_public_endpoint_url: str | None = None
+    _cache_initialized = False
+
     def __init__(
         self,
         bucket_name: str | None = None,
@@ -35,6 +46,43 @@ class S3StorageService:
             access_key: AWS access key (defaults to env var)
             secret_key: AWS secret key (defaults to env var)
         """
+        # When explicit credentials are passed, always create fresh clients
+        # (custom per-caller config). Otherwise, reuse cached default clients.
+        if access_key or secret_key:
+            self._init_clients(bucket_name, region, access_key, secret_key)
+            return
+
+        # Reuse class-level cached clients for default (env-var) configuration
+        if S3StorageService._cache_initialized:
+            self.bucket_name = bucket_name or S3StorageService._cached_bucket_name
+            self.region = S3StorageService._cached_region
+            self.internal_endpoint_url = S3StorageService._cached_internal_endpoint_url
+            self.public_endpoint_url = S3StorageService._cached_public_endpoint_url
+            self.s3_client = S3StorageService._cached_s3_client
+            self.presigned_client = S3StorageService._cached_presigned_client
+            if not self.bucket_name:
+                raise ValueError("S3 bucket name must be provided or set in AWS_S3_BUCKET env var")
+            return
+
+        self._init_clients(bucket_name, region, access_key, secret_key)
+
+        # Cache for future default-config instantiations
+        S3StorageService._cached_s3_client = self.s3_client
+        S3StorageService._cached_presigned_client = self.presigned_client
+        S3StorageService._cached_bucket_name = self.bucket_name
+        S3StorageService._cached_region = self.region
+        S3StorageService._cached_internal_endpoint_url = self.internal_endpoint_url
+        S3StorageService._cached_public_endpoint_url = self.public_endpoint_url
+        S3StorageService._cache_initialized = True
+
+    def _init_clients(
+        self,
+        bucket_name: str | None,
+        region: str | None,
+        access_key: str | None,
+        secret_key: str | None,
+    ) -> None:
+        """Create boto3 clients (called once for default config, or per-call for custom creds)."""
         self.bucket_name = bucket_name or os.getenv("AWS_S3_BUCKET")
         self.region = region or os.getenv("AWS_REGION", "us-east-1")
 

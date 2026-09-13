@@ -27,6 +27,24 @@ from src.services.storage.s3_storage import S3StorageService
 
 logger = logging.getLogger(__name__)
 
+# Pre-compiled regex patterns for markdown parsing (avoids recompilation on every call)
+_RE_STRONG_TAG = re.compile(r"<strong>(.*?)</strong>", re.IGNORECASE | re.DOTALL)
+_RE_EM_TAG = re.compile(r"<em>(.*?)</em>", re.IGNORECASE | re.DOTALL)
+_RE_HTML_TAG = re.compile(r"<[^>]+>")
+_RE_BOLD_MD = re.compile(r"\*\*(.+?)\*\*")
+_RE_ITALIC_MD = re.compile(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)")
+_RE_INLINE_CODE = re.compile(r"`(.+?)`")
+_RE_MARKER_SPLIT = re.compile(r"(\x00[bic]\x00|\x01[bic]\x01)")
+_RE_H1 = re.compile(r"^# [^#]")
+_RE_H2 = re.compile(r"^## [^#]")
+_RE_H3_PLUS = re.compile(r"^#{3,6} ")
+_RE_HR = re.compile(r"^-{3,}$|^\*{3,}$|^_{3,}$")
+_RE_TABLE_SEP = re.compile(r"^\|[\s\-\|:]+\|$")
+_RE_BULLET = re.compile(r"^[-*]\s+")
+_RE_NUMBERED = re.compile(r"^\d+\.\s+")
+_RE_HR_INLINE = re.compile(r"^-{3,}$|^\*{3,}$")
+_RE_NUM_CAPTURE = re.compile(r"^(\d+)\.")
+
 
 class DocumentGenerationService:
     """Service for generating documents in various formats."""
@@ -50,18 +68,18 @@ class DocumentGenerationService:
         CODE_O, CODE_C = "\x00c\x00", "\x01c\x01"
 
         # Strip HTML tags from LLM output
-        text = re.sub(r"<strong>(.*?)</strong>", r"**\1**", text, flags=re.IGNORECASE | re.DOTALL)
-        text = re.sub(r"<em>(.*?)</em>", r"*\1*", text, flags=re.IGNORECASE | re.DOTALL)
-        text = re.sub(r"<[^>]+>", "", text)
+        text = _RE_STRONG_TAG.sub(r"**\1**", text)
+        text = _RE_EM_TAG.sub(r"*\1*", text)
+        text = _RE_HTML_TAG.sub("", text)
 
         # Apply markdown → markers (order matters: ** before *)
-        text = re.sub(r"\*\*(.+?)\*\*", lambda m: BOLD_O + m.group(1) + BOLD_C, text)
-        text = re.sub(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", lambda m: ITALIC_O + m.group(1) + ITALIC_C, text)
-        text = re.sub(r"`(.+?)`", lambda m: CODE_O + m.group(1) + CODE_C, text)
+        text = _RE_BOLD_MD.sub(lambda m: BOLD_O + m.group(1) + BOLD_C, text)
+        text = _RE_ITALIC_MD.sub(lambda m: ITALIC_O + m.group(1) + ITALIC_C, text)
+        text = _RE_INLINE_CODE.sub(lambda m: CODE_O + m.group(1) + CODE_C, text)
 
         # Escape XML special chars in plain text segments (between markers)
         all_markers = {BOLD_O, BOLD_C, ITALIC_O, ITALIC_C, CODE_O, CODE_C}
-        parts = re.split(r"(\x00[bic]\x00|\x01[bic]\x01)", text)
+        parts = _RE_MARKER_SPLIT.split(text)
         escaped = []
         for part in parts:
             if part in all_markers:
@@ -148,25 +166,25 @@ class DocumentGenerationService:
                     elements.append(Spacer(1, 6))
 
             # Heading 1 (not ##)
-            elif re.match(r"^# [^#]", stripped):
+            elif _RE_H1.match(stripped):
                 text = stripped[2:].strip()
                 elements.append(Paragraph(self._inline_markup(text), styles_dict["h1"]))
                 elements.append(Spacer(1, 8))
 
             # Heading 2 (not ###)
-            elif re.match(r"^## [^#]", stripped):
+            elif _RE_H2.match(stripped):
                 text = stripped[3:].strip()
                 elements.append(Paragraph(self._inline_markup(text), styles_dict["h2"]))
                 elements.append(Spacer(1, 6))
 
             # Heading 3+
-            elif re.match(r"^#{3,6} ", stripped):
-                text = re.sub(r"^#{3,6} ", "", stripped)
+            elif _RE_H3_PLUS.match(stripped):
+                text = _RE_H3_PLUS.sub("", stripped)
                 elements.append(Paragraph(self._inline_markup(text), styles_dict["h3"]))
                 elements.append(Spacer(1, 4))
 
             # Horizontal rule
-            elif re.match(r"^-{3,}$|^\*{3,}$|^_{3,}$", stripped):
+            elif _RE_HR.match(stripped):
                 elements.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#d1d5db")))
                 elements.append(Spacer(1, 6))
 
@@ -176,7 +194,7 @@ class DocumentGenerationService:
                 while i < len(lines) and lines[i].strip().startswith("|"):
                     row = lines[i].strip()
                     # Skip separator rows like |---|---|
-                    if not re.match(r"^\|[\s\-\|:]+\|$", row):
+                    if not _RE_TABLE_SEP.match(row):
                         table_lines.append(row)
                     i += 1
                 i -= 1  # will be incremented at end of loop
@@ -187,19 +205,19 @@ class DocumentGenerationService:
                         elements.append(Spacer(1, 10))
 
             # Bullet list (- item or * item)
-            elif re.match(r"^[-*]\s+", stripped):
-                while i < len(lines) and re.match(r"^[-*]\s+", lines[i].strip()):
-                    item = re.sub(r"^[-*]\s+", "", lines[i].strip())
+            elif _RE_BULLET.match(stripped):
+                while i < len(lines) and _RE_BULLET.match(lines[i].strip()):
+                    item = _RE_BULLET.sub("", lines[i].strip())
                     elements.append(Paragraph("• " + self._inline_markup(item), styles_dict["bullet"]))
                     i += 1
                 i -= 1
                 elements.append(Spacer(1, 4))
 
             # Numbered list
-            elif re.match(r"^\d+\.\s+", stripped):
-                while i < len(lines) and re.match(r"^\d+\.\s+", lines[i].strip()):
-                    item = re.sub(r"^\d+\.\s+", "", lines[i].strip())
-                    num = re.match(r"^(\d+)\.", lines[i].strip()).group(1)
+            elif _RE_NUMBERED.match(stripped):
+                while i < len(lines) and _RE_NUMBERED.match(lines[i].strip()):
+                    item = _RE_NUMBERED.sub("", lines[i].strip())
+                    num = _RE_NUM_CAPTURE.match(lines[i].strip()).group(1)
                     elements.append(Paragraph(f"{num}. " + self._inline_markup(item), styles_dict["bullet"]))
                     i += 1
                 i -= 1
@@ -227,10 +245,10 @@ class DocumentGenerationService:
                         or next_s.startswith("#")
                         or next_s.startswith("|")
                         or next_s.startswith("```")
-                        or re.match(r"^[-*]\s+", next_s)
-                        or re.match(r"^\d+\.\s+", next_s)
+                        or _RE_BULLET.match(next_s)
+                        or _RE_NUMBERED.match(next_s)
                         or next_s.startswith("> ")
-                        or re.match(r"^-{3,}$|^\*{3,}$", next_s)
+                        or _RE_HR_INLINE.match(next_s)
                     ):
                         break
                     i += 1

@@ -60,16 +60,18 @@ async def _make_github_request(
 
     url = f"https://api.github.com{endpoint}"
 
-    async with httpx.AsyncClient() as client:
-        response = await client.request(
-            method=method, url=url, headers=headers, params=params, json=json_data, timeout=30.0
-        )
-        response.raise_for_status()
+    from src.core.http_client import get_http_client
 
-        if response.status_code == 204:
-            return None
+    client = get_http_client(key="github_api", timeout=30.0)
+    response = await client.request(
+        method=method, url=url, headers=headers, params=params, json=json_data, timeout=30.0
+    )
+    response.raise_for_status()
 
-        return response.json()
+    if response.status_code == 204:
+        return None
+
+    return response.json()
 
 
 async def internal_github_merge_pr(
@@ -562,8 +564,6 @@ async def internal_github_create_pr(
         Dictionary with success, pr_url, pr_number, and message.
     """
     try:
-        import requests
-
         from .github_auth_helper import get_github_token_from_context
 
         token = await get_github_token_from_context(
@@ -576,56 +576,50 @@ async def internal_github_create_pr(
                 "error": "No GitHub token available. Please configure GitHub OAuth for this agent.",
             }
 
-        api_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/pulls"
-        headers = {
-            "Authorization": f"token {token}",
-            "Accept": "application/vnd.github.v3+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-        }
         payload = {"title": title, "head": head_branch, "base": base_branch, "body": body, "draft": draft}
 
         logger.info(f"Creating PR: {repo_owner}/{repo_name} - {head_branch} -> {base_branch}")
-        response = requests.post(api_url, json=payload, headers=headers, timeout=30)
 
-        if response.status_code == 201:
-            pr_data = response.json()
-            pr_url = pr_data.get("html_url", "")
-            pr_number = pr_data.get("number", 0)
-            logger.info(f"✅ Successfully created PR #{pr_number}: {pr_url}")
+        try:
+            result = await _make_github_request(
+                "POST", f"/repos/{repo_owner}/{repo_name}/pulls", token, json_data=payload
+            )
+            pr_url = result.get("html_url", "")
+            pr_number = result.get("number", 0)
+            logger.info(f"Successfully created PR #{pr_number}: {pr_url}")
             return {
                 "success": True,
                 "pr_url": pr_url,
                 "pr_number": pr_number,
                 "message": f"Successfully created PR #{pr_number}",
-                "state": pr_data.get("state", "open"),
-                "draft": pr_data.get("draft", False),
+                "state": result.get("state", "open"),
+                "draft": result.get("draft", False),
             }
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 422:
+                error_data = e.response.json()
+                errors = error_data.get("errors", [])
+                error_messages = [err.get("message", str(err)) for err in errors]
 
-        elif response.status_code == 422:
-            error_data = response.json()
-            errors = error_data.get("errors", [])
-            error_messages = [e.get("message", str(e)) for e in errors]
+                if any("pull request already exists" in msg.lower() for msg in error_messages):
+                    existing_pr = await _find_existing_pr(repo_owner, repo_name, head_branch, base_branch, token)
+                    if existing_pr:
+                        return {
+                            "success": True,
+                            "pr_url": existing_pr["html_url"],
+                            "pr_number": existing_pr["number"],
+                            "message": f"PR already exists: #{existing_pr['number']}",
+                            "already_existed": True,
+                        }
 
-            if any("pull request already exists" in msg.lower() for msg in error_messages):
-                existing_pr = await _find_existing_pr(repo_owner, repo_name, head_branch, base_branch, token)
-                if existing_pr:
-                    return {
-                        "success": True,
-                        "pr_url": existing_pr["html_url"],
-                        "pr_number": existing_pr["number"],
-                        "message": f"PR already exists: #{existing_pr['number']}",
-                        "already_existed": True,
-                    }
-
-            error_msg = "; ".join(error_messages) if error_messages else error_data.get("message", "Unknown error")
-            logger.error(f"Failed to create PR (422): {error_msg}")
-            return {"success": False, "error": f"GitHub API error: {error_msg}"}
-
-        else:
-            error_data = response.json() if response.text else {}
-            error_msg = error_data.get("message", f"HTTP {response.status_code}")
-            logger.error(f"Failed to create PR: {error_msg}")
-            return {"success": False, "error": f"GitHub API error ({response.status_code}): {error_msg}"}
+                error_msg = "; ".join(error_messages) if error_messages else error_data.get("message", "Unknown error")
+                logger.error(f"Failed to create PR (422): {error_msg}")
+                return {"success": False, "error": f"GitHub API error: {error_msg}"}
+            else:
+                error_data = e.response.json() if e.response.text else {}
+                error_msg = error_data.get("message", f"HTTP {e.response.status_code}")
+                logger.error(f"Failed to create PR: {error_msg}")
+                return {"success": False, "error": f"GitHub API error ({e.response.status_code}): {error_msg}"}
 
     except Exception as e:
         logger.error(f"Failed to create PR: {e}", exc_info=True)
@@ -636,18 +630,11 @@ async def _find_existing_pr(
     repo_owner: str, repo_name: str, head_branch: str, base_branch: str, token: str
 ) -> dict[str, Any] | None:
     """Find an existing open PR for the given branches."""
-    import requests
-
     try:
-        api_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/pulls"
-        headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github.v3+json"}
         params = {"head": f"{repo_owner}:{head_branch}", "base": base_branch, "state": "open"}
-
-        response = requests.get(api_url, headers=headers, params=params, timeout=15)
-        if response.status_code == 200:
-            prs = response.json()
-            if prs:
-                return prs[0]
+        result = await _make_github_request("GET", f"/repos/{repo_owner}/{repo_name}/pulls", token, params=params)
+        if isinstance(result, list) and result:
+            return result[0]
         return None
     except Exception as e:
         logger.warning(f"Could not find existing PR: {e}")

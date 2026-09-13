@@ -177,7 +177,9 @@ async def get_public_agent_landing(slug: str, db: AsyncSession = Depends(get_asy
             "accent_color": profile.accent_color,
             "view_count": profile.view_count,
             "agent_name": agent.agent_name if agent else None,
-            "agent_avatar": convert_s3_uri_to_presigned_url(agent.avatar) if agent and agent.avatar else None,
+            "agent_avatar": convert_s3_uri_to_presigned_url(agent.avatar, agent.tenant_id)
+            if agent and agent.avatar
+            else None,
             "allow_subscriptions": agent.allow_subscriptions if agent else False,
             "description": agent.description if agent else None,
             "pricing": {
@@ -225,7 +227,7 @@ async def get_public_agent_landing(slug: str, db: AsyncSession = Depends(get_asy
         "slug": slug,
         "tagline": None,
         "long_description": agent.description,
-        "hero_image_url": convert_s3_uri_to_presigned_url(agent.avatar) if agent.avatar else None,
+        "hero_image_url": convert_s3_uri_to_presigned_url(agent.avatar, agent.tenant_id) if agent.avatar else None,
         "preview_video_url": None,
         "gallery_images": [],
         "example_conversations": [],
@@ -233,12 +235,12 @@ async def get_public_agent_landing(slug: str, db: AsyncSession = Depends(get_asy
         "creator_display_name": None,
         "seo_title": agent.agent_name,
         "seo_description": agent.description,
-        "og_image_url": convert_s3_uri_to_presigned_url(agent.avatar) if agent.avatar else None,
+        "og_image_url": convert_s3_uri_to_presigned_url(agent.avatar, agent.tenant_id) if agent.avatar else None,
         "cta_label": "Try it free",
         "accent_color": None,
         "view_count": 0,
         "agent_name": agent.agent_name,
-        "agent_avatar": convert_s3_uri_to_presigned_url(agent.avatar) if agent.avatar else None,
+        "agent_avatar": convert_s3_uri_to_presigned_url(agent.avatar, agent.tenant_id) if agent.avatar else None,
         "allow_subscriptions": agent.allow_subscriptions,
         "description": agent.description,
         "pricing": {

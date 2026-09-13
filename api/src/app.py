@@ -4,6 +4,7 @@ FastAPI application factory.
 Creates and configures the FastAPI application instance.
 """
 
+import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -86,7 +87,45 @@ class RequestSizeLimitMiddleware:
             except ValueError:
                 pass
 
-        await self.app(scope, receive, send)
+        received = 0
+        exceeded = False
+        response_sent = False
+
+        async def limited_receive():
+            nonlocal received, exceeded
+            if exceeded:
+                raise HTTPException(status_code=413, detail="Request body too large")
+            message = await receive()
+            if message["type"] == "http.request":
+                received += len(message.get("body", b""))
+                if received > max_size:
+                    exceeded = True
+                    raise HTTPException(status_code=413, detail="Request body too large")
+            return message
+
+        async def reject():
+            nonlocal response_sent
+            if not response_sent:
+                response_sent = True
+                response = JSONResponse(status_code=413, content={"detail": "Request body too large"})
+                await response(scope, receive, send)
+
+        async def limited_send(message):
+            nonlocal response_sent
+            if exceeded:
+                # Handlers may catch HTTPException; never turn a size violation into success.
+                await reject()
+                return
+            if message["type"] == "http.response.start":
+                response_sent = True
+            await send(message)
+
+        try:
+            await self.app(scope, limited_receive, limited_send)
+        except Exception:
+            if not exceeded:
+                raise
+            await reject()
 
 
 @asynccontextmanager
@@ -208,6 +247,22 @@ async def lifespan(app: FastAPI):  # noqa: ARG001
         if hasattr(connection_manager, "start_redis_subscriber"):
             await connection_manager.start_redis_subscriber()
             logging.info("WebSocket Redis subscriber started for cross-pod messaging")
+
+        # PERFORMANCE: Start periodic WebSocket ping to detect dead connections.
+        # Silently-disconnected clients (network drop, browser crash) leave stale
+        # entries in active_connections, consuming memory and tenant connection
+        # quota. Ping every 30s and remove any that fail to respond.
+        async def _ws_ping_loop():
+            while True:
+                await asyncio.sleep(30)
+                try:
+                    removed = await connection_manager.ping_connections()
+                    if removed:
+                        logging.debug(f"Removed {removed} dead WebSocket connections")
+                except Exception as exc:
+                    logging.debug(f"WebSocket ping error: {exc}")
+
+        asyncio.create_task(_ws_ping_loop())
     except Exception as e:
         logging.warning(f"Failed to start WebSocket Redis subscriber: {e}")
 
@@ -264,6 +319,14 @@ async def lifespan(app: FastAPI):  # noqa: ARG001
     except Exception as e:
         logging.debug(f"WebSocket Redis subscriber cleanup skipped: {e}")
 
+    # Transport context owners must close before the loop and backing services stop.
+    try:
+        from src.services.mcp import mcp_client_manager
+
+        await asyncio.wait_for(mcp_client_manager.close_all(), timeout=15)
+    except Exception as e:
+        logging.warning("MCP connection shutdown did not finish: %s", type(e).__name__)
+
     # Close database connection pools (both sync and async)
     try:
         from src.core.database import close_async_db, close_db
@@ -297,14 +360,23 @@ async def lifespan(app: FastAPI):  # noqa: ARG001
     except Exception as e:
         logging.debug(f"Vector DB pool cleanup skipped: {e}")
 
-    # Close HTTP client pools
+    # Close shared HTTP client pools (core factory)
+    try:
+        from src.core.http_client import close_all_clients
+
+        await close_all_clients()
+        logging.info("Shared HTTP client pools closed")
+    except Exception as e:
+        logging.debug(f"Shared HTTP client cleanup skipped: {e}")
+
+    # Close OAuth HTTP client pools
     try:
         from src.services.oauth.http_client import close_http_clients
 
         await close_http_clients()
-        logging.info("HTTP client pools closed")
+        logging.info("OAuth HTTP client pools closed")
     except Exception as e:
-        logging.debug(f"HTTP client cleanup skipped: {e}")
+        logging.debug(f"OAuth HTTP client cleanup skipped: {e}")
 
     # Close LLM client pool
     try:
@@ -338,9 +410,9 @@ def create_app() -> FastAPI:
                     event_level=logging.ERROR,
                 ),
             ],
-            # 1.0 = every request becomes a Sentry transaction (previously 10% in
-            # production), so all requests are visible, not just a sample.
-            traces_sample_rate=1.0,
+            # Configurable via SENTRY_TRACES_SAMPLE_RATE env var (default 10%).
+            # 1.0 = every request; 0.1 = 10% sample (sensible production default).
+            traces_sample_rate=float(os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0.1")),
             profiles_sample_rate=1.0 if settings.app_debug else 0.1,
             send_default_pii=False,  # Don't send PII by default
         )
@@ -394,10 +466,27 @@ def create_app() -> FastAPI:
         # Enumerate headers explicitly instead of wildcard alongside named header.
         # Wildcard ("*") already covers everything; listing X-CSRF-Token next to it
         # is contradictory and implies enforcement that doesn't exist.
-        allow_headers=["Authorization", "Content-Type", "X-CSRF-Token", "X-Widget-API-Key", "X-API-Key"],
+        allow_headers=[
+            "Authorization",
+            "Content-Type",
+            "X-CSRF-Token",
+            "X-Widget-API-Key",
+            "X-API-Key",
+            "X-Widget-User-Id",
+            "X-Widget-User-Hash",
+            "X-Widget-Identity-Token",
+            "X-Widget-Session-Token",
+        ],
         expose_headers=["Content-Type", "Authorization"],
         max_age=600,
     )
+
+    # PERFORMANCE: GZip compression for responses over 500 bytes.
+    # Added after CORS (in source order) so it wraps inside CORS in the onion —
+    # CORS headers are set first, then GZip compresses the response body.
+    from starlette.middleware.gzip import GZipMiddleware
+
+    app.add_middleware(GZipMiddleware, minimum_size=500)
 
     # Prometheus labeled HTTP metrics (method/endpoint/status_code)
     from src.services.performance.metrics import PrometheusMiddleware

@@ -8,14 +8,15 @@ RUN apt-get update \
         git \
         coreutils \
         findutils \
-        procps \
+        procps bubblewrap \
     && rm -rf /var/lib/lists/*
 
-RUN pip install --no-cache-dir fastapi uvicorn[standard] pydantic
+COPY requirements.lock ./requirements.lock
+RUN pip install --no-cache-dir --require-hashes --only-binary=:all: -r requirements.lock
 
 RUN mkdir -p /workspaces
 
-COPY app.py .
+COPY app.py isolation.py capability.py ./
 
 EXPOSE 5004
 

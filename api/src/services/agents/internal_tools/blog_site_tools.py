@@ -15,13 +15,16 @@ The agent can create ANY style (Medium, Minimal, Modern, etc.) by generating
 custom CSS and HTML dynamically based on user's description.
 """
 
+import html
 import logging
 import os
 import uuid
 from datetime import datetime
 from typing import Any
 
-import requests
+import httpx
+
+from src.services.oauth.http_client import get_httpx_client
 
 from .git_helpers import async_makedirs, async_path_exists, async_run_git_command, async_write_file
 
@@ -111,19 +114,21 @@ async def internal_generate_blog_site(
         year = now.year
 
         # Minimal index.html - agent should replace with styled version
+        safe_site_name = html.escape(site_name)
+        safe_description = html.escape(description or site_name)
         index_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="{description or site_name}">
-    <title>{site_name}</title>
+    <meta name="description" content="{safe_description}">
+    <title>{safe_site_name}</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <header>
-        <h1>{site_name}</h1>
-        <p>{description or "Welcome to my blog"}</p>
+        <h1>{safe_site_name}</h1>
+        <p>{html.escape(description or "Welcome to my blog")}</p>
     </header>
     <main>
         <section id="posts">
@@ -131,7 +136,7 @@ async def internal_generate_blog_site(
         </section>
     </main>
     <footer>
-        <p>&copy; {year} {site_name}</p>
+        <p>&copy; {year} {safe_site_name}</p>
     </footer>
     <script src="js/app.js"></script>
 </body>
@@ -221,7 +226,8 @@ async def internal_create_github_repo(
             }
 
         # Create repository via GitHub API
-        response = requests.post(
+        client = await get_httpx_client()
+        response = await client.post(
             "https://api.github.com/user/repos",
             headers={
                 "Authorization": f"token {github_token}",
@@ -252,7 +258,7 @@ async def internal_create_github_repo(
         else:
             return {"success": False, "error": f"GitHub API error ({response.status_code}): {response.text}"}
 
-    except requests.RequestException as e:
+    except httpx.RequestError as e:
         logger.error(f"GitHub API request failed: {e}", exc_info=True)
         return {"success": False, "error": f"Failed to connect to GitHub: {str(e)}"}
     except Exception as e:
@@ -368,7 +374,8 @@ async def internal_enable_github_pages(
             return {"success": False, "error": "GitHub token required. Please connect your GitHub account."}
 
         # Enable GitHub Pages via API
-        response = requests.post(
+        client = await get_httpx_client()
+        response = await client.post(
             f"https://api.github.com/repos/{owner}/{repo_name}/pages",
             headers={
                 "Authorization": f"token {github_token}",
@@ -392,7 +399,7 @@ async def internal_enable_github_pages(
         else:
             return {"success": False, "error": f"GitHub API error ({response.status_code}): {response.text}"}
 
-    except requests.RequestException as e:
+    except httpx.RequestError as e:
         logger.error(f"GitHub Pages API request failed: {e}", exc_info=True)
         return {"success": False, "error": f"Failed to connect to GitHub: {str(e)}"}
     except Exception as e:

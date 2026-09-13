@@ -1,5 +1,6 @@
 """Email service with support for multiple providers (SMTP, SendGrid)."""
 
+import asyncio
 import logging
 import os
 import smtplib
@@ -94,64 +95,75 @@ class EmailService:
             default_from_email = config_data.get("from_email") or settings.get("from_email")
             default_from_name = config_data.get("from_name") or settings.get("from_name")
 
+            # All provider methods are sync (they use requests.post / smtplib).
+            # Wrap with asyncio.to_thread so they don't block the event loop.
+            _from = from_email or default_from_email
+            _name = from_name or default_from_name
+
             if provider_name == "sendgrid":
-                return self._send_via_sendgrid(
+                return await asyncio.to_thread(
+                    self._send_via_sendgrid,
                     to_email=to_email,
                     subject=subject,
                     html_content=html_content,
                     text_content=text_content,
-                    from_email=from_email or default_from_email,
-                    from_name=from_name or default_from_name,
+                    from_email=_from,
+                    from_name=_name,
                     config=config_data,
                 )
             elif provider_name == "mailgun":
-                return self._send_via_mailgun(
+                return await asyncio.to_thread(
+                    self._send_via_mailgun,
                     to_email=to_email,
                     subject=subject,
                     html_content=html_content,
                     text_content=text_content,
-                    from_email=from_email or default_from_email,
-                    from_name=from_name or default_from_name,
+                    from_email=_from,
+                    from_name=_name,
                     config=config_data,
                 )
             elif provider_name == "brevo":
-                return self._send_via_brevo(
+                return await asyncio.to_thread(
+                    self._send_via_brevo,
                     to_email=to_email,
                     subject=subject,
                     html_content=html_content,
                     text_content=text_content,
-                    from_email=from_email or default_from_email,
-                    from_name=from_name or default_from_name,
+                    from_email=_from,
+                    from_name=_name,
                     config=config_data,
                 )
             elif provider_name == "resend":
-                return self._send_via_resend(
+                return await asyncio.to_thread(
+                    self._send_via_resend,
                     to_email=to_email,
                     subject=subject,
                     html_content=html_content,
                     text_content=text_content,
-                    from_email=from_email or default_from_email,
-                    from_name=from_name or default_from_name,
+                    from_email=_from,
+                    from_name=_name,
                     config=config_data,
                 )
             elif provider_name == "mailtrap":
-                return self._send_via_mailtrap(
+                return await asyncio.to_thread(
+                    self._send_via_mailtrap,
                     to_email=to_email,
                     subject=subject,
                     html_content=html_content,
                     text_content=text_content,
-                    from_email=from_email or default_from_email,
-                    from_name=from_name or default_from_name,
+                    from_email=_from,
+                    from_name=_name,
                     config=config_data,
                 )
             else:  # smtp
-                return self._send_via_smtp(
+                return await asyncio.to_thread(
+                    self._send_via_smtp,
                     to_email=to_email,
                     subject=subject,
                     html_content=html_content,
                     text_content=text_content,
-                    from_email=from_email or default_from_email,
-                    from_name=from_name or default_from_name,
+                    from_email=_from,
+                    from_name=_name,
                     config=config_data,
                     attachments=attachments,
                 )

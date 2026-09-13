@@ -391,8 +391,19 @@ def _check_2fa_rate_limit(account_id: str) -> bool:
     """Check if account has exceeded 2FA verification rate limit."""
     import time
 
+    global _2fa_attempts
+
     now = time.time()
     key = str(account_id)
+
+    # PERFORMANCE: Evict stale entries when dict grows too large to prevent
+    # unbounded memory growth from many unique account IDs over time.
+    if len(_2fa_attempts) > 10000:
+        _2fa_attempts = {
+            k: [t for t in v if now - t < _2FA_WINDOW_SECONDS]
+            for k, v in _2fa_attempts.items()
+            if any(now - t < _2FA_WINDOW_SECONDS for t in v)
+        }
 
     if key not in _2fa_attempts:
         _2fa_attempts[key] = []

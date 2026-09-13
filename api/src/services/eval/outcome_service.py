@@ -13,6 +13,8 @@ import logging
 from datetime import UTC, datetime
 from uuid import UUID
 
+from src.services.security.elasticsearch_transport import elasticsearch_tls_options
+
 logger = logging.getLogger(__name__)
 
 _outcome_bg_tasks: set[asyncio.Task] = set()
@@ -30,7 +32,7 @@ async def _get_es_client():
     _es_client = AsyncElasticsearch(
         [settings.elasticsearch_url],
         basic_auth=(settings.elasticsearch_username, settings.elasticsearch_password),
-        verify_certs=False,
+        **elasticsearch_tls_options(),
         request_timeout=5,
     )
     return _es_client
@@ -54,7 +56,7 @@ async def _index_outcome(event: dict) -> None:
         es = await _get_es_client()
         await es.index(
             index=settings.agent_outcomes_index,
-            id=event["conversation_id"],
+            id=f"{event['tenant_id']}:{event['agent_id']}:{event['conversation_id']}",
             document=event,
         )
     except Exception as e:

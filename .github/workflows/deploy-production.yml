@@ -357,6 +357,13 @@ jobs:
             ${{ env.ECR_REGISTRY }}/synkora-ml:latest
           cache-from: type=gha,scope=ml
           cache-to: type=gha,mode=max,scope=ml
+          # Pinned HuggingFace model revisions (supply-chain: build fails an
+          # unpinned image rather than trusting an upstream model update at
+          # build time). Bump deliberately in both this workflow and
+          # docker-build.yml after reviewing the new revision.
+          build-args: |
+            EMBEDDING_MODEL_REVISION=1110a243fdf4706b3f48f1d95db1a4f5529b4d41
+            RERANK_MODEL_REVISION=233902d25c440f23af6f7d6e94d2946bac0bee0a
 
   # ── 4d. Build Scraper service image ───────────────────────────────────────
   build-scraper:

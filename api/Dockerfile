@@ -31,12 +31,10 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies system-wide using the lock file
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml uv.lock requirements-lambda.lock ./
 ENV UV_SYSTEM_PYTHON=1
-RUN uv pip install --system --no-cache --extra diagrams -r pyproject.toml
-
-# Install awslambdaric here so the lambda stage does not need to run as root
-RUN pip install --no-cache-dir awslambdaric==2.0.8
+RUN uv export --frozen --no-dev --extra diagrams --no-emit-project --quiet -o /tmp/application.lock \
+    && uv pip install --system --no-cache --require-hashes -r /tmp/application.lock -r requirements-lambda.lock
 
 
 # production stage

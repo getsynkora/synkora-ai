@@ -278,7 +278,7 @@ async def get_widget_config(http_request: Request, db: AsyncSession = Depends(ge
             "widget_name": widget.widget_name,
             "agent_name": agent.agent_name,
             "agent_description": agent.description or "",
-            "agent_avatar": convert_s3_uri_to_presigned_url(agent.avatar or ""),
+            "agent_avatar": convert_s3_uri_to_presigned_url(agent.avatar or "", agent.tenant_id),
             "suggestion_prompts": agent.suggestion_prompts or [],
             "theme": {
                 "primary_color": theme.get("chat_primary_color") or theme.get("primaryColor") or "",
@@ -325,6 +325,10 @@ async def get_widget_chat_history(
         if not widget:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or inactive widget API key")
 
+        from src.services.security.widget_identity import conversation_scope
+
+        identity_scope = conversation_scope(widget, http_request, Conversation, external_user_id)
+
         if not session_id and not external_user_id and not conversation_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -356,6 +360,7 @@ async def get_widget_chat_history(
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid conversation_id format")
             conversation_result = await db.execute(
                 select(Conversation).filter(
+                    *identity_scope,
                     Conversation.id == conv_uuid,
                     Conversation.agent_id.in_(valid_agent_ids),
                 )
@@ -364,6 +369,7 @@ async def get_widget_chat_history(
             conversation_result = await db.execute(
                 select(Conversation)
                 .filter(
+                    *identity_scope,
                     Conversation.agent_id.in_(valid_agent_ids),
                     Conversation.external_user_id == external_user_id,
                     Conversation.status == ConversationStatus.ACTIVE,
@@ -374,6 +380,7 @@ async def get_widget_chat_history(
         else:
             conversation_result = await db.execute(
                 select(Conversation).filter(
+                    *identity_scope,
                     Conversation.agent_id.in_(valid_agent_ids),
                     Conversation.session_id == session_id,
                 )
@@ -457,10 +464,15 @@ async def list_widget_sessions(
             detail="X-Widget-User-Id header is required to list sessions",
         )
 
+    from src.services.security.widget_identity import conversation_scope
+
+    identity_scope = conversation_scope(widget, http_request, Conversation, external_user_id)
+
     # Build base filter: conversations for this user on this agent
     stmt = (
         select(Conversation)
         .filter(
+            *identity_scope,
             Conversation.agent_id == widget.agent_id,
             Conversation.external_user_id == external_user_id,
             Conversation.deleted_at.is_(None),
@@ -542,7 +554,10 @@ async def close_widget_session(
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or inactive widget API key")
 
         external_user_id = http_request.headers.get("X-Widget-User-Id")
+        from src.services.security.widget_identity import conversation_scope
+
         filters = [
+            *conversation_scope(widget, http_request, Conversation, external_user_id),
             Conversation.id == session_uuid,
             Conversation.agent_id == widget.agent_id,
             Conversation.deleted_at.is_(None),
@@ -564,6 +579,9 @@ async def close_widget_session(
             account_id = uuid.UUID(payload["sub"])
         except Exception:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+        account = await get_current_account(token=token, payload=payload, db=db)
+        tenant_id = await get_current_tenant_id(payload=payload, _current_account=account, db=db)
 
         # Verify membership and admin/owner role
         membership = await db.execute(
@@ -1146,7 +1164,9 @@ class WidgetChatRequest(BaseModel):
     session_id: str | None = Field(None, description="Session ID for conversation continuity")
     conversation_id: str | None = Field(None, description="Conversation ID if continuing existing chat")
     user: WidgetUserContext | None = Field(None, description="Identified user context from SaaS platform")
-    user_hash: str | None = Field(None, description="HMAC-SHA256(identity_secret, user.id) for identity verification")
+    user_hash: str | None = Field(None, description="Legacy proof of user ID only")
+    identity_token: str | None = Field(None, description="Short-lived signed user and organization assertion")
+    session_token: str | None = Field(None, description="Server-issued anonymous session capability")
     source: str | None = Field(None, description="Channel source: flutter | widget | chrome (defaults to widget)")
     force_new: bool = Field(
         False, description="When true, always create a new conversation instead of resuming the latest active one"
@@ -1197,6 +1217,21 @@ async def register_push_token(
             conversation_uuid = uuid_mod.UUID(request.conversation_id)
         except ValueError:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid conversation_id format")
+
+    from src.services.security.widget_identity import conversation_scope
+
+    identity_scope = conversation_scope(widget, http_request, Conversation, request.user_id)
+    if conversation_uuid:
+        owned = await db.execute(
+            select(Conversation).filter(
+                *identity_scope,
+                Conversation.id == conversation_uuid,
+                Conversation.agent_id == widget.agent_id,
+                Conversation.deleted_at.is_(None),
+            )
+        )
+        if owned.scalar_one_or_none() is None:
+            raise HTTPException(404, "Conversation not found")
 
     # Upsert: find existing by (widget_id, fcm_token) and update, or create new
     result = await db.execute(
@@ -1313,29 +1348,30 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Rate limit exceeded for this widget"
             )
 
-        # ── HMAC identity verification ────────────────────────────────────────────
-        if widget.identity_verification_required:
-            if not request.user or not request.user_hash:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Identity verification required: user context and user_hash must be provided",
-                )
-            if not widget.identity_secret:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Widget identity secret not configured"
-                )
-            try:
-                from src.services.agents.security import decrypt_value
+        from src.services.security.widget_identity import (
+            new_anonymous_session,
+            verify_anonymous_session,
+            verify_user,
+        )
 
-                plain_secret = decrypt_value(widget.identity_secret)
-                expected = hmac.new(plain_secret.encode(), request.user.id.encode(), "sha256").hexdigest()
-                if not hmac.compare_digest(expected, request.user_hash):
-                    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid identity hash")
-            except HTTPException:
-                raise
-            except Exception as e:
-                logger.error(f"HMAC verification error for widget {widget.id}: {e}")
-                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Identity verification failed")
+        verified_claims = None
+        anonymous_session_token = None
+        anonymous_session_id = None
+        if request.user:
+            verified_claims = verify_user(
+                widget, request.user.id, request.user_hash, request.user.org_id, request.identity_token
+            )
+            # Authorization-relevant organization data comes from the signed assertion.
+            request.user.org_id = verified_claims.get("organization_id")
+        elif widget.identity_verification_required:
+            raise HTTPException(403, "Verified widget identity is required")
+        elif request.session_token:
+            anonymous_session_id = verify_anonymous_session(widget, request.session_token)
+            anonymous_session_token = request.session_token
+        elif request.conversation_id:
+            raise HTTPException(403, "A session token is required to resume this conversation")
+        else:
+            anonymous_session_id, anonymous_session_token = new_anonymous_session(widget)
 
         # ── Sentry: tag/context every widget API call ──────────────────────────────
         # Tags make widget calls filterable/searchable in Sentry. The logging
@@ -1365,7 +1401,7 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
         # is only generated when a user context is present AND the widget has an
         # identity_secret (which doubles as the signing key).
         _mcp_user_token: str | None = None
-        if request.user and widget.identity_secret:
+        if verified_claims is not None:
             try:
                 import time
 
@@ -1381,9 +1417,9 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
                     "iat": _now,
                     "exp": _now + 300,  # 5-minute lifetime
                     "widget_id": str(widget.id),
-                    "name": request.user.name,
-                    "email": request.user.email,
-                    "org_name": request.user.org_name,
+                    "name": verified_claims.get("name"),
+                    "email": verified_claims.get("email"),
+                    "org_name": verified_claims.get("org_name"),
                 }
                 if request.user.org_id is None:
                     # Send as a standalone Sentry event (not just a breadcrumb) so it's
@@ -1396,6 +1432,7 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
                 _mcp_user_token = _jwt.encode(_payload, _secret, algorithm="HS256")
             except Exception as _jwt_err:
                 logger.warning(f"Could not generate MCP user JWT for widget {widget.id}: {_jwt_err}")
+                raise HTTPException(503, "Widget identity service is unavailable") from None
 
         # ── Agent routing ─────────────────────────────────────────────────────────
         resolved_agent_id = widget.agent_id
@@ -1465,6 +1502,7 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
                         Conversation.id == uuid.UUID(resolved_conversation_id),
                         Conversation.agent_id == agent.id,
                         Conversation.external_user_id == request.user.id,
+                        Conversation.external_org_id == request.user.org_id,
                     )
                 )
                 if not ownership_result.scalar_one_or_none():
@@ -1494,11 +1532,12 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
                 except Exception as e:
                     await db.rollback()
                     logger.warning(f"Could not create conversation for user {request.user.id}: {e}")
+                    raise HTTPException(503, "Conversation storage is unavailable") from None
 
         else:
             # Anonymous session — industry standard: persist conversation by session_id so
             # the dashboard can review all widget conversations, not just identified-user ones.
-            _anon_session_id = request.session_id
+            _anon_session_id = anonymous_session_id
 
             if resolved_conversation_id:
                 # Verify the supplied conversation_id belongs to this agent (anonymous = no account_id)
@@ -1507,6 +1546,8 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
                         Conversation.id == uuid.UUID(resolved_conversation_id),
                         Conversation.agent_id == agent.id,
                         Conversation.account_id.is_(None),
+                        Conversation.external_user_id.is_(None),
+                        Conversation.session_id == anonymous_session_id,
                     )
                 )
                 if not anon_check.scalar_one_or_none():
@@ -1521,6 +1562,8 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
                         Conversation.session_id == _anon_session_id,
                         Conversation.status == ConversationStatus.ACTIVE,
                         Conversation.account_id.is_(None),
+                        Conversation.external_user_id.is_(None),
+                        Conversation.session_id == anonymous_session_id,
                     )
                     .order_by(Conversation.updated_at.desc())
                     .limit(1)
@@ -1546,6 +1589,7 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
                 except Exception as e:
                     await db.rollback()
                     logger.warning(f"Could not create anonymous conversation: {e}")
+                    raise HTTPException(503, "Conversation storage is unavailable") from None
 
         # Generate session ID if not provided
         session_id = request.session_id or str(uuid.uuid4())
@@ -1690,12 +1734,31 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
 
             conv_id = resolved_conversation_id
             reply_chunks: list[str] = []
+            if anonymous_session_token:
+                yield (
+                    "data: "
+                    + _json.dumps(
+                        {
+                            "type": "session",
+                            "metadata": {
+                                "session_token": anonymous_session_token,
+                                "session_id": anonymous_session_id,
+                                "conversation_id": conv_id,
+                            },
+                        }
+                    )
+                    + "\n\n"
+                )
             async for chunk in raw_stream:
                 try:
                     data_str = chunk.replace("data: ", "").strip()
                     if data_str:
                         parsed = _json.loads(data_str)
                         if parsed.get("type") == "done":
+                            if anonymous_session_token:
+                                parsed.setdefault("metadata", {})["session_token"] = anonymous_session_token
+                                parsed["metadata"]["session_id"] = anonymous_session_id
+                                chunk = "data: " + _json.dumps(parsed) + "\n\n"
                             # Inject conversation_id into done event metadata so the
                             # widget can persist chat history for identified users.
                             if conv_id and not parsed.get("metadata", {}).get("conversation_id"):
@@ -1771,8 +1834,19 @@ async def widget_respond_approval(
 
         from src.models.agent_approval import AgentApprovalRequest, ApprovalStatus
         from src.services.human_approval_service import HumanApprovalService
+        from src.services.security.widget_identity import conversation_scope
 
-        result = await db.execute(select(AgentApprovalRequest).filter(AgentApprovalRequest.id == approval_id))
+        scope = conversation_scope(widget, http_request, Conversation)
+        result = await db.execute(
+            select(AgentApprovalRequest)
+            .join(Conversation, Conversation.id == AgentApprovalRequest.conversation_id)
+            .filter(
+                AgentApprovalRequest.id == approval_id,
+                Conversation.agent_id == widget.agent_id,
+                Conversation.deleted_at.is_(None),
+                *scope,
+            )
+        )
         approval = result.scalar_one_or_none()
         if not approval:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Approval not found")

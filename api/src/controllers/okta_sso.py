@@ -4,6 +4,7 @@ Okta SSO Controllers.
 Handles Okta SSO authentication flows for enterprise tenants.
 """
 
+import hashlib
 import json
 import logging
 import secrets
@@ -13,23 +14,51 @@ from urllib.parse import quote, urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import RedirectResponse
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.utils.config_helper import get_app_base_url
 
 from ..core.database import get_async_db
-from ..middleware.auth_middleware import get_current_tenant_id
+from ..middleware.auth_middleware import get_current_tenant_id, require_role
+from ..models import AccountRole
 from ..models.okta_tenant import OktaTenant
 from ..services.agents.security import decrypt_value, encrypt_value
 from ..services.sso import OktaSSOService
+from ..services.sso.okta_sso import validate_okta_domain
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/sso/okta", tags=["okta-sso"])
 
 _STATE_TTL = 600  # 10 minutes
+
+
+def _validate_idp(domain: str, issuer: str) -> None:
+    try:
+        domain = validate_okta_domain(domain)
+        parsed = urlparse(issuer)
+        if (
+            parsed.scheme != "https"
+            or parsed.hostname != domain
+            or parsed.port not in (None, 443)
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.query
+            or parsed.fragment
+            or "\\" in issuer
+        ):
+            raise ValueError("Invalid issuer")
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400, detail="Issuer must be an HTTPS URL on the configured Okta domain"
+        ) from exc
+
+
+def _config_fingerprint(config: OktaTenant) -> str:
+    fields = [config.domain, config.issuer_url, config.client_id, config.client_secret, config.authorization_server_id]
+    return hashlib.sha256(json.dumps(fields).encode()).hexdigest()
 
 
 def _fmt_dt(val: Any) -> str | None:
@@ -75,9 +104,8 @@ async def _store_okta_state(state: str, data: dict) -> None:
 async def _consume_okta_state(state: str) -> dict | None:
     try:
         redis = _get_redis()
-        raw = await redis.get(f"okta_sso_state:{state}")
+        raw = await redis.getdel(f"okta_sso_state:{state}")
         if raw:
-            await redis.delete(f"okta_sso_state:{state}")
             return json.loads(raw)
         return None
     except RuntimeError:
@@ -96,6 +124,11 @@ class OktaTenantCreate(BaseModel):
     jit_provisioning_enabled: bool = True
     enabled: bool = True
 
+    @field_validator("domain")
+    @classmethod
+    def valid_domain(cls, value: str) -> str:
+        return validate_okta_domain(value)
+
 
 class OktaTenantUpdate(BaseModel):
     model_config = ConfigDict(strict=True)
@@ -107,6 +140,11 @@ class OktaTenantUpdate(BaseModel):
     authorization_server_id: str | None = None
     jit_provisioning_enabled: bool | None = None
     enabled: bool | None = None
+
+    @field_validator("domain")
+    @classmethod
+    def valid_domain(cls, value: str | None) -> str | None:
+        return validate_okta_domain(value) if value is not None else None
 
 
 # Okta SSO Endpoints
@@ -167,6 +205,7 @@ async def okta_login(
                 "tenant_id": tenant_id,
                 "redirect_url": safe_redirect_url,
                 "flow_type": "okta_sso",
+                "config_fingerprint": _config_fingerprint(okta_tenant),
             },
         )
 
@@ -213,6 +252,9 @@ async def okta_callback(
         if not okta_tenant:
             raise HTTPException(status_code=404, detail="Okta SSO not configured for this tenant")
 
+        if state_data.get("config_fingerprint") != _config_fingerprint(okta_tenant):
+            raise HTTPException(status_code=400, detail="SSO configuration changed; restart login")
+
         base_url = await get_app_base_url(db, tenant_id)
         callback_uri = f"{base_url}/api/v1/sso/okta/callback"
 
@@ -248,7 +290,9 @@ async def okta_callback(
 
         logger.info(f"Okta SSO successful for tenant {tenant_id}, user {user_email}")
 
-        return RedirectResponse(url=f"{redirect_url}?login=success&provider=okta&email={quote(user_email, safe='')}")
+        # SECURITY: Do not include email in the redirect URL — the frontend
+        # should obtain the user's email from the session/token, not the URL.
+        return RedirectResponse(url=f"{redirect_url}?login=success&provider=okta")
 
     except HTTPException:
         raise
@@ -263,7 +307,7 @@ async def okta_callback(
 # Okta Tenant Management Endpoints
 
 
-@router.get("/config")
+@router.get("/config", dependencies=[Depends(require_role(AccountRole.ADMIN))])
 async def get_okta_config(
     tenant_id: uuid.UUID = Depends(get_current_tenant_id), db: AsyncSession = Depends(get_async_db)
 ):
@@ -290,10 +334,10 @@ async def get_okta_config(
 
     except Exception as e:
         logger.error(f"Get Okta config error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.post("/config")
+@router.post("/config", dependencies=[Depends(require_role(AccountRole.ADMIN))])
 async def create_okta_config(
     data: OktaTenantCreate,
     tenant_id: uuid.UUID = Depends(get_current_tenant_id),
@@ -309,6 +353,10 @@ async def create_okta_config(
 
         if existing:
             raise HTTPException(status_code=400, detail="Okta SSO configuration already exists for this tenant")
+
+        _validate_idp(data.domain, data.issuer_url)
+        if not data.client_secret.strip():
+            raise HTTPException(status_code=400, detail="A client secret is required")
 
         # Encrypt client_secret before storing
         try:
@@ -345,10 +393,10 @@ async def create_okta_config(
     except Exception as e:
         logger.error(f"Create Okta config error: {e}", exc_info=True)
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.put("/config")
+@router.put("/config", dependencies=[Depends(require_role(AccountRole.ADMIN))])
 async def update_okta_config(
     data: OktaTenantUpdate,
     tenant_id: uuid.UUID = Depends(get_current_tenant_id),
@@ -363,6 +411,23 @@ async def update_okta_config(
 
         if not okta_tenant:
             raise HTTPException(status_code=404, detail="Okta SSO configuration not found for this tenant")
+
+        next_domain = data.domain if data.domain is not None else okta_tenant.domain
+        next_issuer = data.issuer_url if data.issuer_url is not None else okta_tenant.issuer_url
+        _validate_idp(next_domain, next_issuer)
+        identity_changed = any(
+            value is not None and value != getattr(okta_tenant, name)
+            for name, value in (
+                ("domain", data.domain),
+                ("issuer_url", data.issuer_url),
+                ("client_id", data.client_id),
+                ("authorization_server_id", data.authorization_server_id),
+            )
+        )
+        if identity_changed and not (data.client_secret and data.client_secret.strip()):
+            raise HTTPException(status_code=400, detail="Changing the identity provider requires a new client secret")
+        if data.client_secret is not None and not data.client_secret.strip():
+            raise HTTPException(status_code=400, detail="A client secret is required")
 
         # Update fields if provided
         if data.domain is not None:
@@ -395,10 +460,10 @@ async def update_okta_config(
     except Exception as e:
         logger.error(f"Update Okta config error: {e}", exc_info=True)
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.delete("/config")
+@router.delete("/config", dependencies=[Depends(require_role(AccountRole.ADMIN))])
 async def delete_okta_config(
     tenant_id: uuid.UUID = Depends(get_current_tenant_id), db: AsyncSession = Depends(get_async_db)
 ):
@@ -424,4 +489,4 @@ async def delete_okta_config(
     except Exception as e:
         logger.error(f"Delete Okta config error: {e}", exc_info=True)
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")

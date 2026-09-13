@@ -126,11 +126,8 @@ class TestGetOIDCAccessToken:
         mock_response = MagicMock()
         mock_response.json.return_value = {"access_token": "tok-abc", "token_type": "Bearer"}
 
-        with patch("httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.post = AsyncMock(return_value=mock_response)
-            mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.services.sso.okta_sso.request_checked_url", new_callable=AsyncMock) as request:
+            request.configure_mock(return_value=mock_response)
 
             result = await svc.get_oidc_access_token("auth-code-123")
 
@@ -145,11 +142,8 @@ class TestGetOIDCAccessToken:
             "error_description": "Authorization code expired",
         }
 
-        with patch("httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.post = AsyncMock(return_value=mock_response)
-            mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.services.sso.okta_sso.request_checked_url", new_callable=AsyncMock) as request:
+            request.configure_mock(return_value=mock_response)
 
             with pytest.raises(ValueError, match="Authorization code expired"):
                 await svc.get_oidc_access_token("bad-code")
@@ -160,15 +154,12 @@ class TestGetOIDCAccessToken:
         mock_response = MagicMock()
         mock_response.json.return_value = {"access_token": "tok"}
 
-        with patch("httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.post = AsyncMock(return_value=mock_response)
-            mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.services.sso.okta_sso.request_checked_url", new_callable=AsyncMock) as request:
+            request.configure_mock(return_value=mock_response)
 
             await svc.get_oidc_access_token("code")
 
-        call_url = mock_client.post.call_args[0][0]
+        call_url = request.call_args[0][1]
         assert "oauth2/v1/token" in call_url
 
     @pytest.mark.asyncio
@@ -193,11 +184,8 @@ class TestGetOIDCUserInfo:
         mock_response.json.return_value = user_data
         mock_response.raise_for_status = MagicMock()
 
-        with patch("httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.get = AsyncMock(return_value=mock_response)
-            mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.services.sso.okta_sso.request_checked_url", new_callable=AsyncMock) as request:
+            request.configure_mock(return_value=mock_response)
 
             result = await svc.get_oidc_user_info("access-token-xyz")
 
@@ -210,15 +198,12 @@ class TestGetOIDCUserInfo:
         mock_response.json.return_value = {"sub": "u"}
         mock_response.raise_for_status = MagicMock()
 
-        with patch("httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.get = AsyncMock(return_value=mock_response)
-            mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.services.sso.okta_sso.request_checked_url", new_callable=AsyncMock) as request:
+            request.configure_mock(return_value=mock_response)
 
             await svc.get_oidc_user_info("my-token")
 
-        headers = mock_client.get.call_args[1]["headers"]
+        headers = request.call_args[1]["headers"]
         assert headers["Authorization"] == "Bearer my-token"
 
 
@@ -235,11 +220,8 @@ class TestRefreshOIDCToken:
         mock_response = MagicMock()
         mock_response.json.return_value = {"access_token": "new-tok", "id_token": "new-id"}
 
-        with patch("httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.post = AsyncMock(return_value=mock_response)
-            mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.services.sso.okta_sso.request_checked_url", new_callable=AsyncMock) as request:
+            request.configure_mock(return_value=mock_response)
 
             result = await svc.refresh_oidc_token("refresh-tok")
 
@@ -251,11 +233,8 @@ class TestRefreshOIDCToken:
         mock_response = MagicMock()
         mock_response.json.return_value = {"error": "invalid_grant", "error_description": "Token expired"}
 
-        with patch("httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.post = AsyncMock(return_value=mock_response)
-            mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.services.sso.okta_sso.request_checked_url", new_callable=AsyncMock) as request:
+            request.configure_mock(return_value=mock_response)
 
             with pytest.raises(ValueError, match="Token expired"):
                 await svc.refresh_oidc_token("bad-refresh")
@@ -280,11 +259,8 @@ class TestRevokeOIDCToken:
         mock_response = MagicMock()
         mock_response.status_code = 200
 
-        with patch("httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.post = AsyncMock(return_value=mock_response)
-            mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.services.sso.okta_sso.request_checked_url", new_callable=AsyncMock) as request:
+            request.configure_mock(return_value=mock_response)
 
             result = await svc.revoke_oidc_token("tok")
 
@@ -296,11 +272,8 @@ class TestRevokeOIDCToken:
         mock_response = MagicMock()
         mock_response.status_code = 400
 
-        with patch("httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.post = AsyncMock(return_value=mock_response)
-            mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.services.sso.okta_sso.request_checked_url", new_callable=AsyncMock) as request:
+            request.configure_mock(return_value=mock_response)
 
             result = await svc.revoke_oidc_token("bad-tok")
 
@@ -309,11 +282,8 @@ class TestRevokeOIDCToken:
     @pytest.mark.asyncio
     async def test_returns_false_on_exception(self):
         svc = _svc()
-        with patch("httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.post = AsyncMock(side_effect=ConnectionError("network down"))
-            mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.services.sso.okta_sso.request_checked_url", new_callable=AsyncMock) as request:
+            request.configure_mock(side_effect=ConnectionError("network down"))
 
             result = await svc.revoke_oidc_token("tok")
 
@@ -325,15 +295,12 @@ class TestRevokeOIDCToken:
         mock_response = MagicMock()
         mock_response.status_code = 200
 
-        with patch("httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.post = AsyncMock(return_value=mock_response)
-            mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.services.sso.okta_sso.request_checked_url", new_callable=AsyncMock) as request:
+            request.configure_mock(return_value=mock_response)
 
             await svc.revoke_oidc_token("tok")
 
-        post_data = mock_client.post.call_args[1]["data"]
+        post_data = request.call_args[1]["data"]
         assert post_data["token_type_hint"] == "access_token"
 
     @pytest.mark.asyncio
@@ -356,11 +323,8 @@ class TestValidateDomain:
         mock_response = MagicMock()
         mock_response.status_code = 200
 
-        with patch("httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.get = AsyncMock(return_value=mock_response)
-            mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.services.sso.okta_sso.request_checked_url", new_callable=AsyncMock) as request:
+            request.configure_mock(return_value=mock_response)
 
             result = await svc.validate_domain()
 
@@ -372,11 +336,8 @@ class TestValidateDomain:
         mock_response = MagicMock()
         mock_response.status_code = 404
 
-        with patch("httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.get = AsyncMock(return_value=mock_response)
-            mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.services.sso.okta_sso.request_checked_url", new_callable=AsyncMock) as request:
+            request.configure_mock(return_value=mock_response)
 
             result = await svc.validate_domain()
 
@@ -385,11 +346,8 @@ class TestValidateDomain:
     @pytest.mark.asyncio
     async def test_returns_false_on_network_error(self):
         svc = _svc()
-        with patch("httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.get = AsyncMock(side_effect=ConnectionError("timeout"))
-            mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.services.sso.okta_sso.request_checked_url", new_callable=AsyncMock) as request:
+            request.configure_mock(side_effect=ConnectionError("timeout"))
 
             result = await svc.validate_domain()
 
@@ -406,11 +364,8 @@ class TestGetOIDCConfiguration:
         mock_response.json.return_value = config_data
         mock_response.raise_for_status = MagicMock()
 
-        with patch("httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.get = AsyncMock(return_value=mock_response)
-            mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.services.sso.okta_sso.request_checked_url", new_callable=AsyncMock) as request:
+            request.configure_mock(return_value=mock_response)
 
             result = await svc.get_oidc_configuration()
 
@@ -422,11 +377,8 @@ class TestGetOIDCConfiguration:
         mock_response = MagicMock()
         mock_response.raise_for_status.side_effect = Exception("503 Service Unavailable")
 
-        with patch("httpx.AsyncClient") as mock_client_cls:
-            mock_client = AsyncMock()
-            mock_client.get = AsyncMock(return_value=mock_response)
-            mock_client_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
+        with patch("src.services.sso.okta_sso.request_checked_url", new_callable=AsyncMock) as request:
+            request.configure_mock(return_value=mock_response)
 
             with pytest.raises(ValueError, match="Failed to get OIDC configuration"):
                 await svc.get_oidc_configuration()

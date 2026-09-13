@@ -158,7 +158,10 @@ async def list_agent_conversations(
         # Build base filter depending on source
         valid_sources = {"web", "flutter", "widget", "whatsapp", "slack", "chrome"}
         if source and source in valid_sources and source != "web":
-            # Non-web channels: conversations don't have account_id; filter by agent only
+            # Channel inboxes belong to the owning tenant, even for public agents.
+            if agent.tenant_id != tenant_id:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
+            # Non-web channels may have no account_id; tenant ownership was checked above.
             base_filter = [
                 Conversation.agent_id == agent_uuid,
                 Conversation.source == source,
@@ -210,6 +213,7 @@ async def get_conversation(
     conversation_id: str,
     include_messages: bool = False,
     current_account: Account = Depends(get_current_account),
+    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
@@ -234,12 +238,14 @@ async def get_conversation(
         except ValueError:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid conversation ID format")
 
-        # SECURITY: Get conversation and verify it belongs to current USER (account_id)
+        # SECURITY: Verify conversation belongs to current user AND tenant (via agent)
         result = await db.execute(
-            select(Conversation).filter(
+            select(Conversation)
+            .join(Agent, Conversation.agent_id == Agent.id)
+            .filter(
                 Conversation.id == conversation_uuid,
-                Conversation.account_id
-                == current_account.id,  # SECURITY: Only allow access to user's own conversations
+                Conversation.account_id == current_account.id,
+                Agent.tenant_id == tenant_id,
             )
         )
         conversation = result.scalar_one_or_none()
@@ -283,6 +289,7 @@ async def update_conversation(
     conversation_id: str,
     request: UpdateConversationRequest,
     current_account: Account = Depends(get_current_account),
+    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
@@ -307,11 +314,14 @@ async def update_conversation(
         except ValueError:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid conversation ID format")
 
-        # SECURITY: Verify conversation belongs to current USER (account_id)
+        # SECURITY: Verify conversation belongs to current user AND tenant (via agent)
         result = await db.execute(
-            select(Conversation).filter(
+            select(Conversation)
+            .join(Agent, Conversation.agent_id == Agent.id)
+            .filter(
                 Conversation.id == conversation_uuid,
                 Conversation.account_id == current_account.id,
+                Agent.tenant_id == tenant_id,
             )
         )
         conversation = result.scalar_one_or_none()
@@ -343,6 +353,7 @@ async def update_conversation(
 async def delete_conversation(
     conversation_id: str,
     current_account: Account = Depends(get_current_account),
+    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
@@ -366,11 +377,14 @@ async def delete_conversation(
         except ValueError:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid conversation ID format")
 
-        # SECURITY: Verify conversation belongs to current USER (account_id)
+        # SECURITY: Verify conversation belongs to current user AND tenant (via agent)
         result = await db.execute(
-            select(Conversation).filter(
+            select(Conversation)
+            .join(Agent, Conversation.agent_id == Agent.id)
+            .filter(
                 Conversation.id == conversation_uuid,
                 Conversation.account_id == current_account.id,
+                Agent.tenant_id == tenant_id,
             )
         )
         conversation = result.scalar_one_or_none()
@@ -501,6 +515,7 @@ async def delete_message(
     conversation_id: str,
     message_id: str,
     current_account: Account = Depends(get_current_account),
+    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
     """Delete a single message from a conversation."""
@@ -514,11 +529,14 @@ async def delete_message(
         except ValueError:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid ID format")
 
-        # SECURITY: verify conversation belongs to current user
+        # SECURITY: verify conversation belongs to current user AND tenant (via agent)
         conv_result = await db.execute(
-            select(Conversation).filter(
+            select(Conversation)
+            .join(Agent, Conversation.agent_id == Agent.id)
+            .filter(
                 Conversation.id == conversation_uuid,
                 Conversation.account_id == current_account.id,
+                Agent.tenant_id == tenant_id,
             )
         )
         if not conv_result.scalar_one_or_none():

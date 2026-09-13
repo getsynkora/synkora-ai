@@ -13,7 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.config.redis import get_redis_async
 from src.core.database import get_async_db
-from src.middleware.auth_middleware import get_current_account, get_current_tenant_id
+from src.middleware.auth_middleware import get_current_account, get_current_tenant_id, require_role
+from src.models import AccountRole
 from src.models.agent import Agent
 from src.models.agent_webhook import AgentWebhook, AgentWebhookEvent
 from src.services.agents.security import encrypt_value
@@ -128,7 +129,9 @@ class WebhookEventResponse(BaseModel):
 
 
 # Endpoints
-@router.post("/{agent_slug}/webhooks", response_model=WebhookResponse)
+@router.post(
+    "/{agent_slug}/webhooks", response_model=WebhookResponse, dependencies=[Depends(require_role(AccountRole.ADMIN))]
+)
 async def create_webhook(
     agent_slug: str,
     webhook_data: WebhookCreate,
@@ -232,7 +235,11 @@ async def get_webhook(
     return WebhookResponse.model_validate(webhook)
 
 
-@router.patch("/{agent_slug}/webhooks/{webhook_id}", response_model=WebhookResponse)
+@router.patch(
+    "/{agent_slug}/webhooks/{webhook_id}",
+    response_model=WebhookResponse,
+    dependencies=[Depends(require_role(AccountRole.ADMIN))],
+)
 async def update_webhook(
     agent_slug: str,
     webhook_id: UUID,
@@ -269,7 +276,7 @@ async def update_webhook(
     return WebhookResponse.model_validate(webhook)
 
 
-@router.delete("/{agent_slug}/webhooks/{webhook_id}")
+@router.delete("/{agent_slug}/webhooks/{webhook_id}", dependencies=[Depends(require_role(AccountRole.ADMIN))])
 async def delete_webhook(
     agent_slug: str,
     webhook_id: UUID,
@@ -342,9 +349,9 @@ async def receive_webhook(webhook_token: str, request: Request, db: AsyncSession
             payload_dict = json.loads(raw_json)
         else:
             payload_dict = json.loads(payload)
-    except json.JSONDecodeError as e:
-        logger.warning(f"Failed to parse JSON: {e}, body: {payload[:200]}")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid JSON: {str(e)}")
+    except json.JSONDecodeError:
+        logger.warning("Invalid webhook JSON: webhook=%s bytes=%d", webhook.id, len(payload))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON payload")
 
     # Process webhook
     processor = WebhookProcessor(db)
@@ -393,7 +400,9 @@ async def list_webhook_events(
     return [WebhookEventResponse.model_validate(e) for e in events]
 
 
-@router.delete("/{agent_slug}/webhooks/{webhook_id}/events/{event_id}")
+@router.delete(
+    "/{agent_slug}/webhooks/{webhook_id}/events/{event_id}", dependencies=[Depends(require_role(AccountRole.ADMIN))]
+)
 async def delete_webhook_event(
     agent_slug: str,
     webhook_id: UUID,

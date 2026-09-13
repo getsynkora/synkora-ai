@@ -53,10 +53,34 @@ async def auth_headers(async_client: AsyncClient, async_db_session: AsyncSession
     return {"Authorization": f"Bearer {token}"}, tenant_id
 
 
+@pytest_asyncio.fixture
+async def test_agent_id(auth_headers, async_db_session: AsyncSession):
+    """Create a real agent for the auth_headers tenant.
+
+    create_task()/_validate_references() now verifies agent_task/autonomous_agent/
+    followup_reminder config.agent_id refers to a real agent owned by the tenant
+    (SECURITY: reject scheduling against agents that don't exist or belong to
+    another tenant), so tests exercising that path need a real row rather than a
+    random uuid.
+    """
+    from src.models.agent import Agent
+
+    _headers, tenant_id = auth_headers
+    agent = Agent(
+        tenant_id=tenant_id,
+        agent_name=f"scheduled-tasks-test-agent-{uuid.uuid4().hex[:8]}",
+        llm_config={"provider": "openai", "model": "gpt-4o-mini"},
+    )
+    async_db_session.add(agent)
+    await async_db_session.commit()
+    await async_db_session.refresh(agent)
+    return str(agent.id)
+
+
 class TestScheduledTasksCRUDIntegration:
     """Test Scheduled Tasks CRUD operations."""
 
-    def test_scheduled_task_full_lifecycle(self, client: TestClient, auth_headers):
+    def test_scheduled_task_full_lifecycle(self, client: TestClient, auth_headers, test_agent_id):
         """Test complete scheduled task lifecycle: create -> get -> update -> delete."""
         headers, tenant_id = auth_headers
         task_name = f"TestTask_{uuid.uuid4().hex[:8]}"
@@ -69,7 +93,7 @@ class TestScheduledTasksCRUDIntegration:
                 "description": "Test scheduled task for integration tests",
                 "task_type": "agent_task",
                 "interval_seconds": 3600,  # 1 hour
-                "config": {"agent_id": str(uuid.uuid4()), "message": "Hello"},
+                "config": {"agent_id": test_agent_id, "message": "Hello"},
                 "is_active": True,
             },
             headers=headers,
@@ -212,7 +236,7 @@ class TestScheduledTasksCRUDIntegration:
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_list_tasks_with_different_status(self, client: TestClient, auth_headers):
+    def test_list_tasks_with_different_status(self, client: TestClient, auth_headers, test_agent_id):
         """Test that listing returns tasks with different active status."""
         headers, tenant_id = auth_headers
 
@@ -226,7 +250,7 @@ class TestScheduledTasksCRUDIntegration:
                 "task_type": "agent_task",
                 "interval_seconds": 3600,
                 "is_active": True,
-                "config": {"agent_id": str(uuid.uuid4())},
+                "config": {"agent_id": test_agent_id},
             },
             headers=headers,
         )
@@ -242,7 +266,7 @@ class TestScheduledTasksCRUDIntegration:
                 "task_type": "agent_task",
                 "interval_seconds": 3600,
                 "is_active": False,
-                "config": {"agent_id": str(uuid.uuid4())},
+                "config": {"agent_id": test_agent_id},
             },
             headers=headers,
         )
@@ -273,7 +297,7 @@ class TestScheduledTasksTenantIsolation:
 
         # Create first user/tenant
         email1 = f"tenant1_task_{uuid.uuid4().hex[:8]}@example.com"
-        await async_client.post(
+        register1 = await async_client.post(
             "/console/api/auth/register",
             json={
                 "email": email1,
@@ -282,6 +306,7 @@ class TestScheduledTasksTenantIsolation:
                 "tenant_name": "Tenant 1 Org",
             },
         )
+        tenant1_id = register1.json()["data"]["tenant"]["id"]
         result1 = await async_db_session.execute(select(Account).filter_by(email=email1))
         account1 = result1.scalar_one_or_none()
         account1.status = AccountStatus.ACTIVE
@@ -292,6 +317,19 @@ class TestScheduledTasksTenantIsolation:
         )
         token1 = login1.json()["data"]["access_token"]
         headers1 = {"Authorization": f"Bearer {token1}"}
+
+        # create_task()/_validate_references() now verifies config.agent_id refers
+        # to a real agent owned by the tenant, so give tenant 1 a real one.
+        from src.models.agent import Agent
+
+        agent1 = Agent(
+            tenant_id=tenant1_id,
+            agent_name=f"tenant1-task-test-agent-{uuid.uuid4().hex[:8]}",
+            llm_config={"provider": "openai", "model": "gpt-4o-mini"},
+        )
+        async_db_session.add(agent1)
+        await async_db_session.commit()
+        await async_db_session.refresh(agent1)
 
         # Create second user/tenant
         email2 = f"tenant2_task_{uuid.uuid4().hex[:8]}@example.com"
@@ -325,7 +363,7 @@ class TestScheduledTasksTenantIsolation:
                 "task_type": "agent_task",
                 "interval_seconds": 3600,
                 "is_active": True,
-                "config": {"agent_id": str(uuid.uuid4())},
+                "config": {"agent_id": str(agent1.id)},
             },
             headers=headers1,
         )

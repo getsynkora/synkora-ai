@@ -85,8 +85,9 @@ class DebateRespondRequest(BaseModel):
     """External agent submitting a response."""
 
     participant_id: str = Field(..., description="Participant ID received on join")
+    participant_token: str | None = Field(None, max_length=256, description="Private capability returned once on join")
     round: int = Field(..., ge=1)
-    content: str = Field(..., min_length=1)
+    content: str = Field(..., min_length=1, max_length=100000)
 
 
 class DebateParticipantSchema(BaseModel):
@@ -98,6 +99,11 @@ class DebateParticipantSchema(BaseModel):
     role: str | None = None
     is_external: bool = False
     color: str = "#6366f1"
+
+
+def public_participants(participants: list[dict]) -> list[dict]:
+    """Explicit public fields: never return callback or participant credentials."""
+    return [DebateParticipantSchema.model_validate(participant).model_dump() for participant in participants]
 
 
 class DebateMessageSchema(BaseModel):

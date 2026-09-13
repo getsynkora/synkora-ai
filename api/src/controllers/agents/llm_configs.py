@@ -10,7 +10,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_async_db
-from src.middleware.auth_middleware import get_current_tenant_id
+from src.middleware.auth_middleware import get_current_tenant_id, require_role
+from src.models import AccountRole
 from src.models.agent import Agent
 from src.schemas.agent_llm_config import (
     AgentLLMConfigCreate,
@@ -143,7 +144,11 @@ async def get_agent_by_name_or_id(
     return agent
 
 
-@router.post("/{agent_slug}/llm-configs", response_model=AgentLLMConfigResponse)
+@router.post(
+    "/{agent_slug}/llm-configs",
+    response_model=AgentLLMConfigResponse,
+    dependencies=[Depends(require_role(AccountRole.ADMIN))],
+)
 async def create_llm_config(
     agent_slug: str,
     config_data: AgentLLMConfigCreate,
@@ -352,7 +357,7 @@ async def list_llm_configs(
 ):
     """List all LLM configurations for an agent.
 
-    For public agents, returns configs using the agent owner's tenant_id.
+    Public users see model choices, excluding private provider and routing configuration.
     """
     # Get agent by name or ID and verify access (allow public agents)
     agent = await get_agent_by_name_or_id(agent_slug, tenant_id, db, allow_public=True)
@@ -362,6 +367,12 @@ async def list_llm_configs(
         session=db, agent_id=agent.id, tenant_id=agent.tenant_id, enabled_only=enabled_only
     )
 
+    # SECURITY: When the requester is not the agent's owner (public access via
+    # allow_public=True), strip sensitive fields: api_base (reveals infra URLs),
+    # additional_params (may contain auth headers), routing_rules (internal logic).
+    # api_key is never included in the response schema (AgentLLMConfigResponse).
+    is_owner = agent.tenant_id == tenant_id
+
     return [
         AgentLLMConfigResponse(
             id=config.id,
@@ -370,15 +381,15 @@ async def list_llm_configs(
             name=config.name,
             provider=config.provider,
             model_name=config.model_name,
-            api_base=config.api_base,
+            api_base=config.api_base if is_owner else None,
             temperature=config.temperature,
             max_tokens=config.max_tokens,
             top_p=config.top_p,
-            additional_params=config.additional_params,
+            additional_params=config.additional_params if is_owner else {},
             is_default=config.is_default,
             display_order=config.display_order,
             enabled=config.enabled,
-            routing_rules=config.routing_rules,
+            routing_rules=config.routing_rules if is_owner else None,
             routing_weight=config.routing_weight,
             created_at=config.created_at.isoformat(),
             updated_at=config.updated_at.isoformat(),
@@ -396,7 +407,7 @@ async def get_llm_config(
 ):
     """Get a specific LLM configuration.
 
-    For public agents, returns config using the agent owner's tenant_id.
+    Public users see model choices, excluding private provider and routing configuration.
     """
     # Get agent by name or ID and verify access (allow public agents)
     agent = await get_agent_by_name_or_id(agent_slug, tenant_id, db, allow_public=True)
@@ -407,6 +418,9 @@ async def get_llm_config(
     if not config or config.agent_id != agent.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="LLM configuration not found")
 
+    # SECURITY: Strip sensitive fields for non-owner access (same as list endpoint).
+    is_owner = agent.tenant_id == tenant_id
+
     return AgentLLMConfigResponse(
         id=config.id,
         agent_id=config.agent_id,
@@ -414,22 +428,26 @@ async def get_llm_config(
         name=config.name,
         provider=config.provider,
         model_name=config.model_name,
-        api_base=config.api_base,
+        api_base=config.api_base if is_owner else None,
         temperature=config.temperature,
         max_tokens=config.max_tokens,
         top_p=config.top_p,
-        additional_params=config.additional_params,
+        additional_params=config.additional_params if is_owner else {},
         is_default=config.is_default,
         display_order=config.display_order,
         enabled=config.enabled,
-        routing_rules=config.routing_rules,
+        routing_rules=config.routing_rules if is_owner else None,
         routing_weight=config.routing_weight,
         created_at=config.created_at.isoformat(),
         updated_at=config.updated_at.isoformat(),
     )
 
 
-@router.patch("/{agent_slug}/llm-configs/{config_id}", response_model=AgentLLMConfigResponse)
+@router.patch(
+    "/{agent_slug}/llm-configs/{config_id}",
+    response_model=AgentLLMConfigResponse,
+    dependencies=[Depends(require_role(AccountRole.ADMIN))],
+)
 async def update_llm_config(
     agent_slug: str,
     config_id: UUID,
@@ -487,7 +505,11 @@ async def update_llm_config(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to update LLM configuration")
 
 
-@router.delete("/{agent_slug}/llm-configs/{config_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{agent_slug}/llm-configs/{config_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_role(AccountRole.ADMIN))],
+)
 async def delete_llm_config(
     agent_slug: str,
     config_id: UUID,
@@ -523,7 +545,11 @@ async def delete_llm_config(
         )
 
 
-@router.post("/{agent_slug}/llm-configs/{config_id}/set-default", response_model=AgentLLMConfigResponse)
+@router.post(
+    "/{agent_slug}/llm-configs/{config_id}/set-default",
+    response_model=AgentLLMConfigResponse,
+    dependencies=[Depends(require_role(AccountRole.ADMIN))],
+)
 async def set_default_config(
     agent_slug: str,
     config_id: UUID,
@@ -575,7 +601,11 @@ async def set_default_config(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to set default LLM configuration")
 
 
-@router.post("/{agent_slug}/llm-configs/reorder", response_model=list[AgentLLMConfigResponse])
+@router.post(
+    "/{agent_slug}/llm-configs/reorder",
+    response_model=list[AgentLLMConfigResponse],
+    dependencies=[Depends(require_role(AccountRole.ADMIN))],
+)
 async def reorder_configs(
     agent_slug: str,
     reorder_data: AgentLLMConfigReorder,

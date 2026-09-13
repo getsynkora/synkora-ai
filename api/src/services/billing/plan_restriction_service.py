@@ -610,46 +610,72 @@ class PlanRestrictionService:
         plan = await self.get_tenant_plan(tenant_id)
         plan_features = await self.get_plan_features(tenant_id)
 
-        # Count current usage
-        agents_result = await self.db.execute(select(func.count(Agent.id)).where(Agent.tenant_id == tenant_id))
-        agents_count = agents_result.scalar()
-
-        team_members_result = await self.db.execute(
-            select(func.count(TenantAccountJoin.id)).where(TenantAccountJoin.tenant_id == tenant_id)
+        # Count all resource usage in a single query using scalar subqueries
+        counts_result = await self.db.execute(
+            select(
+                select(func.count(Agent.id))
+                .where(Agent.tenant_id == tenant_id)
+                .correlate(None)
+                .scalar_subquery()
+                .label("agents"),
+                select(func.count(TenantAccountJoin.id))
+                .where(TenantAccountJoin.tenant_id == tenant_id)
+                .correlate(None)
+                .scalar_subquery()
+                .label("team_members"),
+                select(func.count(KnowledgeBase.id))
+                .where(KnowledgeBase.tenant_id == tenant_id)
+                .correlate(None)
+                .scalar_subquery()
+                .label("knowledge_bases"),
+                select(func.count(MCPServer.id))
+                .where(MCPServer.tenant_id == tenant_id)
+                .correlate(None)
+                .scalar_subquery()
+                .label("mcp_servers"),
+                select(func.count(CustomTool.id))
+                .where(CustomTool.tenant_id == tenant_id)
+                .correlate(None)
+                .scalar_subquery()
+                .label("custom_tools"),
+                select(func.count(DatabaseConnection.id))
+                .where(DatabaseConnection.tenant_id == tenant_id)
+                .correlate(None)
+                .scalar_subquery()
+                .label("database_connections"),
+                select(func.count(DataSource.id))
+                .where(DataSource.tenant_id == tenant_id)
+                .correlate(None)
+                .scalar_subquery()
+                .label("data_sources"),
+                select(func.count(ScheduledTask.id))
+                .where(ScheduledTask.tenant_id == tenant_id)
+                .correlate(None)
+                .scalar_subquery()
+                .label("scheduled_tasks"),
+                select(func.count(AgentWidget.id))
+                .where(AgentWidget.tenant_id == tenant_id)
+                .correlate(None)
+                .scalar_subquery()
+                .label("widgets"),
+                select(func.count(SlackBot.id))
+                .where(SlackBot.tenant_id == tenant_id)
+                .correlate(None)
+                .scalar_subquery()
+                .label("slack_bots"),
+            )
         )
-        team_members_count = team_members_result.scalar()
-
-        kb_result = await self.db.execute(
-            select(func.count(KnowledgeBase.id)).where(KnowledgeBase.tenant_id == tenant_id)
-        )
-        knowledge_bases_count = kb_result.scalar()
-
-        mcp_result = await self.db.execute(select(func.count(MCPServer.id)).where(MCPServer.tenant_id == tenant_id))
-        mcp_servers_count = mcp_result.scalar()
-
-        tools_result = await self.db.execute(select(func.count(CustomTool.id)).where(CustomTool.tenant_id == tenant_id))
-        custom_tools_count = tools_result.scalar()
-
-        db_result = await self.db.execute(
-            select(func.count(DatabaseConnection.id)).where(DatabaseConnection.tenant_id == tenant_id)
-        )
-        database_connections_count = db_result.scalar()
-
-        ds_result = await self.db.execute(select(func.count(DataSource.id)).where(DataSource.tenant_id == tenant_id))
-        data_sources_count = ds_result.scalar()
-
-        tasks_result = await self.db.execute(
-            select(func.count(ScheduledTask.id)).where(ScheduledTask.tenant_id == tenant_id)
-        )
-        scheduled_tasks_count = tasks_result.scalar()
-
-        widgets_result = await self.db.execute(
-            select(func.count(AgentWidget.id)).where(AgentWidget.tenant_id == tenant_id)
-        )
-        widgets_count = widgets_result.scalar()
-
-        bots_result = await self.db.execute(select(func.count(SlackBot.id)).where(SlackBot.tenant_id == tenant_id))
-        slack_bots_count = bots_result.scalar()
+        row = counts_result.one()
+        agents_count = row.agents
+        team_members_count = row.team_members
+        knowledge_bases_count = row.knowledge_bases
+        mcp_servers_count = row.mcp_servers
+        custom_tools_count = row.custom_tools
+        database_connections_count = row.database_connections
+        data_sources_count = row.data_sources
+        scheduled_tasks_count = row.scheduled_tasks
+        widgets_count = row.widgets
+        slack_bots_count = row.slack_bots
 
         return {
             "plan_name": plan.name if plan else "Free",

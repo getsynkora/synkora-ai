@@ -5,7 +5,6 @@ import hashlib
 import hmac
 import json
 import logging
-import os
 import re
 import time
 from typing import Any
@@ -16,53 +15,58 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, 
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.config import settings
+from src.config.storage import get_storage_service, storage_config
 from src.core.database import get_async_db
 from src.core.errors import safe_error_message
 from src.middleware.auth_middleware import get_current_account, get_current_tenant_id
 from src.models import Account
 from src.services.data_analysis_service import DataAnalysisService
 from src.services.report_export_service import ReportExportService
+from src.services.security.report_files import local_report_path, report_key
 
 logger = logging.getLogger(__name__)
 
 _TOKEN_MAX_AGE_SECONDS = 3600  # Tokens expire after 1 hour
 
 
-def _make_download_token(file_path: str) -> str:
-    """Create a signed, time-stamped download token for a file path."""
-    secret = os.getenv("SECRET_KEY", "").encode()
-    ts = str(int(time.time()))
-    sig = hmac.new(secret, f"{ts}:{file_path}".encode(), hashlib.sha256).hexdigest()
-    payload = base64.urlsafe_b64encode(json.dumps({"path": file_path, "ts": ts, "sig": sig}).encode()).decode()
-    return payload
+def _download_key() -> bytes:
+    # Settings validates both environment and dotenv-backed configuration.
+    key = settings.secret_key
+    if not isinstance(key, str) or len(key) < 32:
+        raise ValueError("Download signing key is not configured")
+    return key.encode()
 
 
-def _verify_download_token(token: str) -> str | None:
-    """Verify a signed download token and return the file path if valid.
+def _make_download_token(file_key: str, tenant_id: UUID) -> str:
+    payload = {
+        "key": report_key(file_key, tenant_id),
+        "tenant": str(tenant_id),
+        "ts": int(time.time()),
+        "purpose": "report-download-v1",
+    }
+    body = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    signature = hmac.new(_download_key(), body, hashlib.sha256).hexdigest()
+    return base64.urlsafe_b64encode(body).decode() + "." + signature
 
-    Returns the decoded file path on success, or None if the token is invalid,
-    expired, or the HMAC does not match.
-    """
+
+def _verify_download_token(token: str, tenant_id: UUID) -> str | None:
     try:
-        secret = os.getenv("SECRET_KEY", "").encode()
-        decoded = json.loads(base64.urlsafe_b64decode(token.encode()).decode())
-        file_path = decoded["path"]
-        ts = decoded["ts"]
-        provided_sig = decoded["sig"]
-
-        # Verify signature using constant-time comparison
-        expected_sig = hmac.new(secret, f"{ts}:{file_path}".encode(), hashlib.sha256).hexdigest()
-        if not hmac.compare_digest(provided_sig, expected_sig):
-            logger.warning("Download token HMAC mismatch")
+        if len(token) > 4096:
             return None
-
-        # Check expiry
-        if int(time.time()) - int(ts) > _TOKEN_MAX_AGE_SECONDS:
-            logger.warning("Download token has expired")
+        encoded, signature = token.split(".")
+        body = base64.b64decode(encoded, altchars=b"-_", validate=True)
+        expected = hmac.new(_download_key(), body, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(signature, expected):
             return None
-
-        return file_path
-    except Exception:
+        payload = json.loads(body)
+        if payload.get("purpose") != "report-download-v1" or payload.get("tenant") != str(tenant_id):
+            return None
+        ts = payload.get("ts")
+        if type(ts) is not int or not 0 <= time.time() - ts <= _TOKEN_MAX_AGE_SECONDS:
+            return None
+        return report_key(payload["key"], tenant_id)
+    except (ValueError, TypeError, KeyError, AttributeError):
         return None
 
 
@@ -318,9 +322,11 @@ async def export_report(
                 message=result.get("message"),
             )
 
-        # Generate a signed download URL (path is never exposed in plain text)
+        # Sign the tenant-scoped storage key, not a caller-selected filesystem path.
         file_path = result.get("file_path", "")
-        download_url = f"/api/v1/analysis/download?token={_make_download_token(file_path)}" if file_path else None
+        download_url = (
+            f"/api/v1/data-analysis/download?token={_make_download_token(file_path, tenant_id)}" if file_path else None
+        )
 
         return ReportExportResponse(
             success=True,
@@ -339,38 +345,36 @@ async def export_report(
 
 @router.get("/download")
 async def download_analysis_file(
-    token: str = Query(..., description="Signed download token from export endpoint"),
-    current_account: Account = Depends(get_current_account),
+    token: str = Query(..., description="Signed report download token", max_length=4096),
+    tenant_id: UUID = Depends(get_current_tenant_id),
 ) -> Any:
-    """
-    Download an exported analysis file using a signed token.
-
-    The token is issued by the export endpoint and contains an HMAC-signed
-    file path.  Tokens expire after 1 hour.
-    """
+    """Authorize the tenant before resolving a signed report storage key."""
+    import asyncio
     import mimetypes
-    import pathlib
 
-    from fastapi.responses import FileResponse
+    from fastapi.responses import FileResponse, RedirectResponse
 
-    file_path = _verify_download_token(token)
-    if not file_path:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired download token")
-
-    # Prevent path traversal — ensure the resolved path stays within /tmp
-    resolved = pathlib.Path(file_path).resolve()
-    if not str(resolved).startswith("/tmp/"):
-        logger.warning("Download token contained path outside /tmp: %s", file_path)
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid download token")
-
+    key = _verify_download_token(token, tenant_id)
+    if not key:
+        raise HTTPException(status_code=400, detail="Invalid or expired download token")
+    headers = {"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"}
+    if storage_config.STORAGE_TYPE == "s3":
+        storage = get_storage_service()
+        url = await asyncio.to_thread(storage.get_presigned_url, key, expiration=60)
+        return RedirectResponse(url, status_code=303, headers=headers)
+    if storage_config.STORAGE_TYPE != "local":
+        raise HTTPException(status_code=503, detail="Report storage is unavailable")
+    try:
+        resolved = local_report_path(storage_config.local_storage_path, key, tenant_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Invalid report path") from exc
     if not resolved.is_file():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found or has been removed")
-
-    media_type, _ = mimetypes.guess_type(str(resolved))
+        raise HTTPException(status_code=404, detail="Report not found")
     return FileResponse(
         path=str(resolved),
         filename=resolved.name,
-        media_type=media_type or "application/octet-stream",
+        headers=headers,
+        media_type=mimetypes.guess_type(str(resolved))[0] or "application/octet-stream",
     )
 
 

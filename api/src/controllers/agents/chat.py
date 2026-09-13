@@ -6,7 +6,6 @@ CRITICAL: All chat interactions are protected with prompt injection scanning.
 """
 
 import asyncio
-import hashlib
 import json
 import logging
 import uuid
@@ -42,16 +41,13 @@ from src.helpers.streaming_helpers import (
     generate_status_event,
     generate_tool_status_event,
 )
-from src.middleware.auth_middleware import get_current_account, get_current_tenant_id
-from src.models import AccountStatus
+from src.middleware.auth_middleware import authenticate_tenant_token, get_current_account, get_current_tenant_id
 from src.models.tenant import Account
-from src.services import AuthService
 from src.services.agents.agent_loader_service import AgentLoaderService
 from src.services.agents.agent_manager import AgentManager
 from src.services.agents.chat_service import ChatService
 from src.services.agents.chat_stream_service import ChatStreamService
 from src.services.security.advanced_prompt_scanner import advanced_prompt_scanner
-from src.services.security.token_blacklist import ACCOUNT_TOKENS_PREFIX, TOKEN_BLACKLIST_PREFIX
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +130,9 @@ async def upload_chat_attachment(
         attachment_service = AttachmentService()
 
         # Read file content
-        file_content = await file.read()
+        from src.services.security.upload_limits import read_bounded_upload
+
+        file_content = await read_bounded_upload(file, 10 * 1024 * 1024)
 
         # Upload attachment
         attachment = await attachment_service.upload_attachment(
@@ -222,15 +220,17 @@ async def chat_stream(
 
         from src.services.human_approval_service import HumanApprovalService
 
-        _redis = get_redis_async()
-        _conv_id = request.conversation_id or ""
-        _hitl_key = f"hitl:chat:{request.agent_slug}:{_conv_id}"
-        _approval_id_str = await _redis.get(_hitl_key)
-        if _approval_id_str:
-            _approval_svc = HumanApprovalService(db)
-            _decision = _approval_svc.parse_reply(request.message)
-            if _decision != "unclear":
-                _result = await _approval_svc.handle_reply(uuid.UUID(_approval_id_str), request.message, db)
+        _approval_svc = HumanApprovalService(db)
+        _result = await _approval_svc.handle_chat_reply(
+            request.agent_slug,
+            request.conversation_id,
+            request.message,
+            current_account.id,
+            tenant_id,
+            db,
+        )
+        if _result is not None:
+            if _result != "unclear":
                 if _result == "approved":
                     _reply = "Great! Proceeding with the action now."
                 elif _result in ("rejected", "feedback"):
@@ -243,8 +243,6 @@ async def chat_stream(
                     _reply = "This approval request has expired. The next scheduled run will ask again."
                 else:
                     _reply = "Action status updated."
-
-                await _redis.delete(_hitl_key)
 
                 async def _approval_stream():
                     yield f"data: {_json_mod.dumps({'type': 'chunk', 'content': _reply})}\n\n"
@@ -505,21 +503,23 @@ async def _ws_chat_pipeline(
     try:
         from src.services.human_approval_service import HumanApprovalService
 
-        _redis = get_redis_async()
-        _hitl_key = f"hitl:chat:{agent_slug}:{conversation_id or ''}"
-        _approval_id_str = await _redis.get(_hitl_key)
-        if _approval_id_str:
-            _approval_svc = HumanApprovalService(db)
-            _decision = _approval_svc.parse_reply(message)
-            if _decision != "unclear":
-                _result = await _approval_svc.handle_reply(uuid.UUID(_approval_id_str), message, db)
+        _approval_svc = HumanApprovalService(db)
+        _result = await _approval_svc.handle_chat_reply(
+            agent_slug,
+            conversation_id,
+            message,
+            current_account.id,
+            tenant_id,
+            db,
+        )
+        if _result is not None:
+            if _result != "unclear":
                 _reply_map = {
                     "approved": "Great! Proceeding with the action now.",
                     "rejected": "Understood. Action cancelled.",
                     "feedback": "Got it! I'll revise and ask again shortly.",
                     "expired": "This approval request has expired. The next scheduled run will ask again.",
                 }
-                await _redis.delete(_hitl_key)
                 yield _json.dumps({"type": "chunk", "content": _reply_map.get(_result, "Action status updated.")})
                 yield _json.dumps({"type": "done"})
                 return
@@ -717,43 +717,11 @@ async def chat_websocket(websocket: WebSocket) -> None:
 
     token: str = auth_frame.get("token", "")
     try:
-        payload = AuthService.decode_token(token)
-        account_id = uuid.UUID(payload["sub"])
-        tenant_id = uuid.UUID(payload["tenant_id"])
-        token_version: int = int(payload.get("ver", 0))
-    except Exception:
-        await websocket.send_json({"type": "auth_error", "message": "Invalid token"})
-        await websocket.close(code=1008)
-        return
-
-    # Redis revocation check — same logic as _check_token_revocation in auth_middleware
-    try:
-        token_hash = hashlib.sha256(token.encode()).hexdigest()
-        aio_redis = get_redis_async()
-        pipe = aio_redis.pipeline()
-        pipe.exists(f"{TOKEN_BLACKLIST_PREFIX}{token_hash}")
-        pipe.get(f"{ACCOUNT_TOKENS_PREFIX}{account_id}:version")
-        results = await pipe.execute()
-        is_blacklisted = bool(results[0])
-        current_version = int(results[1]) if results[1] else 0
-    except Exception as exc:
-        logger.warning("WS Redis auth check failed: %s", exc)
-        await websocket.send_json({"type": "auth_error", "message": "Auth service unavailable"})
-        await websocket.close(code=1008)
-        return
-
-    if is_blacklisted or token_version < current_version:
-        await websocket.send_json({"type": "auth_error", "message": "Token revoked"})
-        await websocket.close(code=1008)
-        return
-
-    # Load account (separate short-lived session — auth only)
-    async with get_async_session_factory()() as auth_db:
-        result = await auth_db.execute(select(Account).filter_by(id=account_id))
-        current_account = result.scalar_one_or_none()
-
-    if not current_account or current_account.status != AccountStatus.ACTIVE:
-        await websocket.send_json({"type": "auth_error", "message": "Account not found or inactive"})
+        async with get_async_session_factory()() as auth_db:
+            current_account, tenant_id = await authenticate_tenant_token(token, auth_db)
+        account_id = current_account.id
+    except HTTPException:
+        await websocket.send_json({"type": "auth_error", "message": "Authentication required"})
         await websocket.close(code=1008)
         return
 
@@ -791,6 +759,13 @@ async def chat_websocket(websocket: WebSocket) -> None:
 
         # Fresh DB session per message — avoids holding a pool slot idle between turns
         async with get_async_session_factory()() as msg_db:
+            try:
+                # Recheck before every new turn: sockets can outlive tokens or membership.
+                current_account, tenant_id = await authenticate_tenant_token(token, msg_db)
+            except HTTPException:
+                await websocket.send_json({"type": "auth_error", "message": "Authentication required"})
+                await websocket.close(code=1008)
+                return
             try:
                 async for json_str in _ws_chat_pipeline(
                     agent_slug=agent_slug,

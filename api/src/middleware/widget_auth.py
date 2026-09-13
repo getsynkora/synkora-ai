@@ -6,7 +6,8 @@ Validates widget API keys and enforces rate limiting for widget requests.
 
 import hmac
 import logging
-import time
+import uuid
+from urllib.parse import urlsplit
 
 from fastapi import HTTPException, Request, status
 from sqlalchemy import select
@@ -17,6 +18,18 @@ from src.models.agent_widget import AgentWidget
 from src.services.agents.security import decrypt_value
 
 logger = logging.getLogger(__name__)
+
+
+# One atomic operation across all workers; distinct request IDs avoid timestamp collisions.
+WIDGET_RATE_LIMIT_SCRIPT = """
+local timestamp = redis.call('TIME')
+local now = tonumber(timestamp[1]) + tonumber(timestamp[2]) / 1000000
+redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', now - 3600)
+if redis.call('ZCARD', KEYS[1]) >= tonumber(ARGV[1]) then return 0 end
+redis.call('ZADD', KEYS[1], now, ARGV[2])
+redis.call('EXPIRE', KEYS[1], 3660)
+return 1
+"""
 
 
 def _get_redis_rate_limiter():
@@ -134,19 +147,29 @@ class WidgetAuthMiddleware:
         if not origin:
             return False
 
-        # Extract domain from origin (remove protocol and port)
-        domain = origin.replace("http://", "").replace("https://", "").split(":")[0]
+        try:
+            parsed = urlsplit(origin)
+            if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or parsed.password:
+                return False
+            # Accessing port also rejects malformed/non-numeric ports.
+            _ = parsed.port
+            domain = parsed.hostname.rstrip(".").encode("idna").decode("ascii").lower()
+        except (ValueError, UnicodeError):
+            return False
 
-        # Check if domain matches any allowed domain (support wildcards)
         for allowed_domain in widget.allowed_domains:
             if allowed_domain == "*":
                 return True
-            if allowed_domain.startswith("*."):
-                # Wildcard subdomain matching
-                base_domain = allowed_domain[2:]
-                if domain.endswith(base_domain):
+            wildcard = allowed_domain.startswith("*.")
+            candidate = allowed_domain[2:] if wildcard else allowed_domain
+            try:
+                candidate = candidate.rstrip(".").encode("idna").decode("ascii").lower()
+            except UnicodeError:
+                continue
+            if wildcard:
+                if domain.endswith("." + candidate):
                     return True
-            elif domain == allowed_domain:
+            elif domain == candidate:
                 return True
 
         return False
@@ -168,31 +191,12 @@ class WidgetAuthMiddleware:
         Raises:
             RuntimeError: If Redis is unavailable
         """
-        widget_id = str(widget.id)
-        rate_limit_key = f"widget:rate_limit:{widget_id}"
-        current_time = time.time()
-
         redis_client = _get_redis_rate_limiter()
-
-        # Use Redis sorted set for sliding window rate limiting
-        hour_ago = current_time - 3600
-
-        # Remove old entries
-        redis_client.zremrangebyscore(rate_limit_key, 0, hour_ago)
-
-        # Get current count
-        current_count = redis_client.zcard(rate_limit_key)
-
-        if current_count >= widget.rate_limit:
-            return False
-
-        # Add current request with timestamp as score
-        redis_client.zadd(rate_limit_key, {str(current_time): current_time})
-
-        # Set expiry on the key (1 hour + buffer)
-        redis_client.expire(rate_limit_key, 3660)
-
-        return True
+        return bool(
+            redis_client.eval(
+                WIDGET_RATE_LIMIT_SCRIPT, 1, f"widget:rate_limit:{widget.id}", widget.rate_limit, uuid.uuid4().hex
+            )
+        )
 
     @staticmethod
     async def check_rate_limit_async(widget: AgentWidget) -> bool:
@@ -202,28 +206,12 @@ class WidgetAuthMiddleware:
         Keeps the same sliding-window semantics without blocking the FastAPI
         event loop on Redis network I/O.
         """
-        widget_id = str(widget.id)
-        rate_limit_key = f"widget:rate_limit:{widget_id}"
-        current_time = time.time()
-
         redis_client = await _get_async_redis_rate_limiter()
-
-        hour_ago = current_time - 3600
-        pipe = redis_client.pipeline()
-        pipe.zremrangebyscore(rate_limit_key, 0, hour_ago)
-        pipe.zcard(rate_limit_key)
-        results = await pipe.execute()
-        current_count = int(results[1] or 0)
-
-        if current_count >= widget.rate_limit:
-            return False
-
-        pipe = redis_client.pipeline()
-        pipe.zadd(rate_limit_key, {str(current_time): current_time})
-        pipe.expire(rate_limit_key, 3660)
-        await pipe.execute()
-
-        return True
+        return bool(
+            await redis_client.eval(
+                WIDGET_RATE_LIMIT_SCRIPT, 1, f"widget:rate_limit:{widget.id}", widget.rate_limit, uuid.uuid4().hex
+            )
+        )
 
     @staticmethod
     async def authenticate_widget_request(request: Request) -> AgentWidget:

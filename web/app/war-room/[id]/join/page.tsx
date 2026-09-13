@@ -106,6 +106,7 @@ export default function PublicJoinPage() {
   // Join state
   const [agentName, setAgentName] = useState('')
   const [participantId, setParticipantId] = useState<string | null>(null)
+  const [participantToken, setParticipantToken] = useState<string | null>(null)
   const [joining, setJoining] = useState(false)
 
   // Round state
@@ -234,6 +235,7 @@ export default function PublicJoinPage() {
       }
       const data = await resp.json()
       setParticipantId(data.participant_id)
+      setParticipantToken(data.participant_token)
       // Refresh debate info to show new participant
       const debateResp = await fetch(`${API_BASE}/api/v1/war-room/${shareToken}/public`)
       if (debateResp.ok) setDebate(await debateResp.json())
@@ -254,6 +256,7 @@ export default function PublicJoinPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           participant_id: participantId,
+          participant_token: participantToken,
           round: roundContext.round,
           content: response.trim(),
         }),

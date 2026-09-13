@@ -18,6 +18,8 @@ interface ApiKeyFormProps {
 }
 
 const AVAILABLE_PERMISSIONS = [
+  { value: 'handoff:read', label: 'Read handoffs', description: 'Read this agent’s handoffs and conversation history' },
+  { value: 'handoff:write', label: 'Manage handoffs', description: 'Reply, assign, resolve and reopen this agent’s handoffs' },
   { value: 'chat', label: 'Chat', description: 'Send messages to the agent' },
   { value: 'stream', label: 'Stream', description: 'Stream responses from the agent' },
   { value: 'history', label: 'History', description: 'Access conversation history' },

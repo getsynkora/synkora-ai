@@ -2,11 +2,15 @@
 
 import logging
 import re
+import sqlite3
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
 import aiosqlite
+
+from src.services.security.local_databases import local_database_path
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +60,22 @@ def _sanitize_identifier(name: str, quote: bool = True) -> str:
         return name
 
 
+def _authorize(action, arg1, arg2, database, source):
+    if action in (sqlite3.SQLITE_SELECT, sqlite3.SQLITE_READ, sqlite3.SQLITE_RECURSIVE):
+        return sqlite3.SQLITE_OK
+    if action == sqlite3.SQLITE_FUNCTION and (arg2 or "").lower() not in {"load_extension", "writefile", "readfile"}:
+        return sqlite3.SQLITE_OK
+    if action == sqlite3.SQLITE_PRAGMA and (arg1 or "").lower() in {
+        "table_info",
+        "table_xinfo",
+        "index_list",
+        "index_info",
+        "foreign_key_list",
+    }:
+        return sqlite3.SQLITE_OK
+    return sqlite3.SQLITE_DENY
+
+
 class SQLiteConnector:
     """
     SQLite connector with connection management and safe query execution.
@@ -64,7 +84,7 @@ class SQLiteConnector:
     for SQLite databases.
     """
 
-    def __init__(self, database_path: str, timeout: float = 30.0):
+    def __init__(self, database_path: str, timeout: float = 30.0, *, tenant_id=None):
         """
         Initialize SQLite connector.
 
@@ -73,6 +93,7 @@ class SQLiteConnector:
             timeout: Query timeout in seconds
         """
         self.db_path = database_path
+        self.tenant_id = tenant_id
         self.timeout = timeout
         self._connection: aiosqlite.Connection | None = None
 
@@ -84,17 +105,17 @@ class SQLiteConnector:
             True if connection successful, False otherwise
         """
         try:
-            # Verify the database file exists or can be created
-            db_path = Path(self.db_path)
-
-            # Create parent directories if they don't exist
-            db_path.parent.mkdir(parents=True, exist_ok=True)
-
-            # Connect to SQLite database
-            self._connection = await aiosqlite.connect(self.db_path, timeout=self.timeout)
-
-            # Enable foreign keys
+            path = local_database_path(self.db_path, self.tenant_id)
+            self._resolved_path = path
+            self._connection = await aiosqlite.connect(Path(path).as_uri() + "?mode=ro", uri=True, timeout=self.timeout)
             await self._connection.execute("PRAGMA foreign_keys = ON")
+            await self._connection.execute("PRAGMA trusted_schema = OFF")
+            # Install on the connection's worker thread (supports aiosqlite 0.21).
+            await self._connection._execute(self._connection._conn.set_authorizer, _authorize)
+            await self._connection._execute(self._connection._conn.setlimit, sqlite3.SQLITE_LIMIT_LENGTH, 1024 * 1024)
+            await self._connection._execute(self._connection._conn.setlimit, sqlite3.SQLITE_LIMIT_SQL_LENGTH, 65536)
+            deadline = time.monotonic() + min(self.timeout, 30)
+            await self._connection.set_progress_handler(lambda: int(time.monotonic() > deadline), 1000)
 
             # Set row factory to return dict-like rows
             self._connection.row_factory = aiosqlite.Row
@@ -104,6 +125,7 @@ class SQLiteConnector:
 
         except Exception as e:
             logger.error(f"Failed to connect to SQLite: {str(e)}")
+            await self.disconnect()
             return False
 
     async def disconnect(self) -> None:
@@ -131,7 +153,7 @@ class SQLiteConnector:
                 version = version_row[0] if version_row else "Unknown"
 
             # Get database file info
-            db_path = Path(self.db_path)
+            db_path = Path(getattr(self, "_resolved_path", self.db_path))
             file_size = db_path.stat().st_size if db_path.exists() else 0
 
             await self.disconnect()
@@ -182,12 +204,15 @@ class SQLiteConnector:
                 # Execute query
                 if params:
                     async with conn.execute(query, params) as cursor:
-                        rows = await cursor.fetchall()
+                        rows = await cursor.fetchmany(10001)
                         columns = [description[0] for description in cursor.description] if cursor.description else []
                 else:
                     async with conn.execute(query) as cursor:
-                        rows = await cursor.fetchall()
+                        rows = await cursor.fetchmany(10001)
                         columns = [description[0] for description in cursor.description] if cursor.description else []
+
+                if len(rows) > 10000 or sum(len(str(tuple(row))) for row in rows) > 2 * 1024 * 1024:
+                    raise ValueError("Query result exceeds the limit")
 
                 # Convert rows to list of dictionaries
                 result_rows = [dict(row) for row in rows]

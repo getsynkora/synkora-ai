@@ -22,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_async_db
 from src.middleware import get_current_account, get_current_tenant_id
+from src.middleware.auth_middleware import authenticate_tenant_token
 from src.models.agent import Agent
 from src.models.tenant import Account, Tenant, TenantAccountJoin
 from src.models.tenant_portal import TenantPortal
@@ -46,6 +47,18 @@ _SLUG_RE = re.compile(r"^[a-z0-9-]{2,100}$")
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+async def _is_portal_member(request: Request, tenant_id, db: AsyncSession) -> bool:
+    header = request.headers.get("Authorization", "")
+    parts = header.split()
+    if len(parts) != 2 or parts[0].lower() != "bearer":
+        return False
+    try:
+        _, authorized_tenant = await authenticate_tenant_token(parts[1], db)
+        return authorized_tenant == tenant_id
+    except HTTPException:
+        return False
 
 
 async def _get_portal_by_slug(slug: str, db: AsyncSession) -> TenantPortal:
@@ -87,7 +100,8 @@ async def _get_portal_agents(
     )
 
     if search:
-        stmt = stmt.where(Agent.agent_name.ilike(f"%{search}%"))
+        escaped = search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        stmt = stmt.where(Agent.agent_name.ilike(f"%{escaped}%", escape="\\"))
 
     result = await db.execute(stmt)
     return list(result.scalars().all())
@@ -177,19 +191,7 @@ async def list_portal_agents(
     """
     portal = await _get_portal_by_slug(tenant_slug, db)
 
-    # Check if caller has a valid Bearer token for this tenant
-    include_members = False
-    auth_header = request.headers.get("Authorization", "")
-    if auth_header.startswith("Bearer "):
-        try:
-            from src.services import AuthService
-
-            token = auth_header.split(" ", 1)[1]
-            payload = AuthService.decode_token(token)
-            if payload and str(payload.get("tenant_id", "")) == str(portal.tenant_id):
-                include_members = True
-        except Exception:
-            pass
+    include_members = await _is_portal_member(request, portal.tenant_id, db)
 
     agents = await _get_portal_agents(
         portal, db, include_members_only=include_members, page=page, limit=limit, search=search
@@ -232,31 +234,8 @@ async def get_portal_agent(
     if visibility == "hidden":
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
 
-    if visibility == "members_only":
-        # Require a valid tenant Bearer token
-        auth_header = request.headers.get("Authorization", "")
-        if not auth_header.startswith("Bearer "):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Authentication required to view this agent",
-            )
-        try:
-            from src.services import AuthService
-
-            token = auth_header.split(" ", 1)[1]
-            payload = AuthService.decode_token(token)
-            if not payload or str(payload.get("tenant_id", "")) != str(portal.tenant_id):
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Authentication required to view this agent",
-                )
-        except HTTPException:
-            raise
-        except Exception:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Authentication required to view this agent",
-            )
+    if visibility == "members_only" and not await _is_portal_member(request, portal.tenant_id, db):
+        raise HTTPException(401, "Authentication required to view this agent")
 
     return {"data": _agent_to_portal_response(agent)}
 
@@ -351,10 +330,11 @@ def _make_slug(name: str) -> str:
     return slug[:80] or "portal"
 
 
-async def _ensure_unique_slug(slug: str, db: AsyncSession, suffix: int = 0) -> str:
-    """Append a numeric suffix until the slug is unique."""
-    candidate = f"{slug}-{suffix}" if suffix else slug
-    result = await db.execute(select(TenantPortal).where(TenantPortal.subdomain == candidate))
-    if result.scalar_one_or_none() is None:
-        return candidate
-    return await _ensure_unique_slug(slug, db, suffix + 1)
+async def _ensure_unique_slug(slug: str, db: AsyncSession, *, max_attempts: int = 100) -> str:
+    """Append a numeric suffix until the slug is unique (iterative, bounded)."""
+    for suffix in range(max_attempts + 1):
+        candidate = f"{slug}-{suffix}" if suffix else slug
+        result = await db.execute(select(TenantPortal).where(TenantPortal.subdomain == candidate))
+        if result.scalar_one_or_none() is None:
+            return candidate
+    raise ValueError(f"Could not generate a unique slug after {max_attempts} attempts")

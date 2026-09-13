@@ -152,6 +152,26 @@ class ToolExecutor:
         # Build URL
         url = self.parser.build_request_url(operation, path_params)
 
+        # Use the HTTP client's own URL normalization, including effective ports.
+        # Even a malformed/absolute schema path must not redirect stored credentials.
+        try:
+            configured = httpx.URL(self.parser.server_url)
+            destination = httpx.URL(url)
+
+            def origin(value):
+                return value.scheme, value.host, value.port
+
+            if (
+                configured.scheme not in {"http", "https"}
+                or not configured.host
+                or configured.userinfo
+                or destination.userinfo
+                or origin(destination) != origin(configured)
+            ):
+                return {"success": False, "error": "Tool destination must match the configured API origin"}
+        except (httpx.InvalidURL, ValueError, TypeError):
+            return {"success": False, "error": "Invalid tool destination"}
+
         # SECURITY: Validate URL to prevent SSRF attacks
         is_valid, error_message = validate_url(
             url, allowed_schemes=["http", "https"], block_private_ips=True, resolve_dns=True

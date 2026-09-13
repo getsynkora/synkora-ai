@@ -13,7 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.controllers.agents.models import AgentResponse
 from src.core.database import get_async_db
-from src.middleware.auth_middleware import get_current_tenant_id
+from src.middleware.auth_middleware import get_current_tenant_id, require_role
+from src.models import AccountRole
 from src.models.agent import Agent
 from src.services.agents.agent_manager import AgentManager
 
@@ -121,7 +122,9 @@ async def list_custom_tool_operations(
 
 
 @agents_custom_tools_router.post(
-    "/{agent_id}/custom-tools/{custom_tool_id}/operations/{operation_id}", response_model=AgentResponse
+    "/{agent_id}/custom-tools/{custom_tool_id}/operations/{operation_id}",
+    response_model=AgentResponse,
+    dependencies=[Depends(require_role(AccountRole.ADMIN))],
 )
 async def enable_custom_tool_operation(
     agent_id: str,
@@ -216,7 +219,9 @@ async def enable_custom_tool_operation(
 
 
 @agents_custom_tools_router.delete(
-    "/{agent_id}/custom-tools/{custom_tool_id}/operations/{operation_id}", response_model=AgentResponse
+    "/{agent_id}/custom-tools/{custom_tool_id}/operations/{operation_id}",
+    response_model=AgentResponse,
+    dependencies=[Depends(require_role(AccountRole.ADMIN))],
 )
 async def disable_custom_tool_operation(
     agent_id: str,

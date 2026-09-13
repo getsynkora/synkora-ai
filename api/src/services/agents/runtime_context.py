@@ -55,6 +55,7 @@ class RuntimeContext:
     user_id: uuid.UUID | None = None
     shared_state: dict[str, Any] | None = None
     all_available_tools: list[dict[str, Any]] | None = None  # Agent's assigned tools only
+    tool_registry: Any | None = None  # Request-owned execution bindings; never inherited by another agent
     allowed_database_connections: list[str] | None = None  # Allowed DB connection IDs (None = all)
     compute_session: Any | None = None  # ComputeSession | None — remote compute backend
     email_template_id: uuid.UUID | None = None  # Assigned email template for this agent
@@ -179,6 +180,7 @@ class RuntimeContext:
             user_id=self.user_id,
             shared_state=self.shared_state,
             all_available_tools=self.all_available_tools,
+            tool_registry=self.tool_registry,
             allowed_database_connections=self.allowed_database_connections,
             compute_session=self.compute_session,
             email_template_id=self.email_template_id,

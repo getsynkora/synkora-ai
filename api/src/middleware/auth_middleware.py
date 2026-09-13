@@ -64,7 +64,10 @@ def _decode_token(token: str = Depends(_get_token)) -> dict:
     only decode the JWT once.
     """
     try:
-        return AuthService.decode_token(token)
+        payload = AuthService.decode_token(token)
+        if payload.get("type") != "access" or type(payload.get("ver", 0)) is not int:
+            raise ValueError("An access token is required")
+        return payload
     except (jwt.InvalidTokenError, KeyError, ValueError) as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -163,12 +166,18 @@ async def get_current_account(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    try:
+        AuthService.validate_account_auth_version(payload, account)
+    except ValueError as exc:
+        raise HTTPException(401, "Session has been revoked", headers={"WWW-Authenticate": "Bearer"}) from exc
+
     return account
 
 
-def get_current_tenant_id(
+async def get_current_tenant_id(
     payload: dict = Depends(_decode_token),
     _current_account: Account = Depends(get_current_account),
+    db: AsyncSession = Depends(get_async_db),
 ) -> uuid.UUID:
     """
     Get the current tenant ID from JWT token.
@@ -201,13 +210,78 @@ def get_current_tenant_id(
             detail="Tenant context required",
         )
     try:
-        return uuid.UUID(payload["tenant_id"])
+        tenant_id = uuid.UUID(payload["tenant_id"])
     except (KeyError, ValueError) as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication token",
             headers={"WWW-Authenticate": "Bearer"},
         ) from e
+
+    # Check Redis cache for membership before hitting the DB.
+    account_id = _current_account.id
+    cache_key = f"membership:{account_id}:{tenant_id}"
+    try:
+        aio_redis = get_redis_async()
+        cached = await aio_redis.get(cache_key)
+        if cached:
+            return tenant_id
+    except Exception:
+        # Redis down — fall through to DB query
+        pass
+
+    from src.models import TenantAccountJoin
+
+    result = await db.execute(
+        select(TenantAccountJoin).where(
+            TenantAccountJoin.tenant_id == tenant_id,
+            TenantAccountJoin.account_id == account_id,
+        )
+    )
+    if result.scalar_one_or_none() is None:
+        raise HTTPException(status_code=403, detail="Tenant access is no longer available")
+
+    # Cache the successful membership check (60s TTL)
+    try:
+        aio_redis = get_redis_async()
+        await aio_redis.setex(cache_key, 60, "1")
+    except Exception:
+        pass  # Redis down — non-critical, next request will re-query DB
+
+    return tenant_id
+
+
+async def get_current_tenant_id_optional(
+    authorization: str | None = Header(None),
+    db: AsyncSession = Depends(get_async_db),
+) -> uuid.UUID | None:
+    """
+    Optional tenant extraction — returns None instead of raising when unauthenticated.
+
+    Use this for endpoints that serve both public and authenticated callers
+    (e.g., chat-config GET: public agents need no auth, tenant agents do).
+    """
+    token = extract_token(authorization)
+    if not token:
+        return None
+    try:
+        payload = AuthService.decode_token(token)
+        if payload.get("type") != "access" or type(payload.get("ver", 0)) is not int:
+            return None
+        tid = payload.get("tenant_id")
+        if not tid:
+            return None
+        return uuid.UUID(tid)
+    except Exception:
+        return None
+
+
+async def authenticate_tenant_token(token: str, db: AsyncSession) -> tuple[Account, uuid.UUID]:
+    """Shared account and tenant checks for non-dependency entry points."""
+    payload = _decode_token(token)
+    account = await get_current_account(token=token, payload=payload, db=db)
+    tenant_id = await get_current_tenant_id(payload=payload, _current_account=account, db=db)
+    return account, tenant_id
 
 
 def get_current_role(
@@ -280,6 +354,12 @@ def require_role(required_role: AccountRole):
             )
 
     return check_role
+
+
+async def require_platform_admin(current_account: Account = Depends(get_current_account)) -> None:
+    """Authorize global configuration using the current account record."""
+    if str(current_account.is_platform_admin).lower() != "true":
+        raise HTTPException(status_code=403, detail="Platform administrator access required")
 
 
 async def get_optional_account(
@@ -359,6 +439,7 @@ async def get_optional_account(
         result = await db.execute(select(Account).filter_by(id=account_id))
         account = result.scalar_one_or_none()
         if account and account.status == AccountStatus.ACTIVE:
+            AuthService.validate_account_auth_version(payload, account)
             return account
     except (jwt.InvalidTokenError, KeyError, ValueError):
         pass
@@ -366,22 +447,16 @@ async def get_optional_account(
     return None
 
 
-def get_optional_tenant_id(
+async def get_optional_tenant_id(
     authorization: str | None = Header(None),
+    db: AsyncSession = Depends(get_async_db),
 ) -> uuid.UUID | None:
-    """
-    Get the current tenant ID from JWT token if present, None otherwise.
-
-    Use this alongside get_optional_account for endpoints that work for both
-    authenticated and unauthenticated users but need tenant context when available.
-    """
+    """Return a tenant only after current account and membership validation."""
     token = extract_token(authorization)
     if not token:
         return None
-
     try:
-        payload = AuthService.decode_token(token)
-        tenant_id = payload.get("tenant_id")
-        return uuid.UUID(tenant_id) if tenant_id else None
-    except (jwt.InvalidTokenError, KeyError, ValueError):
+        _, tenant_id = await authenticate_tenant_token(token, db)
+        return tenant_id
+    except HTTPException:
         return None

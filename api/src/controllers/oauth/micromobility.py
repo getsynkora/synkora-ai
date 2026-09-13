@@ -17,13 +17,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.utils.config_helper import get_app_base_url
 
 from ...core.database import get_async_db
-from ...middleware.auth_middleware import get_optional_account, get_optional_tenant_id
+from ...middleware.auth_middleware import get_current_account, get_current_tenant_id
 from ...models.tenant import Account
 from ...models.user_oauth_token import UserOAuthToken
 from ...services.agents.security import decrypt_value, encrypt_value
 from ...services.oauth.micromobility_oauth import MicromobilityOAuth
 from ...services.security.oauth_state_service import create_oauth_state, get_oauth_state
 from .base import (
+    _authorize_oauth_connection,
+    _get_callback_oauth_app,
     _get_oauth_app_secure,
     _get_or_create_tenant_clone,
     _safe_error_redirect,
@@ -40,8 +42,8 @@ async def micromobility_authorize(
     oauth_app_id: int = Query(..., description="OAuth app ID to authorize"),
     redirect_url: str = Query(None, description="Frontend redirect URL after OAuth"),
     user_level: bool = Query(False, description="Store token at user level instead of app level"),
-    current_account: Account | None = Depends(get_optional_account),
-    tenant_id: uuid.UUID | None = Depends(get_optional_tenant_id),
+    current_account: Account = Depends(get_current_account),
+    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
@@ -52,7 +54,8 @@ async def micromobility_authorize(
         if user_level and not current_account:
             raise HTTPException(status_code=401, detail="Authentication required for user-level OAuth")
 
-        oauth_app = await _get_oauth_app_secure(db, oauth_app_id, tenant_id=tenant_id)
+        await _authorize_oauth_connection(db, current_account, tenant_id, user_level)
+        oauth_app = await _get_oauth_app_secure(db, oauth_app_id, tenant_id=tenant_id, require_tenant=True)
         if not oauth_app:
             raise HTTPException(status_code=404, detail="OAuth app not found")
 
@@ -76,6 +79,22 @@ async def micromobility_authorize(
                 detail="OAuth authorize/token URLs not configured. Set oauth_authorize_url and oauth_token_url in the app config.",
             )
 
+        # SECURITY: Validate OAuth URLs to prevent SSRF via tenant-controlled config
+        import ipaddress
+        import socket
+        from urllib.parse import urlparse
+
+        for url_name, url_value in [("oauth_authorize_url", authorize_url), ("oauth_token_url", token_url)]:
+            parsed = urlparse(url_value)
+            if parsed.scheme != "https":
+                raise HTTPException(status_code=400, detail=f"{url_name} must use HTTPS")
+            try:
+                ip = ipaddress.ip_address(socket.gethostbyname(parsed.hostname))
+                if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                    raise HTTPException(status_code=400, detail=f"{url_name} must not point to internal addresses")
+            except (socket.gaierror, ValueError):
+                pass  # hostname resolution may fail for valid domains
+
         try:
             client_secret = decrypt_value(oauth_app.client_secret)
         except Exception as e:
@@ -96,7 +115,8 @@ async def micromobility_authorize(
                 "oauth_app_id": oauth_app_id,
                 "redirect_url": redirect_url,
                 "user_level": user_level,
-                "account_id": str(current_account.id) if current_account and user_level else None,
+                "account_id": str(current_account.id),
+                "auth_version": current_account.auth_version or 0,
                 "tenant_id": str(tenant_id) if tenant_id else None,
             }
         )
@@ -113,7 +133,7 @@ async def micromobility_authorize(
         raise
     except Exception as e:
         logger.error(f"Micromobility OAuth authorization error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/micromobility/callback")
@@ -133,7 +153,7 @@ async def micromobility_callback(
         user_level = state_data.get("user_level", False)
         account_id = state_data.get("account_id")
 
-        oauth_app = await _get_oauth_app_secure(db, oauth_app_id)
+        oauth_app = await _get_callback_oauth_app(db, state_data)
         if not oauth_app:
             raise HTTPException(status_code=404, detail="OAuth app not found")
 

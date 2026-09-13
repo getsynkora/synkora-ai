@@ -12,7 +12,7 @@ raw ``_access_token_enc`` / ``_refresh_token_enc`` columns must never be
 read directly — always go through the properties.
 """
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Column, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -47,6 +47,7 @@ class UserOAuthToken(BaseModel):
         "refresh_token", Text, nullable=True, comment="Fernet-encrypted refresh token (if provided by provider)"
     )
     token_expires_at = Column(DateTime(timezone=True), nullable=True, comment="Token expiration timestamp")
+    provider_config = Column(JSON, nullable=True, comment="Destination settings bound to this personal OAuth token")
 
     # ------------------------------------------------------------------
     # Encrypted property accessors

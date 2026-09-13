@@ -189,7 +189,9 @@ class TestHandleReplyUpdatesSlackMessage:
         service._fire_approved_run = AsyncMock()
         service._update_slack_message = AsyncMock()
 
-        status = await service.handle_reply(approval.id, "yes", mock_db_session)
+        status = await service.handle_reply(
+            approval.id, "yes", mock_db_session, tenant_id=uuid4(), agent_id=approval.agent_id
+        )
 
         assert status == "approved"
         service._update_slack_message.assert_awaited_once_with(approval)

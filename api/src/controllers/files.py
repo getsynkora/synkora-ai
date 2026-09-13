@@ -120,8 +120,13 @@ async def upload_file(
         # Initialize S3 storage
         storage_service = S3StorageService()
 
-        # Read file content
-        content = await file.read()
+        # Read file content into memory for validation and upload.
+        # PERF LIMITATION: The entire file (up to 50MB for general uploads,
+        # 5MB for avatars) is buffered in memory. Streaming uploads would
+        # require S3 multipart upload support, which is a larger refactor.
+        from src.services.security.upload_limits import read_bounded_upload
+
+        content = await read_bounded_upload(file, (5 if entity_type == "agent_avatar" else 50) * 1024 * 1024)
 
         # SECURITY: Comprehensive file validation using FileSecurityService
         # This includes magic byte validation, malicious content scanning, and size limits

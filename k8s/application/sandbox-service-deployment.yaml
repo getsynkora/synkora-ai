@@ -21,10 +21,19 @@ spec:
         app: synkora
         component: sandbox
     spec:
+      automountServiceAccountToken: false
       imagePullSecrets:
       - name: ecr-registry-secret
       containers:
       - name: sandbox
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
         image: SANDBOX_IMAGE_PLACEHOLDER
         imagePullPolicy: Always
         ports:

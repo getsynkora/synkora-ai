@@ -1098,6 +1098,12 @@
     this.apiUrl         = (cfg.apiUrl || "http://localhost:5001/api/v1").replace(/\/$/, "");
     this._user          = cfg.user || null;
     this._userHash      = cfg.userHash || null;
+    this._identityToken = cfg.identityToken || null;
+    this._sessionToken = null;
+    this._sessionTokenKey = "snkr_session_token_" + cfg.widgetId;
+    if (!this._user) {
+      try { this._sessionToken = localStorage.getItem(this._sessionTokenKey); } catch (_) {}
+    }
     // Stable session IDs:
     //   Identified users  → deterministic "eu_{user.id}" (same across all page loads)
     //   Anonymous users   → persisted random ID in localStorage so the same visitor
@@ -1174,6 +1180,15 @@
     this._mount();
     this._loadConfig();
   }
+
+  Widget.prototype._authHeaders = function () {
+    var headers = { "X-Widget-API-Key": this.apiKey };
+    if (this._user) headers["X-Widget-User-Id"] = this._user.id;
+    if (this._userHash) headers["X-Widget-User-Hash"] = this._userHash;
+    if (this._identityToken) headers["X-Widget-Identity-Token"] = this._identityToken;
+    if (this._sessionToken) headers["X-Widget-Session-Token"] = this._sessionToken;
+    return headers;
+  };
 
   Widget.prototype._basePageContext = function () {
     return { url: location.href, title: document.title };
@@ -1748,7 +1763,7 @@
     var url = this.apiUrl + "/widgets/chat/history?external_user_id=" + encodeURIComponent(this._user.id);
 
     fetch(url, {
-      headers: { "X-Widget-API-Key": this.apiKey },
+      headers: this._authHeaders(),
     })
       .then(function (res) { return res.ok ? res.json() : null; })
       .then(function (json) {
@@ -2316,6 +2331,8 @@
         conversation_id: this.conversationId || undefined,
         user: this._user || undefined,
         user_hash: this._userHash || undefined,
+        identity_token: this._identityToken || undefined,
+        session_token: this._sessionToken || undefined,
       }),
     }).then(function (res) {
       if (!res.ok || !res.body) { self._finish(); return; }
@@ -2505,7 +2522,7 @@
   Widget.prototype._loadConfig = function () {
     var self = this;
     fetch(this.apiUrl + "/widgets/config", {
-      headers: { "X-Widget-API-Key": this.apiKey },
+      headers: this._authHeaders(),
     })
       .then(function (res) { return res.ok ? res.json() : null; })
       .then(function (data) {
@@ -2854,6 +2871,8 @@
         conversation_id: this.conversationId || undefined,
         user: this._user || undefined,
         user_hash: this._userHash || undefined,
+        identity_token: this._identityToken || undefined,
+        session_token: this._sessionToken || undefined,
         page_context: this._pageContext || undefined,
       }),
     })
@@ -2930,7 +2949,13 @@
       this._sherlockStep(evt.tool_name || "tool", evt.status, evt.description, evt.duration_ms);
       if (evt.status === "started") { this._toolsUsed++; }
 
-    } else if (evt.type === "done") {
+    } else if ((evt.type === "done" || evt.type === "session")) {
+      if (evt.metadata && evt.metadata.session_token) {
+        this._sessionToken = evt.metadata.session_token;
+        this.sessionId = evt.metadata.session_id;
+        try { localStorage.setItem("snkr_anon_" + this.widgetId, this.sessionId); } catch (_) {}
+        try { localStorage.setItem(this._sessionTokenKey, this._sessionToken); } catch (_) {}
+      }
       if (evt.metadata && evt.metadata.conversation_id) {
         this.conversationId = evt.metadata.conversation_id;
       }
@@ -3060,10 +3085,7 @@
 
     fetch(this.apiUrl + "/widgets/chat/approvals/" + encodeURIComponent(approvalId) + "/respond", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Widget-API-Key": self.apiKey,
-      },
+      headers: Object.assign({"Content-Type": "application/json"}, self._authHeaders()),
       body: JSON.stringify({ decision: decision }),
     }).then(function () {
       card.innerHTML = '<div class="snkr-approval-done">' +
@@ -3119,7 +3141,7 @@
       var convId = self.conversationId;
       if (!convId) return;
       fetch(self.apiUrl + "/widgets/chat/history?conversation_id=" + encodeURIComponent(convId), {
-        headers: { "X-Widget-API-Key": self.apiKey },
+        headers: self._authHeaders(),
       })
         .then(function (res) { return res.ok ? res.json() : null; })
         .then(function (data) {
@@ -3136,7 +3158,7 @@
             if (!msgId || self._seenHandoffMsgIds[msgId]) return;
             self._seenHandoffMsgIds[msgId] = true;
             var opBubble = self._row("agent");
-            opBubble.innerHTML = "<strong style=\"font-size:11px;color:#6b7280;display:block;margin-bottom:3px;\">Support</strong>" + (m.content || "");
+            opBubble.innerHTML = "<strong style=\"font-size:11px;color:#6b7280;display:block;margin-bottom:3px;\">Support</strong>" + esc(m.content || "");
           });
         })
         .catch(function () {});
@@ -3271,6 +3293,10 @@
     //
     // Context persists across messages until replaced or cleared, and is automatically
     // reset to a baseline (current URL/title) on same-page SPA navigation.
+    setIdentityToken: function (id, token) {
+      var w = this._i[id];
+      if (w) w._identityToken = token;
+    },
     setContext: function (id, context) {
       var w = this._i[id];
       if (w) w._setPageContext(context);

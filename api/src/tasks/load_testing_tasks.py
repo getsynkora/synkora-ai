@@ -591,9 +591,19 @@ def _store_metric(db, test_run_id: str, data: dict) -> None:
         logger.warning(f"Failed to store metric: {e}")
 
 
+def _monitoring_export_request(method: str, url: str, **kwargs):
+    import asyncio
+
+    from src.services.security.monitoring_http import monitoring_request
+
+    try:
+        return asyncio.run(monitoring_request(method, url, **kwargs))
+    except Exception:
+        raise ValueError("Monitoring connection failed or destination is not permitted") from None
+
+
 def _export_to_datadog(test_run, config: dict, settings: dict) -> dict:
     """Export metrics to DataDog."""
-    import requests
 
     api_key = config.get("api_key")
     site = config.get("site", "datadoghq.com")
@@ -619,7 +629,8 @@ def _export_to_datadog(test_run, config: dict, settings: dict) -> dict:
     if not series:
         return {"success": True, "metrics_sent": 0}
 
-    response = requests.post(
+    response = _monitoring_export_request(
+        "POST",
         f"https://api.{site}/api/v1/series",
         headers={
             "DD-API-KEY": api_key,
@@ -627,18 +638,18 @@ def _export_to_datadog(test_run, config: dict, settings: dict) -> dict:
         },
         json={"series": series},
         timeout=30,
+        tenant_id=test_run.tenant_id,
     )
 
     if response.status_code == 202:
         return {"success": True, "metrics_sent": len(series)}
     else:
-        return {"success": False, "error": response.text}
+        return {"success": False, "error": f"Monitoring endpoint returned HTTP {response.status_code}"}
 
 
 def _export_to_otlp(test_run, config: dict, settings: dict) -> dict:
     """Export metrics to OTLP endpoint."""
     # Simplified OTLP export - in production use opentelemetry-sdk
-    import requests
 
     endpoint = config.get("endpoint")
     headers = config.get("headers", {})
@@ -671,22 +682,23 @@ def _export_to_otlp(test_run, config: dict, settings: dict) -> dict:
         ]
     }
 
-    response = requests.post(
+    response = _monitoring_export_request(
+        "POST",
         f"{endpoint}/v1/metrics",
         headers={"Content-Type": "application/json", **headers},
         json=payload,
         timeout=30,
+        tenant_id=test_run.tenant_id,
     )
 
-    if response.status_code < 400:
+    if 200 <= response.status_code < 300:
         return {"success": True}
     else:
-        return {"success": False, "error": response.text}
+        return {"success": False, "error": f"Monitoring endpoint returned HTTP {response.status_code}"}
 
 
 def _export_to_grafana(test_run, config: dict, settings: dict) -> dict:
     """Export metrics to Grafana Cloud."""
-    import requests
 
     prometheus_url = config.get("prometheus_url")
     username = config.get("username")
@@ -705,26 +717,29 @@ def _export_to_grafana(test_run, config: dict, settings: dict) -> dict:
     if not lines:
         return {"success": True, "metrics_sent": 0}
 
-    response = requests.post(
+    response = _monitoring_export_request(
+        "POST",
         f"{prometheus_url}/api/v1/push",
         auth=(username, api_key),
-        data="\n".join(lines),
+        content="\n".join(lines).encode(),
         headers={"Content-Type": "text/plain"},
         timeout=30,
+        tenant_id=test_run.tenant_id,
     )
 
-    if response.status_code < 400:
+    if 200 <= response.status_code < 300:
         return {"success": True, "metrics_sent": len(lines)}
     else:
-        return {"success": False, "error": response.text}
+        return {"success": False, "error": f"Monitoring endpoint returned HTTP {response.status_code}"}
 
 
 def _export_to_webhook(test_run, config: dict, settings: dict) -> dict:
     """Export metrics to webhook endpoint."""
-    import requests
 
     url = config.get("url")
-    method = config.get("method", "POST")
+    method = str(config.get("method", "POST")).upper()
+    if method not in {"POST", "PUT", "PATCH"}:
+        return {"success": False, "error": "Unsupported webhook export method"}
     headers = config.get("headers", {})
 
     payload = {
@@ -739,18 +754,19 @@ def _export_to_webhook(test_run, config: dict, settings: dict) -> dict:
         "total_requests": test_run.total_requests,
     }
 
-    response = requests.request(
+    response = _monitoring_export_request(
         method=method,
         url=url,
         headers={"Content-Type": "application/json", **headers},
         json=payload,
         timeout=30,
+        tenant_id=test_run.tenant_id,
     )
 
-    if response.status_code < 400:
+    if 200 <= response.status_code < 300:
         return {"success": True}
     else:
-        return {"success": False, "error": response.text}
+        return {"success": False, "error": f"Monitoring endpoint returned HTTP {response.status_code}"}
 
 
 def _generate_csv(report: dict) -> str:

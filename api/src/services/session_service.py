@@ -63,8 +63,12 @@ class SessionService:
             family_id = secrets.token_urlsafe(16)
 
         # Generate tokens with version and family
-        access_token = AuthService.generate_access_token(account.id, tenant_id, role, token_version=token_version)
-        refresh_token = AuthService.generate_refresh_token(account.id, family_id=family_id, token_version=token_version)
+        access_token = AuthService.generate_access_token(
+            account.id, tenant_id, role, token_version=token_version, auth_version=account.auth_version or 0
+        )
+        refresh_token = AuthService.generate_refresh_token(
+            account.id, family_id=family_id, token_version=token_version, auth_version=account.auth_version or 0
+        )
 
         # Store refresh token in family for rotation tracking.
         # Also persist session_created_at so refresh_session() can enforce
@@ -74,7 +78,8 @@ class SessionService:
 
         # Store session creation timestamp in Redis (keyed by family_id)
         _now_ts = datetime.now(UTC).timestamp()
-        blacklist_service.store_session_created_at(account.id, family_id, _now_ts)
+        if not blacklist_service.store_session_created_at(account.id, family_id, _now_ts):
+            raise ValueError("Session state could not be stored")
 
         return {
             "access_token": access_token,
@@ -128,6 +133,8 @@ class SessionService:
             if not account or account.status != "ACTIVE":
                 raise ValueError("Invalid or inactive account")
 
+            AuthService.validate_account_auth_version(payload, account)
+
             # SECURITY: Validate token version
             token_version = payload.get("ver", 0)
             current_version = blacklist_service.get_account_token_version(account_id)
@@ -137,6 +144,8 @@ class SessionService:
 
             # SECURITY: Validate refresh token family (rotation check)
             family_id = payload.get("fid")
+            if not family_id:
+                raise ValueError("Refresh token family is missing; please log in again")
             if family_id:
                 refresh_token_hash = blacklist_service._hash_token(refresh_token)
                 if not blacklist_service.validate_refresh_token_family(account_id, family_id, refresh_token_hash):
@@ -153,6 +162,8 @@ class SessionService:
                 # Even with a valid refresh token, a session that started more than
                 # JWT_MAX_SESSION_AGE_HOURS ago must require re-login.
                 session_created_at_ts = blacklist_service.get_session_created_at(account_id, family_id)
+                if session_created_at_ts is None:
+                    raise ValueError("Session lifetime state is missing; please log in again")
                 if session_created_at_ts is not None:
                     max_age_hours = settings.jwt_max_session_age_hours
                     session_age = datetime.now(UTC) - datetime.fromtimestamp(session_created_at_ts, tz=UTC)
@@ -276,6 +287,8 @@ class SessionService:
             if not account or account.status != "ACTIVE":
                 return None
 
+            AuthService.validate_account_auth_version(payload, account)
+
             # SECURITY: Validate token version
             token_version = payload.get("ver", 0)
             current_version = blacklist_service.get_account_token_version(account_id)
@@ -329,7 +342,13 @@ class SessionService:
             raise ValueError("Invalid or inactive account")
 
         # Generate new access token with tenant context
-        access_token = AuthService.generate_access_token(account.id, tenant_id, membership.role)
+        access_token = AuthService.generate_access_token(
+            account.id,
+            tenant_id,
+            membership.role,
+            token_version=get_token_blacklist_service().get_account_token_version(account.id),
+            auth_version=account.auth_version or 0,
+        )
 
         return {
             "access_token": access_token,

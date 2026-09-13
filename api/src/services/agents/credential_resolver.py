@@ -40,68 +40,47 @@ class CredentialResolver:
         self.db = runtime_context.db_session
 
     async def _get_user_token_record(self, oauth_app_id: int) -> Any | None:
-        """
-        Get user's personal token record if available.
+        """Resolve only the current tenant member's personal connection."""
+        return await self._get_personal_provider_token_record(oauth_app_id)
 
-        This implements user-first token resolution - if the current user
-        has connected their own account, their token record is returned.
+    def _oauth_apps(self):
+        """Authorize connections again at use time, including previously saved tools."""
+        from sqlalchemy import false
 
-        Falls back to finding any user token for this oauth_app within the tenant
-        when user_id is not available (e.g., Slack messages where we don't have
-        a synkora account mapping).
+        from src.models.oauth_app import OAuthApp
 
-        Args:
-            oauth_app_id: ID of the OAuth app to check for user token
+        tenant_id = getattr(self.context, "tenant_id", None)
+        if not tenant_id:
+            return select(OAuthApp).where(false())
+        # A platform template may provide client configuration, never runtime secrets.
+        template = (
+            OAuthApp.is_platform_app.is_(True)
+            & (OAuthApp.auth_method == "oauth")
+            & OAuthApp.access_token.is_(None)
+            & OAuthApp.refresh_token.is_(None)
+            & OAuthApp.api_token.is_(None)
+        )
+        return select(OAuthApp).where((OAuthApp.tenant_id == tenant_id) | template)
 
-        Returns:
-            UserOAuthToken record or None if not found
-        """
+    async def _get_personal_provider_token_record(self, oauth_app_id: int, *, db=None):
+        """Select the current member's token, never another user's personal connection."""
+        from src.models import TenantAccountJoin
         from src.models.user_oauth_token import UserOAuthToken
 
-        try:
-            # First, try user-specific token if user_id is available
-            if hasattr(self.context, "user_id") and self.context.user_id:
-                result = await self.db.execute(
-                    select(UserOAuthToken).filter(
-                        UserOAuthToken.account_id == self.context.user_id, UserOAuthToken.oauth_app_id == oauth_app_id
-                    )
-                )
-                user_token = result.scalar_one_or_none()
-
-                if user_token and user_token.access_token:
-                    logger.info(
-                        f"✅ Found user-level token record for user {self.context.user_id}, OAuth app {oauth_app_id}"
-                    )
-                    return user_token
-
-            # Fallback: no user_id (e.g., Slack bot context). Scope strictly to the
-            # current tenant so we never return a token belonging to a different tenant.
-            if hasattr(self.context, "tenant_id") and self.context.tenant_id:
-                from src.models.tenant import TenantAccountJoin
-
-                result = await self.db.execute(
-                    select(UserOAuthToken)
-                    .join(TenantAccountJoin, TenantAccountJoin.account_id == UserOAuthToken.account_id)
-                    .filter(
-                        UserOAuthToken.oauth_app_id == oauth_app_id,
-                        TenantAccountJoin.tenant_id == self.context.tenant_id,
-                    )
-                    .limit(1)
-                )
-            else:
-                return None
-            user_token = result.scalar_one_or_none()
-
-            if user_token and user_token.access_token:
-                logger.info(
-                    f"✅ Found user-level token record by oauth_app_id {oauth_app_id} (user: {user_token.account_id})"
-                )
-                return user_token
-
-        except Exception as e:
-            logger.warning(f"Failed to get user token record: {e}")
-
-        return None
+        user_id = getattr(self.context, "user_id", None)
+        tenant_id = getattr(self.context, "tenant_id", None)
+        if not user_id or not tenant_id:
+            return None
+        result = await (db if db is not None else self.db).execute(
+            select(UserOAuthToken)
+            .join(TenantAccountJoin, TenantAccountJoin.account_id == UserOAuthToken.account_id)
+            .where(
+                UserOAuthToken.account_id == user_id,
+                UserOAuthToken.oauth_app_id == oauth_app_id,
+                TenantAccountJoin.tenant_id == tenant_id,
+            )
+        )
+        return result.scalar_one_or_none()
 
     @staticmethod
     def _resolve_user_token_value(value: str | None) -> str | None:
@@ -182,7 +161,7 @@ class CredentialResolver:
 
         # Get OAuth app
         result = await self.db.execute(
-            select(OAuthApp).filter(
+            self._oauth_apps().filter(
                 OAuthApp.id == agent_tool.oauth_app_id, OAuthApp.provider == "github", OAuthApp.is_active
             )
         )
@@ -272,57 +251,59 @@ class CredentialResolver:
                 "X-GitHub-Api-Version": "2022-11-28",
             }
 
-            async with httpx.AsyncClient() as client:
-                if owner and repo:
-                    # Look up the exact installation for this repository
-                    inst_resp = await client.get(
-                        f"https://api.github.com/repos/{owner}/{repo}/installation",
-                        headers=headers,
-                        timeout=15.0,
-                    )
-                    if inst_resp.status_code != 200:
-                        if inst_resp.status_code == 404:
-                            logger.warning(
-                                f"GitHub App '{oauth_app.app_name}' is not installed on {owner}/{repo}: "
-                                f"{inst_resp.status_code} {inst_resp.text}"
-                            )
-                        else:
-                            # e.g. 401 "Bad credentials" means the JWT itself was rejected
-                            # (invalid signature, expired, or clock skew) — the app may still
-                            # be installed. Don't conflate this with "not installed".
-                            logger.warning(
-                                f"GitHub App '{oauth_app.app_name}' JWT authentication failed for "
-                                f"{owner}/{repo}: {inst_resp.status_code} {inst_resp.text}"
-                            )
-                        return None
-                    installation_id = inst_resp.json()["id"]
-                else:
-                    resp = await client.get(
-                        "https://api.github.com/app/installations",
-                        headers=headers,
-                        timeout=15.0,
-                    )
-                    if resp.status_code != 200 or not resp.json():
-                        logger.warning(f"GitHub App '{oauth_app.app_name}' has no installations")
-                        return None
-                    installation_id = resp.json()[0]["id"]
+            from src.core.http_client import get_http_client
 
-                token_resp = await client.post(
-                    f"https://api.github.com/app/installations/{installation_id}/access_tokens",
+            client = get_http_client(key="github_api", timeout=15.0)
+            if owner and repo:
+                # Look up the exact installation for this repository
+                inst_resp = await client.get(
+                    f"https://api.github.com/repos/{owner}/{repo}/installation",
                     headers=headers,
                     timeout=15.0,
                 )
-                if token_resp.status_code != 201:
-                    logger.warning(f"Failed to get GitHub App installation token: {token_resp.text}")
+                if inst_resp.status_code != 200:
+                    if inst_resp.status_code == 404:
+                        logger.warning(
+                            f"GitHub App '{oauth_app.app_name}' is not installed on {owner}/{repo}: "
+                            f"{inst_resp.status_code} {inst_resp.text}"
+                        )
+                    else:
+                        # e.g. 401 "Bad credentials" means the JWT itself was rejected
+                        # (invalid signature, expired, or clock skew) — the app may still
+                        # be installed. Don't conflate this with "not installed".
+                        logger.warning(
+                            f"GitHub App '{oauth_app.app_name}' JWT authentication failed for "
+                            f"{owner}/{repo}: {inst_resp.status_code} {inst_resp.text}"
+                        )
                     return None
-
-                logger.info(
-                    "Got GitHub App installation token for tool '%s' (app: %s, installation: %s)",
-                    tool_name,
-                    oauth_app.app_name,
-                    installation_id,
+                installation_id = inst_resp.json()["id"]
+            else:
+                resp = await client.get(
+                    "https://api.github.com/app/installations",
+                    headers=headers,
+                    timeout=15.0,
                 )
-                return token_resp.json()["token"]
+                if resp.status_code != 200 or not resp.json():
+                    logger.warning(f"GitHub App '{oauth_app.app_name}' has no installations")
+                    return None
+                installation_id = resp.json()[0]["id"]
+
+            token_resp = await client.post(
+                f"https://api.github.com/app/installations/{installation_id}/access_tokens",
+                headers=headers,
+                timeout=15.0,
+            )
+            if token_resp.status_code != 201:
+                logger.warning(f"Failed to get GitHub App installation token: {token_resp.text}")
+                return None
+
+            logger.info(
+                "Got GitHub App installation token for tool '%s' (app: %s, installation: %s)",
+                tool_name,
+                oauth_app.app_name,
+                installation_id,
+            )
+            return token_resp.json()["token"]
 
         except Exception as e:
             logger.error(f"Failed to get GitHub App installation token: {e}", exc_info=True)
@@ -362,7 +343,7 @@ class CredentialResolver:
 
             # Get OAuth app
             result = await self.db.execute(
-                select(OAuthApp).filter(
+                self._oauth_apps().filter(
                     OAuthApp.id == agent_tool.oauth_app_id, OAuthApp.provider == "github", OAuthApp.is_active
                 )
             )
@@ -433,7 +414,7 @@ class CredentialResolver:
 
             # Get OAuth app (case-insensitive provider check)
             result = await self.db.execute(
-                select(OAuthApp).filter(
+                self._oauth_apps().filter(
                     OAuthApp.id == agent_tool.oauth_app_id, OAuthApp.provider.ilike("gitlab"), OAuthApp.is_active
                 )
             )
@@ -475,7 +456,7 @@ class CredentialResolver:
                         f"✅ Using user's personal GitLab token for tool '{tool_name}' "
                         f"(OAuth app: '{oauth_app.app_name}')"
                     )
-                    return user_token_record.access_token, base_url
+                    return self._resolve_user_token_value(user_token_record.access_token), base_url
 
                 if retry_refresh and user_token_record.refresh_token and client_id and client_secret:
                     try:
@@ -613,7 +594,7 @@ class CredentialResolver:
 
             # Get OAuth app (case-insensitive provider check)
             result = await self.db.execute(
-                select(OAuthApp).filter(
+                self._oauth_apps().filter(
                     OAuthApp.id == agent_tool.oauth_app_id, OAuthApp.provider.ilike("gmail"), OAuthApp.is_active
                 )
             )
@@ -747,7 +728,7 @@ class CredentialResolver:
 
             # Get OAuth app (case-insensitive provider check)
             result = await self.db.execute(
-                select(OAuthApp).filter(
+                self._oauth_apps().filter(
                     OAuthApp.id == agent_tool.oauth_app_id, OAuthApp.provider.ilike("gmail"), OAuthApp.is_active
                 )
             )
@@ -926,7 +907,7 @@ class CredentialResolver:
 
             # Get OAuth app
             result = await self.db.execute(
-                select(OAuthApp).filter(
+                self._oauth_apps().filter(
                     OAuthApp.id == agent_tool.oauth_app_id, OAuthApp.provider == "zoom", OAuthApp.is_active
                 )
             )
@@ -1142,7 +1123,7 @@ class CredentialResolver:
 
             # Get OAuth app
             result = await self.db.execute(
-                select(OAuthApp).filter(
+                self._oauth_apps().filter(
                     OAuthApp.id == agent_tool.oauth_app_id, OAuthApp.provider == "google_calendar", OAuthApp.is_active
                 )
             )
@@ -1341,7 +1322,7 @@ class CredentialResolver:
 
             # Get OAuth app
             result = await self.db.execute(
-                select(OAuthApp).filter(
+                self._oauth_apps().filter(
                     OAuthApp.id == agent_tool.oauth_app_id, OAuthApp.provider == "google_drive", OAuthApp.is_active
                 )
             )
@@ -1538,7 +1519,7 @@ class CredentialResolver:
             if agent_tool and agent_tool.oauth_app_id:
                 # Use OAuth app (case-insensitive provider check)
                 result = await self.db.execute(
-                    select(OAuthApp).filter(
+                    self._oauth_apps().filter(
                         OAuthApp.id == agent_tool.oauth_app_id, OAuthApp.provider.ilike("slack"), OAuthApp.is_active
                     )
                 )
@@ -1577,7 +1558,9 @@ class CredentialResolver:
             if agent_tool and agent_tool.slack_bot_id:
                 result = await self.db.execute(
                     select(SlackBot).filter(
-                        SlackBot.id == agent_tool.slack_bot_id, SlackBot.connection_status == "connected"
+                        SlackBot.id == agent_tool.slack_bot_id,
+                        SlackBot.tenant_id == getattr(self.context, "tenant_id", None),
+                        SlackBot.connection_status == "connected",
                     )
                 )
                 pinned_bot = result.scalar_one_or_none()
@@ -1594,7 +1577,11 @@ class CredentialResolver:
             # Auto-discover: find any connected bot for this agent
             result = await self.db.execute(
                 select(SlackBot)
-                .filter(SlackBot.agent_id == self.context.agent_id, SlackBot.connection_status == "connected")
+                .filter(
+                    SlackBot.agent_id == self.context.agent_id,
+                    SlackBot.tenant_id == getattr(self.context, "tenant_id", None),
+                    SlackBot.connection_status == "connected",
+                )
                 .limit(1)
             )
             slack_bot = result.scalar_one_or_none()
@@ -1643,7 +1630,7 @@ class CredentialResolver:
                 return None
 
             result = await self.db.execute(
-                select(OAuthApp).filter(
+                self._oauth_apps().filter(
                     OAuthApp.id == agent_tool.oauth_app_id, OAuthApp.provider.ilike("clickup"), OAuthApp.is_active
                 )
             )
@@ -1723,8 +1710,11 @@ class CredentialResolver:
 
             # Get OAuth app (case-insensitive provider check)
             result = await self.db.execute(
-                select(OAuthApp).filter(
-                    OAuthApp.id == agent_tool.oauth_app_id, OAuthApp.provider.ilike("jira"), OAuthApp.is_active
+                self._oauth_apps().filter(
+                    OAuthApp.id == agent_tool.oauth_app_id,
+                    OAuthApp.provider.ilike("jira"),
+                    OAuthApp.is_active,
+                    ((OAuthApp.tenant_id == self.context.tenant_id) | OAuthApp.is_platform_app.is_(True)),
                 )
             )
             oauth_app = result.scalar_one_or_none()
@@ -1762,16 +1752,6 @@ class CredentialResolver:
 
             else:
                 # OAuth authentication (Bearer token)
-                # cloud_id is shared across all users (stored in OAuth app config)
-                cloud_id = config.get("cloud_id")
-                domain = config.get("cloud_url", "").replace("https://", "").replace(".atlassian.net", "")
-
-                logger.info(f"🔍 Jira OAuth app '{oauth_app.app_name}' config: {config}")
-
-                if not cloud_id:
-                    logger.warning(f"No cloud_id found in Jira OAuth app '{oauth_app.app_name}' config")
-                    return None
-
                 client_id = oauth_app.client_id
                 client_secret = decrypt_value(oauth_app.client_secret) if oauth_app.client_secret else None
 
@@ -1781,8 +1761,14 @@ class CredentialResolver:
                     )
 
                 # Try user token first (user-first resolution)
-                user_token_record = await self._get_user_token_record(oauth_app.id)
+                user_token_record = await self._get_personal_provider_token_record(oauth_app.id)
                 if user_token_record:
+                    personal_config = user_token_record.provider_config or {}
+                    cloud_id = personal_config.get("cloud_id")
+                    domain = personal_config.get("cloud_url", "").replace("https://", "").replace(".atlassian.net", "")
+                    if not cloud_id:
+                        logger.warning("Personal Jira connection must be reconnected to verify its destination")
+                        return None
                     user_token_expired = False
                     if user_token_record.token_expires_at:
                         now = datetime.now(UTC)
@@ -1831,6 +1817,13 @@ class CredentialResolver:
                     else:
                         logger.warning("User Jira token expired but no refresh token available")
 
+                # App credentials must use the app's destination, not the personal one.
+                if oauth_app.is_platform_app:
+                    return None
+                cloud_id = config.get("cloud_id")
+                domain = config.get("cloud_url", "").replace("https://", "").replace(".atlassian.net", "")
+                if not cloud_id:
+                    return None
                 # Fall back to OAuthApp token
                 if not oauth_app.access_token:
                     logger.warning(f"No valid token found in Jira OAuth app '{oauth_app.app_name}'")
@@ -1937,7 +1930,7 @@ class CredentialResolver:
                 return None
 
             result = await self.db.execute(
-                select(OAuthApp).filter(
+                self._oauth_apps().filter(
                     OAuthApp.id == agent_tool.oauth_app_id,
                     OAuthApp.provider.ilike("zendesk"),
                     OAuthApp.is_active,
@@ -2008,7 +2001,7 @@ class CredentialResolver:
                 return None
 
             result = await self.db.execute(
-                select(OAuthApp).filter(
+                self._oauth_apps().filter(
                     OAuthApp.id == agent_tool.oauth_app_id,
                     OAuthApp.provider.ilike("zoho_crm"),
                     OAuthApp.is_active,
@@ -2056,10 +2049,12 @@ class CredentialResolver:
         from src.core.database import get_async_session_factory
         from src.models.agent_tool import AgentTool
         from src.models.oauth_app import OAuthApp
-        from src.models.user_oauth_token import UserOAuthToken
         from src.services.agents.security import decrypt_value, encrypt_value
 
         try:
+            tenant_id = getattr(self.context, "tenant_id", None)
+            if not tenant_id:
+                return None
             # Use a fresh independent session so that concurrent parallel tool calls
             # (e.g. LLM calling list_trips + list_vehicles simultaneously) don't share
             # the same session and trigger SQLAlchemy's "concurrent operations" error.
@@ -2078,10 +2073,11 @@ class CredentialResolver:
                     return None
 
                 result = await db.execute(
-                    select(OAuthApp).filter(
+                    self._oauth_apps().filter(
                         OAuthApp.id == agent_tool.oauth_app_id,
                         OAuthApp.provider.ilike("micromobility"),
                         OAuthApp.is_active,
+                        ((OAuthApp.tenant_id == tenant_id) | OAuthApp.is_platform_app.is_(True)),
                     )
                 )
                 oauth_app = result.scalar_one_or_none()
@@ -2102,6 +2098,9 @@ class CredentialResolver:
 
                 if not base_url:
                     logger.warning(f"No base_url in micromobility OAuth app '{app_name}'")
+                    return None
+
+                if oauth_app.is_platform_app and auth_method != "oauth":
                     return None
 
                 if auth_method == "basic_auth":
@@ -2211,28 +2210,9 @@ class CredentialResolver:
                         "request_timeout_seconds": config.get("request_timeout_seconds", 30),
                     }
 
-                # OAuth — user-first resolution (inline to stay within this session)
-                user_token = None
-                try:
-                    if hasattr(self.context, "user_id") and self.context.user_id:
-                        ut_result = await db.execute(
-                            select(UserOAuthToken).filter(
-                                UserOAuthToken.account_id == self.context.user_id,
-                                UserOAuthToken.oauth_app_id == oauth_app_id,
-                            )
-                        )
-                        ut = ut_result.scalar_one_or_none()
-                        if ut and ut.access_token:
-                            user_token = decrypt_value(ut.access_token)
-                    if not user_token:
-                        ut_result = await db.execute(
-                            select(UserOAuthToken).filter(UserOAuthToken.oauth_app_id == oauth_app_id)
-                        )
-                        ut = ut_result.scalar_one_or_none()
-                        if ut and ut.access_token:
-                            user_token = decrypt_value(ut.access_token)
-                except Exception as ut_err:
-                    logger.warning(f"Failed to get user token record: {ut_err}")
+                # Use only the current member's personal connection in this independent session.
+                user_record = await self._get_personal_provider_token_record(oauth_app_id, db=db)
+                user_token = self._resolve_user_token_value(user_record.access_token) if user_record else None
 
                 if user_token:
                     logger.info(
@@ -2248,7 +2228,7 @@ class CredentialResolver:
                         "request_timeout_seconds": config.get("request_timeout_seconds", 30),
                     }
 
-                if raw_access_token:
+                if raw_access_token and not oauth_app.is_platform_app:
                     access_token = decrypt_value(raw_access_token)
                     logger.info(
                         f"✅ Resolved micromobility OAuth token for tool '{tool_name}' "
@@ -2295,7 +2275,7 @@ class CredentialResolver:
                 return None
 
             result = await self.db.execute(
-                select(OAuthApp).filter(
+                self._oauth_apps().filter(
                     OAuthApp.id == agent_tool.oauth_app_id,
                     OAuthApp.provider.ilike("freshdesk"),
                     OAuthApp.is_active,
@@ -2349,7 +2329,7 @@ class CredentialResolver:
                 return None
 
             result = await self.db.execute(
-                select(OAuthApp).filter(
+                self._oauth_apps().filter(
                     OAuthApp.id == agent_tool.oauth_app_id,
                     OAuthApp.provider.ilike("hubspot"),
                     OAuthApp.is_active,
@@ -2412,10 +2392,11 @@ class CredentialResolver:
                 return None
 
             result = await self.db.execute(
-                select(OAuthApp).filter(
+                self._oauth_apps().filter(
                     OAuthApp.id == agent_tool.oauth_app_id,
                     OAuthApp.provider.ilike("salesforce"),
                     OAuthApp.is_active,
+                    ((OAuthApp.tenant_id == self.context.tenant_id) | OAuthApp.is_platform_app.is_(True)),
                 )
             )
             oauth_app = result.scalar_one_or_none()
@@ -2423,16 +2404,24 @@ class CredentialResolver:
                 logger.warning(f"No active Salesforce OAuth app found for tool {tool_name}")
                 return None
 
-            config = oauth_app.config or {}
-            instance_url = config.get("instance_url", "").strip()
-            if not instance_url:
-                logger.warning(f"No instance_url in Salesforce OAuth app '{oauth_app.app_name}'")
-                return None
+            user_record = await self._get_personal_provider_token_record(oauth_app.id)
+            if user_record and user_record.access_token:
+                personal_config = user_record.provider_config or {}
+                instance_url = personal_config.get("instance_url", "").strip()
+                if not instance_url:
+                    logger.warning("Personal Salesforce connection must be reconnected to verify its destination")
+                    return None
+                return {
+                    "auth_type": "oauth",
+                    "instance_url": instance_url,
+                    "access_token": self._resolve_user_token_value(user_record.access_token),
+                }
 
-            user_token = await self._get_user_token(oauth_app.id)
-            if user_token:
-                logger.info(f"✅ Resolved Salesforce OAuth token for tool '{tool_name}' (user-level)")
-                return {"auth_type": "oauth", "instance_url": instance_url, "access_token": user_token}
+            if oauth_app.is_platform_app:
+                return None
+            instance_url = (oauth_app.config or {}).get("instance_url", "").strip()
+            if not instance_url:
+                return None
 
             if oauth_app.access_token:
                 token = decrypt_value(oauth_app.access_token)
@@ -2471,7 +2460,7 @@ class CredentialResolver:
                 return None
 
             result = await self.db.execute(
-                select(OAuthApp).filter(
+                self._oauth_apps().filter(
                     OAuthApp.id == agent_tool.oauth_app_id,
                     OAuthApp.provider.ilike("intercom"),
                     OAuthApp.is_active,
@@ -2542,7 +2531,7 @@ class CredentialResolver:
                 return None
 
             result = await self.db.execute(
-                select(OAuthApp).filter(
+                self._oauth_apps().filter(
                     OAuthApp.id == agent_tool.oauth_app_id, OAuthApp.provider.ilike("twitter"), OAuthApp.is_active
                 )
             )
@@ -2655,7 +2644,7 @@ class CredentialResolver:
                 return None
 
             result = await self.db.execute(
-                select(OAuthApp).filter(
+                self._oauth_apps().filter(
                     OAuthApp.id == agent_tool.oauth_app_id, OAuthApp.provider.ilike("linkedin"), OAuthApp.is_active
                 )
             )
@@ -2767,7 +2756,7 @@ class CredentialResolver:
 
             # Get OAuth app (case-insensitive provider check)
             result = await self.db.execute(
-                select(OAuthApp).filter(
+                self._oauth_apps().filter(
                     OAuthApp.id == agent_tool.oauth_app_id, OAuthApp.provider.ilike("recall"), OAuthApp.is_active
                 )
             )

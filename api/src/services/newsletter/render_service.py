@@ -9,6 +9,8 @@ from typing import Any
 
 import jinja2
 
+from src.services.security.custom_templates import render_custom_template
+
 logger = logging.getLogger(__name__)
 
 
@@ -21,6 +23,7 @@ class NewsletterRenderService:
         self._builtin_env = jinja2.Environment(
             loader=jinja2.FileSystemLoader(str(self.TEMPLATE_DIR)),
             autoescape=True,
+            auto_reload=False,
         )
 
     def _get_template(
@@ -29,9 +32,6 @@ class NewsletterRenderService:
         custom_html: str | None = None,
     ) -> jinja2.Template:
         """Resolve a Jinja2 template from a built-in name or custom HTML string."""
-        if custom_html:
-            env = jinja2.Environment(autoescape=True)
-            return env.from_string(custom_html)
         fname = template_name if template_name.endswith(".html") else f"{template_name}.html"
         return self._builtin_env.get_template(fname)
 
@@ -59,7 +59,7 @@ class NewsletterRenderService:
         Returns:
             Rendered HTML string.
         """
-        tmpl = self._get_template(template, custom_template_html)
+        tmpl = None if custom_template_html else self._get_template(template)
 
         hn = data.get("hackernews") or []
         rss = data.get("rss_news") or []
@@ -88,23 +88,27 @@ class NewsletterRenderService:
         except Exception:
             pass  # keep raw string if unparseable
 
-        return tmpl.render(
-            date=date_str,
-            edition=f"Vol. {edition}",
-            container_width=width,
-            lead_headline=lead.get("title", ""),
-            lead_summary=lead.get("summary", lead.get("title", "")),
-            lead_why_it_matters=data.get("lead_why_it_matters", ""),
-            lead_url=lead.get("url", lead.get("hn_url", "#")),
-            lead_source=lead.get("source", "Hacker News"),
-            lead_image_url=lead.get("image_url") or data.get("lead_image_url"),
-            news_items=news_items,
-            github_items=(data.get("github_trending") or [])[:8],
-            papers=(data.get("papers") or [])[:6],
-            products=(data.get("producthunt") or [])[:4],
-            youtube_items=(data.get("youtube") or []),
-            twitter=data.get("twitter"),
-            editors_take=data.get("editors_take", ""),
-            pdf_url=pdf_url,
-            image_url=image_url,
-        )
+        context = {
+            "date": date_str,
+            "edition": f"Vol. {edition}",
+            "container_width": width,
+            "lead_headline": lead.get("title", ""),
+            "lead_summary": lead.get("summary", lead.get("title", "")),
+            "lead_why_it_matters": data.get("lead_why_it_matters", ""),
+            "lead_url": lead.get("url", lead.get("hn_url", "#")),
+            "lead_source": lead.get("source", "Hacker News"),
+            "lead_image_url": lead.get("image_url") or data.get("lead_image_url"),
+            "news_items": news_items,
+            "github_items": (data.get("github_trending") or [])[:8],
+            "papers": (data.get("papers") or [])[:6],
+            "products": (data.get("producthunt") or [])[:4],
+            "youtube_items": (data.get("youtube") or []),
+            "twitter": data.get("twitter"),
+            "editors_take": data.get("editors_take", ""),
+            "pdf_url": pdf_url,
+            "image_url": image_url,
+        }
+
+        if custom_template_html:
+            return render_custom_template(custom_template_html, context)
+        return tmpl.render(**context)

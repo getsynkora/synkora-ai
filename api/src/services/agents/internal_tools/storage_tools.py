@@ -10,6 +10,7 @@ import os
 from datetime import UTC, datetime
 from typing import Any
 
+from src.services.security.tenant_storage import storage_tenant, tenant_object_key
 from src.services.storage.s3_storage import get_s3_storage
 
 from .git_helpers import async_makedirs, async_path_exists, async_read_file_bytes, async_write_file_bytes
@@ -82,7 +83,7 @@ async def internal_s3_upload_file(
 
     Args:
         file_path: Path to the local file to upload (must be within workspace)
-        s3_key: S3 object key (defaults to filename if not provided)
+        s3_key: Tenant-relative object name or full owned key (defaults to filename)
         content_type: MIME type of the file
         metadata: Additional metadata to attach to the object
         config: Configuration dictionary
@@ -92,6 +93,10 @@ async def internal_s3_upload_file(
         Dictionary with upload result including S3 URL and presigned URL
     """
     try:
+        tenant = storage_tenant(runtime_context, config)
+        s3_service = get_s3_storage()
+        s3_key = tenant_object_key(s3_key or os.path.basename(file_path), s3_service.bucket_name, tenant, prefix=False)
+
         # Validate file_path is within workspace
         workspace_path = _get_workspace_path(config, runtime_context)
         is_valid, error = _validate_path_in_workspace(file_path, workspace_path)
@@ -113,9 +118,6 @@ async def internal_s3_upload_file(
         # Default s3_key to filename
         if not s3_key:
             s3_key = os.path.basename(file_path)
-
-        # Initialize S3 service
-        s3_service = get_s3_storage()
 
         # Upload file
         result = s3_service.upload_file(
@@ -161,7 +163,7 @@ async def internal_s3_upload_directory(
     Args:
         directory_path: Path to the local directory to upload (must be within workspace)
         base_prefix: Base S3 prefix/path for uploaded files
-        tenant_id: Optional tenant ID for organizing files
+        tenant_id: Deprecated consistency check; authorization uses runtime tenant identity
         metadata: Common metadata to attach to all files
         config: Configuration dictionary
         runtime_context: Runtime context
@@ -170,6 +172,12 @@ async def internal_s3_upload_directory(
         Dictionary with upload results for all files
     """
     try:
+        tenant = storage_tenant(runtime_context, config)
+        if tenant_id is not None and str(tenant_id) != tenant:
+            raise ValueError("Requested upload tenant differs from authenticated tenant")
+        s3_service = get_s3_storage()
+        base_prefix = tenant_object_key(base_prefix, s3_service.bucket_name, tenant, prefix=True)
+
         # Validate directory_path is within workspace
         workspace_path = _get_workspace_path(config, runtime_context)
         is_valid, error = _validate_path_in_workspace(directory_path, workspace_path)
@@ -178,13 +186,6 @@ async def internal_s3_upload_directory(
 
         if not await async_path_exists(directory_path, config):
             return {"error": f"Directory not found: {directory_path}"}
-
-        # Initialize S3 service
-        s3_service = get_s3_storage()
-
-        # Prepare base prefix
-        if tenant_id:
-            base_prefix = f"tenants/{tenant_id}/{base_prefix.strip('/')}"
 
         uploaded_files = []
         failed_files = []
@@ -207,8 +208,11 @@ async def internal_s3_upload_directory(
 
         for file_path in all_files:
             relative_path = os.path.relpath(file_path, directory_path)
-            s3_key = f"{base_prefix}/{relative_path}"
             try:
+                is_valid, error = _validate_path_in_workspace(file_path, workspace_path)
+                if not is_valid:
+                    raise ValueError(error)
+                s3_key = tenant_object_key(f"{base_prefix.rstrip('/')}/{relative_path}", s3_service.bucket_name, tenant)
                 file_content = await async_read_file_bytes(file_path, config)
                 if file_content is None:
                     raise ValueError(f"Could not read file: {file_path}")
@@ -273,6 +277,10 @@ async def internal_s3_download_file(
         Dictionary with download result and file content
     """
     try:
+        tenant = storage_tenant(runtime_context, config)
+        s3_service = get_s3_storage()
+        s3_key = tenant_object_key(s3_key, s3_service.bucket_name, tenant, prefix=False)
+
         # Validate output_path is within workspace if provided
         resolved_output_path = output_path
         if output_path:
@@ -283,9 +291,6 @@ async def internal_s3_download_file(
             # Use the workspace-resolved absolute path for writing
             if workspace_path and not os.path.isabs(output_path):
                 resolved_output_path = os.path.join(workspace_path, output_path)
-
-        # Initialize S3 service
-        s3_service = get_s3_storage()
 
         # Download file
         file_content = s3_service.download_file(s3_key)
@@ -327,8 +332,9 @@ async def internal_s3_generate_presigned_url(
         Dictionary with presigned URL and expiration info
     """
     try:
-        # Initialize S3 service
+        tenant = storage_tenant(runtime_context, config)
         s3_service = get_s3_storage()
+        s3_key = tenant_object_key(s3_key, s3_service.bucket_name, tenant, prefix=False)
 
         # Generate presigned URL
         url = s3_service.generate_presigned_url(key=s3_key, expiration=expiration)
@@ -366,8 +372,9 @@ async def internal_s3_list_files(
         Dictionary with list of files and their metadata
     """
     try:
-        # Initialize S3 service
+        tenant = storage_tenant(runtime_context, config)
         s3_service = get_s3_storage()
+        prefix = tenant_object_key(prefix, s3_service.bucket_name, tenant, prefix=True)
 
         # List files
         files = s3_service.list_files(prefix=prefix, max_keys=max_keys)
@@ -394,8 +401,9 @@ async def internal_s3_delete_file(
         Dictionary with deletion result
     """
     try:
-        # Initialize S3 service
+        tenant = storage_tenant(runtime_context, config)
         s3_service = get_s3_storage()
+        s3_key = tenant_object_key(s3_key, s3_service.bucket_name, tenant, prefix=False)
 
         # Delete file
         s3_service.delete_file(s3_key)
@@ -424,8 +432,9 @@ async def internal_s3_file_exists(
         Dictionary with existence result
     """
     try:
-        # Initialize S3 service
+        tenant = storage_tenant(runtime_context, config)
         s3_service = get_s3_storage()
+        s3_key = tenant_object_key(s3_key, s3_service.bucket_name, tenant, prefix=False)
 
         # Check if file exists
         exists = s3_service.file_exists(s3_key)
@@ -452,8 +461,9 @@ async def internal_s3_get_file_metadata(
         Dictionary with file metadata
     """
     try:
-        # Initialize S3 service
+        tenant = storage_tenant(runtime_context, config)
         s3_service = get_s3_storage()
+        s3_key = tenant_object_key(s3_key, s3_service.bucket_name, tenant, prefix=False)
 
         # Get metadata
         metadata = s3_service.get_file_metadata(s3_key)

@@ -22,7 +22,7 @@ from src.models import Account
 from src.models.custom_tool import CustomTool
 from src.services.agents.security import encrypt_value
 from src.services.custom_tools import OpenAPIParser, ToolExecutor
-from src.services.security.url_validator import validate_url_for_openapi_import
+from src.services.security.public_http import fetch_public_url
 
 logger = logging.getLogger(__name__)
 
@@ -250,25 +250,20 @@ async def import_from_url(
 ):
     """Import a custom tool from a URL pointing to an OpenAPI schema."""
     try:
-        # SECURITY: Validate URL to prevent SSRF attacks
-        is_valid, error_message = validate_url_for_openapi_import(request.url)
-        if not is_valid:
-            logger.warning(f"SSRF protection blocked URL: {request.url} - {error_message}")
-            raise HTTPException(status_code=400, detail=f"URL validation failed: {error_message}")
-
-        # Fetch OpenAPI schema from URL
-        async with httpx.AsyncClient(timeout=30) as client:
-            response = await client.get(request.url)
+        # Validation and DNS pinning happen at connection time, including redirects.
+        if httpx.URL(request.url).scheme != "https":
+            raise HTTPException(status_code=400, detail="OpenAPI imports require HTTPS")
+        try:
+            response = await fetch_public_url(request.url, timeout=30, max_bytes=5 * 1024 * 1024, https_only=True)
             response.raise_for_status()
-
-            # Try to parse as JSON
-            try:
-                openapi_schema = response.json()
-            except json.JSONDecodeError:
-                raise HTTPException(status_code=400, detail="URL does not return valid JSON")
+            openapi_schema = response.json()
+        except (ValueError, httpx.HTTPError, OSError, TimeoutError) as exc:
+            raise HTTPException(status_code=400, detail="Unable to import a valid public OpenAPI document") from exc
 
         # Validate it's an OpenAPI schema
-        if "openapi" not in openapi_schema and "swagger" not in openapi_schema:
+        if not isinstance(openapi_schema, dict) or (
+            "openapi" not in openapi_schema and "swagger" not in openapi_schema
+        ):
             raise HTTPException(
                 status_code=400,
                 detail="URL does not point to a valid OpenAPI/Swagger schema",

@@ -1,16 +1,19 @@
 """Report Export Service for generating reports in various formats."""
 
+import asyncio
+import html
 import io
 import json
 import logging
 from datetime import UTC, datetime
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pandas as pd
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.config.storage import get_storage_service
+from src.config.storage import get_storage_service, storage_config
+from src.services.security.report_files import local_report_path, report_key
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +45,23 @@ class ReportExportService:
         self.db = db
         self.tenant_id = tenant_id
         self.storage = get_storage_service()
+
+    async def _store_report(self, filename: str, content: bytes) -> str:
+        if (
+            not filename
+            or filename in {".", ".."}
+            or any(c in filename for c in "/\\%?#")
+            or any(ord(c) < 32 for c in filename)
+        ):
+            raise ValueError("Invalid report filename")
+        key = report_key(
+            f"reports/{self.tenant_id}/{datetime.now(UTC).strftime('%Y/%m/%d')}/{uuid4().hex}_{filename}",
+            self.tenant_id,
+        )
+        if storage_config.STORAGE_TYPE == "local":
+            local_report_path(storage_config.local_storage_path, key, self.tenant_id)
+        await asyncio.to_thread(self.storage.save_file, key, content)
+        return key
 
     async def export_to_csv(self, data: list[dict[str, Any]], filename: str | None = None) -> dict[str, Any]:
         """Export data to CSV format.
@@ -76,8 +96,7 @@ class ReportExportService:
                 filename = f"{filename}.csv"
 
             # Upload to storage
-            file_path = f"reports/{self.tenant_id}/{datetime.now(UTC).strftime('%Y/%m/%d')}/{filename}"
-            stored_path = await self.storage.upload_file(io.BytesIO(csv_content.encode("utf-8")), file_path)
+            stored_path = await self._store_report(filename, csv_content.encode("utf-8"))
 
             return {
                 "success": True,
@@ -142,8 +161,7 @@ class ReportExportService:
                 filename = f"{filename}.xlsx"
 
             # Upload to storage
-            file_path = f"reports/{self.tenant_id}/{datetime.now(UTC).strftime('%Y/%m/%d')}/{filename}"
-            stored_path = await self.storage.upload_file(io.BytesIO(excel_content), file_path)
+            stored_path = await self._store_report(filename, excel_content)
 
             return {
                 "success": True,
@@ -186,8 +204,7 @@ class ReportExportService:
                 filename = f"{filename}.json"
 
             # Upload to storage
-            file_path = f"reports/{self.tenant_id}/{datetime.now(UTC).strftime('%Y/%m/%d')}/{filename}"
-            stored_path = await self.storage.upload_file(io.BytesIO(json_content.encode("utf-8")), file_path)
+            stored_path = await self._store_report(filename, json_content.encode("utf-8"))
 
             return {
                 "success": True,
@@ -232,7 +249,7 @@ class ReportExportService:
                 "<html>",
                 "<head>",
                 "<meta charset='utf-8'>",
-                f"<title>{title}</title>",
+                f"<title>{html.escape(title)}</title>",
                 "<style>",
                 "body { font-family: Arial, sans-serif; margin: 20px; }",
                 "h1 { color: #333; }",
@@ -243,10 +260,10 @@ class ReportExportService:
                 "</style>",
                 "</head>",
                 "<body>",
-                f"<h1>{title}</h1>",
+                f"<h1>{html.escape(title)}</h1>",
                 f"<p>Generated: {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S UTC')}</p>",
                 f"<p>Total rows: {len(df)}</p>",
-                df.to_html(index=False, classes="data-table"),
+                df.to_html(index=False, classes="data-table", escape=True),
                 "</body>",
                 "</html>",
             ]
@@ -261,8 +278,7 @@ class ReportExportService:
                 filename = f"{filename}.html"
 
             # Upload to storage
-            file_path = f"reports/{self.tenant_id}/{datetime.now(UTC).strftime('%Y/%m/%d')}/{filename}"
-            stored_path = await self.storage.upload_file(io.BytesIO(html_content.encode("utf-8")), file_path)
+            stored_path = await self._store_report(filename, html_content.encode("utf-8"))
 
             return {
                 "success": True,

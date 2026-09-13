@@ -94,11 +94,11 @@ async def apply_template_to_html(
         if not html_content:
             return body_html, False
         try:
-            from jinja2 import Environment, Undefined
+            from src.services.security.custom_templates import render_custom_template
 
-            env = Environment(undefined=Undefined)
-            t = env.from_string(html_content)
-            return t.render(body=body_html, content=body_html), True
+            return render_custom_template(
+                html_content, {"body": body_html, "content": body_html}, autoescape=False
+            ), True
         except Exception as exc:
             logger.warning(f"Failed to render custom email template: {exc}")
             return body_html, False

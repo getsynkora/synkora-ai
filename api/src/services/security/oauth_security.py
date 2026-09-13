@@ -55,8 +55,11 @@ def validate_redirect_url(redirect_url: str, allowed_base_url: str) -> tuple[boo
             return True, None
 
         # Check subdomain match (e.g., app.example.com is allowed for example.com)
+        # SECURITY: Only allow one level of subdomain to prevent subdomain takeover
         if redirect_domain.endswith(f".{allowed_domain}"):
-            return True, None
+            subdomain_part = redirect_domain[: -len(f".{allowed_domain}")]
+            if "." not in subdomain_part:  # single-level subdomain only
+                return True, None
 
         # Always allow localhost redirects — they are not an open-redirect risk to
         # external attackers and are necessary for local-frontend / tunnel-API setups.
@@ -72,7 +75,9 @@ def validate_redirect_url(redirect_url: str, allowed_base_url: str) -> tuple[boo
             if redirect_domain == env_domain:
                 return True, None
             if redirect_domain.endswith(f".{env_domain}"):
-                return True, None
+                env_subdomain_part = redirect_domain[: -len(f".{env_domain}")]
+                if "." not in env_subdomain_part:  # single-level subdomain only
+                    return True, None
 
         return False, f"Redirect URL domain '{redirect_domain}' is not allowed"
 

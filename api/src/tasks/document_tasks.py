@@ -3,6 +3,7 @@ Background tasks for document processing.
 """
 
 import logging
+import random
 
 from src.config.celery import celery_app
 
@@ -43,7 +44,7 @@ def process_document(self, file_id: str, tenant_id: str) -> dict:
     except Exception as exc:
         logger.error(f"Error processing document {file_id}: {exc}")
         # Retry with exponential backoff
-        raise self.retry(exc=exc, countdown=60 * (2**self.request.retries)) from exc
+        raise self.retry(exc=exc, countdown=60 * (2**self.request.retries) + random.uniform(0, 30)) from exc
 
 
 @celery_app.task(name="generate_embeddings", bind=True)

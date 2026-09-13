@@ -10,14 +10,8 @@ RUN apt-get update \
         libmagic1 \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir \
-    fastapi \
-    uvicorn[standard] \
-    playwright \
-    crawl4ai \
-    beautifulsoup4 \
-    python-dateutil \
-    pydantic
+COPY requirements.lock ./requirements.lock
+RUN pip install --no-cache-dir --require-hashes -r requirements.lock
 
 # Install Playwright Chromium to a shared path accessible by non-root user
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright

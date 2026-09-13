@@ -2,6 +2,7 @@
 Storage service for file upload and management.
 """
 
+import asyncio
 import hashlib
 import mimetypes
 import os
@@ -174,18 +175,26 @@ class StorageService:
         return upload_file
 
     async def _store_local(self, file: BinaryIO, file_key: str) -> None:
-        """Store file in local filesystem."""
+        """Store file in local filesystem.
+
+        Delegates blocking I/O to a thread to avoid stalling the event loop.
+        """
         # Ensure storage directory exists
         self.config.ensure_local_storage()
 
         # Create full path
         file_path = self.config.local_storage_path / file_key
-        file_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Write file
-        with open(file_path, "wb") as f:
-            file.seek(0)
-            f.write(file.read())
+        # Read content before offloading (BinaryIO may not be thread-safe)
+        file.seek(0)
+        content = file.read()
+
+        # Offload blocking mkdir + write to a thread
+        def _write() -> None:
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            file_path.write_bytes(content)
+
+        await asyncio.to_thread(_write)
 
     async def _store_s3(self, file: BinaryIO, file_key: str) -> None:
         """Store file in S3. Use get_storage_service() from config/storage.py instead."""

@@ -5,7 +5,9 @@ No persistence. Workspaces are created fresh each conversation and deleted on cl
 If the sandbox restarts, workspaces are gone — that is fine by design.
 """
 
+import base64
 import logging
+import uuid
 from typing import Any
 
 import httpx
@@ -58,10 +60,16 @@ class SandboxComputeBackend(ComputeBackend):
     def backend_type(self) -> str:
         return "sandbox"
 
-    def _headers(self) -> dict:
-        if self._sandbox_api_key:
-            return {"X-Sandbox-Key": self._sandbox_api_key}
-        return {}
+    def _headers(self, workspace: str) -> dict:
+        from src.services.security.sandbox_capability import issue_capability
+
+        return {
+            "X-Sandbox-Key": issue_capability(
+                self._sandbox_api_key,
+                self._tenant_id,
+                workspace,
+            )
+        }
 
     async def checkout_session(
         self,
@@ -70,9 +78,11 @@ class SandboxComputeBackend(ComputeBackend):
         conversation_id: str,
     ) -> "SandboxComputeSession":
         # No setup needed — workspace is created lazily on first use inside the sandbox.
+        if str(tenant_id) != self._tenant_id:
+            raise ValueError("Compute session tenant does not match its backend")
         return SandboxComputeSession(
             tenant_id=self._tenant_id,
-            agent_id=str(agent_id),
+            agent_id=str(uuid.uuid5(uuid.UUID(str(agent_id)), str(conversation_id))),
             backend=self,
         )
 
@@ -83,7 +93,7 @@ class SandboxComputeBackend(ComputeBackend):
             await _client.delete(
                 f"{self._sandbox_url}/v1/workspace",
                 params={"tenant_id": self._tenant_id, "agent_id": session.agent_id},
-                headers=self._headers(),
+                headers=self._headers(session.agent_id),
             )
         except Exception as e:
             logger.warning(f"Workspace cleanup failed for agent {session.agent_id[:8]}: {e}")
@@ -107,7 +117,7 @@ class SandboxComputeSession:
         return f"{self._backend._sandbox_url}{path}"
 
     def _h(self) -> dict:
-        return self._backend._headers()
+        return self._backend._headers(self.agent_id)
 
     def _base(self) -> dict:
         return {"tenant_id": self.tenant_id, "agent_id": self.agent_id}
@@ -176,37 +186,26 @@ class SandboxComputeSession:
             return {"success": False, "error": str(e)}
 
     async def write_file_bytes(self, path: str, content: bytes) -> dict[str, Any]:
-        """Write binary content to a file in the sandbox using base64 encoding."""
-        import base64 as _b64
-
-        b64 = _b64.b64encode(content).decode("ascii")
-        tmp = path + ".__b64__"
-        wr = await self.write_file(tmp, b64)
-        if not wr.get("success"):
-            return wr
-        result = await self.exec_command(
-            [
-                "python3",
-                "-c",
-                f"import base64,pathlib; p=pathlib.Path('{path}'); p.parent.mkdir(parents=True,exist_ok=True); "
-                f"p.write_bytes(base64.b64decode(pathlib.Path('{tmp}').read_text())); pathlib.Path('{tmp}').unlink()",
-            ]
-        )
-        return (
-            result if result.get("success") else {"success": False, "error": result.get("error", "Binary write failed")}
-        )
+        """Write through the file API; never interpolate a path into executable code."""
+        try:
+            resp = await _client.put(
+                self._url("/v1/files/binary"),
+                json={**self._base(), "path": path, "content_base64": base64.b64encode(content).decode("ascii")},
+                headers=self._h(),
+            )
+            return _parse_response(resp, {})
+        except Exception as exc:
+            return {"success": False, "error": str(exc)}
 
     async def read_file_bytes(self, path: str) -> bytes | None:
-        """Read binary file content from the sandbox using base64 encoding."""
-        import base64 as _b64
-
-        result = await self.exec_command(["base64", "-w", "0", path])
-        if not result.get("success") or not result.get("output"):
-            return None
-        try:
-            return _b64.b64decode(result["output"].strip())
-        except Exception:
-            return None
+        """Read only a file authorized by the sandbox's workspace boundary."""
+        resp = await _client.get(
+            self._url("/v1/files/binary"),
+            params={**self._base(), "path": path},
+            headers=self._h(),
+        )
+        resp.raise_for_status()
+        return base64.b64decode(resp.json()["content_base64"], validate=True)
 
     async def file_exists(self, path: str) -> bool:
         try:

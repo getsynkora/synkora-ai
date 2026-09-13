@@ -10,6 +10,8 @@ import uuid
 from datetime import UTC, datetime
 from uuid import UUID
 
+from src.services.security.elasticsearch_transport import elasticsearch_tls_options
+
 logger = logging.getLogger(__name__)
 
 _es_client = None
@@ -26,7 +28,7 @@ async def _get_es_client():
     _es_client = AsyncElasticsearch(
         [settings.elasticsearch_url],
         basic_auth=(settings.elasticsearch_username, settings.elasticsearch_password),
-        verify_certs=False,
+        **elasticsearch_tls_options(),
         request_timeout=10,
     )
     return _es_client
@@ -149,6 +151,7 @@ async def delete_dataset(*, dataset_id: str, tenant_id: UUID) -> bool:
                 "bool": {
                     "filter": [
                         {"term": {"dataset_id.keyword": dataset_id}},
+                        {"term": {"tenant_id.keyword": str(tenant_id)}},
                         {"term": {"doc_type.keyword": "case"}},
                     ]
                 }
@@ -176,6 +179,9 @@ async def create_case(
     """Create an EvalCase document and increment dataset case_count."""
     from src.config.settings import settings
 
+    parent = await get_dataset(dataset_id=dataset_id, tenant_id=tenant_id)
+    if not parent or parent.get("agent_id") != str(agent_id):
+        raise ValueError("Dataset not found for this tenant and agent")
     es = await _get_es_client()
     case_id = str(uuid.uuid4())
     doc = {
@@ -194,7 +200,13 @@ async def create_case(
         await es.update(
             index=settings.agent_eval_datasets_index,
             id=f"dataset:{dataset_id}",
-            body={"script": {"source": "ctx._source.case_count += 1", "lang": "painless"}},
+            body={
+                "script": {
+                    "source": "if (ctx._source.tenant_id == params.tenant && ctx._source.agent_id == params.agent) { ctx._source.case_count += 1 } else { ctx.op = 'none' }",
+                    "lang": "painless",
+                    "params": {"tenant": str(tenant_id), "agent": str(agent_id)},
+                }
+            },
         )
     except Exception as e:
         logger.warning("Failed to increment case_count: %s", e)
@@ -240,6 +252,9 @@ async def delete_case(*, case_id: str, tenant_id: UUID) -> bool:
         doc = result["_source"]
         if doc.get("tenant_id") != str(tenant_id):
             return False
+        parent = await get_dataset(dataset_id=doc["dataset_id"], tenant_id=tenant_id)
+        if not parent or parent.get("agent_id") != doc.get("agent_id"):
+            return False
         await es.delete(index=settings.agent_eval_datasets_index, id=f"case:{case_id}")
         try:
             await es.update(
@@ -247,8 +262,9 @@ async def delete_case(*, case_id: str, tenant_id: UUID) -> bool:
                 id=f"dataset:{doc['dataset_id']}",
                 body={
                     "script": {
-                        "source": "if (ctx._source.case_count > 0) { ctx._source.case_count -= 1 }",
+                        "source": "if (ctx._source.tenant_id == params.tenant && ctx._source.agent_id == params.agent && ctx._source.case_count > 0) { ctx._source.case_count -= 1 } else { ctx.op = 'none' }",
                         "lang": "painless",
+                        "params": {"tenant": str(tenant_id), "agent": doc["agent_id"]},
                     }
                 },
             )

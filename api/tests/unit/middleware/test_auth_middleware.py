@@ -91,9 +91,9 @@ class TestDecodeToken:
     @patch("src.middleware.auth_middleware.AuthService")
     def test_valid_token_returns_payload(self, mock_auth_service):
         """Test that a valid JWT returns its decoded payload."""
-        mock_auth_service.decode_token.return_value = {"sub": "account-id"}
+        mock_auth_service.decode_token.return_value = {"sub": "account-id", "type": "access"}
         result = _decode_token(token="good-token")
-        assert result == {"sub": "account-id"}
+        assert result == {"sub": "account-id", "type": "access"}
 
 
 def _make_async_redis_mock(blacklisted: bool = False, version: bytes = b"0"):
@@ -117,6 +117,7 @@ class TestGetCurrentAccount:
     def valid_account(self):
         """Create a valid account object."""
         account = MagicMock()
+        account.auth_version = 0
         account.id = uuid.uuid4()
         account.status = AccountStatus.ACTIVE
         account.name = "Test User"
@@ -244,18 +245,22 @@ class TestGetCurrentAccount:
 class TestGetCurrentTenantId:
     """Test get_current_tenant_id dependency."""
 
-    def test_missing_tenant_id_raises_400(self):
+    async def test_missing_tenant_id_raises_400(self):
         """Test that a payload without tenant_id raises 400."""
         with pytest.raises(HTTPException) as exc_info:
-            get_current_tenant_id(payload={"sub": "account-id"})
+            await get_current_tenant_id(payload={"sub": "account-id", "type": "access"})
 
         assert exc_info.value.status_code == 400
         assert "Tenant context required" in exc_info.value.detail
 
-    def test_valid_tenant_id_returned(self):
+    async def test_valid_tenant_id_returned(self):
         """Test that a valid tenant_id is returned from payload."""
         tenant_id = uuid.uuid4()
-        result = get_current_tenant_id(payload={"sub": "account", "tenant_id": str(tenant_id)})
+        db = AsyncMock()
+        result_row = MagicMock()
+        result_row.scalar_one_or_none.return_value = MagicMock()
+        db.execute.return_value = result_row
+        result = await get_current_tenant_id(payload={"tenant_id": str(tenant_id)}, _current_account=MagicMock(), db=db)
         assert result == tenant_id
 
     def test_tenant_id_dependency_requires_current_account(self):
@@ -271,7 +276,7 @@ class TestGetCurrentRole:
     def test_missing_role_raises_400(self):
         """Test that a payload without role raises 400."""
         with pytest.raises(HTTPException) as exc_info:
-            get_current_role(payload={"sub": "account-id"})
+            get_current_role(payload={"sub": "account-id", "type": "access"})
 
         assert exc_info.value.status_code == 400
         assert "Role context required" in exc_info.value.detail
@@ -297,6 +302,7 @@ class TestRequireRole:
         """Test that insufficient permission raises 403."""
         mock_db = AsyncMock()
         mock_account = MagicMock()
+        mock_account.auth_version = 0
         mock_account.id = uuid.uuid4()
         tenant_id = uuid.uuid4()
 
@@ -316,6 +322,7 @@ class TestRequireRole:
         """Test that sufficient permission passes."""
         mock_db = AsyncMock()
         mock_account = MagicMock()
+        mock_account.auth_version = 0
         mock_account.id = uuid.uuid4()
         tenant_id = uuid.uuid4()
 
@@ -366,6 +373,7 @@ class TestGetOptionalAccount:
         mock_get_redis.return_value = _make_async_redis_mock()
         account_id = uuid.uuid4()
         account = MagicMock()
+        account.auth_version = 0
         account.id = account_id
         account.status = AccountStatus.ACTIVE
 
@@ -387,6 +395,7 @@ class TestGetOptionalAccount:
         mock_get_redis.return_value = _make_async_redis_mock()
         account_id = uuid.uuid4()
         account = MagicMock()
+        account.auth_version = 0
         account.id = account_id
         account.status = AccountStatus.ACTIVE
 
@@ -409,6 +418,7 @@ class TestGetOptionalAccount:
         mock_get_redis.return_value = _make_async_redis_mock()
         account_id = uuid.uuid4()
         account = MagicMock()
+        account.auth_version = 0
         account.id = account_id
         account.status = AccountStatus.INACTIVE
 

@@ -15,6 +15,7 @@ import { getLensOverview, type LensOverviewResponse } from '@/lib/api/agent-lens
 import { postFeedback } from '@/lib/api/eval'
 import { useAgentLLMConfigs } from '@/hooks/useAgentLLMConfigs'
 import { useChatTransport } from '@/components/chat/hooks/useChatTransport'
+import { createStreamTextBatcher } from '@/lib/streamTextBatcher'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
 
@@ -612,6 +613,9 @@ export default function AdvancedChatPage() {
     // that would overwrite the locally-displayed error with stale old messages.
     let streamStarted = false
     let streamHadError = false
+    const textBatch = createStreamTextBatcher(content => {
+      setMessages(prev => prev.map(item => item.id === assistantMessage.id ? { ...item, content } : item))
+    })
 
     try {
       let fullResponse = ''
@@ -631,18 +635,12 @@ export default function AdvancedChatPage() {
         })),
       })) {
         streamStarted = true
+        if (event.type !== 'chunk') textBatch.flush()
 
         if (event.type === 'chunk') {
           fullResponse += event.content
           setThinkingStatus('')
-          setMessages((prev: Message[]) => {
-            const newMessages = [...prev]
-            const lastIndex = newMessages.length - 1
-            if (lastIndex >= 0 && newMessages[lastIndex].role === 'assistant') {
-              newMessages[lastIndex] = { ...newMessages[lastIndex], content: fullResponse }
-            }
-            return newMessages
-          })
+          textBatch.push(fullResponse)
         } else if (event.type === 'status') {
           if (!event.content?.includes('completed')) {
             setThinkingStatus(event.content || 'Thinking...')
@@ -839,6 +837,7 @@ export default function AdvancedChatPage() {
       }
     } catch (error) {
       streamHadError = true
+      textBatch.flush()
       if (error instanceof DOMException && error.name === 'AbortError') {
         // User stopped the stream — keep partial content, mark as stopped
         setMessages((prev) => {
@@ -865,6 +864,7 @@ export default function AdvancedChatPage() {
         })
       }
     } finally {
+      textBatch.flush()
       setIsStreaming(false)
       setThinkingStatus('')
       setToolStatus(null)

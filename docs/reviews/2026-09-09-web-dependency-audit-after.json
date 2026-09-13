@@ -1,0 +1,32 @@
+{
+  "command": "pnpm audit --prod --json",
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 1
+    },
+    "dependencies": 915,
+    "devDependencies": 0,
+    "optionalDependencies": 0,
+    "totalDependencies": 915
+  },
+  "advisories": [
+    {
+      "package": "maplibre-gl",
+      "severity": "critical",
+      "url": "https://github.com/advisories/GHSA-jrc7-96c5-q579",
+      "patched_versions": ">=6.4.1",
+      "findings": [
+        {
+          "version": "4.7.1",
+          "paths": [
+            ". > react-plotly.js@2.6.0 > plotly.js@3.5.0 > maplibre-gl@4.7.1"
+          ]
+        }
+      ]
+    }
+  ]
+}

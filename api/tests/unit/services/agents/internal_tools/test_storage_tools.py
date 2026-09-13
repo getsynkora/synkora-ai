@@ -1,3 +1,7 @@
+from types import SimpleNamespace
+
+CONTEXT = SimpleNamespace(tenant_id="11111111-1111-1111-1111-111111111111")
+ROOT = f"tenants/{CONTEXT.tenant_id}/"
 from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
@@ -49,7 +53,7 @@ class TestStorageTools:
             patch("builtins.open", mock_open(read_data=file_content)),
             patch("os.path.getsize", return_value=len(file_content)),
         ):
-            result = await internal_s3_upload_file(file_path)
+            result = await internal_s3_upload_file(file_path, runtime_context=CONTEXT)
 
             assert result["success"] is True
             assert result["s3_key"] == "test.txt"
@@ -57,7 +61,7 @@ class TestStorageTools:
             mock_s3_service.upload_file.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_internal_s3_upload_file_not_found(self):
+    async def test_internal_s3_upload_file_not_found(self, mock_s3_service):
         file_path = f"{self.MOCK_WORKSPACE}/nonexistent.txt"
         with (
             patch(
@@ -69,7 +73,7 @@ class TestStorageTools:
             ),
             patch("os.path.exists", return_value=False),
         ):
-            result = await internal_s3_upload_file(file_path)
+            result = await internal_s3_upload_file(file_path, runtime_context=CONTEXT)
             assert "not found" in result["error"]
 
     @pytest.mark.asyncio
@@ -92,7 +96,7 @@ class TestStorageTools:
             patch("builtins.open", mock_open(read_data=b"content")),
             patch("os.path.getsize", return_value=10),
         ):
-            result = await internal_s3_upload_directory(dir_path, "prefix")
+            result = await internal_s3_upload_directory(dir_path, "prefix", runtime_context=CONTEXT)
 
             assert result["success"] is True
             assert result["total_uploaded"] == 2
@@ -104,7 +108,7 @@ class TestStorageTools:
         mock_s3_service.download_file.return_value = b"content"
 
         # Download to memory (no output_path, no workspace validation needed)
-        result = await internal_s3_download_file("key")
+        result = await internal_s3_download_file("key", runtime_context=CONTEXT)
         assert result["success"] is True
         assert result["content"] == "content"
 
@@ -120,7 +124,7 @@ class TestStorageTools:
             patch("os.makedirs"),
             patch("builtins.open", mock_open()) as mock_file,
         ):
-            result = await internal_s3_download_file("key", output_path=output_path)
+            result = await internal_s3_download_file("key", output_path=output_path, runtime_context=CONTEXT)
             assert result["success"] is True
             mock_file().write.assert_called_with(b"content")
 
@@ -128,7 +132,7 @@ class TestStorageTools:
     async def test_internal_s3_generate_presigned_url(self, mock_s3_service):
         mock_s3_service.generate_presigned_url.return_value = "https://url"
 
-        result = await internal_s3_generate_presigned_url("key")
+        result = await internal_s3_generate_presigned_url("key", runtime_context=CONTEXT)
 
         assert result["success"] is True
         assert result["presigned_url"] == "https://url"
@@ -138,24 +142,24 @@ class TestStorageTools:
     async def test_internal_s3_list_files(self, mock_s3_service):
         mock_s3_service.list_files.return_value = [{"key": "file1"}, {"key": "file2"}]
 
-        result = await internal_s3_list_files(prefix="test")
+        result = await internal_s3_list_files(prefix="test", runtime_context=CONTEXT)
 
         assert result["success"] is True
         assert len(result["files"]) == 2
-        assert result["prefix"] == "test"
+        assert result["prefix"] == ROOT + "test"
 
     @pytest.mark.asyncio
     async def test_internal_s3_delete_file(self, mock_s3_service):
-        result = await internal_s3_delete_file("key")
+        result = await internal_s3_delete_file("key", runtime_context=CONTEXT)
 
         assert result["success"] is True
-        mock_s3_service.delete_file.assert_called_with("key")
+        mock_s3_service.delete_file.assert_called_with(ROOT + "key")
 
     @pytest.mark.asyncio
     async def test_internal_s3_file_exists(self, mock_s3_service):
         mock_s3_service.file_exists.return_value = True
 
-        result = await internal_s3_file_exists("key")
+        result = await internal_s3_file_exists("key", runtime_context=CONTEXT)
 
         assert result["success"] is True
         assert result["exists"] is True
@@ -164,7 +168,7 @@ class TestStorageTools:
     async def test_internal_s3_get_file_metadata(self, mock_s3_service):
         mock_s3_service.get_file_metadata.return_value = {"size": 100, "type": "text/plain"}
 
-        result = await internal_s3_get_file_metadata("key")
+        result = await internal_s3_get_file_metadata("key", runtime_context=CONTEXT)
 
         assert result["success"] is True
         assert result["size"] == 100

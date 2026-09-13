@@ -691,6 +691,9 @@ class TestStep9_ToolCaching:
         handler = FunctionCallingHandler.__new__(FunctionCallingHandler)
         handler.llm_client = llm_client
         handler.provider = "anthropic"
+        # Bypassing __init__() via __new__, so set the attributes it would
+        # normally initialize that this code path touches.
+        handler._on_answer_delta = None
         # _generate_anthropic_with_tools calls _convert_to_anthropic_format()
         # which reads self.available_tools. Populate with ADK-style tool defs.
         handler.available_tools = [

@@ -132,7 +132,7 @@ async def list_escalations(
         raise HTTPException(status_code=400, detail="Invalid ID format")
     except Exception as e:
         logger.error(f"Error listing escalations: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/statuses")
@@ -200,7 +200,7 @@ async def get_escalation(
         raise
     except Exception as e:
         logger.error(f"Error getting escalation: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/{escalation_id}/resolve", response_model=EscalationResponse)
@@ -254,7 +254,7 @@ async def resolve_escalation(
     except Exception as e:
         logger.error(f"Error resolving escalation: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/{escalation_id}/in-progress", response_model=EscalationResponse)
@@ -300,7 +300,7 @@ async def mark_in_progress(
     except Exception as e:
         logger.error(f"Error marking escalation in progress: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/{escalation_id}/notify")
@@ -323,7 +323,7 @@ async def resend_notification(
         raise
     except Exception as e:
         logger.error(f"Error sending notification: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("")
@@ -364,7 +364,7 @@ async def create_escalation(
     except Exception as e:
         logger.error(f"Error creating escalation: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/expire-old")
@@ -383,7 +383,7 @@ async def expire_old_escalations(
         return {"success": True, "message": f"Expired {count} escalations"}
     except Exception as e:
         logger.error(f"Error expiring escalations: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/pending/human/{human_id}", response_model=list[EscalationResponse])
@@ -428,4 +428,4 @@ async def get_pending_for_human(
         raise HTTPException(status_code=400, detail="Invalid human ID format")
     except Exception as e:
         logger.error(f"Error getting pending escalations: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")

@@ -112,8 +112,44 @@ class TeamService:
             "created_at": m.created_at.isoformat() if hasattr(m, "created_at") and m.created_at else "",
         }
 
+    async def _authorize_member_change(
+        self, tenant_id: UUID, account_id: str, actor_id: UUID, *, new_role: str | None = None, removing: bool = False
+    ) -> None:
+        # Serialize membership changes per tenant, including concurrent last-owner changes.
+        await self.db.execute(select(Tenant.id).where(Tenant.id == tenant_id).with_for_update())
+        result = await self.db.execute(
+            select(TenantAccountJoin)
+            .where(TenantAccountJoin.tenant_id == tenant_id)
+            .execution_options(populate_existing=True)
+        )
+        members = list(result.scalars().all())
+        actor = next((m for m in members if m.account_id == actor_id), None)
+        target = next((m for m in members if m.account_id == UUID(account_id)), None)
+        actor_role = _normalize_role_for_response(actor.role) if actor else ""
+        if actor_role not in {"owner", "admin"}:
+            raise PermissionError("Insufficient permissions to manage team members")
+        if target is None:
+            raise ValueError("Team member not found")
+        target_role = _normalize_role_for_response(target.role)
+        requested_role = _normalize_role_for_response(new_role) if new_role is not None else target_role
+        if new_role is not None and requested_role not in {"owner", "admin", "editor", "member"}:
+            raise ValueError("Invalid role")
+        if (target_role == "owner" or requested_role == "owner") and actor_role != "owner":
+            raise PermissionError("Only organization owners can manage owners")
+        if removing and target.account_id == actor_id:
+            raise ValueError("Cannot remove yourself from the team")
+        if target_role == "owner" and (removing or requested_role != "owner"):
+            if sum(_normalize_role_for_response(m.role) == "owner" for m in members) <= 1:
+                raise ValueError("Cannot remove or demote the last owner")
+
     async def update_team_member(
-        self, tenant_id: UUID, account_id: str, role: str | None = None, custom_permissions: list[str] | None = None
+        self,
+        tenant_id: UUID,
+        account_id: str,
+        role: str | None = None,
+        custom_permissions: list[str] | None = None,
+        *,
+        actor_id: UUID,
     ) -> dict:
         """Update a team member.
 
@@ -126,6 +162,7 @@ class TeamService:
         Returns:
             Updated team member dictionary
         """
+        await self._authorize_member_change(tenant_id, account_id, actor_id, new_role=role)
         stmt = (
             select(TenantAccountJoin)
             .where(and_(TenantAccountJoin.tenant_id == tenant_id, TenantAccountJoin.account_id == UUID(account_id)))
@@ -159,13 +196,14 @@ class TeamService:
             "created_at": member.created_at.isoformat() if hasattr(member, "created_at") and member.created_at else "",
         }
 
-    async def remove_team_member(self, tenant_id: UUID, account_id: str) -> None:
+    async def remove_team_member(self, tenant_id: UUID, account_id: str, *, actor_id: UUID) -> None:
         """Remove a team member.
 
         Args:
             tenant_id: Tenant ID
             account_id: Account ID
         """
+        await self._authorize_member_change(tenant_id, account_id, actor_id, removing=True)
         stmt = select(TenantAccountJoin).where(
             and_(TenantAccountJoin.tenant_id == tenant_id, TenantAccountJoin.account_id == UUID(account_id))
         )
@@ -516,16 +554,20 @@ class TeamService:
             else "",
         }
 
-    async def revoke_invitation(self, invitation_id: UUID) -> bool:
+    async def revoke_invitation(self, invitation_id: UUID, tenant_id: UUID | None = None) -> bool:
         """Revoke a pending invitation.
 
         Args:
             invitation_id: Invitation ID
+            tenant_id: Tenant ID for access control (required for cross-tenant safety)
 
         Returns:
             True if revoked, False if not found
         """
-        stmt = select(TeamInvitation).where(TeamInvitation.id == invitation_id)
+        filters = [TeamInvitation.id == invitation_id]
+        if tenant_id is not None:
+            filters.append(TeamInvitation.tenant_id == tenant_id)
+        stmt = select(TeamInvitation).where(*filters)
         result = await self.db.execute(stmt)
         invitation = result.scalar_one_or_none()
 

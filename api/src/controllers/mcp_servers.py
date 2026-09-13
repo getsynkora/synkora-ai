@@ -3,7 +3,10 @@ MCP Server Management Controller
 Handles CRUD operations for MCP servers using database
 """
 
+import logging
 import uuid
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -15,6 +18,20 @@ from src.middleware.auth_middleware import get_current_tenant_id
 from src.models.mcp_server import MCPServer
 
 router = APIRouter(prefix="/api/v1/mcp", tags=["mcp"])
+
+
+def _validate_transport(transport_type: str, url: str | None) -> None:
+    if transport_type != "http":
+        raise HTTPException(
+            status_code=400,
+            detail="Deploy command-based MCP servers in an isolated runner and configure an HTTP endpoint.",
+        )
+    from src.services.mcp.http_transport import validate_mcp_url
+
+    try:
+        validate_mcp_url(url or "")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 class CreateMCPServerRequest(BaseModel):
@@ -68,7 +85,8 @@ async def list_mcp_servers(
 
         return {"success": True, "data": {"servers": [server.to_dict() for server in servers], "total": len(servers)}}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Failed to list MCP servers: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/servers/{server_id}")
@@ -93,7 +111,8 @@ async def get_mcp_server(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Failed to get MCP server: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/servers")
@@ -104,6 +123,7 @@ async def create_mcp_server(
 ):
     """Create a new MCP server"""
     try:
+        _validate_transport(request.transport_type, request.url)
         # Validate based on transport type
         if request.transport_type == "stdio":
             if not request.command:
@@ -145,7 +165,8 @@ async def create_mcp_server(
         raise
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Failed to create MCP server: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.put("/servers/{server_id}")
@@ -167,6 +188,9 @@ async def update_mcp_server(
 
         # Get update data
         update_data = request.model_dump(exclude_unset=True)
+        _validate_transport(
+            update_data.get("transport_type", server.transport_type), update_data.get("url", server.url)
+        )
 
         # Validate transport type if being updated
         if "transport_type" in update_data:
@@ -184,9 +208,22 @@ async def update_mcp_server(
                 if not url:
                     raise HTTPException(status_code=400, detail="URL is required for HTTP transport")
 
-        # Update fields
+        # Update fields — only allow known safe attributes
+        updatable = {
+            "name",
+            "url",
+            "description",
+            "transport_type",
+            "command",
+            "args",
+            "env",
+            "headers",
+            "config",
+            "status",
+        }
         for key, value in update_data.items():
-            setattr(server, key, value)
+            if key in updatable:
+                setattr(server, key, value)
 
         await db.commit()
         await db.refresh(server)
@@ -198,7 +235,8 @@ async def update_mcp_server(
         raise
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Failed to update MCP server: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.delete("/servers/{server_id}")
@@ -227,7 +265,8 @@ async def delete_mcp_server(
         raise
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Failed to delete MCP server: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/servers/{server_id}/test")
@@ -246,7 +285,20 @@ async def test_mcp_server(
         if not server:
             raise HTTPException(status_code=404, detail="MCP server not found")
 
-        # Connection test returns mock success - actual MCP connection is made during tool execution
+        import asyncio
+        import time
+
+        from src.services.mcp.mcp_client import MCPClient, MCPClientError
+
+        client = MCPClient([server])
+        started = time.perf_counter()
+        try:
+            async with asyncio.timeout(30):
+                async with client:
+                    tools = await client.discover_tools(force_refresh=True)
+        except (MCPClientError, TimeoutError):
+            raise HTTPException(status_code=502, detail="MCP connection or tool discovery failed") from None
+
         return {
             "success": True,
             "message": "MCP server connection test successful",
@@ -254,8 +306,8 @@ async def test_mcp_server(
                 "server_id": str(server.id),
                 "server_name": server.name,
                 "status": "connected",
-                "response_time_ms": 45,
-                "capabilities_detected": server.capabilities or {},
+                "response_time_ms": round((time.perf_counter() - started) * 1000, 2),
+                "tools_count": len(tools),
             },
         }
     except ValueError:
@@ -263,4 +315,5 @@ async def test_mcp_server(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Failed to test MCP server: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")

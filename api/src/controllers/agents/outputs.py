@@ -15,8 +15,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.core.database import get_async_db
-from src.middleware.auth_middleware import get_current_account, get_current_tenant_id
-from src.models import Agent, AgentOutputConfig, AgentOutputDelivery, OAuthApp, OutputProvider
+from src.middleware.auth_middleware import get_current_account, get_current_tenant_id, require_role
+from src.models import AccountRole, Agent, AgentOutputConfig, AgentOutputDelivery, OAuthApp, OutputProvider
 from src.models.slack_bot import SlackBot
 from src.services.agent_output_service import AgentOutputService
 
@@ -147,7 +147,12 @@ async def list_output_configs(
     return [config.to_dict(include_stats=include_stats) for config in configs]
 
 
-@router.post("/{agent_id}/outputs", response_model=OutputConfigResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{agent_id}/outputs",
+    response_model=OutputConfigResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_role(AccountRole.ADMIN))],
+)
 async def create_output_config(
     agent_id: str,
     data: OutputConfigCreate,
@@ -265,7 +270,11 @@ async def get_output_config(
     return config.to_dict(include_stats=include_stats)
 
 
-@router.patch("/{agent_id}/outputs/{output_id}", response_model=OutputConfigResponse)
+@router.patch(
+    "/{agent_id}/outputs/{output_id}",
+    response_model=OutputConfigResponse,
+    dependencies=[Depends(require_role(AccountRole.ADMIN))],
+)
 async def update_output_config(
     agent_id: UUID,
     output_id: UUID,
@@ -299,6 +308,24 @@ async def update_output_config(
     if not config:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Output configuration not found")
 
+    # Validate replacement credentials before mutating the output.
+    if data.oauth_app_id is not None:
+        credential = await db.scalar(
+            select(OAuthApp).where(OAuthApp.id == data.oauth_app_id, OAuthApp.tenant_id == tenant_id)
+        )
+        if credential is None:
+            raise HTTPException(status_code=400, detail="OAuth app is unavailable in this tenant")
+        if credential.provider.lower() != str(config.provider):
+            raise HTTPException(status_code=400, detail="OAuth app provider does not match output provider")
+    if data.slack_bot_id is not None:
+        try:
+            bot_id = UUID(data.slack_bot_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail="Invalid slack_bot_id format") from exc
+        bot = await db.scalar(select(SlackBot).where(SlackBot.id == bot_id, SlackBot.tenant_id == tenant_id))
+        if bot is None:
+            raise HTTPException(status_code=400, detail="Slack bot is unavailable in this tenant")
+
     # Update fields
     update_data = data.model_dump(exclude_unset=True, exclude={"slack_bot_id"})
     for field, value in update_data.items():
@@ -323,7 +350,11 @@ async def update_output_config(
     return config.to_dict()
 
 
-@router.delete("/{agent_id}/outputs/{output_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{agent_id}/outputs/{output_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_role(AccountRole.ADMIN))],
+)
 async def delete_output_config(
     agent_id: UUID,
     output_id: UUID,
@@ -408,7 +439,11 @@ async def list_deliveries(
     return [delivery.to_dict() for delivery in deliveries]
 
 
-@router.post("/{agent_id}/outputs/{output_id}/deliveries/{delivery_id}/retry", response_model=DeliveryResponse)
+@router.post(
+    "/{agent_id}/outputs/{output_id}/deliveries/{delivery_id}/retry",
+    response_model=DeliveryResponse,
+    dependencies=[Depends(require_role(AccountRole.ADMIN))],
+)
 async def retry_delivery(
     agent_id: UUID,
     output_id: UUID,
@@ -446,7 +481,7 @@ async def retry_delivery(
     # Retry delivery
     try:
         service = AgentOutputService(db)
-        delivery = await service.retry_failed_delivery(delivery_id)
+        delivery = await service.retry_failed_delivery(delivery_id, tenant_id=tenant_id)
         return delivery.to_dict()
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

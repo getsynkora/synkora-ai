@@ -20,6 +20,7 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Counter, Rate, Trend } from 'k6/metrics';
 import { config, headers, randomMessage } from './config.js';
+import { successfulChatStream } from './sse-checks.mjs';
 
 // ─── Custom Metrics ──────────────────────────────────────────────────────────
 
@@ -52,11 +53,11 @@ export const options = {
     thresholds: {
         chat_duration: ['p(95)<30000'],              // 95th percentile < 30s (streaming)
         chat_ttfb: ['p(95)<5000'],                   // Time to first byte < 5s
-        chat_success_rate: ['rate>0.90'],             // 90% success rate
+        chat_success_rate: [`rate>=${__ENV.MIN_SUCCESS_RATE || '0.99'}`], // Explicit test SLO
         chat_errors: ['count<50'],                    // Less than 50 total errors
-        http_req_failed: ['rate<0.10'],               // Less than 10% failure rate
+        http_req_failed: ['rate<0.01'],
     },
-    insecureSkipTLSVerify: true,
+    insecureSkipTLSVerify: __ENV.INSECURE_TLS === 'true',
     summaryTrendStats: ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)'],
 };
 
@@ -80,12 +81,14 @@ export default function () {
 
     // Record metrics
     chatDuration.add(res.timings.duration);
-    chatTTFB.add(res.timings.waiting); // TTFB = time server spent processing before first byte
+    chatTTFB.add(res.timings.waiting); // HTTP first byte; NOT the first answer token
     chatSize.add(res.body ? res.body.length : 0);
 
     // Handle rate limiting
     if (res.status === 429) {
         chatRateLimited.add(1);
+        chatSuccessRate.add(false);
+        chatErrors.add(1);
         const retryAfter = parseInt(res.headers['Retry-After'] || '5');
         sleep(retryAfter);
         return;
@@ -109,13 +112,7 @@ export default function () {
         'contains SSE events': (r) => {
             return r.body && (r.body.includes('event:') || r.body.includes('data:'));
         },
-        'no error events': (r) => {
-            // Check that response doesn't contain only error events
-            if (!r.body) return false;
-            const hasError = r.body.includes('"event_type":"error"');
-            const hasContent = r.body.includes('"event_type":"chunk"') || r.body.includes('"event_type":"done"');
-            return hasContent || !hasError;
-        },
+        'answer completed without errors': (r) => successfulChatStream(r.body),
         'security scan passed': (r) => {
             return r.headers['X-Security-Status'] !== 'blocked';
         },
@@ -159,8 +156,6 @@ export function setup() {
     console.log(`Chat Stress Test starting against: ${config.baseUrl}`);
     console.log(`Agent slug: ${config.agentSlug}`);
     console.log(`Max VUs: ${maxVUs}`);
-    console.log(`DB pool size: 30 (pool) + 10 (overflow) = 40 max connections`);
-    console.log(`Rate limit: 30 req/60s on /v1/chat/`);
 
     return { startTime: Date.now() };
 }
@@ -169,9 +164,9 @@ export function teardown(data) {
     const duration = ((Date.now() - data.startTime) / 1000).toFixed(1);
     console.log(`\nChat Stress Test completed in ${duration}s`);
     console.log('Key metrics to check:');
-    console.log('  - chat_ttfb p(95): Should be < 5s (time to first byte from LLM)');
+    console.log('  - chat_ttfb p(95): Should be < 5s (HTTP first byte; use streaming_latency.py for answer latency)');
     console.log('  - chat_duration p(95): Should be < 30s (full stream duration)');
-    console.log('  - chat_success_rate: Should be > 90%');
+    console.log('  - chat_success_rate: Compare against the configured MIN_SUCCESS_RATE');
     console.log('  - chat_rate_limited: High count = rate limits are too restrictive');
     console.log('  - chat_billing_errors: Non-zero = credit/billing issues');
 }

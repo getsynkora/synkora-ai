@@ -83,7 +83,7 @@ async def openai_chat_completions(
         raise
     except Exception as e:
         logger.error(f"Error in chat completions: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/models")
@@ -105,7 +105,7 @@ async def openai_models(
         raise
     except Exception as e:
         logger.error(f"Error listing models: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/completions")
@@ -166,7 +166,7 @@ async def openai_completions(
         raise
     except Exception as e:
         logger.error(f"Error in completions: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # ============================================================================
@@ -212,7 +212,7 @@ async def anthropic_messages(
         raise
     except Exception as e:
         logger.error(f"Error in messages: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # ============================================================================
@@ -245,7 +245,7 @@ async def google_generate_content(
         raise
     except Exception as e:
         logger.error(f"Error in generateContent: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/models/{model}:streamGenerateContent")
@@ -281,7 +281,7 @@ async def google_stream_generate_content(
         raise
     except Exception as e:
         logger.error(f"Error in streamGenerateContent: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # ============================================================================

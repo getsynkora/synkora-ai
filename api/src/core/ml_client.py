@@ -1,26 +1,32 @@
 """Async HTTP client for the synkora-ml microservice."""
 
 import logging
-import os
 from typing import Any
 
 import httpx
 
 logger = logging.getLogger(__name__)
 
-ML_SERVICE_URL = os.getenv("ML_SERVICE_URL", "http://synkora-ml:5002")
+from src.config.settings import settings
 
 
 class MLServiceClient:
     """Thin async client wrapping the ML microservice HTTP API."""
 
-    def __init__(self, base_url: str = ML_SERVICE_URL):
-        self._base_url = base_url
+    def __init__(self, base_url: str | None = None):
+        self._base_url = base_url or settings.ml_service_url
         self._client: httpx.AsyncClient | None = None
 
     def _get_client(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:
-            self._client = httpx.AsyncClient(base_url=self._base_url, timeout=60.0)
+            key = settings.ml_api_key or ""
+            if len(key) < 32:
+                raise RuntimeError("ML_API_KEY must contain at least 32 characters")
+            self._client = httpx.AsyncClient(
+                base_url=self._base_url,
+                timeout=60.0,
+                headers={"X-ML-Key": key},
+            )
         return self._client
 
     async def close(self) -> None:

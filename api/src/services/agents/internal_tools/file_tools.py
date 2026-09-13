@@ -13,7 +13,6 @@ import mimetypes
 import os
 import re
 import shutil
-import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -1219,50 +1218,7 @@ async def internal_directory_tree(
             return {"path": directory_path, "tree": "", "error": result.get("error") or "tree command failed"}
         return {"path": directory_path, "tree": result["output"], "max_depth": max_depth, "show_hidden": show_hidden}
 
-    try:
-        # Validate directory path
-        is_valid, error_msg = _validate_directory_path(directory_path, config=config)
-        if not is_valid:
-            return {"error": error_msg}
-
-        logger.info(f"Generating directory tree for: {directory_path}")
-
-        try:
-            from src.services.agents.internal_tools.command_tools import _is_command_safe
-
-            workspace_path = _get_workspace_path(config)
-            if not _is_command_safe(command, workspace_path):
-                return {"error": f"Command blocked by security validator: {' '.join(command)}"}
-
-            result = subprocess.run(
-                command,
-                capture_output=True,
-                text=True,
-                check=True,
-                timeout=30,  # Prevent hanging
-            )
-
-            tree_output = result.stdout
-
-            return {"path": directory_path, "tree": tree_output, "max_depth": max_depth, "show_hidden": show_hidden}
-
-        except FileNotFoundError:
-            logger.error("tree command not found. Please install tree utility.")
-            return {
-                "path": directory_path,
-                "tree": "",
-                "error": "tree command not found. Please install it using: brew install tree (macOS) or apt-get install tree (Linux)",
-            }
-        except subprocess.CalledProcessError as e:
-            logger.error(f"tree command failed for '{directory_path}': {e.stderr}")
-            return {"path": directory_path, "tree": "", "error": f"tree command failed: {e.stderr}"}
-        except subprocess.TimeoutExpired:
-            logger.error(f"tree command timed out for '{directory_path}'")
-            return {"path": directory_path, "tree": "", "error": "tree command timed out after 30 seconds"}
-
-    except Exception as e:
-        logger.error(f"Error generating directory tree for {directory_path}: {e}", exc_info=True)
-        return {"error": f"Failed to generate directory tree: {str(e)}"}
+    return {"path": directory_path, "tree": "", "error": "Isolated compute is required for command execution"}
 
 
 def _glob_pattern_to_regex(pattern: str) -> re.Pattern:

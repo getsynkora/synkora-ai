@@ -5,12 +5,27 @@ Provides SAML 2.0 and OIDC SSO authentication for Okta.
 """
 
 import logging
-from typing import Any
+import re
+from typing import TYPE_CHECKING, Any
 
-import httpx
-from onelogin.saml2.auth import OneLogin_Saml2_Auth
+from src.services.security.public_http import request_checked_url
+
+if TYPE_CHECKING:
+    from onelogin.saml2.auth import OneLogin_Saml2_Auth
 
 logger = logging.getLogger(__name__)
+
+
+def validate_okta_domain(domain: str) -> str:
+    """Only a DNS hostname, never URL syntax that can change the credential origin."""
+    domain = domain.lower()
+    if (
+        len(domain) > 253
+        or "." not in domain
+        or not all(re.fullmatch(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", label) for label in domain.split("."))
+    ):
+        raise ValueError("Okta domain must be a DNS hostname without a scheme, path or port")
+    return domain
 
 
 class OktaSSOService:
@@ -34,6 +49,7 @@ class OktaSSOService:
             redirect_uri: OIDC redirect URI (for OIDC flow)
             saml_settings: SAML configuration dictionary (for SAML flow)
         """
+        domain = validate_okta_domain(domain)
         self.domain = domain
         self.client_id = client_id
         self.client_secret = client_secret
@@ -103,15 +119,15 @@ class OktaSSOService:
             "grant_type": "authorization_code",
         }
 
-        async with httpx.AsyncClient() as client:
-            response = await client.post(self._token_url, data=data)
-            response_json = response.json()
+        response = await request_checked_url("POST", self._token_url, data=data)
+        response.raise_for_status()
+        response_json = response.json()
 
-            if "error" in response_json:
-                error = response_json.get("error_description", response_json.get("error", "Unknown error"))
-                raise ValueError(f"Failed to get access token: {error}")
+        if "error" in response_json:
+            error = response_json.get("error_description", response_json.get("error", "Unknown error"))
+            raise ValueError(f"Failed to get access token: {error}")
 
-            return response_json
+        return response_json
 
     async def get_oidc_user_info(self, token: str) -> dict[str, Any]:
         """
@@ -129,10 +145,9 @@ class OktaSSOService:
         """
         headers = {"Authorization": f"Bearer {token}"}
 
-        async with httpx.AsyncClient() as client:
-            response = await client.get(self._user_info_url, headers=headers)
-            response.raise_for_status()
-            return response.json()
+        response = await request_checked_url("GET", self._user_info_url, headers=headers)
+        response.raise_for_status()
+        return response.json()
 
     async def refresh_oidc_token(self, refresh_token: str) -> dict[str, Any]:
         """
@@ -157,15 +172,15 @@ class OktaSSOService:
             "grant_type": "refresh_token",
         }
 
-        async with httpx.AsyncClient() as client:
-            response = await client.post(self._token_url, data=data)
-            response_json = response.json()
+        response = await request_checked_url("POST", self._token_url, data=data)
+        response.raise_for_status()
+        response_json = response.json()
 
-            if "error" in response_json:
-                error = response_json.get("error_description", response_json.get("error", "Unknown error"))
-                raise ValueError(f"Failed to refresh token: {error}")
+        if "error" in response_json:
+            error = response_json.get("error_description", response_json.get("error", "Unknown error"))
+            raise ValueError(f"Failed to refresh token: {error}")
 
-            return response_json
+        return response_json
 
     async def revoke_oidc_token(self, token: str, token_type_hint: str = "access_token") -> bool:
         """
@@ -189,16 +204,15 @@ class OktaSSOService:
                 "token_type_hint": token_type_hint,
             }
 
-            async with httpx.AsyncClient() as client:
-                response = await client.post(self._revoke_url, data=data)
-                return response.status_code == 200
+            response = await request_checked_url("POST", self._revoke_url, data=data)
+            return response.status_code == 200
         except Exception as e:
             logger.error(f"Failed to revoke token: {e}")
             return False
 
     # SAML Methods
 
-    def get_saml_auth(self, request_data: dict[str, Any]) -> OneLogin_Saml2_Auth:
+    def get_saml_auth(self, request_data: dict[str, Any]) -> "OneLogin_Saml2_Auth":
         """
         Get SAML authentication object.
 
@@ -218,6 +232,8 @@ class OktaSSOService:
         """
         if not self.saml_settings:
             raise ValueError("SAML settings are required for SAML authentication")
+
+        from onelogin.saml2.auth import OneLogin_Saml2_Auth
 
         return OneLogin_Saml2_Auth(request_data, self.saml_settings)
 
@@ -320,9 +336,8 @@ class OktaSSOService:
             True if domain is valid and accessible, False otherwise
         """
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(f"https://{self.domain}/.well-known/openid-configuration")
-                return response.status_code == 200
+            response = await request_checked_url("GET", f"https://{self.domain}/.well-known/openid-configuration")
+            return response.status_code == 200
         except Exception as e:
             logger.warning(f"Failed to validate Okta domain: {e}")
             return False
@@ -338,9 +353,8 @@ class OktaSSOService:
             ValueError: If configuration cannot be retrieved
         """
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(f"https://{self.domain}/.well-known/openid-configuration")
-                response.raise_for_status()
-                return response.json()
+            response = await request_checked_url("GET", f"https://{self.domain}/.well-known/openid-configuration")
+            response.raise_for_status()
+            return response.json()
         except Exception as e:
             raise ValueError(f"Failed to get OIDC configuration: {e}")

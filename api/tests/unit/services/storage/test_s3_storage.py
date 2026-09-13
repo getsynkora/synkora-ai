@@ -12,6 +12,28 @@ import pytest
 from botocore.exceptions import ClientError
 
 
+@pytest.fixture(autouse=True)
+def _reset_s3_service_cache():
+    """S3StorageService caches boto3 clients/config at class level for reuse
+    across instances built from env vars (see PERFORMANCE comment on the
+    class). That cache must not leak between tests, each of which patches
+    its own env vars and expects a fresh client built from them."""
+    from src.services.storage.s3_storage import S3StorageService
+
+    def _clear():
+        S3StorageService._cached_s3_client = None
+        S3StorageService._cached_presigned_client = None
+        S3StorageService._cached_bucket_name = None
+        S3StorageService._cached_region = None
+        S3StorageService._cached_internal_endpoint_url = None
+        S3StorageService._cached_public_endpoint_url = None
+        S3StorageService._cache_initialized = False
+
+    _clear()
+    yield
+    _clear()
+
+
 class TestS3StorageServiceInit:
     """Test S3StorageService initialization."""
 

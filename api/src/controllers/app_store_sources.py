@@ -147,7 +147,7 @@ async def create_app_store_source(
         logger.error(f"Failed to create app store source: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create app store source: {str(e)}",
+            detail="Failed to create app store source",
         )
 
 
@@ -258,7 +258,7 @@ async def sync_reviews(
         logger.error(f"Failed to sync reviews for source {source_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to sync reviews: {str(e)}",
+            detail="Failed to sync reviews",
         )
 
 
@@ -296,7 +296,7 @@ async def analyze_reviews(
         logger.error(f"Failed to queue review analysis for source {source_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to queue review analysis: {str(e)}",
+            detail="Failed to queue review analysis",
         )
 
 
@@ -354,7 +354,7 @@ async def get_insights(
         logger.error(f"Failed to generate insights for source {source_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate insights: {str(e)}",
+            detail="Failed to generate insights",
         )
 
 

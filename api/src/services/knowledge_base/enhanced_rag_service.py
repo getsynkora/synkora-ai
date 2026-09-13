@@ -9,6 +9,7 @@ Implements best-in-class retrieval with:
 - Multi-KB Aggregation: Intelligent result fusion from multiple knowledge bases
 """
 
+import asyncio
 import hashlib
 import logging
 import re
@@ -108,6 +109,8 @@ class EnhancedRAGService:
     - Intelligent deduplication
     - Multi-KB fusion with Reciprocal Rank Fusion
     """
+
+    _MAX_EMBEDDING_CACHE = 500  # Cap to prevent unbounded memory growth
 
     def __init__(self, config: RAGConfig | None = None):
         """Initialize the enhanced RAG service."""
@@ -320,7 +323,14 @@ class EnhancedRAGService:
             if variation_hash in self._embedding_cache:
                 query_embedding = self._embedding_cache[variation_hash]
             else:
-                query_embedding = kb_embedding_service.embed_texts([variation])[0]
+                # PERFORMANCE: Offload synchronous embedding call to thread pool
+                embeddings = await asyncio.to_thread(kb_embedding_service.embed_texts, [variation])
+                query_embedding = embeddings[0]
+                # Evict oldest entries (FIFO) when cache exceeds max size
+                if len(self._embedding_cache) >= self._MAX_EMBEDDING_CACHE:
+                    keys_to_remove = list(self._embedding_cache.keys())[:100]
+                    for k in keys_to_remove:
+                        del self._embedding_cache[k]
                 self._embedding_cache[variation_hash] = query_embedding
 
             if is_advanced:

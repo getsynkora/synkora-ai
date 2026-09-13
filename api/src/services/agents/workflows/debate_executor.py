@@ -19,6 +19,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.helpers.streaming_helpers import generate_sse_event
 from src.models.debate_session import DebateSession
+from src.schemas.debate import public_participants
+from src.services.security.public_http import post_public_json
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +110,7 @@ class DebateExecutor:
             "debate_start",
             {
                 "topic": topic,
-                "participants": participants,
+                "participants": public_participants(participants),
                 "rounds": total_rounds,
             },
         )
@@ -164,10 +166,12 @@ class DebateExecutor:
                 # Load the agent from DB
                 from sqlalchemy import select
 
-                result = await self.db.execute(select(Agent).filter(Agent.id == agent_id))
+                result = await self.db.execute(
+                    select(Agent).filter(Agent.id == agent_id, Agent.tenant_id == session.tenant_id)
+                )
                 agent = result.scalar_one_or_none()
                 if not agent:
-                    logger.warning(f"Debate agent {agent_id} not found, skipping")
+                    logger.warning(f"Debate agent {agent_id} not found in tenant, skipping")
                     continue
 
                 agent_name = participant.get("agent_name") or agent.agent_name
@@ -289,7 +293,9 @@ class DebateExecutor:
             session.status = "synthesizing"
             await self.db.commit()
 
-            result = await self.db.execute(select(Agent).filter(Agent.id == session.synthesizer_agent_id))
+            result = await self.db.execute(
+                select(Agent).filter(Agent.id == session.synthesizer_agent_id, Agent.tenant_id == session.tenant_id)
+            )
             synth_agent = result.scalar_one_or_none()
 
             if synth_agent:
@@ -483,19 +489,18 @@ class DebateExecutor:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=EXTERNAL_AGENT_TIMEOUT) as client:
-                resp = await client.post(callback_url, json=payload, headers=headers)
-                resp.raise_for_status()
-                data = resp.json()
-                # Accept response as {content: "..."} or plain text
-                if isinstance(data, dict):
-                    return data.get("content") or data.get("response") or data.get("message") or str(data)
-                return str(data)
+            resp = await post_public_json(
+                callback_url, payload, timeout=EXTERNAL_AGENT_TIMEOUT, headers=headers, max_bytes=100000
+            )
+            data = resp.json()
+            if isinstance(data, dict):
+                return data.get("content") or data.get("response") or data.get("message") or str(data)
+            return str(data)
         except httpx.TimeoutException:
-            logger.warning(f"External agent callback timed out: {callback_url}")
+            logger.warning("External agent callback timed out")
             return None
         except Exception as e:
-            logger.warning(f"External agent callback failed: {callback_url} — {e}")
+            logger.warning("External agent callback failed (%s)", type(e).__name__)
             return None
 
     async def _wait_for_external_push(
@@ -508,7 +513,7 @@ class DebateExecutor:
         Poll the session messages for an external agent's pushed response.
 
         The external agent submits via POST /war-room/debates/{id}/respond,
-        which appends to session.messages. We poll until we find a matching entry.
+        which writes an independent submission map, unaffected by message snapshots.
         """
         elapsed = 0.0
         while elapsed < EXTERNAL_AGENT_TIMEOUT:
@@ -517,15 +522,8 @@ class DebateExecutor:
 
             # Refresh session to pick up changes from the /respond endpoint
             await self.db.refresh(session)
-            current_messages = session.messages or []
-
-            # Look for a message from this participant for this round
-            for msg in current_messages:
-                if (
-                    msg.get("participant_id") == participant_id
-                    and msg.get("round") == round_num
-                    and msg.get("is_external")
-                ):
-                    return msg.get("content", "")
+            submission = (session.external_responses or {}).get(f"{participant_id}:{round_num}")
+            if submission:
+                return submission.get("content", "")
 
         return None

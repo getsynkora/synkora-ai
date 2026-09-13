@@ -7,7 +7,8 @@ deployment, and GitHub Pages enablement.
 
 import os
 import tempfile
-from unittest.mock import MagicMock, patch
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -158,7 +159,10 @@ class TestInternalCreateGithubRepo:
             "default_branch": "main",
         }
 
-        with patch("src.services.agents.internal_tools.blog_site_tools.requests.post", return_value=mock_response):
+        with patch(
+            "src.services.agents.internal_tools.blog_site_tools.get_httpx_client",
+            new=AsyncMock(return_value=SimpleNamespace(post=AsyncMock(return_value=mock_response))),
+        ):
             result = await internal_create_github_repo(
                 repo_name="my-blog",
                 description="My blog",
@@ -176,7 +180,10 @@ class TestInternalCreateGithubRepo:
         mock_response = MagicMock()
         mock_response.status_code = 422
 
-        with patch("src.services.agents.internal_tools.blog_site_tools.requests.post", return_value=mock_response):
+        with patch(
+            "src.services.agents.internal_tools.blog_site_tools.get_httpx_client",
+            new=AsyncMock(return_value=SimpleNamespace(post=AsyncMock(return_value=mock_response))),
+        ):
             result = await internal_create_github_repo(
                 repo_name="my-blog",
                 config={"github_token": "test-token"},
@@ -248,7 +255,10 @@ class TestInternalEnableGithubPages:
         mock_response = MagicMock()
         mock_response.status_code = 201
 
-        with patch("src.services.agents.internal_tools.blog_site_tools.requests.post", return_value=mock_response):
+        with patch(
+            "src.services.agents.internal_tools.blog_site_tools.get_httpx_client",
+            new=AsyncMock(return_value=SimpleNamespace(post=AsyncMock(return_value=mock_response))),
+        ):
             result = await internal_enable_github_pages(
                 repo_name="my-blog",
                 owner="user",
@@ -266,7 +276,10 @@ class TestInternalEnableGithubPages:
         mock_response = MagicMock()
         mock_response.status_code = 409
 
-        with patch("src.services.agents.internal_tools.blog_site_tools.requests.post", return_value=mock_response):
+        with patch(
+            "src.services.agents.internal_tools.blog_site_tools.get_httpx_client",
+            new=AsyncMock(return_value=SimpleNamespace(post=AsyncMock(return_value=mock_response))),
+        ):
             result = await internal_enable_github_pages(
                 repo_name="my-blog",
                 owner="user",

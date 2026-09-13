@@ -40,6 +40,7 @@ class DebateSession(BaseModel, TenantMixin):
         default=list,
         comment="Debate messages [{id, participant_id, agent_name, round, content, is_verdict, created_at}]",
     )
+    external_responses = Column(JSON, nullable=False, default=dict, server_default="{}")
     synthesizer_agent_id = Column(UUID(as_uuid=True), nullable=True, comment="Agent ID for synthesizing verdict")
     verdict = Column(Text, nullable=True, comment="Final synthesized verdict")
     completed_at = Column(DateTime(timezone=True), nullable=True, comment="Completion timestamp")

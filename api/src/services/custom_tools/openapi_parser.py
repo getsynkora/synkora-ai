@@ -7,7 +7,7 @@ that can be used by agents.
 
 import logging
 from typing import Any
-from urllib.parse import urljoin
+from urllib.parse import quote, urljoin
 
 logger = logging.getLogger(__name__)
 
@@ -202,7 +202,7 @@ class OpenAPIParser:
 
         # Replace path parameters
         for param_name, param_value in path_params.items():
-            path = path.replace(f"{{{param_name}}}", str(param_value))
+            path = path.replace(f"{{{param_name}}}", quote(str(param_value), safe=""))
 
         return urljoin(self.server_url, path)
 

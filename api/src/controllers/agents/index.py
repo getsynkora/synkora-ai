@@ -54,34 +54,38 @@ def _get_storage_service() -> S3StorageService:
     return _storage_service
 
 
-def convert_s3_uri_to_presigned_url(s3_uri: str) -> str:
-    """
-    Convert S3 URI to presigned URL for frontend display.
+def validate_avatar_reference(value: str | None, tenant_id: uuid.UUID) -> str | None:
+    """Accept external web images or storage objects owned by the agent's tenant."""
+    if not value:
+        return value
+    from urllib.parse import urlsplit
 
-    Args:
-        s3_uri: S3 URI (s3://bucket/key) or HTTP URL
+    from src.services.security.tenant_storage import tenant_object_key
 
-    Returns:
-        Presigned HTTP URL or original URL if not S3 URI
-    """
-    if not s3_uri:
-        return s3_uri
+    storage = _get_storage_service()
+    if value.startswith(("http://", "https://")):
+        parsed = urlsplit(value)
+        if not parsed.hostname or parsed.username or parsed.password:
+            raise ValueError("Invalid avatar URL")
+        own_key = storage.extract_own_key_from_url(value)
+        if own_key is None:
+            return value
+        value = own_key
+    key = tenant_object_key(value, storage.bucket_name, str(tenant_id))
+    return f"s3://{storage.bucket_name}/{key}"
 
-    # If it's already an HTTP URL, return as-is
-    if s3_uri.startswith(("http://", "https://")):
-        return s3_uri
 
-    # If it's an S3 URI or key path, generate presigned URL
-    if s3_uri.startswith("s3://") or "/" in s3_uri:
-        try:
-            storage_service = _get_storage_service()
-            # Generate presigned URL valid for 7 days
-            return storage_service.generate_presigned_url(s3_uri, expiration=86400 * 7)
-        except Exception as e:
-            logger.warning(f"Failed to generate presigned URL for {s3_uri}: {e}")
-            return s3_uri
-
-    return s3_uri
+def convert_s3_uri_to_presigned_url(s3_uri: str, tenant_id: uuid.UUID) -> str | None:
+    """Sign only references authorized for the resource owner's tenant."""
+    try:
+        value = validate_avatar_reference(s3_uri, tenant_id)
+        if not value or value.startswith(("http://", "https://")):
+            return value
+        return _get_storage_service().generate_presigned_url(value, expiration=3600)
+    except Exception:
+        # Legacy foreign references must not be returned or signed.
+        logger.warning("Avatar reference could not be authorized for tenant %s", tenant_id)
+        return None
 
 
 @dataclass(frozen=True)
@@ -346,7 +350,7 @@ async def create_agent(
             agent_name=request.config.name,
             agent_type=agent_type,
             description=request.config.description,
-            avatar=request.config.avatar,
+            avatar=validate_avatar_reference(request.config.avatar, tenant_id),
             system_prompt=request.config.system_prompt,
             llm_config=llm_config_data,
             tools_config={"tools": normalized_tool_payloads} if normalized_tool_payloads else None,
@@ -644,6 +648,11 @@ async def list_agents(
         db_agents = agents_result.scalars().all()
 
         # Get sub-agent counts for all agents in one query
+        # TODO(perf): These three sub-agent queries (counts, data, IDs) are logically
+        # independent but share the same AsyncSession, which does not support concurrent
+        # operations on a single connection. To parallelize with asyncio.gather(), each
+        # query would need its own session from the session factory. Leaving sequential
+        # for now as the queries are already batched (IN clause) rather than N+1.
         agent_ids = [db_agent.id for db_agent in db_agents]
         sub_agent_counts_result = await db.execute(
             select(AgentSubAgent.parent_agent_id, func.count(AgentSubAgent.id).label("count"))
@@ -713,7 +722,9 @@ async def list_agents(
         agents_list = []
         for db_agent in db_agents:
             agent_id_str = str(db_agent.id)
-            avatar_url = convert_s3_uri_to_presigned_url(db_agent.avatar) if db_agent.avatar else None
+            avatar_url = (
+                convert_s3_uri_to_presigned_url(db_agent.avatar, db_agent.tenant_id) if db_agent.avatar else None
+            )
 
             # Check if this agent is a sub-agent of another agent
             # Either via parent_agent_id or via AgentSubAgent junction table
@@ -897,7 +908,7 @@ async def get_agent(
                 pass
 
         # Convert S3 URI to presigned URL for avatar display
-        avatar_url = convert_s3_uri_to_presigned_url(db_agent.avatar) if db_agent.avatar else None
+        avatar_url = convert_s3_uri_to_presigned_url(db_agent.avatar, db_agent.tenant_id) if db_agent.avatar else None
 
         # Build role and human contact data
         role_data = None
@@ -1023,7 +1034,7 @@ async def get_agent_stats(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_slug}' not found")
 
         # Convert S3 URI to presigned URL for avatar display
-        avatar_url = convert_s3_uri_to_presigned_url(db_agent.avatar) if db_agent.avatar else None
+        avatar_url = convert_s3_uri_to_presigned_url(db_agent.avatar, db_agent.tenant_id) if db_agent.avatar else None
 
         # Use database values for execution stats
         # Calculate failed executions from total and success count
@@ -1133,7 +1144,7 @@ async def update_agent(
         if request.description is not None:
             db_agent.description = request.description
         if request.avatar is not None:
-            db_agent.avatar = request.avatar
+            db_agent.avatar = validate_avatar_reference(request.avatar, tenant_id)
         if request.system_prompt is not None:
             # SECURITY: Scan system prompt for potential injection patterns
             from src.services.security.advanced_prompt_scanner import advanced_prompt_scanner
@@ -1507,7 +1518,7 @@ async def clone_agent(
             agent_name=request.new_name,
             agent_type=source_agent.agent_type,
             description=source_agent.description,
-            avatar=source_agent.avatar,
+            avatar=source_agent.avatar if source_agent.tenant_id == tenant_id else None,
             system_prompt=source_agent.system_prompt,
             llm_config=source_agent.llm_config.copy() if source_agent.llm_config else {},
             tools_config=source_agent.tools_config.copy()
@@ -1676,6 +1687,4 @@ async def clone_agent(
     except Exception as e:
         await db.rollback()
         logger.error(f"Failed to clone agent: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to clone agent: {str(e)}"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to clone agent")

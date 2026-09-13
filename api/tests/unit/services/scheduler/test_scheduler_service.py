@@ -42,13 +42,17 @@ class TestSchedulerService:
     async def test_create_task(self, scheduler_service, mock_db_session):
         tenant_id = uuid.uuid4()
         created_by = uuid.uuid4()
+        # DatabaseConnection.id is a UUID column (like every BaseModel PK) despite
+        # create_task()'s stale `int` type hint; _validate_references() now checks
+        # the format up front, so this must be a real UUID.
+        database_connection_id = uuid.uuid4()
 
         task = await scheduler_service.create_task(
             tenant_id=tenant_id,
             name="Test Task",
             task_type="database_query",
             schedule="0 0 * * *",
-            database_connection_id=1,
+            database_connection_id=database_connection_id,
             query="SELECT 1",
             created_by=created_by,
         )
@@ -58,7 +62,7 @@ class TestSchedulerService:
         assert task.name == "Test Task"
         assert task.cron_expression == "0 0 * * *"  # Check cron_expression instead of schedule
         assert task.schedule_type == "cron"
-        assert task.config == {"database_connection_id": 1, "query": "SELECT 1"}  # Check config
+        assert task.config == {"database_connection_id": database_connection_id, "query": "SELECT 1"}  # Check config
         assert task.created_by == created_by
 
         mock_db_session.add.assert_called_once()
@@ -81,14 +85,19 @@ class TestSchedulerService:
 
     async def test_update_task(self, scheduler_service, mock_db_session):
         task_id = uuid.uuid4()
-        existing_task = ScheduledTask(id=task_id, name="Old Name", cron_expression="0 0 * * *")
+        tenant_id = uuid.uuid4()
+        existing_task = ScheduledTask(
+            id=task_id, tenant_id=tenant_id, name="Old Name", cron_expression="0 0 * * *", config={}
+        )
 
         # Setup execute mock to return the existing task
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = existing_task
         mock_db_session.execute = AsyncMock(return_value=mock_result)
 
-        updated_task = await scheduler_service.update_task(task_id=task_id, name="New Name", schedule="0 12 * * *")
+        updated_task = await scheduler_service.update_task(
+            task_id=task_id, tenant_id=tenant_id, name="New Name", schedule="0 12 * * *"
+        )
 
         assert updated_task.name == "New Name"
         assert updated_task.cron_expression == "0 12 * * *"
@@ -97,14 +106,15 @@ class TestSchedulerService:
 
     async def test_delete_task(self, scheduler_service, mock_db_session):
         task_id = uuid.uuid4()
-        existing_task = ScheduledTask(id=task_id)
+        tenant_id = uuid.uuid4()
+        existing_task = ScheduledTask(id=task_id, tenant_id=tenant_id)
 
         # Setup execute mock to return the existing task
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = existing_task
         mock_db_session.execute = AsyncMock(return_value=mock_result)
 
-        await scheduler_service.delete_task(task_id)
+        await scheduler_service.delete_task(task_id, tenant_id=tenant_id)
 
         mock_db_session.delete.assert_awaited_once_with(existing_task)
         mock_db_session.commit.assert_awaited_once()
@@ -148,14 +158,15 @@ class TestSchedulerService:
 
     async def test_toggle_task(self, scheduler_service, mock_db_session):
         task_id = uuid.uuid4()
-        task = ScheduledTask(id=task_id, is_active=True)
+        tenant_id = uuid.uuid4()
+        task = ScheduledTask(id=task_id, tenant_id=tenant_id, is_active=True)
 
         # Setup execute mock to return the task
         mock_result = MagicMock()
         mock_result.scalar_one_or_none.return_value = task
         mock_db_session.execute = AsyncMock(return_value=mock_result)
 
-        await scheduler_service.toggle_task(task_id)
+        await scheduler_service.toggle_task(task_id, tenant_id=tenant_id)
 
         assert task.is_active is False
         mock_db_session.commit.assert_awaited_once()

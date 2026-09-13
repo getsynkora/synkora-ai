@@ -463,10 +463,12 @@ export default function OAuthAppsPage() {
         setError(err instanceof Error ? err.message : 'Failed to initiate OAuth')
       }
     } else {
-      // App-level OAuth: Direct redirect (admin flow, no user context needed)
-      const redirectUrl = encodeURIComponent(window.location.href)
-      const authUrl = `${API_URL}/api/v1/oauth/${app.provider.toLowerCase()}/authorize?oauth_app_id=${app.id}&redirect_url=${redirectUrl}&user_level=false`
-      window.location.href = authUrl
+      try {
+        const result = await apiClient.initiateOAuth(app.id, window.location.href, false)
+        window.location.href = result.auth_url
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to initiate OAuth')
+      }
     }
   }
 

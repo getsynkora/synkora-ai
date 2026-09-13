@@ -213,7 +213,10 @@ async def replace_user(
     except Exception:
         return _scim_error("Invalid JSON body", 400)
 
-    user = await scim_service.update_user(db, tenant_id, user_id, body)
+    try:
+        user = await scim_service.update_user(db, tenant_id, user_id, body)
+    except ValueError as exc:
+        return _scim_error(str(exc), 400)
     if user is None:
         return _scim_error("User not found", 404)
     return _scim_response(user)

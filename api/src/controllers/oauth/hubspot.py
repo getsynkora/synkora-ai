@@ -17,13 +17,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.utils.config_helper import get_app_base_url
 
 from ...core.database import get_async_db
-from ...middleware.auth_middleware import get_optional_account, get_optional_tenant_id
+from ...middleware.auth_middleware import get_current_account, get_current_tenant_id
 from ...models.tenant import Account
 from ...models.user_oauth_token import UserOAuthToken
 from ...services.agents.security import decrypt_value, encrypt_value
 from ...services.oauth.hubspot_oauth import HubSpotOAuth
 from ...services.security.oauth_state_service import create_oauth_state, get_oauth_state
 from .base import (
+    _authorize_oauth_connection,
+    _get_callback_oauth_app,
     _get_oauth_app_secure,
     _get_or_create_tenant_clone,
     _safe_error_redirect,
@@ -40,8 +42,8 @@ async def hubspot_authorize(
     oauth_app_id: int = Query(...),
     redirect_url: str = Query(None),
     user_level: bool = Query(False),
-    current_account: Account | None = Depends(get_optional_account),
-    tenant_id: uuid.UUID | None = Depends(get_optional_tenant_id),
+    current_account: Account = Depends(get_current_account),
+    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
     """Initiate HubSpot OAuth authorization."""
@@ -49,7 +51,8 @@ async def hubspot_authorize(
         if user_level and not current_account:
             raise HTTPException(status_code=401, detail="Authentication required for user-level OAuth")
 
-        oauth_app = await _get_oauth_app_secure(db, oauth_app_id, tenant_id=tenant_id)
+        await _authorize_oauth_connection(db, current_account, tenant_id, user_level)
+        oauth_app = await _get_oauth_app_secure(db, oauth_app_id, tenant_id=tenant_id, require_tenant=True)
         if not oauth_app:
             raise HTTPException(status_code=404, detail="OAuth app not found")
 
@@ -72,7 +75,8 @@ async def hubspot_authorize(
                 "oauth_app_id": oauth_app_id,
                 "redirect_url": redirect_url,
                 "user_level": user_level,
-                "account_id": str(current_account.id) if current_account and user_level else None,
+                "account_id": str(current_account.id),
+                "auth_version": current_account.auth_version or 0,
                 "tenant_id": str(tenant_id) if tenant_id else None,
             }
         )
@@ -93,7 +97,7 @@ async def hubspot_authorize(
         raise
     except Exception as e:
         logger.error("HubSpot OAuth authorization error: %s", e, exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/hubspot/callback")
@@ -113,7 +117,7 @@ async def hubspot_callback(
         user_level = state_data.get("user_level", False)
         account_id = state_data.get("account_id")
 
-        oauth_app = await _get_oauth_app_secure(db, oauth_app_id)
+        oauth_app = await _get_callback_oauth_app(db, state_data)
         if not oauth_app:
             raise HTTPException(status_code=404, detail="OAuth app not found")
 

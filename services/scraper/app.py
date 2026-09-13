@@ -64,7 +64,7 @@ from typing import Any, Literal
 
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 from browser_session import BrowserSession
 
@@ -1544,9 +1544,17 @@ async def browser_handle_dialog(req: HandleDialogRequest):
         return {"success": False, "error": str(e)}
 
 
+class BrowserUpload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    name: str = Field(min_length=1, max_length=255)
+    mime_type: str = Field(default="application/octet-stream", max_length=255)
+    content_base64: str = Field(max_length=14 * 1024 * 1024)
+
+
 class UploadFileRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     file_ref: str
-    file_paths: list[str]
+    files: list[BrowserUpload] = Field(min_length=1, max_length=10)
     session_id: str = "default"
     page_id: str | None = None
     timeout_ms: int | None = None
@@ -1559,8 +1567,18 @@ async def browser_upload_file(req: UploadFileRequest):
         state = session.get_page_state(page)
         timeout = normalize_timeout(req.timeout_ms)
         locator = _resolve_locator(page, req.file_ref, state)
-        await locator.set_input_files(req.file_paths, timeout=timeout)
-        return {"success": True, "action": "upload_file", "ref": req.file_ref, "files": req.file_paths, "session_id": req.session_id}
+        uploads = []
+        total = 0
+        for file in req.files:
+            if any(c in file.name for c in ("/", "\\", "\x00")) or file.name in {".", ".."}:
+                raise ValueError("Invalid upload filename")
+            data = base64.b64decode(file.content_base64, validate=True)
+            total += len(data)
+            if total > 10 * 1024 * 1024:
+                raise ValueError("Total upload exceeds 10 MiB")
+            uploads.append({"name": file.name, "mimeType": file.mime_type, "buffer": data})
+        await locator.set_input_files(uploads, timeout=timeout)
+        return {"success": True, "action": "upload_file", "ref": req.file_ref, "files": [file.name for file in req.files], "session_id": req.session_id}
     except Exception as e:
         return {"success": False, "error": str(e)}
 

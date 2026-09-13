@@ -12,6 +12,7 @@ import os
 import time
 import uuid
 from collections.abc import AsyncGenerator
+from contextlib import aclosing
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -26,6 +27,7 @@ if TYPE_CHECKING:
 from src.helpers.streaming_helpers import convert_to_json_serializable
 from src.services.agents.config import AgenticConfig
 from src.services.agents.error_tracker import FunctionCallingErrorTracker
+from src.services.agents.execution_budget import execution_deadline
 from src.services.observability.langfuse_service import LangfuseService
 
 logger = logging.getLogger(__name__)
@@ -82,13 +84,21 @@ async def _fetch_youtube_oembed(video_id: str) -> dict:
     """Fetch title/thumbnail for a YouTube video via the public oEmbed endpoint (no API
     key required) — the transcript tools only return `video_id` + text, not display
     metadata, so this is needed to build a usable `video` block."""
-    import httpx
+    import re
+
+    from src.services.security.public_http import fetch_public_url
+
+    # Strict validation: YouTube video IDs are exactly 11 chars of [A-Za-z0-9_-]
+    if not re.match(r"^[A-Za-z0-9_-]{11}$", video_id):
+        return {"title": None, "thumbnail_url": None}
 
     url = f"https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={video_id}&format=json"
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        response = await client.get(url)
+    try:
+        response = await fetch_public_url(url, timeout=10.0, https_only=True)
         response.raise_for_status()
         data = response.json()
+    except Exception:
+        return {"title": None, "thumbnail_url": None}
     return {"title": data.get("title"), "thumbnail_url": data.get("thumbnail_url")}
 
 
@@ -195,6 +205,13 @@ class FunctionCallingHandler:
         # Normalize provider to lowercase for consistent comparison
         self.provider = llm_client.provider.lower() if hasattr(llm_client, "provider") else "unknown"
         self.runtime_context = runtime_context  # Store context
+        from src.services.agents.adk_tools import tool_registry
+
+        self.tool_registry = (
+            runtime_context.tool_registry
+            if runtime_context is not None and runtime_context.tool_registry is not None
+            else tool_registry
+        )
         self.tool_configs = tool_configs or {}  # Legacy
         self.available_tools = self._get_available_tools(tools)
         self.trace_id = trace_id
@@ -202,6 +219,37 @@ class FunctionCallingHandler:
         self.langfuse_service = langfuse_service or LangfuseService.for_agent(self.observability_config)
         self.agentic_config = agentic_config or AgenticConfig()
         self.pii_redactor = pii_redactor
+        self._on_answer_delta = None
+
+    async def _generate_model_events(self, history, temperature, max_tokens):
+        """Forward deltas with bounded backpressure; cancel the provider on close."""
+        queue: asyncio.Queue = asyncio.Queue(maxsize=16)
+
+        async def forward(text):
+            await queue.put(("text", text))
+
+        async def produce():
+            self._on_answer_delta = forward
+            try:
+                response = await self._generate_with_tools(history, temperature, max_tokens)
+                await queue.put(("response", response))
+            except Exception as exc:
+                await queue.put(("error", exc))
+            finally:
+                self._on_answer_delta = None
+
+        producer = asyncio.create_task(produce())
+        try:
+            while True:
+                kind, value = await queue.get()
+                if kind == "error":
+                    raise value
+                yield kind, value
+                if kind == "response":
+                    break
+        finally:
+            producer.cancel()
+            await asyncio.gather(producer, return_exceptions=True)
 
     def _get_available_tools(self, tool_names: list[str] | None) -> list[dict[str, Any]]:
         """Get tool definitions in the format needed."""
@@ -213,7 +261,7 @@ class FunctionCallingHandler:
             return []
 
         # Filter to only requested tools
-        all_tools = tool_registry.list_tools()
+        all_tools = self.tool_registry.list_tools()
         return [t for t in all_tools if t["name"] in tool_names]
 
     def _convert_tools_to_provider_format(self) -> Any:
@@ -366,6 +414,7 @@ class FunctionCallingHandler:
             chunks.append(chunk)
         return "".join(chunks)
 
+    @execution_deadline
     async def generate_with_functions_stream(
         self,
         prompt: str,
@@ -455,23 +504,6 @@ class FunctionCallingHandler:
             max_total_tool_chars=400000,
         )
 
-        # Deduplication cache: maps (tool_name + serialized_args) → result.
-        # Avoids redundant tool re-execution within a single agentic run.
-        # IMPORTANT: entries are evicted when their corresponding conversation-history
-        # messages are pruned/truncated (see eviction block below).  This lets the LLM
-        # re-read the full content of a pruned file instead of being stuck with a
-        # truncated version indefinitely.
-        _tool_call_cache: dict[str, Any] = {}
-
-        # Loop detection: track the sequence of tool names called each iteration.
-        # If the same pattern repeats LOOP_REPEAT_THRESHOLD times consecutively,
-        # the agent is stuck doing the same thing without making progress.
-        _iteration_tool_sequences: list[tuple[str, ...]] = []
-        LOOP_REPEAT_THRESHOLD = 3
-        # Polling/status tools are designed to be called repeatedly while waiting
-        # for background work to complete — exclude them from loop detection.
-        _POLLING_TOOL_NAMES: frozenset[str] = frozenset({"check_task", "list_background_tasks"})
-
         # "Not found" note deduplication: tracks keys we've already injected a
         # persistent user message for so we don't spam the conversation.
         _not_found_noted: set[str] = set()
@@ -481,23 +513,6 @@ class FunctionCallingHandler:
 
             # Prune old tool results to prevent context bloat during long agentic loops
             if iteration > 0:  # Only prune after first iteration when we have tool results
-                # Build tool_call_id → cache_key mapping BEFORE pruning so we can evict
-                # pruned entries from _tool_call_cache.  Without this the LLM re-requests
-                # a file, the cache returns the (now-truncated) version from history, and
-                # the agent loops until it hits the max-iteration limit.
-                _call_id_to_cache_key: dict[str, str] = {}
-                for _msg in conversation_history:
-                    if _msg.get("role") == "assistant" and _msg.get("tool_calls"):
-                        for _tc in _msg["tool_calls"]:
-                            _tc_id = _tc.get("id", "")
-                            try:
-                                _args = json.loads(_tc.get("function", {}).get("arguments", "{}"))
-                                _ck = f"{_tc['function']['name']}:{json.dumps(_args, sort_keys=True)}"
-                            except Exception:
-                                _ck = _tc.get("function", {}).get("name", "")
-                            if _tc_id and _ck:
-                                _call_id_to_cache_key[_tc_id] = _ck
-
                 conversation_history, pruning_stats = prune_tool_results(conversation_history, pruning_settings)
                 if pruning_stats.chars_saved > 0:
                     logger.info(
@@ -537,32 +552,24 @@ class FunctionCallingHandler:
                         "tokens_saved": pruning_stats.estimated_tokens_saved,
                     }
 
-                # Evict any cache entries whose messages were truncated or replaced with
-                # placeholders so the next identical request re-executes the tool and
-                # gets fresh full content (which will land at the end of history and be
-                # protected from pruning as one of the last keep_last_results entries).
-                if pruning_stats.tool_results_pruned > 0:
-                    from src.services.agents.context_pruning import RESULT_PRUNED_MARKER as _SUMMARY_MARKER
-
-                    _TRIM_MARKER = "[... "
-                    _PLACEHOLDER_MARKER = "[Previous "
-                    for _msg in conversation_history:
-                        if _msg.get("role") == "tool":
-                            _content = _msg.get("content", "")
-                            if isinstance(_content, str) and (
-                                _TRIM_MARKER in _content
-                                or _PLACEHOLDER_MARKER in _content
-                                or _SUMMARY_MARKER in _content
-                            ):
-                                _tc_id = _msg.get("tool_call_id", "")
-                                _ck = _call_id_to_cache_key.get(_tc_id)
-                                if _ck and _ck in _tool_call_cache:
-                                    del _tool_call_cache[_ck]
-                                    logger.debug(f"Dedup cache evicted pruned entry: {_ck[:80]}")
-
-            # Generate response with tools (non-streaming for function detection)
+            # Forward answer deltas while collecting completed tool calls and usage.
             _llm_iter_start = time.time()
-            response = await self._generate_with_tools(conversation_history, temperature, max_tokens)
+            answer_streamed = False
+            async with aclosing(
+                self._generate_model_events(conversation_history, temperature, max_tokens)
+            ) as owned_stream:
+                async for kind, value in owned_stream:
+                    if kind == "text":
+                        answer_streamed = True
+                        yield {"type": "text", "content": value}
+                    else:
+                        response = value
+                        if getattr(response, "choices", None):
+                            reasoning = getattr(response.choices[0].message, "reasoning_content", None)
+                            if isinstance(reasoning, str):
+                                from src.services.agents.llm_client import _llm_reasoning_ctx
+
+                                _llm_reasoning_ctx.set(reasoning)
             _llm_iter_latency_ms = int((time.time() - _llm_iter_start) * 1000)
 
             # Fire LLM call trace event (fire-and-forget, zero latency)
@@ -693,8 +700,9 @@ class FunctionCallingHandler:
                 # deltas (delta.content=None) instead of text deltas, silently dropping
                 # the entire response.
                 text_content = self._extract_text_response(response)
-                if text_content:
-                    yield {"type": "text", "content": text_content}
+                if text_content or answer_streamed:
+                    if not answer_streamed:
+                        yield {"type": "text", "content": text_content}
                     return
 
                 # Fallback: non-streaming response had no text (rare). Stream without
@@ -710,80 +718,15 @@ class FunctionCallingHandler:
                     yield {"type": "text", "content": chunk}
                 return
 
-            # Loop detection: check BEFORE yielding or executing to avoid orphaned tool events.
-            # Only flag as a loop when the SAME tool is called with the SAME arguments
-            # repeatedly — different queries/args on the same tool are legitimate progress.
-            def _call_fingerprint(fc: dict[str, Any]) -> str:
-                try:
-                    return f"{fc['name']}:{json.dumps(fc.get('arguments', {}), sort_keys=True)}"
-                except Exception:
-                    return fc["name"]
-
-            current_sequence = tuple(_call_fingerprint(fc) for fc in function_calls)
-            # Only track iterations where at least one non-polling tool is called.
-            # check_task / list_background_tasks are designed for repeated polling
-            # and must not trigger the stuck-loop guard.
-            _non_polling_calls = [fc for fc in function_calls if fc["name"] not in _POLLING_TOOL_NAMES]
-            if _non_polling_calls:
-                _iteration_tool_sequences.append(current_sequence)
-                if len(_iteration_tool_sequences) > LOOP_REPEAT_THRESHOLD:
-                    _iteration_tool_sequences.pop(0)
-            if len(_iteration_tool_sequences) == LOOP_REPEAT_THRESHOLD and len(set(_iteration_tool_sequences)) == 1:
-                loop_tools = ", ".join(f"`{fc['name']}`" for fc in function_calls)
-                logger.warning(
-                    f"🔁 Loop detected: identical tool call(s) {current_sequence} repeated "
-                    f"{LOOP_REPEAT_THRESHOLD} times with same arguments. Stopping."
-                )
-                yield {
-                    "type": "text",
-                    "content": (
-                        f"\n\n⚠️ **Stuck Loop Detected**\n\n"
-                        f"The same tool call ({loop_tools}) was made {LOOP_REPEAT_THRESHOLD} times "
-                        f"in a row with identical arguments without making progress. "
-                        f"Stopping to avoid wasting resources."
-                    ),
-                }
-                return
-
+            # Identical arguments may be deliberate polling or repeated actions.
+            # Bound runs with the deadline/iteration budget and error tracker instead.
             # Yield function calls
             for func_call in function_calls:
                 yield {"type": "function_call", "name": func_call["name"], "arguments": func_call["arguments"]}
 
-            # Separate cached vs uncached calls to avoid redundant fetches.
-            # After context pruning replaces old tool results with placeholders the LLM
-            # may re-request the exact same tool+args — serve those from cache instantly.
-            uncached_calls: list[dict[str, Any]] = []
-            cached_results_by_idx: dict[int, Any] = {}
-            for idx, fc in enumerate(function_calls):
-                try:
-                    cache_key = f"{fc['name']}:{json.dumps(fc['arguments'], sort_keys=True)}"
-                except Exception:
-                    cache_key = None
-                if cache_key and cache_key in _tool_call_cache:
-                    cached_results_by_idx[idx] = _tool_call_cache[cache_key]
-                    logger.debug(f"Tool dedup cache HIT: {fc['name']} — skipping redundant call")
-                else:
-                    uncached_calls.append((idx, fc, cache_key))
-
-            # Execute only uncached calls
-            fresh_exec_results: list[ToolExecutionResult] = []
-            if uncached_calls:
-                fresh_exec_results = await self._execute_functions([fc for _, fc, _ in uncached_calls])
-                # Store in cache
-                for (_idx, _fc, cache_key), exec_result in zip(uncached_calls, fresh_exec_results, strict=False):
-                    if cache_key:
-                        _tool_call_cache[cache_key] = exec_result.result
-
-            # Merge: build ordered list of results matching original function_calls order
-            fresh_iter = iter(fresh_exec_results)
-            execution_results: list[ToolExecutionResult] = []
-            for idx, fc in enumerate(function_calls):
-                if idx in cached_results_by_idx:
-                    execution_results.append(
-                        ToolExecutionResult(name=fc["name"], result=cached_results_by_idx[idx], success=True)
-                    )
-                else:
-                    execution_results.append(next(fresh_iter))
+            # Repeated reads may observe writes, and repeated actions may be intentional.
+            # Argument equality is not an idempotency contract. Always execute the call.
+            execution_results = await self._execute_functions(function_calls)
 
             # Dynamic tool expansion: if internal_search_available_tools ran and returned
             # tool names, inject those tools' full schemas into self.available_tools so the
@@ -804,7 +747,7 @@ class FunctionCallingHandler:
                         else:
                             from src.services.agents.adk_tools import tool_registry
 
-                            _all_assigned = {t["name"]: t for t in tool_registry.list_tools()}
+                            _all_assigned = {t["name"]: t for t in self.tool_registry.list_tools()}
                         _current_names = {t["name"] for t in self.available_tools}
                         _added: list[str] = []
                         for _disc in _discovered:
@@ -1107,7 +1050,7 @@ class FunctionCallingHandler:
             # Update conversation history with proper format
             # Generate UNIQUE tool_call IDs per call so parallel calls to the same tool
             # each get their own ID and their own result message.
-            call_ids = [f"call_{uuid.uuid4().hex[:8]}" for _ in function_calls]
+            call_ids = [call.get("id") or f"call_{uuid.uuid4().hex[:8]}" for call in function_calls]
 
             assistant_message: dict[str, Any] = {
                 "role": "assistant",
@@ -1121,6 +1064,8 @@ class FunctionCallingHandler:
                     for i, fc in enumerate(function_calls)
                 ],
             }
+            if self.provider in {"google", "gemini"} and response.candidates:
+                assistant_message["_google_parts"] = response.candidates[0].content.parts
             # DeepSeek reasoning models require reasoning_content echoed back on every turn.
             # _generate_openai_with_tools sets _llm_reasoning_ctx when it captures it;
             # include it here so the next iteration's history passes validation.
@@ -1187,16 +1132,6 @@ class FunctionCallingHandler:
                         }
 
                 content = json.dumps(convert_to_json_serializable(result)) if not isinstance(result, str) else result
-                # For cached results, inject a hint so the LLM understands the data is from
-                # a prior call and re-requesting the same tool will not produce new information.
-                # This prevents the agent from looping on the same tool call indefinitely.
-                if i in cached_results_by_idx:
-                    content += (
-                        "\n[System: This result was served from cache — this tool was already called "
-                        "with these exact arguments in a prior iteration. The data has not changed. "
-                        "Do not call this tool again with the same arguments; proceed with your "
-                        "analysis using the data already provided.]"
-                    )
                 # Trust boundary: wrap external tool output to reduce prompt-injection risk
                 if isinstance(content, str) and len(content) > 0:
                     content = f'<external-tool-result tool="{exec_result.name}">\n{content}\n</external-tool-result>'
@@ -1229,7 +1164,7 @@ class FunctionCallingHandler:
             yield {"type": "text", "content": chunk}
 
     @staticmethod
-    async def _litellm_stream_and_collect(completion_params: dict[str, Any]) -> Any:
+    async def _litellm_stream_and_collect(completion_params: dict[str, Any], on_text=None) -> Any:
         """Stream a LiteLLM call and accumulate into a single response object.
 
         Using stream=True avoids Cloudflare 524 errors on proxied LiteLLM deployments:
@@ -1247,7 +1182,32 @@ class FunctionCallingHandler:
         import asyncio
 
         stream = await litellm.acompletion(**completion_params)
-        chunks = [chunk async for chunk in stream]
+        return await FunctionCallingHandler._collect_openai_stream(stream, completion_params.get("messages"), on_text)
+
+    @staticmethod
+    async def _collect_openai_stream(stream, messages, on_text=None):
+        import litellm
+
+        chunks = []
+        try:
+            async for chunk in stream:
+                if not hasattr(chunk, "__getitem__") and hasattr(chunk, "model_dump"):
+                    from litellm.types.utils import ModelResponseStream
+
+                    chunk = ModelResponseStream(**chunk.model_dump())
+                chunks.append(chunk)
+                if on_text and chunk.choices:
+                    content = getattr(chunk.choices[0].delta, "content", None)
+                    if isinstance(content, str) and content:
+                        await on_text(content)
+        finally:
+            close = getattr(stream, "aclose", None) or getattr(stream, "close", None)
+            if close:
+                import inspect
+
+                closed = close()
+                if inspect.isawaitable(closed):
+                    await closed
 
         # Accumulate DeepSeek reasoning_content from raw chunks before stream_chunk_builder
         # discards non-standard delta fields. The delta.reasoning_content field is set on
@@ -1269,7 +1229,7 @@ class FunctionCallingHandler:
         async def _build() -> Any:
             return litellm.stream_chunk_builder(
                 chunks=chunks,
-                messages=completion_params.get("messages"),
+                messages=messages,
             )
 
         response = await _build()
@@ -1282,7 +1242,6 @@ class FunctionCallingHandler:
             except Exception:
                 pass
 
-        logger.debug("LiteLLM streaming acompletion completed for model: %s", completion_params.get("model"))
         return response
 
     async def _generate_with_tools(
@@ -1376,13 +1335,47 @@ class FunctionCallingHandler:
         # Get tools in Google format
         tools = self._convert_to_google_format()
 
-        config = types.GenerateContentConfig(temperature=temperature, max_output_tokens=max_tokens, tools=tools)
-
-        response = self.llm_client._client.models.generate_content(
-            model=self.llm_client.config.model_name, contents=contents, config=config
+        system = "\n\n".join(message["content"] for message in conversation_history if message.get("role") == "system")
+        config = types.GenerateContentConfig(
+            temperature=temperature,
+            max_output_tokens=max_tokens,
+            tools=tools,
+            system_instruction=system or None,
         )
 
-        return response
+        if not self._on_answer_delta:
+            return await self.llm_client._client.aio.models.generate_content(
+                model=self.llm_client.config.model_name, contents=contents, config=config
+            )
+
+        from contextlib import aclosing
+
+        candidates = {}
+        parts = {}
+        response = None
+        stream = await self.llm_client._client.aio.models.generate_content_stream(
+            model=self.llm_client.config.model_name, contents=contents, config=config
+        )
+        async with aclosing(stream):
+            async for chunk in stream:
+                response = chunk
+                for candidate in chunk.candidates or []:
+                    index = candidate.index or 0
+                    candidates[index] = candidate
+                    for part in (candidate.content.parts if candidate.content else []) or []:
+                        parts.setdefault(index, []).append(part)
+                        if index == 0 and part.text and not part.thought:
+                            await self._on_answer_delta(part.text)
+        if response is None:
+            raise RuntimeError("Model returned an empty stream")
+        return response.model_copy(
+            update={
+                "candidates": [
+                    candidate.model_copy(update={"content": types.Content(role="model", parts=parts.get(index, []))})
+                    for index, candidate in sorted(candidates.items())
+                ]
+            }
+        )
 
     async def _generate_openai_with_tools(
         self, conversation_history: list[dict[str, Any]], temperature: float, max_tokens: int | None
@@ -1428,7 +1421,7 @@ class FunctionCallingHandler:
                     completion_params["api_base"] = self.llm_client.config.api_base
                     completion_params["custom_llm_provider"] = "openai"
 
-                response = await self._litellm_stream_and_collect(completion_params)
+                response = await self._litellm_stream_and_collect(completion_params, self._on_answer_delta)
             else:
                 response = await self.llm_client._client.chat.completions.create(
                     model=self.llm_client.config.model_name,
@@ -1437,7 +1430,10 @@ class FunctionCallingHandler:
                     tools=tools,
                     tool_choice="auto",
                     timeout=LLM_FUNCTION_CALLING_TIMEOUT,
+                    **({"stream": True, "stream_options": {"include_usage": True}} if self._on_answer_delta else {}),
                 )
+                if self._on_answer_delta:
+                    response = await self._collect_openai_stream(response, messages, self._on_answer_delta)
 
             # Capture DeepSeek reasoning_content from the response (both LiteLLM and direct
             # client paths). _litellm_stream_and_collect now attaches it from raw chunks.
@@ -1551,7 +1547,7 @@ class FunctionCallingHandler:
                 completion_params["api_base"] = self.llm_client.config.api_base
                 completion_params["custom_llm_provider"] = "openai"
 
-            response = await self._litellm_stream_and_collect(completion_params)
+            response = await self._litellm_stream_and_collect(completion_params, self._on_answer_delta)
         else:
             # For native Anthropic client
             # Cap max_tokens for this non-streaming tool-detection call.
@@ -1635,12 +1631,30 @@ class FunctionCallingHandler:
                 except Exception:
                     pass  # caching is optional; fall back to uncached call
 
-            response = await self.llm_client._client.messages.create(**create_params, timeout=300)
+            if self._on_answer_delta:
+                async with self.llm_client._client.messages.stream(**create_params, timeout=300) as stream:
+                    async for text in stream.text_stream:
+                        await self._on_answer_delta(text)
+                    response = await stream.get_final_message()
+            else:
+                response = await self.llm_client._client.messages.create(**create_params, timeout=300)
 
         return response
 
     def _extract_function_calls(self, response: Any) -> list[dict[str, Any]]:
         """Extract function calls from provider response."""
+        reasons = []
+        if getattr(response, "choices", None):
+            reasons.append(getattr(response.choices[0], "finish_reason", None))
+        if getattr(response, "candidates", None):
+            reasons.extend(getattr(candidate, "finish_reason", None) for candidate in response.candidates)
+        reasons.append(getattr(response, "stop_reason", None))
+        if any(
+            isinstance(reason, str)
+            and reason.lower() in {"length", "max_tokens", "content_filter", "safety", "refusal"}
+            for reason in reasons
+        ):
+            raise ValueError("Model output did not complete normally; no tools executed")
         if self.provider in ["google", "gemini"]:
             return self._extract_google_function_calls(response)
         elif self.provider in ["openai", "litellm", "deepseek", "mock"]:
@@ -1658,9 +1672,9 @@ class FunctionCallingHandler:
             for candidate in response.candidates:
                 if hasattr(candidate, "content") and hasattr(candidate.content, "parts"):
                     for part in candidate.content.parts:
-                        if hasattr(part, "function_call"):
+                        if getattr(part, "function_call", None) is not None:
                             function_calls.append(
-                                {"name": part.function_call.name, "arguments": dict(part.function_call.args)}
+                                {"name": part.function_call.name, "arguments": dict(part.function_call.args or {})}
                             )
 
         return function_calls
@@ -1676,22 +1690,16 @@ class FunctionCallingHandler:
                     raw_args = tool_call.function.arguments or "{}"
                     try:
                         arguments = json.loads(raw_args)
-                    except json.JSONDecodeError:
-                        # Model returned truncated/malformed JSON (common at high context lengths).
-                        # Attempt a simple close-brace repair, then give up gracefully rather
-                        # than crashing the entire session.
-                        repaired = raw_args.strip()
-                        if not repaired.endswith("}"):
-                            repaired = repaired + "}"
-                        try:
-                            arguments = json.loads(repaired)
-                        except json.JSONDecodeError:
-                            logger.warning(
-                                f"Skipping malformed tool call '{tool_call.function.name}': "
-                                f"could not parse arguments JSON: {raw_args[:120]!r}"
-                            )
-                            continue
-                    function_calls.append({"name": tool_call.function.name, "arguments": arguments})
+                    except json.JSONDecodeError as exc:
+                        raise ValueError(
+                            "Model returned incomplete or malformed tool arguments; no tools executed"
+                        ) from exc
+                    if not isinstance(arguments, dict):
+                        raise ValueError("Tool arguments must be a JSON object")
+                    call = {"name": tool_call.function.name, "arguments": arguments}
+                    if isinstance(getattr(tool_call, "id", None), str):
+                        call["id"] = tool_call.id
+                    function_calls.append(call)
 
         return function_calls
 
@@ -1742,7 +1750,10 @@ class FunctionCallingHandler:
         """
         from src.services.agents.adk_tools import tool_registry
 
-        max_retries = self.agentic_config.tool_retry_attempts
+        # Unknown tools and writes are not safe to replay after an ambiguous failure.
+        tool_definition = self.tool_registry.get_tool(func_name)
+        retry_safe = isinstance(tool_definition, dict) and tool_definition.get("retry_safe") is True
+        max_retries = self.agentic_config.tool_retry_attempts if retry_safe else 0
         base_delay = self.agentic_config.tool_retry_delay
         last_result = None
         last_error = None
@@ -1754,7 +1765,7 @@ class FunctionCallingHandler:
                 if attempt > 0:
                     logger.info(f"Retrying function: {func_name} (attempt {attempt + 1}/{max_retries + 1})")
 
-                logger.info(f"Executing function: {func_name} with args: {func_args}")
+                logger.info("Executing function: %s", func_name)
 
                 # Validate func_args against the tool's declared JSON schema
                 tool_schema = next(
@@ -1786,7 +1797,7 @@ class FunctionCallingHandler:
                 # Execute with appropriate context
                 if self.runtime_context:
                     async with self.runtime_context.scoped_db_context() as tool_runtime_context:
-                        result = await tool_registry.execute_tool(
+                        result = await self.tool_registry.execute_tool(
                             func_name,
                             func_args,
                             runtime_context=tool_runtime_context,
@@ -1796,7 +1807,7 @@ class FunctionCallingHandler:
                     tool_config = self.tool_configs.get(func_name, {})
                     if "_runtime_context" in self.tool_configs:
                         tool_config["_runtime_context"] = self.tool_configs["_runtime_context"]
-                    result = await tool_registry.execute_tool(func_name, func_args, config=tool_config)
+                    result = await self.tool_registry.execute_tool(func_name, func_args, config=tool_config)
 
                 duration_ms = int((time.time() - start_time) * 1000)
 
@@ -1994,14 +2005,23 @@ class FunctionCallingHandler:
             and self.langfuse_service.should_trace(self.observability_config)
         )
 
-        use_parallel = self.agentic_config.parallel_tools and len(function_calls) > 1
+        definitions = [self.tool_registry.get_tool(call["name"]) for call in function_calls]
+        use_parallel = (
+            self.agentic_config.parallel_tools
+            and len(function_calls) > 1
+            and all(isinstance(tool, dict) and tool.get("tool_category") == "read" for tool in definitions)
+        )
 
         if use_parallel:
             # Execute all tools in parallel
             logger.info(f"Executing {len(function_calls)} tools in parallel")
-            tasks = [
-                self._execute_single_tool_with_retry(fc["name"], fc["arguments"], should_trace) for fc in function_calls
-            ]
+            semaphore = asyncio.Semaphore(self.agentic_config.max_parallel_tools)
+
+            async def execute_bounded(fc):
+                async with semaphore:
+                    return await self._execute_single_tool_with_retry(fc["name"], fc["arguments"], should_trace)
+
+            tasks = [execute_bounded(fc) for fc in function_calls]
             raw_results = await asyncio.gather(*tasks, return_exceptions=True)
 
             results: list[ToolExecutionResult] = []
@@ -2033,9 +2053,44 @@ class FunctionCallingHandler:
 
     def _convert_history_to_google_format(self, history: list[dict[str, Any]]) -> list:
         """Convert conversation history to Google format."""
-        # Simplified - just use the last user message for now
-        last_user_msg = next((msg for msg in reversed(history) if msg["role"] == "user"), None)
-        return last_user_msg["content"] if last_user_msg else ""
+        from google.genai import types
+
+        contents = []
+        names = {}
+        for message in history:
+            role = message.get("role")
+            if role == "system":
+                continue  # Passed through system_instruction.
+            if role == "tool":
+                name = names.get(message.get("tool_call_id"))
+                if not name:
+                    raise ValueError("Tool response has no matching model call")
+                part = types.Part(
+                    function_response=types.FunctionResponse(name=name, response={"result": message.get("content", "")})
+                )
+                if contents and contents[-1].role == "user":
+                    contents[-1].parts.append(part)
+                else:
+                    contents.append(types.Content(role="user", parts=[part]))
+                continue
+            calls = message.get("tool_calls") or []
+            for call in calls:
+                names[call["id"]] = call["function"]["name"]
+            if message.get("_google_parts"):
+                parts = message["_google_parts"]  # Keep provider thought signatures intact.
+            else:
+                parts = [types.Part(text=message["content"])] if message.get("content") else []
+                parts.extend(
+                    types.Part(
+                        function_call=types.FunctionCall(
+                            name=call["function"]["name"], args=json.loads(call["function"]["arguments"])
+                        )
+                    )
+                    for call in calls
+                )
+            if parts:
+                contents.append(types.Content(role="model" if role == "assistant" else "user", parts=parts))
+        return contents
 
     def _convert_history_to_openai_format(self, history: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Convert conversation history to OpenAI format."""

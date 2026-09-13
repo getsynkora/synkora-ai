@@ -8,11 +8,11 @@ Provides news fetching capabilities:
 
 import logging
 import re
-import xml.etree.ElementTree as ET
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from typing import Any
 
+import defusedxml.ElementTree as SafeET
 import httpx
 
 logger = logging.getLogger(__name__)
@@ -195,7 +195,7 @@ def _parse_rss_date(date_str: str | None) -> str | None:
 
 def _parse_feed(xml_text: str, max_items: int, filter_hours: int) -> dict[str, Any]:
     """Parse RSS 2.0 or Atom feed XML and return structured items."""
-    root = ET.fromstring(xml_text)  # noqa: S314 — no untrusted XML in production paths
+    root = SafeET.fromstring(xml_text)
 
     ns = {
         "atom": "http://www.w3.org/2005/Atom",
@@ -331,15 +331,16 @@ async def internal_fetch_rss_feed(
         return {"success": False, "error": "Invalid URL. Must start with http:// or https://"}
 
     try:
-        async with httpx.AsyncClient(
+        from src.services.security.public_http import fetch_public_url
+
+        response = await fetch_public_url(
+            url,
             timeout=REQUEST_TIMEOUT,
-            follow_redirects=True,
             headers={
                 "User-Agent": "AI-Agent/1.0 RSS Reader",
                 "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
             },
-        ) as client:
-            response = await client.get(url)
+        )
 
         if response.status_code >= 400:
             return {"success": False, "error": f"HTTP {response.status_code} fetching feed: {url}"}

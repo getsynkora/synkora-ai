@@ -245,7 +245,7 @@ async def _get_or_create_connector(connection: DatabaseConnection) -> Any:
         elif db_type == "ELASTICSEARCH":
             connector = ElasticsearchConnector(connection)
         elif db_type == "SQLITE":
-            connector = SQLiteConnector(database_path=connection.database_path)
+            connector = SQLiteConnector(database_path=connection.database_path, tenant_id=connection.tenant_id)
         elif db_type == "MYSQL":
             connector = MySQLConnector(connection)
         elif db_type == "MONGODB":

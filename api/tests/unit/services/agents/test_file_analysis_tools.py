@@ -1,6 +1,8 @@
 """Unit tests for query_file_with_duckdb agent tool."""
 
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
+from uuid import uuid4
 
 import pandas as pd
 import pytest
@@ -20,6 +22,7 @@ async def test_query_file_with_duckdb_success():
     ) as mock_run:
         mock_run.return_value = mock_df
         result = await query_file_with_duckdb(
+            runtime_context=SimpleNamespace(tenant_id=uuid4()),
             s3_url=s3_url,
             query=f"SELECT category, SUM(amount) AS total FROM read_csv_auto('{s3_url}') GROUP BY category",
         )
@@ -101,6 +104,7 @@ async def test_query_file_truncates_large_result():
     ) as mock_run:
         mock_run.return_value = large_df
         result = await query_file_with_duckdb(
+            runtime_context=SimpleNamespace(tenant_id=uuid4()),
             s3_url=s3_url,
             query=f"SELECT id, val FROM read_csv_auto('{s3_url}')",
         )
@@ -124,6 +128,7 @@ async def test_query_file_handles_duckdb_error_gracefully():
     ) as mock_run:
         mock_run.side_effect = Exception("IO Error: file not found in S3")
         result = await query_file_with_duckdb(
+            runtime_context=SimpleNamespace(tenant_id=uuid4()),
             s3_url=s3_url,
             query=f"SELECT * FROM read_csv_auto('{s3_url}')",
         )

@@ -5,10 +5,9 @@ Receives webhook events from Recall.ai for meeting bot status changes,
 transcripts, and participant events.
 """
 
+import asyncio
 import json
 import logging
-import time
-from collections import defaultdict
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
@@ -17,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.database import get_async_db
 from src.models.oauth_app import OAuthApp
 from src.services.agents.security import decrypt_value
+from src.services.performance.rate_limiter import get_rate_limiter
 from src.services.recall.recall_service import RecallService
 
 logger = logging.getLogger(__name__)
@@ -68,66 +68,20 @@ async def _store_meeting_notification(
             },
         )
         db.add(notification)
-        await db.commit()
+        await db.flush()
         logger.info(f"Stored meeting notification for agent {agent_id}: {event_type}")
     except ImportError:
         # AgentNotification model doesn't exist yet, just log
         logger.info(f"Meeting notification (no storage): agent={agent_id}, event={event_type}, status={status}")
     except Exception as e:
         logger.warning(f"Failed to store meeting notification: {e}")
+        raise
 
 
-class RecallWebhookRateLimiter:
-    """Rate limiter for Recall.ai webhook endpoints."""
-
-    def __init__(self, requests_per_minute: int = 120, requests_per_hour: int = 5000):
-        # Higher limits for Recall - can have many transcript events per meeting
-        self.requests_per_minute = requests_per_minute
-        self.requests_per_hour = requests_per_hour
-        self.minute_window: dict[str, list[float]] = defaultdict(list)
-        self.hour_window: dict[str, list[float]] = defaultdict(list)
-        self._last_cleanup = time.time()
-
-    def is_rate_limited(self, key: str) -> tuple[bool, str]:
-        """Check if rate limited."""
-        current_time = time.time()
-        self._cleanup_if_needed(current_time)
-
-        minute_requests = [t for t in self.minute_window[key] if current_time - t < 60]
-        if len(minute_requests) >= self.requests_per_minute:
-            return True, f"Rate limit exceeded: {self.requests_per_minute} requests per minute"
-
-        hour_requests = [t for t in self.hour_window[key] if current_time - t < 3600]
-        if len(hour_requests) >= self.requests_per_hour:
-            return True, f"Rate limit exceeded: {self.requests_per_hour} requests per hour"
-
-        return False, ""
-
-    def record_request(self, key: str) -> None:
-        """Record a request."""
-        current_time = time.time()
-        self.minute_window[key].append(current_time)
-        self.hour_window[key].append(current_time)
-
-    def _cleanup_if_needed(self, current_time: float) -> None:
-        """Clean up old entries."""
-        if current_time - self._last_cleanup < 300:
-            return
-
-        self._last_cleanup = current_time
-
-        for key in list(self.minute_window.keys()):
-            self.minute_window[key] = [t for t in self.minute_window[key] if current_time - t < 60]
-            if not self.minute_window[key]:
-                del self.minute_window[key]
-
-        for key in list(self.hour_window.keys()):
-            self.hour_window[key] = [t for t in self.hour_window[key] if current_time - t < 3600]
-            if not self.hour_window[key]:
-                del self.hour_window[key]
-
-
-recall_rate_limiter = RecallWebhookRateLimiter()
+# Recall webhook rate limiting uses the global Redis-backed RateLimiter for
+# distributed, multi-instance correctness.  Higher limits than standard API
+# endpoints because Recall.ai can emit many transcript events per meeting.
+_RECALL_REQUESTS_PER_MINUTE = 120
 
 
 async def _get_webhook_secret(db: AsyncSession) -> str | None:
@@ -171,16 +125,27 @@ async def receive_recall_webhook(request: Request, db: AsyncSession = Depends(ge
     - participant_events.join: Participant joined meeting
     - participant_events.leave: Participant left meeting
     """
-    # Get client IP for rate limiting
-    client_ip = request.client.host if request.client else "unknown"
+    # Rate limit check — uses Redis-backed distributed rate limiter
+    from src.utils.ip_utils import get_client_ip
 
-    # Rate limit check
-    is_limited, limit_reason = recall_rate_limiter.is_rate_limited(client_ip)
-    if is_limited:
+    client_ip = get_client_ip(
+        direct_ip=request.client.host if request.client else "unknown",
+        forwarded_for=request.headers.get("x-forwarded-for"),
+        real_ip=request.headers.get("x-real-ip"),
+    )
+
+    rate_limiter = get_rate_limiter()
+    rate_result = await rate_limiter.check(
+        key=f"recall_webhook:{client_ip}",
+        max_requests=_RECALL_REQUESTS_PER_MINUTE,
+        window=60,
+    )
+    if not rate_result.allowed:
         logger.warning(f"Rate limit exceeded for Recall webhook from {client_ip}")
-        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=limit_reason)
-
-    recall_rate_limiter.record_request(client_ip)
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Rate limit exceeded: {_RECALL_REQUESTS_PER_MINUTE} requests per minute",
+        )
 
     # Get request body
     try:
@@ -192,46 +157,64 @@ async def receive_recall_webhook(request: Request, db: AsyncSession = Depends(ge
     except json.JSONDecodeError:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON payload")
 
-    # Verify webhook signature if secret is configured
+    # Verify every webhook before processing
     webhook_secret = await _get_webhook_secret(db)
-    if webhook_secret:
-        signature = request.headers.get("X-Recall-Signature")
-        if not signature:
-            logger.warning("Missing X-Recall-Signature header")
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing signature")
+    if not webhook_secret:
+        raise HTTPException(status_code=503, detail="Webhook verification is unavailable")
+    if not RecallService.verify_webhook_signature(payload, request.headers, webhook_secret):
+        raise HTTPException(status_code=401, detail="Missing, invalid or expired webhook signature")
 
-        if not RecallService.verify_webhook_signature(payload, signature, webhook_secret):
-            logger.warning("Invalid Recall webhook signature")
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid signature")
+    # Unique receipt and all handler database writes commit together. Concurrent
+    # deliveries wait on the unique key; a rolled-back attempt can be retried.
+    import hashlib
+
+    from sqlalchemy.dialects.postgresql import insert
+
+    from src.models.recall_webhook_receipt import RecallWebhookReceipt
+
+    message_id = request.headers.get("webhook-id") or request.headers.get("svix-id")
+    event_key = hashlib.sha256((webhook_secret + ":" + message_id).encode()).hexdigest()
 
     # Extract event type
     event_type = event_data.get("event")
     bot_id = event_data.get("data", {}).get("bot", {}).get("id")
 
-    # Get agent_id from query params if provided
-    agent_id = request.query_params.get("agent_id")
+    # Routing must be covered by the signature, never by unsigned query parameters.
+    agent_id = event_data.get("data", {}).get("bot", {}).get("metadata", {}).get("synkora_agent_id")
 
     logger.info(f"Received Recall webhook: event={event_type}, bot_id={bot_id}, agent_id={agent_id}")
 
-    # Process event based on type
     try:
-        if event_type == "bot.status_change":
-            await _handle_bot_status_change(db, event_data, agent_id)
-        elif event_type == "transcript.data":
-            await _handle_transcript_data(db, event_data, agent_id)
-        elif event_type == "transcript.partial_data":
-            # Partial transcripts - can be used for real-time display
-            logger.debug(f"Received partial transcript for bot {bot_id}")
-        elif event_type in ["participant_events.join", "participant_events.leave"]:
-            await _handle_participant_event(db, event_data, agent_id)
-        else:
-            logger.info(f"Unhandled Recall event type: {event_type}")
+        async with asyncio.timeout(60):
+            receipt = await db.execute(
+                insert(RecallWebhookReceipt)
+                .values(event_key=event_key)
+                .on_conflict_do_nothing(index_elements=["event_key"])
+                .returning(RecallWebhookReceipt.event_key)
+            )
+            if receipt.scalar_one_or_none() is None:
+                await db.rollback()
+                return {"status": "duplicate"}
+            if event_type == "bot.status_change":
+                await _handle_bot_status_change(db, event_data, agent_id)
+            elif event_type == "transcript.data":
+                await _handle_transcript_data(db, event_data, agent_id)
+            elif event_type == "transcript.partial_data":
+                logger.debug(f"Received partial transcript for bot {bot_id}")
+            elif event_type in ["participant_events.join", "participant_events.leave"]:
+                await _handle_participant_event(db, event_data, agent_id)
+            else:
+                logger.info(f"Unhandled Recall event type: {event_type}")
+            await db.commit()
+    except BaseException as exc:
+        await db.rollback()
+        if isinstance(exc, asyncio.CancelledError):
+            raise
+        if not isinstance(exc, Exception):
+            raise
+        logger.error("Recall webhook processing failed", exc_info=True)
+        raise HTTPException(503, "Webhook processing failed; please retry") from None
 
-    except Exception as e:
-        logger.error(f"Error processing Recall webhook: {e}", exc_info=True)
-        # Don't fail the webhook - Recall will retry on 5xx errors
-
-    # Always return 200 to acknowledge receipt
     return {"status": "ok", "event": event_type}
 
 

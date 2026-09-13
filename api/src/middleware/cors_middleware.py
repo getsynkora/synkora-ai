@@ -10,12 +10,14 @@ TaskGroup cancellation issues with async database sessions.
 import hashlib
 import logging
 import os
+import re
 
 from starlette.requests import Request as StarletteRequest
 from starlette.responses import Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from src.core.database import get_async_session_factory
+from src.services.security.origins import allowed_dashboard_origin
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +38,18 @@ class DynamicCORSMiddleware:
     # only re-validates after the browser cache expires.  60 s is short enough
     # that domain changes on a widget propagate quickly.
     _WIDGET_CORS_CACHE_TTL = 60
+
+    @staticmethod
+    def _is_widget_route(request: StarletteRequest) -> bool:
+        # Management routes under /widgets must retain dashboard-only CORS.
+        path = request.url.path.rstrip("/")
+        return path in {
+            "/api/v1/widgets/config",
+            "/api/v1/widgets/chat",
+            "/api/v1/widgets/chat/history",
+            "/api/v1/widgets/sessions",
+            "/api/v1/widgets/push/register",
+        } or bool(re.fullmatch(r"/api/v1/widgets/(?:sessions/[^/]+/close|chat/approvals/[^/]+/respond)", path))
 
     def __init__(
         self,
@@ -60,14 +74,13 @@ class DynamicCORSMiddleware:
             max_age: Max age for preflight cache
         """
         self.app = app
-        if not dashboard_origins or dashboard_origins == ["*"]:
-            if os.getenv("APP_ENV", "development") == "production":
-                raise RuntimeError(
-                    "CORS_ORIGINS must be explicitly set in production — refusing wildcard + credentials"
-                )
-            self.dashboard_origins = ["*"]  # Only allow wildcard in dev/test
-        else:
-            self.dashboard_origins = dashboard_origins
+        self.dashboard_origins = dashboard_origins or []
+        if "*" in self.dashboard_origins and os.getenv("APP_ENV", "development").lower() in {
+            "production",
+            "prod",
+            "staging",
+        }:
+            raise RuntimeError("CORS_ORIGINS must contain explicit origins in production/staging")
         self.allow_credentials = allow_credentials
         self.allow_methods = allow_methods or ["*"]
         self.allow_headers = allow_headers or ["*"]
@@ -95,7 +108,7 @@ class DynamicCORSMiddleware:
             allowed_origin = await self._get_allowed_origin(request, origin)
             if allowed_origin:
                 # Add CORS headers to response
-                cors_headers = self._build_cors_headers(allowed_origin)
+                cors_headers = self._build_cors_headers(allowed_origin, credentials=not self._is_widget_route(request))
 
                 async def send_with_cors(message: Message) -> None:
                     if message["type"] == "http.response.start":
@@ -127,7 +140,11 @@ class DynamicCORSMiddleware:
         # Allow the preflight from any origin; the real API key validation happens
         # on the subsequent actual request.
         requested_headers = request.headers.get("access-control-request-headers", "")
-        if origin and "x-widget-api-key" in requested_headers.lower():
+        if (
+            origin
+            and self._is_widget_route(request)
+            and "x-widget-api-key" in {h.strip().lower() for h in requested_headers.split(",")}
+        ):
             allowed_origin = origin
         else:
             allowed_origin = await self._get_allowed_origin(request, origin) if origin else None
@@ -138,7 +155,8 @@ class DynamicCORSMiddleware:
 
         # Create preflight response
         response = Response(status_code=200)
-        self._add_cors_headers(response, allowed_origin)
+        for key, value in self._build_cors_headers(allowed_origin, credentials=not self._is_widget_route(request)):
+            response.headers[key.decode()] = value.decode()
 
         # Add preflight-specific headers
         response.headers["Access-Control-Max-Age"] = str(self.max_age)
@@ -175,17 +193,17 @@ class DynamicCORSMiddleware:
         # Check if this is a widget request
         api_key = request.headers.get("x-widget-api-key")
 
-        if api_key:
+        dashboard_origin = self._validate_dashboard_origin(origin)
+        if dashboard_origin:
+            return dashboard_origin
+
+        if api_key and self._is_widget_route(request):
             # Widget request - validate against widget's allowed domains
             return await self._validate_widget_origin(api_key, origin)
 
-        # Chrome extensions send origin: chrome-extension://<id>. They enforce
-        # their own security via host_permissions and Bearer tokens — allow them.
-        if origin.startswith("chrome-extension://"):
-            return origin
-
-        # Dashboard request - validate against dashboard origins
-        return self._validate_dashboard_origin(origin)
+        # Extension API clients use bearer tokens and browser host permissions;
+        # they must not grant ambient cookie access to session endpoints.
+        return None
 
     async def _validate_widget_origin(self, api_key: str, origin: str) -> str | None:
         """
@@ -286,18 +304,7 @@ class DynamicCORSMiddleware:
         if "*" in self.dashboard_origins:
             return "*"
 
-        # Check exact match
-        if origin in self.dashboard_origins:
-            return origin
-
-        # Check wildcard patterns
-        origin_host = self._extract_host(origin)
-        for allowed_origin in self.dashboard_origins:
-            allowed_host = self._extract_host(allowed_origin)
-            if self._match_domain(origin_host, allowed_host):
-                return origin
-
-        return None
+        return origin if allowed_dashboard_origin(origin, self.dashboard_origins) else None
 
     def _extract_host(self, url: str) -> str:
         """
@@ -343,7 +350,7 @@ class DynamicCORSMiddleware:
 
         return False
 
-    def _build_cors_headers(self, origin: str) -> list[tuple[bytes, bytes]]:
+    def _build_cors_headers(self, origin: str, *, credentials: bool = True) -> list[tuple[bytes, bytes]]:
         """
         Build CORS headers as a list of tuples for pure ASGI middleware.
 
@@ -355,31 +362,15 @@ class DynamicCORSMiddleware:
         """
         headers: list[tuple[bytes, bytes]] = [
             (b"access-control-allow-origin", origin.encode()),
+            (b"vary", b"Origin"),
         ]
 
         # SECURITY: ACAO=* and ACAC=true is forbidden by the CORS spec and
         # bypassed by reflecting the origin. Never send credentials with a wildcard.
-        if self.allow_credentials and origin != "*":
+        if credentials and self.allow_credentials and origin != "*":
             headers.append((b"access-control-allow-credentials", b"true"))
 
         if self.expose_headers:
             headers.append((b"access-control-expose-headers", ", ".join(self.expose_headers).encode()))
 
         return headers
-
-    def _add_cors_headers(self, response: Response, origin: str) -> None:
-        """
-        Add CORS headers to a Response object (used for preflight responses).
-
-        Args:
-            response: Response object
-            origin: Allowed origin
-        """
-        response.headers["Access-Control-Allow-Origin"] = origin
-
-        # SECURITY: never send credentials with a wildcard origin
-        if self.allow_credentials and origin != "*":
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-
-        if self.expose_headers:
-            response.headers["Access-Control-Expose-Headers"] = ", ".join(self.expose_headers)

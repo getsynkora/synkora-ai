@@ -432,6 +432,7 @@ async def respond_to_approval(
         decision=body.decision,
         feedback_text=body.feedback_text,
         db=db,
+        tenant_id=tenant_id,
     )
 
 

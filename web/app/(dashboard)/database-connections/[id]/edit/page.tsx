@@ -428,18 +428,18 @@ export default function EditDatabaseConnectionPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Database File Path <span className="text-red-500">*</span>
+                      Database Filename <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       value={formData.database_path}
                       onChange={(e) => handleInputChange('database_path', e.target.value)}
-                      placeholder={isDuckDB ? '/path/to/data.duckdb or :memory:' : '/path/to/database.db'}
+                      placeholder={isDuckDB ? 'data.duckdb or :memory:' : 'database.db'}
                       className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
                       required
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      {isDuckDB ? 'Path to DuckDB file, or :memory: for an in-memory database' : 'Full path to your SQLite database file'}
+                      {isDuckDB ? 'Use a provisioned database filename or :memory:. File, network, and extension queries are disabled.' : 'Use the filename of a read-only database provisioned for your workspace.'}
                     </p>
                   </div>
                 </div>

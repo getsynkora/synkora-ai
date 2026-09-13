@@ -1,6 +1,7 @@
 """Tests for OAuth controller."""
 
 import uuid
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -15,6 +16,7 @@ from src.middleware.auth_middleware import (
     get_optional_account,
     get_optional_tenant_id,
 )
+from src.models import AccountStatus, TenantAccountJoin
 
 
 @pytest.fixture
@@ -24,13 +26,15 @@ def mock_db_session():
 
 @pytest.fixture
 def mock_tenant_id():
-    return uuid.uuid4()
+    return uuid.UUID("11111111-1111-1111-1111-111111111111")
 
 
 @pytest.fixture
 def mock_account():
     account = MagicMock()
     account.id = uuid.uuid4()
+    account.status = AccountStatus.ACTIVE
+    account.auth_version = 0
     account.name = "Test User"
     account.email = "test@example.com"
     return account
@@ -64,14 +68,24 @@ def authenticated_client(mock_db_session, mock_tenant_id, mock_account):
     app.dependency_overrides[get_optional_account] = lambda: mock_account
     app.dependency_overrides[get_optional_tenant_id] = lambda: mock_tenant_id
 
-    yield TestClient(app), mock_db_session, mock_tenant_id, mock_account
+    with patch(
+        "src.services.permissions.permission_service.PermissionService.check_permission",
+        new=AsyncMock(return_value=True),
+    ):
+        yield TestClient(app), mock_db_session, mock_tenant_id, mock_account
 
 
 def _setup_mock_db_result(mock_db, value):
     """Helper to set up mock db.execute result for scalar_one_or_none."""
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = value
-    mock_db.execute = AsyncMock(return_value=mock_result)
+
+    async def execute(stmt):
+        if stmt.column_descriptions[0].get("entity") is TenantAccountJoin:
+            return SimpleNamespace(scalar_one_or_none=lambda: object())
+        return mock_result
+
+    mock_db.execute = AsyncMock(side_effect=execute)
 
 
 def _setup_mock_db_result_list(mock_db, values):
@@ -85,7 +99,8 @@ def _create_mock_oauth_app(provider="github", auth_method="oauth"):
     """Helper to create mock OAuth app."""
     app = MagicMock()
     app.id = 1
-    app.tenant_id = uuid.uuid4()
+    app.tenant_id = uuid.UUID("11111111-1111-1111-1111-111111111111")
+    app.is_platform_app = False
     app.provider = provider
     app.app_name = f"Test {provider.title()} App"
     app.auth_method = auth_method
@@ -117,9 +132,9 @@ def _create_mock_oauth_app(provider="github", auth_method="oauth"):
 class TestGitHubAuthorize:
     """Tests for GitHub OAuth authorize endpoint."""
 
-    def test_github_authorize_app_not_found(self, client):
+    def test_github_authorize_app_not_found(self, authenticated_client):
         """Test authorization with nonexistent app returns error."""
-        test_client, mock_db = client
+        test_client, mock_db, _, _ = authenticated_client
 
         _setup_mock_db_result(mock_db, None)
 
@@ -127,12 +142,12 @@ class TestGitHubAuthorize:
             "/api/v1/oauth/github/authorize", params={"oauth_app_id": 999}, follow_redirects=False
         )
 
-        # The endpoint catches all exceptions and returns 500
-        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        # Authorized callers get a missing-app response.
+        assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_github_authorize_api_token_method(self, client):
+    def test_github_authorize_api_token_method(self, authenticated_client):
         """Test authorization with API token method redirects immediately."""
-        test_client, mock_db = client
+        test_client, mock_db, _, _ = authenticated_client
 
         mock_app = _create_mock_oauth_app(auth_method="api_token")
 
@@ -149,9 +164,9 @@ class TestGitHubAuthorize:
             assert "oauth=success" in response.headers["location"]
             assert "method=api_token" in response.headers["location"]
 
-    def test_github_authorize_oauth_method(self, client):
+    def test_github_authorize_oauth_method(self, authenticated_client):
         """Test OAuth authorization redirects to GitHub."""
-        test_client, mock_db = client
+        test_client, mock_db, _, _ = authenticated_client
 
         mock_app = _create_mock_oauth_app()
 
@@ -193,8 +208,8 @@ class TestGitHubCallback:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "Invalid" in response.json()["detail"] or "expired" in response.json()["detail"]
 
-    def test_github_callback_app_not_found(self, client):
-        """Test callback when app is deleted during flow."""
+    def test_github_callback_unbound_state(self, client):
+        """Callback rejects legacy state without an initiating identity."""
         test_client, mock_db = client
 
         _setup_mock_db_result(mock_db, None)
@@ -207,7 +222,7 @@ class TestGitHubCallback:
                 "/api/v1/oauth/github/callback", params={"code": "test_code", "state": "valid_state"}
             )
 
-            assert response.status_code == status.HTTP_404_NOT_FOUND
+            assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 class TestGitHubDisconnect:
@@ -553,9 +568,9 @@ class TestOAuthAppsManagement:
 class TestSlackAuthorize:
     """Tests for Slack OAuth authorize endpoint."""
 
-    def test_slack_authorize_app_not_found(self, client):
+    def test_slack_authorize_app_not_found(self, authenticated_client):
         """Test authorization with nonexistent app returns error."""
-        test_client, mock_db = client
+        test_client, mock_db, _, _ = authenticated_client
 
         _setup_mock_db_result(mock_db, None)
 
@@ -563,12 +578,12 @@ class TestSlackAuthorize:
             "/api/v1/oauth/slack/authorize", params={"oauth_app_id": 999}, follow_redirects=False
         )
 
-        # The endpoint catches all exceptions and returns 500
-        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        # Authorized callers get a missing-app response.
+        assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_slack_authorize_api_token_method(self, client):
+    def test_slack_authorize_api_token_method(self, authenticated_client):
         """Test Slack authorization with API token method."""
-        test_client, mock_db = client
+        test_client, mock_db, _, _ = authenticated_client
 
         mock_app = _create_mock_oauth_app(provider="slack", auth_method="api_token")
         _setup_mock_db_result(mock_db, mock_app)
@@ -601,16 +616,16 @@ class TestSlackCallback:
 class TestZoomAuthorize:
     """Tests for Zoom OAuth authorize endpoint."""
 
-    def test_zoom_authorize_app_not_found(self, client):
+    def test_zoom_authorize_app_not_found(self, authenticated_client):
         """Test authorization with nonexistent app returns error."""
-        test_client, mock_db = client
+        test_client, mock_db, _, _ = authenticated_client
 
         _setup_mock_db_result(mock_db, None)
 
         response = test_client.get("/api/v1/oauth/zoom/authorize", params={"oauth_app_id": 999}, follow_redirects=False)
 
-        # The endpoint catches all exceptions and returns 500
-        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        # Authorized callers get a missing-app response.
+        assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 class TestZoomCallback:
@@ -630,9 +645,9 @@ class TestZoomCallback:
 class TestGmailAuthorize:
     """Tests for Gmail OAuth authorize endpoint."""
 
-    def test_gmail_authorize_app_not_found(self, client):
+    def test_gmail_authorize_app_not_found(self, authenticated_client):
         """Test authorization with nonexistent app returns error."""
-        test_client, mock_db = client
+        test_client, mock_db, _, _ = authenticated_client
 
         _setup_mock_db_result(mock_db, None)
 
@@ -640,12 +655,12 @@ class TestGmailAuthorize:
             "/api/v1/oauth/gmail/authorize", params={"oauth_app_id": 999}, follow_redirects=False
         )
 
-        # The endpoint catches all exceptions and returns 500
-        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        # Authorized callers get a missing-app response.
+        assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_gmail_authorize_api_token_method(self, client):
+    def test_gmail_authorize_api_token_method(self, authenticated_client):
         """Test Gmail authorization with API token method."""
-        test_client, mock_db = client
+        test_client, mock_db, _, _ = authenticated_client
 
         mock_app = _create_mock_oauth_app(provider="gmail", auth_method="api_token")
         _setup_mock_db_result(mock_db, mock_app)
@@ -678,9 +693,9 @@ class TestGmailCallback:
 class TestGoogleCalendarAuthorize:
     """Tests for Google Calendar OAuth authorize endpoint."""
 
-    def test_google_calendar_authorize_app_not_found(self, client):
+    def test_google_calendar_authorize_app_not_found(self, authenticated_client):
         """Test authorization with nonexistent app returns error."""
-        test_client, mock_db = client
+        test_client, mock_db, _, _ = authenticated_client
 
         _setup_mock_db_result(mock_db, None)
 
@@ -688,8 +703,8 @@ class TestGoogleCalendarAuthorize:
             "/api/v1/oauth/google_calendar/authorize", params={"oauth_app_id": 999}, follow_redirects=False
         )
 
-        # The endpoint catches all exceptions and returns 500
-        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        # Authorized callers get a missing-app response.
+        assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 class TestGoogleCalendarCallback:
@@ -709,9 +724,9 @@ class TestGoogleCalendarCallback:
 class TestGoogleDriveAuthorize:
     """Tests for Google Drive OAuth authorize endpoint."""
 
-    def test_google_drive_authorize_app_not_found(self, client):
+    def test_google_drive_authorize_app_not_found(self, authenticated_client):
         """Test authorization with nonexistent app returns error."""
-        test_client, mock_db = client
+        test_client, mock_db, _, _ = authenticated_client
 
         _setup_mock_db_result(mock_db, None)
 
@@ -719,8 +734,8 @@ class TestGoogleDriveAuthorize:
             "/api/v1/oauth/google_drive/authorize", params={"oauth_app_id": 999}, follow_redirects=False
         )
 
-        # The endpoint catches all exceptions and returns 500
-        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        # Authorized callers get a missing-app response.
+        assert response.status_code == status.HTTP_404_NOT_FOUND
 
 
 class TestGoogleDriveCallback:

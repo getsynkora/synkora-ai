@@ -1,0 +1,123 @@
+{
+  "scope": "305 unique pinned package/version entries from uv.lock, including development and optional dependencies; deployment applicability not resolved",
+  "affected_packages": [
+    {
+      "name": "ecdsa",
+      "version": "0.19.2",
+      "vulns": [
+        {
+          "id": "PYSEC-2026-1325",
+          "fix_versions": [],
+          "aliases": [
+            "CVE-2024-23342",
+            "GHSA-wj6h-64fc-37mp"
+          ],
+          "description": "python-ecdsa has been found to be subject to a Minerva timing attack on the P-256 curve. Using the `ecdsa.SigningKey.sign_digest()` API function and timing signatures an attacker can leak the internal nonce which may allow for private key discovery. Both ECDSA signatures, key generation, and ECDH operations are affected. ECDSA signature verification is unaffected. The python-ecdsa project considers side channel attacks out of scope for the project and there is no planned fix."
+        }
+      ]
+    },
+    {
+      "name": "pytest",
+      "version": "8.4.2",
+      "vulns": [
+        {
+          "id": "PYSEC-2026-1845",
+          "fix_versions": [
+            "9.0.3"
+          ],
+          "aliases": [
+            "CVE-2025-71176",
+            "GHSA-6w46-j5rx-g56g"
+          ],
+          "description": "pytest through 9.0.2 on UNIX relies on directories with the `/tmp/pytest-of-{user}` name pattern, which allows local users to cause a denial of service or possibly gain privileges."
+        }
+      ]
+    },
+    {
+      "name": "snowflake-connector-python",
+      "version": "4.4.0",
+      "vulns": [
+        {
+          "id": "CVE-2026-15925",
+          "fix_versions": [
+            "3.18.1",
+            "4.7.1"
+          ],
+          "aliases": [
+            "GHSA-5cc2-282f-jjq2"
+          ],
+          "description": "Improper TLS hostname verification in Snowflake Connector for Python versions prior to 4.7.1 and 3.18.1 may have allowed a network-positioned attacker to bypass certificate hostname validation on HTTPS connections made by the connector. An attacker with on-path network access could exploit this by intercepting or redirecting network traffic and presenting a certificate signed by any trusted CA for any domain, causing the connector to accept connections without validating that the certificate matched the requested hostname. Successful exploitation requires an on-path traffic interception capability (e.g. ARP/DNS poisoning, rogue access point, BGP hijacking, or malicious proxy/exit node). This vulnerability may have exposed credentials, query data, and staged file contents to interception and tampering, and may have enabled the attacker to issue arbitrary SQL within the context of the victim's connector session. Impact is limited by the privileges of the affected Snowflake role. The fix is available in Snowflake Connector for Python versions 4.7.1 and 3.18.1. Users must manually upgrade."
+        }
+      ]
+    },
+    {
+      "name": "thrift",
+      "version": "0.16.0",
+      "vulns": [
+        {
+          "id": "CVE-2026-41608",
+          "fix_versions": [
+            "0.24.0"
+          ],
+          "aliases": [
+            "GHSA-6pjx-3pjc-mrj8"
+          ],
+          "description": "Improper Handling of Highly Compressed Data (Data Amplification) vulnerability in Apache Thrift Python bindings.  This issue affects Apache Thrift: before 0.24.0.  Users are recommended to upgrade to version 0.24.0, which fixes the issue."
+        },
+        {
+          "id": "CVE-2026-43871",
+          "fix_versions": [
+            "0.24.0"
+          ],
+          "aliases": [
+            "GHSA-8wv5-x4w7-5gww"
+          ],
+          "description": "Loop with Unreachable Exit Condition ('Infinite Loop') vulnerability in Apache Thrift Python, Go, PHP and Java bindings.This issue affects Apache Thrift: before 0.24.0.  Users are recommended to upgrade to version 0.24.0, which fixes the issue."
+        },
+        {
+          "id": "CVE-2026-66053",
+          "fix_versions": [
+            "0.24.0"
+          ],
+          "aliases": [
+            "GHSA-hwrj-9rr4-24xh"
+          ],
+          "description": "Improper Validation of Certificate with Host Mismatch vulnerability in Apache Thrift Python bindings.  This issue affects Apache Thrift: before 0.24.0.  Users are recommended to upgrade to version 0.24.0, which fixes the issue.  This replaces\u00a0CVE-2026-41603"
+        }
+      ]
+    },
+    {
+      "name": "tornado",
+      "version": "6.5.7",
+      "vulns": [
+        {
+          "id": "GHSA-wwv5-g3v4-889x",
+          "fix_versions": [
+            "6.5.8"
+          ],
+          "aliases": [],
+          "description": "## Summary The CVE-2026-35536 fix added a validation loop that rejects `[\\x00-\\x20\\x3b\\x7f]`, but only for the hardcoded **lowercase** keys `name`/`domain`/`path`/`samesite`. The still-live deprecated `**kwargs` path writes attacker-supplied attribute values straight into the `Morsel` with no validation, and because `Morsel.__setitem__` is case-insensitive, a capitalized kwarg (`Domain=`, `Path=`, `SameSite=`, `Max-Age=`) routes to the same reserved attribute while bypassing the loop \u2014 re-opening `;`-delimited attribute injection.  ```python self.set_cookie(\"sid\", \"abc\", Domain=\"evil.com; Secure; SameSite=None\") #  -> Set-Cookie: sid=abc; Domain=evil.com; Secure; SameSite=None; Path=/ # Sanity (the canonical lowercase named arg IS blocked): self.set_cookie(\"sid\", \"abc\", domain=\"evil.com; Secure\")   # -> http.cookies.CookieError ```  The patch's regression test (`SetCookieForbiddenCharHandler`) only exercises the four named params, never the `**kwargs` path, so the gap is not regression-covered.  ## Affected code - `tornado/web.py` \u2192 `RequestHandler.set_cookie`: the validation loop covers only the lowercase named args;   the trailing `if kwargs:` loop does `morsel[k] = v` with no character validation.  ## Steps to reproduce `GET /upper` (uses `Domain=` kwarg) emits `Set-Cookie: c_upper=v; Domain=evil.com; Secure; SameSite=None; Path=/`; `GET /lower` (uses lowercase `domain=`) returns a `CookieError`.  ## Impact Injection of independent cookie attributes (force/drop `Secure`/`HttpOnly`/`SameSite`, rebind `Domain`/`Path`) \u2014 the same impact CVE-2026-35536 closed, via the sibling path the patch missed. Conditional on the app using a capitalized/legacy keyword.  ## Suggested remediation Apply the same `[\\x00-\\x20\\x3b\\x7f]` validation to every entry in the `**kwargs` loop (after normalizing the key case), or remove the deprecated kwargs path; add a regression test for capitalized kwargs.  ## Credit Reported as part of an incomplete-patch measurement study (responsible disclosure)."
+        },
+        {
+          "id": "GHSA-8423-8fgw-73vq",
+          "fix_versions": [
+            "6.5.8"
+          ],
+          "aliases": [],
+          "description": "## Description  ### Summary  `parse_multipart_form_data` (httputil.py:34) calls `data.split(b\"--\"+boundary+b\"\\r\\n\")` **before** the `max_parts` check (:35). A 600KB body with 100k parts creates a 100k-element transient list first, then rejects   transient memory amplification (each split element is a copy). Pre-auth HTTP DoS.  ### Root cause  ```python parts = data[:final_boundary_index].split(b\"--\" + boundary + b\"\\r\\n\")  # :34  huge list first if len(parts) > config.max_parts:                                       # :35  check after     raise HTTPInputError(\"multipart/form-data has too many parts\") ```  ### PoC  gist: https://gist.github.com/afldl/649861f25d39b53b7edbe0298e171617 `poc.py` + `output.txt` (100k parts from 600KB   transient list).  ### Fix  Count separators without materializing the list (e.g. `data.count(b\"--\"+boundary)` first).  ### Credit  Reported by afldl, 2026-07."
+        },
+        {
+          "id": "CVE-2026-82397",
+          "fix_versions": [
+            "6.5.8"
+          ],
+          "aliases": [
+            "GHSA-mpf4-983q-p7j4"
+          ],
+          "description": "## Summary  Tornado parses `application/x-www-form-urlencoded` bodies with `urllib.parse.parse_qs` and does not pass `max_num_fields`. A body made almost entirely of separators produces tens of millions of fields, and the parse happens on the event loop before the handler runs, so a single request stalls the whole server.  ## Where it is  `tornado/escape.py`, at HEAD `e530031405e2154654dedc4c84d5656b557ea310`:  ```python result = urllib.parse.parse_qs(     qs, keep_blank_values, strict_parsing, encoding=\"latin1\", errors=\"strict\" ) ```  `max_num_fields` is the parameter CPython added for exactly this, and it is absent.  The path to it is entirely server-side and pre-dispatch. `RequestHandler._execute` parses the body at `tornado/web.py:1821`, which reaches `HTTPServerRequest._parse_body` at `tornado/httputil.py:636`, and the urlencoded branch of `parse_body_arguments` calls `parse_qs_bytes` at `tornado/httputil.py:1030`.  The size that reaches it is bounded only by the body cap, which defaults to the stream's `max_buffer_size` of 104857600 at `tornado/iostream.py:239`, applied as the request body default at `tornado/http1connection.py:136-140`. A 100 MB body of separators is around fifty million fields.  ## Impact  Denial of service against the whole process, not one request. Tornado is single-threaded and the parse is synchronous on the event loop, so every other connection waits. No authentication is needed if any route accepts a form post, which is the normal case.  ## Suggested fix  Pass a bound:  ```python result = urllib.parse.parse_qs(     qs, keep_blank_values, strict_parsing, encoding=\"latin1\", errors=\"strict\",     max_num_fields=max_num_fields, ) ```  with a conservative default and a way for applications to raise it. CPython raises `ValueError` when the limit is exceeded, which maps cleanly onto a 400.  Lowering the default body cap for urlencoded specifically would help too, since 100 MB of form fields is not a shape any real client sends.  ## Why I do not think this is a duplicate  The published tornado advisories cover out-of-bounds access in the C extension, unbounded accumulation of decompressed chunks in `AsyncHTTPClient`, the Authorization header surviving cross-origin redirects, credential leakage on curl handle reuse, and cookie attribute validation. The decompression one is the nearest in spirit and is on the client side; this is the server parsing a request body. The call is unchanged at HEAD."
+        }
+      ]
+    }
+  ],
+  "skipped": []
+}

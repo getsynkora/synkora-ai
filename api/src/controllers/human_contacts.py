@@ -107,7 +107,7 @@ async def list_contacts(
         ]
     except Exception as e:
         logger.error(f"Error listing contacts: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("", response_model=ContactResponse, status_code=201)
@@ -154,7 +154,7 @@ async def create_contact(
     except Exception as e:
         logger.error(f"Error creating contact: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/{contact_id}", response_model=ContactResponse)
@@ -191,7 +191,7 @@ async def get_contact(
         raise
     except Exception as e:
         logger.error(f"Error getting contact: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.put("/{contact_id}", response_model=ContactResponse)
@@ -239,7 +239,7 @@ async def update_contact(
     except Exception as e:
         logger.error(f"Error updating contact: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.delete("/{contact_id}", status_code=204)
@@ -263,7 +263,7 @@ async def delete_contact(
     except Exception as e:
         logger.error(f"Error deleting contact: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.post("/{contact_id}/deactivate", response_model=ContactResponse)
@@ -302,4 +302,4 @@ async def deactivate_contact(
     except Exception as e:
         logger.error(f"Error deactivating contact: {e}")
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")

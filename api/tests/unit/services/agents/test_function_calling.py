@@ -338,7 +338,7 @@ class TestFunctionCallingHandler:
     @pytest.mark.asyncio
     async def test_generate_google_with_tools(self, handler, mock_llm_client):
         handler.provider = "google"
-        handler.llm_client._client.models.generate_content.return_value = "response"
+        handler.llm_client._client.aio.models.generate_content = AsyncMock(return_value="response")
 
         with (
             patch("google.genai.types.GenerateContentConfig"),
@@ -347,7 +347,7 @@ class TestFunctionCallingHandler:
         ):
             result = await handler._generate_google_with_tools([], 0.7, 100)
             assert result == "response"
-            handler.llm_client._client.models.generate_content.assert_called()
+            handler.llm_client._client.aio.models.generate_content.assert_awaited()
 
     @pytest.mark.asyncio
     async def test_generate_openai_with_litellm(self, handler):
@@ -591,39 +591,37 @@ class TestCardSetAndVideoEmission:
     async def test_youtube_transcript_emits_video_with_oembed_enrichment(
         self, handler, mock_llm_client, mock_tool_registry, monkeypatch
     ):
-        import httpx
+        import src.services.security.public_http as public_http
 
         class _FakeResponse:
             def raise_for_status(self):
                 pass
 
             def json(self):
-                return {"title": "How Slack Works", "thumbnail_url": "https://i.ytimg.com/vi/abc123/hqdefault.jpg"}
+                return {
+                    "title": "How Slack Works",
+                    "thumbnail_url": "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+                }
 
-        class _FakeAsyncClient:
-            def __init__(self, *args, **kwargs):
-                pass
+        async def _fake_fetch_public_url(url, **kwargs):
+            return _FakeResponse()
 
-            async def __aenter__(self):
-                return self
+        # _fetch_youtube_oembed() now fetches through the SSRF-hardened
+        # fetch_public_url() helper rather than calling httpx directly.
+        monkeypatch.setattr(public_http, "fetch_public_url", _fake_fetch_public_url)
 
-            async def __aexit__(self, *args):
-                return False
-
-            async def get(self, url):
-                return _FakeResponse()
-
-        monkeypatch.setattr(httpx, "AsyncClient", _FakeAsyncClient)
-
-        tool_result = {"success": True, "video_id": "abc123", "full_text": "hello world"}
+        # Real YouTube video IDs are exactly 11 chars — _fetch_youtube_oembed()
+        # now strictly validates that before ever fetching, so a shorter test
+        # ID would short-circuit before the mock is exercised at all.
+        tool_result = {"success": True, "video_id": "dQw4w9WgXcQ", "full_text": "hello world"}
         chunks = await self._run_stream(
             handler, mock_llm_client, mock_tool_registry, "internal_youtube_get_transcript", tool_result
         )
 
         video_events = [c for c in chunks if c["type"] == "video"]
         assert len(video_events) == 1
-        assert video_events[0]["video_url"] == "https://www.youtube.com/embed/abc123"
-        assert video_events[0]["thumbnail_url"] == "https://i.ytimg.com/vi/abc123/hqdefault.jpg"
+        assert video_events[0]["video_url"] == "https://www.youtube.com/embed/dQw4w9WgXcQ"
+        assert video_events[0]["thumbnail_url"] == "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg"
         assert video_events[0]["title"] == "How Slack Works"
 
     @pytest.mark.asyncio
@@ -632,22 +630,16 @@ class TestCardSetAndVideoEmission:
     ):
         import httpx
 
-        class _FailingAsyncClient:
-            def __init__(self, *args, **kwargs):
-                pass
+        import src.services.security.public_http as public_http
 
-            async def __aenter__(self):
-                return self
+        async def _failing_fetch_public_url(url, **kwargs):
+            raise httpx.ConnectError("boom")
 
-            async def __aexit__(self, *args):
-                return False
+        # _fetch_youtube_oembed() now fetches through the SSRF-hardened
+        # fetch_public_url() helper rather than calling httpx directly.
+        monkeypatch.setattr(public_http, "fetch_public_url", _failing_fetch_public_url)
 
-            async def get(self, url):
-                raise httpx.ConnectError("boom")
-
-        monkeypatch.setattr(httpx, "AsyncClient", _FailingAsyncClient)
-
-        tool_result = {"success": True, "video_id": "abc123", "full_text": "hello world"}
+        tool_result = {"success": True, "video_id": "dQw4w9WgXcQ", "full_text": "hello world"}
         chunks = await self._run_stream(
             handler, mock_llm_client, mock_tool_registry, "internal_youtube_get_transcript", tool_result
         )

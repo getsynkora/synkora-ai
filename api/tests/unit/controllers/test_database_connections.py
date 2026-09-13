@@ -161,7 +161,9 @@ class TestListDatabaseConnections:
         conn_id = uuid.uuid4()
         mock_conn = _create_mock_connection(conn_id, tenant_id)
 
+        # Endpoint is paginated: one query for the total count, one for the page.
         mock_result = MagicMock()
+        mock_result.scalar.return_value = 1
         mock_result.scalars.return_value.all.return_value = [mock_conn]
         mock_db.execute.return_value = mock_result
 
@@ -169,13 +171,16 @@ class TestListDatabaseConnections:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert isinstance(data, list)
+        assert isinstance(data["items"], list)
+        assert data["total"] == 1
+        assert len(data["items"]) == 1
 
     def test_list_connections_empty(self, client):
         """Test listing when no connections exist."""
         test_client, tenant_id, mock_account, mock_db = client
 
         mock_result = MagicMock()
+        mock_result.scalar.return_value = 0
         mock_result.scalars.return_value.all.return_value = []
         mock_db.execute.return_value = mock_result
 
@@ -183,7 +188,8 @@ class TestListDatabaseConnections:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert len(data) == 0
+        assert data["items"] == []
+        assert data["total"] == 0
 
 
 class TestGetDatabaseConnection:

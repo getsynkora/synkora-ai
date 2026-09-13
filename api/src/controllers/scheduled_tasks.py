@@ -189,7 +189,11 @@ async def list_scheduled_tasks(
             if task.task_type == "followup_reminder" and task.config.get("followup_item_id"):
                 try:
                     followup_result = await db.execute(
-                        select(FollowupItem).filter(FollowupItem.id == task.config["followup_item_id"])
+                        select(FollowupItem).filter(
+                            FollowupItem.id == task.config["followup_item_id"],
+                            FollowupItem.tenant_id == tenant_id,
+                            FollowupItem.agent_id == task.config.get("agent_id"),
+                        )
                     )
                     followup_item = followup_result.scalar_one_or_none()
 
@@ -222,14 +226,11 @@ async def get_scheduled_task(
     """Get a scheduled task by ID"""
     try:
         scheduler_service = SchedulerService(db)
-        task = await scheduler_service.get_task(task_id)
+        # SECURITY: Scope query to tenant to prevent cross-tenant existence leaks
+        task = await scheduler_service.get_task(task_id, tenant_id=tenant_id)
 
         if not task:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scheduled task not found")
-
-        # Check tenant access
-        if task.tenant_id != tenant_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
         return task
 
@@ -252,17 +253,14 @@ async def update_scheduled_task(
     try:
         scheduler_service = SchedulerService(db)
 
-        # Check if task exists and user has access
-        task = await scheduler_service.get_task(task_id)
+        # SECURITY: Scope query to tenant — returns uniform 404 for wrong tenant
+        task = await scheduler_service.get_task(task_id, tenant_id=tenant_id)
         if not task:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scheduled task not found")
 
-        if task.tenant_id != tenant_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-
         # Update task
         update_data = task_data.model_dump(exclude_unset=True)
-        updated_task = await scheduler_service.update_task(task_id, **update_data)
+        updated_task = await scheduler_service.update_task(task_id, tenant_id=tenant_id, **update_data)
 
         return updated_task
 
@@ -286,15 +284,12 @@ async def delete_scheduled_task(
     try:
         scheduler_service = SchedulerService(db)
 
-        # Check if task exists and user has access
-        task = await scheduler_service.get_task(task_id)
+        # SECURITY: Scope query to tenant — returns uniform 404 for wrong tenant
+        task = await scheduler_service.get_task(task_id, tenant_id=tenant_id)
         if not task:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scheduled task not found")
 
-        if task.tenant_id != tenant_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-
-        await scheduler_service.delete_task(task_id)
+        await scheduler_service.delete_task(task_id, tenant_id=tenant_id)
 
     except HTTPException:
         raise
@@ -314,13 +309,10 @@ async def execute_scheduled_task(
     try:
         scheduler_service = SchedulerService(db)
 
-        # Check if task exists and user has access
-        task = await scheduler_service.get_task(task_id)
+        # SECURITY: Scope query to tenant — returns uniform 404 for wrong tenant
+        task = await scheduler_service.get_task(task_id, tenant_id=tenant_id)
         if not task:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scheduled task not found")
-
-        if task.tenant_id != tenant_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
         # Execute task asynchronously
         scheduler_service.execute_task_async(task_id)
@@ -347,15 +339,12 @@ async def toggle_scheduled_task(
     try:
         scheduler_service = SchedulerService(db)
 
-        # Check if task exists and user has access
-        task = await scheduler_service.get_task(task_id)
+        # SECURITY: Scope query to tenant — returns uniform 404 for wrong tenant
+        task = await scheduler_service.get_task(task_id, tenant_id=tenant_id)
         if not task:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scheduled task not found")
 
-        if task.tenant_id != tenant_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-
-        updated_task = await scheduler_service.toggle_task(task_id)
+        updated_task = await scheduler_service.toggle_task(task_id, tenant_id=tenant_id)
         return updated_task
 
     except HTTPException:
@@ -378,13 +367,10 @@ async def get_task_executions(
     try:
         scheduler_service = SchedulerService(db)
 
-        # Check if task exists and user has access
-        task = await scheduler_service.get_task(task_id)
+        # SECURITY: Scope query to tenant — returns uniform 404 for wrong tenant
+        task = await scheduler_service.get_task(task_id, tenant_id=tenant_id)
         if not task:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scheduled task not found")
-
-        if task.tenant_id != tenant_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
         executions = await scheduler_service.get_task_executions(task_id=task_id, skip=skip, limit=limit)
 
@@ -424,7 +410,7 @@ async def cancel_task_execution(
     task_result = await db.execute(select(ScheduledTask).filter(ScheduledTask.id == execution.task_id))
     task = task_result.scalar_one_or_none()
     if not task or task.tenant_id != tenant_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scheduled task not found")
 
     if execution.status not in (TaskStatus.RUNNING, TaskStatus.PENDING):
         raise HTTPException(

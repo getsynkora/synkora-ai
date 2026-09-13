@@ -1,0 +1,43 @@
+{
+  "date": "2026-09-10",
+  "findings_addressed": [
+    "SR-01",
+    "SR-02",
+    "SR-03",
+    "SR-04",
+    "SR-05"
+  ],
+  "tests_passed": 598,
+  "tests_deselected": 4,
+  "new_regression_tests": 62,
+  "duration_seconds": 43.18,
+  "ruff": "passed",
+  "diff_whitespace": "passed",
+  "deployed": false,
+  "sha256": {
+    "api/src/controllers/okta_sso.py": "2e319152ef1a1d78a6b638c3f61518e037a838c6fb26ac89940ea8f7fd233de2",
+    "api/src/controllers/monitoring_integrations.py": "b01c93809d55802ee57bb4fa6e7afd9fe75057b4019dfc698fa477e3c8cf86f1",
+    "api/src/controllers/data_analysis.py": "d6dbf7042a7cff8a2e7a34eae595ab2b8feb41eb48181c8536bce40ce9ebd99c",
+    "api/src/controllers/custom_tools.py": "0c5c6e8a6783c860fb3f1edd6cebb986e66507f378d60cdbcd73baa8072b4c29",
+    "api/src/controllers/console/auth.py": "f32bf1007a1f6db9cae1cf7d9d81ab916fc0b1a59626bc7275f3f52374268431",
+    "api/src/middleware/cors_middleware.py": "6f3b04b2af53b54f7d4418131a903ef2653da9f0bd2510244a087e1991d2b835",
+    "api/src/services/sso/okta_sso.py": "9edf647995281bdd449c648fe660f9d7ed14a28642743ed9cca67f7ba0232027",
+    "api/src/services/report_export_service.py": "0728ce20011e964609ddc719e84262da973618837ed20d928139d6e18cc240f3",
+    "api/src/tasks/load_testing_tasks.py": "b598f045d978b33f1dddee56d2f2ea74ea28618c000b836fcb2a48f81491d7f4",
+    "api/src/services/mcp/http_transport.py": "d2a8e8f345b19d34422f4ffddf8b7838844e82246fc2b48040352a4b4a168998",
+    "api/src/services/security/public_http.py": "7d88af47fda20ffebec7157e32f644a249bf5545f9501313780f431ef3fb0f5b",
+    "api/src/services/security/origins.py": "f708421d7d9e4f26a4932f578cd0c6f365bd82cfc732e22c2cd506a8ece94577",
+    "api/src/services/security/monitoring_http.py": "971086ee3d72c017d8698e584e515dceed7b5b32ead5f98240552610757b00ac",
+    "api/src/services/security/report_files.py": "54ae85382608bc412a080dcd326f350157d1d304c09d41ed8dd80817fcfa65a0",
+    "api/tests/unit/services/security/test_review_identity_boundaries.py": "7997babe5b9c2cddf4b87793ee03f9eba7d7f0fff1efdf3e47f978b21700ed49",
+    "api/tests/unit/services/security/test_review_http_boundaries.py": "9c1166d0e3225a75324b2151b215efd6db49a3bad275d844aa50409efb0c23d7",
+    "api/tests/unit/services/security/test_review_report_downloads.py": "b7ab981972fe04df4d571122b22618aba74d32fd5763247149b207a8f438ca7b",
+    "api/tests/unit/controllers/test_data_analysis.py": "b3a9d9bd5a7a6554a189a2277ab35bd2e4183090b9304d547340ee512873ef0c",
+    "api/tests/unit/services/sso/test_okta_sso.py": "8389c397421b1faf46a2b3fbfa0988fa7c6a0c0fd23d8cd686950d158d29e688"
+  },
+  "limits": [
+    "Four unchanged local-Redis tests excluded; passed in preceding review.",
+    "Synthetic DNS/HTTP and database peers; no live IdP or production access.",
+    "Tests use cached pinned pyparsing 3.3.2 in a temporary directory to fix local collection."
+  ]
+}

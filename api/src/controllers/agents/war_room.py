@@ -6,13 +6,15 @@ external agent participation, and public spectator access.
 """
 
 import asyncio
+import hashlib
+import hmac
 import json
 import logging
 import os
 import secrets
 import uuid
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
@@ -31,6 +33,7 @@ from src.schemas.debate import (
     DebateListItem,
     DebateRespondRequest,
     DebateUpdateRequest,
+    public_participants,
 )
 from src.services.agents.workflows.debate_executor import PARTICIPANT_COLORS, DebateExecutor
 
@@ -162,7 +165,8 @@ async def fetch_pr_info(
     except httpx.HTTPStatusError as e:
         raise HTTPException(status_code=502, detail=f"GitHub API error: {e.response.status_code}")
     except httpx.RequestError as e:
-        raise HTTPException(status_code=502, detail=f"Failed to reach GitHub API: {e}")
+        logger.error(f"Failed to reach GitHub API: {e}")
+        raise HTTPException(status_code=502, detail="Failed to reach GitHub API")
 
     return {
         "repo_full_name": repo_full_name,
@@ -244,7 +248,7 @@ async def create_debate(
     await db.commit()
     await db.refresh(session)
 
-    return _session_to_schema(session)
+    return _session_to_schema(session, requesting_account_id=current_account.id)
 
 
 @router.get("/war-room/debates")
@@ -291,7 +295,7 @@ async def get_debate(
 ):
     """Get debate session details."""
     session = await _get_debate_session(db, debate_id, tenant_id)
-    return _session_to_schema(session)
+    return _session_to_schema(session, requesting_account_id=current_account.id)
 
 
 @router.put("/war-room/debates/{debate_id}")
@@ -352,7 +356,7 @@ async def update_debate(
 
     await db.commit()
     await db.refresh(session)
-    return _session_to_schema(session)
+    return _session_to_schema(session, requesting_account_id=current_account.id)
 
 
 @router.post("/war-room/debates/{debate_id}/start")
@@ -395,7 +399,7 @@ async def stop_debate(
     session.status = "completed"
     session.completed_at = datetime.now(UTC)
     await db.commit()
-    return _session_to_schema(session)
+    return _session_to_schema(session, requesting_account_id=current_account.id)
 
 
 @router.delete("/war-room/debates/{debate_id}")
@@ -442,7 +446,7 @@ async def external_respond(
 
 
 # ── Public External Agent Participation (no auth — uses share_token) ──────────
-# Any agent from any platform can join and respond using just the share_token.
+# Joining uses the share link; responding also requires a private participant capability.
 
 
 @public_router.post("/api/v1/war-room/{share_token}/join")
@@ -469,9 +473,9 @@ async def public_external_respond(
     db: AsyncSession = Depends(get_async_db),
 ):
     """
-    External agent submits a debate response (no authentication required).
+    External agent submits a debate response using its private participant capability.
 
-    Use the participant_id received from the /join endpoint.
+    Use the participant_id and private participant_token received from /join.
     """
     session = await _get_public_session(db, share_token)
     return await _respond_internal(session, request, db)
@@ -596,7 +600,9 @@ async def stream_public_debate(
 @public_router.get("/api/v1/war-room/{share_token}/agent-script")
 async def get_agent_script(
     share_token: str,
-    provider: str = Query("anthropic", description="LLM provider: anthropic, openai, ollama"),
+    provider: Literal["anthropic", "openai", "ollama"] = Query(
+        "anthropic", description="LLM provider: anthropic, openai, ollama"
+    ),
     agent_name: str = Query("External Agent", description="Display name for the agent"),
     model: str | None = Query(None, description="Model name override"),
     db: AsyncSession = Depends(get_async_db),
@@ -687,13 +693,13 @@ def _generate_agent_script(
         result = json.loads(resp.read())
     return result.get("response", "")"""
 
-    # Escape the topic for embedding in the script
-    safe_topic = topic.replace("\\", "\\\\").replace('"', '\\"').replace("'", "\\'")
+    if provider not in {"anthropic", "openai", "ollama"}:
+        raise ValueError("Unsupported provider")
 
     return f'''#!/usr/bin/env python3
 """
 Synkora War Room — External Agent Participant
-Topic: {safe_topic}
+Generated participant client.
 
 This script connects an AI agent to a live Synkora debate.
 It joins the debate, waits for each round, generates arguments using your chosen LLM,
@@ -709,10 +715,10 @@ import json
 import time
 import sys
 
-API_BASE = "{api_base}"
-SHARE_TOKEN = "{share_token}"
-AGENT_NAME = "{agent_name}"
-MODEL = "{model_name}"
+API_BASE = {api_base!r}
+SHARE_TOKEN = {share_token!r}
+AGENT_NAME = {agent_name!r}
+MODEL = {model_name!r}
 
 def join_debate():
     """Join the debate and get participant ID."""
@@ -729,7 +735,7 @@ def join_debate():
     print(f"  Topic: {{result.get('debate_topic', 'N/A')}}")
     print(f"  Participants: {{', '.join(p['agent_name'] for p in result.get('participants', []))}}")
     print(f"  Rounds: {{result.get('total_rounds', '?')}}")
-    return result["participant_id"], result.get("total_rounds", 3)
+    return result["participant_id"], result["participant_token"], result.get("total_rounds", 3)
 
 def get_round_context(round_num):
     """Poll for round context."""
@@ -739,11 +745,12 @@ def get_round_context(round_num):
     with urllib.request.urlopen(req) as resp:
         return json.loads(resp.read())
 
-def post_response(participant_id, round_num, content):
+def post_response(participant_id, participant_token, round_num, content):
     """Submit debate response."""
     import urllib.request
     data = json.dumps({{
         "participant_id": participant_id,
+        "participant_token": participant_token,
         "round": round_num,
         "content": content,
     }}).encode()
@@ -789,7 +796,7 @@ def main():
     print()
 
     # Step 1: Join the debate
-    participant_id, total_rounds = join_debate()
+    participant_id, participant_token, total_rounds = join_debate()
     print()
 
     # Step 2: Participate in each round
@@ -835,7 +842,7 @@ def main():
                 )
 
                 print(f"  Posting response ({{len(argument)}} chars)...")
-                post_response(participant_id, round_num, argument)
+                post_response(participant_id, participant_token, round_num, argument)
                 responded_rounds.add(round_num)
                 print(f"  Done! Waiting for next round...\\n")
 
@@ -909,6 +916,7 @@ async def _join_debate_internal(session: DebateSession, request: DebateJoinReque
     2. Push mode: omit callback_url and poll GET /rounds/{n} for context,
        then POST /respond with your argument.
     """
+    await db.refresh(session, with_for_update=True)
     if not session.allow_external:
         raise HTTPException(status_code=403, detail="This debate does not allow external agents")
     if session.status == "completed":
@@ -924,6 +932,7 @@ async def _join_debate_internal(session: DebateSession, request: DebateJoinReque
         raise HTTPException(status_code=409, detail=f"An agent named '{request.agent_name}' is already in this debate")
 
     participant_id = str(uuid.uuid4())
+    participant_token = secrets.token_urlsafe(32)
     color_idx = len(participants) % len(PARTICIPANT_COLORS)
 
     participants.append(
@@ -935,6 +944,7 @@ async def _join_debate_internal(session: DebateSession, request: DebateJoinReque
             "is_external": True,
             "callback_url": request.callback_url,
             "auth_token": request.auth_token,
+            "participant_token_hash": hashlib.sha256(participant_token.encode()).hexdigest(),
             "color": PARTICIPANT_COLORS[color_idx],
         }
     )
@@ -943,6 +953,7 @@ async def _join_debate_internal(session: DebateSession, request: DebateJoinReque
 
     return {
         "participant_id": participant_id,
+        "participant_token": participant_token,
         "debate_topic": session.topic,
         "current_round": session.current_round,
         "total_rounds": session.rounds,
@@ -957,14 +968,17 @@ async def _join_debate_internal(session: DebateSession, request: DebateJoinReque
                 'Return {"content": "your argument"} in the response body.'
                 if request.callback_url
                 else "Poll GET /rounds/{round_num} for context, then POST /respond with "
-                '{"participant_id": "...", "round": N, "content": "your argument"}.'
+                '{"participant_id": "...", "participant_token": "...", "round": N, "content": "your argument"}.'
             )
         ),
     }
 
 
 async def _respond_internal(session: DebateSession, request: DebateRespondRequest, db: AsyncSession) -> dict[str, Any]:
-    """Record an external agent's debate response."""
+    """Record a response authenticated with a private per-participant capability."""
+    await db.refresh(session, with_for_update=True)
+    if session.status != "active" or request.round != session.current_round or request.round > session.rounds:
+        raise HTTPException(409, "Responses are accepted only for the active round")
     participants = session.participants or []
     participant = next((p for p in participants if p["id"] == request.participant_id), None)
     if not participant:
@@ -972,15 +986,16 @@ async def _respond_internal(session: DebateSession, request: DebateRespondReques
     if not participant.get("is_external"):
         raise HTTPException(status_code=400, detail="Only external participants use this endpoint")
 
-    # Check for duplicate response in same round
-    existing_messages = session.messages or []
-    already_responded = any(
-        m.get("participant_id") == request.participant_id and m.get("round") == request.round for m in existing_messages
-    )
-    if already_responded:
-        raise HTTPException(status_code=409, detail="Already responded for this round")
+    stored_hash = participant.get("participant_token_hash")
+    supplied = hashlib.sha256((request.participant_token or "").encode()).hexdigest()
+    if not stored_hash or not request.participant_token or not hmac.compare_digest(stored_hash, supplied):
+        raise HTTPException(403, "Invalid participant credentials")
 
-    messages = list(existing_messages)
+    key = f"{request.participant_id}:{request.round}"
+    submissions = dict(session.external_responses or {})
+    if key in submissions:
+        raise HTTPException(409, "Already responded for this round")
+
     msg = {
         "id": str(uuid.uuid4()),
         "participant_id": request.participant_id,
@@ -992,15 +1007,25 @@ async def _respond_internal(session: DebateSession, request: DebateRespondReques
         "created_at": datetime.now(UTC).isoformat(),
         "color": participant.get("color", "#6366f1"),
     }
-    messages.append(msg)
-    session.messages = messages
+    submissions[key] = msg
+    session.external_responses = submissions
     await db.commit()
 
     return {"status": "accepted", "message_id": msg["id"]}
 
 
-def _session_to_schema(session: DebateSession) -> dict[str, Any]:
-    """Convert a DebateSession model to API response dict."""
+def _session_to_schema(session: DebateSession, requesting_account_id: uuid.UUID | None = None) -> dict[str, Any]:
+    """Convert a DebateSession model to API response dict.
+
+    Args:
+        session: The debate session to serialize.
+        requesting_account_id: The account making the request. share_token is
+            only included when this matches session.created_by to prevent
+            leaking the token to non-creators.
+    """
+    # SECURITY: Only the debate creator should see the share_token
+    include_share_token = requesting_account_id is not None and session.created_by == requesting_account_id
+
     return {
         "id": str(session.id),
         "topic": session.topic,
@@ -1010,8 +1035,8 @@ def _session_to_schema(session: DebateSession) -> dict[str, Any]:
         "status": session.status,
         "is_public": session.is_public,
         "allow_external": session.allow_external,
-        "share_token": session.share_token,
-        "participants": session.participants or [],
+        "share_token": session.share_token if include_share_token else None,
+        "participants": public_participants(session.participants or []),
         "messages": session.messages or [],
         "debate_metadata": session.debate_metadata or {},
         "verdict": session.verdict,

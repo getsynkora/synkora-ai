@@ -47,6 +47,9 @@ class FileUploadConfig(BaseSettings):
 class LLMConfig(BaseSettings):
     """LLM provider configuration."""
 
+    ml_service_url: str = Field(default="http://synkora-ml:5002", description="Internal ML service URL")
+    ml_api_key: str | None = Field(default=None, description="Shared ML service authentication secret")
+
     openai_api_key: str | None = Field(
         default=None,
         description="OpenAI API key",
@@ -461,6 +464,11 @@ class TracingConfig(BaseSettings):
         default="changeme",
         validation_alias="ELASTICSEARCH_PASSWORD",
         description="Elasticsearch password",
+    )
+    elasticsearch_ca_certs: str | None = Field(
+        default=None,
+        validation_alias="ELASTICSEARCH_CA_CERTS",
+        description="CA bundle for verified Elasticsearch HTTPS; default uses system trust",
     )
     agent_trace_enabled: bool = Field(
         default=True,

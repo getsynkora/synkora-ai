@@ -11,7 +11,6 @@ import logging
 import os
 import re
 import shlex
-import subprocess
 from typing import Any
 from urllib.parse import urlparse
 
@@ -146,14 +145,12 @@ SAFE_COMMANDS: dict[str, list[str]] = {
     "sort": [],
     "uniq": [],
     "cut": [],
-    "awk": [],
     "sed": [],
     "tr": [],
     "tee": [],
     "ag": [],
     "rg": [],
     "jq": [],
-    "xargs": [],
     "bc": [],
     "xxd": [],
     "strings": [],
@@ -175,8 +172,6 @@ SAFE_COMMANDS: dict[str, list[str]] = {
         "-l",
     ],
     # --- Networking (Read-Only) ---
-    "curl": [],
-    "wget": [],
     # --- System Info & Utilities ---
     "echo": [],
     "which": [],
@@ -547,7 +542,7 @@ def _validate_dangerous_flags(command_name: str, command: list[str]) -> bool:
     dangerous_flags_map = {
         "rm": ["-rf", "-fr", "--recursive", "--force"],
         "rmdir": ["-rf", "-fr", "--recursive", "--force"],
-        "find": ["-delete"],  # -exec/-execdir allowed; workspace path validation confines them
+        "find": ["-delete", "-exec", "-execdir", "-ok", "-okdir"],
         "tar": ["--absolute-names", "--no-overwrite-dir"],
         # sed -i (in-place edit) is allowed; workspace path validation already confines it
         # awk -f (run script file) is allowed; workspace path validation confines the script file
@@ -680,7 +675,16 @@ def _is_command_safe(command: list[str], workspace_path: str | None = None, skip
                 logger.warning(f"Command part validation failed: '{part}' contains blocked pattern '{blocked}'")
                 return False
 
-    # Extract command name (handle full paths like /usr/bin/git)
+    # Do not execute a workspace binary merely because its basename is allowlisted.
+    if "/" in command[0] and os.path.dirname(command[0]) not in {
+        "/usr/bin",
+        "/bin",
+        "/usr/local/bin",
+        "/opt/homebrew/bin",
+    }:
+        return False
+
+    # Extract command name (handle trusted system executable paths)
     command_name = command[0].split("/")[-1]
     logger.debug(f"Extracted command name: {command_name}")
 
@@ -856,111 +860,10 @@ async def internal_run_command(
             input_text=input_text,
         )
 
-    # Get workspace path from config or RuntimeContext (used for file path validation in commands)
-    workspace_path = _get_workspace_path(config)
-
-    # Sanitize command for logging
-    sanitized_command = _sanitize_command_for_logging(command)
-    logger.info(f"Received request to run command: '{sanitized_command}' in wd: '{working_directory}'")
-
-    # Default working directory to workspace path if not provided and workspace exists
-    if not working_directory and workspace_path:
-        working_directory = workspace_path
-
-    # Validate working directory exists and is within workspace
-    if working_directory and not os.path.isdir(working_directory):
-        logger.error(f"Working directory does not exist: '{working_directory}'")
-        return {
-            "success": False,
-            "output": "",
-            "error": f"Working directory '{working_directory}' does not exist",
-            "return_code": -1,
-        }
-    if working_directory and workspace_path and not _validate_path(working_directory, workspace_path):
-        logger.error(f"Working directory outside workspace: '{working_directory}'")
-        return {
-            "success": False,
-            "output": "",
-            "error": f"Working directory must be within workspace: {workspace_path}",
-            "return_code": -1,
-        }
-
-    # Security check: Validate command is safe (allowlist + file path validation)
-    if not _is_command_safe(command, workspace_path):
-        logger.error(f"Security check FAILED for command: '{sanitized_command}'")
-        return {
-            "success": False,
-            "output": "",
-            "error": (
-                "Command is not allowed or failed security validation. File paths must be "
-                "within workspace, and scripting interpreters like python/bash/node are blocked "
-                "and cannot be used as a workaround. To modify files, use internal_edit_file or "
-                "internal_write_file. To inspect files, use internal_read_file or internal_grep."
-            ),
-            "return_code": -1,
-        }
-
-    logger.info(f"Executing safe command: '{sanitized_command}'")
-
-    try:
-        # Execute command with timeout
-        result = subprocess.run(
-            command,
-            capture_output=True,
-            text=True,
-            check=False,  # Don't raise exception on non-zero exit
-            cwd=working_directory,
-            input=input_text,
-            timeout=timeout,
-        )
-
-        success = result.returncode == 0
-
-        if success:
-            logger.info(f"Command successful: '{sanitized_command}'. Return code: {result.returncode}")
-        else:
-            logger.warning(f"Command failed: '{sanitized_command}'. Return code: {result.returncode}")
-
-        stdout = result.stdout
-        truncated = False
-        if len(stdout) > MAX_COMMAND_OUTPUT_CHARS:
-            stdout = stdout[:MAX_COMMAND_OUTPUT_CHARS]
-            truncated = True
-            logger.warning(
-                f"Command output truncated to {MAX_COMMAND_OUTPUT_CHARS} chars "
-                f"(original: {len(result.stdout)} chars). "
-                "Use internal_read_file with start_line/max_lines to read large files, "
-                "or internal_grep to search for specific content."
-            )
-
-        if truncated:
-            stdout += (
-                f"\n\n[OUTPUT TRUNCATED at {MAX_COMMAND_OUTPUT_CHARS} chars - "
-                f"original output was {len(result.stdout)} chars / ~{len(result.stdout) // 40} lines. "
-                "Use internal_read_file(path, start_line=N, max_lines=100) to read specific sections, "
-                "or internal_grep(pattern, path) to find specific content without reading the whole file.]"
-            )
-
-        return {
-            "success": success,
-            "output": stdout,
-            "error": result.stderr if not success else "",
-            "return_code": result.returncode,
-        }
-
-    except FileNotFoundError:
-        logger.error(f"Command not found: {command[0]}", exc_info=True)
-        return {"success": False, "output": "", "error": f"Command not found: {command[0]}", "return_code": -1}
-
-    except subprocess.TimeoutExpired:
-        logger.error(f"Command timed out after {timeout}s: '{sanitized_command}'", exc_info=True)
-        return {
-            "success": False,
-            "output": "",
-            "error": f"Command timed out after {timeout} seconds",
-            "return_code": -1,
-        }
-
-    except Exception as e:
-        logger.error(f"Unexpected error executing command '{sanitized_command}': {e}", exc_info=True)
-        return {"success": False, "output": "", "error": f"Unexpected error: {str(e)}", "return_code": -1}
+    # A tenant directory is not an OS execution boundary. Never run on the API host.
+    return {
+        "success": False,
+        "output": "",
+        "return_code": -1,
+        "error": "Isolated compute is required for command execution",
+    }

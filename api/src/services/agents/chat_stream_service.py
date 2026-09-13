@@ -3,6 +3,7 @@ import logging
 import re
 import time
 from collections.abc import AsyncGenerator
+from contextlib import aclosing
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -36,6 +37,7 @@ from src.services.agents.agent_loader_service import AgentLoaderService
 from src.services.agents.chat_service import ChatService
 from src.services.agents.context_manager import ContextConfig, ContextManager, ContextStrategy
 from src.services.agents.context_window_guard import get_context_guard
+from src.services.agents.execution_budget import chat_execution_deadline
 from src.services.agents.token_counter import TokenCounter
 from src.services.cache.conversation_cache_service import get_conversation_cache
 from src.services.security.output_sanitizer import output_sanitizer as default_output_sanitizer
@@ -111,6 +113,7 @@ class ChatStreamService:
         self.tool_registry = tool_registry or get_tool_registry()
         self.output_sanitizer = output_sanitizer
 
+    @chat_execution_deadline
     async def stream_agent_response(
         self,
         agent_name: str,
@@ -150,16 +153,33 @@ class ChatStreamService:
                 user message's metadata (deduped against the prior user turn) and injected into
                 the LLM prompt as labeled, untrusted reference data.
         """
+        # A service can serve concurrent streams. Never mutate its shared registry.
+        from copy import copy
+
+        self = copy(self)
+        self.tool_registry = self.tool_registry.fork()
         user_message_saved = None
         db_agent = None
         retrieved_sources: list[dict[str, Any]] = []
         state = StreamState(assistant_chunks=[], chart_data=[])
         conversation_uuid = validate_conversation_id(conversation_id)
+        # PERF NOTE: When no external db session is provided, a managed session is
+        # created here for the initial security checks, conversation loading, and
+        # message persistence. It is closed before LLM streaming begins (see the
+        # ``managed_db_session`` close block ~50 lines below the tool-registration
+        # section) to avoid holding a DB pool connection for the entire SSE duration,
+        # which could exhaust the pool under load. Subsequent DB operations
+        # (post-stream saves, stats, output capture) each open short-lived sessions
+        # via session_factory(). If a caller-provided db session is used instead
+        # (managed_db_session=False), that session lives for the full stream --
+        # callers should be aware of the pool exhaustion risk for long-running streams.
         managed_db_session = db is None
         session_factory = get_async_session_factory() if managed_db_session else None
         if managed_db_session:
             db = session_factory()
         _execution_id = None
+        run_lease = None
+        completion_sent = False
 
         # Initialize shared_state and inject chat session metadata
         if shared_state is None:
@@ -287,6 +307,10 @@ class ChatStreamService:
             db_agent = load_result.db_agent
             agent = load_result.agent
             is_workflow_agent = load_result.is_workflow
+
+            from src.services.agents.run_admission import acquire_run_lease
+
+            run_lease = await acquire_run_lease(tenant_id or db_agent.tenant_id)
 
             logger.info(
                 f"✅ Agent loaded: {agent_name}, cache_hit={load_result.cache_hit}, "
@@ -572,37 +596,43 @@ class ChatStreamService:
                 _chunks_yielded_this_attempt = 0
                 try:
                     if final_tool_names:
-                        async for event in self._stream_with_tools(
-                            agent=_active_agent,
-                            db_agent=db_agent,
-                            prompt=system_prompt,
-                            messages=structured_messages,
-                            tool_names=final_tool_names,
-                            all_configured_tool_names=all_configured_tool_names,
-                            trace_id=trace_id,
-                            conversation_uuid=conversation_uuid,
-                            user_message_id=user_message_saved.id if user_message_saved else None,
-                            start_time=start_time,
-                            state=state,
-                            db=None if managed_db_session else db,
-                            user_id=user_id,
-                            shared_state=shared_state,
-                            caller_tenant_id=tenant_id,
-                            override_agentic_config=override_agentic_config,
-                        ):
-                            _chunks_yielded_this_attempt += 1
-                            yield event
+                        async with aclosing(
+                            self._stream_with_tools(
+                                agent=_active_agent,
+                                db_agent=db_agent,
+                                prompt=system_prompt,
+                                messages=structured_messages,
+                                tool_names=final_tool_names,
+                                all_configured_tool_names=all_configured_tool_names,
+                                trace_id=trace_id,
+                                conversation_uuid=conversation_uuid,
+                                user_message_id=user_message_saved.id if user_message_saved else None,
+                                start_time=start_time,
+                                state=state,
+                                db=None if managed_db_session else db,
+                                user_id=user_id,
+                                shared_state=shared_state,
+                                caller_tenant_id=tenant_id,
+                                override_agentic_config=override_agentic_config,
+                            )
+                        ) as owned_stream:
+                            async for event in owned_stream:
+                                _chunks_yielded_this_attempt += 1
+                                yield event
                     else:
-                        async for event in self._stream_without_tools(
-                            agent=_active_agent,
-                            system_prompt=system_prompt,
-                            messages=structured_messages,
-                            start_time=start_time,
-                            state=state,
-                            agent_name=agent_name,
-                        ):
-                            _chunks_yielded_this_attempt += 1
-                            yield event
+                        async with aclosing(
+                            self._stream_without_tools(
+                                agent=_active_agent,
+                                system_prompt=system_prompt,
+                                messages=structured_messages,
+                                start_time=start_time,
+                                state=state,
+                                agent_name=agent_name,
+                            )
+                        ) as owned_stream:
+                            async for event in owned_stream:
+                                _chunks_yielded_this_attempt += 1
+                                yield event
                     break  # Successful stream — exit fallback loop
 
                 except LLMProviderError as provider_err:
@@ -658,42 +688,6 @@ class ChatStreamService:
                 _approval_data = shared_state["chat_approval_pending"]
                 yield await generate_sse_event("approval_required", _approval_data)
 
-            yield await generate_done_event(sources=retrieved_sources, metadata=metadata)
-            final_content = "".join(state.assistant_chunks) if hasattr(state, "assistant_chunks") else ""
-            await _track({"type": "done", "content": final_content[:5000], "metadata": metadata})
-
-            # Emit satisfaction prompt event if agent is configured to show it
-            if conversation_uuid:
-                try:
-                    obs_config = db_agent.observability_config or {}
-                    if obs_config.get("show_satisfaction_prompt", False):
-                        from src.helpers.streaming_helpers import generate_satisfaction_prompt_event
-
-                        yield await generate_satisfaction_prompt_event(str(conversation_uuid))
-                except Exception:
-                    pass  # never block chat
-
-            # Mark execution complete in Live Lab
-            if _execution_id and tenant_id:
-                try:
-                    from src.services.agents.execution_registry import execution_registry
-
-                    await execution_registry.update_status(
-                        tenant_id=tenant_id,
-                        execution_id=_execution_id,
-                        status="complete",
-                        total_tokens=total_input_tokens + state.total_output_tokens,
-                    )
-                except Exception as reg_err:
-                    logger.debug(f"Failed to update execution status: {reg_err}")
-
-            if trace_id:
-                try:
-                    agent.langfuse_service.flush()
-                    logger.info(f"✅ Flushed Langfuse trace: {trace_id}")
-                except Exception as e:
-                    logger.error(f"Failed to flush Langfuse trace: {e}")
-
             if conversation_uuid and state.assistant_chunks:
                 assistant_content = "".join(state.assistant_chunks)
 
@@ -736,6 +730,40 @@ class ChatStreamService:
                     if managed_db_session and post_db is not None:
                         await post_db.close()
 
+                if assistant_message is None:
+                    raise RuntimeError("The answer could not be saved. Please reload the conversation before retrying.")
+
+            completion_sent = True
+            yield await generate_done_event(sources=retrieved_sources, metadata=metadata)
+            final_content = "".join(state.assistant_chunks) if hasattr(state, "assistant_chunks") else ""
+            await _track({"type": "done", "content": final_content[:5000], "metadata": metadata})
+
+            # Emit satisfaction prompt event if agent is configured to show it
+            if conversation_uuid:
+                try:
+                    obs_config = db_agent.observability_config or {}
+                    if obs_config.get("show_satisfaction_prompt", False):
+                        from src.helpers.streaming_helpers import generate_satisfaction_prompt_event
+
+                        yield await generate_satisfaction_prompt_event(str(conversation_uuid))
+                except Exception:
+                    pass  # never block chat
+
+            # Mark execution complete in Live Lab
+            if _execution_id and tenant_id:
+                try:
+                    from src.services.agents.execution_registry import execution_registry
+
+                    await execution_registry.update_status(
+                        tenant_id=tenant_id,
+                        execution_id=_execution_id,
+                        status="complete",
+                        total_tokens=total_input_tokens + state.total_output_tokens,
+                    )
+                except Exception as reg_err:
+                    logger.debug(f"Failed to update execution status: {reg_err}")
+
+            if conversation_uuid and state.assistant_chunks:
                 try:
                     from src.services.agents.agent_trace_service import fire_assistant_message
 
@@ -815,6 +843,9 @@ class ChatStreamService:
                             logger.warning(f"Chat output delivery error: {_out_err}")
 
         except Exception as e:
+            if completion_sent:
+                logger.exception("Post-completion processing failed; the answer was saved")
+                return
             if is_expected_llm_error(e):
                 logger.warning(f"Streaming error (expected): {e}")
             else:
@@ -858,6 +889,11 @@ class ChatStreamService:
                 if managed_db_session and failure_db is not None:
                     await failure_db.close()
         finally:
+            if run_lease is not None:
+                try:
+                    await run_lease.release()
+                except Exception:
+                    logger.warning("Could not release run capacity; its bounded lease will expire")
             if managed_db_session and db is not None:
                 await db.close()
 
@@ -1099,7 +1135,6 @@ class ChatStreamService:
                 },
             }
             sanitized_completion = self._sanitize_for_json(completion_data)
-            yield await generate_done_event(**sanitized_completion)
 
             if conversation_uuid and state.assistant_chunks:
                 assistant_content = "".join(state.assistant_chunks)
@@ -1123,7 +1158,7 @@ class ChatStreamService:
                     "total_tokens": estimated_input_tokens + state.total_output_tokens,
                 }
 
-                await self.chat_service.save_assistant_message(
+                saved_message = await self.chat_service.save_assistant_message(
                     conversation_id=conversation_uuid,
                     content=assistant_content,
                     workflow_type=db_agent.workflow_type,
@@ -1133,6 +1168,9 @@ class ChatStreamService:
                     usage=workflow_usage,
                     db=db,
                 )
+
+                if saved_message is None:
+                    raise RuntimeError("Assistant message could not be saved")
 
                 try:
                     from src.services.agents.agent_trace_service import fire_assistant_message
@@ -1172,6 +1210,8 @@ class ChatStreamService:
                         )
                     except Exception as _out_err:
                         logger.warning(f"Workflow chat output delivery error: {_out_err}")
+
+            yield await generate_done_event(**sanitized_completion)
 
         except Exception as workflow_error:
             if is_expected_llm_error(workflow_error):
@@ -1265,6 +1305,7 @@ class ChatStreamService:
 
             logger.info(f"[Claude Code] Starting execute_stream for agent: {agent_name}")
             event_count = 0
+            completion_event = None
 
             # Stream from Claude Code Agent using SDK's built-in tools
             async for event in agent.execute_stream(
@@ -1336,7 +1377,7 @@ class ChatStreamService:
                 elif event_type == "done":
                     # Extract metadata from done event
                     metadata = event.get("metadata", {})
-                    yield await generate_done_event(
+                    completion_event = await generate_done_event(
                         metadata={
                             "total_time": metadata.get("total_time"),
                             "time_to_first_token": metadata.get("time_to_first_token"),
@@ -1359,7 +1400,7 @@ class ChatStreamService:
                     "total_time": time.time() - start_time,
                     "time_to_first_token": (state.first_token_time - start_time) if state.first_token_time else None,
                 }
-                await self.chat_service.save_assistant_message(
+                saved_message = await self.chat_service.save_assistant_message(
                     conversation_id=conversation_uuid,
                     content=assistant_content,
                     timing=timing_metrics,
@@ -1368,6 +1409,9 @@ class ChatStreamService:
                     },
                     db=db,
                 )
+
+                if saved_message is None:
+                    raise RuntimeError("Assistant message could not be saved")
 
                 try:
                     from src.services.agents.agent_trace_service import fire_assistant_message
@@ -1404,6 +1448,10 @@ class ChatStreamService:
                     )
                 except Exception as _out_err:
                     logger.warning(f"Claude agent chat output delivery error: {_out_err}")
+
+            if completion_event is None:
+                raise RuntimeError("Claude stream ended without a completion event")
+            yield completion_event
 
         except ImportError as e:
             logger.warning(f"Claude Agent SDK not installed: {e}")
@@ -1537,6 +1585,16 @@ class ChatStreamService:
         load_start = time.time()
 
         # ── Fast sequential queries on the existing session (no extra connections) ──
+        # TODO(perf): AgentCacheService already has get_agent_tools / get_knowledge_bases
+        # methods backed by Redis.  Wiring them here would avoid these DB hits on every
+        # chat message.  The blocker is that the cache stores plain dicts (JSON-serialised)
+        # while the downstream code expects live SQLAlchemy model instances (AgentKnowledgeBase
+        # with .knowledge_base relationship, AgentTool with ORM attributes).  To close this
+        # gap we'd need either:
+        #   1. A lightweight dataclass / TypedDict that both the cache and downstream accept, or
+        #   2. Reconstituting detached ORM objects from the cached dicts (fragile).
+        # Until then, the DB queries below are cheap indexed SELECTs (<1ms each) and
+        # the 5-minute Redis TTL on the cache would still serve the agent-config endpoint.
         try:
             kb_result = await db.execute(
                 select(AgentKnowledgeBase)
@@ -2227,6 +2285,7 @@ class ChatStreamService:
             message_id=user_message_id,
             user_id=user_uuid,
             shared_state=shared_state,
+            tool_registry=self.tool_registry,
             compute_session=_compute_session,
             email_template_id=getattr(db_agent, "email_template_id", None),
         )
@@ -2265,6 +2324,8 @@ class ChatStreamService:
             parallel_tools=agentic_meta.get("parallel_tools", _default_agentic_config.parallel_tools),
             tool_retry_attempts=agentic_meta.get("tool_retry_attempts", _default_agentic_config.tool_retry_attempts),
             tool_retry_delay=agentic_meta.get("tool_retry_delay", _default_agentic_config.tool_retry_delay),
+            max_parallel_tools=agentic_meta.get("max_parallel_tools", _default_agentic_config.max_parallel_tools),
+            run_timeout_seconds=agentic_meta.get("run_timeout_seconds", _default_agentic_config.run_timeout_seconds),
         )
 
         # Cache agent_name now to avoid lazy-load on an expired ORM object
@@ -2316,148 +2377,149 @@ class ChatStreamService:
                 max_iterations=agentic_config.max_iterations,
                 messages=messages,
             )
-            async for event in _stream_gen:
-                if event["type"] == "text":
-                    if state.first_token_time is None:
-                        state.first_token_time = time.time()
-                        time_to_first_token = state.first_token_time - start_time
-                        yield await generate_first_token_event(time_to_first_token)
+            async with aclosing(_stream_gen) as owned_stream:
+                async for event in owned_stream:
+                    if event["type"] == "text":
+                        if state.first_token_time is None:
+                            state.first_token_time = time.time()
+                            time_to_first_token = state.first_token_time - start_time
+                            yield await generate_first_token_event(time_to_first_token)
 
-                    sanitization_result = self.output_sanitizer.sanitize(
-                        event["content"],
-                        context=f"agent_chat_{agent_name_cached}",
-                    )
-
-                    chunk_out = sanitization_result.sanitized_content
-
-                    # Restore LLM-facing PII tokens for the user.
-                    # Skipped when redact_for_response is also on (user sees redacted output).
-                    # No-op when pii_redactor is None (all existing agents unaffected).
-                    if (
-                        pii_redactor
-                        and pii_redactor.config.redact_for_llm
-                        and not pii_redactor.config.redact_for_response
-                    ):
-                        chunk_out = pii_redactor.restore_streaming(chunk_out)
-
-                    state.assistant_chunks.append(chunk_out)
-                    state.total_output_tokens += TokenCounter.count_tokens(chunk_out)
-
-                    if sanitization_result.detections:
-                        logger.warning(
-                            f"Sanitized {len(sanitization_result.detections)} sensitive items in agent response. "
-                            f"Agent: {agent_name_cached}, Action: {sanitization_result.action_taken}"
+                        sanitization_result = self.output_sanitizer.sanitize(
+                            event["content"],
+                            context=f"agent_chat_{agent_name_cached}",
                         )
 
-                    yield await generate_chunk_event(chunk_out)
+                        chunk_out = sanitization_result.sanitized_content
 
-                elif event["type"] == "function_call":
-                    # Track tool start time
-                    tool_name = event["name"]
-                    state.tool_start_times[tool_name] = time.time()
+                        # Restore LLM-facing PII tokens for the user.
+                        # Skipped when redact_for_response is also on (user sees redacted output).
+                        # No-op when pii_redactor is None (all existing agents unaffected).
+                        if (
+                            pii_redactor
+                            and pii_redactor.config.redact_for_llm
+                            and not pii_redactor.config.redact_for_response
+                        ):
+                            chunk_out = pii_redactor.restore_streaming(chunk_out)
 
-                    # Send rich tool status event with description and details
-                    yield await generate_tool_status_event(
-                        tool_name=tool_name,
-                        status="started",
-                        arguments=event.get("arguments"),
-                    )
+                        state.assistant_chunks.append(chunk_out)
+                        state.total_output_tokens += TokenCounter.count_tokens(chunk_out)
 
-                elif event["type"] == "function_result":
-                    tool_name = event["name"]
+                        if sanitization_result.detections:
+                            logger.warning(
+                                f"Sanitized {len(sanitization_result.detections)} sensitive items in agent response. "
+                                f"Agent: {agent_name_cached}, Action: {sanitization_result.action_taken}"
+                            )
 
-                    # Calculate execution duration
-                    duration_ms = None
-                    if tool_name in state.tool_start_times:
-                        start_time = state.tool_start_times.pop(tool_name)
-                        duration_ms = int((time.time() - start_time) * 1000)
+                        yield await generate_chunk_event(chunk_out)
 
-                    yield await generate_tool_status_event(
-                        tool_name=tool_name,
-                        status="completed",
-                        duration_ms=duration_ms,
-                    )
+                    elif event["type"] == "function_call":
+                        # Track tool start time
+                        tool_name = event["name"]
+                        state.tool_start_times[tool_name] = time.time()
 
-                elif event["type"] == "llm_call":
-                    yield await generate_llm_call_event(
-                        status=event.get("status", "completed"),
-                        model=event.get("model"),
-                        call_index=event.get("call_index"),
-                        input_tokens=event.get("input_tokens"),
-                        output_tokens=event.get("output_tokens"),
-                    )
+                        # Send rich tool status event with description and details
+                        yield await generate_tool_status_event(
+                            tool_name=tool_name,
+                            status="started",
+                            arguments=event.get("arguments"),
+                        )
 
-                elif event["type"] == "compaction":
-                    yield await generate_compaction_event(
-                        pruned_count=event.get("pruned_count"),
-                        tokens_saved=event.get("tokens_saved"),
-                    )
+                    elif event["type"] == "function_result":
+                        tool_name = event["name"]
 
-                elif event["type"] == "chart":
-                    # Two event shapes:
-                    # 1. internal_generate_chart: {chart_id, chart_type, chart_config, chart_data}
-                    # 2. inline tools: {chart: {chart_type, library, title, data, table_data, config, ...}}
-                    chart = event.get("chart", {})
-                    # Store full chart object (library, table_data, chart_type) for DB persistence + history reload
-                    state.chart_data.append(
-                        {
-                            "chart_type": chart.get("chart_type") or event.get("chart_type", "bar"),
-                            "type": chart.get("chart_type") or event.get("chart_type", "bar"),  # legacy compat
-                            "library": chart.get("library") or "chartjs",
-                            "title": chart.get("title") or event.get("chart_title", "Chart"),
-                            "description": chart.get("description") or "",
-                            "data": chart.get("data") or event.get("chart_data") or {},
-                            "config": chart.get("config") or event.get("chart_config") or {},
-                            "table_data": chart.get("table_data"),
-                        }
-                    )
-                    chart_payload = {k: v for k, v in event.items() if k != "type"}
-                    yield await generate_sse_event("chart", chart_payload)
+                        # Calculate execution duration
+                        duration_ms = None
+                        if tool_name in state.tool_start_times:
+                            start_time = state.tool_start_times.pop(tool_name)
+                            duration_ms = int((time.time() - start_time) * 1000)
 
-                elif event["type"] == "diagram":
-                    diagram = event.get("diagram", {})
-                    state.diagram_data.append(diagram)
-                    diagram_payload = {k: v for k, v in event.items() if k != "type"}
-                    yield await generate_sse_event("diagram", diagram_payload)
+                        yield await generate_tool_status_event(
+                            tool_name=tool_name,
+                            status="completed",
+                            duration_ms=duration_ms,
+                        )
 
-                elif event["type"] == "infographic":
-                    infographic = event.get("infographic", {})
-                    state.infographic_data.append(infographic)
-                    infographic_payload = {k: v for k, v in event.items() if k != "type"}
-                    yield await generate_sse_event("infographic", infographic_payload)
+                    elif event["type"] == "llm_call":
+                        yield await generate_llm_call_event(
+                            status=event.get("status", "completed"),
+                            model=event.get("model"),
+                            call_index=event.get("call_index"),
+                            input_tokens=event.get("input_tokens"),
+                            output_tokens=event.get("output_tokens"),
+                        )
 
-                elif event["type"] == "generated_image":
-                    image = event.get("generated_image", {})
-                    state.generated_images_data.append(image)
-                    image_payload = {k: v for k, v in event.items() if k != "type"}
-                    yield await generate_sse_event("generated_image", image_payload)
+                    elif event["type"] == "compaction":
+                        yield await generate_compaction_event(
+                            pruned_count=event.get("pruned_count"),
+                            tokens_saved=event.get("tokens_saved"),
+                        )
 
-                elif event["type"] == "form":
-                    form = event.get("form", {})
-                    state.forms_data.append(form)
-                    form_payload = {k: v for k, v in event.items() if k != "type"}
-                    yield await generate_sse_event("form", form_payload)
+                    elif event["type"] == "chart":
+                        # Two event shapes:
+                        # 1. internal_generate_chart: {chart_id, chart_type, chart_config, chart_data}
+                        # 2. inline tools: {chart: {chart_type, library, title, data, table_data, config, ...}}
+                        chart = event.get("chart", {})
+                        # Store full chart object (library, table_data, chart_type) for DB persistence + history reload
+                        state.chart_data.append(
+                            {
+                                "chart_type": chart.get("chart_type") or event.get("chart_type", "bar"),
+                                "type": chart.get("chart_type") or event.get("chart_type", "bar"),  # legacy compat
+                                "library": chart.get("library") or "chartjs",
+                                "title": chart.get("title") or event.get("chart_title", "Chart"),
+                                "description": chart.get("description") or "",
+                                "data": chart.get("data") or event.get("chart_data") or {},
+                                "config": chart.get("config") or event.get("chart_config") or {},
+                                "table_data": chart.get("table_data"),
+                            }
+                        )
+                        chart_payload = {k: v for k, v in event.items() if k != "type"}
+                        yield await generate_sse_event("chart", chart_payload)
 
-                elif event["type"] == "card_set":
-                    # Slack-only side channel (rendered as native `card` blocks by
-                    # slack_message_handler.py) — not persisted to conversation state.
-                    card_set_payload = {k: v for k, v in event.items() if k != "type"}
-                    yield await generate_sse_event("card_set", card_set_payload)
+                    elif event["type"] == "diagram":
+                        diagram = event.get("diagram", {})
+                        state.diagram_data.append(diagram)
+                        diagram_payload = {k: v for k, v in event.items() if k != "type"}
+                        yield await generate_sse_event("diagram", diagram_payload)
 
-                elif event["type"] == "video":
-                    # Slack-only side channel (rendered as a native `video` block by
-                    # slack_message_handler.py) — not persisted to conversation state.
-                    video_payload = {k: v for k, v in event.items() if k != "type"}
-                    yield await generate_sse_event("video", video_payload)
+                    elif event["type"] == "infographic":
+                        infographic = event.get("infographic", {})
+                        state.infographic_data.append(infographic)
+                        infographic_payload = {k: v for k, v in event.items() if k != "type"}
+                        yield await generate_sse_event("infographic", infographic_payload)
 
-                elif event["type"] == "vehicle_map":
-                    map_payload = {k: v for k, v in event.items() if k != "type"}
-                    yield await generate_sse_event("vehicle_map", map_payload)
+                    elif event["type"] == "generated_image":
+                        image = event.get("generated_image", {})
+                        state.generated_images_data.append(image)
+                        image_payload = {k: v for k, v in event.items() if k != "type"}
+                        yield await generate_sse_event("generated_image", image_payload)
 
-                elif event["type"] == "fleet_card":
-                    card_payload = {k: v for k, v in event.items() if k != "type"}
-                    state.fleet_card_data.append(card_payload.get("card", card_payload))
-                    yield await generate_sse_event("fleet_card", card_payload)
+                    elif event["type"] == "form":
+                        form = event.get("form", {})
+                        state.forms_data.append(form)
+                        form_payload = {k: v for k, v in event.items() if k != "type"}
+                        yield await generate_sse_event("form", form_payload)
+
+                    elif event["type"] == "card_set":
+                        # Slack-only side channel (rendered as native `card` blocks by
+                        # slack_message_handler.py) — not persisted to conversation state.
+                        card_set_payload = {k: v for k, v in event.items() if k != "type"}
+                        yield await generate_sse_event("card_set", card_set_payload)
+
+                    elif event["type"] == "video":
+                        # Slack-only side channel (rendered as a native `video` block by
+                        # slack_message_handler.py) — not persisted to conversation state.
+                        video_payload = {k: v for k, v in event.items() if k != "type"}
+                        yield await generate_sse_event("video", video_payload)
+
+                    elif event["type"] == "vehicle_map":
+                        map_payload = {k: v for k, v in event.items() if k != "type"}
+                        yield await generate_sse_event("vehicle_map", map_payload)
+
+                    elif event["type"] == "fleet_card":
+                        card_payload = {k: v for k, v in event.items() if k != "type"}
+                        state.fleet_card_data.append(card_payload.get("card", card_payload))
+                        yield await generate_sse_event("fleet_card", card_payload)
 
             # Flush any partial PII token held back in the streaming buffer
             if pii_redactor and pii_redactor.config.redact_for_llm and not pii_redactor.config.redact_for_response:
@@ -2502,24 +2564,25 @@ class ChatStreamService:
             # Fallback for legacy callers that pass a pre-built prompt string
             stream = agent.llm_client.generate_content_stream(prompt or system_prompt)
 
-        async for chunk in stream:
-            if state.first_token_time is None:
-                state.first_token_time = time.time()
-                time_to_first_token = state.first_token_time - start_time
-                yield await generate_first_token_event(time_to_first_token)
+        async with aclosing(stream) as owned_stream:
+            async for chunk in owned_stream:
+                if state.first_token_time is None:
+                    state.first_token_time = time.time()
+                    time_to_first_token = state.first_token_time - start_time
+                    yield await generate_first_token_event(time_to_first_token)
 
-            # SECURITY: Sanitize LLM output to prevent token/secret leakage
-            sanitization_result = self.output_sanitizer.sanitize(
-                chunk,
-                context=f"agent_chat_{agent_name}",
-            )
-
-            if sanitization_result.detections:
-                logger.warning(
-                    f"Sanitized {len(sanitization_result.detections)} sensitive items in agent response. "
-                    f"Agent: {agent_name}, Action: {sanitization_result.action_taken}"
+                # SECURITY: Sanitize LLM output to prevent token/secret leakage
+                sanitization_result = self.output_sanitizer.sanitize(
+                    chunk,
+                    context=f"agent_chat_{agent_name}",
                 )
 
-            state.assistant_chunks.append(sanitization_result.sanitized_content)
-            state.total_output_tokens += TokenCounter.count_tokens(sanitization_result.sanitized_content)
-            yield await generate_chunk_event(sanitization_result.sanitized_content)
+                if sanitization_result.detections:
+                    logger.warning(
+                        f"Sanitized {len(sanitization_result.detections)} sensitive items in agent response. "
+                        f"Agent: {agent_name}, Action: {sanitization_result.action_taken}"
+                    )
+
+                state.assistant_chunks.append(sanitization_result.sanitized_content)
+                state.total_output_tokens += TokenCounter.count_tokens(sanitization_result.sanitized_content)
+                yield await generate_chunk_event(sanitization_result.sanitized_content)

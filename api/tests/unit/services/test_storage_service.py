@@ -1,7 +1,7 @@
 import io
 import uuid
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, mock_open, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -55,8 +55,12 @@ class TestStorageService:
         tenant_id = uuid.uuid4()
         created_by = uuid.uuid4()
 
-        # Mock file writing
-        with patch("builtins.open", mock_open()) as mock_file:
+        # Mock file writing. _store_local offloads the blocking write to a
+        # thread via Path.mkdir()/Path.write_bytes() rather than builtins.open().
+        with (
+            patch.object(Path, "mkdir") as mock_mkdir,
+            patch.object(Path, "write_bytes") as mock_write_bytes,
+        ):
             result = await storage_service.upload_file(file, filename, tenant_id, created_by)
 
             # Assertions
@@ -71,11 +75,8 @@ class TestStorageService:
             mock_db_session.refresh.assert_awaited_once()
 
             # Verify file written
-            # Check if one of the calls was for writing the file
-            write_calls = [call for call in mock_file.call_args_list if len(call.args) > 1 and call.args[1] == "wb"]
-            assert len(write_calls) == 1
-            handle = mock_file()
-            handle.write.assert_called_with(file_content)
+            mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
+            mock_write_bytes.assert_called_once_with(file_content)
 
     @pytest.mark.asyncio
     async def test_upload_file_validation_error_size(self, storage_service, mock_storage_config):

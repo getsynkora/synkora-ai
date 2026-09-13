@@ -116,8 +116,10 @@ class TestMCPServersCRUDIntegration:
         assert verify_response.status_code == status.HTTP_404_NOT_FOUND
 
     @pytest.mark.asyncio
-    async def test_create_stdio_mcp_server(self, async_client: AsyncClient, auth_headers):
-        """Test creating a stdio transport MCP server."""
+    async def test_create_stdio_mcp_server_is_rejected(self, async_client: AsyncClient, auth_headers):
+        """stdio (command-based) MCP servers can no longer be created via the tenant
+        API — SECURITY: tenant-supplied commands must not execute in the API
+        process. Deploy them in an isolated runner behind an HTTP endpoint instead."""
         server_name = f"StdioMCPServer_{uuid.uuid4().hex[:8]}"
 
         response = await async_client.post(
@@ -135,10 +137,8 @@ class TestMCPServersCRUDIntegration:
             headers=auth_headers,
         )
 
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["data"]["transport_type"] == "stdio"
-        assert data["data"]["command"] == "npx"
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "isolated runner" in response.json()["detail"]
 
     @pytest.mark.asyncio
     async def test_create_stdio_server_without_command_fails(self, async_client: AsyncClient, auth_headers):
@@ -268,8 +268,10 @@ class TestMCPServersCRUDIntegration:
         assert update_response.json()["data"]["status"] == "inactive"
 
     @pytest.mark.asyncio
-    async def test_update_server_transport_type(self, async_client: AsyncClient, auth_headers):
-        """Test updating server transport type."""
+    async def test_update_server_transport_type_to_stdio_is_rejected(self, async_client: AsyncClient, auth_headers):
+        """Updating an existing server to stdio transport is blocked for the same
+        reason creating one is — SECURITY: no tenant-supplied command execution
+        in the API process."""
         # Create HTTP server
         create_response = await async_client.post(
             "/api/v1/mcp/servers",
@@ -285,7 +287,7 @@ class TestMCPServersCRUDIntegration:
         )
         server_id = create_response.json()["data"]["id"]
 
-        # Update to stdio
+        # Attempt to update to stdio
         update_response = await async_client.put(
             f"/api/v1/mcp/servers/{server_id}",
             json={
@@ -296,5 +298,5 @@ class TestMCPServersCRUDIntegration:
             headers=auth_headers,
         )
 
-        assert update_response.status_code == status.HTTP_200_OK
-        assert update_response.json()["data"]["transport_type"] == "stdio"
+        assert update_response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "isolated runner" in update_response.json()["detail"]

@@ -246,6 +246,14 @@ class TestAuthTokenRefresh:
         )
         refresh_token = login_response.json()["data"]["refresh_token"]
 
+        # This test exercises the body-token (mobile/non-browser) refresh path.
+        # login() also sets a refresh_token cookie, which async_client's cookie
+        # jar retains across requests — a real mobile client would never have
+        # picked one up in the first place, so drop it before refreshing:
+        # otherwise the endpoint treats this as a cookie-based (browser)
+        # refresh and requires an allowed dashboard Origin header.
+        async_client.cookies.clear()
+
         # Refresh token
         refresh_response = await async_client.post(
             "/console/api/auth/refresh",

@@ -1,0 +1,34 @@
+# Remediation of the independent security review
+
+All nine findings from [the independent review](2026-09-09-independent-security-review.md) have code changes and regression coverage in the current workspace. These changes have not been deployed, and no external credentials were rotated. Existing unrelated changes were preserved.
+
+| Finding | Change |
+|---|---|
+| Critical: cross-tenant sandbox files | Every command uses Bubblewrap filesystem/user/PID isolation with only the owning workspace mounted. No unrestricted fallback. Startup tests isolation. API workspace keys now distinguish conversations. File APIs share a cross-process execution lock; binary reads/writes enforce containment and size/type limits. Container configuration drops capabilities and privilege escalation. |
+| High: phone webhook authentication bypass | Missing credentials are rejected before reading the body. Secrets are required for phone-number, assistant-ID and existing-call routing. Existing call ownership must match routing data; a transaction advisory lock serializes call-ID ownership checks and creation. Duplicate call-start events do not create new calls. |
+| High: browser session override | Explicit labels are hashed inside trusted tenant/conversation/agent/principal scope. Missing tenant context is rejected. A label cannot select another tenant's browser context. |
+| High: arbitrary scraper file uploads | Uploads read owned workspace data in the API and send filename/MIME/base64 content to the scraper. The scraper rejects legacy filesystem-path fields and passes bytes to Playwright. Local reads reject symlink components and nonregular files; sandbox reads use the confined binary API. Total upload size is bounded. |
+| High: public callback credential disclosure | Public DTOs explicitly select participant fields. Both public responses and the executor's opening stream event use the same DTO. Callback secrets and participant capability hashes are excluded. |
+| High: callback SSRF | Callbacks use the DNS-pinned public HTTP transport with the private-host exception list cleared. POSTs do not follow redirects or forward credentials to another destination, and response size/time are bounded. |
+| Medium: participant impersonation | Joining returns a private random participant token once; only its hash is stored. Responses require that capability and the active round. Row locking and a separate persistent submission map prevent duplicate slots or executor message snapshots from erasing accepted submissions. The public page and generated clients supply the token. |
+| Medium: generated Python injection | All configurable Python string values use Python literal serialization, and provider selection is restricted to an enum. The untrusted topic is no longer interpolated into executable source. |
+| Medium: unauthenticated database TLS | Async TLS requires certificate verification, honors `verify-ca` versus `verify-full`, supports configured CA/client certificates, and defaults production connections to `verify-full`. `require` also verifies the server. Invalid/downgradable modes are rejected rather than silently disabling verification. |
+
+## Validation
+
+- **545 selected backend tests passed**, including the new security regressions and existing authentication/OAuth/storage/widget protections. Four unchanged Redis concurrency tests were explicitly deselected in this remediation pass; their successful earlier review run is not counted as fresh remediation evidence.
+- The real sandbox image passed the [Linux isolation test](../../services/sandbox/test_isolation.py) under Podman with `--cap-drop=ALL --security-opt=no-new-privileges`. This exercised real subprocesses, not a mocked command runner: allowed owned files; denied foreign paths, symlinks and service source; hidden service environment; output limits; timeouts; removal of background descendants; startup/OpenAPI checks; concurrent-file denial; binary round trips; and FIFO rejection.
+- Actual TLS handshakes over memory BIOs rejected an untrusted certificate and a trusted certificate with the wrong hostname, and accepted the trusted certificate with the right hostname. No database/network interception was attempted.
+- Migration upgrade/downgrade tests preserved an existing debate row and verified the default empty submission map. Existing migration tests now check a single connected migration history rather than hard-coding the old head.
+- Frontend TypeScript checking passed (`tsc --noEmit --incremental false`). Ruff checks on changed Python modules/tests and `git diff --check` passed.
+- Browser uploads were exercised with real local synthetic files and mocked Playwright. Callback transport tests used mocked network responses and DNS to exercise destination enforcement. No live external website, IdP, phone provider, customer browser context or production database was used.
+
+## Rollout requirements
+
+1. Apply migration `20260909_0004` after the existing migration chain. It adds `debate_sessions.external_responses` with an empty-object default and preserves existing data. This review did not run migrations against production.
+2. Deploy API, frontend, scraper and rebuilt sandbox together. The new upload protocol sends bytes, and the sandbox binary-file endpoints must exist before API binary uploads work. Old scraper path requests are rejected. The [sandbox README](../../services/sandbox/README.md) contains the runtime requirements and image smoke command. Verify the startup check on the target node/runtime; do not bypass it by restoring unrestricted subprocess execution.
+3. Configure the database trust chain before rollout, for example `DB_EXTRAS=sslmode=verify-full&sslrootcert=/path/to/trusted-ca.pem`. The certificate hostname must match the configured database host. `sslmode=disable` remains an explicit operator setting for intended non-TLS connections; encrypted modes no longer disable certificate checks.
+4. Existing external debate participants without a capability must join again under an available name or use a newly created debate. Updated generated scripts and the public join page handle the token. Browser session IDs changed, so existing browser sessions/logins are not automatically reused across the old and new naming schemes.
+5. Rotate callback bearer credentials that were present in publicly shared debates, including credentials potentially recorded in old stream logs. Hiding future responses cannot revoke previously disclosed secrets; rotation requires access to the external credential issuer. No real secret values were used or changed here.
+
+The former diagnostic probe records pre-fix behavior and is historical evidence. Use the regression suites and Linux isolation test for post-fix validation. This is code remediation with local validation, not a claim that production is already remediated or that every unrelated security property has been certified.

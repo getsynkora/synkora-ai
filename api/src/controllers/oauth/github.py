@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.utils.config_helper import get_app_base_url
 
 from ...core.database import get_async_db
-from ...middleware.auth_middleware import get_current_tenant_id, get_optional_account, get_optional_tenant_id
+from ...middleware.auth_middleware import get_current_account, get_current_tenant_id
 from ...models.agent import Agent
 from ...models.agent_tool import AgentTool
 from ...models.oauth_app import OAuthApp
@@ -26,6 +26,8 @@ from ...services.oauth import GitHubOAuth
 from ...services.security.oauth_state_service import create_oauth_state, get_oauth_state
 from .base import (
     GitHubDisconnectRequest,
+    _authorize_oauth_connection,
+    _get_callback_oauth_app,
     _get_oauth_app_secure,
     _get_or_create_tenant_clone,
     _safe_error_redirect,
@@ -43,8 +45,8 @@ async def github_authorize(
     oauth_app_id: int = Query(..., description="OAuth app ID to authorize"),
     redirect_url: str = Query(None, description="Frontend redirect URL after OAuth"),
     user_level: bool = Query(False, description="Store token at user level instead of app level"),
-    current_account: Account | None = Depends(get_optional_account),
-    tenant_id: uuid.UUID | None = Depends(get_optional_tenant_id),
+    current_account: Account = Depends(get_current_account),
+    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
@@ -60,8 +62,9 @@ async def github_authorize(
             raise HTTPException(status_code=401, detail="Authentication required for user-level OAuth")
 
         # SECURITY: Validate OAuth app belongs to current tenant when authenticated (prevents IDOR)
-        # tenant_id comes from JWT via get_optional_tenant_id dependency
-        oauth_app = await _get_oauth_app_secure(db, oauth_app_id, tenant_id=tenant_id)
+        # tenant_id comes from JWT via get_current_tenant_id dependency
+        await _authorize_oauth_connection(db, current_account, tenant_id, user_level)
+        oauth_app = await _get_oauth_app_secure(db, oauth_app_id, tenant_id=tenant_id, require_tenant=True)
         if not oauth_app:
             raise HTTPException(status_code=404, detail="OAuth app not found")
 
@@ -91,7 +94,8 @@ async def github_authorize(
                 "oauth_app_id": oauth_app_id,
                 "redirect_url": redirect_url,
                 "user_level": user_level,
-                "account_id": str(current_account.id) if current_account and user_level else None,
+                "account_id": str(current_account.id),
+                "auth_version": current_account.auth_version or 0,
                 "tenant_id": str(tenant_id) if tenant_id else None,
             }
         )
@@ -105,9 +109,11 @@ async def github_authorize(
         logger.info(f"Initiating GitHub OAuth for app {oauth_app_id} (user_level={user_level})")
         return RedirectResponse(url=auth_url)
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"GitHub OAuth authorization error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/github/callback")
@@ -134,7 +140,7 @@ async def github_callback(
         account_id = state_data.get("account_id")
 
         # SECURITY: Get OAuth app (state is already validated from Redis)
-        oauth_app = await _get_oauth_app_secure(db, oauth_app_id)
+        oauth_app = await _get_callback_oauth_app(db, state_data)
         if not oauth_app:
             raise HTTPException(status_code=404, detail="OAuth app not found")
 
@@ -313,7 +319,7 @@ async def github_disconnect(
         raise
     except Exception as e:
         logger.error(f"GitHub OAuth disconnect error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/github/status")
@@ -353,7 +359,7 @@ async def github_status(
 
     except Exception as e:
         logger.error(f"GitHub OAuth status check error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/github/repositories")
@@ -451,4 +457,4 @@ async def list_github_repositories(
         raise
     except Exception as e:
         logger.error(f"List GitHub repositories error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")

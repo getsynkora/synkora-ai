@@ -4,6 +4,7 @@ import asyncio
 import csv
 import io
 import logging
+import re
 import zipfile
 from datetime import UTC, datetime
 from typing import Any
@@ -47,6 +48,12 @@ logger = logging.getLogger(__name__)
 
 # SECURITY: Maximum allowed LIMIT value to prevent DoS
 MAX_LIMIT = 10000
+
+# SECURITY: Block write/mutating SQL statements
+_WRITE_PATTERN = re.compile(
+    r"^\s*(INSERT|UPDATE|DELETE|DROP|TRUNCATE|ALTER|CREATE|REPLACE|GRANT|REVOKE|EXEC|EXECUTE|MERGE)\b",
+    re.IGNORECASE,
+)
 DEFAULT_LIMIT = 1000
 
 # Formula injection prefixes that are dangerous in spreadsheet apps
@@ -547,6 +554,10 @@ class DataAnalysisService:
             if not connection:
                 return {"success": False, "message": "Database connection not found"}
 
+            # SECURITY: Block write/mutating SQL statements
+            if _WRITE_PATTERN.match(query.strip()):
+                return {"success": False, "message": "Only SELECT queries are allowed"}
+
             # SECURITY: Validate and sanitize LIMIT value to prevent SQL injection
             if limit is not None and "LIMIT" not in query.upper():
                 # Ensure limit is a valid integer within bounds
@@ -568,7 +579,7 @@ class DataAnalysisService:
                 await connector.disconnect()
 
             elif db_type == "SQLITE":
-                connector = SQLiteConnector(database_path=connection.database_path)
+                connector = SQLiteConnector(database_path=connection.database_path, tenant_id=connection.tenant_id)
                 await connector.connect()
                 result = await connector.execute_query(query)
                 await connector.disconnect()

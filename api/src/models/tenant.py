@@ -7,7 +7,7 @@ and user accounts with role-based access control.
 
 from enum import StrEnum
 
-from sqlalchemy import JSON, Column, ForeignKey, String, UniqueConstraint
+from sqlalchemy import JSON, Column, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, relationship
@@ -268,6 +268,14 @@ class Account(BaseModel, StatusMixin):
         String(255),
         nullable=True,
         comment="Hashed password (null for OAuth users)",
+    )
+
+    auth_version = Column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+        comment="Durable credential/session version; incremented on password reset",
     )
 
     interface_language = Column(

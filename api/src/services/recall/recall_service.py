@@ -7,9 +7,11 @@ retrieve transcripts, recordings, and manage meeting bot lifecycle.
 Docs: https://docs.recall.ai/
 """
 
+import base64
 import hashlib
 import hmac
 import logging
+import time
 from datetime import datetime
 from typing import Any
 
@@ -426,31 +428,30 @@ class RecallService:
             return {"success": False, "error": str(e)}
 
     @staticmethod
-    def verify_webhook_signature(
-        payload: bytes,
-        signature: str,
-        webhook_secret: str,
-    ) -> bool:
-        """
-        Verify Recall.ai webhook signature.
+    def verify_webhook_signature(payload: bytes, headers: Any, webhook_secret: str) -> bool:
+        """Verify Recall/Standard Webhooks ID, timestamp and raw body together.
 
-        Args:
-            payload: Raw request body
-            signature: X-Recall-Signature header value
-            webhook_secret: Your webhook secret from Recall dashboard
-
-        Returns:
-            True if signature is valid
+        Supports both webhook-* and legacy svix-* header names. See
+        https://docs.recall.ai/docs/authenticating-requests-from-recallai
         """
         try:
-            expected_signature = hmac.new(
-                webhook_secret.encode(),
-                payload,
-                hashlib.sha256,
-            ).hexdigest()
-            return hmac.compare_digest(expected_signature, signature)
-        except Exception as e:
-            logger.error(f"Webhook signature verification failed: {e}")
+            message_id = headers.get("webhook-id") or headers.get("svix-id")
+            timestamp = headers.get("webhook-timestamp") or headers.get("svix-timestamp")
+            signature = headers.get("webhook-signature") or headers.get("svix-signature")
+            if not message_id or not timestamp or not signature or not webhook_secret.startswith("whsec_"):
+                return False
+            if abs(time.time() - int(timestamp)) > 300:
+                return False
+            key = base64.b64decode(webhook_secret[6:], validate=True)
+            if not key:
+                return False
+            signed = f"{message_id}.{timestamp}.".encode() + payload
+            expected = base64.b64encode(hmac.new(key, signed, hashlib.sha256).digest()).decode()
+            return any(
+                candidate.startswith("v1,") and hmac.compare_digest(expected, candidate[3:])
+                for candidate in signature.split()
+            )
+        except (ValueError, TypeError, AttributeError):
             return False
 
 

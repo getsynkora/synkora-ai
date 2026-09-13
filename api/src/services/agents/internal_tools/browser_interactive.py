@@ -662,16 +662,59 @@ async def internal_browser_upload_file(
     runtime_context: Any | None = None,
     config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Upload file(s) to a file input element."""
-    return await _call(
-        _scraper().browser_upload_file(
-            file_ref=file_ref,
-            file_paths=file_paths,
-            session_id=session_id,
-            page_id=page_id,
-            timeout_ms=timeout_ms,
+    """Upload owned workspace bytes, never scraper filesystem paths."""
+    import asyncio
+    import base64
+    import mimetypes
+    from pathlib import PurePosixPath
+
+    from src.services.compute.resolver import get_compute_session_from_config
+    from src.services.security.tenant_storage import storage_tenant
+    from src.services.security.workspace_files import MAX_UPLOAD_BYTES, read_workspace_file, relative_workspace_path
+
+    try:
+        storage_tenant(runtime_context, config)
+        if not file_paths or len(file_paths) > 10:
+            raise ValueError("Supply between one and ten workspace files")
+        context = runtime_context or (config or {}).get("_runtime_context")
+        compute = getattr(context, "compute_session", None) or await get_compute_session_from_config(config)
+        if compute is not None and not callable(getattr(compute, "read_file_bytes", None)):
+            raise ValueError("This workspace does not support binary uploads")
+        root = compute.base_path if compute is not None else _get_workspace_path(config)
+        if not root:
+            raise ValueError("An owned workspace is required for browser uploads")
+        files = []
+        total = 0
+        for path in file_paths:
+            relative = relative_workspace_path(path, root)
+            if compute is not None:
+                data = await compute.read_file_bytes(str(PurePosixPath(root) / relative))
+            else:
+                data = await asyncio.to_thread(read_workspace_file, root, relative)
+            if data is None:
+                raise ValueError("Workspace file could not be read")
+            total += len(data)
+            if total > MAX_UPLOAD_BYTES:
+                raise ValueError("Total upload exceeds 10 MiB")
+            name = PurePosixPath(relative).name
+            files.append(
+                {
+                    "name": name,
+                    "mime_type": mimetypes.guess_type(name)[0] or "application/octet-stream",
+                    "content_base64": base64.b64encode(data).decode("ascii"),
+                }
+            )
+        return await _call(
+            _scraper().browser_upload_file(
+                file_ref=file_ref,
+                files=files,
+                session_id=session_id,
+                page_id=page_id,
+                timeout_ms=timeout_ms,
+            )
         )
-    )
+    except (ValueError, OSError) as exc:
+        return {"success": False, "error": str(exc)}
 
 
 async def internal_browser_evaluate(

@@ -1,0 +1,1037 @@
+{
+  "command": "pnpm audit --prod --json",
+  "scope": "web production dependency graph; advisory matches, not exploit confirmations",
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 6,
+      "moderate": 32,
+      "high": 11,
+      "critical": 3
+    },
+    "dependencies": 942,
+    "devDependencies": 0,
+    "optionalDependencies": 0,
+    "totalDependencies": 942
+  },
+  "advisories": [
+    {
+      "package": "markdown-it",
+      "severity": "moderate",
+      "title": "markdown-it is has a Regular Expression Denial of Service (ReDoS)",
+      "url": "https://github.com/advisories/GHSA-38c4-r59v-3vqw",
+      "vulnerable_versions": ">=13.0.0 <14.1.1",
+      "patched_versions": ">=14.1.1",
+      "findings": [
+        {
+          "version": "14.1.0",
+          "paths": [
+            ". > @tiptap/extension-link@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/extension-link@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/extension-placeholder@3.7.2 > @tiptap/extensions@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/extension-placeholder@3.7.2 > @tiptap/extensions@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/react@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/react@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/react@3.7.2 > @tiptap/extension-bubble-menu@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/react@3.7.2 > @tiptap/extension-bubble-menu@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/react@3.7.2 > @tiptap/extension-floating-menu@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/react@3.7.2 > @tiptap/extension-floating-menu@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-blockquote@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-bold@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-bullet-list@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-bullet-list@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-code@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-code-block@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-code-block@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-document@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-dropcursor@3.7.2 > @tiptap/extensions@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-dropcursor@3.7.2 > @tiptap/extensions@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-gapcursor@3.7.2 > @tiptap/extensions@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-gapcursor@3.7.2 > @tiptap/extensions@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-hard-break@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-heading@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-horizontal-rule@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-horizontal-rule@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-italic@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-link@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-link@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-list-item@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-list-item@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-list-keymap@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-list-keymap@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-ordered-list@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-ordered-list@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-paragraph@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-strike@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-text@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-underline@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extensions@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extensions@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "dompurify",
+      "severity": "moderate",
+      "title": "DOMPurify contains a Cross-site Scripting vulnerability",
+      "url": "https://github.com/advisories/GHSA-v2wj-7wpq-c8vv",
+      "vulnerable_versions": ">=3.1.3 <=3.3.1",
+      "patched_versions": ">=3.3.2",
+      "findings": [
+        {
+          "version": "3.3.0",
+          "paths": [
+            ". > dompurify@3.3.0",
+            ". > mermaid@11.12.2 > dompurify@3.3.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "lodash-es",
+      "severity": "moderate",
+      "title": "lodash vulnerable to Prototype Pollution via array path bypass in `_.unset` and `_.omit`",
+      "url": "https://github.com/advisories/GHSA-f23m-r3pf-42rh",
+      "vulnerable_versions": "<=4.17.23",
+      "patched_versions": ">=4.18.0",
+      "findings": [
+        {
+          "version": "4.17.21",
+          "paths": [
+            ". > mermaid@11.12.2 > @mermaid-js/parser@0.6.3 > langium@3.3.1 > chevrotain@11.0.3 > @chevrotain/cst-dts-gen@11.0.3 > @chevrotain/gast@11.0.3 > lodash-es@4.17.21",
+            ". > mermaid@11.12.2 > @mermaid-js/parser@0.6.3 > langium@3.3.1 > chevrotain@11.0.3 > @chevrotain/cst-dts-gen@11.0.3 > lodash-es@4.17.21",
+            ". > mermaid@11.12.2 > @mermaid-js/parser@0.6.3 > langium@3.3.1 > chevrotain@11.0.3 > @chevrotain/gast@11.0.3 > lodash-es@4.17.21",
+            ". > mermaid@11.12.2 > @mermaid-js/parser@0.6.3 > langium@3.3.1 > chevrotain@11.0.3 > lodash-es@4.17.21",
+            ". > mermaid@11.12.2 > @mermaid-js/parser@0.6.3 > langium@3.3.1 > chevrotain-allstar@0.3.1 > chevrotain@11.0.3 > @chevrotain/cst-dts-gen@11.0.3 > @chevrotain/gast@11.0.3 > lodash-es@4.17.21",
+            ". > mermaid@11.12.2 > @mermaid-js/parser@0.6.3 > langium@3.3.1 > chevrotain-allstar@0.3.1 > chevrotain@11.0.3 > @chevrotain/cst-dts-gen@11.0.3 > lodash-es@4.17.21",
+            ". > mermaid@11.12.2 > @mermaid-js/parser@0.6.3 > langium@3.3.1 > chevrotain-allstar@0.3.1 > chevrotain@11.0.3 > @chevrotain/gast@11.0.3 > lodash-es@4.17.21",
+            ". > mermaid@11.12.2 > @mermaid-js/parser@0.6.3 > langium@3.3.1 > chevrotain-allstar@0.3.1 > chevrotain@11.0.3 > lodash-es@4.17.21",
+            ". > mermaid@11.12.2 > @mermaid-js/parser@0.6.3 > langium@3.3.1 > chevrotain-allstar@0.3.1 > lodash-es@4.17.21",
+            ". > mermaid@11.12.2 > dagre-d3-es@7.0.13 > lodash-es@4.17.21",
+            ". > mermaid@11.12.2 > lodash-es@4.17.21"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "dompurify",
+      "severity": "moderate",
+      "title": "DOMPurify: FORBID_TAGS bypassed by function-based ADD_TAGS predicate (asymmetry with FORBID_ATTR fix)",
+      "url": "https://github.com/advisories/GHSA-h7mw-gpvr-xq4m",
+      "vulnerable_versions": "<3.4.0",
+      "patched_versions": ">=3.4.0",
+      "findings": [
+        {
+          "version": "3.3.0",
+          "paths": [
+            ". > dompurify@3.3.0",
+            ". > mermaid@11.12.2 > dompurify@3.3.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "dompurify",
+      "severity": "moderate",
+      "title": "DOMPurify has a SAFE_FOR_TEMPLATES bypass in RETURN_DOM mode",
+      "url": "https://github.com/advisories/GHSA-crv5-9vww-q3g8",
+      "vulnerable_versions": ">=1.0.10 <3.4.0",
+      "patched_versions": ">=3.4.0",
+      "findings": [
+        {
+          "version": "3.3.0",
+          "paths": [
+            ". > dompurify@3.3.0",
+            ". > mermaid@11.12.2 > dompurify@3.3.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "dompurify",
+      "severity": "moderate",
+      "title": "DOMPurify: Prototype Pollution to XSS Bypass via CUSTOM_ELEMENT_HANDLING Fallback",
+      "url": "https://github.com/advisories/GHSA-v9jr-rg53-9pgp",
+      "vulnerable_versions": ">=3.0.1 <3.4.0",
+      "patched_versions": ">=3.4.0",
+      "findings": [
+        {
+          "version": "3.3.0",
+          "paths": [
+            ". > dompurify@3.3.0",
+            ". > mermaid@11.12.2 > dompurify@3.3.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "uuid",
+      "severity": "moderate",
+      "title": "uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided",
+      "url": "https://github.com/advisories/GHSA-w5hq-g745-h8pq",
+      "vulnerable_versions": "<11.1.1",
+      "patched_versions": ">=11.1.1",
+      "findings": [
+        {
+          "version": "11.1.0",
+          "paths": [
+            ". > mermaid@11.12.2 > uuid@11.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "mermaid",
+      "severity": "moderate",
+      "title": "Mermaid: Improper sanitization of `classDef` in state diagrams leads to HTML injection",
+      "url": "https://github.com/advisories/GHSA-ghcm-xqfw-q4vr",
+      "vulnerable_versions": ">=11.0.0-alpha.1 <=11.14.0",
+      "patched_versions": ">=11.15.0",
+      "findings": [
+        {
+          "version": "11.12.2",
+          "paths": [
+            ". > mermaid@11.12.2"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "mermaid",
+      "severity": "moderate",
+      "title": "Mermaid: Improper sanitization of `classDefs` in diagrams leads to CSS injection",
+      "url": "https://github.com/advisories/GHSA-xcj9-5m2h-648r",
+      "vulnerable_versions": ">=11.0.0-alpha.1 <=11.14.0",
+      "patched_versions": ">=11.15.0",
+      "findings": [
+        {
+          "version": "11.12.2",
+          "paths": [
+            ". > mermaid@11.12.2"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "mermaid",
+      "severity": "moderate",
+      "title": "Mermaid Gantt Charts are vulnerable to an Infinite Loop DoS",
+      "url": "https://github.com/advisories/GHSA-6m6c-36f7-fhxh",
+      "vulnerable_versions": ">=11.0.0-alpha.1 <=11.14.0",
+      "patched_versions": ">=11.15.0",
+      "findings": [
+        {
+          "version": "11.12.2",
+          "paths": [
+            ". > mermaid@11.12.2"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "lodash-es",
+      "severity": "moderate",
+      "title": "Lodash has Prototype Pollution Vulnerability in `_.unset` and `_.omit` functions",
+      "url": "https://github.com/advisories/GHSA-xxjr-mmjv-4gpg",
+      "vulnerable_versions": ">=4.0.0 <=4.17.22",
+      "patched_versions": ">=4.17.23",
+      "findings": [
+        {
+          "version": "4.17.21",
+          "paths": [
+            ". > mermaid@11.12.2 > @mermaid-js/parser@0.6.3 > langium@3.3.1 > chevrotain@11.0.3 > @chevrotain/cst-dts-gen@11.0.3 > @chevrotain/gast@11.0.3 > lodash-es@4.17.21",
+            ". > mermaid@11.12.2 > @mermaid-js/parser@0.6.3 > langium@3.3.1 > chevrotain@11.0.3 > @chevrotain/cst-dts-gen@11.0.3 > lodash-es@4.17.21",
+            ". > mermaid@11.12.2 > @mermaid-js/parser@0.6.3 > langium@3.3.1 > chevrotain@11.0.3 > @chevrotain/gast@11.0.3 > lodash-es@4.17.21",
+            ". > mermaid@11.12.2 > @mermaid-js/parser@0.6.3 > langium@3.3.1 > chevrotain@11.0.3 > lodash-es@4.17.21",
+            ". > mermaid@11.12.2 > @mermaid-js/parser@0.6.3 > langium@3.3.1 > chevrotain-allstar@0.3.1 > chevrotain@11.0.3 > @chevrotain/cst-dts-gen@11.0.3 > @chevrotain/gast@11.0.3 > lodash-es@4.17.21",
+            ". > mermaid@11.12.2 > @mermaid-js/parser@0.6.3 > langium@3.3.1 > chevrotain-allstar@0.3.1 > chevrotain@11.0.3 > @chevrotain/cst-dts-gen@11.0.3 > lodash-es@4.17.21",
+            ". > mermaid@11.12.2 > @mermaid-js/parser@0.6.3 > langium@3.3.1 > chevrotain-allstar@0.3.1 > chevrotain@11.0.3 > @chevrotain/gast@11.0.3 > lodash-es@4.17.21",
+            ". > mermaid@11.12.2 > @mermaid-js/parser@0.6.3 > langium@3.3.1 > chevrotain-allstar@0.3.1 > chevrotain@11.0.3 > lodash-es@4.17.21",
+            ". > mermaid@11.12.2 > @mermaid-js/parser@0.6.3 > langium@3.3.1 > chevrotain-allstar@0.3.1 > lodash-es@4.17.21",
+            ". > mermaid@11.12.2 > dagre-d3-es@7.0.13 > lodash-es@4.17.21",
+            ". > mermaid@11.12.2 > lodash-es@4.17.21"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "dompurify",
+      "severity": "moderate",
+      "title": "DOMPurify: Cross-realm IN_PLACE sanitization leaves executable markup intact via realm-bound `instanceof` checks",
+      "url": "https://github.com/advisories/GHSA-hpcv-96wg-7vj8",
+      "vulnerable_versions": "<=3.4.5",
+      "patched_versions": ">=3.4.6",
+      "findings": [
+        {
+          "version": "3.3.0",
+          "paths": [
+            ". > dompurify@3.3.0",
+            ". > mermaid@11.12.2 > dompurify@3.3.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "dompurify",
+      "severity": "moderate",
+      "title": "DOMPurify: IN_PLACE mode preserves attributes of a clobbered root element, allowing XSS via attacker-controlled root DOM",
+      "url": "https://github.com/advisories/GHSA-r47g-fvhr-h676",
+      "vulnerable_versions": "<=3.4.5",
+      "patched_versions": ">=3.4.6",
+      "findings": [
+        {
+          "version": "3.3.0",
+          "paths": [
+            ". > dompurify@3.3.0",
+            ". > mermaid@11.12.2 > dompurify@3.3.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "dompurify",
+      "severity": "moderate",
+      "title": "DOMPurify IN_PLACE Sanitization Bypass via Attached Shadow Root Inside <template>.content",
+      "url": "https://github.com/advisories/GHSA-rp9w-3fw7-7cwq",
+      "vulnerable_versions": "<=3.4.6",
+      "patched_versions": ">=3.4.7",
+      "findings": [
+        {
+          "version": "3.3.0",
+          "paths": [
+            ". > dompurify@3.3.0",
+            ". > mermaid@11.12.2 > dompurify@3.3.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "markdown-it",
+      "severity": "moderate",
+      "title": "markdown-it: Quadratic complexity DoS in smartquotes rule via replaceAt string operations",
+      "url": "https://github.com/advisories/GHSA-6v5v-wf23-fmfq",
+      "vulnerable_versions": "<=14.1.1",
+      "patched_versions": ">=14.2.0",
+      "findings": [
+        {
+          "version": "14.1.0",
+          "paths": [
+            ". > @tiptap/extension-link@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/extension-link@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/extension-placeholder@3.7.2 > @tiptap/extensions@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/extension-placeholder@3.7.2 > @tiptap/extensions@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/react@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/react@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/react@3.7.2 > @tiptap/extension-bubble-menu@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/react@3.7.2 > @tiptap/extension-bubble-menu@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/react@3.7.2 > @tiptap/extension-floating-menu@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/react@3.7.2 > @tiptap/extension-floating-menu@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-blockquote@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-bold@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-bullet-list@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-bullet-list@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-code@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-code-block@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-code-block@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-document@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-dropcursor@3.7.2 > @tiptap/extensions@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-dropcursor@3.7.2 > @tiptap/extensions@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-gapcursor@3.7.2 > @tiptap/extensions@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-gapcursor@3.7.2 > @tiptap/extensions@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-hard-break@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-heading@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-horizontal-rule@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-horizontal-rule@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-italic@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-link@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-link@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-list-item@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-list-item@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-list-keymap@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-list-keymap@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-ordered-list@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-ordered-list@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-paragraph@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-strike@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-text@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-underline@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extensions@3.7.2 > @tiptap/core@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extensions@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/pm@3.7.2 > prosemirror-markdown@1.13.2 > markdown-it@14.1.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "mermaid",
+      "severity": "moderate",
+      "title": "Mermaid: Improper sanitization of configuration leads to CSS injection",
+      "url": "https://github.com/advisories/GHSA-87f9-hvmw-gh4p",
+      "vulnerable_versions": ">=11.0.0-alpha.1 <=11.14.0",
+      "patched_versions": ">=11.15.0",
+      "findings": [
+        {
+          "version": "11.12.2",
+          "paths": [
+            ". > mermaid@11.12.2"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "@babel/core",
+      "severity": "low",
+      "title": "@babel/core: Arbitrary File Read via sourceMappingURL Comment",
+      "url": "https://github.com/advisories/GHSA-4x5r-pxfx-6jf8",
+      "vulnerable_versions": "<=7.29.0",
+      "patched_versions": ">=7.29.6",
+      "findings": [
+        {
+          "version": "7.29.0",
+          "paths": [
+            ". > @sentry/nextjs@10.53.1 > @sentry/bundler-plugin-core@5.3.0 > @babel/core@7.29.0 > @babel/helper-module-transforms@7.28.6 > @babel/core@7.29.0",
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > @sentry/bundler-plugin-core@5.3.0 > @babel/core@7.29.0 > @babel/helper-module-transforms@7.28.6 > @babel/core@7.29.0",
+            ". > @sentry/nextjs@10.53.1 > next@16.2.12 > styled-jsx@5.1.6 > @babel/core@7.29.0 > @babel/helper-module-transforms@7.28.6 > @babel/core@7.29.0",
+            ". > next@16.2.12 > styled-jsx@5.1.6 > @babel/core@7.29.0 > @babel/helper-module-transforms@7.28.6 > @babel/core@7.29.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "dompurify",
+      "severity": "low",
+      "title": "DOMPurify: `CUSTOM_ELEMENT_HANDLING` bypasses `afterSanitizeElements` for allowed custom elements.",
+      "url": "https://github.com/advisories/GHSA-c2j3-45gr-mqc4",
+      "vulnerable_versions": "<=3.4.11",
+      "patched_versions": ">=3.4.12",
+      "findings": [
+        {
+          "version": "3.3.0",
+          "paths": [
+            ". > dompurify@3.3.0",
+            ". > mermaid@11.12.2 > dompurify@3.3.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "dompurify",
+      "severity": "moderate",
+      "title": "DOMPurify: Permanent `ALLOWED_ATTR` pollution via `setConfig()` bypassing the hook clone-guard (incomplete fix of the 3.4.7 hook-pollution patch)",
+      "url": "https://github.com/advisories/GHSA-cmwh-pvxp-8882",
+      "vulnerable_versions": "<=3.4.10",
+      "patched_versions": ">=3.4.11",
+      "findings": [
+        {
+          "version": "3.3.0",
+          "paths": [
+            ". > dompurify@3.3.0",
+            ". > mermaid@11.12.2 > dompurify@3.3.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "dompurify",
+      "severity": "low",
+      "title": "DOMPurify: Trusted Types policy survives `clearConfig()` and can poison later `RETURN_TRUSTED_TYPE` output",
+      "url": "https://github.com/advisories/GHSA-vxr8-fq34-vvx9",
+      "vulnerable_versions": "<3.4.9",
+      "patched_versions": ">=3.4.9",
+      "findings": [
+        {
+          "version": "3.3.0",
+          "paths": [
+            ". > dompurify@3.3.0",
+            ". > mermaid@11.12.2 > dompurify@3.3.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "dompurify",
+      "severity": "low",
+      "title": "DOMPurify: SAFE_FOR_TEMPLATES bypass - template expressions survive sanitization inside <template> content when using DOM output modes",
+      "url": "https://github.com/advisories/GHSA-gvmj-g25r-r7wr",
+      "vulnerable_versions": ">=3.0.0 <=3.4.7",
+      "patched_versions": ">=3.4.8",
+      "findings": [
+        {
+          "version": "3.3.0",
+          "paths": [
+            ". > dompurify@3.3.0",
+            ". > mermaid@11.12.2 > dompurify@3.3.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "dompurify",
+      "severity": "low",
+      "title": "DOMPurify: `IN_PLACE` mode trusts attacker-controlled `nodeName` on live non-form nodes, allowing script retention and XSS via attacker-supplied DOM objects",
+      "url": "https://github.com/advisories/GHSA-x4vx-rjvf-j5p4",
+      "vulnerable_versions": "<=3.4.6",
+      "patched_versions": "<0.0.0",
+      "findings": [
+        {
+          "version": "3.3.0",
+          "paths": [
+            ". > dompurify@3.3.0",
+            ". > mermaid@11.12.2 > dompurify@3.3.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "dompurify",
+      "severity": "moderate",
+      "title": "DOMPurify: Hook mutation of `data.allowedTags` / `data.allowedAttributes` permanently pollutes `DEFAULT_ALLOWED_TAGS` / `DEFAULT_ALLOWED_ATTR`",
+      "url": "https://github.com/advisories/GHSA-76mc-f452-cxcm",
+      "vulnerable_versions": "<3.4.7",
+      "patched_versions": ">=3.4.7",
+      "findings": [
+        {
+          "version": "3.3.0",
+          "paths": [
+            ". > dompurify@3.3.0",
+            ". > mermaid@11.12.2 > dompurify@3.3.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "dompurify",
+      "severity": "moderate",
+      "title": "DOMPurify's ADD_TAGS function form bypasses FORBID_TAGS due to short-circuit evaluation",
+      "url": "https://github.com/advisories/GHSA-39q2-94rc-95cp",
+      "vulnerable_versions": "<=3.3.3",
+      "patched_versions": ">=3.4.0",
+      "findings": [
+        {
+          "version": "3.3.0",
+          "paths": [
+            ". > dompurify@3.3.0",
+            ". > mermaid@11.12.2 > dompurify@3.3.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "dompurify",
+      "severity": "moderate",
+      "title": "DOMPurify ADD_ATTR predicate skips URI validation",
+      "url": "https://github.com/advisories/GHSA-cjmm-f4jc-qw8r",
+      "vulnerable_versions": "<=3.3.1",
+      "patched_versions": ">=3.3.2",
+      "findings": [
+        {
+          "version": "3.3.0",
+          "paths": [
+            ". > dompurify@3.3.0",
+            ". > mermaid@11.12.2 > dompurify@3.3.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "dompurify",
+      "severity": "moderate",
+      "title": "DOMPurify USE_PROFILES prototype pollution allows event handlers",
+      "url": "https://github.com/advisories/GHSA-cj63-jhhr-wcxv",
+      "vulnerable_versions": "<=3.3.1",
+      "patched_versions": ">=3.3.2",
+      "findings": [
+        {
+          "version": "3.3.0",
+          "paths": [
+            ". > dompurify@3.3.0",
+            ". > mermaid@11.12.2 > dompurify@3.3.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "dompurify",
+      "severity": "moderate",
+      "title": "DOMPurify is vulnerable to mutation-XSS via Re-Contextualization ",
+      "url": "https://github.com/advisories/GHSA-h8r8-wccr-v5f2",
+      "vulnerable_versions": "<3.3.2",
+      "patched_versions": ">=3.3.2",
+      "findings": [
+        {
+          "version": "3.3.0",
+          "paths": [
+            ". > dompurify@3.3.0",
+            ". > mermaid@11.12.2 > dompurify@3.3.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "mermaid",
+      "severity": "low",
+      "title": "Mermaid configuration APIs allow prototype pollution",
+      "url": "https://github.com/advisories/GHSA-c4c3-pg64-4m4v",
+      "vulnerable_versions": ">=11.0.0-alpha.1 <11.16.1",
+      "patched_versions": ">=11.16.1",
+      "findings": [
+        {
+          "version": "11.12.2",
+          "paths": [
+            ". > mermaid@11.12.2"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "mermaid",
+      "severity": "moderate",
+      "title": "Mermaid allows CSS injection applying to sibling elements of the diagram",
+      "url": "https://github.com/advisories/GHSA-6x64-9x62-f2gx",
+      "vulnerable_versions": ">=11.0.0-alpha.1 <11.16.1",
+      "patched_versions": ">=11.16.1",
+      "findings": [
+        {
+          "version": "11.12.2",
+          "paths": [
+            ". > mermaid@11.12.2"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "mermaid",
+      "severity": "moderate",
+      "title": "Mermaid Architecture diagrams are vulnerable to prototype pollution",
+      "url": "https://github.com/advisories/GHSA-3rrr-jr9j-h3q3",
+      "vulnerable_versions": ">=11.5.0 <11.16.1",
+      "patched_versions": ">=11.16.1",
+      "findings": [
+        {
+          "version": "11.12.2",
+          "paths": [
+            ". > mermaid@11.12.2"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "mermaid",
+      "severity": "moderate",
+      "title": "Mermaid XY Charts are vulnerable to an infinite loop DoS",
+      "url": "https://github.com/advisories/GHSA-2v8p-3f2j-5mp7",
+      "vulnerable_versions": ">=11.0.0-alpha.1 <11.16.1",
+      "patched_versions": ">=11.16.1",
+      "findings": [
+        {
+          "version": "11.12.2",
+          "paths": [
+            ". > mermaid@11.12.2"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "mermaid",
+      "severity": "moderate",
+      "title": "Mermaid radar diagrams are vulnerable to DoS",
+      "url": "https://github.com/advisories/GHSA-rhh3-jpg6-66xh",
+      "vulnerable_versions": ">=11.6.0 <11.16.1",
+      "patched_versions": ">=11.16.1",
+      "findings": [
+        {
+          "version": "11.12.2",
+          "paths": [
+            ". > mermaid@11.12.2"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "dompurify",
+      "severity": "moderate",
+      "title": "DOMPurify: IN_PLACE hook removal leaves a detached subtree executable, causing XSS",
+      "url": "https://github.com/advisories/GHSA-55q2-fjhq-7xh7",
+      "vulnerable_versions": "<=3.4.12",
+      "patched_versions": ">=3.4.13",
+      "findings": [
+        {
+          "version": "3.3.0",
+          "paths": [
+            ". > dompurify@3.3.0",
+            ". > mermaid@11.12.2 > dompurify@3.3.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "browserslist",
+      "severity": "high",
+      "title": "Browserslist: Unbounded memory growth (no cache eviction) via distinct query results, leading to eventual OOM",
+      "url": "https://github.com/advisories/GHSA-c83g-rgw3-j3cx",
+      "vulnerable_versions": "<=4.28.6",
+      "patched_versions": ">=4.28.7",
+      "findings": [
+        {
+          "version": "4.26.3",
+          "paths": [
+            ". > @sentry/nextjs@10.53.1 > @sentry/bundler-plugin-core@5.3.0 > @babel/core@7.29.0 > @babel/helper-compilation-targets@7.28.6 > browserslist@4.26.3 > update-browserslist-db@1.1.3 > browserslist@4.26.3",
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > @sentry/bundler-plugin-core@5.3.0 > @babel/core@7.29.0 > @babel/helper-compilation-targets@7.28.6 > browserslist@4.26.3 > update-browserslist-db@1.1.3 > browserslist@4.26.3",
+            ". > @sentry/nextjs@10.53.1 > next@16.2.12 > styled-jsx@5.1.6 > @babel/core@7.29.0 > @babel/helper-compilation-targets@7.28.6 > browserslist@4.26.3 > update-browserslist-db@1.1.3 > browserslist@4.26.3",
+            ". > next@16.2.12 > styled-jsx@5.1.6 > @babel/core@7.29.0 > @babel/helper-compilation-targets@7.28.6 > browserslist@4.26.3 > update-browserslist-db@1.1.3 > browserslist@4.26.3"
+          ]
+        },
+        {
+          "version": "4.28.1",
+          "paths": [
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > webpack@5.105.4 > browserslist@4.28.1 > update-browserslist-db@1.2.3 > browserslist@4.28.1"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "browserslist",
+      "severity": "high",
+      "title": "Browserslist: Uncaught crash / prototype write via untrusted browserslist-stats.json custom stats (normalizeStats)",
+      "url": "https://github.com/advisories/GHSA-73wf-gq98-2v4g",
+      "vulnerable_versions": "<=4.28.6",
+      "patched_versions": ">=4.28.7",
+      "findings": [
+        {
+          "version": "4.26.3",
+          "paths": [
+            ". > @sentry/nextjs@10.53.1 > @sentry/bundler-plugin-core@5.3.0 > @babel/core@7.29.0 > @babel/helper-compilation-targets@7.28.6 > browserslist@4.26.3 > update-browserslist-db@1.1.3 > browserslist@4.26.3",
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > @sentry/bundler-plugin-core@5.3.0 > @babel/core@7.29.0 > @babel/helper-compilation-targets@7.28.6 > browserslist@4.26.3 > update-browserslist-db@1.1.3 > browserslist@4.26.3",
+            ". > @sentry/nextjs@10.53.1 > next@16.2.12 > styled-jsx@5.1.6 > @babel/core@7.29.0 > @babel/helper-compilation-targets@7.28.6 > browserslist@4.26.3 > update-browserslist-db@1.1.3 > browserslist@4.26.3",
+            ". > next@16.2.12 > styled-jsx@5.1.6 > @babel/core@7.29.0 > @babel/helper-compilation-targets@7.28.6 > browserslist@4.26.3 > update-browserslist-db@1.1.3 > browserslist@4.26.3"
+          ]
+        },
+        {
+          "version": "4.28.1",
+          "paths": [
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > webpack@5.105.4 > browserslist@4.28.1 > update-browserslist-db@1.2.3 > browserslist@4.28.1"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "@opentelemetry/core",
+      "severity": "moderate",
+      "title": "OpenTelemetry Core: Unbounded memory allocation in W3C Baggage propagation",
+      "url": "https://github.com/advisories/GHSA-8988-4f7v-96qf",
+      "vulnerable_versions": "<2.8.0",
+      "patched_versions": ">=2.8.0",
+      "findings": [
+        {
+          "version": "2.7.1",
+          "paths": [
+            ". > @sentry/nextjs@10.53.1 > @sentry/node@10.53.1 > @fastify/otel@0.18.0 > @opentelemetry/core@2.7.1",
+            ". > @sentry/nextjs@10.53.1 > @sentry/node@10.53.1 > @opentelemetry/core@2.7.1",
+            ". > @sentry/nextjs@10.53.1 > @sentry/node@10.53.1 > @opentelemetry/instrumentation-amqplib@0.61.0 > @opentelemetry/core@2.7.1",
+            ". > @sentry/nextjs@10.53.1 > @sentry/node@10.53.1 > @opentelemetry/instrumentation-connect@0.57.0 > @opentelemetry/core@2.7.1",
+            ". > @sentry/nextjs@10.53.1 > @sentry/node@10.53.1 > @opentelemetry/instrumentation-fs@0.33.0 > @opentelemetry/core@2.7.1",
+            ". > @sentry/nextjs@10.53.1 > @sentry/node@10.53.1 > @opentelemetry/instrumentation-hapi@0.60.0 > @opentelemetry/core@2.7.1",
+            ". > @sentry/nextjs@10.53.1 > @sentry/node@10.53.1 > @opentelemetry/instrumentation-koa@0.62.0 > @opentelemetry/core@2.7.1",
+            ". > @sentry/nextjs@10.53.1 > @sentry/node@10.53.1 > @opentelemetry/instrumentation-mongoose@0.60.0 > @opentelemetry/core@2.7.1",
+            ". > @sentry/nextjs@10.53.1 > @sentry/node@10.53.1 > @opentelemetry/instrumentation-mysql2@0.60.0 > @opentelemetry/sql-common@0.41.2 > @opentelemetry/core@2.7.1",
+            ". > @sentry/nextjs@10.53.1 > @sentry/node@10.53.1 > @opentelemetry/instrumentation-pg@0.66.0 > @opentelemetry/core@2.7.1",
+            ". > @sentry/nextjs@10.53.1 > @sentry/node@10.53.1 > @opentelemetry/instrumentation-pg@0.66.0 > @opentelemetry/sql-common@0.41.2 > @opentelemetry/core@2.7.1",
+            ". > @sentry/nextjs@10.53.1 > @sentry/node@10.53.1 > @opentelemetry/sdk-trace-base@2.7.1 > @opentelemetry/core@2.7.1",
+            ". > @sentry/nextjs@10.53.1 > @sentry/node@10.53.1 > @opentelemetry/sdk-trace-base@2.7.1 > @opentelemetry/resources@2.7.1 > @opentelemetry/core@2.7.1",
+            ". > @sentry/nextjs@10.53.1 > @sentry/node@10.53.1 > @sentry/node-core@10.53.1 > @sentry/opentelemetry@10.53.1 > @opentelemetry/core@2.7.1",
+            ". > @sentry/nextjs@10.53.1 > @sentry/node@10.53.1 > @sentry/node-core@10.53.1 > @sentry/opentelemetry@10.53.1 > @opentelemetry/sdk-trace-base@2.7.1 > @opentelemetry/core@2.7.1",
+            ". > @sentry/nextjs@10.53.1 > @sentry/node@10.53.1 > @sentry/node-core@10.53.1 > @sentry/opentelemetry@10.53.1 > @opentelemetry/sdk-trace-base@2.7.1 > @opentelemetry/resources@2.7.1 > @opentelemetry/core@2.7.1",
+            ". > @sentry/nextjs@10.53.1 > @sentry/node@10.53.1 > @sentry/node-core@10.53.1 > @opentelemetry/core@2.7.1",
+            ". > @sentry/nextjs@10.53.1 > @sentry/node@10.53.1 > @sentry/node-core@10.53.1 > @opentelemetry/sdk-trace-base@2.7.1 > @opentelemetry/core@2.7.1",
+            ". > @sentry/nextjs@10.53.1 > @sentry/node@10.53.1 > @sentry/node-core@10.53.1 > @opentelemetry/sdk-trace-base@2.7.1 > @opentelemetry/resources@2.7.1 > @opentelemetry/core@2.7.1",
+            ". > @sentry/nextjs@10.53.1 > @sentry/node@10.53.1 > @sentry/opentelemetry@10.53.1 > @opentelemetry/core@2.7.1",
+            ". > @sentry/nextjs@10.53.1 > @sentry/node@10.53.1 > @sentry/opentelemetry@10.53.1 > @opentelemetry/sdk-trace-base@2.7.1 > @opentelemetry/core@2.7.1",
+            ". > @sentry/nextjs@10.53.1 > @sentry/node@10.53.1 > @sentry/opentelemetry@10.53.1 > @opentelemetry/sdk-trace-base@2.7.1 > @opentelemetry/resources@2.7.1 > @opentelemetry/core@2.7.1",
+            ". > @sentry/nextjs@10.53.1 > @sentry/opentelemetry@10.53.1 > @opentelemetry/core@2.7.1",
+            ". > @sentry/nextjs@10.53.1 > @sentry/opentelemetry@10.53.1 > @opentelemetry/sdk-trace-base@2.7.1 > @opentelemetry/core@2.7.1",
+            ". > @sentry/nextjs@10.53.1 > @sentry/opentelemetry@10.53.1 > @opentelemetry/sdk-trace-base@2.7.1 > @opentelemetry/resources@2.7.1 > @opentelemetry/core@2.7.1",
+            ". > @sentry/nextjs@10.53.1 > @sentry/vercel-edge@10.53.1 > @opentelemetry/resources@2.7.1 > @opentelemetry/core@2.7.1"
+          ]
+        },
+        {
+          "version": "2.6.1",
+          "paths": [
+            ". > @sentry/nextjs@10.53.1 > @sentry/node@10.53.1 > @opentelemetry/instrumentation-http@0.214.0 > @opentelemetry/core@2.6.1"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "@tiptap/core",
+      "severity": "moderate",
+      "title": "Tiptap: mergeAttributes() turns an own __proto__ key into inherited executable DOM attributes",
+      "url": "https://github.com/advisories/GHSA-cp6q-959q-f8rh",
+      "vulnerable_versions": ">=2.0.0-alpha.0 <3.30.4",
+      "patched_versions": ">=3.30.4",
+      "findings": [
+        {
+          "version": "3.7.2",
+          "paths": [
+            ". > @tiptap/extension-link@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/extension-placeholder@3.7.2 > @tiptap/extensions@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/react@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/react@3.7.2 > @tiptap/extension-bubble-menu@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/react@3.7.2 > @tiptap/extension-floating-menu@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-blockquote@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-bold@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-bullet-list@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-code@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-code-block@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-document@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-dropcursor@3.7.2 > @tiptap/extensions@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-gapcursor@3.7.2 > @tiptap/extensions@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-hard-break@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-heading@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-horizontal-rule@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-italic@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-link@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-list-item@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-list-keymap@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-ordered-list@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-paragraph@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-strike@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-text@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-underline@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extensions@3.7.2 > @tiptap/core@3.7.2"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "fast-uri",
+      "severity": "high",
+      "title": "fast-uri vulnerable to host confusion via skipped IDN canonicalization on scheme-relative references",
+      "url": "https://github.com/advisories/GHSA-5jgf-p345-68v8",
+      "vulnerable_versions": ">=4.0.1 <4.1.3",
+      "patched_versions": ">=4.1.3",
+      "findings": [
+        {
+          "version": "4.1.2",
+          "paths": [
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > webpack@5.105.4 > schema-utils@4.3.3 > ajv@8.18.0 > fast-uri@4.1.2",
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > webpack@5.105.4 > schema-utils@4.3.3 > ajv-formats@2.1.1 > ajv@8.18.0 > fast-uri@4.1.2",
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > webpack@5.105.4 > schema-utils@4.3.3 > ajv-keywords@5.1.0 > ajv@8.18.0 > fast-uri@4.1.2",
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > webpack@5.105.4 > terser-webpack-plugin@5.3.17 > schema-utils@4.3.3 > ajv@8.18.0 > fast-uri@4.1.2",
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > webpack@5.105.4 > terser-webpack-plugin@5.3.17 > schema-utils@4.3.3 > ajv-formats@2.1.1 > ajv@8.18.0 > fast-uri@4.1.2",
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > webpack@5.105.4 > terser-webpack-plugin@5.3.17 > schema-utils@4.3.3 > ajv-keywords@5.1.0 > ajv@8.18.0 > fast-uri@4.1.2"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "fast-uri",
+      "severity": "high",
+      "title": "fast-uri vulnerable to server-side request forgery via malformed IPv6 normalization",
+      "url": "https://github.com/advisories/GHSA-f65p-4m7j-42xc",
+      "vulnerable_versions": ">=4.0.0 <4.1.3",
+      "patched_versions": ">=4.1.3",
+      "findings": [
+        {
+          "version": "4.1.2",
+          "paths": [
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > webpack@5.105.4 > schema-utils@4.3.3 > ajv@8.18.0 > fast-uri@4.1.2",
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > webpack@5.105.4 > schema-utils@4.3.3 > ajv-formats@2.1.1 > ajv@8.18.0 > fast-uri@4.1.2",
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > webpack@5.105.4 > schema-utils@4.3.3 > ajv-keywords@5.1.0 > ajv@8.18.0 > fast-uri@4.1.2",
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > webpack@5.105.4 > terser-webpack-plugin@5.3.17 > schema-utils@4.3.3 > ajv@8.18.0 > fast-uri@4.1.2",
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > webpack@5.105.4 > terser-webpack-plugin@5.3.17 > schema-utils@4.3.3 > ajv-formats@2.1.1 > ajv@8.18.0 > fast-uri@4.1.2",
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > webpack@5.105.4 > terser-webpack-plugin@5.3.17 > schema-utils@4.3.3 > ajv-keywords@5.1.0 > ajv@8.18.0 > fast-uri@4.1.2"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "fast-uri",
+      "severity": "high",
+      "title": "fast-uri vulnerable to server-side request forgery via repeated hostname percent-decoding",
+      "url": "https://github.com/advisories/GHSA-fph4-wmhf-6fwf",
+      "vulnerable_versions": ">=4.0.0 <4.1.3",
+      "patched_versions": ">=4.1.3",
+      "findings": [
+        {
+          "version": "4.1.2",
+          "paths": [
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > webpack@5.105.4 > schema-utils@4.3.3 > ajv@8.18.0 > fast-uri@4.1.2",
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > webpack@5.105.4 > schema-utils@4.3.3 > ajv-formats@2.1.1 > ajv@8.18.0 > fast-uri@4.1.2",
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > webpack@5.105.4 > schema-utils@4.3.3 > ajv-keywords@5.1.0 > ajv@8.18.0 > fast-uri@4.1.2",
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > webpack@5.105.4 > terser-webpack-plugin@5.3.17 > schema-utils@4.3.3 > ajv@8.18.0 > fast-uri@4.1.2",
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > webpack@5.105.4 > terser-webpack-plugin@5.3.17 > schema-utils@4.3.3 > ajv-formats@2.1.1 > ajv@8.18.0 > fast-uri@4.1.2",
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > webpack@5.105.4 > terser-webpack-plugin@5.3.17 > schema-utils@4.3.3 > ajv-keywords@5.1.0 > ajv@8.18.0 > fast-uri@4.1.2"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "fast-uri",
+      "severity": "high",
+      "title": "fast-uri vulnerable to host confusion via percent-encoded scheme normalization",
+      "url": "https://github.com/advisories/GHSA-jqff-g426-hqxp",
+      "vulnerable_versions": ">=4.0.0 <4.1.3",
+      "patched_versions": ">=4.1.3",
+      "findings": [
+        {
+          "version": "4.1.2",
+          "paths": [
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > webpack@5.105.4 > schema-utils@4.3.3 > ajv@8.18.0 > fast-uri@4.1.2",
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > webpack@5.105.4 > schema-utils@4.3.3 > ajv-formats@2.1.1 > ajv@8.18.0 > fast-uri@4.1.2",
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > webpack@5.105.4 > schema-utils@4.3.3 > ajv-keywords@5.1.0 > ajv@8.18.0 > fast-uri@4.1.2",
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > webpack@5.105.4 > terser-webpack-plugin@5.3.17 > schema-utils@4.3.3 > ajv@8.18.0 > fast-uri@4.1.2",
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > webpack@5.105.4 > terser-webpack-plugin@5.3.17 > schema-utils@4.3.3 > ajv-formats@2.1.1 > ajv@8.18.0 > fast-uri@4.1.2",
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > webpack@5.105.4 > terser-webpack-plugin@5.3.17 > schema-utils@4.3.3 > ajv-keywords@5.1.0 > ajv@8.18.0 > fast-uri@4.1.2"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "next",
+      "severity": "critical",
+      "title": "Next.js: Unauthenticated Remote Code Execution on windows-hosted servers",
+      "url": "https://github.com/advisories/GHSA-p293-qw3h-jr36",
+      "vulnerable_versions": ">=16.0.0 <16.3.3",
+      "patched_versions": ">=16.3.3",
+      "findings": [
+        {
+          "version": "16.2.12",
+          "paths": [
+            ". > @sentry/nextjs@10.53.1 > next@16.2.12",
+            ". > next@16.2.12"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "maplibre-gl",
+      "severity": "critical",
+      "title": "MapLibre GL JS: XSS Sanitizer Bypass in DOM.sanitize() via Live NamedNodeMap Removal Skip",
+      "url": "https://github.com/advisories/GHSA-jrc7-96c5-q579",
+      "vulnerable_versions": "<=6.4.0",
+      "patched_versions": ">=6.4.1",
+      "findings": [
+        {
+          "version": "4.7.1",
+          "paths": [
+            ". > react-plotly.js@2.6.0 > plotly.js@3.5.0 > maplibre-gl@4.7.1"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "baseline-browser-mapping",
+      "severity": "moderate",
+      "title": "baseline-browser-mapping process termination on invalid input causes denial of service",
+      "url": "https://github.com/advisories/GHSA-w5vr-8v7q-w6rv",
+      "vulnerable_versions": ">=2.0.0 <2.11.0",
+      "patched_versions": ">=2.11.0",
+      "findings": [
+        {
+          "version": "2.8.16",
+          "paths": [
+            ". > @sentry/nextjs@10.53.1 > @sentry/bundler-plugin-core@5.3.0 > @babel/core@7.29.0 > @babel/helper-compilation-targets@7.28.6 > browserslist@4.26.3 > baseline-browser-mapping@2.8.16",
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > @sentry/bundler-plugin-core@5.3.0 > @babel/core@7.29.0 > @babel/helper-compilation-targets@7.28.6 > browserslist@4.26.3 > baseline-browser-mapping@2.8.16",
+            ". > @sentry/nextjs@10.53.1 > next@16.2.12 > styled-jsx@5.1.6 > @babel/core@7.29.0 > @babel/helper-compilation-targets@7.28.6 > browserslist@4.26.3 > baseline-browser-mapping@2.8.16",
+            ". > next@16.2.12 > styled-jsx@5.1.6 > @babel/core@7.29.0 > @babel/helper-compilation-targets@7.28.6 > browserslist@4.26.3 > baseline-browser-mapping@2.8.16"
+          ]
+        },
+        {
+          "version": "2.10.0",
+          "paths": [
+            ". > @sentry/nextjs@10.53.1 > @sentry/webpack-plugin@5.3.0 > webpack@5.105.4 > browserslist@4.28.1 > baseline-browser-mapping@2.10.0",
+            ". > @sentry/nextjs@10.53.1 > next@16.2.12 > baseline-browser-mapping@2.10.0",
+            ". > next@16.2.12 > baseline-browser-mapping@2.10.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "sharp",
+      "severity": "high",
+      "title": "sharp: Vulnerabilities in libheif: GHSA-g89c-p67h-r497 and GHSA-2jg2-4ch7-h545",
+      "url": "https://github.com/advisories/GHSA-rgj7-g3m4-5g8c",
+      "vulnerable_versions": "<0.35.4",
+      "patched_versions": ">=0.35.4",
+      "findings": [
+        {
+          "version": "0.35.3",
+          "paths": [
+            ". > @sentry/nextjs@10.53.1 > next@16.2.12 > sharp@0.35.3",
+            ". > next@16.2.12 > sharp@0.35.3"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "@tiptap/core",
+      "severity": "high",
+      "title": "Tiptap: Quadratic ReDoS in block and inline Markdown attribute parsing",
+      "url": "https://github.com/advisories/GHSA-j95f-988m-3j2f",
+      "vulnerable_versions": ">=3.7.0 <3.30.5",
+      "patched_versions": ">=3.30.5",
+      "findings": [
+        {
+          "version": "3.7.2",
+          "paths": [
+            ". > @tiptap/extension-link@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/extension-placeholder@3.7.2 > @tiptap/extensions@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/react@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/react@3.7.2 > @tiptap/extension-bubble-menu@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/react@3.7.2 > @tiptap/extension-floating-menu@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-blockquote@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-bold@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-bullet-list@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-code@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-code-block@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-document@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-dropcursor@3.7.2 > @tiptap/extensions@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-gapcursor@3.7.2 > @tiptap/extensions@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-hard-break@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-heading@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-horizontal-rule@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-italic@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-link@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-list-item@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-list-keymap@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-ordered-list@3.7.2 > @tiptap/extension-list@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-paragraph@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-strike@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-text@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extension-underline@3.7.2 > @tiptap/core@3.7.2",
+            ". > @tiptap/starter-kit@3.7.2 > @tiptap/extensions@3.7.2 > @tiptap/core@3.7.2"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "next",
+      "severity": "critical",
+      "title": "Next.js: Unauthenticated Remote Code Execution in Image Optimization API when AVIF files are used",
+      "url": "https://github.com/advisories/GHSA-2xp9-vwfh-vxw4",
+      "vulnerable_versions": ">=16.0.0 <16.3.3",
+      "patched_versions": ">=16.3.3",
+      "findings": [
+        {
+          "version": "16.2.12",
+          "paths": [
+            ". > @sentry/nextjs@10.53.1 > next@16.2.12",
+            ". > next@16.2.12"
+          ]
+        }
+      ]
+    }
+  ]
+}

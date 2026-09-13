@@ -19,6 +19,7 @@ from src.middleware import get_current_account
 from src.models import Account
 from src.schemas.base import StrictModel
 from src.services import AuthService, SessionService
+from src.services.security.origins import allowed_dashboard_origin, dashboard_origins
 from src.services.security.password_validator import PasswordValidator, check_hibp
 from src.utils.config_helper import get_app_base_url
 
@@ -51,10 +52,7 @@ class RegisterRequest(StrictModel):
     portal_slug: str | None = Field(
         default=None,
         max_length=100,
-        description=(
-            "If provided, automatically joins the new account to the tenant "
-            "whose white-label portal has this subdomain slug."
-        ),
+        description=("Optional portal context; does not grant tenant membership."),
     )
 
     @field_validator("password")
@@ -175,6 +173,7 @@ async def login(request: Request, data: LoginRequest, db: AsyncSession = Depends
         raise
     except Exception:
         logger.exception("Error checking SAML config during login for account %s", account.id)
+        raise HTTPException(status_code=503, detail="Authentication policy is temporarily unavailable")
 
     # SECURITY: Admin-enforced 2FA — if any tenant this account belongs to has
     # mfa_required=true, reject login if the account has no TOTP configured.
@@ -207,6 +206,7 @@ async def login(request: Request, data: LoginRequest, db: AsyncSession = Depends
         raise
     except Exception:
         logger.exception("Error checking tenant mfa_required during login for account %s", account.id)
+        raise HTTPException(status_code=503, detail="Authentication policy is temporarily unavailable")
 
     # SECURITY: Check if 2FA is enabled AND configured for this account
     # Only require 2FA if both the flag is set AND the secret exists
@@ -479,24 +479,8 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_async_d
                 detail="This password has appeared in a data breach. Please choose a different password.",
             )
 
-        # If portal_slug is provided, resolve the target tenant before registering
-        # so we can auto-join the new account as a NORMAL member after creation.
-        portal_tenant_id = None
-        if data.portal_slug:
-            try:
-                from src.models.tenant_portal import TenantPortal
-
-                _portal_result = await db.execute(
-                    select(TenantPortal).where(
-                        TenantPortal.subdomain == data.portal_slug,
-                        TenantPortal.portal_enabled.is_(True),
-                    )
-                )
-                _portal = _portal_result.scalar_one_or_none()
-                if _portal:
-                    portal_tenant_id = _portal.tenant_id
-            except Exception as _pe:
-                logger.warning(f"portal_slug lookup failed for '{data.portal_slug}': {_pe}")
+        # Public portal signup does not confer internal tenant membership.
+        # Users can browse public portal agents from their own account tenant.
 
         # Register user
         account, tenant = await AuthService.register(
@@ -506,29 +490,6 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_async_d
             name=data.name,
             tenant_name=data.tenant_name,
         )
-
-        # Auto-join the account to the portal's tenant as a NORMAL member
-        if portal_tenant_id:
-            try:
-                from src.models.tenant import AccountRole, TenantAccountJoin
-
-                _existing = await db.execute(
-                    select(TenantAccountJoin).where(
-                        TenantAccountJoin.tenant_id == portal_tenant_id,
-                        TenantAccountJoin.account_id == account.id,
-                    )
-                )
-                if not _existing.scalar_one_or_none():
-                    _join = TenantAccountJoin(
-                        tenant_id=portal_tenant_id,
-                        account_id=account.id,
-                        role=AccountRole.NORMAL,
-                        invited_by=None,
-                    )
-                    db.add(_join)
-                    await db.commit()
-            except Exception as _je:
-                logger.warning(f"Auto-join to portal tenant failed: {_je}")
 
         # Send verification email asynchronously using Celery
         try:
@@ -565,11 +526,14 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_async_d
             "message": "Registration successful. Please check your email to verify your account.",
         }
 
-    except ValueError as e:
+    except ValueError:
+        # SECURITY: Return a generic message to prevent email enumeration.
+        # ValueError from AuthService.register includes "Email already registered"
+        # which would leak whether an email is in use.
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        ) from e
+            detail="Registration could not be completed. If this email is already in use, please try logging in instead.",
+        )
 
 
 @router.post("/refresh")
@@ -584,7 +548,14 @@ async def refresh(request: Request, data: RefreshRequest, db: AsyncSession = Dep
     cookie so the old one cannot be replayed.
     """
     try:
-        # Cookie takes priority — JS cannot forge it (HttpOnly)
+        # SameSite is site-scoped, not origin-scoped: sibling hosts must not
+        # consume a session cookie, even if they have a valid widget API key.
+        if request.cookies.get("refresh_token") and not allowed_dashboard_origin(
+            request.headers.get("origin", ""), dashboard_origins()
+        ):
+            raise HTTPException(status_code=403, detail="Refresh origin is not permitted")
+
+        # Cookie takes priority after its browser origin has been authorized.
         refresh_token = request.cookies.get("refresh_token") or data.refresh_token
         if not refresh_token:
             raise HTTPException(
@@ -899,7 +870,10 @@ async def reset_password(data: ResetPasswordRequest, db: AsyncSession = Depends(
             detail="This password has appeared in a data breach. Please choose a different password.",
         )
 
-    account = await AuthService.reset_password(db, data.token, data.new_password)
+    try:
+        account = await AuthService.reset_password(db, data.token, data.new_password)
+    except RuntimeError:
+        raise HTTPException(503, "Password reset is temporarily unavailable; please retry") from None
 
     if not account:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset token")

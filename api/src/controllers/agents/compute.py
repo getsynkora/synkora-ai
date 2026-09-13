@@ -2,7 +2,7 @@
 Agent Compute Controller.
 
 Provides CRUD endpoints for assigning and managing compute targets
-(local workspace or remote SSH server) for agents.
+(isolated platform workspace or remote SSH server) for agents.
 
 Routes are prefixed with /api/v1/agents/{agent_id}/compute.
 """
@@ -37,8 +37,8 @@ class ComputeAssignRequest(PydanticModel):
     """Body for POST /agents/{id}/compute."""
 
     compute_type: str = Field(
-        default="local",
-        description="Compute type: 'local' (default) or 'remote_server'",
+        default="platform_managed",
+        description="Compute type: 'platform_managed' (default) or 'remote_server'; legacy 'local' uses isolation",
     )
     remote_host: str | None = Field(
         default=None,
@@ -122,8 +122,8 @@ async def get_compute(
     if compute is None:
         return {
             "configured": False,
-            "compute_type": "local",
-            "message": "Agent uses local workspace (no custom compute assigned)",
+            "compute_type": "platform_managed",
+            "message": "Agent uses an isolated platform workspace",
         }
 
     return {**compute.to_dict(), "configured": True}
@@ -139,7 +139,8 @@ async def assign_compute(
     """
     Assign or replace the compute target for an agent.
 
-    - Use compute_type='local' to keep the platform workspace (default).
+    - Use compute_type='platform_managed' for an isolated platform workspace.
+      Legacy 'local' configurations use the same isolated backend.
     - Use compute_type='remote_server' and provide SSH credentials to route
       command and file-system tools to a remote host.
     """
@@ -240,7 +241,7 @@ async def remove_compute(
     """
     Remove the compute assignment for an agent.
 
-    The agent will revert to the default local workspace behaviour.
+    The agent will revert to the default isolated platform workspace.
     """
     await _get_agent_or_404(agent_id, tenant_id, db)
 
@@ -261,38 +262,19 @@ async def test_compute(
     """
     Test connectivity to the assigned compute target.
 
-    For local compute, returns immediately with success.
-    For remote compute, establishes an SSH connection and runs `echo hello`.
+    Runs `echo hello` in the configured isolated platform or remote SSH backend.
     Updates `last_connected_at` and `status` in the DB based on the result.
     """
     await _get_agent_or_404(agent_id, tenant_id, db)
 
-    from src.models.agent_compute import AgentCompute, ComputeType
-
-    # Check what compute type is configured
-    r_check = await db.execute(select(AgentCompute).where(AgentCompute.agent_id == agent_id))
-    existing_compute = r_check.scalar_one_or_none()
-
-    if existing_compute is None or existing_compute.compute_type in (
-        ComputeType.LOCAL,
-        ComputeType.LOCAL.value,
-    ):
-        return {
-            "success": True,
-            "message": "Local compute — no remote connection required",
-            "output": "",
-            "error": "",
-            "latency_ms": 0,
-        }
-
     from src.services.compute.resolver import build_compute_session_for_agent
 
-    session = await build_compute_session_for_agent(str(agent_id), db)
+    session = await build_compute_session_for_agent(str(agent_id), db, tenant_id=tenant_id)
 
     if session is None:
         return {
-            "success": True,
-            "message": "Local compute — no remote connection required",
+            "success": False,
+            "message": "Isolated compute is unavailable",
             "output": "",
             "error": "",
             "latency_ms": 0,
