@@ -25,8 +25,14 @@ if config.config_file_name is not None:
 # Set target metadata for autogenerate
 target_metadata = Base.metadata
 
-# Override sqlalchemy.url with our settings
-config.set_main_option("sqlalchemy.url", settings.sqlalchemy_database_uri)
+# Override sqlalchemy.url with our settings.
+# Config.set_main_option() writes through configparser's set(), which applies
+# BasicInterpolation to the value — a literal '%' (e.g. from a URL-encoded
+# sslrootcert path like '...%2Fcerts%2F...', or a password containing '%')
+# is treated as the start of an interpolation sequence and raises
+# "invalid interpolation syntax". Escape '%' as '%%' to pass it through as a
+# literal value; this is configparser's own documented escape, not ours.
+config.set_main_option("sqlalchemy.url", settings.sqlalchemy_database_uri.replace("%", "%%"))
 
 
 def run_migrations_offline() -> None:
