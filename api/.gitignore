@@ -180,6 +180,10 @@ dist/
 credentials.json
 service-account.json
 
+# AWS's own public RDS CA bundle (not a secret — needed at runtime to verify
+# RDS server certificates; see src/config/database.py _RDS_CA_BUNDLE_PATH)
+!certs/rds-global-bundle.pem
+
 # Local configuration
 .env.backup
 local_settings.py

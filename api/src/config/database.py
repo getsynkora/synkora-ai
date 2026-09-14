@@ -1,10 +1,19 @@
 """Database configuration."""
 
+from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qsl, quote_plus, urlencode
+from urllib.parse import parse_qsl, quote, quote_plus, urlencode
 
 from pydantic import Field, NonNegativeInt, computed_field
 from pydantic_settings import BaseSettings
+
+# Amazon RDS signs server certificates with its own per-region CA hierarchy
+# (e.g. "Amazon RDS us-east-1 Root CA RSA2048 G1") — these roots are never part
+# of a general-purpose OS/Mozilla trust store, so sslrootcert=system cannot
+# verify an RDS server certificate no matter how current the container's CA
+# bundle is. This is AWS's own documented global bundle (covers every region):
+# https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
+_RDS_CA_BUNDLE_PATH = Path(__file__).resolve().parents[2] / "certs" / "rds-global-bundle.pem"
 
 
 class DatabaseConfig(BaseSettings):
@@ -103,19 +112,21 @@ class DatabaseConfig(BaseSettings):
     def _apply_ssl(self, db_extras: str) -> str:
         """Append sslmode=verify-full for non-development/test environments unless already set.
 
-        Also defaults sslrootcert=system alongside it. sqlalchemy_async_engine_options
-        (asyncpg) already falls back to the OS trust store via
-        ssl.create_default_context(cafile=None) when no sslrootcert is given — but
-        psycopg2/libpq (the sync engine, used by Alembic and Celery) does not: its
-        default fallback is ~/.postgresql/root.crt, which doesn't exist in our
-        containers and fails the connection outright. sslrootcert=system tells libpq
-        to trust the OS CA bundle instead, matching the async path's behavior.
+        Also defaults sslrootcert to our bundled Amazon RDS CA bundle (see
+        _RDS_CA_BUNDLE_PATH) rather than "system": RDS signs server certificates
+        with its own per-region CA hierarchy that is never part of a general-purpose
+        OS/Mozilla trust store, in either the sync (psycopg2/libpq, used by Alembic
+        and Celery) or async (asyncpg) path — "system" cannot verify it no matter
+        how current the container's CA bundle is. If the bundle file is somehow
+        missing, fall back to "system" rather than pointing at a nonexistent path
+        (psycopg2 errors outright on a missing sslrootcert file).
         """
         import os
 
         app_env = os.getenv("APP_ENV", "development")
         if app_env not in ("development", "test", "testing") and "sslmode=" not in db_extras:
-            ssl_params = "sslmode=verify-full&sslrootcert=system"
+            ca = str(_RDS_CA_BUNDLE_PATH) if _RDS_CA_BUNDLE_PATH.is_file() else "system"
+            ssl_params = f"sslmode=verify-full&sslrootcert={quote(ca, safe='')}"
             db_extras = f"{db_extras}&{ssl_params}" if db_extras else ssl_params
         return db_extras
 
