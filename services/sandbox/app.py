@@ -73,7 +73,7 @@ async def lifespan(application):
     yield
 
 
-app = FastAPI(title="synkora-sandbox", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="synkora-sandbox", version="1.0.1", lifespan=lifespan)
 
 WORKSPACES_BASE = Path(os.getenv("WORKSPACES_BASE", "/workspaces"))
 SANDBOX_API_KEY = os.getenv("SANDBOX_API_KEY")
