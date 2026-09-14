@@ -101,12 +101,22 @@ class DatabaseConfig(BaseSettings):
     )
 
     def _apply_ssl(self, db_extras: str) -> str:
-        """Append sslmode=verify-full for non-development/test environments unless already set."""
+        """Append sslmode=verify-full for non-development/test environments unless already set.
+
+        Also defaults sslrootcert=system alongside it. sqlalchemy_async_engine_options
+        (asyncpg) already falls back to the OS trust store via
+        ssl.create_default_context(cafile=None) when no sslrootcert is given — but
+        psycopg2/libpq (the sync engine, used by Alembic and Celery) does not: its
+        default fallback is ~/.postgresql/root.crt, which doesn't exist in our
+        containers and fails the connection outright. sslrootcert=system tells libpq
+        to trust the OS CA bundle instead, matching the async path's behavior.
+        """
         import os
 
         app_env = os.getenv("APP_ENV", "development")
         if app_env not in ("development", "test", "testing") and "sslmode=" not in db_extras:
-            db_extras = (db_extras + "&sslmode=verify-full").lstrip("&") if db_extras else "sslmode=verify-full"
+            ssl_params = "sslmode=verify-full&sslrootcert=system"
+            db_extras = f"{db_extras}&{ssl_params}" if db_extras else ssl_params
         return db_extras
 
     @computed_field  # type: ignore[misc]

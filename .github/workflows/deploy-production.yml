@@ -521,6 +521,7 @@ jobs:
           kubectl create secret generic synkora-secrets \
             --namespace=${{ env.NAMESPACE }} \
             --from-literal=ML_SERVICE_URL="${{ vars.K8S_ML_SERVICE_URL }}" \
+            --from-literal=ML_API_KEY="${{ secrets.K8S_ML_API_KEY }}" \
             --from-literal=SCRAPER_SERVICE_URL="${{ vars.K8S_SCRAPER_SERVICE_URL }}" \
             --from-literal=SANDBOX_SERVICE_URL="${{ vars.K8S_SANDBOX_SERVICE_URL }}" \
             --from-literal=SANDBOX_API_KEY="${{ secrets.K8S_SANDBOX_API_KEY }}" \
