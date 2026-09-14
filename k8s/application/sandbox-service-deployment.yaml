@@ -79,9 +79,14 @@ spec:
           timeoutSeconds: 5
           failureThreshold: 3
         volumeMounts:
+        - name: tmp
+          mountPath: /tmp
         - name: workspaces
           mountPath: /workspaces
       volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 1Gi
       - name: workspaces
         emptyDir:
           sizeLimit: 2Gi
