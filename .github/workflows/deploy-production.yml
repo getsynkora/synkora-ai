@@ -633,7 +633,21 @@ jobs:
               echo "::error::${repo} — could not resolve any valid image tag (not currently deployed, no tags found in ECR)." >&2
               candidate="latest"
             fi
+            # Strip any stray CR/LF (a raw newline here would make the sed
+            # replacement below span two "lines" and blow up with
+            # "unterminated `s' command") — belt-and-suspenders since the
+            # candidate should already be a single clean token.
+            candidate=$(printf '%s' "$candidate" | tr -d '\r\n')
             echo "${registry_image}:${candidate}"
+          }
+
+          # Escape a value for safe use as the replacement side of a
+          # `|`-delimited sed s/// command: backslash, the delimiter itself,
+          # and `&` (sed's whole-match token) all need escaping, or a tag
+          # containing any of them corrupts the sed script instead of being
+          # substituted literally.
+          sed_escape_replacement() {
+            printf '%s' "$1" | sed -e 's/[\\|&]/\\&/g'
           }
 
           API_IMAGE_TAG=$(resolve_image      "${{ needs.changes.outputs.api }}"     "${{ env.ECR_REGISTRY }}/synkora-api"      "synkora-api"      "api"      "synkora-api")
@@ -642,16 +656,18 @@ jobs:
           SCRAPER_IMAGE_TAG=$(resolve_image  "${{ needs.changes.outputs.scraper }}" "${{ env.ECR_REGISTRY }}/synkora-scraper"  "synkora-scraper"  "scraper"  "synkora-scraper")
           SANDBOX_IMAGE_TAG=$(resolve_image  "${{ needs.changes.outputs.sandbox }}" "${{ env.ECR_REGISTRY }}/synkora-sandbox"  "synkora-sandbox"  "sandbox"  "synkora-sandbox")
 
+          echo "::notice::Resolved images — api=${API_IMAGE_TAG} frontend=${FRONTEND_IMAGE_TAG} ml=${ML_IMAGE_TAG} scraper=${SCRAPER_IMAGE_TAG} sandbox=${SANDBOX_IMAGE_TAG}"
+
           find "$MANIFESTS_TMP" -name "*.yml" -o -name "*.yaml" | xargs sed -i \
-            "s|FRONTEND_IMAGE_PLACEHOLDER|${FRONTEND_IMAGE_TAG}|g"
+            "s|FRONTEND_IMAGE_PLACEHOLDER|$(sed_escape_replacement "$FRONTEND_IMAGE_TAG")|g"
           find "$MANIFESTS_TMP" -name "*.yml" -o -name "*.yaml" | xargs sed -i \
-            "s|ML_IMAGE_PLACEHOLDER|${ML_IMAGE_TAG}|g"
+            "s|ML_IMAGE_PLACEHOLDER|$(sed_escape_replacement "$ML_IMAGE_TAG")|g"
           find "$MANIFESTS_TMP" -name "*.yml" -o -name "*.yaml" | xargs sed -i \
-            "s|SCRAPER_IMAGE_PLACEHOLDER|${SCRAPER_IMAGE_TAG}|g"
+            "s|SCRAPER_IMAGE_PLACEHOLDER|$(sed_escape_replacement "$SCRAPER_IMAGE_TAG")|g"
           find "$MANIFESTS_TMP" -name "*.yml" -o -name "*.yaml" | xargs sed -i \
-            "s|SANDBOX_IMAGE_PLACEHOLDER|${SANDBOX_IMAGE_TAG}|g"
+            "s|SANDBOX_IMAGE_PLACEHOLDER|$(sed_escape_replacement "$SANDBOX_IMAGE_TAG")|g"
           find "$MANIFESTS_TMP" -name "*.yml" -o -name "*.yaml" | xargs sed -i \
-            "s|IMAGE_PLACEHOLDER|${API_IMAGE_TAG}|g"
+            "s|IMAGE_PLACEHOLDER|$(sed_escape_replacement "$API_IMAGE_TAG")|g"
           find "$MANIFESTS_TMP" -name "*.yml" -o -name "*.yaml" | xargs sed -i \
             "s|DB_PORT_PLACEHOLDER|${{ vars.K8S_DB_PORT }}|g"
 
