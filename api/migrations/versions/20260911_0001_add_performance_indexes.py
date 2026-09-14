@@ -1,5 +1,6 @@
 """Add performance indexes for conversations and activity_logs."""
 
+import sqlalchemy as sa
 from alembic import op
 
 revision = "20260911_0001"
@@ -9,12 +10,16 @@ depends_on = None
 
 
 def upgrade():
-    op.create_index("ix_conversations_session_id", "conversations", ["session_id"])
-    op.create_index(
-        "ix_conversations_agent_status_updated",
-        "conversations",
-        ["agent_id", "status", "updated_at"],
-    )
+    bind = op.get_bind()
+    existing_indexes = {ix["name"] for ix in sa.inspect(bind).get_indexes("conversations")}
+    if "ix_conversations_session_id" not in existing_indexes:
+        op.create_index("ix_conversations_session_id", "conversations", ["session_id"])
+    if "ix_conversations_agent_status_updated" not in existing_indexes:
+        op.create_index(
+            "ix_conversations_agent_status_updated",
+            "conversations",
+            ["agent_id", "status", "updated_at"],
+        )
 
 
 def downgrade():

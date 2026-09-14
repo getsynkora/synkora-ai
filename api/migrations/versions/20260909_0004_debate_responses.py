@@ -10,7 +10,12 @@ depends_on = None
 
 
 def upgrade():
-    op.add_column("debate_sessions", sa.Column("external_responses", sa.JSON(), nullable=False, server_default="{}"))
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    if "external_responses" not in {c["name"] for c in inspector.get_columns("debate_sessions")}:
+        op.add_column(
+            "debate_sessions", sa.Column("external_responses", sa.JSON(), nullable=False, server_default="{}")
+        )
 
 
 def downgrade():
