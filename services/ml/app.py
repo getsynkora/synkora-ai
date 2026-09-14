@@ -92,7 +92,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Synkora ML Service", lifespan=lifespan)
+app = FastAPI(title="Synkora ML Service", version="1.0.1", lifespan=lifespan)
 
 
 @app.middleware("http")

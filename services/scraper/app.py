@@ -71,7 +71,7 @@ from browser_session import BrowserSession
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Synkora Scraper Service")
+app = FastAPI(title="Synkora Scraper Service", version="1.0.1")
 SCRAPER_API_KEY = os.getenv("SCRAPER_API_KEY")
 APP_ENV = os.getenv("APP_ENV", "development").lower()
 SCRAPER_MAX_CONCURRENT_REQUESTS = int(os.getenv("SCRAPER_MAX_CONCURRENT_REQUESTS", "8"))
