@@ -603,13 +603,26 @@ jobs:
 
           latest_pushed_tag() {
             local repo="$1"
-            aws ecr describe-images --region "${{ env.AWS_REGION }}" --repository-name "$repo" \
+            # `head -n1` guards against AWS CLI's paginated --query gotcha:
+            # for a repo with more images than one page, --query gets
+            # applied per-page and prints one "top pick" per page instead of
+            # one overall result — v1.17.7 fed all of those lines, glued
+            # together, straight into a deployment's image field.
+            local tag
+            tag=$(aws ecr describe-images --region "${{ env.AWS_REGION }}" --repository-name "$repo" \
               --query 'reverse(sort_by(imageDetails,& imagePushedAt))[0].imageTags[0]' \
-              --output text 2>/dev/null
+              --output text 2>/dev/null | head -n1 | tr -d '\r\n')
+            [ "$tag" = "None" ] && tag=""
+            echo "$tag"
           }
 
           resolve_image() {
             local changed="$1" registry_image="$2" deployment="$3" container="$4" repo="$5"
+
+            local deployed
+            deployed=$(kubectl get deployment/"${deployment}" -n ${{ env.NAMESPACE }} \
+              -o jsonpath="{.spec.template.spec.containers[?(@.name==\"${container}\")].image}" \
+              2>/dev/null | sed 's/.*://' | head -n1 | tr -d '\r\n')
 
             local candidate=""
             if [ "$changed" = "true" ] && image_exists "$repo" "$NEW_TAG"; then
@@ -618,14 +631,20 @@ jobs:
               if [ "$changed" = "true" ]; then
                 echo "::warning::${repo} — expected ${NEW_TAG} to exist after a rebuild, but ECR doesn't have it (build job likely skipped); falling back to the deployed/latest tag." >&2
               fi
-              local deployed
-              deployed=$(kubectl get deployment/"${deployment}" -n ${{ env.NAMESPACE }} \
-                -o jsonpath="{.spec.template.spec.containers[?(@.name==\"${container}\")].image}" \
-                2>/dev/null | sed 's/.*://')
               if image_exists "$repo" "$deployed"; then
                 candidate="$deployed"
               else
-                candidate=$(latest_pushed_tag "$repo")
+                local latest
+                latest=$(latest_pushed_tag "$repo")
+                # Never trust latest_pushed_tag()'s result blindly — verify
+                # it against the registry the same way NEW_TAG and the
+                # deployed tag are verified above.
+                if [ -n "$latest" ] && image_exists "$repo" "$latest"; then
+                  candidate="$latest"
+                elif [ -n "$deployed" ]; then
+                  echo "::warning::${repo} — could not verify a fresh replacement tag in ECR; reusing the currently deployed tag (${deployed}) as-is rather than guessing." >&2
+                  candidate="$deployed"
+                fi
               fi
             fi
 
@@ -633,11 +652,6 @@ jobs:
               echo "::error::${repo} — could not resolve any valid image tag (not currently deployed, no tags found in ECR)." >&2
               candidate="latest"
             fi
-            # Strip any stray CR/LF (a raw newline here would make the sed
-            # replacement below span two "lines" and blow up with
-            # "unterminated `s' command") — belt-and-suspenders since the
-            # candidate should already be a single clean token.
-            candidate=$(printf '%s' "$candidate" | tr -d '\r\n')
             echo "${registry_image}:${candidate}"
           }
 
