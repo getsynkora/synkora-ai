@@ -15,7 +15,10 @@ depends_on = None
 
 def upgrade() -> None:
     # Existing shared settings cannot safely be attributed to a personal token.
-    op.add_column("user_oauth_tokens", sa.Column("provider_config", sa.JSON(), nullable=True))
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    if "provider_config" not in {c["name"] for c in inspector.get_columns("user_oauth_tokens")}:
+        op.add_column("user_oauth_tokens", sa.Column("provider_config", sa.JSON(), nullable=True))
 
 
 def downgrade() -> None:
