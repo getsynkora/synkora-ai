@@ -126,7 +126,11 @@ class DatabaseConfig(BaseSettings):
         app_env = os.getenv("APP_ENV", "development")
         if app_env not in ("development", "test", "testing") and "sslmode=" not in db_extras:
             ca = str(_RDS_CA_BUNDLE_PATH) if _RDS_CA_BUNDLE_PATH.is_file() else "system"
-            ssl_params = f"sslmode=verify-full&sslrootcert={quote(ca, safe='')}"
+            # '/' is a valid unencoded character in a URI query value (RFC 3986)
+            # and configparser treats it as nothing special — leaving it unescaped
+            # keeps this file path readable and avoids '%'-heavy encoding that
+            # Alembic's env.py has to separately defend against.
+            ssl_params = f"sslmode=verify-full&sslrootcert={quote(ca, safe='/')}"
             db_extras = f"{db_extras}&{ssl_params}" if db_extras else ssl_params
         return db_extras
 
