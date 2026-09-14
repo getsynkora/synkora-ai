@@ -579,95 +579,56 @@ jobs:
         run: |
           NEW_TAG="${{ github.ref_name }}"
 
+          # Determine the API image tag to substitute into manifests.
+          # If the API image was just built, use the new tag.
+          # Otherwise, read the currently running tag from the cluster so we
+          # don't accidentally roll the API pods with a stale placeholder.
+          if [ "${{ needs.changes.outputs.api }}" = "true" ]; then
+            API_IMAGE_TAG="${{ env.ECR_REGISTRY }}/synkora-api:${NEW_TAG}"
+          else
+            CURRENT=$(kubectl get deployment/synkora-api -n ${{ env.NAMESPACE }} \
+              -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null || echo "")
+            API_IMAGE_TAG="${CURRENT:-${{ env.ECR_REGISTRY }}/synkora-api:latest}"
+            # Normalise to a full image reference if it's just a tag
+            if [[ "$API_IMAGE_TAG" != *"/"* ]]; then
+              API_IMAGE_TAG="${{ env.ECR_REGISTRY }}/synkora-api:${API_IMAGE_TAG}"
+            fi
+          fi
+
           # Work on a temp copy of the manifests to avoid dirtying the workspace
           MANIFESTS_TMP=$(mktemp -d)
           cp -r k8s/application/. "$MANIFESTS_TMP/"
 
-          # Determine per-service image tags. "changed" (from the changes job,
-          # including force_* dispatch inputs) is a HINT that a fresh NEW_TAG
-          # image should exist — it is not trusted blindly, because the build
-          # job that was supposed to produce it can itself end up skipped (a
-          # real incident: changes.outputs.sandbox=true from force_sandbox,
-          # but Build & Push Sandbox Image still concluded "skipped", and this
-          # function used to hand the manifest a tag ECR never received,
-          # producing ImagePullBackOff/ErrImagePull in the cluster). Always
-          # verify against the registry — the actual source of truth — before
-          # using a tag, falling back to the currently deployed tag, and from
-          # there to the repository's most recently pushed tag.
-          image_exists() {
-            local repo="$1" tag="$2"
-            [ -z "$tag" ] && return 1
-            aws ecr describe-images --region "${{ env.AWS_REGION }}" --repository-name "$repo" \
-              --image-ids imageTag="$tag" >/dev/null 2>&1
-          }
-
-          latest_pushed_tag() {
-            local repo="$1"
-            aws ecr describe-images --region "${{ env.AWS_REGION }}" --repository-name "$repo" \
-              --query 'reverse(sort_by(imageDetails,& imagePushedAt))[0].imageTags[0]' \
-              --output text 2>/dev/null
-          }
-
+          # Determine per-service image tags — use current cluster image if not rebuilt,
+          # new tag if it was. This prevents manifest apply from clobbering running services.
           resolve_image() {
-            local changed="$1" registry_image="$2" deployment="$3" container="$4" repo="$5"
-
-            local candidate=""
-            if [ "$changed" = "true" ] && image_exists "$repo" "$NEW_TAG"; then
-              candidate="$NEW_TAG"
+            local changed="$1" registry_image="$2" deployment="$3" container="$4"
+            if [ "$changed" = "true" ]; then
+              echo "${registry_image}:${NEW_TAG}"
             else
-              if [ "$changed" = "true" ]; then
-                echo "::warning::${repo} — expected ${NEW_TAG} to exist after a rebuild, but ECR doesn't have it (build job likely skipped); falling back to the deployed/latest tag." >&2
-              fi
-              local deployed
-              deployed=$(kubectl get deployment/"${deployment}" -n ${{ env.NAMESPACE }} \
+              local current
+              current=$(kubectl get deployment/"${deployment}" -n ${{ env.NAMESPACE }} \
                 -o jsonpath="{.spec.template.spec.containers[?(@.name==\"${container}\")].image}" \
-                2>/dev/null | sed 's/.*://')
-              if image_exists "$repo" "$deployed"; then
-                candidate="$deployed"
-              else
-                candidate=$(latest_pushed_tag "$repo")
-              fi
+                2>/dev/null || echo "")
+              echo "${current:-${registry_image}:latest}"
             fi
-
-            if [ -z "$candidate" ]; then
-              echo "::error::${repo} — could not resolve any valid image tag (not currently deployed, no tags found in ECR)." >&2
-              candidate="latest"
-            fi
-            # Strip any stray CR/LF (a raw newline here would make the sed
-            # replacement below span two "lines" and blow up with
-            # "unterminated `s' command") — belt-and-suspenders since the
-            # candidate should already be a single clean token.
-            candidate=$(printf '%s' "$candidate" | tr -d '\r\n')
-            echo "${registry_image}:${candidate}"
           }
 
-          # Escape a value for safe use as the replacement side of a
-          # `|`-delimited sed s/// command: backslash, the delimiter itself,
-          # and `&` (sed's whole-match token) all need escaping, or a tag
-          # containing any of them corrupts the sed script instead of being
-          # substituted literally.
-          sed_escape_replacement() {
-            printf '%s' "$1" | sed -e 's/[\\|&]/\\&/g'
-          }
-
-          API_IMAGE_TAG=$(resolve_image      "${{ needs.changes.outputs.api }}"     "${{ env.ECR_REGISTRY }}/synkora-api"      "synkora-api"      "api"      "synkora-api")
-          FRONTEND_IMAGE_TAG=$(resolve_image "${{ needs.changes.outputs.web }}"     "${{ env.ECR_REGISTRY }}/synkora-frontend" "synkora-frontend" "frontend" "synkora-frontend")
-          ML_IMAGE_TAG=$(resolve_image       "${{ needs.changes.outputs.ml }}"      "${{ env.ECR_REGISTRY }}/synkora-ml"       "synkora-ml"       "ml"       "synkora-ml")
-          SCRAPER_IMAGE_TAG=$(resolve_image  "${{ needs.changes.outputs.scraper }}" "${{ env.ECR_REGISTRY }}/synkora-scraper"  "synkora-scraper"  "scraper"  "synkora-scraper")
-          SANDBOX_IMAGE_TAG=$(resolve_image  "${{ needs.changes.outputs.sandbox }}" "${{ env.ECR_REGISTRY }}/synkora-sandbox"  "synkora-sandbox"  "sandbox"  "synkora-sandbox")
-
-          echo "::notice::Resolved images — api=${API_IMAGE_TAG} frontend=${FRONTEND_IMAGE_TAG} ml=${ML_IMAGE_TAG} scraper=${SCRAPER_IMAGE_TAG} sandbox=${SANDBOX_IMAGE_TAG}"
+          FRONTEND_IMAGE_TAG=$(resolve_image "${{ needs.changes.outputs.web }}"     "${{ env.ECR_REGISTRY }}/synkora-frontend" "synkora-frontend" "frontend")
+          ML_IMAGE_TAG=$(resolve_image       "${{ needs.changes.outputs.ml }}"      "${{ env.ECR_REGISTRY }}/synkora-ml"       "synkora-ml"       "ml")
+          SCRAPER_IMAGE_TAG=$(resolve_image  "${{ needs.changes.outputs.scraper }}" "${{ env.ECR_REGISTRY }}/synkora-scraper"  "synkora-scraper"  "scraper")
+          SANDBOX_IMAGE_TAG=$(resolve_image  "${{ needs.changes.outputs.sandbox }}" "${{ env.ECR_REGISTRY }}/synkora-sandbox"  "synkora-sandbox"  "sandbox")
 
           find "$MANIFESTS_TMP" -name "*.yml" -o -name "*.yaml" | xargs sed -i \
-            "s|FRONTEND_IMAGE_PLACEHOLDER|$(sed_escape_replacement "$FRONTEND_IMAGE_TAG")|g"
+            "s|FRONTEND_IMAGE_PLACEHOLDER|${FRONTEND_IMAGE_TAG}|g"
           find "$MANIFESTS_TMP" -name "*.yml" -o -name "*.yaml" | xargs sed -i \
-            "s|ML_IMAGE_PLACEHOLDER|$(sed_escape_replacement "$ML_IMAGE_TAG")|g"
+            "s|ML_IMAGE_PLACEHOLDER|${ML_IMAGE_TAG}|g"
           find "$MANIFESTS_TMP" -name "*.yml" -o -name "*.yaml" | xargs sed -i \
-            "s|SCRAPER_IMAGE_PLACEHOLDER|$(sed_escape_replacement "$SCRAPER_IMAGE_TAG")|g"
+            "s|SCRAPER_IMAGE_PLACEHOLDER|${SCRAPER_IMAGE_TAG}|g"
           find "$MANIFESTS_TMP" -name "*.yml" -o -name "*.yaml" | xargs sed -i \
-            "s|SANDBOX_IMAGE_PLACEHOLDER|$(sed_escape_replacement "$SANDBOX_IMAGE_TAG")|g"
+            "s|SANDBOX_IMAGE_PLACEHOLDER|${SANDBOX_IMAGE_TAG}|g"
           find "$MANIFESTS_TMP" -name "*.yml" -o -name "*.yaml" | xargs sed -i \
-            "s|IMAGE_PLACEHOLDER|$(sed_escape_replacement "$API_IMAGE_TAG")|g"
+            "s|IMAGE_PLACEHOLDER|${API_IMAGE_TAG}|g"
           find "$MANIFESTS_TMP" -name "*.yml" -o -name "*.yaml" | xargs sed -i \
             "s|DB_PORT_PLACEHOLDER|${{ vars.K8S_DB_PORT }}|g"
 
