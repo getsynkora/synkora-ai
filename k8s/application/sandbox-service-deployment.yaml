@@ -34,6 +34,14 @@ spec:
           readOnlyRootFilesystem: true
           capabilities:
             drop: ["ALL"]
+            # The nodes' Debian kernel disables unprivileged user-namespace
+            # creation by default (kernel.unprivileged_userns_clone=0).
+            # bwrap --unshare-user (isolation.py) needs CAP_SYS_ADMIN to
+            # bypass that restriction. This only affects the outer sandbox
+            # container itself — bwrap still runs the untrusted code with
+            # --unshare-all --cap-drop ALL, so the code being sandboxed has
+            # no more privilege than before.
+            add: ["SYS_ADMIN"]
         image: SANDBOX_IMAGE_PLACEHOLDER
         imagePullPolicy: Always
         ports:
