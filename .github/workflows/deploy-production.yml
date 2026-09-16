@@ -740,10 +740,19 @@ jobs:
             sandbox=${{ env.ECR_REGISTRY }}/synkora-sandbox:${{ github.ref_name }} \
             -n ${{ env.NAMESPACE }}
 
-      # ── Rollout waits: only for what was updated ─────────────────────────
+      # ── Rollout waits ──────────────────────────────────────────────────
+      # Also gated on `k8s` changing: manifests are always applied to every
+      # deployment regardless of which service's image was rebuilt, so a
+      # manifest-only change (e.g. a securityContext fix with no source
+      # change) still mutates a deployment's pod template and can still
+      # break its rollout. Gating this solely on the per-service image flag
+      # left exactly that case unverified — sandbox's v1.17.9 CAP_SYS_ADMIN
+      # change applied cleanly but the pod still crash-looped, and every
+      # wait/health-check step was skipped, so the run reported success
+      # while the service stayed down.
 
       - name: Wait for API rollout
-        if: needs.changes.outputs.api == 'true'
+        if: needs.changes.outputs.api == 'true' || needs.changes.outputs.k8s == 'true'
         run: |
           for dep in synkora-api synkora-celery-worker synkora-celery-worker-agents \
                      synkora-celery-worker-billing synkora-celery-worker-notifications \
@@ -756,7 +765,7 @@ jobs:
           done
 
       - name: Wait for Frontend rollout
-        if: needs.changes.outputs.web == 'true'
+        if: needs.changes.outputs.web == 'true' || needs.changes.outputs.k8s == 'true'
         run: |
           if ! kubectl rollout status deployment/synkora-frontend -n ${{ env.NAMESPACE }} --timeout=600s; then
             echo "Frontend rollout failed, rolling back..."
@@ -765,7 +774,7 @@ jobs:
           fi
 
       - name: Wait for ML rollout
-        if: needs.changes.outputs.ml == 'true'
+        if: needs.changes.outputs.ml == 'true' || needs.changes.outputs.k8s == 'true'
         run: |
           if ! kubectl rollout status deployment/synkora-ml -n ${{ env.NAMESPACE }} --timeout=600s; then
             echo "ML service rollout failed, rolling back..."
@@ -774,7 +783,7 @@ jobs:
           fi
 
       - name: Wait for Scraper rollout
-        if: needs.changes.outputs.scraper == 'true'
+        if: needs.changes.outputs.scraper == 'true' || needs.changes.outputs.k8s == 'true'
         run: |
           if ! kubectl rollout status deployment/synkora-scraper -n ${{ env.NAMESPACE }} --timeout=600s; then
             echo "Scraper rollout failed, rolling back..."
@@ -783,7 +792,7 @@ jobs:
           fi
 
       - name: Wait for Sandbox rollout
-        if: needs.changes.outputs.sandbox == 'true'
+        if: needs.changes.outputs.sandbox == 'true' || needs.changes.outputs.k8s == 'true'
         run: |
           if ! kubectl rollout status deployment/synkora-sandbox -n ${{ env.NAMESPACE }} --timeout=600s; then
             echo "Sandbox rollout failed, rolling back..."
@@ -793,7 +802,7 @@ jobs:
 
       # Health check is only meaningful when the API was redeployed
       - name: Health check
-        if: needs.changes.outputs.api == 'true'
+        if: needs.changes.outputs.api == 'true' || needs.changes.outputs.k8s == 'true'
         run: |
           echo "Waiting 30s for services to stabilize..."
           sleep 30
