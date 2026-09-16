@@ -42,6 +42,14 @@ spec:
             # --unshare-all --cap-drop ALL, so the code being sandboxed has
             # no more privilege than before.
             add: ["SYS_ADMIN"]
+          # CAP_SYS_ADMIN alone was not sufficient: the node's AppArmor
+          # policy independently denies unshare(CLONE_NEWUSER) regardless of
+          # capabilities unless the container's own profile allows it.
+          # Unconfine just this container's AppArmor mediation; the pod's
+          # Linux capabilities/UID restrictions above are unaffected, and
+          # bwrap's internal isolation of the executed code is unaffected.
+          appArmorProfile:
+            type: Unconfined
         image: SANDBOX_IMAGE_PLACEHOLDER
         imagePullPolicy: Always
         ports:
