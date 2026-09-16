@@ -72,13 +72,21 @@ def mcp_http_client_factory(url: str) -> Callable[..., httpx.AsyncClient]:
         headers: dict[str, str] | None = None,
         timeout: httpx.Timeout | None = None,
         auth: httpx.Auth | None = None,
+        # fastmcp's StreamableHttpTransport calls custom httpx_client_factory
+        # implementations with follow_redirects explicitly (fastmcp>=3), which
+        # isn't part of mcp's McpHttpClientFactory protocol. Accept it rather
+        # than raising. Safe to honor either way: MCPHTTPTransport rejects any
+        # request whose origin differs from the configured endpoint, so a
+        # followed redirect can't escape to an unpinned host regardless of
+        # this flag.
+        follow_redirects: bool = False,
     ) -> httpx.AsyncClient:
         return httpx.AsyncClient(
             headers=headers,
             timeout=timeout or httpx.Timeout(30, read=120),
             auth=auth,
             transport=MCPHTTPTransport(url),
-            follow_redirects=False,
+            follow_redirects=follow_redirects,
             trust_env=False,
         )
 
