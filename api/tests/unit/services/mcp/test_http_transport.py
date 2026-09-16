@@ -71,3 +71,16 @@ async def test_client_does_not_follow_redirects():
     async with mcp_http_client_factory("https://tools.example.com/mcp")() as client:
         assert client.follow_redirects is False
         assert client.trust_env is False
+
+
+@pytest.mark.asyncio
+async def test_factory_accepts_follow_redirects_kwarg_from_fastmcp():
+    # fastmcp's StreamableHttpTransport calls custom httpx_client_factory
+    # implementations with an explicit follow_redirects kwarg that isn't part
+    # of mcp's McpHttpClientFactory protocol. The factory must accept it
+    # instead of raising TypeError, and honor the requested value: a followed
+    # redirect can't escape to an unpinned host anyway, since
+    # MCPHTTPTransport rejects any request whose origin differs from the
+    # configured endpoint regardless of this flag.
+    async with mcp_http_client_factory("https://tools.example.com/mcp")(follow_redirects=True) as client:
+        assert client.follow_redirects is True
