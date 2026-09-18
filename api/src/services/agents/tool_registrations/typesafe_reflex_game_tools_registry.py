@@ -47,7 +47,7 @@ def register_typesafe_reflex_game_tools(registry: ToolRegistry) -> None:
             "WORKFLOW:\n"
             "1. Pick a topic and a guess question that fits what the user wants.\n"
             "2. Write 5-20 scenarios yourself — the content IS the game, make them good.\n"
-            "3. Call this tool with visibility='public' (default) for a permanent, shareable link.\n"
+            "3. Call this tool with visibility='public' (default) for a shareable link.\n"
             "4. ALWAYS copy the exact 'url' from the result and share it as a clickable link — "
             "never omit it.\n\n"
             "The tenant must have a TypeSafe API key configured under Settings → Integrations → "
@@ -97,7 +97,7 @@ def register_typesafe_reflex_game_tools(registry: ToolRegistry) -> None:
                 "visibility": {
                     "type": "string",
                     "enum": ["presigned", "public"],
-                    "description": "public (default) = permanent shareable link. presigned = private 7-day URL.",
+                    "description": "public (default) = shareable link, valid up to 7 days. presigned = same, but explicitly framed as a private/temporary link.",
                 },
             },
             "required": ["title", "description", "scenarios", "guess_question"],

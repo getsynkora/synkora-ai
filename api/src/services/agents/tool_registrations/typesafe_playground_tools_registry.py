@@ -43,9 +43,9 @@ def register_typesafe_playground_tools(registry: ToolRegistry) -> None:
             "2. Write a short, punchy title, description, and input_label.\n"
             "3. Call this tool. ALWAYS copy the exact 'url' from the result and share it as a "
             "clickable link — never omit it.\n\n"
-            "VISIBILITY: use visibility='public' for anything meant to be shared/go viral (the whole "
-            "point of a playground) — it gives a permanent link. Only use the default 'presigned' "
-            "(7-day expiry) if the user explicitly wants a temporary/private link.\n\n"
+            "VISIBILITY: both options currently return a link valid for up to 7 days (S3's signed-URL "
+            "max). Use visibility='public' for anything meant to be shared/go viral (the default) — "
+            "use 'presigned' only if the user explicitly wants it framed as a temporary/private link.\n\n"
             "The tenant must have a TypeSafe API key configured under Settings → Integrations → "
             "AI Evaluation, or the page's judgments will fail at request time (the page itself "
             "will still load)."
@@ -76,7 +76,7 @@ def register_typesafe_playground_tools(registry: ToolRegistry) -> None:
                 "visibility": {
                     "type": "string",
                     "enum": ["presigned", "public"],
-                    "description": "presigned = private 7-day URL (default). public = permanent direct URL.",
+                    "description": "presigned = 7-day URL framed as private/temporary (default). public = same 7-day validity, framed as the shareable link.",
                 },
             },
             "required": ["title", "description", "input_label", "questions"],

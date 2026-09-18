@@ -49,9 +49,9 @@ def register_dashboard_tools(registry: ToolRegistry) -> None:
             "- filter: Dropdown filtering all charts+tables. Fields: column, label?\n"
             "  Put filter sections first — they appear as a strip above the content.\n"
             "- text: Heading + paragraph. Fields: heading?, body?\n\n"
-            "VISIBILITY:\n"
-            "- presigned (default): private URL, expires in 7 days\n"
-            "- public: permanent URL — only if user explicitly requests a public/shareable link\n\n"
+            "VISIBILITY: both currently expire in 7 days (S3's signed-URL max).\n"
+            "- presigned (default): framed as a private/temporary link\n"
+            "- public: framed as the shareable link — use if user explicitly wants to share it\n\n"
             "EXAMPLE sections for a sales CSV with columns [region, revenue, month, rep]:\n"
             '[\n  {"type":"filter","column":"region"},\n'
             '  {"type":"kpi_row","kpis":[\n'
@@ -87,7 +87,7 @@ def register_dashboard_tools(registry: ToolRegistry) -> None:
                 "visibility": {
                     "type": "string",
                     "enum": ["presigned", "public"],
-                    "description": "presigned = private 7-day URL (default). public = permanent direct URL.",
+                    "description": "presigned = 7-day URL framed as private/temporary (default). public = same 7-day validity, framed as the shareable link.",
                 },
                 "theme": {
                     "type": "string",
