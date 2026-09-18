@@ -178,7 +178,8 @@ async def internal_create_typesafe_reflex_game(
 
     round_seconds = max(_MIN_ROUND_SECONDS, min(_MAX_ROUND_SECONDS, int(round_seconds or _DEFAULT_ROUND_SECONDS)))
 
-    tenant_id = (config or {}).get("tenant_id")
+    runtime_context = (config or {}).get("_runtime_context")
+    tenant_id = getattr(runtime_context, "tenant_id", None) if runtime_context else None
     if not tenant_id:
         return {"success": False, "error": "No tenant context available"}
 
