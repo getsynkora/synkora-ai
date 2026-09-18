@@ -487,6 +487,13 @@ class ADKToolRegistry:
 
         register_infographic_tools(self)
 
+        # Dashboard generation tools - spec-driven interactive HTML dashboards
+        from src.services.agents.tool_registrations.dashboard_tools_registry import (
+            register_dashboard_tools,
+        )
+
+        register_dashboard_tools(self)
+
         # AI image generation tools (DALL-E 3 / Google Imagen 3)
         from src.services.agents.tool_registrations.image_generation_tools_registry import (
             register_image_generation_tools,
@@ -528,6 +535,11 @@ class ADKToolRegistry:
         from src.services.agents.tool_registrations.handoff_tools_registry import register_handoff_tools
 
         register_handoff_tools(self)
+
+        # TypeSafe AI evaluation tools (generic + profile-based + report formatter)
+        from src.services.agents.tool_registrations.typesafe_tools_registry import register_typesafe_tools
+
+        register_typesafe_tools(self)
 
         # Multi-agent transfer tool
         self.register_tool(
@@ -2300,11 +2312,9 @@ internal_write_file instead. To inspect files, use internal_read_file or interna
         if not is_platform_eng:
             return []
         from src.services.agents.tool_registrations.platform_tools_registry import register_platform_tools
-        from src.services.agents.tool_registrations.scheduler_tools_registry import register_scheduler_tools
 
         register_platform_tools(self)
-        register_scheduler_tools(self)
-        logger.info("Registered platform engineer tools + scheduler tools for agent '%s'", agent.agent_name)
+        logger.info("Registered platform engineer tools for agent '%s'", agent.agent_name)
         return [
             "platform_list_agents",
             "platform_get_available_tools",

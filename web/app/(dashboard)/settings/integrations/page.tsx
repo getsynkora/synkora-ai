@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Mail, CreditCard, Database, BarChart3, Activity, Lock, PlugZap } from 'lucide-react'
+import { Plus, Mail, CreditCard, Database, BarChart3, Activity, Lock, PlugZap, BrainCircuit } from 'lucide-react'
 import { useIntegrations } from '@/hooks/useIntegrations'
 import { usePermissions } from '@/hooks/usePermissions'
 import { IntegrationCard } from '@/components/integrations'
@@ -16,6 +16,7 @@ const INTEGRATION_TYPES = [
   { value: 'storage', label: 'Storage', icon: Database, description: 'Cloud storage services' },
   { value: 'analytics', label: 'Analytics', icon: BarChart3, description: 'Analytics platforms' },
   { value: 'monitoring', label: 'Monitoring', icon: Activity, description: 'Monitoring services' },
+  { value: 'ai_evaluation', label: 'AI Evaluation', icon: BrainCircuit, description: 'Structured AI evaluation services' },
 ]
 
 export default function IntegrationsPage() {

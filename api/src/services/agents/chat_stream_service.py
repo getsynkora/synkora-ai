@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import re
@@ -528,7 +529,7 @@ class ChatStreamService:
             trace_id = self._create_trace(agent, agent_name, message, final_tool_names)
 
             if managed_db_session and db is not None:
-                await db.close()
+                await asyncio.shield(db.close())
                 db = None
 
             # --- Fallback chain -----------------------------------------------
@@ -728,7 +729,7 @@ class ChatStreamService:
                     _llm_reasoning_ctx.set(None)
                 finally:
                     if managed_db_session and post_db is not None:
-                        await post_db.close()
+                        await asyncio.shield(post_db.close())
 
                 if assistant_message is None:
                     raise RuntimeError("The answer could not be saved. Please reload the conversation before retrying.")
@@ -811,7 +812,7 @@ class ChatStreamService:
                         )
                     finally:
                         if managed_db_session and stats_db is not None:
-                            await stats_db.close()
+                            await asyncio.shield(stats_db.close())
                     self.chat_service.queue_credit_deduction(
                         tenant_id=tenant_id or db_agent.tenant_id,
                         agent_id=db_agent.id,
@@ -838,7 +839,7 @@ class ChatStreamService:
                                 )
                             finally:
                                 if managed_db_session and output_db is not None:
-                                    await output_db.close()
+                                    await asyncio.shield(output_db.close())
                         except Exception as _out_err:
                             logger.warning(f"Chat output delivery error: {_out_err}")
 
@@ -887,15 +888,15 @@ class ChatStreamService:
                     )
             finally:
                 if managed_db_session and failure_db is not None:
-                    await failure_db.close()
+                    await asyncio.shield(failure_db.close())
         finally:
             if run_lease is not None:
                 try:
-                    await run_lease.release()
+                    await asyncio.shield(run_lease.release())
                 except Exception:
                     logger.warning("Could not release run capacity; its bounded lease will expire")
             if managed_db_session and db is not None:
-                await db.close()
+                await asyncio.shield(db.close())
 
     async def _stream_workflow_agent(
         self,
