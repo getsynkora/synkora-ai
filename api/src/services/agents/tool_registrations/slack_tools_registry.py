@@ -44,6 +44,7 @@ def register_slack_tools(registry):
         runtime_context = config.get("_runtime_context") if config else None
         return await internal_slack_find_user(
             query=kwargs.get("query"),
+            include_bots=kwargs.get("include_bots", False),
             runtime_context=runtime_context,
             config=config,
         )
@@ -186,12 +187,21 @@ def register_slack_tools(registry):
             "Look up a Slack user's ID by name, display name, or email. Slack mentions "
             "(<@USER_ID> to tag someone) and internal_slack_send_dm both require the person's "
             "Slack user ID, not their name — call this first whenever you only know a name and "
-            "need to tag or DM them. Returns multiple_matches with candidates if the name is ambiguous."
+            "need to tag or DM them. Returns multiple_matches with candidates if the name is ambiguous. "
+            "Excludes bots by default — set include_bots=true to look up another bot/agent's ID so you "
+            "can @-mention it (e.g. to tag another agent's Slack bot)."
         ),
         parameters={
             "type": "object",
             "properties": {
                 "query": {"type": "string", "description": "Name, display name, or email to search for"},
+                "include_bots": {
+                    "type": "boolean",
+                    "description": (
+                        "Set true to also match bot users (e.g. another agent's Slack bot), so it can "
+                        "be tagged with <@USER_ID>. Defaults to false, which only searches human users."
+                    ),
+                },
             },
             "required": ["query"],
         },
@@ -219,7 +229,8 @@ def register_slack_tools(registry):
             "asks you to send or post a message to a specific channel or thread. Do not call this tool "
             "to echo, summarize, or follow up on a response you have already given. To @-mention/tag a "
             'person or another bot, embed <@USER_ID> in the text (e.g. "<@U0123ABC> please review") — '
-            "if you only know their name, call internal_slack_find_user first to resolve it to an ID."
+            "if you only know their name, call internal_slack_find_user first to resolve it to an ID "
+            "(pass include_bots=true when the target is another agent's bot, not a person)."
         ),
         parameters={
             "type": "object",
@@ -336,7 +347,8 @@ def register_slack_tools(registry):
             "Other useful block types: section (text), divider, context (small text), "
             "actions (buttons), header (bold title).\n\n"
             'To @-mention/tag a person or bot inside block text, embed <@USER_ID> (e.g. "<@U0123ABC>") — '
-            "call internal_slack_find_user first if you only know their name."
+            "call internal_slack_find_user first if you only know their name (pass include_bots=true "
+            "when the target is another agent's bot, not a person)."
         ),
         parameters={
             "type": "object",

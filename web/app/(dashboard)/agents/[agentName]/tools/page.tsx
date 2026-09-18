@@ -219,6 +219,14 @@ const TOOL_GROUPS: ToolGroup[] = [
     expanded: false
   },
   {
+    id: 'dashboard',
+    name: 'Dashboard Generator',
+    description: 'Generate interactive HTML dashboards with charts, KPI cards, filters, and sortable tables from CSV, Excel, or database data',
+    icon: Package,
+    tools: [],
+    expanded: false
+  },
+  {
     id: 'image_generation',
     name: 'Image Generation',
     description: 'Generate AI images from text prompts using gpt-image-2, Google Imagen, or Grok Aurora — uses the agent\'s configured LLM API key',
@@ -915,6 +923,8 @@ export default function AgentToolsPage() {
         groupId = 'diagram';
       } else if (toolName === 'internal_generate_infographic' || toolName === 'internal_generate_slack_infographic') {
         groupId = 'infographic';
+      } else if (toolName === 'internal_generate_dashboard') {
+        groupId = 'dashboard';
       } else if (toolName === 'internal_generate_image') {
         groupId = 'image_generation';
       } else if (toolName === 'internal_generate_chart' || toolName === 'internal_query_and_chart') {
@@ -1341,6 +1351,7 @@ export default function AgentToolsPage() {
     if (name.startsWith('internal_google_sheets_')) return '📊';
     if (name.startsWith('internal_google_docs_')) return '📝';
     if (name.startsWith('internal_elasticsearch_')) return '🔎';
+    if (name === 'internal_generate_dashboard') return '📊';
     if (name === 'internal_generate_chart' || name === 'internal_query_and_chart') return '📊';
     if (name === 'generate_chart_from_data') return '📁';
     if (name === 'query_docker_logs') return '🐳';

@@ -595,10 +595,8 @@ async def export_data_report(
             filename = f"report_{int(time.time())}"
 
         # Create service and export
-        service = ReportExportService(db_session)
-        result = await service.export_report(
-            data=data, format=format, filename=filename, title=title, tenant_id=str(tenant_id)
-        )
+        service = ReportExportService(db_session, tenant_id)
+        result = await service.export_report(data=data, format=format, filename=filename, title=title)
 
         return result
 

@@ -2843,3 +2843,43 @@ class CredentialResolver:
             return None
 
         return await resolver(tool_name)
+
+    async def get_typesafe_credentials(self) -> dict[str, Any] | None:
+        """
+        Resolve TypeSafe AI credentials from IntegrationConfig.
+
+        Looks up integration_type="ai_evaluation", provider="typesafe" for the
+        current tenant, falling back to the platform-level config if none found.
+
+        Returns:
+            {"api_key": str, "base_url": str, "model": str} or None
+        """
+        try:
+            from src.services.integrations.integration_config_service import IntegrationConfigService
+
+            tenant_id = getattr(self.context, "tenant_id", None)
+            service = IntegrationConfigService(self.db)
+            config_data = await service.get_active_config_data(
+                tenant_id=tenant_id,
+                integration_type="ai_evaluation",
+                provider="typesafe",
+            )
+
+            if not config_data:
+                logger.warning("No TypeSafe AI integration configured for tenant %s", tenant_id)
+                return None
+
+            api_key = config_data.get("api_key", "").strip()
+            if not api_key:
+                logger.warning("TypeSafe AI integration config has no api_key for tenant %s", tenant_id)
+                return None
+
+            logger.info("Resolved TypeSafe AI credentials for tenant %s", tenant_id)
+            return {
+                "api_key": api_key,
+                "base_url": config_data.get("base_url", "https://api.typesafe.ai/v1").rstrip("/"),
+                "model": config_data.get("model", "jev-latest"),
+            }
+        except Exception as exc:
+            logger.error("Failed to get TypeSafe credentials: %s", exc, exc_info=True)
+            return None

@@ -24,7 +24,7 @@ class DataAnalysisTools:
         self.tenant_id = tenant_id
         self.db = db
         self.analysis_service = DataAnalysisService(db)
-        self.export_service = ReportExportService(db)
+        self.export_service = ReportExportService(db, tenant_id)
 
     def get_tools(self) -> list[dict[str, Any]]:
         """Get all data analysis tools available to the agent.

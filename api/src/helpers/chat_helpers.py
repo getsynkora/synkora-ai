@@ -28,6 +28,9 @@ def convert_to_json_serializable(obj: Any) -> Any:
         return [convert_to_json_serializable(item) for item in obj]
     elif isinstance(obj, tuple):
         return tuple(convert_to_json_serializable(item) for item in obj)
+    elif isinstance(obj, float) and (obj != obj or obj == float("inf") or obj == float("-inf")):
+        # NaN and Infinity are not valid JSON (PostgreSQL rejects them); map to null
+        return None
     else:
         try:
             import numpy as np
@@ -35,7 +38,10 @@ def convert_to_json_serializable(obj: Any) -> Any:
             if isinstance(obj, (np.integer,)):
                 return int(obj)
             elif isinstance(obj, (np.floating,)):
-                return float(obj)
+                f = float(obj)
+                if f != f or f == float("inf") or f == float("-inf"):
+                    return None
+                return f
             elif isinstance(obj, np.ndarray):
                 return obj.tolist()
             elif isinstance(obj, np.bool_):
@@ -196,7 +202,13 @@ def format_attachment_context(attachments: list[dict[str, Any]]) -> str:
     if not attachments:
         return ""
 
-    attachment_parts = ["# Attached Files\n"]
+    attachment_parts = [
+        "# Attached Files\n",
+        "IMPORTANT: These files were uploaded as chat attachments. "
+        "Their full text content is included below. "
+        "Do NOT use internal_load_context_file or any other tool to access them — "
+        "they are not pre-configured agent context files.\n",
+    ]
 
     for i, attachment in enumerate(attachments, 1):
         file_name = attachment.get("file_name", "Unknown")
@@ -209,7 +221,11 @@ def format_attachment_context(attachments: list[dict[str, Any]]) -> str:
         if extracted_text:
             attachment_parts.append(f"Content:\n{extracted_text}\n")
         else:
-            attachment_parts.append("(No text content extracted)\n")
+            attachment_parts.append(
+                "(Text extraction failed for this file. "
+                "The content is not available. "
+                "Do NOT attempt to use internal_load_context_file or any other tool to retrieve it.)\n"
+            )
 
     return "\n".join(attachment_parts)
 
