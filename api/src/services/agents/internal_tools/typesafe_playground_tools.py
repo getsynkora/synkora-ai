@@ -172,12 +172,22 @@ async def internal_create_typesafe_playground(
                 "visibility": "presigned",
             }
         else:
-            endpoint = s3.public_endpoint_url or s3.internal_endpoint_url or ""
-            if endpoint:
-                url = f"{endpoint.rstrip('/')}/{s3.bucket_name}/{_html_key(page_id)}"
+            # internal_endpoint_url is the S3 API endpoint used for signed requests, NOT a
+            # publicly-readable file host — using it for an unsigned URL 403s unless the
+            # bucket has a public-read policy. Only public_endpoint_url is safe to assume
+            # is actually anonymous-readable; otherwise fall back to a long-lived signed URL.
+            if s3.public_endpoint_url:
+                url = f"{s3.public_endpoint_url.rstrip('/')}/{s3.bucket_name}/{_html_key(page_id)}"
+                result = {"success": True, "url": url, "visibility": "public"}
             else:
                 url = s3.generate_presigned_url(key=_html_key(page_id), expiration=86400 * 365)
-            result = {"success": True, "url": url, "visibility": "public"}
+                result = {
+                    "success": True,
+                    "url": url,
+                    "visibility": "public",
+                    "expires_at": (datetime.now(UTC) + timedelta(days=365)).isoformat(),
+                    "note": "No public S3 endpoint configured — returned a 1-year signed URL instead of a permanent one.",
+                }
     except Exception as exc:
         return {"success": False, "error": f"URL generation failed: {exc}"}
 
