@@ -596,9 +596,7 @@ async def export_data_report(
 
         # Create service and export
         service = ReportExportService(db_session, tenant_id)
-        result = await service.export_report(
-            data=data, format=format, filename=filename, title=title
-        )
+        result = await service.export_report(data=data, format=format, filename=filename, title=title)
 
         return result
 

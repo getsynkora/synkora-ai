@@ -14,9 +14,7 @@ SAMPLE_SECTIONS = [
 
 @pytest.fixture
 def mock_s3():
-    with patch(
-        "src.services.agents.internal_tools.dashboard_tools.get_s3_storage"
-    ) as mock_get:
+    with patch("src.services.agents.internal_tools.dashboard_tools.get_s3_storage") as mock_get:
         s3 = MagicMock()
         s3.upload_file.return_value = {"key": "dashboards/t1/abc.html"}
         s3.generate_presigned_url.return_value = "https://example.com/presigned?sig=abc"
@@ -33,6 +31,7 @@ class TestInternalGenerateDashboard:
         from src.services.agents.internal_tools.dashboard_tools import (
             internal_generate_dashboard,
         )
+
         result = await internal_generate_dashboard(
             title="Sales Report",
             sections=SAMPLE_SECTIONS,
@@ -51,6 +50,7 @@ class TestInternalGenerateDashboard:
         from src.services.agents.internal_tools.dashboard_tools import (
             internal_generate_dashboard,
         )
+
         await internal_generate_dashboard(
             title="Sales", sections=SAMPLE_SECTIONS, data=SAMPLE_DATA, config={"tenant_id": "t1"}
         )
@@ -63,6 +63,7 @@ class TestInternalGenerateDashboard:
         from src.services.agents.internal_tools.dashboard_tools import (
             internal_generate_dashboard,
         )
+
         result = await internal_generate_dashboard(
             title="Public",
             sections=SAMPLE_SECTIONS,
@@ -82,6 +83,7 @@ class TestInternalGenerateDashboard:
         from src.services.agents.internal_tools.dashboard_tools import (
             internal_generate_dashboard,
         )
+
         await internal_generate_dashboard(
             title="T", sections=SAMPLE_SECTIONS, data=SAMPLE_DATA, config={"tenant_id": "my-tenant"}
         )
@@ -94,6 +96,7 @@ class TestInternalGenerateDashboard:
         from src.services.agents.internal_tools.dashboard_tools import (
             internal_generate_dashboard,
         )
+
         await internal_generate_dashboard(
             title="T", sections=SAMPLE_SECTIONS, data=SAMPLE_DATA, config={"tenant_id": "t1"}
         )
@@ -105,6 +108,7 @@ class TestInternalGenerateDashboard:
         from src.services.agents.internal_tools.dashboard_tools import (
             internal_generate_dashboard,
         )
+
         result = await internal_generate_dashboard(title="", sections=SAMPLE_SECTIONS, data=SAMPLE_DATA)
         assert result["success"] is False
         assert "title" in result["error"]
@@ -114,6 +118,7 @@ class TestInternalGenerateDashboard:
         from src.services.agents.internal_tools.dashboard_tools import (
             internal_generate_dashboard,
         )
+
         result = await internal_generate_dashboard(title="   ", sections=SAMPLE_SECTIONS, data=SAMPLE_DATA)
         assert result["success"] is False
 
@@ -122,6 +127,7 @@ class TestInternalGenerateDashboard:
         from src.services.agents.internal_tools.dashboard_tools import (
             internal_generate_dashboard,
         )
+
         result = await internal_generate_dashboard(title="X", sections=[], data=SAMPLE_DATA)
         assert result["success"] is False
 
@@ -130,6 +136,7 @@ class TestInternalGenerateDashboard:
         from src.services.agents.internal_tools.dashboard_tools import (
             internal_generate_dashboard,
         )
+
         result = await internal_generate_dashboard(
             title="X", sections=SAMPLE_SECTIONS, data=SAMPLE_DATA, visibility="secret"
         )
@@ -142,6 +149,7 @@ class TestInternalGenerateDashboard:
         from src.services.agents.internal_tools.dashboard_tools import (
             internal_generate_dashboard,
         )
+
         result = await internal_generate_dashboard(
             title="Sales", sections=SAMPLE_SECTIONS, data=SAMPLE_DATA, config={"tenant_id": "t1"}
         )
@@ -153,6 +161,7 @@ class TestInternalGenerateDashboard:
         from src.services.agents.internal_tools.dashboard_tools import (
             internal_generate_dashboard,
         )
+
         sections_with_unknown = SAMPLE_SECTIONS + [{"type": "unknown_section"}]
         result = await internal_generate_dashboard(
             title="W", sections=sections_with_unknown, data=SAMPLE_DATA, config={"tenant_id": "t1"}
@@ -166,9 +175,8 @@ class TestInternalGenerateDashboard:
         from src.services.agents.internal_tools.dashboard_tools import (
             internal_generate_dashboard,
         )
+
         large_data = [{"x": i} for i in range(50_001)]
-        result = await internal_generate_dashboard(
-            title="X", sections=SAMPLE_SECTIONS, data=large_data
-        )
+        result = await internal_generate_dashboard(title="X", sections=SAMPLE_SECTIONS, data=large_data)
         assert result["success"] is False
         assert "50" in result["error"]  # mentions the limit

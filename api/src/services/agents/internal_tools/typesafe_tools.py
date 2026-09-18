@@ -78,7 +78,16 @@ EVALUATION_PROFILES: dict[str, dict[str, dict[str, Any]]] = {
         "violation_type": {
             "type": "choice",
             "question": "What type of policy violation does this content contain, if any?",
-            "options": ["none", "spam", "hate_speech", "harassment", "misinformation", "adult_content", "violence", "other"],
+            "options": [
+                "none",
+                "spam",
+                "hate_speech",
+                "harassment",
+                "misinformation",
+                "adult_content",
+                "violence",
+                "other",
+            ],
         },
         "recommended_action": {
             "type": "choice",
@@ -120,7 +129,15 @@ EVALUATION_PROFILES: dict[str, dict[str, dict[str, Any]]] = {
         "primary_intent": {
             "type": "choice",
             "question": "What is the customer's primary intent or request type?",
-            "options": ["refund_request", "technical_issue", "billing_inquiry", "feature_request", "complaint", "general_question", "cancellation"],
+            "options": [
+                "refund_request",
+                "technical_issue",
+                "billing_inquiry",
+                "feature_request",
+                "complaint",
+                "general_question",
+                "cancellation",
+            ],
         },
         "urgency": {
             "type": "score",
@@ -155,6 +172,7 @@ VALID_PROFILES = sorted(EVALUATION_PROFILES.keys())
 # Credential helper
 # ---------------------------------------------------------------------------
 
+
 async def _get_client(runtime_context: Any):
     """Return a TypeSafeClient for this tenant or None if not configured."""
     if not runtime_context:
@@ -176,6 +194,7 @@ async def _get_client(runtime_context: Any):
 # ---------------------------------------------------------------------------
 # Report formatter helpers
 # ---------------------------------------------------------------------------
+
 
 def _bar(probability: float, width: int = 10) -> str:
     filled = round(probability * width)
@@ -226,6 +245,7 @@ def _format_answer(key: str, answer: dict[str, Any]) -> str:
 # ---------------------------------------------------------------------------
 # Tool implementations
 # ---------------------------------------------------------------------------
+
 
 async def internal_typesafe_evaluate(
     state: str,
@@ -421,7 +441,7 @@ async def internal_format_evaluation_report(
             elif a.get("type") == "score":
                 score = a.get("score", 0)
                 levels = ["low", "medium", "high", "critical", "urgent"]
-                high_levels = levels[len(levels) // 2:]
+                high_levels = levels[len(levels) // 2 :]
                 if any(lvl in str(a.get("legend", {})).lower() for lvl in high_levels) or score > 0.6:
                     lines.append(f"- **⚠ High urgency detected** (score: {score:.2f})")
         lines.append("")

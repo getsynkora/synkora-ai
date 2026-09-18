@@ -96,14 +96,10 @@ def _render_kpi_row(kpis: list[dict], data: list[dict]) -> str:
             f"</div>"
         )
     joined = "".join(cards)
-    return (
-        f'<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px;">{joined}</div>'
-    )
+    return f'<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px;">{joined}</div>'
 
 
-def _aggregate_for_chart(
-    data: list[dict], x_col: str, y_col: str, agg: str | None
-) -> tuple[list, list]:
+def _aggregate_for_chart(data: list[dict], x_col: str, y_col: str, agg: str | None) -> tuple[list, list]:
     """Group data by x_col, aggregate y_col.  Returns (xs, ys) lists."""
     if not agg:
         return [row.get(x_col) for row in data], [row.get(y_col) for row in data]
@@ -271,8 +267,8 @@ def _render_table(section: dict, data: list[dict]) -> str:
 
     header_cells = "".join(
         f'<th onclick="sortTable(this)" style="padding:10px 12px;text-align:left;'
-        f'font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;'
-        f'color:{_D["label_color"]};cursor:pointer;user-select:none;'
+        f"font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;"
+        f"color:{_D['label_color']};cursor:pointer;user-select:none;"
         f'border-bottom:1px solid {_D["card_border"]};">{c} ↕</th>'
         for c in valid_cols
     )
@@ -311,8 +307,8 @@ def _render_table(section: dict, data: list[dict]) -> str:
         f"var sl=rows.slice(pg*PS,(pg+1)*PS);"
         f"tb.innerHTML=sl.map(function(r){{"
         f"return '<tr>'+r.map(function(c){{"
-        f'return \'<td style="padding:10px 12px;border-bottom:1px solid {_D["card_border"]};\'+'
-        f'\'color:{_D["body_color"]};">\'+(c||\'\')+\'</td>\';'
+        f"return '<td style=\"padding:10px 12px;border-bottom:1px solid {_D['card_border']};'+"
+        f"'color:{_D['body_color']};\">'+(c||'')+'</td>';"
         f"}}).join('')+'</tr>';"
         f"}}).join('');"
         f"var pages=Math.ceil(rows.length/PS);"
@@ -336,9 +332,7 @@ def _render_filter(section: dict, data: list[dict]) -> str:
     column = section.get("column", "")
     label = section.get("label") or f"Filter by {column}"
     values = sorted({str(row.get(column, "")) for row in data if row.get(column) is not None})
-    options = '<option value="">All</option>' + "".join(
-        f'<option value="{v}">{v}</option>' for v in values
-    )
+    options = '<option value="">All</option>' + "".join(f'<option value="{v}">{v}</option>' for v in values)
     return (
         f'<div style="display:inline-flex;flex-direction:column;gap:4px;">'
         f'<label style="font-size:10px;font-weight:700;text-transform:uppercase;'
@@ -359,17 +353,11 @@ def _render_text(section: dict) -> str:
         if heading
         else ""
     )
-    p = (
-        f'<p style="font-size:14px;color:{_D["body_color"]};margin:0;line-height:1.6;">{body}</p>'
-        if body
-        else ""
-    )
+    p = f'<p style="font-size:14px;color:{_D["body_color"]};margin:0;line-height:1.6;">{body}</p>' if body else ""
     return f'<div style="margin-bottom:24px;">{h}{p}</div>'
 
 
-def render_dashboard(
-    title: str, sections: list[dict], data: list[dict]
-) -> tuple[str, list[str]]:
+def render_dashboard(title: str, sections: list[dict], data: list[dict]) -> tuple[str, list[str]]:
     """
     Render a complete self-contained interactive HTML dashboard.
 
@@ -387,7 +375,7 @@ def render_dashboard(
         items = "".join(_render_filter(s, data) for s in filter_sections)
         filter_html = (
             f'<div style="display:flex;gap:16px;flex-wrap:wrap;'
-            f'background:{_D["card_bg"]};border:1px solid {_D["card_border"]};'
+            f"background:{_D['card_bg']};border:1px solid {_D['card_border']};"
             f'border-radius:10px;padding:16px 24px;margin-bottom:24px;">{items}</div>'
         )
 
@@ -435,14 +423,14 @@ def _build_full_html(
   <script src="{_PLOTLY_CDN}"></script>
   <style>
     *,*::before,*::after{{box-sizing:border-box;margin:0;padding:0;}}
-    body{{font-family:{d['font']};background:{d['bg']};color:{d['body_color']};padding:32px 16px 48px;}}
+    body{{font-family:{d["font"]};background:{d["bg"]};color:{d["body_color"]};padding:32px 16px 48px;}}
     .dash-container{{max-width:1100px;margin:0 auto;}}
-    h1{{font-size:22px;font-weight:700;color:{d['value_color']};margin-bottom:24px;}}
-    .dash-footer{{margin-top:32px;padding-top:16px;border-top:1px solid {d['card_border']};display:flex;align-items:center;justify-content:center;gap:8px;}}
-    .dash-footer-logo{{width:18px;height:18px;border-radius:4px;background:{d['accent']};display:flex;align-items:center;justify-content:center;flex-shrink:0;}}
+    h1{{font-size:22px;font-weight:700;color:{d["value_color"]};margin-bottom:24px;}}
+    .dash-footer{{margin-top:32px;padding-top:16px;border-top:1px solid {d["card_border"]};display:flex;align-items:center;justify-content:center;gap:8px;}}
+    .dash-footer-logo{{width:18px;height:18px;border-radius:4px;background:{d["accent"]};display:flex;align-items:center;justify-content:center;flex-shrink:0;}}
     .dash-footer-logo svg{{width:11px;height:11px;}}
-    .dash-footer-text{{font-size:11px;color:{d['label_color']};letter-spacing:0.02em;}}
-    .dash-footer-text strong{{color:{d['body_color']};font-weight:600;}}
+    .dash-footer-text{{font-size:11px;color:{d["label_color"]};letter-spacing:0.02em;}}
+    .dash-footer-text strong{{color:{d["body_color"]};font-weight:600;}}
   </style>
 </head>
 <body>
@@ -514,7 +502,7 @@ def _build_full_html(
         var ps=tbl.ps||20;
         var rows=filtered.map(function(r){{return tbl.cols.map(function(c){{return r[c]!==undefined?String(r[c]):'';}})}});
         tb.innerHTML=rows.slice(0,ps).map(function(r){{
-          return '<tr>'+r.map(function(c){{return '<td style="padding:10px 12px;border-bottom:1px solid {d['card_border']};color:{d['body_color']};">'+c+'</td>';}}).join('')+'</tr>';
+          return '<tr>'+r.map(function(c){{return '<td style="padding:10px 12px;border-bottom:1px solid {d["card_border"]};color:{d["body_color"]};">'+c+'</td>';}}).join('')+'</tr>';
         }}).join('');
       }});
     }}
