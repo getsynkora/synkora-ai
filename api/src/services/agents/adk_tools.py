@@ -541,6 +541,20 @@ class ADKToolRegistry:
 
         register_typesafe_tools(self)
 
+        # TypeSafe AI playground pages — public interactive judgment demos
+        from src.services.agents.tool_registrations.typesafe_playground_tools_registry import (
+            register_typesafe_playground_tools,
+        )
+
+        register_typesafe_playground_tools(self)
+
+        # TypeSafe AI reflex games — public timed guess-the-AI's-verdict games
+        from src.services.agents.tool_registrations.typesafe_reflex_game_tools_registry import (
+            register_typesafe_reflex_game_tools,
+        )
+
+        register_typesafe_reflex_game_tools(self)
+
         # Multi-agent transfer tool
         self.register_tool(
             name="transfer_to_agent",
