@@ -15,12 +15,14 @@ import logging
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 
 from src.core.database import get_async_session_factory
 from src.services.agents.internal_tools.typesafe_playground_renderer import MAX_PLAYGROUND_TEXT_LEN
+from src.services.agents.internal_tools.typesafe_playground_tools import html_key as playground_html_key
 from src.services.agents.internal_tools.typesafe_playground_tools import spec_key as playground_spec_key
+from src.services.agents.internal_tools.typesafe_reflex_game_tools import html_key as reflex_game_html_key
 from src.services.agents.internal_tools.typesafe_reflex_game_tools import spec_key as reflex_game_spec_key
 from src.services.agents.runtime_context import RuntimeContext
 from src.utils.ip_utils import get_client_ip
@@ -182,3 +184,34 @@ async def evaluate_reflex_game(page_id: str, body: ReflexEvaluateRequest, reques
 
     guess_answer = answers.pop("_guess", None) if answers else None
     return {"success": True, "guess_answer": guess_answer, "reveal_answers": answers or {}}
+
+
+def _serve_page(key: str, not_found_detail: str) -> Response:
+    """Fetch a page's HTML from S3 server-side and return it directly.
+
+    This is the "public"/permanent link target — it never expires and doesn't
+    depend on any S3 bucket ACL or presigned-URL time limit (AWS caps those at
+    7 days), unlike trying to hand out a raw S3 URL.
+    """
+    from src.services.storage.s3_storage import get_s3_storage
+
+    try:
+        html_bytes = get_s3_storage().download_file(key)
+    except Exception:
+        raise HTTPException(status_code=404, detail=not_found_detail) from None
+
+    return Response(content=html_bytes, media_type="text/html")
+
+
+@public_router.get("/typesafe-playground/{page_id}/page")
+async def serve_playground_page(page_id: str):
+    if not page_id.isalnum() or len(page_id) > 64:
+        raise HTTPException(status_code=404, detail="Playground not found")
+    return _serve_page(playground_html_key(page_id), "Playground not found")
+
+
+@public_router.get("/typesafe-playground/{page_id}/reflex-page")
+async def serve_reflex_game_page(page_id: str):
+    if not page_id.isalnum() or len(page_id) > 64:
+        raise HTTPException(status_code=404, detail="Game not found")
+    return _serve_page(reflex_game_html_key(page_id), "Game not found")

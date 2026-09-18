@@ -235,22 +235,13 @@ async def internal_create_typesafe_reflex_game(
                 "visibility": "presigned",
             }
         else:
-            # internal_endpoint_url is the S3 API endpoint used for signed requests, NOT a
-            # publicly-readable file host — using it for an unsigned URL 403s unless the
-            # bucket has a public-read policy. Only public_endpoint_url is safe to assume
-            # is actually anonymous-readable; otherwise fall back to a long-lived signed URL.
-            if s3.public_endpoint_url:
-                url = f"{s3.public_endpoint_url.rstrip('/')}/{s3.bucket_name}/{html_key(page_id)}"
-                result = {"success": True, "url": url, "visibility": "public"}
-            else:
-                url = s3.generate_presigned_url(key=html_key(page_id), expiration=86400 * 365)
-                result = {
-                    "success": True,
-                    "url": url,
-                    "visibility": "public",
-                    "expires_at": (datetime.now(UTC) + timedelta(days=365)).isoformat(),
-                    "note": "No public S3 endpoint configured — returned a 1-year signed URL instead of a permanent one.",
-                }
+            # AWS presigned URLs cap at 7 days (SigV4 spec) — there is no such thing as a
+            # long-lived S3 presigned URL, and constructing a raw S3 URL 403s unless the
+            # bucket has a public-read policy (it doesn't, by default). So a truly permanent
+            # link is served through our own API instead of S3 directly — this endpoint
+            # fetches the HTML server-side and never expires.
+            url = f"{api_base_url}/api/v1/public/typesafe-playground/{page_id}/reflex-page"
+            result = {"success": True, "url": url, "visibility": "public"}
     except Exception as exc:
         return {"success": False, "error": f"URL generation failed: {exc}"}
 

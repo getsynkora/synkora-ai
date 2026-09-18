@@ -99,18 +99,20 @@ async def internal_generate_dashboard(
             # internal_endpoint_url is the S3 API endpoint used for signed requests, NOT a
             # publicly-readable file host — using it for an unsigned URL 403s unless the
             # bucket has a public-read policy. Only public_endpoint_url is safe to assume
-            # is actually anonymous-readable; otherwise fall back to a long-lived signed URL.
+            # is actually anonymous-readable; otherwise fall back to a signed URL. AWS caps
+            # SigV4 presigned URLs at 7 days (604800s) — there is no such thing as a
+            # long-lived one, so this is NOT actually permanent despite visibility='public'.
             if s3.public_endpoint_url:
                 url = f"{s3.public_endpoint_url.rstrip('/')}/{s3.bucket_name}/{s3_key}"
                 result = {"success": True, "url": url, "visibility": "public"}
             else:
-                url = s3.generate_presigned_url(key=s3_key, expiration=86400 * 365)
+                url = s3.generate_presigned_url(key=s3_key, expiration=604800)
                 result = {
                     "success": True,
                     "url": url,
                     "visibility": "public",
-                    "expires_at": (datetime.now(UTC) + timedelta(days=365)).isoformat(),
-                    "note": "No public S3 endpoint configured — returned a 1-year signed URL instead of a permanent one.",
+                    "expires_at": (datetime.now(UTC) + timedelta(days=7)).isoformat(),
+                    "note": "No public S3 endpoint configured — returned a 7-day signed URL (AWS's max) instead of a permanent one.",
                 }
     except Exception as exc:
         return {"success": False, "error": f"URL generation failed: {exc}"}
