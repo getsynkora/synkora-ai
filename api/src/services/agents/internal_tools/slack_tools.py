@@ -683,6 +683,7 @@ async def internal_slack_add_reaction(
 
 async def internal_slack_find_user(
     query: str,
+    include_bots: bool = False,
     runtime_context: dict[str, Any] | None = None,
     config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -695,6 +696,8 @@ async def internal_slack_find_user(
 
     Args:
         query: Name, display name, or email address to search for
+        include_bots: Set True to also search bot users (e.g. another agent's Slack bot) so it
+            can be tagged with <@USER_ID>. Bots are excluded by default.
         runtime_context: Runtime context from agent execution
         config: Config dict with _tool_name
 
@@ -733,7 +736,9 @@ async def internal_slack_find_user(
         while True:
             response = await client.users_list(cursor=cursor, limit=200)
             for user in response.get("members", []):
-                if user.get("is_bot") or user.get("deleted") or user.get("id") == "USLACKBOT":
+                if user.get("deleted") or user.get("id") == "USLACKBOT":
+                    continue
+                if user.get("is_bot") and not include_bots:
                     continue
                 profile = user.get("profile", {})
                 names_lower = [
@@ -744,6 +749,7 @@ async def internal_slack_find_user(
                     "name": user.get("real_name") or user.get("name"),
                     "display_name": profile.get("display_name", ""),
                     "email": profile.get("email", ""),
+                    "is_bot": user.get("is_bot", False),
                 }
                 if query_lower in names_lower:
                     exact_matches.append(entry)
