@@ -51,6 +51,14 @@ class DynamicCORSMiddleware:
             "/api/v1/widgets/push/register",
         } or bool(re.fullmatch(r"/api/v1/widgets/(?:sessions/[^/]+/close|chat/approvals/[^/]+/respond)", path))
 
+    @staticmethod
+    def _is_public_open_route(request: StarletteRequest) -> bool:
+        # Fully public, keyless, rate-limited endpoints called from arbitrary hosted
+        # pages (e.g. TypeSafe playground pages served from S3/MinIO) — open to any
+        # origin, no credentials. Security boundary is rate limiting, not CORS.
+        path = request.url.path.rstrip("/")
+        return bool(re.fullmatch(r"/api/v1/public/typesafe-playground/[^/]+/evaluate", path))
+
     def __init__(
         self,
         app: ASGIApp,
@@ -108,7 +116,10 @@ class DynamicCORSMiddleware:
             allowed_origin = await self._get_allowed_origin(request, origin)
             if allowed_origin:
                 # Add CORS headers to response
-                cors_headers = self._build_cors_headers(allowed_origin, credentials=not self._is_widget_route(request))
+                cors_headers = self._build_cors_headers(
+                    allowed_origin,
+                    credentials=not (self._is_widget_route(request) or self._is_public_open_route(request)),
+                )
 
                 async def send_with_cors(message: Message) -> None:
                     if message["type"] == "http.response.start":
@@ -155,7 +166,9 @@ class DynamicCORSMiddleware:
 
         # Create preflight response
         response = Response(status_code=200)
-        for key, value in self._build_cors_headers(allowed_origin, credentials=not self._is_widget_route(request)):
+        for key, value in self._build_cors_headers(
+            allowed_origin, credentials=not (self._is_widget_route(request) or self._is_public_open_route(request))
+        ):
             response.headers[key.decode()] = value.decode()
 
         # Add preflight-specific headers
@@ -200,6 +213,10 @@ class DynamicCORSMiddleware:
         if api_key and self._is_widget_route(request):
             # Widget request - validate against widget's allowed domains
             return await self._validate_widget_origin(api_key, origin)
+
+        if self._is_public_open_route(request):
+            # Public, keyless, rate-limited endpoint — any origin may call it.
+            return origin
 
         # Extension API clients use bearer tokens and browser host permissions;
         # they must not grant ambient cookie access to session endpoints.

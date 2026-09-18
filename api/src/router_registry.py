@@ -350,6 +350,13 @@ ROUTER_REGISTRY: list[RouteConfig] = [
         prefix="/api/v1",
         tags=["widgets"],
     ),
+    # ===== TypeSafe AI Playground (public, keyless, rate-limited) =====
+    RouteConfig(
+        module="src.controllers.typesafe_playground",
+        attribute="public_router",
+        prefix="/api/v1/public",
+        tags=["typesafe-playground"],
+    ),
     # ===== Bot Integrations =====
     RouteConfig(
         module="src.controllers.slack_bots",
