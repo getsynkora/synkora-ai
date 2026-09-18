@@ -42,7 +42,6 @@ _MAX_ROUND_SECONDS = 15
 _DEFAULT_ROUND_SECONDS = 6
 
 _S3_PREFIX = "typesafe_reflex_games/pages"
-_DEFAULT_API_BASE_URL = "https://api.synkora.ai"
 
 
 def spec_key(page_id: str) -> str:
@@ -202,7 +201,7 @@ async def internal_create_typesafe_reflex_game(
         from src.config.settings import settings
         from src.services.agents.internal_tools.typesafe_reflex_game_renderer import render_reflex_game_html
 
-        api_base_url = (settings.app_base_url or _DEFAULT_API_BASE_URL).rstrip("/")
+        api_base_url = settings.api_base_url.rstrip("/")
         html_doc = render_reflex_game_html(page_id=page_id, spec=spec, api_base_url=api_base_url)
     except Exception as exc:
         logger.exception("Reflex game render failed")
