@@ -119,7 +119,8 @@ async def internal_create_typesafe_playground(
     if q_error:
         return {"success": False, "error": q_error}
 
-    tenant_id = (config or {}).get("tenant_id")
+    runtime_context = (config or {}).get("_runtime_context")
+    tenant_id = getattr(runtime_context, "tenant_id", None) if runtime_context else None
     if not tenant_id:
         return {"success": False, "error": "No tenant context available"}
 
