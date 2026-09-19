@@ -252,6 +252,21 @@ def company_brain_tier_migration_task() -> dict[str, Any]:
 # Entity extractor task — runs after each batch is indexed
 # ---------------------------------------------------------------------------
 
+_MAX_LLM_EXTRACTION_DOCS = 20  # bounds LLM cost per task run, mirrors knowledge_autopilot's per-run cap
+_MIN_CONTENT_CHARS_FOR_LLM = 40  # skip near-empty documents (join notices, reactions, etc.)
+
+_VALID_LLM_ENTITY_TYPES = {"person", "project", "repo", "team", "channel"}
+_VALID_RELATION_TYPES = {
+    "authored",
+    "assigned_to",
+    "mentioned_in",
+    "resolved_by",
+    "reviewed",
+    "commented_on",
+    "works_on",
+    "references",
+}
+
 
 @celery_app.task(
     name="kb_extract_entities_task",
@@ -270,6 +285,12 @@ def kb_extract_entities_task(
     """
     Extract canonical entities from newly indexed documents and upsert
     them into kb_entities, scoped to the given knowledge base.
+
+    Runs two passes:
+      1. Rule-based extraction from structured metadata (cheap, runs on every doc).
+      2. LLM extraction of entities + typed relationships from the document body
+         (bounded to _MAX_LLM_EXTRACTION_DOCS per run to control cost) — this is
+         what populates kb_relationships, which the rule-based pass never touches.
 
     Args:
         knowledge_base_id: KnowledgeBase.id these documents belong to
@@ -297,14 +318,60 @@ def kb_extract_entities_task(
                 upserted += 1
 
         db.commit()
+
+        relationships_upserted = 0
+        llm_docs_processed = 0
+        from src.config.settings import get_settings
+
+        model = getattr(get_settings(), "company_brain_entity_extraction_model", "claude-haiku-4-5-20251001")
+
+        for doc in docs[:_MAX_LLM_EXTRACTION_DOCS]:
+            content = (doc.content or "").strip()
+            if len(content) < _MIN_CONTENT_CHARS_FOR_LLM:
+                continue
+            try:
+                llm_entities, llm_relationships = _extract_entities_and_relationships_llm(doc, model)
+            except Exception as exc:
+                logger.warning("LLM entity extraction failed for doc %s: %s", doc.id, exc)
+                continue
+
+            name_to_id: dict[str, int] = {}
+            for entity_data in llm_entities:
+                entity_id = _upsert_entity(db, knowledge_base_id, tenant_id, entity_data)
+                if entity_id:
+                    name_to_id[entity_data["canonical_name"].strip().lower()] = entity_id
+                    upserted += 1
+
+            for rel in llm_relationships:
+                source_id = name_to_id.get(rel["source"].strip().lower())
+                target_id = name_to_id.get(rel["target"].strip().lower())
+                if not source_id or not target_id:
+                    continue  # only accept edges between entities extracted this same pass
+                if _upsert_relationship(
+                    db, knowledge_base_id, tenant_id, source_id, target_id, rel["relation_type"], doc.id
+                ):
+                    relationships_upserted += 1
+
+            llm_docs_processed += 1
+
+        db.commit()
+
         logger.info(
-            "kb_extract_entities_task: upserted=%d for %d docs (source=%s, kb=%d)",
+            "kb_extract_entities_task: upserted=%d entities, %d relationships for %d docs "
+            "(%d via LLM, source=%s, kb=%d)",
             upserted,
+            relationships_upserted,
             len(docs),
+            llm_docs_processed,
             source_type,
             knowledge_base_id,
         )
-        return {"upserted": upserted, "docs_processed": len(docs)}
+        return {
+            "upserted": upserted,
+            "relationships_upserted": relationships_upserted,
+            "docs_processed": len(docs),
+            "llm_docs_processed": llm_docs_processed,
+        }
 
     except Exception as exc:
         db.rollback()
@@ -428,7 +495,76 @@ def _extract_entities_from_meta(source_type: str, meta: dict) -> list[dict]:
     return entities
 
 
-def _upsert_entity(db: Any, knowledge_base_id: int, tenant_id: str, data: dict) -> None:
+def _extract_entities_and_relationships_llm(doc: Any, model: str) -> tuple[list[dict], list[dict]]:
+    """
+    LLM extraction of entities + typed relationships from a document's body text.
+
+    Unlike _extract_entities_from_meta (structured fields only), this reads the
+    actual content — the only path that can produce kb_relationships edges, since
+    relationships like "authored" or "reviewed" aren't present in metadata alone.
+
+    Returns:
+        (entities, relationships) where:
+          entities:      [{entity_type, canonical_name, email, identifiers}, ...]
+          relationships: [{source, target, relation_type}, ...] (names, not ids —
+                          resolved to ids by the caller after upserting entities)
+    """
+    import json
+
+    import litellm
+
+    content = (doc.content or "")[:4000]
+    title = doc.title or ""
+
+    prompt = f"""Extract entities and relationships from this document for a knowledge graph.
+
+Entity types: person, project, repo, team, channel
+Relationship types: authored, assigned_to, mentioned_in, resolved_by, reviewed, commented_on, works_on, references
+
+Document title: {title}
+Document content:
+{content}
+
+Return ONLY a JSON object with this exact shape, no other text:
+{{"entities": [{{"name": "...", "type": "person"}}], "relationships": [{{"source": "...", "relation_type": "authored", "target": "..."}}]}}
+
+Only extract entities and relationships that are clearly and explicitly stated. Return empty arrays if none are found."""
+
+    response = litellm.completion(
+        model=model,
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=800,
+        temperature=0,
+    )
+    raw = response.choices[0].message.content or "{}"
+    text = raw.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1] if "\n" in text else text[3:]
+        text = text.rsplit("```", 1)[0]
+
+    data = json.loads(text)
+
+    entities: list[dict] = []
+    for e in data.get("entities") or []:
+        name = (e.get("name") or "").strip()
+        etype = e.get("type") or ""
+        if not name or etype not in _VALID_LLM_ENTITY_TYPES:
+            continue
+        entities.append({"entity_type": etype, "canonical_name": name, "email": None, "identifiers": {}})
+
+    relationships: list[dict] = []
+    for r in data.get("relationships") or []:
+        source = (r.get("source") or "").strip()
+        target = (r.get("target") or "").strip()
+        relation_type = r.get("relation_type") or ""
+        if not source or not target or relation_type not in _VALID_RELATION_TYPES:
+            continue
+        relationships.append({"source": source, "target": target, "relation_type": relation_type})
+
+    return entities, relationships
+
+
+def _upsert_entity(db: Any, knowledge_base_id: int, tenant_id: str, data: dict) -> int | None:
     """
     Upsert a KBEntity scoped to a KnowledgeBase.
 
@@ -464,6 +600,7 @@ def _upsert_entity(db: Any, knowledge_base_id: int, tenant_id: str, data: dict) 
         existing.identifiers = merged
         names = list(set((existing.display_names or []) + [canonical_name]))
         existing.display_names = names
+        return existing.id
     else:
         entity = KBEntity(
             tenant_id=tid,
@@ -475,3 +612,50 @@ def _upsert_entity(db: Any, knowledge_base_id: int, tenant_id: str, data: dict) 
             display_names=[canonical_name],
         )
         db.add(entity)
+        db.flush()  # populate entity.id without a full commit — callers need it to build relationships
+        return entity.id
+
+
+def _upsert_relationship(
+    db: Any,
+    knowledge_base_id: int,
+    tenant_id: str,
+    source_entity_id: int,
+    target_entity_id: int,
+    relation_type: str,
+    source_doc_id: int | None,
+) -> bool:
+    """
+    Upsert a KBRelationship edge. Returns True if a new row was created.
+
+    Dedup key: (knowledge_base_id, source_entity_id, target_entity_id, relation_type) —
+    re-seeing the same edge just refreshes which document last evidenced it.
+    """
+    from src.models.kb_brain import KBRelationship
+
+    existing = (
+        db.query(KBRelationship)
+        .filter(
+            KBRelationship.knowledge_base_id == knowledge_base_id,
+            KBRelationship.source_entity_id == source_entity_id,
+            KBRelationship.target_entity_id == target_entity_id,
+            KBRelationship.relation_type == relation_type,
+        )
+        .first()
+    )
+    if existing:
+        if source_doc_id:
+            existing.source_doc_id = source_doc_id
+        return False
+
+    db.add(
+        KBRelationship(
+            tenant_id=uuid.UUID(tenant_id),
+            knowledge_base_id=knowledge_base_id,
+            source_entity_id=source_entity_id,
+            target_entity_id=target_entity_id,
+            source_doc_id=source_doc_id,
+            relation_type=relation_type,
+        )
+    )
+    return True

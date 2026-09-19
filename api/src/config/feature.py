@@ -437,6 +437,10 @@ class CompanyBrainConfig(BaseSettings):
         default="claude-haiku-4-5-20251001",
         description="LLM model ID used for query intent classification (cheap, fast)",
     )
+    company_brain_entity_extraction_model: str = Field(
+        default="claude-haiku-4-5-20251001",
+        description="LLM model ID used for entity/relationship extraction from document bodies",
+    )
     company_brain_context_tokens: int = Field(
         default=32_000,
         description="Max tokens of retrieved context passed to the answer LLM",

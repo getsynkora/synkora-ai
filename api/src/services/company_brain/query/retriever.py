@@ -36,18 +36,24 @@ async def retrieve(
     db: Any | None = None,
 ) -> list[SearchResult]:
     """
-    Parallel domain fan-out retrieval.
+    Parallel domain fan-out retrieval, plus a graph expansion when the query
+    names entities.
 
     Args:
         tenant_id:  Scopes all searches to this tenant.
         query:      User's natural language query.
         intent:     Routing intent from the query router.
         limit:      Total results to return after merging.
-        db:         Async DB session — needed to resolve domain → KB mappings.
+        db:         Async DB session — needed to resolve domain → KB mappings
+                    and to walk the entity graph.
 
     Returns:
         List of SearchResult sorted by weighted score (descending), capped at limit.
     """
+    graph_results = await _graph_expand(tenant_id, intent, db)
+
+    vector_results: list[SearchResult] | None = None
+
     # --- Domain-aware path (tenant has domains configured) ---
     if db is not None:
         try:
@@ -68,7 +74,7 @@ async def retrieve(
                     target_domains = active_domains
 
                 if target_domains:
-                    return await _fan_out_by_domain(
+                    vector_results = await _fan_out_by_domain(
                         tenant_id=tenant_id,
                         query=query,
                         intent=intent,
@@ -81,7 +87,133 @@ async def retrieve(
             logger.warning("Domain-aware retrieval failed, falling back to source_type mode: %s", exc)
 
     # --- Legacy source-type path (no domains, or domain load failed) ---
-    return await _fan_out_by_source_type(tenant_id, query, intent, limit)
+    if vector_results is None:
+        vector_results = await _fan_out_by_source_type(tenant_id, query, intent, limit)
+
+    return _merge_graph_results(graph_results, vector_results, limit)
+
+
+# ---------------------------------------------------------------------------
+# Graph expansion — resolves QueryIntent.entities into kb_relationships hits
+# ---------------------------------------------------------------------------
+
+_GRAPH_MATCH_SCORE = 0.95  # ranks graph hits near the top pre-RRF; assembler re-ranks from here
+_MAX_GRAPH_ENTITIES = 20
+_MAX_GRAPH_RELATIONSHIPS = 100
+
+
+async def _graph_expand(tenant_id: str, intent: QueryIntent, db: Any | None) -> list[SearchResult]:
+    """
+    Resolve QueryIntent.entities against kb_entities and pull their 1-hop
+    kb_relationships edges, returning the connected documents as SearchResults.
+
+    Vector similarity alone misses "who worked on X" / "what's connected to Y"
+    style questions when no single chunk states the full relationship — this
+    walks the graph instead of relying on text overlap. A no-op (returns [])
+    for any query the router didn't tag with named entities.
+    """
+    if not intent.entities or db is None:
+        return []
+
+    import uuid as _uuid
+
+    from sqlalchemy import or_, select
+
+    try:
+        tid = _uuid.UUID(tenant_id)
+    except ValueError:
+        return []
+
+    try:
+        from src.models.data_source import DataSource, DataSourceDocument
+        from src.models.kb_brain import KBEntity, KBRelationship
+
+        name_filters = [
+            KBEntity.canonical_name.ilike(f"%{name.strip()}%") for name in intent.entities if name and name.strip()
+        ]
+        if not name_filters:
+            return []
+
+        entity_rows = (
+            (
+                await db.execute(
+                    select(KBEntity).where(KBEntity.tenant_id == tid, or_(*name_filters)).limit(_MAX_GRAPH_ENTITIES)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        if not entity_rows:
+            return []
+
+        entity_ids = [e.id for e in entity_rows]
+
+        rel_rows = (
+            (
+                await db.execute(
+                    select(KBRelationship)
+                    .where(
+                        KBRelationship.tenant_id == tid,
+                        or_(
+                            KBRelationship.source_entity_id.in_(entity_ids),
+                            KBRelationship.target_entity_id.in_(entity_ids),
+                        ),
+                    )
+                    .limit(_MAX_GRAPH_RELATIONSHIPS)
+                )
+            )
+            .scalars()
+            .all()
+        )
+
+        doc_ids = {r.source_doc_id for r in rel_rows if r.source_doc_id}
+        if not doc_ids:
+            return []
+
+        doc_rows = (
+            await db.execute(
+                select(DataSourceDocument, DataSource.type)
+                .join(DataSource, DataSource.id == DataSourceDocument.data_source_id)
+                .where(DataSourceDocument.id.in_(doc_ids), DataSourceDocument.tenant_id == tid)
+            )
+        ).all()
+    except Exception as exc:
+        logger.warning("Graph expand failed for entities %s: %s", intent.entities, exc)
+        return []
+
+    results: list[SearchResult] = []
+    for doc, ds_type in doc_rows:
+        source_type = getattr(ds_type, "value", str(ds_type)).lower()
+        results.append(
+            SearchResult(
+                doc_id=str(doc.id),
+                external_id=doc.external_id,
+                source_type=source_type,
+                content=doc.content,
+                title=doc.title,
+                score=_GRAPH_MATCH_SCORE,
+                vector_score=None,
+                keyword_score=None,
+                metadata={**(doc.doc_metadata or {}), "graph_match": True, "matched_entities": intent.entities},
+                source_url=doc.external_url,
+                occurred_at=doc.source_created_at.isoformat() if doc.source_created_at else None,
+                storage_tier=doc.storage_tier,
+            )
+        )
+    return results
+
+
+def _merge_graph_results(
+    graph_results: list[SearchResult], vector_results: list[SearchResult], limit: int
+) -> list[SearchResult]:
+    """Graph hits take priority (they're precise, not similarity-guessed); fill remaining slots with vector results."""
+    if not graph_results:
+        return vector_results[:limit]
+
+    seen_doc_ids = {r.doc_id for r in graph_results}
+    merged = list(graph_results) + [r for r in vector_results if r.doc_id not in seen_doc_ids]
+    merged.sort(key=lambda r: r.score, reverse=True)
+    return merged[:limit]
 
 
 # ---------------------------------------------------------------------------
