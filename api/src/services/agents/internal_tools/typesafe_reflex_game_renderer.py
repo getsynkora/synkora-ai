@@ -44,89 +44,137 @@ def render_reflex_game_html(page_id: str, spec: dict[str, Any], api_base_url: st
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{_esc(title)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {{
-    --bg: #0f0f13;
-    --card: #1a1a21;
-    --card-border: #2a2a34;
-    --text: #f2f1ee;
-    --text-dim: #9a97a3;
-    --accent: #a78bfa;
-    --good: #4ade80;
-    --bad: #f87171;
-    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --paper: #F6F1E7;
+    --paper-warm: #F0E8D8;
+    --card: #FFFDF8;
+    --card-border: #E4D9C3;
+    --ink: #26211A;
+    --ink-dim: #7A7060;
+    --clay: #C2571F;
+    --clay-deep: #A8481A;
+    --clay-wash: #F3D9C4;
+    --good: #4B7A4E;
+    --good-wash: #DDEBD7;
+    --bad: #B5432E;
+    --bad-wash: #F3DCD3;
+    --serif: 'Fraunces', Georgia, serif;
+    --sans: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --shadow: 0 1px 2px rgba(38,33,26,0.04), 0 8px 24px -12px rgba(38,33,26,0.18);
   }}
   * {{ box-sizing: border-box; }}
+  html {{ background: var(--paper); }}
   body {{
-    margin: 0; background: var(--bg); color: var(--text); font-family: var(--font);
-    min-height: 100vh; display: flex; justify-content: center; padding: 40px 16px;
+    margin: 0; color: var(--ink); font-family: var(--sans);
+    min-height: 100vh; display: flex; justify-content: center; padding: 56px 18px 40px;
+    background:
+      radial-gradient(680px 320px at 50% -80px, var(--clay-wash) 0%, transparent 68%),
+      var(--paper);
+    background-attachment: fixed;
   }}
-  .wrap {{ width: 100%; max-width: 480px; }}
-  .emoji {{ font-size: 40px; text-align: center; margin-bottom: 6px; }}
-  h1 {{ font-size: 24px; text-align: center; margin: 0 0 6px; }}
-  p.desc {{ color: var(--text-dim); text-align: center; margin: 0 0 24px; line-height: 1.5; font-size: 14px; }}
+  .wrap {{ width: 100%; max-width: 500px; position: relative; }}
+  .emoji {{
+    font-size: 44px; text-align: center; margin-bottom: 10px;
+    animation: rise 0.5s cubic-bezier(.2,.9,.25,1) both;
+  }}
+  h1 {{
+    font-family: var(--serif); font-weight: 700; font-size: 32px; letter-spacing: -0.01em;
+    text-align: center; margin: 0 0 10px; color: var(--ink);
+    animation: rise 0.5s 0.05s cubic-bezier(.2,.9,.25,1) both;
+  }}
+  p.desc {{
+    color: var(--ink-dim); text-align: center; margin: 0 0 30px; line-height: 1.55; font-size: 15.5px;
+    max-width: 400px; margin-left: auto; margin-right: auto;
+    animation: rise 0.5s 0.1s cubic-bezier(.2,.9,.25,1) both;
+  }}
+  @keyframes rise {{ from {{ opacity: 0; transform: translateY(10px); }} to {{ opacity: 1; transform: translateY(0); }} }}
 
-  .hud {{ display: flex; justify-content: space-between; font-size: 13px; color: var(--text-dim); margin-bottom: 10px; }}
-  .hud b {{ color: var(--text); }}
+  .hud {{
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 12.5px; color: var(--ink-dim); margin-bottom: 10px;
+    text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600;
+  }}
+  .hud b {{ color: var(--clay); font-family: var(--serif); font-size: 16px; font-weight: 700; letter-spacing: 0; text-transform: none; margin-left: 4px; }}
 
-  .timer-track {{ height: 5px; border-radius: 3px; background: var(--card-border); overflow: hidden; margin-bottom: 20px; }}
-  .timer-fill {{ height: 100%; background: var(--accent); width: 100%; transition: width linear; }}
+  .timer-track {{ height: 6px; border-radius: 4px; background: var(--card-border); overflow: hidden; margin-bottom: 22px; }}
+  .timer-fill {{ height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--clay-deep), var(--clay)); width: 100%; transition: width linear; }}
 
   .scenario-card {{
-    background: var(--card); border: 1px solid var(--card-border); border-radius: 16px;
-    padding: 32px 24px; text-align: center; font-size: 19px; font-weight: 600; line-height: 1.4;
-    min-height: 120px; display: flex; align-items: center; justify-content: center;
-    margin-bottom: 20px; animation: pop 0.25s ease both;
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 20px;
+    padding: 40px 30px; text-align: center; font-family: var(--serif); font-size: 23px;
+    font-weight: 600; line-height: 1.42; color: var(--ink);
+    min-height: 130px; display: flex; align-items: center; justify-content: center;
+    margin-bottom: 22px; box-shadow: var(--shadow);
+    animation: deal 0.32s cubic-bezier(.2,.9,.25,1) both;
   }}
-  @keyframes pop {{ from {{ opacity: 0; transform: scale(0.97); }} to {{ opacity: 1; transform: scale(1); }} }}
+  @keyframes deal {{
+    from {{ opacity: 0; transform: scale(0.95) rotate(-0.8deg) translateY(6px); }}
+    to {{ opacity: 1; transform: scale(1) rotate(0) translateY(0); }}
+  }}
 
   .guess-row {{ display: flex; gap: 12px; flex-wrap: wrap; }}
   button.guess {{
-    flex: 1; min-width: 110px; padding: 16px 10px; border: 1px solid var(--card-border);
-    border-radius: 12px; background: var(--card); color: var(--text); font-weight: 700;
-    font-size: 15px; cursor: pointer; transition: all 0.12s;
+    flex: 1; min-width: 120px; padding: 17px 12px; border: 1.5px solid var(--card-border);
+    border-radius: 999px; background: var(--card); color: var(--ink); font-weight: 700;
+    font-family: var(--sans); font-size: 15px; cursor: pointer; transition: all 0.15s;
+    box-shadow: var(--shadow);
   }}
-  button.guess:not(:disabled):hover {{ border-color: var(--accent); transform: translateY(-1px); }}
-  button.guess:disabled {{ opacity: 0.5; cursor: default; }}
-  button.guess.picked {{ border-color: var(--accent); background: rgba(167,139,250,0.15); }}
-  button.guess.correct {{ border-color: var(--good); background: rgba(74,222,128,0.15); }}
-  button.guess.wrong {{ border-color: var(--bad); background: rgba(248,113,113,0.12); }}
+  button.guess:not(:disabled):hover {{ border-color: var(--clay); transform: translateY(-2px); }}
+  button.guess:not(:disabled):active {{ transform: translateY(0) scale(0.98); }}
+  button.guess:disabled {{ cursor: default; }}
+  button.guess.picked {{ border-color: var(--clay); background: var(--clay-wash); }}
+  button.guess.correct {{ border-color: var(--good); background: var(--good-wash); color: var(--good); }}
+  button.guess.wrong {{ border-color: var(--bad); background: var(--bad-wash); color: var(--bad); opacity: 0.8; }}
 
-  #reveal {{ display: none; margin-top: 18px; }}
+  #reveal {{ display: none; margin-top: 20px; }}
   .banner {{
-    text-align: center; font-weight: 800; font-size: 17px; padding: 12px; border-radius: 12px;
-    margin-bottom: 14px; animation: pop 0.25s ease both;
+    text-align: center; font-family: var(--serif); font-weight: 700; font-size: 18px;
+    padding: 14px; border-radius: 14px; margin-bottom: 14px;
+    animation: pop 0.3s cubic-bezier(.34,1.56,.64,1) both;
   }}
-  .banner.match {{ background: rgba(74,222,128,0.15); color: var(--good); }}
-  .banner.miss {{ background: rgba(248,113,113,0.12); color: var(--bad); }}
+  @keyframes pop {{ from {{ opacity: 0; transform: scale(0.92); }} to {{ opacity: 1; transform: scale(1); }} }}
+  .banner.match {{ background: var(--good-wash); color: var(--good); }}
+  .banner.miss {{ background: var(--bad-wash); color: var(--bad); }}
   .reveal-card {{
-    background: var(--card); border: 1px solid var(--card-border); border-radius: 12px;
-    padding: 12px 16px; margin-bottom: 10px; font-size: 13px;
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 14px;
+    padding: 14px 18px; margin-bottom: 10px; box-shadow: var(--shadow);
   }}
-  .reveal-key {{ font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 4px; }}
-  .reveal-val {{ font-size: 15px; font-weight: 700; }}
+  .reveal-key {{ font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-dim); margin-bottom: 4px; }}
+  .reveal-val {{ font-family: var(--serif); font-size: 17px; font-weight: 700; color: var(--ink); }}
 
   button.next {{
-    width: 100%; margin-top: 6px; padding: 14px; border: none; border-radius: 12px;
-    background: var(--accent); color: #17131f; font-weight: 700; font-size: 15px; cursor: pointer;
+    width: 100%; margin-top: 8px; padding: 16px; border: none; border-radius: 999px;
+    background: var(--clay); color: #FFF9F1; font-weight: 700; font-family: var(--sans);
+    font-size: 15.5px; cursor: pointer; transition: all 0.15s; box-shadow: 0 6px 18px -6px rgba(194,87,31,0.55);
   }}
+  button.next:hover {{ background: var(--clay-deep); transform: translateY(-1px); }}
 
   #final {{ display: none; text-align: center; }}
-  #final .score-big {{ font-size: 52px; font-weight: 800; margin: 12px 0 4px; }}
-  #final .score-sub {{ color: var(--text-dim); margin-bottom: 24px; }}
-  #final button {{
-    width: 100%; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 15px;
-    cursor: pointer; margin-bottom: 10px; border: 1px solid var(--card-border);
+  #final .score-big {{
+    font-family: var(--serif); font-size: 64px; font-weight: 700; margin: 14px 0 6px; color: var(--clay);
+    animation: pop 0.4s cubic-bezier(.34,1.56,.64,1) both;
   }}
-  #final .play-again {{ background: var(--accent); color: #17131f; border: none; }}
-  #final .copy-link {{ background: var(--card); color: var(--text); }}
+  #final .score-sub {{ color: var(--ink-dim); margin-bottom: 28px; font-size: 15px; line-height: 1.5; }}
+  #final button {{
+    width: 100%; padding: 16px; border-radius: 999px; font-weight: 700; font-family: var(--sans);
+    font-size: 15px; cursor: pointer; margin-bottom: 12px; border: 1.5px solid var(--card-border);
+    transition: all 0.15s;
+  }}
+  #final .play-again {{ background: var(--clay); color: #FFF9F1; border: none; box-shadow: 0 6px 18px -6px rgba(194,87,31,0.55); }}
+  #final .play-again:hover {{ background: var(--clay-deep); }}
+  #final .copy-link {{ background: var(--card); color: var(--ink); box-shadow: var(--shadow); }}
+  #final .copy-link:hover {{ border-color: var(--clay); }}
 
-  footer {{ text-align: center; margin-top: 32px; font-size: 12px; color: var(--text-dim); }}
-  footer a {{ color: var(--accent); text-decoration: none; }}
+  footer {{ text-align: center; margin-top: 38px; font-size: 12.5px; color: var(--ink-dim); letter-spacing: 0.01em; }}
+  footer a {{ color: var(--clay); text-decoration: none; font-weight: 600; }}
   #error {{
-    display: none; margin-top: 14px; padding: 12px 16px; border-radius: 10px;
-    background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.3);
-    color: var(--bad); font-size: 14px; text-align: center;
+    display: none; margin-top: 16px; padding: 13px 16px; border-radius: 12px;
+    background: var(--bad-wash); border: 1px solid rgba(181,67,46,0.25);
+    color: var(--bad); font-size: 14px; text-align: center; font-weight: 500;
   }}
 </style>
 </head>

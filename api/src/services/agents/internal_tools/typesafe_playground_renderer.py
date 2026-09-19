@@ -39,65 +39,84 @@ def render_playground_html(page_id: str, spec: dict[str, Any], api_base_url: str
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{_esc(title)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {{
-    --bg: #0f0f13;
-    --card: #1a1a21;
-    --card-border: #2a2a34;
-    --text: #f2f1ee;
-    --text-dim: #9a97a3;
-    --accent: #a78bfa;
-    --accent-soft: rgba(167,139,250,0.15);
-    --good: #4ade80;
-    --bad: #f87171;
-    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --paper: #F6F1E7;
+    --card: #FFFDF8;
+    --card-border: #E4D9C3;
+    --ink: #26211A;
+    --ink-dim: #7A7060;
+    --clay: #C2571F;
+    --clay-deep: #A8481A;
+    --clay-wash: #F3D9C4;
+    --good: #4B7A4E;
+    --bad: #B5432E;
+    --bad-wash: #F3DCD3;
+    --serif: 'Fraunces', Georgia, serif;
+    --sans: 'Public Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --shadow: 0 1px 2px rgba(38,33,26,0.04), 0 8px 24px -12px rgba(38,33,26,0.18);
   }}
   * {{ box-sizing: border-box; }}
+  html {{ background: var(--paper); }}
   body {{
-    margin: 0; background: var(--bg); color: var(--text); font-family: var(--font);
-    min-height: 100vh; display: flex; justify-content: center; padding: 48px 16px;
+    margin: 0; color: var(--ink); font-family: var(--sans);
+    min-height: 100vh; display: flex; justify-content: center; padding: 56px 18px 40px;
+    background:
+      radial-gradient(680px 320px at 50% -80px, var(--clay-wash) 0%, transparent 68%),
+      var(--paper);
+    background-attachment: fixed;
   }}
   .wrap {{ width: 100%; max-width: 560px; }}
-  .emoji {{ font-size: 42px; text-align: center; margin-bottom: 8px; }}
-  h1 {{ font-size: 26px; text-align: center; margin: 0 0 8px; }}
-  p.desc {{ color: var(--text-dim); text-align: center; margin: 0 0 32px; line-height: 1.5; }}
-  label {{ display: block; font-size: 13px; font-weight: 600; color: var(--text-dim); margin-bottom: 8px; }}
+  .emoji {{ font-size: 44px; text-align: center; margin-bottom: 10px; animation: rise 0.5s cubic-bezier(.2,.9,.25,1) both; }}
+  h1 {{
+    font-family: var(--serif); font-weight: 700; font-size: 32px; letter-spacing: -0.01em;
+    text-align: center; margin: 0 0 10px; animation: rise 0.5s 0.05s cubic-bezier(.2,.9,.25,1) both;
+  }}
+  p.desc {{
+    color: var(--ink-dim); text-align: center; margin: 0 0 32px; line-height: 1.55; font-size: 15.5px;
+    animation: rise 0.5s 0.1s cubic-bezier(.2,.9,.25,1) both;
+  }}
+  @keyframes rise {{ from {{ opacity: 0; transform: translateY(10px); }} to {{ opacity: 1; transform: translateY(0); }} }}
+  label {{ display: block; font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-dim); margin-bottom: 10px; }}
   textarea {{
-    width: 100%; min-height: 120px; background: var(--card); border: 1px solid var(--card-border);
-    border-radius: 12px; padding: 14px 16px; color: var(--text); font-family: var(--font);
-    font-size: 15px; resize: vertical; outline: none;
+    width: 100%; min-height: 130px; background: var(--card); border: 1.5px solid var(--card-border);
+    border-radius: 16px; padding: 16px 18px; color: var(--ink); font-family: var(--sans);
+    font-size: 15.5px; resize: vertical; outline: none; box-shadow: var(--shadow); transition: border-color 0.15s;
   }}
-  textarea:focus {{ border-color: var(--accent); }}
-  .charcount {{ text-align: right; font-size: 12px; color: var(--text-dim); margin-top: 6px; }}
+  textarea:focus {{ border-color: var(--clay); }}
+  .charcount {{ text-align: right; font-size: 12px; color: var(--ink-dim); margin-top: 8px; }}
   button.judge {{
-    width: 100%; margin-top: 18px; padding: 14px; border: none; border-radius: 12px;
-    background: var(--accent); color: #17131f; font-weight: 700; font-size: 15px;
-    cursor: pointer; transition: opacity 0.15s;
+    width: 100%; margin-top: 20px; padding: 16px; border: none; border-radius: 999px;
+    background: var(--clay); color: #FFF9F1; font-weight: 700; font-family: var(--sans); font-size: 15.5px;
+    cursor: pointer; transition: all 0.15s; box-shadow: 0 6px 18px -6px rgba(194,87,31,0.55);
   }}
-  button.judge:disabled {{ opacity: 0.5; cursor: default; }}
-  button.judge:not(:disabled):hover {{ opacity: 0.9; }}
+  button.judge:disabled {{ opacity: 0.6; cursor: default; }}
+  button.judge:not(:disabled):hover {{ background: var(--clay-deep); transform: translateY(-1px); }}
   #error {{
-    display: none; margin-top: 16px; padding: 12px 16px; border-radius: 10px;
-    background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.3);
-    color: var(--bad); font-size: 14px;
+    display: none; margin-top: 16px; padding: 13px 16px; border-radius: 12px;
+    background: var(--bad-wash); border: 1px solid rgba(181,67,46,0.25);
+    color: var(--bad); font-size: 14px; font-weight: 500;
   }}
-  #results {{ margin-top: 28px; display: none; }}
+  #results {{ margin-top: 30px; display: none; }}
   .answer-card {{
-    background: var(--card); border: 1px solid var(--card-border); border-radius: 12px;
-    padding: 16px 18px; margin-bottom: 12px; animation: rise 0.35s ease both;
+    background: var(--card); border: 1px solid var(--card-border); border-radius: 16px;
+    padding: 18px 20px; margin-bottom: 12px; box-shadow: var(--shadow);
+    animation: rise 0.35s cubic-bezier(.2,.9,.25,1) both;
   }}
-  @keyframes rise {{ from {{ opacity: 0; transform: translateY(6px); }} to {{ opacity: 1; transform: translateY(0); }} }}
-  .answer-key {{ font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 8px; }}
-  .answer-value {{ font-size: 18px; font-weight: 700; }}
-  .answer-conf {{ font-size: 12px; color: var(--text-dim); margin-top: 2px; }}
-  .bar-row {{ display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 12px; color: var(--text-dim); }}
-  .bar-track {{ flex: 1; height: 6px; border-radius: 3px; background: var(--card-border); overflow: hidden; }}
-  .bar-fill {{ height: 100%; background: var(--accent); }}
-  footer {{ text-align: center; margin-top: 36px; font-size: 12px; color: var(--text-dim); }}
-  footer a {{ color: var(--accent); text-decoration: none; }}
+  .answer-key {{ font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-dim); margin-bottom: 8px; }}
+  .answer-value {{ font-family: var(--serif); font-size: 20px; font-weight: 700; color: var(--ink); }}
+  .answer-conf {{ font-size: 12.5px; color: var(--ink-dim); margin-top: 3px; }}
+  .bar-row {{ display: flex; align-items: center; gap: 9px; margin-top: 7px; font-size: 12.5px; color: var(--ink-dim); }}
+  .bar-track {{ flex: 1; height: 6px; border-radius: 4px; background: var(--card-border); overflow: hidden; }}
+  .bar-fill {{ height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--clay-deep), var(--clay)); }}
+  footer {{ text-align: center; margin-top: 38px; font-size: 12.5px; color: var(--ink-dim); }}
+  footer a {{ color: var(--clay); text-decoration: none; font-weight: 600; }}
   .spinner {{
-    display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(23,19,31,0.3);
-    border-top-color: #17131f; border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 8px;
+    display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,249,241,0.35);
+    border-top-color: #FFF9F1; border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 8px;
     vertical-align: -2px;
   }}
   @keyframes spin {{ to {{ transform: rotate(360deg); }} }}
@@ -212,7 +231,7 @@ def render_playground_html(page_id: str, spec: dict[str, Any], api_base_url: str
       Object.keys(answers).forEach(function(key) {{
         html += renderAnswer(key, answers[key]);
       }});
-      results.innerHTML = html || '<p style="color:var(--text-dim)">No results returned.</p>';
+      results.innerHTML = html || '<p style="color:var(--ink-dim)">No results returned.</p>';
       results.style.display = 'block';
     }} catch (err) {{
       errorBox.textContent = 'Network error — please try again.';

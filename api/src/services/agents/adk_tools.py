@@ -555,6 +555,13 @@ class ADKToolRegistry:
 
         register_typesafe_reflex_game_tools(self)
 
+        # TypeSafe AI story games — public free-text branching mini-games
+        from src.services.agents.tool_registrations.typesafe_story_game_tools_registry import (
+            register_typesafe_story_game_tools,
+        )
+
+        register_typesafe_story_game_tools(self)
+
         # Multi-agent transfer tool
         self.register_tool(
             name="transfer_to_agent",
