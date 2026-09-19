@@ -162,6 +162,7 @@ class DocumentProcessor:
 
             documents_processed = 0
             total_chunks = 0
+            processed_ds_doc_ids: list[int] = []
 
             logger.info(f"Starting to process {len(documents)} documents...")
 
@@ -381,6 +382,7 @@ class DocumentProcessor:
                     # Commit after each document to avoid database locks
                     await self.db.commit()
 
+                    processed_ds_doc_ids.append(ds_doc.id)
                     documents_processed += 1
                     total_chunks += len(chunk_texts)
 
@@ -433,6 +435,22 @@ class DocumentProcessor:
             logger.info("Committing to database...")
             await self.db.commit()
             logger.info("Database commit successful")
+
+            # Queue entity/relationship extraction for the docs just indexed. Best-effort:
+            # this task never existed in the dispatch graph before, so a failure here must
+            # not fail document ingestion that already succeeded and was committed above.
+            if processed_ds_doc_ids:
+                try:
+                    from src.tasks.company_brain_tasks import kb_extract_entities_task
+
+                    kb_extract_entities_task.delay(
+                        knowledge_base_id=kb.id,
+                        tenant_id=str(data_source.tenant_id),
+                        source_type=data_source.type.value.lower(),
+                        doc_ids=processed_ds_doc_ids,
+                    )
+                except Exception as exc:
+                    logger.warning(f"Failed to queue kb_extract_entities_task: {exc}")
 
             logger.info("Disconnecting from vector DB...")
             vector_db.disconnect()

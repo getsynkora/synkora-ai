@@ -3,12 +3,18 @@ Unit tests for entity extraction and upsert logic in company_brain_tasks.py.
 No database required — upsert is tested with in-memory mock DB session.
 """
 
+import sys
 import uuid
 from unittest.mock import MagicMock
 
 import pytest
 
-from src.tasks.company_brain_tasks import _extract_entities_from_meta, _upsert_entity
+from src.tasks.company_brain_tasks import (
+    _extract_entities_and_relationships_llm,
+    _extract_entities_from_meta,
+    _upsert_entity,
+    _upsert_relationship,
+)
 
 TENANT_ID = str(uuid.uuid4())
 KB_ID = 1
@@ -284,3 +290,160 @@ def test_upsert_new_entity_has_correct_kb_id():
     _upsert_entity(db, 99, TENANT_ID, data)
     entity = db.add.call_args[0][0]
     assert entity.knowledge_base_id == 99
+
+
+# ---------------------------------------------------------------------------
+# _upsert_entity — return value (needed by callers to build kb_relationships)
+# ---------------------------------------------------------------------------
+
+
+def test_upsert_existing_entity_returns_its_id():
+    from src.models.kb_brain import KBEntity
+
+    existing = MagicMock(spec=KBEntity)
+    existing.id = 42
+    existing.identifiers = {}
+    existing.display_names = ["alice"]
+
+    db = _make_mock_db(existing=existing)
+    data = {"entity_type": "person", "canonical_name": "alice", "email": None, "identifiers": {}}
+    result = _upsert_entity(db, KB_ID, TENANT_ID, data)
+
+    assert result == 42
+
+
+def test_upsert_new_entity_flushes_so_id_is_available():
+    db = _make_mock_db(existing=None)
+    data = {"entity_type": "person", "canonical_name": "carol", "email": None, "identifiers": {}}
+    _upsert_entity(db, KB_ID, TENANT_ID, data)
+
+    # Without a flush, a freshly-added row has no PK yet — callers need the id
+    # in the same transaction to attach kb_relationships rows to it.
+    db.flush.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# _upsert_relationship
+# ---------------------------------------------------------------------------
+
+
+def test_upsert_relationship_creates_new_edge():
+    db = _make_mock_db(existing=None)
+    created = _upsert_relationship(
+        db, KB_ID, TENANT_ID, source_entity_id=1, target_entity_id=2, relation_type="authored", source_doc_id=10
+    )
+
+    assert created is True
+    db.add.assert_called_once()
+    rel = db.add.call_args[0][0]
+    assert rel.source_entity_id == 1
+    assert rel.target_entity_id == 2
+    assert rel.relation_type == "authored"
+    assert rel.source_doc_id == 10
+    assert rel.knowledge_base_id == KB_ID
+
+
+def test_upsert_relationship_dedupes_existing_edge():
+    from src.models.kb_brain import KBRelationship
+
+    existing = MagicMock(spec=KBRelationship)
+    existing.source_doc_id = 5
+
+    db = _make_mock_db(existing=existing)
+    created = _upsert_relationship(
+        db, KB_ID, TENANT_ID, source_entity_id=1, target_entity_id=2, relation_type="authored", source_doc_id=99
+    )
+
+    assert created is False
+    db.add.assert_not_called()
+    # Refreshed to the newer document that evidenced the same edge
+    assert existing.source_doc_id == 99
+
+
+def test_upsert_relationship_keeps_prior_doc_when_new_one_is_none():
+    from src.models.kb_brain import KBRelationship
+
+    existing = MagicMock(spec=KBRelationship)
+    existing.source_doc_id = 5
+
+    db = _make_mock_db(existing=existing)
+    _upsert_relationship(
+        db, KB_ID, TENANT_ID, source_entity_id=1, target_entity_id=2, relation_type="authored", source_doc_id=None
+    )
+
+    assert existing.source_doc_id == 5
+
+
+# ---------------------------------------------------------------------------
+# _extract_entities_and_relationships_llm
+# ---------------------------------------------------------------------------
+
+
+def _mock_litellm(content: str) -> MagicMock:
+    fake_litellm = MagicMock()
+    response = MagicMock()
+    response.choices = [MagicMock(message=MagicMock(content=content))]
+    fake_litellm.completion.return_value = response
+    return fake_litellm
+
+
+def _make_doc(content: str, title: str = "Untitled") -> MagicMock:
+    doc = MagicMock()
+    doc.content = content
+    doc.title = title
+    return doc
+
+
+def test_extract_llm_parses_entities_and_relationships():
+    fake_litellm = _mock_litellm(
+        '{"entities": [{"name": "Alice", "type": "person"}, {"name": "payments-api", "type": "repo"}], '
+        '"relationships": [{"source": "Alice", "relation_type": "authored", "target": "payments-api"}]}'
+    )
+    doc = _make_doc("Alice authored the payments-api service.")
+
+    with pytest.MonkeyPatch().context() as mp:
+        mp.setitem(sys.modules, "litellm", fake_litellm)
+        entities, relationships = _extract_entities_and_relationships_llm(doc, "test-model")
+
+    assert {e["canonical_name"] for e in entities} == {"Alice", "payments-api"}
+    assert {e["entity_type"] for e in entities} == {"person", "repo"}
+    assert relationships == [{"source": "Alice", "relation_type": "authored", "target": "payments-api"}]
+
+
+def test_extract_llm_strips_markdown_code_fences():
+    fake_litellm = _mock_litellm('```json\n{"entities": [], "relationships": []}\n```')
+    doc = _make_doc("nothing interesting here")
+
+    with pytest.MonkeyPatch().context() as mp:
+        mp.setitem(sys.modules, "litellm", fake_litellm)
+        entities, relationships = _extract_entities_and_relationships_llm(doc, "test-model")
+
+    assert entities == []
+    assert relationships == []
+
+
+def test_extract_llm_drops_invalid_entity_and_relation_types():
+    fake_litellm = _mock_litellm(
+        '{"entities": [{"name": "Alice", "type": "person"}, {"name": "Weird", "type": "not_a_real_type"}], '
+        '"relationships": [{"source": "Alice", "relation_type": "not_a_real_relation", "target": "Weird"}]}'
+    )
+    doc = _make_doc("some content")
+
+    with pytest.MonkeyPatch().context() as mp:
+        mp.setitem(sys.modules, "litellm", fake_litellm)
+        entities, relationships = _extract_entities_and_relationships_llm(doc, "test-model")
+
+    assert [e["canonical_name"] for e in entities] == ["Alice"]
+    assert relationships == []
+
+
+def test_extract_llm_empty_response_returns_empty_lists():
+    fake_litellm = _mock_litellm("{}")
+    doc = _make_doc("some content")
+
+    with pytest.MonkeyPatch().context() as mp:
+        mp.setitem(sys.modules, "litellm", fake_litellm)
+        entities, relationships = _extract_entities_and_relationships_llm(doc, "test-model")
+
+    assert entities == []
+    assert relationships == []
