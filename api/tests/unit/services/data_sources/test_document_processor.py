@@ -177,7 +177,8 @@ class TestDocumentProcessor:
                 # Mock Image extraction
                 processor._extract_and_store_images = AsyncMock()
 
-                result = await processor._process_and_embed(mock_data_source, mock_kb, documents)
+                with patch("src.tasks.company_brain_tasks.kb_extract_entities_task") as mock_extract_task:
+                    result = await processor._process_and_embed(mock_data_source, mock_kb, documents)
 
                 assert result["success"] is True
                 assert result["documents_processed"] == 1
@@ -193,6 +194,12 @@ class TestDocumentProcessor:
                 # We expect DataSourceDocument and Document and DocumentSegment to be added
                 assert mock_db_session.add.call_count >= 3
                 assert mock_db_session.commit.call_count >= 2
+
+                # Entity/relationship extraction gets queued for the docs just indexed
+                mock_extract_task.delay.assert_called_once()
+                queued_kwargs = mock_extract_task.delay.call_args.kwargs
+                assert queued_kwargs["knowledge_base_id"] == mock_kb.id
+                assert queued_kwargs["source_type"] == mock_data_source.type.value.lower()
 
     @pytest.mark.asyncio
     async def test_process_and_embed_create_collection(self, processor, mock_db_session, mock_data_source, mock_kb):
