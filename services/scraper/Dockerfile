@@ -20,6 +20,7 @@ RUN playwright install chromium --with-deps \
 
 COPY browser_session.py .
 COPY app.py .
+COPY fast_browse_snapshot.js .
 
 EXPOSE 5003
 
