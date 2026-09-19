@@ -22,6 +22,8 @@ from src.core.database import get_async_session_factory
 from src.services.agents.internal_tools.typesafe_playground_renderer import MAX_PLAYGROUND_TEXT_LEN
 from src.services.agents.internal_tools.typesafe_playground_tools import spec_key as playground_spec_key
 from src.services.agents.internal_tools.typesafe_reflex_game_tools import spec_key as reflex_game_spec_key
+from src.services.agents.internal_tools.typesafe_story_game_renderer import MAX_STORY_MESSAGE_LEN
+from src.services.agents.internal_tools.typesafe_story_game_tools import spec_key as story_game_spec_key
 from src.services.agents.runtime_context import RuntimeContext
 from src.utils.ip_utils import get_client_ip
 
@@ -53,6 +55,13 @@ class EvaluateRequest(BaseModel):
 
 class ReflexEvaluateRequest(BaseModel):
     scenario_index: int = Field(..., ge=0, le=_MAX_SCENARIO_INDEX)
+
+
+class StoryEvaluateRequest(BaseModel):
+    turn_index: int = Field(..., ge=0, le=100)
+    message: str = Field(..., min_length=1, max_length=MAX_STORY_MESSAGE_LEN)
+    history: list[str] = Field(default_factory=list, max_length=20)
+    current_meter: float = Field(..., ge=0, le=100)
 
 
 async def _check_rate_limit(key: str, limit: int) -> bool:
@@ -182,3 +191,88 @@ async def evaluate_reflex_game(page_id: str, body: ReflexEvaluateRequest, reques
 
     guess_answer = answers.pop("_guess", None) if answers else None
     return {"success": True, "guess_answer": guess_answer, "reveal_answers": answers or {}}
+
+
+def _build_story_state(scenario_intro: str, history: list[str], message: str) -> str:
+    lines = [f"SCENARIO: {scenario_intro}", ""]
+    if history:
+        lines.append("CONVERSATION SO FAR:")
+        for i, h in enumerate(history[:20]):
+            lines.append(f"Turn {i + 1}: {h[:MAX_STORY_MESSAGE_LEN]}")
+        lines.append("")
+    lines.append(f"LATEST RESPONSE (turn {len(history) + 1}): {message}")
+    return "\n".join(lines)
+
+
+def _compute_meter_update(
+    spec: dict[str, Any], answers: dict[str, Any], current_meter: float, turn_index: int
+) -> dict[str, Any]:
+    meter_question_key = spec.get("meter_question_key", "")
+    meter_answer = answers.get(meter_question_key) or {}
+    a_type = meter_answer.get("type")
+    if a_type == "noul":
+        value = meter_answer.get("noul", 0.5)
+    elif a_type == "score":
+        value = meter_answer.get("score", 0.5)
+    else:
+        value = 0.5
+
+    sign = 1 if spec.get("meter_direction") == "positive" else -1
+    swing = spec.get("meter_swing", 20)
+    normalized = (float(value) - 0.5) * 2  # -1..1
+    delta = normalized * swing * sign
+
+    current_meter = max(0.0, min(100.0, current_meter))
+    new_meter = max(0.0, min(100.0, current_meter + delta))
+
+    success_threshold = spec.get("success_threshold", 85)
+    failure_threshold = spec.get("failure_threshold", 15)
+    max_turns = spec.get("max_turns", 8)
+
+    if new_meter >= success_threshold:
+        status = "success"
+    elif new_meter <= failure_threshold:
+        status = "failure"
+    elif (turn_index + 1) >= max_turns:
+        status = "stalemate"
+    else:
+        status = "ongoing"
+
+    return {"meter_delta": delta, "new_meter": new_meter, "status": status}
+
+
+@public_router.post("/typesafe-playground/{page_id}/story-evaluate")
+async def evaluate_story_game(page_id: str, body: StoryEvaluateRequest, request: Request):
+    if not page_id.isalnum() or len(page_id) > 64:
+        raise HTTPException(status_code=404, detail="Game not found")
+
+    await _enforce_rate_limits("tss", page_id, _client_ip(request))
+
+    from src.services.storage.s3_storage import get_s3_storage
+
+    try:
+        spec = _load_spec(get_s3_storage(), story_game_spec_key(page_id))
+    except Exception:
+        raise HTTPException(status_code=404, detail="Game not found") from None
+
+    max_turns = spec.get("max_turns", 8)
+    if body.turn_index >= max_turns:
+        raise HTTPException(status_code=400, detail="This game has already ended")
+
+    judge_questions = spec.get("judge_questions") or {}
+    if not judge_questions or not spec.get("meter_question_key"):
+        raise HTTPException(status_code=500, detail="This game has no judge questions configured")
+
+    state = _build_story_state(spec.get("scenario_intro", ""), body.history, body.message)
+
+    answers, error = await _evaluate_for_tenant(spec.get("tenant_id", ""), state, judge_questions)
+    if error == "not_found":
+        raise HTTPException(status_code=404, detail="Game not found")
+    if error == "not_configured":
+        raise HTTPException(status_code=503, detail="This game's TypeSafe AI integration isn't configured yet.")
+    if error:
+        return {"success": False, "error": "Judgment failed. Please try again."}
+
+    meter_update = _compute_meter_update(spec, answers or {}, body.current_meter, body.turn_index)
+
+    return {"success": True, "answers": answers or {}, **meter_update}
