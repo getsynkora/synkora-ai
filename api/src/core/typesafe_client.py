@@ -71,7 +71,7 @@ class TypeSafeClient:
 
     async def evaluate(
         self,
-        state: str,
+        state: str | dict[str, Any],
         questions: dict[str, dict[str, Any]],
         model: str | None = None,
     ) -> dict[str, Any]:
@@ -81,7 +81,9 @@ class TypeSafeClient:
         All questions execute in parallel in a single API call.
 
         Args:
-            state:     The text content to evaluate (resume, ticket, lead profile, …)
+            state:     The content to evaluate — plain text (resume, ticket, lead profile, …)
+                       or a structured dict (e.g. page/elements state for the browser-autopilot
+                       tool). Passed through to TypeSafe as-is; never coerced to a string.
             questions: Mapping of answer_key → question definition (LLM-friendly format)
             model:     Override the default model (default: jev-latest)
 

@@ -114,6 +114,34 @@ class ScraperServiceClient:
     async def browser_screenshot(self, session_id: str = "default", **kwargs) -> dict[str, Any]:
         return await self._browser("/v1/browser/screenshot", {"session_id": session_id, **kwargs})
 
+    async def browser_fast_snapshot(self, session_id: str = "default", page_id: str | None = None) -> dict[str, Any]:
+        """Atomic action-space snapshot for the browser-autopilot decision loop."""
+        return await self._browser("/v1/browser/fast-snapshot", {"session_id": session_id, "page_id": page_id})
+
+    async def browser_fast_act(
+        self,
+        action: dict[str, Any],
+        session_id: str = "default",
+        page_id: str | None = None,
+        text: str | None = None,
+        page_key: Any = None,
+        guards: dict[str, Any] | None = None,
+        marker: Any = None,
+    ) -> dict[str, Any]:
+        """Execute one action chosen from a prior browser_fast_snapshot() result."""
+        return await self._browser(
+            "/v1/browser/fast-act",
+            {
+                "session_id": session_id,
+                "page_id": page_id,
+                "action": action,
+                "text": text,
+                "page_key": page_key,
+                "guards": guards or {},
+                "marker": marker,
+            },
+        )
+
     async def browser_pdf(self, session_id: str = "default", **kwargs) -> dict[str, Any]:
         return await self._browser("/v1/browser/pdf", {"session_id": session_id, **kwargs})
 

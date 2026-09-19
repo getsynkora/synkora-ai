@@ -52,6 +52,7 @@ Endpoints:
 
 import base64
 import asyncio
+import hashlib
 import hmac
 import ipaddress
 import json
@@ -60,6 +61,7 @@ import os
 import re
 import socket
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any, Literal
 
 from fastapi import FastAPI, Request, status
@@ -76,6 +78,15 @@ SCRAPER_API_KEY = os.getenv("SCRAPER_API_KEY")
 APP_ENV = os.getenv("APP_ENV", "development").lower()
 SCRAPER_MAX_CONCURRENT_REQUESTS = int(os.getenv("SCRAPER_MAX_CONCURRENT_REQUESTS", "8"))
 _request_semaphore = asyncio.Semaphore(max(1, SCRAPER_MAX_CONCURRENT_REQUESTS))
+
+# Fast browser-autopilot snapshot: one atomic page.evaluate() call reads every visible
+# interactive control (role/label/current value/stable node identity) instead of the
+# one-Playwright-round-trip-per-role loop /v1/browser/snapshot uses. Ported from
+# jev-ultrafast (https://github.com/browser-use/jev-ultrafast, MIT licensed).
+_FAST_SNAPSHOT_JS = Path(__file__).with_name("fast_browse_snapshot.js").read_text()
+# Re-runs the same atomic snapshot and extracts only its page-level "marker" — used to
+# detect whether *anything* meaningful on the page changed since a prior snapshot.
+_FAST_MARKER_JS = f"(() => {{ const state={_FAST_SNAPSHOT_JS}; return state?.marker ?? null; }})()"
 
 if APP_ENV in {"production", "staging"} and not SCRAPER_API_KEY:
     raise RuntimeError("SCRAPER_API_KEY must be set for scraper service in staging/production")
@@ -766,6 +777,129 @@ async def browser_snapshot(req: SnapshotRequest):
         }
     except Exception as e:
         logger.error(f"Snapshot error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+def _fast_fingerprint(state: dict[str, Any]) -> str:
+    """Stable hash of the parts of a fast-snapshot that matter for staleness checks."""
+    content = {k: state[k] for k in ("url", "text", "actions", "scroll")}
+    return hashlib.sha256(json.dumps(content, sort_keys=True).encode()).hexdigest()
+
+
+class FastSnapshotRequest(BaseModel):
+    session_id: str = "default"
+    page_id: str | None = None
+
+
+@app.post("/v1/browser/fast-snapshot")
+async def browser_fast_snapshot(req: FastSnapshotRequest):
+    """Atomic snapshot for the browser-autopilot decision loop (see fast_browse_snapshot.js)."""
+    try:
+        _, page = await _get_session_and_page(req.session_id, req.page_id)
+        state = await page.evaluate(_FAST_SNAPSHOT_JS)
+        if state is None:
+            return {"success": False, "error": "Document is navigating"}
+        state["fingerprint"] = _fast_fingerprint(state)
+        return {"success": True, **state, "session_id": req.session_id, "page_id": req.page_id}
+    except Exception as e:
+        logger.error(f"Fast snapshot error: {e}")
+        return {"success": False, "error": str(e)}
+
+
+class FastActRequest(BaseModel):
+    session_id: str = "default"
+    page_id: str | None = None
+    action: dict[str, Any]
+    text: str | None = None
+    page_key: Any = None
+    guards: dict[str, Any] = Field(default_factory=dict)
+    marker: Any = None
+
+
+@app.post("/v1/browser/fast-act")
+async def browser_fast_act(req: FastActRequest):
+    """
+    Execute one action chosen from a prior /v1/browser/fast-snapshot, validating that the
+    target element (or, for non-click/select actions, the whole page) is unchanged since
+    that snapshot was taken. Returns {"success": True, "stale": True} without acting if the
+    page moved on — the caller should re-snapshot and decide again, never act on stale state.
+
+    Execution logic ported from jev-ultrafast's browser.py/model.py (MIT licensed):
+    https://github.com/browser-use/jev-ultrafast
+    """
+    try:
+        _, page = await _get_session_and_page(req.session_id, req.page_id)
+        action = req.action
+        kind = action.get("kind")
+
+        if kind == "wait":
+            await asyncio.sleep(0.1)
+            return {"success": True, "stale": False, "executed": action.get("id")}
+
+        if kind == "scroll":
+            await page.mouse.wheel(0, action.get("delta", 0))
+            return {"success": True, "stale": False, "executed": action.get("id")}
+
+        node = action.get("node")
+        if kind in ("click", "select"):
+            if not isinstance(node, int):
+                return {"success": False, "error": "Invalid observed node"}
+            guard_js = (
+                "(() => { const c=window.__synkoraFastBrowse; "
+                f"return c ? [c.pageKey(), c.guard(c.nodes.get({json.dumps(node)}))] : null; }})()"
+            )
+            current = await page.evaluate(guard_js)
+            if current != [req.page_key, req.guards.get(str(node))]:
+                return {"success": True, "stale": True}
+        else:
+            current_marker = await page.evaluate(_FAST_MARKER_JS)
+            if current_marker != req.marker:
+                return {"success": True, "stale": True}
+
+        if kind not in ("click", "fill", "select"):
+            return {"success": False, "error": f"Unsupported action kind: {kind}"}
+
+        # Code-owned node ids refer to actual observed elements, never model-generated
+        # selectors. Re-resolve current geometry and reject a now-covered/disabled target
+        # right before input — the guard check above only proves identity/state, not that
+        # nothing now overlaps it.
+        validate_js = (
+            """(action => {
+              const e=window.__synkoraFastBrowse?.nodes.get(action.node);
+              if (!e?.isConnected || e.matches(':disabled') || e.closest('[aria-disabled="true"],[inert]') ||
+                  !e.checkVisibility({checkOpacity:true,checkVisibilityCSS:true})) return null;
+              if (action.kind==='fill' && (e.readOnly || e.getAttribute('aria-readonly')==='true')) return null;
+              const r=e.getBoundingClientRect(), x=r.x+r.width/2, y=r.y+r.height/2;
+              if (!r.width || !r.height || x<0 || y<0 || x>=innerWidth || y>=innerHeight) return null;
+              if (!e.contains(document.elementFromPoint(x,y))) return null;
+              if (action.kind==='select') {
+                if (e.tagName!=='SELECT' || ![...e.options].some(o=>o.value===action.value &&
+                    !o.disabled && !o.closest('optgroup[disabled]'))) return null;
+                e.value=action.value;
+                e.dispatchEvent(new Event('input',{bubbles:true}));
+                e.dispatchEvent(new Event('change',{bubbles:true}));
+              }
+              return {x,y};
+            })("""
+            + json.dumps(action)
+            + ")"
+        )
+        target = await page.evaluate(validate_js)
+        if target is None:
+            if kind == "select":
+                return {"success": False, "error": "Dropdown execution was not confirmed; inspect before retrying."}
+            return {"success": True, "stale": True}
+
+        if kind != "select":
+            x, y = target["x"], target["y"]
+            await page.mouse.click(x, y)
+            if action.get("kind") == "fill":
+                await page.keyboard.press("Control+A")
+                await page.keyboard.insert_text(req.text or "")
+
+        return {"success": True, "stale": False, "executed": action.get("id")}
+    except Exception as e:
+        logger.error(f"Fast act error: {e}")
         return {"success": False, "error": str(e)}
 
 

@@ -388,6 +388,12 @@ class ADKToolRegistry:
 
         register_browser_tools(self)
 
+        from src.services.agents.tool_registrations.browser_autopilot_tools_registry import (
+            register_browser_autopilot_tools,
+        )
+
+        register_browser_autopilot_tools(self)
+
         from src.services.agents.tool_registrations.email_tools_registry import register_email_tools
 
         register_email_tools(self)
