@@ -1,6 +1,7 @@
 """Tool registrations package - modular tool registry files."""
 
 from .blog_site_tools_registry import register_blog_site_tools
+from .browser_autopilot_tools_registry import register_browser_autopilot_tools
 from .browser_tools_registry import register_browser_tools
 from .clickup_tools_registry import register_clickup_tools
 from .contract_tools_registry import register_contract_tools
@@ -65,6 +66,7 @@ __all__ = [
     "register_followup_tools",
     "register_scheduler_tools",
     "register_blog_site_tools",
+    "register_browser_autopilot_tools",
     "register_browser_tools",
     "register_email_tools",
     "register_role_tools",
