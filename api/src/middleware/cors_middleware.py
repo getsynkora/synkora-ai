@@ -57,7 +57,9 @@ class DynamicCORSMiddleware:
         # pages (e.g. TypeSafe playground pages served from S3/MinIO) — open to any
         # origin, no credentials. Security boundary is rate limiting, not CORS.
         path = request.url.path.rstrip("/")
-        return bool(re.fullmatch(r"/api/v1/public/typesafe-playground/[^/]+/(?:evaluate|reflex-evaluate)", path))
+        return bool(
+            re.fullmatch(r"/api/v1/public/typesafe-playground/[^/]+/(?:evaluate|reflex-evaluate|story-evaluate)", path)
+        )
 
     def __init__(
         self,
