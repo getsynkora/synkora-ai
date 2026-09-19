@@ -7,6 +7,7 @@
 Deploy agents to Slack, WhatsApp, Teams, Telegram, web widget, and REST API — from one platform. MIT licensed.
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-synkora.ai-blue?style=for-the-badge)](https://synkora.ai)
+[![Watch Demo](https://img.shields.io/badge/%E2%96%B6-Watch%20Demo-red?style=for-the-badge)](https://synkora.ai/demo_video.mp4)
 [![Quick Start](https://img.shields.io/badge/Quick%20Start-self--host%20in%20minutes-green?style=for-the-badge)](#quick-start)
 
 ---
@@ -788,6 +789,8 @@ We welcome contributions from the community! Whether you're fixing bugs, improvi
 
 Please read our [Contributing Guidelines](CONTRIBUTING.md) for detailed information.
 
+New to the project? Look for issues labeled [`good first issue`](https://github.com/getsynkora/synkora-ai/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) to get started.
+
 ### Code of Conduct
 
 This project adheres to a [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to the project maintainers.
@@ -857,6 +860,17 @@ Synkora is actively maintained and in production use. We follow semantic version
 - **Stability**: Production-ready
 - **Maintenance**: Actively maintained
 - **Release Cycle**: Regular updates and security patches
+
+
+## Star History
+
+<a href="https://star-history.com/#getsynkora/synkora-ai&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=getsynkora/synkora-ai&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=getsynkora/synkora-ai&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=getsynkora/synkora-ai&type=Date" width="100%" />
+ </picture>
+</a>
 
 ---
 
