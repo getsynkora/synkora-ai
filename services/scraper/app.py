@@ -791,12 +791,35 @@ class FastSnapshotRequest(BaseModel):
     page_id: str | None = None
 
 
+_SNAPSHOT_RETRY_ATTEMPTS = 10
+_SNAPSHOT_RETRY_DELAY_SECONDS = 0.05
+
+
 @app.post("/v1/browser/fast-snapshot")
 async def browser_fast_snapshot(req: FastSnapshotRequest):
-    """Atomic snapshot for the browser-autopilot decision loop (see fast_browse_snapshot.js)."""
+    """Atomic snapshot for the browser-autopilot decision loop (see fast_browse_snapshot.js).
+
+    A page.evaluate() call made while a navigation is still in flight raises
+    "Execution context was destroyed" — reproduced live immediately after clicking
+    a real link. Retrying briefly (as jev-ultrafast's own observe() loop does around
+    the equivalent CDP error) lets the new document finish starting before giving up,
+    instead of surfacing a spurious failure for what is just an in-progress navigation.
+    """
     try:
         _, page = await _get_session_and_page(req.session_id, req.page_id)
-        state = await page.evaluate(_FAST_SNAPSHOT_JS)
+        state = None
+        last_error: Exception | None = None
+        for attempt in range(_SNAPSHOT_RETRY_ATTEMPTS):
+            try:
+                state = await page.evaluate(_FAST_SNAPSHOT_JS)
+                last_error = None
+                break
+            except Exception as e:
+                last_error = e
+                if attempt < _SNAPSHOT_RETRY_ATTEMPTS - 1:
+                    await asyncio.sleep(_SNAPSHOT_RETRY_DELAY_SECONDS)
+        if last_error is not None:
+            raise last_error
         if state is None:
             return {"success": False, "error": "Document is navigating"}
         state["fingerprint"] = _fast_fingerprint(state)
@@ -896,6 +919,22 @@ async def browser_fast_act(req: FastActRequest):
             if action.get("kind") == "fill":
                 await page.keyboard.press("Control+A")
                 await page.keyboard.insert_text(req.text or "")
+
+        # A click can trigger a full navigation (a link, a "view details" button, a form
+        # submit). wait_for_load_state resolves immediately once the CURRENT document is
+        # loaded, but per Playwright's own docs "the navigation must have been committed
+        # when this method is called" — calling it the instant after mouse.click() can
+        # race ahead of an async navigation trigger (e.g. an onclick handler assigning
+        # location.href) that hasn't started yet, in which case it just sees the OLD page
+        # already loaded and returns immediately without ever waiting for the new one.
+        # A brief settle window lets any click-triggered navigation actually begin before
+        # checking. Reproduced live: without this, the caller's next snapshot raced ahead
+        # of a real navigation and silently observed the OLD page.
+        try:
+            await page.wait_for_timeout(100)
+            await page.wait_for_load_state("load", timeout=5000)
+        except Exception:
+            pass
 
         return {"success": True, "stale": False, "executed": action.get("id")}
     except Exception as e:

@@ -307,6 +307,43 @@ async def generate_field_text(
 # ---------------------------------------------------------------------------
 
 
+_MAX_PAGES_SEEN = 15  # bounds response size for long browse-and-gather runs
+
+
+def _page_content(snapshot: dict[str, Any]) -> dict[str, Any]:
+    """Convenience view of the CURRENT/final page — the last entry of pages_seen."""
+    return {
+        "page_title": snapshot.get("title"),
+        "page_text": snapshot.get("text"),
+    }
+
+
+def _record_page_seen(pages_seen: list[dict[str, Any]], snapshot: dict[str, Any]) -> None:
+    """
+    Append the current page's content to the running trace, deduplicated by URL.
+
+    This is what makes multi-page "browse and gather" goals work — e.g. "find
+    hotels on trip.com and compare the top 3 by price" needs the search
+    results page AND whichever listing pages got opened along the way, not
+    just wherever the run happened to end. Jev only decides what to click
+    next; comparing/ranking what was found is the calling agent's job once
+    the tool returns, and it can only do that if every page visited is here,
+    not just the last one.
+    """
+    if len(pages_seen) >= _MAX_PAGES_SEEN:
+        return
+    url = snapshot.get("url")
+    if url and any(p["url"] == url for p in pages_seen):
+        return
+    pages_seen.append(
+        {
+            "url": url,
+            "title": snapshot.get("title"),
+            "text": snapshot.get("text"),
+        }
+    )
+
+
 async def _get_typesafe_client(runtime_context: Any):
     from src.core.typesafe_client import make_typesafe_client
     from src.services.agents.credential_resolver import CredentialResolver
@@ -340,8 +377,15 @@ async def internal_browser_autopilot(
     and target per step from the page's own structured action space — one
     TypeSafe call per decision, not a full agent LLM turn.
 
-    Returns only the final outcome (status, steps taken, a short action
-    history) — not every intermediate click.
+    Returns the final outcome (status, steps taken, a short action history)
+    plus pages_seen: the title/text of every distinct page visited during the
+    run, not just wherever it ended — this is what lets an open-ended goal
+    like "find hotels and compare the top 3 by price" work: this tool only
+    navigates/acts, it never extracts or compares data itself, so the calling
+    agent needs the full trace of what was seen to reason over afterward. A
+    goal needing zero interaction (e.g. "read this page and summarize it")
+    correctly finishes in 0 steps with an empty history; pages_seen still has
+    the one page that was loaded.
     """
     typesafe = await _get_typesafe_client(runtime_context)
     if typesafe is None:
@@ -363,18 +407,26 @@ async def internal_browser_autopilot(
 
     steps_budget = max(1, min(max_steps, MAX_STEPS))
     history: list[dict[str, Any]] = []
+    pages_seen: list[dict[str, Any]] = []
     step = 0
     stale_retries = 0
 
     snapshot = await scraper.browser_fast_snapshot(session_id=session_id, page_id=page_id)
     if not snapshot.get("success"):
         return {"success": False, "error": f"Snapshot failed: {snapshot.get('error')}", "history": history}
+    _record_page_seen(pages_seen, snapshot)
 
     while step < steps_budget:
         try:
             decision = await choose(typesafe, snapshot, goal, history)
         except (ValueError, RuntimeError) as exc:
-            return {"success": False, "error": str(exc), "history": history}
+            return {
+                "success": False,
+                "error": str(exc),
+                "history": history,
+                "pages_seen": pages_seen,
+                **_page_content(snapshot),
+            }
 
         operation = decision["operation"]
         if operation in ("DONE", "BLOCKED"):
@@ -385,11 +437,19 @@ async def internal_browser_autopilot(
                 "confidence": decision["confidence"],
                 "history": history,
                 "final_url": snapshot.get("url"),
+                "pages_seen": pages_seen,
+                **_page_content(snapshot),
             }
 
         action = decision["action"]
         if action is None:
-            return {"success": False, "error": f"No action available for operation {operation}", "history": history}
+            return {
+                "success": False,
+                "error": f"No action available for operation {operation}",
+                "history": history,
+                "pages_seen": pages_seen,
+                **_page_content(snapshot),
+            }
 
         text_value = None
         if action.get("kind") == "fill":
@@ -416,6 +476,8 @@ async def internal_browser_autopilot(
                     "success": False,
                     "error": "Page kept changing before any decision could be executed.",
                     "history": history,
+                    "pages_seen": pages_seen,
+                    **_page_content(snapshot),
                 }
             snapshot = await scraper.browser_fast_snapshot(session_id=session_id, page_id=page_id)
             if not snapshot.get("success"):
@@ -423,7 +485,13 @@ async def internal_browser_autopilot(
             continue  # re-observe and decide again; does not consume the step budget
 
         if not act_result.get("success"):
-            return {"success": False, "error": act_result.get("error"), "history": history}
+            return {
+                "success": False,
+                "error": act_result.get("error"),
+                "history": history,
+                "pages_seen": pages_seen,
+                **_page_content(snapshot),
+            }
 
         prev_fingerprint = snapshot.get("fingerprint")
         snapshot = await scraper.browser_fast_snapshot(session_id=session_id, page_id=page_id)
@@ -432,6 +500,8 @@ async def internal_browser_autopilot(
 
         stale_retries = 0
         page_changed = snapshot.get("fingerprint") != prev_fingerprint
+        if page_changed:
+            _record_page_seen(pages_seen, snapshot)
         history.append(
             {
                 "step": step + 1,
@@ -453,6 +523,15 @@ async def internal_browser_autopilot(
                 "steps": step,
                 "history": history,
                 "reason": "Stalled — 3 consecutive actions produced no visible page change.",
+                "pages_seen": pages_seen,
+                **_page_content(snapshot),
             }
 
-    return {"success": False, "status": "max_steps", "steps": step, "history": history}
+    return {
+        "success": False,
+        "status": "max_steps",
+        "steps": step,
+        "history": history,
+        "pages_seen": pages_seen,
+        **_page_content(snapshot),
+    }
