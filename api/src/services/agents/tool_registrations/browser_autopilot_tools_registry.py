@@ -57,6 +57,10 @@ A "blocked" or "max_steps" result means it could not fully complete the goal —
 still hold everything found up to that point, which may already answer the request; check before
 retrying with a more specific goal or falling back to manual tools.
 
+This tool never returns an image. If the user also wants a screenshot/visual of the page, call
+internal_browser_screenshot with the SAME session_id (and page_id, if you passed one) right after
+this returns — it operates on the same browser session, so it captures wherever this run ended up.
+
 IMPORTANT: Configure TypeSafe AI first via Settings → Integrations → AI Evaluation, and make sure
 this agent has a default LLM configured (used to generate the text typed into form fields).""",
         parameters={
