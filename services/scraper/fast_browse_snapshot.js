@@ -16,7 +16,7 @@
     const id=cache.ids.get(e); cache.nodes.set(id,e); return id;
   };
   for (const [id,e] of cache.nodes) if (!e.isConnected) cache.nodes.delete(id);
-  const safe = e => !['password','file','hidden'].includes(e.type);
+  const safe = e => !['password','hidden'].includes(e.type);
   const visible = e => !e.closest('[aria-hidden="true"],[inert]') &&
     e.checkVisibility({checkOpacity:true,checkVisibilityCSS:true});
   const name = (e,seen=new Set()) => {
@@ -44,7 +44,7 @@
     if (e.tagName==='TEXTAREA' || e.isContentEditable) return 'textbox';
     if (e.tagName==='INPUT') {
       if (['checkbox','radio'].includes(e.type)) return e.type;
-      if (['button','submit','reset','image'].includes(e.type)) return 'button';
+      if (['button','submit','reset','image','file'].includes(e.type)) return 'button';
       if (e.type==='search') return 'searchbox';
       if (e.type==='number') return 'spinbutton';
       if (['text','email','url','tel'].includes(e.type)) return 'textbox';
@@ -79,6 +79,9 @@
       for (const o of e.options) if (!o.selected && !o.disabled && !o.closest('optgroup[disabled]'))
         actions.push({...base,kind:'select',value:o.value,
           current_value:[...e.selectedOptions].map(o=>o.label).join(', '),label:base.label+' → '+o.label});
+    } else if (e.tagName==='INPUT' && e.type==='file') {
+      actions.push({...base,kind:'upload',value:'',
+        accept:e.getAttribute('accept')||'',multiple:e.multiple});
     } else {
       const editable=!e.readOnly && e.getAttribute('aria-readonly')!=='true' &&
         (['textbox','searchbox','spinbutton'].includes(rname) ||
@@ -112,6 +115,10 @@
   if (scrollY+innerHeight<height-2) actions.push({id:'scroll_down',kind:'scroll',label:'Scroll down',delta:560});
   if (scrollY>0) actions.push({id:'scroll_up',kind:'scroll',label:'Scroll up',delta:-560});
   actions.push({id:'wait',kind:'wait',label:'Wait for the page to update'});
+  actions.push({id:'press_enter',kind:'press',key:'Enter',
+    label:'Press Enter (submit the focused field, or confirm a dialog with no visible button)'});
+  actions.push({id:'press_escape',kind:'press',key:'Escape',
+    label:'Press Escape (close an overlay/dropdown/cookie banner, or dismiss a dialog)'});
   return {url:location.href,title:document.title,w:innerWidth,h:innerHeight,text,
     scroll:{y:scrollY,height},actions,marker,page_key,guards,omitted_actions};
 })()

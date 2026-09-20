@@ -49,6 +49,7 @@ _OPERATION_LABELS = {
     "CLICK": "Click an element, button, menu option, autocomplete suggestion, or calendar day.",
     "TYPE_TEXT": "Enter or replace text in an editable field. A small model will supply the value from the goal.",
     "SELECT": "Select an observed dropdown value.",
+    "UPLOAD_FILE": "Attach a file to an observed file-upload field, from the files supplied for this run.",
 }
 
 _NEXT_ACTION_RULES = """Advance the user's entire goal from the CURRENT page using one operation.
@@ -58,6 +59,8 @@ its matching autocomplete suggestion selected. For date pickers, CLICK the field
 Set every requested filter/control; a matching result alone does not prove a requested filter was set.
 Do not toggle a checkbox, switch, or radio already in the requested state.
 Submit populated search fields before opening a result; a populated field alone is not an applied search.
+UPLOAD_FILE only when a supplied file actually matches the field's purpose/accept type; never
+guess or invent a file that wasn't supplied for this run.
 WAIT only when the needed control is absent/disabled, or submitted results are still loading.
 If Search/Submit is visible and the required fields are ready, CLICK it immediately.
 Recent WAIT actions are not evidence of loading. Prefer a useful visible control over WAIT.
@@ -100,27 +103,30 @@ def build_action_space(
 ) -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
     """One index per observed element; each operation has its own valid target choices."""
     elements: list[dict[str, Any]] = []
-    indices: dict[int, str] = {}
+    indices: dict[tuple[int, int], str] = {}
     targets: dict[str, dict[str, Any]] = {}
     controls: dict[str, dict[str, Any]] = {}
-    operations = {"click": "CLICK", "fill": "TYPE_TEXT", "select": "SELECT"}
+    operations = {"click": "CLICK", "fill": "TYPE_TEXT", "select": "SELECT", "upload": "UPLOAD_FILE"}
 
     for action in actions:
         kind = action.get("kind")
         if kind not in operations:
             controls[action["id"].upper()] = action
             continue
-        node = action["node"]
-        if node not in indices:
+        # (frame_index, node) — node ids are only unique WITHIN a frame; the same integer
+        # in two different frames (main page vs. an embedded iframe) refers to unrelated
+        # elements, so frame_index must be part of the dedup key or they'd collide.
+        node_key = (action.get("frame_index", 0), action["node"])
+        if node_key not in indices:
             index = str(len(elements) + 1)
-            indices[node] = index
+            indices[node_key] = index
             element = {k: action[k] for k in ("role", "value", "checked", "selected", "expanded") if k in action}
             element.update(index=index, label=action["label"].split(" → ")[0], operations=[])
             if kind == "select":
                 element["value"] = action.get("current_value", "")
                 element["options"] = []
             elements.append(element)
-        index = indices[node]
+        index = indices[node_key]
         operation = operations[kind]
         group = targets.setdefault(operation, {})
         element = elements[int(index) - 1]
@@ -180,7 +186,7 @@ async def choose(
                 index: {
                     "element": f"[{index}] {a['label']}",
                     "current_value": a.get("current_value", a.get("value", "")),
-                    **{k: a[k] for k in ("role", "checked", "selected", "expanded") if k in a},
+                    **{k: a[k] for k in ("role", "checked", "selected", "expanded", "accept", "multiple") if k in a},
                 }
                 for index, a in candidates.items()
             },
@@ -344,6 +350,59 @@ def _record_page_seen(pages_seen: list[dict[str, Any]], snapshot: dict[str, Any]
     )
 
 
+async def _read_workspace_files(
+    file_paths: list[str], runtime_context: Any, config: dict[str, Any] | None
+) -> list[dict[str, Any]]:
+    """
+    Read files for an UPLOAD_FILE action the exact same secure way
+    internal_browser_upload_file does: only from the agent's own owned
+    workspace, base64-encoded for the scraper — never an arbitrary path on
+    the scraper's own filesystem.
+    """
+    import asyncio
+    import mimetypes
+    from base64 import b64encode
+    from pathlib import PurePosixPath
+
+    from src.services.compute.resolver import get_compute_session_from_config
+    from src.services.security.tenant_storage import storage_tenant
+    from src.services.security.workspace_files import MAX_UPLOAD_BYTES, read_workspace_file, relative_workspace_path
+
+    storage_tenant(runtime_context, config)
+    if not file_paths or len(file_paths) > 10:
+        raise ValueError("Supply between one and ten workspace files")
+    context = runtime_context or (config or {}).get("_runtime_context")
+    compute = getattr(context, "compute_session", None) or await get_compute_session_from_config(config)
+    if compute is not None and not callable(getattr(compute, "read_file_bytes", None)):
+        raise ValueError("This workspace does not support binary uploads")
+    root = compute.base_path if compute is not None else (config or {}).get("workspace_path")
+    if not root:
+        raise ValueError("An owned workspace is required for browser uploads")
+
+    files: list[dict[str, Any]] = []
+    total = 0
+    for path in file_paths:
+        relative = relative_workspace_path(path, root)
+        if compute is not None:
+            data = await compute.read_file_bytes(str(PurePosixPath(root) / relative))
+        else:
+            data = await asyncio.to_thread(read_workspace_file, root, relative)
+        if data is None:
+            raise ValueError(f"Workspace file could not be read: {path}")
+        total += len(data)
+        if total > MAX_UPLOAD_BYTES:
+            raise ValueError("Total upload exceeds 10 MiB")
+        name = PurePosixPath(relative).name
+        files.append(
+            {
+                "name": name,
+                "mime_type": mimetypes.guess_type(name)[0] or "application/octet-stream",
+                "content_base64": b64encode(data).decode("ascii"),
+            }
+        )
+    return files
+
+
 async def _get_typesafe_client(runtime_context: Any):
     from src.core.typesafe_client import make_typesafe_client
     from src.services.agents.credential_resolver import CredentialResolver
@@ -368,6 +427,7 @@ async def internal_browser_autopilot(
     session_id: str = "default",
     page_id: str | None = None,
     max_steps: int = MAX_STEPS,
+    file_paths: list[str] | None = None,
     runtime_context: Any | None = None,
     config: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -376,6 +436,13 @@ async def internal_browser_autopilot(
     agent tool-call per click/fill/select. TypeSafe (Jev) picks one operation
     and target per step from the page's own structured action space — one
     TypeSafe call per decision, not a full agent LLM turn.
+
+    Sees and can act on elements inside embedded iframes (payment widgets,
+    some login/signup forms), can attach files from file_paths to an observed
+    upload field, follows a click that opens a new tab instead of getting
+    stuck on the original one, and accepts JS dialogs (confirm/alert/prompt)
+    for the rest of the run instead of the browser's silent default of
+    dismissing every one.
 
     Returns the final outcome (status, steps taken, a short action history)
     plus pages_seen: the title/text of every distinct page visited during the
@@ -400,16 +467,39 @@ async def internal_browser_autopilot(
     scraper = _scraper()
     text_llm_factory = await _make_text_llm_factory(runtime_context)
 
+    upload_files: list[dict[str, Any]] = []
+    if file_paths:
+        try:
+            upload_files = await _read_workspace_files(file_paths, runtime_context, config)
+        except Exception as exc:
+            return {"success": False, "error": f"Could not read file_paths: {exc}"}
+
     if url:
         nav = await scraper.browser_navigate(url=url, session_id=session_id, page_id=page_id)
         if not nav.get("success", True):
             return {"success": False, "error": f"Navigation failed: {nav.get('error')}"}
+
+    # Best-effort: accept every JS dialog (confirm/alert/prompt) for the rest of this run.
+    # Playwright's undocumented-to-callers default is to silently auto-DISMISS any dialog
+    # with no handler registered, which would make a "submit and confirm" goal always take
+    # the Cancel path with no way to tell. A failure here just leaves that default in place.
+    try:
+        await scraper.browser_handle_dialog(session_id=session_id, page_id=page_id, action="accept", persistent=True)
+    except Exception as exc:
+        logger.debug("Could not arm dialog auto-accept: %s", exc)
 
     steps_budget = max(1, min(max_steps, MAX_STEPS))
     history: list[dict[str, Any]] = []
     pages_seen: list[dict[str, Any]] = []
     step = 0
     stale_retries = 0
+
+    # Tracks tabs/popups already known about, so a click that opens a new one can be
+    # detected and followed — BrowserSession already auto-registers popups (that's what
+    # backs the existing manual wait_for_new_page tool), but this loop otherwise always
+    # keeps re-observing the SAME page_id it started on.
+    known_pages = await scraper.browser_list_pages(session_id=session_id)
+    known_page_ids: set[str] = {p["id"] for p in known_pages.get("pages", [])} if known_pages.get("success") else set()
 
     snapshot = await scraper.browser_fast_snapshot(session_id=session_id, page_id=page_id)
     if not snapshot.get("success"):
@@ -459,6 +549,15 @@ async def internal_browser_autopilot(
                 logger.warning("Field text generation failed: %s", exc)
                 text_value = None
 
+        if action.get("kind") == "upload" and not upload_files:
+            return {
+                "success": False,
+                "error": "TypeSafe chose to upload a file, but no file_paths were supplied for this run.",
+                "history": history,
+                "pages_seen": pages_seen,
+                **_page_content(snapshot),
+            }
+
         act_result = await scraper.browser_fast_act(
             action=action,
             session_id=session_id,
@@ -467,6 +566,8 @@ async def internal_browser_autopilot(
             page_key=snapshot.get("page_key"),
             guards=snapshot.get("guards"),
             marker=snapshot.get("marker"),
+            frame_data=snapshot.get("frame_data"),
+            files=upload_files if action.get("kind") == "upload" else None,
         )
 
         if act_result.get("stale"):
@@ -493,13 +594,24 @@ async def internal_browser_autopilot(
                 **_page_content(snapshot),
             }
 
+        switched_to_new_tab = False
+        if action.get("kind") == "click":
+            pages_after = await scraper.browser_list_pages(session_id=session_id)
+            if pages_after.get("success"):
+                current_ids = {p["id"] for p in pages_after.get("pages", [])}
+                new_ids = current_ids - known_page_ids
+                if new_ids:
+                    page_id = sorted(new_ids)[0]  # deterministic if more than one somehow appeared
+                    switched_to_new_tab = True
+                known_page_ids = current_ids
+
         prev_fingerprint = snapshot.get("fingerprint")
         snapshot = await scraper.browser_fast_snapshot(session_id=session_id, page_id=page_id)
         if not snapshot.get("success"):
             return {"success": False, "error": f"Snapshot failed: {snapshot.get('error')}", "history": history}
 
         stale_retries = 0
-        page_changed = snapshot.get("fingerprint") != prev_fingerprint
+        page_changed = switched_to_new_tab or snapshot.get("fingerprint") != prev_fingerprint
         if page_changed:
             _record_page_seen(pages_seen, snapshot)
         history.append(
@@ -510,6 +622,7 @@ async def internal_browser_autopilot(
                 "text": text_value,
                 "confidence": decision["confidence"],
                 "page_changed": page_changed,
+                "switched_to_new_tab": switched_to_new_tab,
                 "url": snapshot.get("url"),
             }
         )

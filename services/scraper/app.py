@@ -804,6 +804,11 @@ async def browser_fast_snapshot(req: FastSnapshotRequest):
     a real link. Retrying briefly (as jev-ultrafast's own observe() loop does around
     the equivalent CDP error) lets the new document finish starting before giving up,
     instead of surfacing a spurious failure for what is just an in-progress navigation.
+
+    Also walks every child frame (payment widgets, some login/signup forms are commonly
+    embedded in an iframe) and merges their controls in, tagged with frame_index — a
+    Frame.evaluate() reaches these via CDP regardless of the iframe's origin, unlike a
+    content script's contentDocument access, which same-origin policy would block.
     """
     try:
         _, page = await _get_session_and_page(req.session_id, req.page_id)
@@ -822,11 +827,46 @@ async def browser_fast_snapshot(req: FastSnapshotRequest):
             raise last_error
         if state is None:
             return {"success": False, "error": "Document is navigating"}
+
+        frames = page.frames
+        main_index = frames.index(page.main_frame) if page.main_frame in frames else 0
+        for a in state["actions"]:
+            a["frame_index"] = main_index
+
+        frame_data: dict[str, dict[str, Any]] = {}
+        for idx, frame in enumerate(frames):
+            if idx == main_index:
+                continue
+            try:
+                frame_state = await frame.evaluate(_FAST_SNAPSHOT_JS)
+            except Exception:
+                continue  # detached, still loading, or otherwise inaccessible — skip, don't fail the whole snapshot
+            if not frame_state:
+                continue
+            for a in frame_state.get("actions", []):
+                if a.get("kind") in ("scroll", "wait", "press"):
+                    continue  # page-level controls — already offered once from the main frame
+                a["frame_index"] = idx
+                a["id"] = f"f{idx}_{a['id']}"
+                state["actions"].append(a)
+            frame_data[str(idx)] = {
+                "page_key": frame_state.get("page_key"),
+                "guards": frame_state.get("guards") or {},
+            }
+        state["frame_data"] = frame_data
+
         state["fingerprint"] = _fast_fingerprint(state)
         return {"success": True, **state, "session_id": req.session_id, "page_id": req.page_id}
     except Exception as e:
         logger.error(f"Fast snapshot error: {e}")
         return {"success": False, "error": str(e)}
+
+
+class FastActUpload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    name: str = Field(min_length=1, max_length=255)
+    mime_type: str = Field(default="application/octet-stream", max_length=255)
+    content_base64: str = Field(max_length=14 * 1024 * 1024)
 
 
 class FastActRequest(BaseModel):
@@ -837,18 +877,41 @@ class FastActRequest(BaseModel):
     page_key: Any = None
     guards: dict[str, Any] = Field(default_factory=dict)
     marker: Any = None
+    frame_data: dict[str, Any] = Field(default_factory=dict)
+    files: list[FastActUpload] = Field(default_factory=list)
+
+
+async def _settle_after_possible_navigation(page) -> None:
+    """A click/press/submit can trigger a full navigation (a link, a "view details" button,
+    a form submit). wait_for_load_state resolves immediately once the CURRENT document is
+    loaded, but per Playwright's own docs "the navigation must have been committed when this
+    method is called" — calling it the instant after acting can race ahead of an async
+    navigation trigger that hasn't started yet, in which case it just sees the OLD page
+    already loaded and returns immediately without ever waiting for the new one. A brief
+    settle window lets any triggered navigation actually begin before checking. Reproduced
+    live: without this, the caller's next snapshot raced ahead of a real navigation and
+    silently observed the OLD page."""
+    try:
+        await page.wait_for_timeout(100)
+        await page.wait_for_load_state("load", timeout=5000)
+    except Exception:
+        pass
 
 
 @app.post("/v1/browser/fast-act")
 async def browser_fast_act(req: FastActRequest):
     """
     Execute one action chosen from a prior /v1/browser/fast-snapshot, validating that the
-    target element (or, for non-click/select actions, the whole page) is unchanged since
-    that snapshot was taken. Returns {"success": True, "stale": True} without acting if the
-    page moved on — the caller should re-snapshot and decide again, never act on stale state.
+    target element (or, for a main-frame fill, the whole page) is unchanged since that
+    snapshot was taken. Returns {"success": True, "stale": True} without acting if the page
+    moved on — the caller should re-snapshot and decide again, never act on stale state.
 
     Execution logic ported from jev-ultrafast's browser.py/model.py (MIT licensed):
-    https://github.com/browser-use/jev-ultrafast
+    https://github.com/browser-use/jev-ultrafast — extended here for elements inside a
+    child frame (Playwright's ElementHandle click/fill/select_option correctly translate
+    coordinates across frames; the ported mouse.click(x,y) approach only works for the main
+    frame, since getBoundingClientRect() inside a frame is relative to THAT frame's own
+    viewport, not the top-level page), file uploads, and key presses.
     """
     try:
         _, page = await _get_session_and_page(req.session_id, req.page_id)
@@ -863,29 +926,107 @@ async def browser_fast_act(req: FastActRequest):
             await page.mouse.wheel(0, action.get("delta", 0))
             return {"success": True, "stale": False, "executed": action.get("id")}
 
+        if kind == "press":
+            key = action.get("key") or "Enter"
+            await page.keyboard.press(key)
+            await _settle_after_possible_navigation(page)
+            return {"success": True, "stale": False, "executed": action.get("id")}
+
+        if kind not in ("click", "fill", "select", "upload"):
+            return {"success": False, "error": f"Unsupported action kind: {kind}"}
+
         node = action.get("node")
-        if kind in ("click", "select"):
-            if not isinstance(node, int):
-                return {"success": False, "error": "Invalid observed node"}
-            guard_js = (
-                "(() => { const c=window.__synkoraFastBrowse; "
-                f"return c ? [c.pageKey(), c.guard(c.nodes.get({json.dumps(node)}))] : null; }})()"
-            )
-            current = await page.evaluate(guard_js)
-            if current != [req.page_key, req.guards.get(str(node))]:
-                return {"success": True, "stale": True}
-        else:
+        if not isinstance(node, int):
+            return {"success": False, "error": "Invalid observed node"}
+
+        frames = page.frames
+        frame_index = action.get("frame_index", 0)
+        if not isinstance(frame_index, int) or frame_index < 0 or frame_index >= len(frames):
+            return {"success": True, "stale": True}  # frame list changed shape since the snapshot
+        target_ctx = frames[frame_index]
+        is_main_frame = target_ctx == page.main_frame
+
+        guard_js = (
+            "(() => { const c=window.__synkoraFastBrowse; "
+            f"return c ? [c.pageKey(), c.guard(c.nodes.get({json.dumps(node)}))] : null; }})()"
+        )
+
+        # Main-frame fill uses a whole-page marker (ported as-is, unchanged, from the
+        # original design — typing can be interrupted by page-wide changes an element-level
+        # guard wouldn't catch, e.g. autocomplete suggestions altering the DOM elsewhere).
+        # Everything else — any click/select/upload, and any frame-scoped fill — uses the
+        # element-level identity+state guard instead.
+        if kind == "fill" and is_main_frame:
             current_marker = await page.evaluate(_FAST_MARKER_JS)
             if current_marker != req.marker:
                 return {"success": True, "stale": True}
+        else:
+            current = await target_ctx.evaluate(guard_js)
+            if is_main_frame:
+                expected = [req.page_key, req.guards.get(str(node))]
+            else:
+                fdata = req.frame_data.get(str(frame_index)) or {}
+                expected = [fdata.get("page_key"), (fdata.get("guards") or {}).get(str(node))]
+            if current != expected:
+                return {"success": True, "stale": True}
 
-        if kind not in ("click", "fill", "select"):
-            return {"success": False, "error": f"Unsupported action kind: {kind}"}
+        if kind == "upload":
+            try:
+                handle = await target_ctx.evaluate_handle(
+                    f"(() => window.__synkoraFastBrowse?.nodes.get({json.dumps(node)}))()"
+                )
+                element = handle.as_element()
+            except Exception:
+                element = None
+            if element is None:
+                return {"success": True, "stale": True}
+            uploads = []
+            total = 0
+            for file in req.files:
+                if any(c in file.name for c in ("/", "\\", "\x00")) or file.name in {".", ".."}:
+                    return {"success": False, "error": "Invalid upload filename"}
+                data = base64.b64decode(file.content_base64, validate=True)
+                total += len(data)
+                if total > 10 * 1024 * 1024:
+                    return {"success": False, "error": "Total upload exceeds 10 MiB"}
+                uploads.append({"name": file.name, "mimeType": file.mime_type, "buffer": data})
+            if not uploads:
+                return {"success": False, "error": "No files supplied for upload"}
+            await element.set_input_files(uploads, timeout=5000)
+            return {"success": True, "stale": False, "executed": action.get("id")}
 
-        # Code-owned node ids refer to actual observed elements, never model-generated
-        # selectors. Re-resolve current geometry and reject a now-covered/disabled target
-        # right before input — the guard check above only proves identity/state, not that
-        # nothing now overlaps it.
+        if not is_main_frame:
+            # Frame-scoped click/select/fill: use Playwright's own element methods, which
+            # correctly resolve coordinates across frame boundaries — the manual
+            # mouse.click(x,y) path below only works for the main frame.
+            try:
+                handle = await target_ctx.evaluate_handle(
+                    f"(() => window.__synkoraFastBrowse?.nodes.get({json.dumps(node)}))()"
+                )
+                element = handle.as_element()
+            except Exception:
+                element = None
+            if element is None or not await element.is_visible() or await element.is_disabled():
+                return {"success": True, "stale": True}
+            if kind == "select":
+                try:
+                    await element.select_option(value=action.get("value", ""), timeout=5000)
+                except Exception:
+                    return {
+                        "success": False,
+                        "error": "Dropdown execution was not confirmed; inspect before retrying.",
+                    }
+            elif kind == "fill":
+                await element.fill(req.text or "", timeout=5000)
+            else:
+                await element.click(timeout=5000)
+            await _settle_after_possible_navigation(page)
+            return {"success": True, "stale": False, "executed": action.get("id")}
+
+        # Main-frame click/select/fill: ported as-is from jev-ultrafast. Code-owned node ids
+        # refer to actual observed elements, never model-generated selectors. Re-resolve
+        # current geometry and reject a now-covered/disabled target right before input — the
+        # guard check above only proves identity/state, not that nothing now overlaps it.
         validate_js = (
             """(action => {
               const e=window.__synkoraFastBrowse?.nodes.get(action.node);
@@ -916,26 +1057,11 @@ async def browser_fast_act(req: FastActRequest):
         if kind != "select":
             x, y = target["x"], target["y"]
             await page.mouse.click(x, y)
-            if action.get("kind") == "fill":
+            if kind == "fill":
                 await page.keyboard.press("Control+A")
                 await page.keyboard.insert_text(req.text or "")
 
-        # A click can trigger a full navigation (a link, a "view details" button, a form
-        # submit). wait_for_load_state resolves immediately once the CURRENT document is
-        # loaded, but per Playwright's own docs "the navigation must have been committed
-        # when this method is called" — calling it the instant after mouse.click() can
-        # race ahead of an async navigation trigger (e.g. an onclick handler assigning
-        # location.href) that hasn't started yet, in which case it just sees the OLD page
-        # already loaded and returns immediately without ever waiting for the new one.
-        # A brief settle window lets any click-triggered navigation actually begin before
-        # checking. Reproduced live: without this, the caller's next snapshot raced ahead
-        # of a real navigation and silently observed the OLD page.
-        try:
-            await page.wait_for_timeout(100)
-            await page.wait_for_load_state("load", timeout=5000)
-        except Exception:
-            pass
-
+        await _settle_after_possible_navigation(page)
         return {"success": True, "stale": False, "executed": action.get("id")}
     except Exception as e:
         logger.error(f"Fast act error: {e}")
@@ -1695,6 +1821,7 @@ class HandleDialogRequest(BaseModel):
     prompt_text: str | None = None
     session_id: str = "default"
     page_id: str | None = None
+    persistent: bool = False
 
 
 @app.post("/v1/browser/handle-dialog")
@@ -1711,7 +1838,15 @@ async def browser_handle_dialog(req: HandleDialogRequest):
             else:
                 await dialog.dismiss()
 
-        page.once("dialog", dialog_handler)
+        # Default (persistent=False) matches existing behavior exactly: handles only the
+        # next dialog, then Playwright reverts to auto-dismissing unhandled ones. persistent
+        # keeps applying the same action to every dialog for the rest of the session — set
+        # once by browser-autopilot before a multi-step run, since a run can hit more than
+        # one dialog and re-arming per step would cost an extra round trip every action.
+        if req.persistent:
+            page.on("dialog", dialog_handler)
+        else:
+            page.once("dialog", dialog_handler)
         return {"success": True, "action": "dialog_handler_set", "dialog_action": req.action, "session_id": req.session_id}
     except Exception as e:
         return {"success": False, "error": str(e)}
