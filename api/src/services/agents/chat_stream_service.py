@@ -2041,10 +2041,16 @@ class ChatStreamService:
                 )
 
                 if should_summarize:
+                    from src.services.agents.context_relevance_pruner import (
+                        resolve_typesafe_client_for_pruning,
+                    )
+
+                    typesafe_pruning_client = await resolve_typesafe_client_for_pruning(tenant_id, db)
                     recent_messages, new_summary = await context_manager.maybe_summarize_old_messages(
                         messages=conversation_history,
                         llm_client=llm_client,
                         existing_summary=conversation_summary,
+                        typesafe_client=typesafe_pruning_client,
                     )
 
                     if new_summary and new_summary != conversation_summary:
