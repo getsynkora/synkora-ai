@@ -46,9 +46,16 @@ Prefer the manual internal_browser_* tools when you need to inspect intermediate
 an unusual/multi-step flow this can't infer from the goal alone, or the site needs a fixed field
 value you already know exactly (this tool infers TYPE_TEXT values from the goal each time).
 
-Returns: {{"success": bool, "status": "done"|"blocked"|"max_steps", "steps": int, "history": [...]}}.
-A "blocked" or "max_steps" result means it could not complete the goal — check "history" for what
-it tried, and either provide a more specific goal or fall back to manual tools.
+Returns: {"success": bool, "status": "done"|"blocked"|"max_steps", "steps": int, "history": [...],
+"pages_seen": [{"url", "title", "text"}, ...], "page_title": str, "page_text": str}. This tool only
+navigates/acts — it never extracts, compares, or ranks data itself. pages_seen is the title/text of
+EVERY distinct page visited during the run (search results, each listing opened, etc.), in order —
+read all of it yourself to answer open-ended goals like "find hotels and tell me the top 3 by price."
+page_title/page_text is just the final page, a shortcut for goals needing zero clicks (e.g. "read
+this page and summarize it", which correctly finishes in 0 steps with an empty history).
+A "blocked" or "max_steps" result means it could not fully complete the goal — pages_seen/history
+still hold everything found up to that point, which may already answer the request; check before
+retrying with a more specific goal or falling back to manual tools.
 
 IMPORTANT: Configure TypeSafe AI first via Settings → Integrations → AI Evaluation, and make sure
 this agent has a default LLM configured (used to generate the text typed into form fields).""",
