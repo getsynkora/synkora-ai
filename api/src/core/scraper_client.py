@@ -127,6 +127,8 @@ class ScraperServiceClient:
         page_key: Any = None,
         guards: dict[str, Any] | None = None,
         marker: Any = None,
+        frame_data: dict[str, Any] | None = None,
+        files: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """Execute one action chosen from a prior browser_fast_snapshot() result."""
         return await self._browser(
@@ -139,6 +141,8 @@ class ScraperServiceClient:
                 "page_key": page_key,
                 "guards": guards or {},
                 "marker": marker,
+                "frame_data": frame_data or {},
+                "files": files or [],
             },
         )
 

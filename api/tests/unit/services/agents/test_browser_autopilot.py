@@ -4,15 +4,25 @@ lets open-ended "browse and gather" goals (e.g. "find hotels and compare the
 top 3 by price") report everything the run actually saw, not just wherever
 it happened to end."""
 
+import base64
+import tempfile
+from pathlib import Path
+
 import pytest
 
 from src.services.agents.internal_tools.browser_autopilot import (
     _MAX_PAGES_SEEN,
     _page_content,
+    _read_workspace_files,
     _record_page_seen,
     build_action_space,
     validate_choice,
 )
+
+
+class _FakeRuntimeContext:
+    tenant_id = "11111111-1111-1111-1111-111111111111"
+    compute_session = None
 
 
 def _fill_action(node, label, value=""):
@@ -72,6 +82,54 @@ class TestBuildActionSpace:
         assert elements == []
         assert targets == {}
         assert "WAIT" in controls
+
+    def test_press_controls_become_controls_too(self):
+        actions = [{"id": "press_enter", "kind": "press", "key": "Enter", "label": "Press Enter"}]
+        _elements, _targets, controls = build_action_space(actions)
+        assert "PRESS_ENTER" in controls
+        assert controls["PRESS_ENTER"]["key"] == "Enter"
+
+    def test_upload_kind_maps_to_upload_file_operation(self):
+        actions = [
+            {
+                "node": 1,
+                "kind": "upload",
+                "id": "e1",
+                "label": "Resume",
+                "role": "button",
+                "value": "",
+                "accept": ".pdf",
+            }
+        ]
+        elements, targets, _controls = build_action_space(actions)
+        assert "UPLOAD_FILE" in targets
+        assert targets["UPLOAD_FILE"]["1"]["accept"] == ".pdf"
+        assert "UPLOAD_FILE" in elements[0]["operations"]
+
+    def test_same_node_id_in_different_frames_are_not_merged(self):
+        """node ids are only unique WITHIN a frame — the same integer in the main
+        page and inside an embedded iframe must be treated as two distinct elements,
+        not merged into one (the exact bug this test guards against: iframe support
+        introduced node-id collisions since every frame's own snapshot restarts its
+        counter from 1)."""
+        actions = [
+            {**_fill_action(1, "Main page field"), "frame_index": 0},
+            {**_fill_action(1, "Iframe field"), "frame_index": 1},
+        ]
+        elements, targets, _controls = build_action_space(actions)
+
+        assert len(elements) == 2, "same node id in two different frames must not be merged"
+        labels = {e["label"] for e in elements}
+        assert labels == {"Main page field", "Iframe field"}
+        assert set(targets["TYPE_TEXT"].keys()) == {"1", "2"}
+
+    def test_missing_frame_index_defaults_to_main_frame(self):
+        """Actions without an explicit frame_index (e.g. plain unit-test fixtures
+        elsewhere in this file) must still behave exactly as before frame support
+        was added — defaulting to frame_index=0, not crashing or misbehaving."""
+        actions = [_fill_action(1, "Email")]
+        elements, _targets, _controls = build_action_space(actions)
+        assert len(elements) == 1
 
 
 @pytest.mark.unit
@@ -139,3 +197,40 @@ class TestRecordPageSeen:
         _record_page_seen(pages, {"url": "https://overflow.com", "title": "", "text": ""})
         assert len(pages) == _MAX_PAGES_SEEN
         assert not any(p["url"] == "https://overflow.com" for p in pages)
+
+
+@pytest.mark.unit
+class TestReadWorkspaceFiles:
+    """UPLOAD_FILE must only ever read from the agent's own owned workspace, the exact
+    same secure mechanism internal_browser_upload_file already uses — never an arbitrary
+    path on the scraper's own filesystem."""
+
+    async def test_reads_a_real_file_and_base64_encodes_it(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            (Path(workspace) / "resume.txt").write_bytes(b"hello resume content")
+
+            files = await _read_workspace_files(["resume.txt"], _FakeRuntimeContext(), {"workspace_path": workspace})
+
+        assert len(files) == 1
+        assert files[0]["name"] == "resume.txt"
+        assert files[0]["mime_type"] == "text/plain"
+        assert base64.b64decode(files[0]["content_base64"]) == b"hello resume content"
+
+    async def test_rejects_path_traversal(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            with pytest.raises(ValueError):
+                await _read_workspace_files(["../../etc/passwd"], _FakeRuntimeContext(), {"workspace_path": workspace})
+
+    async def test_rejects_more_than_ten_files(self):
+        with pytest.raises(ValueError, match="between one and ten"):
+            await _read_workspace_files(
+                [f"file{i}.txt" for i in range(11)], _FakeRuntimeContext(), {"workspace_path": "/tmp"}
+            )
+
+    async def test_rejects_empty_file_list(self):
+        with pytest.raises(ValueError):
+            await _read_workspace_files([], _FakeRuntimeContext(), {"workspace_path": "/tmp"})
+
+    async def test_requires_a_workspace_root(self):
+        with pytest.raises(ValueError, match="owned workspace"):
+            await _read_workspace_files(["a.txt"], _FakeRuntimeContext(), {})

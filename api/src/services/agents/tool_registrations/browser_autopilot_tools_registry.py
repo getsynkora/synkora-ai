@@ -26,6 +26,7 @@ def register_browser_autopilot_tools(registry) -> None:
             session_id=_resolve_session_id(kwargs, runtime_context),
             page_id=kwargs.get("page_id"),
             max_steps=kwargs.get("max_steps", MAX_STEPS),
+            file_paths=kwargs.get("file_paths"),
             runtime_context=runtime_context,
             config=config,
         )
@@ -46,6 +47,12 @@ Prefer the manual internal_browser_* tools when you need to inspect intermediate
 an unusual/multi-step flow this can't infer from the goal alone, or the site needs a fixed field
 value you already know exactly (this tool infers TYPE_TEXT values from the goal each time).
 
+Also handles: elements inside an embedded iframe (payment widgets, some login/signup forms — sees
+and can click/fill/select/upload into these, not just the top-level page); a click that opens a new
+tab (follows it automatically instead of getting stuck on the original tab); JS dialogs like
+confirm()/alert()/prompt() (accepts them for the whole run, instead of the browser's silent default
+of dismissing every one); and attaching a file to an observed upload field via file_paths.
+
 Returns: {"success": bool, "status": "done"|"blocked"|"max_steps", "steps": int, "history": [...],
 "pages_seen": [{"url", "title", "text"}, ...], "page_title": str, "page_text": str}. This tool only
 navigates/acts — it never extracts, compares, or ranks data itself. pages_seen is the title/text of
@@ -53,9 +60,10 @@ EVERY distinct page visited during the run (search results, each listing opened,
 read all of it yourself to answer open-ended goals like "find hotels and tell me the top 3 by price."
 page_title/page_text is just the final page, a shortcut for goals needing zero clicks (e.g. "read
 this page and summarize it", which correctly finishes in 0 steps with an empty history).
-A "blocked" or "max_steps" result means it could not fully complete the goal — pages_seen/history
-still hold everything found up to that point, which may already answer the request; check before
-retrying with a more specific goal or falling back to manual tools.
+Each history entry also has switched_to_new_tab: true when that click opened a new tab this run
+then followed. A "blocked" or "max_steps" result means it could not fully complete the goal —
+pages_seen/history still hold everything found up to that point, which may already answer the
+request; check before retrying with a more specific goal or falling back to manual tools.
 
 This tool never returns an image. If the user also wants a screenshot/visual of the page, call
 internal_browser_screenshot with the SAME session_id (and page_id, if you passed one) right after
@@ -89,6 +97,16 @@ this agent has a default LLM configured (used to generate the text typed into fo
                 "session_id": {
                     "type": "string",
                     "description": "Browser session label — reuse the same value to continue in the same session.",
+                },
+                "file_paths": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": (
+                        "Paths (in your own workspace) of files to make available for an UPLOAD_FILE step, "
+                        "e.g. a document you generated or the user attached earlier in this conversation. "
+                        "Omit if the goal doesn't involve uploading anything — Jev will never invent a file "
+                        "that wasn't supplied here."
+                    ),
                 },
             },
             "required": ["goal"],

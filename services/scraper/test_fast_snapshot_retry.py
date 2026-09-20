@@ -25,6 +25,8 @@ class _FakePage:
         # Each entry is either an exception instance (raised) or a return value.
         self._results = list(evaluate_results)
         self.calls = 0
+        self.main_frame = self
+        self.frames = [self]  # single-frame page — no child frames to walk
 
     async def evaluate(self, _expression):
         self.calls += 1
