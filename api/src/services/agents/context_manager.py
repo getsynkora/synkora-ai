@@ -240,7 +240,11 @@ class ContextManager:
         return False
 
     async def maybe_summarize_old_messages(
-        self, messages: list[dict[str, str]], llm_client: Any, existing_summary: str | None = None
+        self,
+        messages: list[dict[str, str]],
+        llm_client: Any,
+        existing_summary: str | None = None,
+        typesafe_client: Any | None = None,
     ) -> tuple[list[dict[str, str]], str | None]:
         """
         Check if summarization needed, return (recent_messages, summary).
@@ -254,6 +258,12 @@ class ContextManager:
             messages: Full conversation history
             llm_client: LLM client for generating summaries
             existing_summary: Existing summary to build upon
+            typesafe_client: Optional TypeSafe client. When provided, the messages
+                about to be summarized are first scored for relevance and irrelevant
+                ones are dropped outright (kept verbatim if relevant) before the
+                remainder is summarized as usual — cheaper and avoids paraphrasing
+                data the summary would otherwise blur. Omitted or any failure here
+                falls straight through to the unmodified existing behavior.
 
         Returns:
             Tuple of (recent_messages, summary_text)
@@ -269,6 +279,21 @@ class ContextManager:
         # Split messages
         messages_to_summarize = messages[:-keep_recent]
         recent_messages = messages[-keep_recent:]
+
+        if typesafe_client is not None:
+            try:
+                from src.services.agents.context_relevance_pruner import prune_irrelevant_messages
+
+                pruned = await prune_irrelevant_messages(messages_to_summarize, recent_messages, typesafe_client)
+                if pruned is not None and len(pruned) < len(messages_to_summarize):
+                    logger.info(
+                        "TypeSafe pruning dropped %d/%d irrelevant messages before summarization",
+                        len(messages_to_summarize) - len(pruned),
+                        len(messages_to_summarize),
+                    )
+                    messages_to_summarize = pruned
+            except Exception as exc:
+                logger.warning("Relevance pruning step failed, continuing with unpruned messages: %s", exc)
 
         logger.info(f"Auto-summarizing {len(messages_to_summarize)} messages, keeping {len(recent_messages)} recent")
 
