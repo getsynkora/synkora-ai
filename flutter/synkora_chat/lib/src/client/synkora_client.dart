@@ -59,7 +59,7 @@ class SynkoraClient {
       );
       return WidgetConfig.fromJson(response.data!);
     } on DioException catch (e) {
-      throw Exception(_describeDioError(e));
+      throw Exception(await _describeDioError(e));
     }
   }
 
@@ -181,7 +181,7 @@ class SynkoraClient {
       }
     } on DioException catch (e) {
       if (e.type != DioExceptionType.cancel) {
-        controller.add(ErrorEvent(_describeDioError(e)));
+        controller.add(ErrorEvent(await _describeDioError(e)));
       }
     } catch (e) {
       controller.add(ErrorEvent(e.toString()));
@@ -342,7 +342,7 @@ class SynkoraClient {
     );
   }
 
-  String _describeDioError(DioException error) {
+  Future<String> _describeDioError(DioException error) async {
     final statusCode = error.response?.statusCode;
     final normalizedBase = baseUrl.replaceFirst(RegExp(r'^https?://'), '');
 
@@ -352,8 +352,25 @@ class SynkoraClient {
       return 'Cannot reach Synkora at $normalizedBase. Make sure the API is running and that this app can access $baseUrl.';
     }
 
-    if (statusCode == 401 || statusCode == 403) {
-      return 'Synkora rejected this widget key. Check that the widget key is valid and belongs to the target instance.';
+    // The server's own {"detail": "..."} is always more specific and
+    // accurate than anything we could guess from the status code alone —
+    // prefer it whenever present.
+    final serverDetail = await _extractErrorDetail(error.response?.data);
+
+    if (statusCode == 401) {
+      return serverDetail ??
+          'Synkora rejected this widget key. Check that the widget key is valid and belongs to the target instance.';
+    }
+
+    if (statusCode == 403) {
+      // 403 means the widget key WAS accepted — the rejection is a separate
+      // check (domain allowlist, identity verification, rate limit). Do not
+      // tell the caller the key is invalid here; that sends debugging in
+      // exactly the wrong direction.
+      return serverDetail ??
+          "Synkora rejected this request (403). The widget key is valid, but the request failed a domain, "
+              "identity, or permission check — check the widget's allowed domains, mobile_allowed setting, and "
+              "identity verification requirements.";
     }
 
     if (statusCode == 404) {
@@ -361,10 +378,43 @@ class SynkoraClient {
     }
 
     if (statusCode != null && statusCode >= 500) {
-      return 'Synkora is reachable, but returned a server error ($statusCode). Check the API logs and try again.';
+      return serverDetail ??
+          'Synkora is reachable, but returned a server error ($statusCode). Check the API logs and try again.';
     }
 
-    return error.message ?? 'Network error';
+    return serverDetail ?? error.message ?? 'Network error';
+  }
+
+  /// Best-effort extraction of the FastAPI `{"detail": "..."}` body from a
+  /// failed response, whichever shape Dio delivered it in — already-decoded
+  /// JSON for normal requests, or a raw byte stream for the SSE chat call
+  /// (which sets responseType: ResponseType.stream even for error responses).
+  Future<String?> _extractErrorDetail(dynamic data) async {
+    try {
+      if (data is Map) {
+        final detail = data['detail'];
+        return detail is String ? detail : null;
+      }
+      if (data is ResponseBody) {
+        final bytes = await data.stream
+            .fold<List<int>>(<int>[], (acc, chunk) => acc..addAll(chunk));
+        final decoded = jsonDecode(utf8.decode(bytes));
+        if (decoded is Map && decoded['detail'] is String) {
+          return decoded['detail'] as String;
+        }
+        return null;
+      }
+      if (data is String) {
+        final decoded = jsonDecode(data);
+        if (decoded is Map && decoded['detail'] is String) {
+          return decoded['detail'] as String;
+        }
+        return null;
+      }
+    } catch (_) {
+      // Malformed/non-JSON body — fall through to the generic message.
+    }
+    return null;
   }
 
   MessageRole _parseRole(String? role) {

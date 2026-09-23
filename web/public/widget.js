@@ -3196,7 +3196,10 @@
   //
   //   userHash  {string}  — HMAC-SHA256 signature of the user's ID, computed on your
   //                         server using the widget's identity secret.
-  //                         Required when identity_verification_required=true on the widget.
+  //                         REQUIRED any time `user` is passed — the server rejects an
+  //                         identified request with no proof regardless of the widget's
+  //                         identity_verification_required setting (that flag only controls
+  //                         whether anonymous, no-user sessions are allowed at all).
   //
   //   HOW TO GENERATE userHash (server-side only — never in the browser):
   //
@@ -3242,14 +3245,10 @@
   //       apiKey:   "swk_...",
   //     });
   //
-  //   With identified user (no verification enforced):
-  //     SynkoraWidget.init({
-  //       widgetId: "your-widget-id",
-  //       apiKey:   "swk_...",
-  //       user: { id: "usr_123", name: "Alice", email: "alice@acme.com", orgId: "acme" },
-  //     });
-  //
-  //   With identity verification enabled (userHash required):
+  //   With an identified user — userHash is ALWAYS required the moment you pass `user`,
+  //   regardless of the widget's identity_verification_required setting. There is no
+  //   "identified but unverified" mode: the server rejects any user.id it cannot prove
+  //   belongs to the caller, since that ID is used to scope conversation history access.
   //     // 1. Your server computes: hash = HMAC-SHA256(WIDGET_IDENTITY_SECRET, user.id)
   //     // 2. Your server passes the hash to the page (e.g. in a <script> or API response)
   //     SynkoraWidget.init({

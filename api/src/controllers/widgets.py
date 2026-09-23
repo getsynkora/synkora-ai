@@ -1325,11 +1325,14 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
         # Get API key from header
         api_key = http_request.headers.get("X-Widget-API-Key")
         if not api_key:
+            logger.warning("widget chat rejected: reason=missing_api_key")
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Widget API key is required")
 
         # Validate API key and get widget
         widget = await WidgetAuthMiddleware.validate_api_key(api_key, db)
         if not widget:
+            # key_prefix only — never log the full key, even on rejection.
+            logger.warning(f"widget chat rejected: reason=invalid_api_key key_prefix={api_key[:20]!r}")
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or inactive widget API key")
 
         # Enforce size/serializability cap on host-supplied page_context before it's used anywhere
@@ -1338,8 +1341,20 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
         # Validate domain — skip check for mobile SDK requests (no Origin header) when mobile_allowed=True
         origin = http_request.headers.get("Origin") or http_request.headers.get("Referer")
         is_mobile_request = not origin
+        logger.info(
+            f"widget chat request: widget_id={widget.id} source={request.source} "
+            f"has_user={bool(request.user)} user_id={request.user.id if request.user else None} "
+            f"has_user_hash={bool(request.user_hash)} has_identity_token={bool(request.identity_token)} "
+            f"origin={origin!r} is_mobile_request={is_mobile_request} "
+            f"mobile_allowed={getattr(widget, 'mobile_allowed', False)}"
+        )
         if not (is_mobile_request and getattr(widget, "mobile_allowed", False)):
             if not WidgetAuthMiddleware.validate_domain(widget, origin):
+                logger.warning(
+                    f"widget chat rejected: widget_id={widget.id} reason=domain_not_allowed "
+                    f"origin={origin!r} allowed_domains={widget.allowed_domains} mobile_allowed="
+                    f"{getattr(widget, 'mobile_allowed', False)} is_mobile_request={is_mobile_request}"
+                )
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Domain not allowed for this widget")
 
         # Check rate limit
@@ -1364,6 +1379,7 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
             # Authorization-relevant organization data comes from the signed assertion.
             request.user.org_id = verified_claims.get("organization_id")
         elif widget.identity_verification_required:
+            logger.warning(f"widget chat rejected: widget_id={widget.id} reason=identity_verification_required_no_user")
             raise HTTPException(403, "Verified widget identity is required")
         elif request.session_token:
             anonymous_session_id = verify_anonymous_session(widget, request.session_token)
