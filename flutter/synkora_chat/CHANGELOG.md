@@ -1,3 +1,11 @@
+## 1.15.1
+
+- Fix: error messages from the API no longer collapse a 401 (invalid widget key) and a
+  403 (valid key, but blocked by a domain/identity/rate-limit check) into the same
+  "Synkora rejected this widget key" message. The real `detail` from the server is now
+  surfaced when present, so 403s from misconfigured domains or missing identity proof
+  no longer look like an invalid-key problem.
+
 ## 1.15.0
 
 - Bottom tab navigation — Home and Chat tabs replace the dropdown menu
