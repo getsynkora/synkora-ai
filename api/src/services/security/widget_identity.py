@@ -21,9 +21,8 @@ def _key(widget):
 
 
 def verify_user(widget, user_id, user_hash=None, org_id=None, identity_token=None):
-    # Never logs user_hash/identity_token values themselves (they're proof material,
-    # not payload we want sitting in log storage) — only the *shape* of what was sent,
-    # which is enough to tell "app sent no proof" apart from "app sent a wrong hash".
+    # Shape-only log (safe to leave in permanently): tells "no proof sent" apart from
+    # "wrong proof sent" without putting proof material in log storage.
     logger.info(
         "widget identity check: widget_id=%s user_id=%s has_user_hash=%s has_identity_token=%s "
         "requested_org_id=%s identity_verification_required=%s",
@@ -33,6 +32,20 @@ def verify_user(widget, user_id, user_hash=None, org_id=None, identity_token=Non
         bool(identity_token),
         org_id,
         getattr(widget, "identity_verification_required", None),
+    )
+    # TODO(security): TEMPORARY full-payload diagnostic logging, added 2026-09-24 at explicit
+    # request while root-causing a live widget identity failure. This logs the ACTUAL
+    # user_hash/identity_token values -- real proof material. Anyone with log-read access
+    # can use a logged user_hash to impersonate that exact user_id on this widget until the
+    # identity secret is rotated. REMOVE THIS BLOCK once the live issue is resolved; it must
+    # not ship as a standing log line.
+    logger.warning(
+        "TEMP DIAGNOSTIC widget identity payload: widget_id=%s user_id=%s user_hash=%r identity_token=%r org_id=%r",
+        widget.id,
+        user_id,
+        user_hash,
+        identity_token,
+        org_id,
     )
     if identity_token:
         try:
