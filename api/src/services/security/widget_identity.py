@@ -20,6 +20,19 @@ def _key(widget):
     return decrypt_value(widget.identity_secret)
 
 
+def _fingerprint(value: str | None) -> str | None:
+    """Short, one-way fingerprint of a secret value for log comparison.
+
+    Lets two log entries -- or a log entry and a locally-recomputed expected value --
+    be confirmed equal or different (any difference anywhere in the value changes the
+    fingerprint) without ever putting usable proof material in log storage. A prefix/
+    suffix mask would hide a single differing character in the middle; this doesn't.
+    """
+    if not value:
+        return None
+    return hashlib.sha256(value.encode()).hexdigest()[:12]
+
+
 def verify_user(widget, user_id, user_hash=None, org_id=None, identity_token=None):
     # Shape-only log (safe to leave in permanently): tells "no proof sent" apart from
     # "wrong proof sent" without putting proof material in log storage.
@@ -33,18 +46,15 @@ def verify_user(widget, user_id, user_hash=None, org_id=None, identity_token=Non
         org_id,
         getattr(widget, "identity_verification_required", None),
     )
-    # TODO(security): TEMPORARY full-payload diagnostic logging, added 2026-09-24 at explicit
-    # request while root-causing a live widget identity failure. This logs the ACTUAL
-    # user_hash/identity_token values -- real proof material. Anyone with log-read access
-    # can use a logged user_hash to impersonate that exact user_id on this widget until the
-    # identity secret is rotated. REMOVE THIS BLOCK once the live issue is resolved; it must
-    # not ship as a standing log line.
+    # Permanent diagnostic log: fingerprints (not raw values) of user_hash/identity_token,
+    # safe to keep indefinitely -- a fingerprint can confirm "this matches/doesn't match an
+    # expected value" but can never itself be replayed as proof. See _fingerprint() above.
     logger.warning(
-        "TEMP DIAGNOSTIC widget identity payload: widget_id=%s user_id=%s user_hash=%r identity_token=%r org_id=%r",
+        "widget identity payload: widget_id=%s user_id=%s user_hash_fp=%s identity_token_fp=%s org_id=%r",
         widget.id,
         user_id,
-        user_hash,
-        identity_token,
+        _fingerprint(user_hash),
+        _fingerprint(identity_token),
         org_id,
     )
     if identity_token:
