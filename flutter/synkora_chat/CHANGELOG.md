@@ -1,3 +1,13 @@
+## 1.15.2
+
+- Fix: `SynkoraChatWidget` now picks up updated `userHash`/`identityToken`/`user`/`userId`
+  props on rebuild. Previously these were only ever read once, in `initState`, and silently
+  ignored on every rebuild after — so an app that fetches its identity proof asynchronously
+  and rebuilds the widget with the fresh value kept sending whatever (possibly null/stale)
+  value was available at the widget's very first build, indefinitely. Fixed by adding
+  `didUpdateWidget` change-detection and a new `SynkoraChatController.updateIdentity()`
+  method (also usable directly if you construct/own your own controller).
+
 ## 1.15.1
 
 - Fix: error messages from the API no longer collapse a 401 (invalid widget key) and a
