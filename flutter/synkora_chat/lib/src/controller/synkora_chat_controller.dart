@@ -16,10 +16,10 @@ class SynkoraChatController extends ChangeNotifier {
   final SynkoraClient _client;
   late final LocalCache _cache;
 
-  final String? userId;
+  String? userId;
   final String? sessionId;
-  final WidgetUser? user;
-  final String? userHash;
+  WidgetUser? user;
+  String? userHash;
 
   SynkoraChatController({
     required SynkoraClient client,
@@ -31,6 +31,31 @@ class SynkoraChatController extends ChangeNotifier {
     CacheDatabase? cacheDatabase,
   }) : _client = client {
     _cache = LocalCache(cacheDatabase ?? CacheDatabase());
+    _client.setIdentity(
+        userId: user?.id ?? userId, userHash: userHash, token: identityToken);
+  }
+
+  /// Refresh the identified user / identity proof after construction — e.g. when
+  /// your app fetches a fresh userHash or identityToken asynchronously, after the
+  /// controller (and [SynkoraChatWidget]) were already built once.
+  ///
+  /// Without calling this, a rebuilt [SynkoraChatWidget] with new userHash/
+  /// identityToken/user/userId props is NOT picked up: the controller — and the
+  /// underlying [SynkoraClient]'s stored identity headers — otherwise keep
+  /// whatever was passed in at the very first build, indefinitely, since
+  /// [userHash] and identityToken are otherwise only ever set once in the
+  /// constructor. [SynkoraChatWidget] calls this automatically via
+  /// didUpdateWidget when it owns the controller; call it yourself if you
+  /// construct and own a [SynkoraChatController] directly.
+  void updateIdentity({
+    WidgetUser? user,
+    String? userId,
+    String? userHash,
+    String? identityToken,
+  }) {
+    this.user = user;
+    this.userId = userId;
+    this.userHash = userHash;
     _client.setIdentity(
         userId: user?.id ?? userId, userHash: userHash, token: identityToken);
   }

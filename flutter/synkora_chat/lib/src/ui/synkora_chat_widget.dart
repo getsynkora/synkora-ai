@@ -105,6 +105,26 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
     _messageTriggerSub = _controller.messageTriggerStream.listen(_sendPrompt);
   }
 
+  @override
+  void didUpdateWidget(covariant SynkoraChatWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Only relevant when this widget owns the controller (built its own via
+    // initState above) -- if the caller passed their own controller, they're
+    // responsible for calling updateIdentity() themselves.
+    if (_ownsController &&
+        (widget.userHash != oldWidget.userHash ||
+            widget.identityToken != oldWidget.identityToken ||
+            widget.user != oldWidget.user ||
+            widget.userId != oldWidget.userId)) {
+      _controller.updateIdentity(
+        user: widget.user,
+        userId: widget.user?.id ?? widget.userId,
+        userHash: widget.userHash,
+        identityToken: widget.identityToken,
+      );
+    }
+  }
+
   void _onControllerUpdate() {
     if (!_resolvedInitialView && !_controller.isLoading) {
       _resolvedInitialView = true;
