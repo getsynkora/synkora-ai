@@ -1,3 +1,12 @@
+## 1.15.3
+
+- Fix: chat send failures shown inside the live chat no longer mention Synkora,
+  HTTP status codes, or any other backend/implementation detail — the widget is
+  embedded inside a third-party app, and the person seeing a chat error is that
+  app's end user, not the developer integrating the widget. `loadConfig()`
+  (used by developers during integration/testing, not shown to end users)
+  keeps its detailed diagnostic messages unchanged.
+
 ## 1.15.2
 
 - Fix: `SynkoraChatWidget` now picks up updated `userHash`/`identityToken`/`user`/`userId`

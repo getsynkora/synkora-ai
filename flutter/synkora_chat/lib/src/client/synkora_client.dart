@@ -182,10 +182,10 @@ class SynkoraClient {
       }
     } on DioException catch (e) {
       if (e.type != DioExceptionType.cancel) {
-        controller.add(ErrorEvent(await _describeDioError(e)));
+        controller.add(ErrorEvent(_genericChatErrorMessage(e)));
       }
-    } catch (e) {
-      controller.add(ErrorEvent(e.toString()));
+    } catch (_) {
+      controller.add(ErrorEvent(_genericUnexpectedErrorMessage));
     } finally {
       _activeCancelTokens.remove(cancelToken);
       await controller.close();
@@ -391,6 +391,29 @@ class SynkoraClient {
     }
 
     return serverDetail ?? error.message ?? 'Network error';
+  }
+
+  static const _genericUnexpectedErrorMessage =
+      "Something went wrong. Please try again.";
+
+  /// End-user-facing chat error text. Deliberately never mentions Synkora,
+  /// status codes, or any other backend/implementation detail — the widget
+  /// is embedded inside a third-party app, and the person seeing this is
+  /// that app's end user, not the developer integrating the widget. Detailed
+  /// diagnostics for developers belong in _describeDioError (used by
+  /// loadConfig, which developers call directly during integration/testing),
+  /// never in a message shown inside the live chat itself.
+  String _genericChatErrorMessage(DioException error) {
+    if (error.type == DioExceptionType.connectionTimeout ||
+        error.type == DioExceptionType.connectionError ||
+        error.type == DioExceptionType.unknown) {
+      return "I'm having trouble connecting right now. Please check your connection and try again.";
+    }
+    final statusCode = error.response?.statusCode;
+    if (statusCode == 429) {
+      return "You're sending messages a little too fast. Please wait a moment and try again.";
+    }
+    return _genericUnexpectedErrorMessage;
   }
 
   /// Best-effort extraction of the FastAPI `{"detail": "..."}` body from a
