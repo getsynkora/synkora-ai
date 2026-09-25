@@ -26,29 +26,12 @@ def proof(user):
     return hmac.new(SECRET.encode(), user.encode(), hashlib.sha256).hexdigest()
 
 
-def test_unverified_user_rejected_even_when_optional(widget):
-    for args in [("victim", None, None), ("victim", proof("attacker"), None)]:
+def test_unverified_user_and_forged_organization_rejected_even_when_optional(widget):
+    for args in [("victim", None, None), ("victim", proof("attacker"), None), ("victim", proof("victim"), "other-org")]:
         with pytest.raises(HTTPException) as error:
             identity.verify_user(widget, *args)
         assert error.value.status_code == 403
     assert identity.verify_user(widget, "victim", proof("victim"))["organization_id"] is None
-
-
-def test_TODO_SECURITY_forged_organization_is_temporarily_accepted_unverified(widget):
-    """TODO(security): documents a DELIBERATE, TEMPORARY regression — see the matching
-    TODO(security) comment in verify_user() (added 2026-09-24, for a demo deadline, explicitly
-    requested with the tradeoff understood). A valid user_hash no longer blocks an arbitrary,
-    unverified org_id from being accepted and returned as `organization_id` — which then flows
-    into the signed downstream MCP JWT (widgets.py's `_mcp_user_token`) as if Synkora verified
-    it. Before 2026-09-24 this was correctly rejected with a 403 (PR #196, 2026-09-12).
-
-    Once identity_token minting ships for this caller (spec already written — see verify_user's
-    identity_token branch above, which handles this correctly), DELETE this test and restore:
-        with pytest.raises(HTTPException) as error:
-            identity.verify_user(widget, "victim", proof("victim"), "other-org")
-        assert error.value.status_code == 403
-    """
-    assert identity.verify_user(widget, "victim", proof("victim"), "other-org")["organization_id"] == "other-org"
 
 
 def assertion(widget, **changes):
