@@ -46,6 +46,15 @@ def assertion(widget, **changes):
     return jwt.encode(claims, SECRET, algorithm="HS256")
 
 
+def test_identity_token_with_multi_day_lifetime_is_accepted(widget):
+    """IDENTITY_TOKEN_MAX_LIFETIME_SECONDS was widened from 5 minutes to 7 days
+    (2026-09-25) to avoid requiring mobile clients to run a background refresh cycle.
+    A 3-day-lifetime token must be accepted -- it would have been rejected under the
+    old 300-second limit."""
+    token = assertion(widget, exp=int(time.time()) + 3 * 24 * 60 * 60)
+    assert identity.verify_user(widget, "user", org_id="org", identity_token=token)["organization_id"] == "org"
+
+
 def test_signed_organization_identity_is_scoped_and_expires(widget):
     token = assertion(widget)
     assert identity.verify_user(widget, "user", org_id="org", identity_token=token)["organization_id"] == "org"
@@ -54,7 +63,8 @@ def test_signed_organization_identity_is_scoped_and_expires(widget):
         ("user", "other", token),
         ("user", "org", assertion(widget, exp=1)),
         ("user", "org", assertion(widget, aud="other-widget")),
-        ("user", "org", assertion(widget, exp=int(time.time()) + 3600)),
+        # exceeds IDENTITY_TOKEN_MAX_LIFETIME_SECONDS (7 days) -- must still be rejected
+        ("user", "org", assertion(widget, exp=int(time.time()) + 8 * 24 * 60 * 60)),
     ]:
         with pytest.raises(HTTPException):
             identity.verify_user(widget, user, org_id=org, identity_token=value)

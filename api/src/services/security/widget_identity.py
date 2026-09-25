@@ -33,6 +33,18 @@ def _fingerprint(value: str | None) -> str | None:
     return hashlib.sha256(value.encode()).hexdigest()[:12]
 
 
+# Max allowed lifetime for a widget identity_token, in seconds. Was 300 (5 min) since
+# the original security hardening (PR #196, 2026-09-12). Widened to 7 days at explicit
+# request (2026-09-25) to avoid requiring a background refresh cycle on mobile clients.
+# TRADEOFF (platform-wide, applies to every widget's identity_token, not just one
+# caller): a leaked identity_token now stays usable for up to 7 days instead of 5
+# minutes -- e.g. via device logs, crash reporters, or a compromised device. Unlike a
+# leaked user_hash (which stays valid until the widget's secret is rotated, with no
+# expiry at all), this is still bounded, and was chosen over no-expiry for exactly
+# that reason.
+IDENTITY_TOKEN_MAX_LIFETIME_SECONDS = 7 * 24 * 60 * 60  # 7 days
+
+
 def verify_user(widget, user_id, user_hash=None, org_id=None, identity_token=None):
     # Shape-only log (safe to leave in permanently): tells "no proof sent" apart from
     # "wrong proof sent" without putting proof material in log storage.
@@ -66,7 +78,7 @@ def verify_user(widget, user_id, user_hash=None, org_id=None, identity_token=Non
                 audience=f"synkora-widget:{widget.id}",
                 options={"require": ["exp", "iat", "sub", "aud"]},
             )
-            if claims["sub"] != user_id or claims["exp"] - claims["iat"] > 300:
+            if claims["sub"] != user_id or claims["exp"] - claims["iat"] > IDENTITY_TOKEN_MAX_LIFETIME_SECONDS:
                 raise ValueError("Invalid identity scope")
             if org_id is not None and claims.get("organization_id") != org_id:
                 raise ValueError("Organization mismatch")
