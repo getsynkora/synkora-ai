@@ -334,11 +334,6 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
                 )
               : Column(
                   children: [
-                    if (_controller.error != null && inMessages)
-                      _ErrorBanner(
-                        message: _controller.error!,
-                        onRetry: _controller.retry,
-                      ),
                     Expanded(
                       child: _controller.isLoading
                           ? _LoadingIndicator(primaryColor: _primary)
@@ -1576,41 +1571,6 @@ class _HandoffFooter extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // Error banner
 // ---------------------------------------------------------------------------
-
-class _ErrorBanner extends StatelessWidget {
-  final String message;
-  final VoidCallback onRetry;
-
-  const _ErrorBanner({required this.message, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: const Color(0xFFFFF2EC),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Color(0xFFC45F34), size: 16),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                message,
-                style: ChatTextStyles.txtStyleRegular13
-                    .copyWith(color: const Color(0xFF8B3F1E)),
-              ),
-            ),
-            TextButton(
-              onPressed: onRetry,
-              style: TextButton.styleFrom(foregroundColor: _kInk),
-              child: Text('Retry', style: ChatTextStyles.txtStyleSemiB13),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Input bar
