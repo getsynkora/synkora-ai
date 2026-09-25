@@ -46,7 +46,7 @@ class LocalCache {
             id: Value(msg.id),
             widgetKey: Value(widgetKey),
             convId: Value(convId),
-            role: Value(msg.role == MessageRole.user ? 'user' : 'assistant'),
+            role: Value(_roleToString(msg.role)),
             content: Value(msg.content),
             ts: Value(msg.timestamp),
             isStreaming: Value(msg.isStreaming),
@@ -69,7 +69,7 @@ class LocalCache {
             id: Value(msg.id),
             widgetKey: Value(widgetKey),
             convId: Value(convId),
-            role: Value(msg.role == MessageRole.user ? 'user' : 'assistant'),
+            role: Value(_roleToString(msg.role)),
             content: Value(msg.content),
             ts: Value(msg.timestamp),
             isStreaming: Value(msg.isStreaming),
@@ -102,9 +102,21 @@ class LocalCache {
   // Private helpers
   // ---------------------------------------------------------------------------
 
+  static String _roleToString(MessageRole role) => switch (role) {
+    MessageRole.user => 'user',
+    MessageRole.operator => 'operator',
+    MessageRole.assistant => 'assistant',
+  };
+
+  static MessageRole _roleFromString(String role) => switch (role) {
+    'user' => MessageRole.user,
+    'operator' => MessageRole.operator,
+    _ => MessageRole.assistant,
+  };
+
   ChatMessage _rowToMessage(Message row) => ChatMessage(
     id: row.id,
-    role: row.role == 'user' ? MessageRole.user : MessageRole.assistant,
+    role: _roleFromString(row.role),
     content: row.content,
     timestamp: row.ts,
     isStreaming: row.isStreaming,

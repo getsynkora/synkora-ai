@@ -99,16 +99,58 @@ async def internal_search_available_tools(
                 "error": "No tool registry available. Contact support.",
             }
 
-        # Score and rank tools
+        # Exclude the discovery tool itself from candidates
+        candidates = [t for t in all_tools if t.get("name") != "internal_search_available_tools"]
+
+        # JEV semantic discovery: use TypeSafe when a jev_client is available in this context.
+        # Require shared_state to be a real dict (not a MagicMock from tests that don't set it).
+        jev_client = None
+        if runtime_context and isinstance(getattr(runtime_context, "shared_state", None), dict):
+            jev_client = runtime_context.shared_state.get("_jev_client")
+        if jev_client is None and isinstance(config, dict):
+            jev_client = config.get("_jev_client")
+
+        if jev_client:
+            from src.services.agents.tool_registrations.tool_discovery_registry import jev_discover_tools
+
+            # Cap candidates at 50; send the rest as-is (permissive unknown)
+            _MAX_CANDIDATES = 50
+            to_ask = candidates[:_MAX_CANDIDATES]
+            overflow = candidates[_MAX_CANDIDATES:]
+            jev_results = await jev_discover_tools(
+                query=query,
+                candidate_tools=to_ask,
+                typesafe_client=jev_client,
+            )
+            top_tools_raw = (jev_results + overflow)[:limit]
+            results = [
+                {
+                    "name": t.get("name"),
+                    "description": (t.get("description") or "")[:200],
+                    "relevance": 1.0,  # JEV doesn't produce a numeric score
+                }
+                for t in top_tools_raw
+            ]
+            if not results:
+                return {
+                    "success": True,
+                    "message": f"No tools found matching '{query}'.",
+                    "tools": [],
+                    "count": 0,
+                }
+            return {
+                "success": True,
+                "tools": results,
+                "count": len(results),
+                "query": query,
+                "message": f"Found {len(results)} tools matching your query. You can now use these tools by name.",
+            }
+
+        # Keyword-based fallback (original behaviour)
         scored_tools: list[tuple[dict, float]] = []
-        for tool in all_tools:
+        for tool in candidates:
             tool_name = tool.get("name", "")
             tool_description = tool.get("description", "")
-
-            # Skip the discovery tool itself
-            if tool_name == "internal_search_available_tools":
-                continue
-
             score = _calculate_relevance_score(query, tool_name, tool_description)
             if score > 0.1:  # Minimum threshold
                 scored_tools.append((tool, score))

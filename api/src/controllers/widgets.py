@@ -4,6 +4,7 @@ Widget API endpoints.
 Provides REST API endpoints for managing agent widgets (embedded chat interfaces).
 """
 
+import asyncio
 import hmac
 import json
 import logging
@@ -23,7 +24,7 @@ from src.config.settings import get_settings
 from src.controllers.agents.index import convert_s3_uri_to_presigned_url
 from src.core.database import get_async_db
 from src.middleware.auth_middleware import get_current_tenant_id
-from src.middleware.widget_auth import WidgetAuthMiddleware
+from src.middleware.widget_auth import WidgetAuthMiddleware, invalidate_widget_cache
 from src.models.agent import Agent
 from src.models.agent_widget import AgentWidget, WidgetAnalytics
 from src.models.conversation import Conversation, ConversationStatus
@@ -32,6 +33,61 @@ from src.models.widget_agent_route import WidgetAgentRoute
 from src.services.security.advanced_prompt_scanner import advanced_prompt_scanner
 
 logger = logging.getLogger(__name__)
+
+# Module-level singleton — avoids rebuilding the LLM client on every widget request.
+# stream_agent_response() forks tool_registry + copies self at call time, so sharing
+# this instance across concurrent requests is safe.
+_widget_chat_service = None
+
+
+def _get_widget_chat_service():
+    global _widget_chat_service
+    if _widget_chat_service is None:
+        from src.services.agents.agent_loader_service import AgentLoaderService
+        from src.services.agents.agent_manager import AgentManager
+        from src.services.agents.chat_service import ChatService
+        from src.services.agents.chat_stream_service import ChatStreamService
+
+        _widget_chat_service = ChatStreamService(
+            agent_loader=AgentLoaderService(AgentManager()), chat_service=ChatService()
+        )
+    return _widget_chat_service
+
+
+async def _record_analytics_bg(
+    widget_id: uuid.UUID,
+    session_id: str,
+    domain: str | None,
+    user_agent: str,
+) -> None:
+    """Update widget analytics off the critical path (fire-and-forget background task)."""
+    try:
+        from src.core.database import get_async_session_factory
+
+        async with get_async_session_factory()() as db:
+            analytics_result = await db.execute(
+                select(WidgetAnalytics).filter(
+                    WidgetAnalytics.widget_id == widget_id,
+                    WidgetAnalytics.session_id == session_id,
+                )
+            )
+            analytics = analytics_result.scalar_one_or_none()
+            if analytics:
+                analytics.messages_count += 1
+            else:
+                db.add(
+                    WidgetAnalytics(
+                        widget_id=widget_id,
+                        session_id=session_id,
+                        messages_count=1,
+                        domain=domain,
+                        user_agent=user_agent,
+                    )
+                )
+            await db.commit()
+    except Exception as e:
+        logger.warning(f"Analytics background update failed: {e}")
+
 
 # Create router
 widgets_router = APIRouter()
@@ -491,15 +547,26 @@ async def list_widget_sessions(
 
     from src.models.message import Message
 
+    # Batch-load the first user message for every conversation in one query
+    # instead of firing N separate queries (one per conversation).
+    conv_ids = [conv.id for conv in conversations]
+    if conv_ids:
+        first_msgs_result = await db.execute(
+            select(Message)
+            .distinct(Message.conversation_id)
+            .filter(
+                Message.conversation_id.in_(conv_ids),
+                Message.role == "USER",
+            )
+            .order_by(Message.conversation_id, Message.created_at.asc())
+        )
+        first_msgs_by_conv = {msg.conversation_id: msg for msg in first_msgs_result.scalars().all()}
+    else:
+        first_msgs_by_conv = {}
+
     sessions = []
     for conv in conversations:
-        first_msg_result = await db.execute(
-            select(Message)
-            .filter(Message.conversation_id == conv.id, Message.role == "USER")
-            .order_by(Message.created_at.asc())
-            .limit(1)
-        )
-        first_msg = first_msg_result.scalar_one_or_none()
+        first_msg = first_msgs_by_conv.get(conv.id)
 
         # Skip conversations with no user messages (empty sessions)
         if not first_msg:
@@ -720,6 +787,7 @@ async def update_widget(
 
         await db.commit()
         await db.refresh(widget)
+        await invalidate_widget_cache(widget.key_prefix)
 
         return WidgetResponse(
             success=True,
@@ -766,8 +834,10 @@ async def delete_widget(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Widget with ID '{widget_id}' not found")
 
         widget_name = widget.widget_name
+        key_prefix = widget.key_prefix
         await db.delete(widget)
         await db.commit()
+        await invalidate_widget_cache(key_prefix)
 
         return WidgetResponse(success=True, message=f"Widget '{widget_name}' deleted successfully")
 
@@ -799,11 +869,13 @@ async def regenerate_api_key(
         if not widget:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Widget with ID '{widget_id}' not found")
 
+        old_key_prefix = widget.key_prefix
         plain_key, encrypted_key, key_prefix = generate_api_key()
         widget.api_key = encrypted_key
         widget.key_prefix = key_prefix
         await db.commit()
         await db.refresh(widget)
+        await invalidate_widget_cache(old_key_prefix)
 
         return WidgetResponse(
             success=True,
@@ -844,6 +916,7 @@ async def regenerate_identity_secret(
         plain_secret = secrets.token_urlsafe(32)
         widget.identity_secret = encrypt_value(plain_secret)
         await db.commit()
+        await invalidate_widget_cache(widget.key_prefix)
 
         return WidgetResponse(
             success=True,
@@ -1509,6 +1582,8 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
         # must pass conversation_id explicitly (Flutter does this via _conversationId tracking).
         resolved_conversation_id = request.conversation_id
         _widget_source = request.source if request.source in ("flutter", "widget", "chrome") else "widget"
+        # Preloaded conversation object — reused for handoff check to avoid a duplicate SELECT.
+        _preloaded_conversation: Conversation | None = None
 
         if request.user:
             if resolved_conversation_id:
@@ -1521,7 +1596,8 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
                         Conversation.external_org_id == request.user.org_id,
                     )
                 )
-                if not ownership_result.scalar_one_or_none():
+                _preloaded_conversation = ownership_result.scalar_one_or_none()
+                if not _preloaded_conversation:
                     resolved_conversation_id = None  # Strip invalid/spoofed ID
 
             if not resolved_conversation_id:
@@ -1545,6 +1621,7 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
                     await db.commit()
                     await db.refresh(new_conv)
                     resolved_conversation_id = str(new_conv.id)
+                    _preloaded_conversation = new_conv
                 except Exception as e:
                     await db.rollback()
                     logger.warning(f"Could not create conversation for user {request.user.id}: {e}")
@@ -1566,7 +1643,8 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
                         Conversation.session_id == anonymous_session_id,
                     )
                 )
-                if not anon_check.scalar_one_or_none():
+                _preloaded_conversation = anon_check.scalar_one_or_none()
+                if not _preloaded_conversation:
                     resolved_conversation_id = None  # Strip invalid/spoofed ID
 
             if not resolved_conversation_id and _anon_session_id and not request.force_new:
@@ -1587,6 +1665,7 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
                 existing_conv = resume_result.scalar_one_or_none()
                 if existing_conv:
                     resolved_conversation_id = str(existing_conv.id)
+                    _preloaded_conversation = existing_conv
 
             if not resolved_conversation_id:
                 # Create a new anonymous conversation tracked by session_id
@@ -1602,6 +1681,7 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
                     await db.commit()
                     await db.refresh(anon_conv)
                     resolved_conversation_id = str(anon_conv.id)
+                    _preloaded_conversation = anon_conv
                 except Exception as e:
                     await db.rollback()
                     logger.warning(f"Could not create anonymous conversation: {e}")
@@ -1610,42 +1690,21 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
         # Generate session ID if not provided
         session_id = request.session_id or str(uuid.uuid4())
 
-        # Track analytics
+        # Track analytics — fire and forget so it doesn't block time-to-first-token
         origin = http_request.headers.get("Origin") or http_request.headers.get("Referer")
         domain = None
         if origin:
             domain = origin.replace("http://", "").replace("https://", "").split(":")[0]
 
-        analytics_result = await db.execute(
-            select(WidgetAnalytics).filter(
-                WidgetAnalytics.widget_id == widget.id, WidgetAnalytics.session_id == session_id
+        asyncio.create_task(
+            _record_analytics_bg(
+                widget.id,
+                session_id,
+                domain,
+                http_request.headers.get("User-Agent", "unknown"),
             )
         )
-        analytics = analytics_result.scalar_one_or_none()
 
-        if analytics:
-            analytics.messages_count += 1
-        else:
-            analytics = WidgetAnalytics(
-                widget_id=widget.id,
-                session_id=session_id,
-                messages_count=1,
-                domain=domain,
-                user_agent=http_request.headers.get("User-Agent", "unknown"),
-            )
-            db.add(analytics)
-
-        try:
-            await db.commit()
-        except Exception as e:
-            logger.warning(f"Failed to commit analytics: {e}")
-            await db.rollback()
-
-        # Import the stream services
-        from src.services.agents.agent_loader_service import AgentLoaderService
-        from src.services.agents.agent_manager import AgentManager
-        from src.services.agents.chat_service import ChatService
-        from src.services.agents.chat_stream_service import ChatStreamService
         from src.services.conversation_service import ConversationService
 
         # Load conversation history if conversation_id is resolved
@@ -1662,13 +1721,17 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
             except (ValueError, Exception) as e:
                 logger.warning(f"Could not load conversation history: {e}")
 
-        # Block AI while a human operator is handling this conversation
+        # Block AI while a human operator is handling this conversation.
+        # Reuse the conversation already loaded above — no extra SELECT needed.
         if resolved_conversation_id:
             try:
-                _hc_result = await db.execute(
-                    select(Conversation).filter(Conversation.id == uuid.UUID(resolved_conversation_id))
-                )
-                _hc = _hc_result.scalar_one_or_none()
+                if _preloaded_conversation is not None:
+                    _hc = _preloaded_conversation
+                else:
+                    _hc_result = await db.execute(
+                        select(Conversation).filter(Conversation.id == uuid.UUID(resolved_conversation_id))
+                    )
+                    _hc = _hc_result.scalar_one_or_none()
                 if _hc and _hc.handoff_status == "active":
                     # Save the user message so the operator can see it in the thread
                     from src.models.message import Message as _Msg
@@ -1712,12 +1775,7 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
             except Exception as _he:
                 logger.warning(f"Handoff status check failed: {_he}")
 
-        # Initialize the chat stream service
-        agent_manager = AgentManager()
-        chat_stream_service = ChatStreamService(
-            agent_loader=AgentLoaderService(agent_manager), chat_service=ChatService()
-        )
-
+        chat_stream_service = _get_widget_chat_service()
         agent_slug = agent.slug or agent.agent_name
         _widget_id = str(widget.id)
         _agent_name = agent.agent_name

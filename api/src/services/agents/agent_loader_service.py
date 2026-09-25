@@ -41,6 +41,8 @@ class AgentLoadResult:
         is_workflow: bool = False,
         fallback_config_ids: list[str] | None = None,
         routing_decision: Any | None = None,
+        allowed_tool_names: set[str] | None = None,
+        jev_client: Any | None = None,
     ):
         self.db_agent = db_agent
         self.agent = agent
@@ -50,6 +52,8 @@ class AgentLoadResult:
         self.is_workflow = is_workflow
         self.fallback_config_ids: list[str] = fallback_config_ids or []
         self.routing_decision = routing_decision
+        self.allowed_tool_names: set[str] | None = allowed_tool_names
+        self.jev_client: Any | None = jev_client
 
 
 class AgentLoaderService:
@@ -232,17 +236,34 @@ class AgentLoaderService:
         routing_decision = None
         effective_config_id = llm_config_id  # explicit override wins
         fallback_config_ids: list[str] = []
+        allowed_tool_names: set[str] | None = None
+        jev_client: Any | None = None
 
         agent_routing_mode = getattr(db_agent, "routing_mode", "fixed") or "fixed"
 
         if query and not llm_config_id and agent_routing_mode != "fixed":
-            routing_decision, effective_config_id, fallback_config_ids = await self._run_routing(
-                db_agent=db_agent,
-                query=query,
-                conversation_history=conversation_history,
-                db=db,
-                requesting_tenant_id=tenant_id,
-            )
+            if agent_routing_mode == "jev":
+                (
+                    routing_decision,
+                    effective_config_id,
+                    fallback_config_ids,
+                    allowed_tool_names,
+                    jev_client,
+                ) = await self._run_jev_routing_with_fallback(
+                    db_agent=db_agent,
+                    query=query,
+                    conversation_history=conversation_history,
+                    db=db,
+                    requesting_tenant_id=tenant_id,
+                )
+            else:
+                routing_decision, effective_config_id, fallback_config_ids = await self._run_routing(
+                    db_agent=db_agent,
+                    query=query,
+                    conversation_history=conversation_history,
+                    db=db,
+                    requesting_tenant_id=tenant_id,
+                )
 
         # Load regular agent into memory
         agent = await self._load_agent_to_memory(
@@ -263,6 +284,8 @@ class AgentLoaderService:
             error=agent.get("error") if isinstance(agent, dict) else None,
             fallback_config_ids=fallback_config_ids,
             routing_decision=routing_decision,
+            allowed_tool_names=allowed_tool_names,
+            jev_client=jev_client,
         )
 
     async def _load_from_cache(self, cached_data: dict[str, Any], db: AsyncSession) -> Agent:
@@ -492,6 +515,109 @@ class AgentLoaderService:
         except Exception as e:
             logger.error(f"Failed to create agent: {e}")
             return {"error": f"Failed to create agent: {str(e)}"}
+
+    async def _run_jev_routing_with_fallback(
+        self,
+        db_agent: Agent,
+        query: str,
+        conversation_history: list[dict[str, Any]] | None,
+        db: AsyncSession,
+        requesting_tenant_id: str = "",
+    ) -> tuple[RoutingDecision | None, str | None, list[str], set[str] | None, Any | None]:
+        """
+        Attempt JEV-based routing; fall back gracefully to IntentClassifier + ModelRouter on any failure.
+
+        Returns:
+            (routing_decision, selected_config_id, fallback_config_ids, allowed_tool_names, jev_client)
+            allowed_tool_names is None when JEV tool filtering was not active.
+            jev_client is the TypeSafeClient instance on success, None otherwise.
+        """
+        from src.core.typesafe_client import TypeSafeClient
+        from src.services.agents.credential_resolver import CredentialResolver
+        from src.services.agents.routing.jev_router import JevRoutingError, run_jev_routing
+        from src.services.agents.runtime_context import RuntimeContext
+
+        jev_config: dict[str, Any] = {}
+        routing_cfg = getattr(db_agent, "routing_config", None) or {}
+        if isinstance(routing_cfg, dict):
+            jev_config = routing_cfg.get("jev", {})
+
+        # Resolve TypeSafe credentials
+        try:
+            runtime_ctx = RuntimeContext(
+                tenant_id=db_agent.tenant_id,
+                agent_id=db_agent.id,
+                db_session=db,
+            )
+            resolver = CredentialResolver(runtime_ctx)
+            credentials = await resolver.get_typesafe_credentials()
+        except Exception as exc:
+            logger.warning("[jev-routing] Could not resolve TypeSafe credentials: %s — falling back", exc)
+            credentials = None
+
+        if not credentials:
+            logger.info(
+                "[jev-routing] No TypeSafe credentials for agent '%s' — falling back to IntentClassifier",
+                db_agent.agent_name,
+            )
+            decision, config_id, fallback_ids = await self._run_routing(
+                db_agent=db_agent,
+                query=query,
+                conversation_history=conversation_history,
+                db=db,
+                requesting_tenant_id=requesting_tenant_id,
+            )
+            return decision, config_id, fallback_ids, None, None
+
+        # Build TypeSafeClient
+        typesafe_client = TypeSafeClient(
+            api_key=credentials.get("api_key", ""),
+            base_url=credentials.get("base_url"),
+        )
+
+        # Load LLM configs (cached)
+        all_configs = await self._load_llm_configs_cached(db_agent, db, requesting_tenant_id=requesting_tenant_id)
+
+        try:
+            jev_result = await run_jev_routing(
+                db_agent=db_agent,
+                query=query,
+                history=conversation_history,
+                llm_configs=all_configs,
+                typesafe_client=typesafe_client,
+                jev_config=jev_config,
+            )
+
+            logger.info(
+                "[jev-routing] agent=%s tier=%s complexity=%s tools=%s",
+                db_agent.agent_name,
+                jev_result.model_tier,
+                jev_result.complexity,
+                len(jev_result.allowed_tool_names) if jev_result.allowed_tool_names is not None else "all",
+            )
+
+            return (
+                None,
+                jev_result.config_id or None,
+                jev_result.fallback_config_ids,
+                jev_result.allowed_tool_names,
+                typesafe_client,
+            )
+
+        except JevRoutingError as exc:
+            logger.warning(
+                "[jev-routing] JEV routing failed for agent '%s': %s — falling back to IntentClassifier",
+                db_agent.agent_name,
+                exc,
+            )
+            decision, config_id, fallback_ids = await self._run_routing(
+                db_agent=db_agent,
+                query=query,
+                conversation_history=conversation_history,
+                db=db,
+                requesting_tenant_id=requesting_tenant_id,
+            )
+            return decision, config_id, fallback_ids, None, None
 
     async def _run_routing(
         self,

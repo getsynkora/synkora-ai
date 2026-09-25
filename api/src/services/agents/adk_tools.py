@@ -1725,6 +1725,43 @@ internal_write_file instead. To inspect files, use internal_read_file or interna
             for tool in self.tools.values()
         ]
 
+    def filter_tools(
+        self,
+        allowed_names: set[str],
+        always_include: set[str] | None = None,
+    ) -> "ADKToolRegistry":
+        """
+        Return a new registry containing only the named tools.
+
+        Tools in ``allowed_names`` or ``always_include`` pass through.
+        Tools beyond those are dropped — empty ``allowed_names`` means
+        JEV approved zero tools (the caller must still pass always_include
+        for tools that should always bypass filtering).
+
+        Args:
+            allowed_names:  Tool names approved by JEV for this turn.
+            always_include: Additional names that always bypass filtering
+                            (e.g. MCP tools, discovery helpers).
+
+        Returns:
+            A new ADKToolRegistry instance (original is not mutated).
+        """
+        bypass = set(allowed_names)
+        if always_include:
+            bypass |= always_include
+
+        original_count = len(self.tools)
+        filtered_registry = object.__new__(ADKToolRegistry)
+        filtered_registry.tools = {name: tool for name, tool in self.tools.items() if name in bypass}
+        filtered_registry._request_owned = True
+
+        logger.debug(
+            "[jev-filter] %d / %d tools allowed",
+            len(filtered_registry.tools),
+            original_count,
+        )
+        return filtered_registry
+
     async def execute_tool(
         self,
         name: str,

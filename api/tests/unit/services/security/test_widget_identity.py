@@ -26,29 +26,12 @@ def proof(user):
     return hmac.new(SECRET.encode(), user.encode(), hashlib.sha256).hexdigest()
 
 
-def test_unverified_user_rejected_even_when_optional(widget):
-    for args in [("victim", None, None), ("victim", proof("attacker"), None)]:
+def test_unverified_user_and_forged_organization_rejected_even_when_optional(widget):
+    for args in [("victim", None, None), ("victim", proof("attacker"), None), ("victim", proof("victim"), "other-org")]:
         with pytest.raises(HTTPException) as error:
             identity.verify_user(widget, *args)
         assert error.value.status_code == 403
     assert identity.verify_user(widget, "victim", proof("victim"))["organization_id"] is None
-
-
-def test_TODO_SECURITY_forged_organization_is_temporarily_accepted_unverified(widget):
-    """TODO(security): documents a DELIBERATE, TEMPORARY regression — see the matching
-    TODO(security) comment in verify_user() (added 2026-09-24, for a demo deadline, explicitly
-    requested with the tradeoff understood). A valid user_hash no longer blocks an arbitrary,
-    unverified org_id from being accepted and returned as `organization_id` — which then flows
-    into the signed downstream MCP JWT (widgets.py's `_mcp_user_token`) as if Synkora verified
-    it. Before 2026-09-24 this was correctly rejected with a 403 (PR #196, 2026-09-12).
-
-    Once identity_token minting ships for this caller (spec already written — see verify_user's
-    identity_token branch above, which handles this correctly), DELETE this test and restore:
-        with pytest.raises(HTTPException) as error:
-            identity.verify_user(widget, "victim", proof("victim"), "other-org")
-        assert error.value.status_code == 403
-    """
-    assert identity.verify_user(widget, "victim", proof("victim"), "other-org")["organization_id"] == "other-org"
 
 
 def assertion(widget, **changes):
@@ -63,6 +46,15 @@ def assertion(widget, **changes):
     return jwt.encode(claims, SECRET, algorithm="HS256")
 
 
+def test_identity_token_with_multi_day_lifetime_is_accepted(widget):
+    """IDENTITY_TOKEN_MAX_LIFETIME_SECONDS was widened from 5 minutes to 7 days
+    (2026-09-25) to avoid requiring mobile clients to run a background refresh cycle.
+    A 3-day-lifetime token must be accepted -- it would have been rejected under the
+    old 300-second limit."""
+    token = assertion(widget, exp=int(time.time()) + 3 * 24 * 60 * 60)
+    assert identity.verify_user(widget, "user", org_id="org", identity_token=token)["organization_id"] == "org"
+
+
 def test_signed_organization_identity_is_scoped_and_expires(widget):
     token = assertion(widget)
     assert identity.verify_user(widget, "user", org_id="org", identity_token=token)["organization_id"] == "org"
@@ -71,7 +63,8 @@ def test_signed_organization_identity_is_scoped_and_expires(widget):
         ("user", "other", token),
         ("user", "org", assertion(widget, exp=1)),
         ("user", "org", assertion(widget, aud="other-widget")),
-        ("user", "org", assertion(widget, exp=int(time.time()) + 3600)),
+        # exceeds IDENTITY_TOKEN_MAX_LIFETIME_SECONDS (7 days) -- must still be rejected
+        ("user", "org", assertion(widget, exp=int(time.time()) + 8 * 24 * 60 * 60)),
     ]:
         with pytest.raises(HTTPException):
             identity.verify_user(widget, user, org_id=org, identity_token=value)

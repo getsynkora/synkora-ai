@@ -242,6 +242,11 @@ class OperatorMessageEvent extends SseEvent {
   OperatorMessageEvent({required this.content, required this.messageId});
 }
 
+class StatusEvent extends SseEvent {
+  final String content;
+  StatusEvent(this.content);
+}
+
 // ---------------------------------------------------------------------------
 // Widget user context (for identity verification / conversation continuity)
 // ---------------------------------------------------------------------------

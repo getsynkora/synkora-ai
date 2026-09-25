@@ -353,7 +353,9 @@ class _UserAvatar extends StatelessWidget {
 // Markdown content
 // ---------------------------------------------------------------------------
 
-class _MarkdownContent extends StatelessWidget {
+// StatefulWidget so the MarkdownStyleSheet is built once and cached in state,
+// not reconstructed (~15 TextStyle allocations) on every 50ms throttle tick.
+class _MarkdownContent extends StatefulWidget {
   final String content;
   final Color primaryColor;
   final void Function(String href)? onLinkTap;
@@ -364,52 +366,82 @@ class _MarkdownContent extends StatelessWidget {
     this.onLinkTap,
   });
 
-  bool get _hasTable => content.contains('|');
+  @override
+  State<_MarkdownContent> createState() => _MarkdownContentState();
+}
+
+class _MarkdownContentState extends State<_MarkdownContent> {
+  MarkdownStyleSheet? _styleSheet;
+  Color? _lastPrimaryColor;
+  ThemeData? _lastTheme;
+
+  MarkdownStyleSheet _buildStyleSheet(ThemeData theme) =>
+      MarkdownStyleSheet.fromTheme(theme).copyWith(
+        p: ChatTextStyles.txtStyleRegular15
+            .copyWith(color: _kInk, height: 1.4),
+        strong: ChatTextStyles.txtStyleSemiB15.copyWith(color: _kInk),
+        em: ChatTextStyles.txtStyleRegular15
+            .copyWith(color: _kInk, fontStyle: FontStyle.italic),
+        code: TextStyle(
+          backgroundColor: const Color(0xFFE2E8F0),
+          fontSize: 13,
+          color: widget.primaryColor,
+          fontFamily: 'monospace',
+        ),
+        codeblockDecoration: BoxDecoration(
+          color: const Color(0xFFF3F4F6),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        tableBorder: TableBorder.all(color: _kTableBorder, width: 1),
+        tableHead: ChatTextStyles.txtStyleSemiB13.copyWith(color: _kInk),
+        tableBody: ChatTextStyles.txtStyleRegular13
+            .copyWith(color: _kInk, height: 1.3),
+        tableHeadAlign: TextAlign.left,
+        tableCellsPadding:
+            const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        tableColumnWidth: const FlexColumnWidth(),
+        tableCellsDecoration: const BoxDecoration(color: _kTableRow),
+        a: TextStyle(
+          color: widget.primaryColor,
+          decoration: TextDecoration.underline,
+          decorationColor: widget.primaryColor,
+        ),
+      );
+
+  void _ensureStyleSheet(ThemeData theme) {
+    if (_styleSheet == null ||
+        widget.primaryColor != _lastPrimaryColor ||
+        theme != _lastTheme) {
+      _lastPrimaryColor = widget.primaryColor;
+      _lastTheme = theme;
+      _styleSheet = _buildStyleSheet(theme);
+    }
+  }
+
+  @override
+  void didUpdateWidget(_MarkdownContent old) {
+    super.didUpdateWidget(old);
+    if (old.primaryColor != widget.primaryColor) {
+      // Force rebuild on next build() call.
+      _styleSheet = null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final styleSheet =
-        MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-      p: ChatTextStyles.txtStyleRegular15.copyWith(color: _kInk, height: 1.4),
-      strong: ChatTextStyles.txtStyleSemiB15.copyWith(color: _kInk),
-      em: ChatTextStyles.txtStyleRegular15
-          .copyWith(color: _kInk, fontStyle: FontStyle.italic),
-      code: TextStyle(
-        backgroundColor: const Color(0xFFE2E8F0),
-        fontSize: 13,
-        color: primaryColor,
-        fontFamily: 'monospace',
-      ),
-      codeblockDecoration: BoxDecoration(
-        color: const Color(0xFFF3F4F6),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      tableBorder: TableBorder.all(color: _kTableBorder, width: 1),
-      tableHead: ChatTextStyles.txtStyleSemiB13.copyWith(color: _kInk),
-      tableBody:
-          ChatTextStyles.txtStyleRegular13.copyWith(color: _kInk, height: 1.3),
-      tableHeadAlign: TextAlign.left,
-      tableCellsPadding:
-          const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      tableColumnWidth: const FlexColumnWidth(),
-      tableCellsDecoration: const BoxDecoration(color: _kTableRow),
-      a: TextStyle(
-        color: primaryColor,
-        decoration: TextDecoration.underline,
-        decorationColor: primaryColor,
-      ),
-    );
+    final theme = Theme.of(context);
+    _ensureStyleSheet(theme);
 
     final body = MarkdownBody(
-      data: content,
-      styleSheet: styleSheet,
+      data: widget.content,
+      styleSheet: _styleSheet!,
       shrinkWrap: true,
       onTapLink: (text, href, title) {
-        if (href != null && onLinkTap != null) onLinkTap!(href);
+        if (href != null && widget.onLinkTap != null) widget.onLinkTap!(href);
       },
     );
 
-    if (_hasTable) {
+    if (widget.content.contains('|')) {
       return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: ConstrainedBox(

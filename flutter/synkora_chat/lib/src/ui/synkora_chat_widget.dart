@@ -81,6 +81,13 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
   bool _lastHandoffActive = false;
   bool _lastHadPendingApproval = false;
 
+  // Deduplicate scroll callbacks — one per frame is enough.
+  bool _scrollPending = false;
+
+  // Cached formatted agent name — avoids string work on every streaming chunk.
+  String? _lastAgentNameRaw;
+  String _cachedAgentName = '';
+
   @override
   void initState() {
     super.initState();
@@ -141,11 +148,21 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
     _lastHandoffActive = _controller.isHandoffActive;
     _lastHadPendingApproval = _controller.pendingApproval != null;
 
-    if (_controller.messages.isNotEmpty || handoffChanged || approvalChanged) {
+    if (!_scrollPending &&
+        (_controller.messages.isNotEmpty || handoffChanged || approvalChanged)) {
+      _scrollPending = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollController.hasClients) {
+        _scrollPending = false;
+        if (!mounted || !_scrollController.hasClients) return;
+        final pos = _scrollController.position;
+        final max = pos.maxScrollExtent;
+        if (_controller.isStreaming) {
+          // During streaming, jumpTo avoids overlapping 200ms animations
+          // that pile up at chunk rate (~10–30 chunks/s) and cause jank.
+          _scrollController.jumpTo(max);
+        } else {
           _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
+            max,
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOut,
           );
@@ -267,11 +284,14 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
       bg.computeLuminance() > 0.4 ? const Color(0xFF1A1A2E) : Colors.white;
 
   String _formatAgentName(String raw) {
-    return raw
+    if (raw == _lastAgentNameRaw) return _cachedAgentName;
+    _lastAgentNameRaw = raw;
+    _cachedAgentName = raw
         .replaceAll('_', ' ')
         .split(' ')
         .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
         .join(' ');
+    return _cachedAgentName;
   }
 
   @override
@@ -314,11 +334,6 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
                 )
               : Column(
                   children: [
-                    if (_controller.error != null && inMessages)
-                      _ErrorBanner(
-                        message: _controller.error!,
-                        onRetry: _controller.retry,
-                      ),
                     Expanded(
                       child: _controller.isLoading
                           ? _LoadingIndicator(primaryColor: _primary)
@@ -538,13 +553,17 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
         }
         final next = i + 1 < msgs.length ? msgs[i + 1] : null;
         final isLastInGroup = next == null || next.role != msg.role;
-        return MessageBubble(
-          message: msg,
-          primaryColor: _primary,
-          agentAvatarUrl: config?.agentAvatarUrl,
-          agentName: _formatAgentName(config?.agentName ?? ''),
-          showAvatar: msg.role != MessageRole.user && isLastInGroup,
-          onLinkTap: widget.onLinkTap,
+        // RepaintBoundary: non-streaming bubbles skip GPU repaint on every chunk.
+        return RepaintBoundary(
+          key: ValueKey(msg.id),
+          child: MessageBubble(
+            message: msg,
+            primaryColor: _primary,
+            agentAvatarUrl: config?.agentAvatarUrl,
+            agentName: _formatAgentName(config?.agentName ?? ''),
+            showAvatar: msg.role != MessageRole.user && isLastInGroup,
+            onLinkTap: widget.onLinkTap,
+          ),
         );
       },
     );
@@ -1387,13 +1406,16 @@ class _MessageList extends StatelessWidget {
         }
         final next = i + 1 < messages.length ? messages[i + 1] : null;
         final isLastInGroup = next == null || next.role != msg.role;
-        return MessageBubble(
-          message: msg,
-          primaryColor: primaryColor,
-          agentAvatarUrl: agentAvatarUrl,
-          agentName: agentName,
-          showAvatar: msg.role != MessageRole.user && isLastInGroup,
-          onLinkTap: onLinkTap,
+        return RepaintBoundary(
+          key: ValueKey(msg.id),
+          child: MessageBubble(
+            message: msg,
+            primaryColor: primaryColor,
+            agentAvatarUrl: agentAvatarUrl,
+            agentName: agentName,
+            showAvatar: msg.role != MessageRole.user && isLastInGroup,
+            onLinkTap: onLinkTap,
+          ),
         );
       },
     );
@@ -1549,41 +1571,6 @@ class _HandoffFooter extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // Error banner
 // ---------------------------------------------------------------------------
-
-class _ErrorBanner extends StatelessWidget {
-  final String message;
-  final VoidCallback onRetry;
-
-  const _ErrorBanner({required this.message, required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: const Color(0xFFFFF2EC),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Color(0xFFC45F34), size: 16),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                message,
-                style: ChatTextStyles.txtStyleRegular13
-                    .copyWith(color: const Color(0xFF8B3F1E)),
-              ),
-            ),
-            TextButton(
-              onPressed: onRetry,
-              style: TextButton.styleFrom(foregroundColor: _kInk),
-              child: Text('Retry', style: ChatTextStyles.txtStyleSemiB13),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Input bar

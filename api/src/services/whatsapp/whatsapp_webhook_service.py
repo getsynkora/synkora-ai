@@ -21,6 +21,23 @@ logger = logging.getLogger(__name__)
 WHATSAPP_API_VERSION = "v21.0"
 WHATSAPP_API_URL = f"https://graph.facebook.com/{WHATSAPP_API_VERSION}"
 
+# Module-level singleton — reused across requests so the in-process agent registry stays warm.
+_whatsapp_chat_service = None
+
+
+def _get_whatsapp_chat_service():
+    global _whatsapp_chat_service
+    if _whatsapp_chat_service is None:
+        from ...services.agents.agent_loader_service import AgentLoaderService
+        from ...services.agents.agent_manager import AgentManager
+        from ...services.agents.chat_service import ChatService
+        from ...services.agents.chat_stream_service import ChatStreamService
+
+        _whatsapp_chat_service = ChatStreamService(
+            agent_loader=AgentLoaderService(AgentManager()), chat_service=ChatService()
+        )
+    return _whatsapp_chat_service
+
 
 class WhatsAppWebhookService:
     """Service for handling WhatsApp webhooks and sending messages."""
@@ -212,10 +229,6 @@ class WhatsAppWebhookService:
             await self._mark_as_read(bot, message_id)
 
             # Get agent response
-            from ...services.agents.agent_loader_service import AgentLoaderService
-            from ...services.agents.agent_manager import AgentManager
-            from ...services.agents.chat_service import ChatService
-            from ...services.agents.chat_stream_service import ChatStreamService
             from ...services.conversation_service import ConversationService
 
             agent = await self.db_session.get(Agent, bot.agent_id)
@@ -231,9 +244,7 @@ class WhatsAppWebhookService:
             )
             logger.info(f"Loaded {len(conversation_history)} messages from WhatsApp conversation history")
 
-            chat_stream_service = ChatStreamService(
-                agent_loader=AgentLoaderService(AgentManager()), chat_service=ChatService()
-            )
+            chat_stream_service = _get_whatsapp_chat_service()
 
             # Collect streamed response
             response_chunks = []

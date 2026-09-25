@@ -15,7 +15,7 @@ class Messages extends Table {
   TextColumn get id => text()();
   TextColumn get widgetKey => text()();
   TextColumn get convId => text().nullable()();
-  TextColumn get role => text()(); // 'user' | 'assistant'
+  TextColumn get role => text()(); // 'user' | 'assistant' | 'operator'
   TextColumn get content => text()();
   DateTimeColumn get ts => dateTime()();
   BoolColumn get isStreaming => boolean().withDefault(const Constant(false))();

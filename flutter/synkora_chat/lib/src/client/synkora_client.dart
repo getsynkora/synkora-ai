@@ -42,7 +42,8 @@ class SynkoraClient {
       BaseOptions(
         baseUrl: this.baseUrl,
         connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 60),
+        // SSE streams can run for minutes on long LLM responses — no timeout.
+        receiveTimeout: null,
         headers: {'X-Widget-API-Key': widgetKey, 'Accept': 'application/json'},
       ),
     );
@@ -181,10 +182,10 @@ class SynkoraClient {
       }
     } on DioException catch (e) {
       if (e.type != DioExceptionType.cancel) {
-        controller.add(ErrorEvent(await _describeDioError(e)));
+        controller.add(ErrorEvent(_genericChatErrorMessage(e)));
       }
-    } catch (e) {
-      controller.add(ErrorEvent(e.toString()));
+    } catch (_) {
+      controller.add(ErrorEvent(_genericUnexpectedErrorMessage));
     } finally {
       _activeCancelTokens.remove(cancelToken);
       await controller.close();
@@ -223,6 +224,13 @@ class SynkoraClient {
         return HandoffInitiatedEvent(json['summary'] as String? ?? '');
       case 'handoff_resolved':
         return HandoffResolvedEvent();
+      case 'operator_message':
+        return OperatorMessageEvent(
+          content: json['content'] as String? ?? '',
+          messageId: json['message_id'] as String? ?? '',
+        );
+      case 'status':
+        return StatusEvent(json['content'] as String? ?? '');
       default:
         return null;
     }
@@ -385,6 +393,29 @@ class SynkoraClient {
     return serverDetail ?? error.message ?? 'Network error';
   }
 
+  static const _genericUnexpectedErrorMessage =
+      "Something went wrong. Please try again.";
+
+  /// End-user-facing chat error text. Deliberately never mentions Synkora,
+  /// status codes, or any other backend/implementation detail — the widget
+  /// is embedded inside a third-party app, and the person seeing this is
+  /// that app's end user, not the developer integrating the widget. Detailed
+  /// diagnostics for developers belong in _describeDioError (used by
+  /// loadConfig, which developers call directly during integration/testing),
+  /// never in a message shown inside the live chat itself.
+  String _genericChatErrorMessage(DioException error) {
+    if (error.type == DioExceptionType.connectionTimeout ||
+        error.type == DioExceptionType.connectionError ||
+        error.type == DioExceptionType.unknown) {
+      return "I'm having trouble connecting right now. Please check your connection and try again.";
+    }
+    final statusCode = error.response?.statusCode;
+    if (statusCode == 429) {
+      return "You're sending messages a little too fast. Please wait a moment and try again.";
+    }
+    return _genericUnexpectedErrorMessage;
+  }
+
   /// Best-effort extraction of the FastAPI `{"detail": "..."}` body from a
   /// failed response, whichever shape Dio delivered it in — already-decoded
   /// JSON for normal requests, or a raw byte stream for the SSE chat call
@@ -419,12 +450,15 @@ class SynkoraClient {
 
   MessageRole _parseRole(String? role) {
     switch (role?.toUpperCase()) {
-      case 'ASSISTANT':
-        return MessageRole.assistant;
+      case 'USER':
+        return MessageRole.user;
       case 'OPERATOR':
         return MessageRole.operator;
       default:
-        return MessageRole.user;
+        // Unknown or null role → treat as assistant (agent message, left bubble).
+        // Defaulting to user would render unrecognised server roles as right-aligned
+        // blue bubbles, which is always wrong for AI/operator content.
+        return MessageRole.assistant;
     }
   }
 

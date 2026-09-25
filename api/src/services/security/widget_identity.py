@@ -33,6 +33,18 @@ def _fingerprint(value: str | None) -> str | None:
     return hashlib.sha256(value.encode()).hexdigest()[:12]
 
 
+# Max allowed lifetime for a widget identity_token, in seconds. Was 300 (5 min) since
+# the original security hardening (PR #196, 2026-09-12). Widened to 7 days at explicit
+# request (2026-09-25) to avoid requiring a background refresh cycle on mobile clients.
+# TRADEOFF (platform-wide, applies to every widget's identity_token, not just one
+# caller): a leaked identity_token now stays usable for up to 7 days instead of 5
+# minutes -- e.g. via device logs, crash reporters, or a compromised device. Unlike a
+# leaked user_hash (which stays valid until the widget's secret is rotated, with no
+# expiry at all), this is still bounded, and was chosen over no-expiry for exactly
+# that reason.
+IDENTITY_TOKEN_MAX_LIFETIME_SECONDS = 7 * 24 * 60 * 60  # 7 days
+
+
 def verify_user(widget, user_id, user_hash=None, org_id=None, identity_token=None):
     # Shape-only log (safe to leave in permanently): tells "no proof sent" apart from
     # "wrong proof sent" without putting proof material in log storage.
@@ -66,7 +78,7 @@ def verify_user(widget, user_id, user_hash=None, org_id=None, identity_token=Non
                 audience=f"synkora-widget:{widget.id}",
                 options={"require": ["exp", "iat", "sub", "aud"]},
             )
-            if claims["sub"] != user_id or claims["exp"] - claims["iat"] > 300:
+            if claims["sub"] != user_id or claims["exp"] - claims["iat"] > IDENTITY_TOKEN_MAX_LIFETIME_SECONDS:
                 raise ValueError("Invalid identity scope")
             if org_id is not None and claims.get("organization_id") != org_id:
                 raise ValueError("Organization mismatch")
@@ -76,44 +88,23 @@ def verify_user(widget, user_id, user_hash=None, org_id=None, identity_token=Non
                 "widget identity rejected: widget_id=%s reason=invalid_identity_token detail=%s", widget.id, e
             )
             raise HTTPException(403, "Invalid widget identity assertion") from None
-    # Legacy HMAC authenticates only a user ID — it cannot cryptographically prove
-    # organization membership (org_id is not an input to the hash at all).
-    if not user_id or not user_hash:
+    # Legacy HMAC authenticates only a user ID. It cannot authorize an organization.
+    # This is unconditional — identity_verification_required only controls whether the
+    # anonymous-session fallback is available (see conversation_scope below), never
+    # whether an identified user_id needs proof. Relaxing that would let any caller
+    # claim any user_id and read/pollute that user's conversation history unverified.
+    if not user_id or not user_hash or org_id is not None:
         logger.warning(
             "widget identity rejected: widget_id=%s reason=%s",
             widget.id,
-            "missing_user_id" if not user_id else "missing_user_hash",
+            "missing_user_id" if not user_id else "missing_user_hash" if not user_hash else "org_id_needs_token",
         )
         raise HTTPException(403, "Verified widget identity is required; organization access requires an identity token")
     expected = hmac.new(_key(widget).encode(), user_id.encode(), hashlib.sha256).hexdigest()
     if not hmac.compare_digest(expected, user_hash):
         logger.warning("widget identity rejected: widget_id=%s user_id=%s reason=hash_mismatch", widget.id, user_id)
         raise HTTPException(403, "Invalid widget identity proof")
-    if org_id is not None:
-        # TODO(security): reinstated 2026-09-24, temporarily, for a demo deadline (requested
-        # explicitly, with the tradeoff understood) — org_id is trusted here WITHOUT proof.
-        # This reopens the exact hole closed in PR #196 (2026-09-12, "remediate cross-tenant,
-        # credential, and MCP isolation findings"): a caller with ANY valid (user_id, user_hash)
-        # pair can set org_id to ANY value and have it signed into the downstream MCP JWT
-        # (widgets.py's `_mcp_user_token`) as if Synkora verified it — because it flows straight
-        # into `organization_id` below unchecked. Any downstream consumer that trusts that JWT's
-        # organization_id claim for authorization is exposed to cross-org impersonation for as
-        # long as this block exists.
-        # Proper fix (already speced): mint a signed identity_token JWT (sub,
-        # aud=f"synkora-widget:{widget.id}", organization_id, iat, exp <= 300s) server-side and
-        # send that instead of user_hash+org_id — see the `identity_token` branch above, which
-        # already verifies this correctly.
-        # DO NOT let this sit past the demo. Remove this block and restore the `org_id is not
-        # None` rejection in the check above once identity_token minting ships for this caller.
-        logger.warning(
-            "SECURITY TODO: widget_id=%s user_id=%s accepted UNVERIFIED org_id=%s via legacy HMAC path "
-            "(see TODO(security) comment in verify_user) — temporary, must be removed before "
-            "relying on this in production beyond the demo",
-            widget.id,
-            user_id,
-            org_id,
-        )
-    return {"sub": user_id, "organization_id": org_id}
+    return {"sub": user_id, "organization_id": None}
 
 
 def new_anonymous_session(widget):
