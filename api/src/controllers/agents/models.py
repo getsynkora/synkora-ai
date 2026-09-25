@@ -76,7 +76,7 @@ class UpdateAgentRequest(StrictModel):
     human_contact_id: str | None = Field(None, description="Optional human contact ID for escalation")
     routing_mode: str | None = Field(
         None,
-        description="Model routing mode: fixed | round_robin | cost_opt | intent | latency_opt",
+        description="Model routing mode: fixed | round_robin | cost_opt | intent | latency_opt | jev",
     )
     routing_config: dict[str, Any] | None = Field(
         None,

@@ -21,4 +21,5 @@ export 'src/client/models.dart';
 export 'src/client/synkora_client.dart';
 export 'src/controller/synkora_chat_controller.dart';
 export 'src/theme/chat_text_styles.dart';
+export 'src/ui/suggestion_chips.dart';
 export 'src/ui/synkora_chat_widget.dart';

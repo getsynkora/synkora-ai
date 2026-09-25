@@ -102,6 +102,12 @@ class SynkoraChatController extends ChangeNotifier {
   Timer? _handoffPollTimer;
   final Set<String> _seenOperatorMsgIds = {};
 
+  // Throttle streaming renders to ~20fps so MarkdownBody doesn't re-parse
+  // the growing content on every chunk (which is O(n²) over a full response).
+  // Chunks still accumulate in the StringBuffer every call; only notifyListeners
+  // is gated. Flushed immediately on DoneEvent/ErrorEvent so final state is instant.
+  Timer? _renderFlushTimer;
+
   // Pre-chat form collected values (name, email, phone)
   String? _preChatName;
   String? _preChatEmail;
@@ -230,21 +236,14 @@ class SynkoraChatController extends ChangeNotifier {
     _error = null;
     _resetInactivityTimer();
 
-    // Optimistic: add user message immediately
+    // Optimistic: render user message + streaming placeholder in one frame before
+    // any async work so the UI responds instantly on tap.
     final userMsg = ChatMessage(
       id: 'local_${DateTime.now().millisecondsSinceEpoch}',
       role: MessageRole.user,
       content: text,
       timestamp: DateTime.now(),
     );
-    _messages = [..._messages, userMsg];
-    await _cache.upsertMessage(
-      _client.widgetKey,
-      userMsg,
-      convId: _conversationId,
-    );
-
-    // Add streaming placeholder for assistant
     final streamingId = 'streaming_${DateTime.now().millisecondsSinceEpoch}';
     final streamingMsg = ChatMessage(
       id: streamingId,
@@ -253,9 +252,15 @@ class SynkoraChatController extends ChangeNotifier {
       timestamp: DateTime.now(),
       isStreaming: true,
     );
-    _messages = [..._messages, streamingMsg];
+    _messages = [..._messages, userMsg, streamingMsg];
     _isStreaming = true;
-    notifyListeners();
+    notifyListeners(); // immediate — user sees their message + dots in the same frame
+
+    // Persist user message to local cache async — non-blocking, cache is not
+    // the source of truth (server history is fetched on reload).
+    unawaited(
+      _cache.upsertMessage(_client.widgetKey, userMsg, convId: _conversationId),
+    );
 
     final buffer = StringBuffer();
 
@@ -283,8 +288,19 @@ class SynkoraChatController extends ChangeNotifier {
       await for (final event in stream) {
         if (event is TextChunkEvent) {
           buffer.write(event.content);
-          _updateStreamingMessage(streamingId, buffer.toString());
+          // Throttle renders to ~20fps: schedule one UI update per 50ms window.
+          // Chunks still accumulate in the buffer on every call — only the
+          // notifyListeners/rebuild is gated so MarkdownBody re-parses at most
+          // 20 times/sec instead of once per chunk (O(n) vs O(n²) total work).
+          _renderFlushTimer ??= Timer(const Duration(milliseconds: 50), () {
+            _renderFlushTimer = null;
+            _updateStreamingMessage(streamingId, buffer.toString());
+          });
         } else if (event is DoneEvent) {
+          // Cancel any pending throttled render — finalizeStreamingMessage
+          // will render the complete content immediately below.
+          _renderFlushTimer?.cancel();
+          _renderFlushTimer = null;
           final isNewConversation = event.conversationId != null &&
               event.conversationId != _conversationId;
           _conversationId = event.conversationId ?? _conversationId;
@@ -300,6 +316,8 @@ class SynkoraChatController extends ChangeNotifier {
             convId: _conversationId,
           );
         } else if (event is ErrorEvent) {
+          _renderFlushTimer?.cancel();
+          _renderFlushTimer = null;
           _removeMessage(streamingId);
           _error = event.message;
           _appendAssistantErrorMessage(event.message);
@@ -307,12 +325,16 @@ class SynkoraChatController extends ChangeNotifier {
           notifyListeners();
           return;
         } else if (event is ApprovalRequiredEvent) {
+          _renderFlushTimer?.cancel();
+          _renderFlushTimer = null;
           _removeMessage(streamingId);
           _pendingApproval = event;
           _isStreaming = false;
           notifyListeners();
           return;
         } else if (event is HandoffInitiatedEvent) {
+          _renderFlushTimer?.cancel();
+          _renderFlushTimer = null;
           _isHandoffActive = true;
           // Finalize any partial streaming content before handoff message
           if (buffer.isNotEmpty) {
@@ -329,6 +351,24 @@ class SynkoraChatController extends ChangeNotifier {
           notifyListeners();
           _startHandoffPolling();
           return;
+        } else if (event is StatusEvent) {
+          // Status events are rare (one per tool/RAG call) — render immediately,
+          // not subject to the chunk throttle.
+          if (event.content.isNotEmpty) {
+            _updateStreamingMessage(streamingId, event.content);
+          }
+        } else if (event is OperatorMessageEvent) {
+          // Operator messages pushed via SSE during handoff (deduped by message_id).
+          if (event.messageId.isNotEmpty &&
+              !_seenOperatorMsgIds.contains(event.messageId)) {
+            _seenOperatorMsgIds.add(event.messageId);
+            _appendSystemMessage(
+              event.messageId,
+              event.content,
+              MessageRole.operator,
+            );
+            notifyListeners();
+          }
         } else if (event is HandoffResolvedEvent) {
           _isHandoffActive = false;
           _stopHandoffPolling();
@@ -341,6 +381,8 @@ class SynkoraChatController extends ChangeNotifier {
         }
       }
     } catch (e) {
+      _renderFlushTimer?.cancel();
+      _renderFlushTimer = null;
       _removeMessage(streamingId);
       _error = e.toString();
       _appendAssistantErrorMessage(_error!);
@@ -608,6 +650,7 @@ class SynkoraChatController extends ChangeNotifier {
   void dispose() {
     _inactivityTimer?.cancel();
     _handoffPollTimer?.cancel();
+    _renderFlushTimer?.cancel();
     _messageTriggerController.close();
     _client.dispose();
     _cache.close();

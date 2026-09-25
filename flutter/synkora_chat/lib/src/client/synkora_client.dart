@@ -42,7 +42,8 @@ class SynkoraClient {
       BaseOptions(
         baseUrl: this.baseUrl,
         connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 60),
+        // SSE streams can run for minutes on long LLM responses — no timeout.
+        receiveTimeout: null,
         headers: {'X-Widget-API-Key': widgetKey, 'Accept': 'application/json'},
       ),
     );
@@ -223,6 +224,13 @@ class SynkoraClient {
         return HandoffInitiatedEvent(json['summary'] as String? ?? '');
       case 'handoff_resolved':
         return HandoffResolvedEvent();
+      case 'operator_message':
+        return OperatorMessageEvent(
+          content: json['content'] as String? ?? '',
+          messageId: json['message_id'] as String? ?? '',
+        );
+      case 'status':
+        return StatusEvent(json['content'] as String? ?? '');
       default:
         return null;
     }
@@ -419,12 +427,15 @@ class SynkoraClient {
 
   MessageRole _parseRole(String? role) {
     switch (role?.toUpperCase()) {
-      case 'ASSISTANT':
-        return MessageRole.assistant;
+      case 'USER':
+        return MessageRole.user;
       case 'OPERATOR':
         return MessageRole.operator;
       default:
-        return MessageRole.user;
+        // Unknown or null role → treat as assistant (agent message, left bubble).
+        // Defaulting to user would render unrecognised server roles as right-aligned
+        // blue bubbles, which is always wrong for AI/operator content.
+        return MessageRole.assistant;
     }
   }
 

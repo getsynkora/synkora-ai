@@ -80,7 +80,7 @@ class _ChipCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (prompt.icon.isNotEmpty)
+            if (prompt.icon.isNotEmpty) ...[
               Container(
                 width: 32,
                 height: 32,
@@ -91,7 +91,8 @@ class _ChipCard extends StatelessWidget {
                 alignment: Alignment.center,
                 child: Text(prompt.icon, style: ChatTextStyles.txtStyleRegular16),
               ),
-            const SizedBox(height: 8),
+              const SizedBox(height: 8),
+            ],
             Text(
               prompt.title,
               style: ChatTextStyles.txtStyleSemiB13,

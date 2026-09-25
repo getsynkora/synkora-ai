@@ -5,7 +5,9 @@ Validates widget API keys and enforces rate limiting for widget requests.
 """
 
 import hmac
+import json
 import logging
+import types
 import uuid
 from urllib.parse import urlsplit
 
@@ -18,6 +20,80 @@ from src.models.agent_widget import AgentWidget
 from src.services.agents.security import decrypt_value
 
 logger = logging.getLogger(__name__)
+
+# ── API key Redis cache ────────────────────────────────────────────────────────
+# Validated widget data is cached for 5 minutes to eliminate the DB query +
+# Fernet decrypt on every single widget request.  The encrypted api_key and
+# identity_secret stay encrypted in the cache — no plaintext secrets at rest.
+# Cache entries are invalidated on every write (update / delete / key-regen).
+_WIDGET_KEY_CACHE_TTL = 300  # seconds
+
+
+def _widget_cache_key(key_prefix: str) -> str:
+    return f"widget:auth:pfx:{key_prefix}"
+
+
+async def _get_cached_widget(key_prefix: str):
+    """Return a SimpleNamespace mimicking AgentWidget from Redis, or None on miss/error."""
+    try:
+        from src.config.redis import get_redis_async
+
+        redis = get_redis_async()
+        if not redis:
+            return None
+        raw = await redis.get(_widget_cache_key(key_prefix))
+        if not raw:
+            return None
+        data = json.loads(raw)
+        # Restore UUID fields
+        data["id"] = uuid.UUID(data["id"])
+        data["agent_id"] = uuid.UUID(data["agent_id"])
+        data["tenant_id"] = uuid.UUID(data["tenant_id"])
+        return types.SimpleNamespace(**data)
+    except Exception:
+        return None
+
+
+async def _cache_widget(widget) -> None:
+    """Serialize widget to Redis cache.  Failures are silently ignored."""
+    try:
+        from src.config.redis import get_redis_async
+
+        redis = get_redis_async()
+        if not redis:
+            return
+        data = {
+            "id": str(widget.id),
+            "agent_id": str(widget.agent_id),
+            "tenant_id": str(widget.tenant_id),
+            "api_key": widget.api_key,
+            "key_prefix": widget.key_prefix,
+            "widget_name": getattr(widget, "widget_name", None),
+            "allowed_domains": widget.allowed_domains,
+            "theme_config": getattr(widget, "theme_config", None),
+            "rate_limit": widget.rate_limit,
+            "is_active": widget.is_active,
+            "identity_verification_required": widget.identity_verification_required,
+            "mobile_allowed": getattr(widget, "mobile_allowed", False),
+            "enable_agent_routing": widget.enable_agent_routing,
+            "identity_secret": widget.identity_secret,
+            "fcm_server_key": getattr(widget, "fcm_server_key", None),
+        }
+        await redis.setex(_widget_cache_key(widget.key_prefix), _WIDGET_KEY_CACHE_TTL, json.dumps(data))
+    except Exception:
+        pass
+
+
+async def invalidate_widget_cache(key_prefix: str) -> None:
+    """Delete a widget's cache entry.  Call this on every write to the widget."""
+    try:
+        from src.config.redis import get_redis_async
+
+        redis = get_redis_async()
+        if redis:
+            await redis.delete(_widget_cache_key(key_prefix))
+    except Exception:
+        pass
 
 
 # One atomic operation across all workers; distinct request IDs avoid timestamp collisions.
@@ -81,13 +157,14 @@ class WidgetAuthMiddleware:
         SECURITY: Uses constant-time comparison to prevent timing attacks.
         SECURITY: API keys are stored encrypted and decrypted for comparison.
         SECURITY FIX: Uses key prefix index to prevent N+1 query DoS attacks.
+        PERF: Validated widget data is cached in Redis for 5 minutes.
 
         Args:
             api_key: Widget API key to validate
             db: Async database session
 
         Returns:
-            AgentWidget if valid, None otherwise
+            AgentWidget (or SimpleNamespace with same attributes) if valid, None otherwise
         """
         if not api_key:
             return None
@@ -99,6 +176,18 @@ class WidgetAuthMiddleware:
 
         key_prefix = api_key[:20] if len(api_key) >= 20 else api_key
 
+        # Fast path: Redis cache hit → skip DB query entirely
+        cached = await _get_cached_widget(key_prefix)
+        if cached is not None:
+            try:
+                stored_key = decrypt_value(cached.api_key)
+                if hmac.compare_digest(stored_key.encode(), api_key.encode()):
+                    return cached
+            except Exception:
+                pass
+            # Cache entry present but key didn't match (e.g. stale after regen) → fall through
+
+        # Slow path: DB lookup + populate cache on success
         result = await db.execute(
             select(AgentWidget)
             .filter(
@@ -124,6 +213,9 @@ class WidgetAuthMiddleware:
                 except Exception:
                     pass
                 continue
+
+        if matched_widget is not None:
+            await _cache_widget(matched_widget)
 
         return matched_widget
 

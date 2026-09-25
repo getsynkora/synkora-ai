@@ -1214,7 +1214,7 @@ async def update_agent(
         if request.human_contact_id is not None:
             db_agent.human_contact_id = uuid.UUID(request.human_contact_id) if request.human_contact_id else None
         if request.routing_mode is not None:
-            valid_modes = {"fixed", "round_robin", "cost_opt", "intent", "latency_opt"}
+            valid_modes = {"fixed", "round_robin", "cost_opt", "intent", "latency_opt", "jev"}
             if request.routing_mode not in valid_modes:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,

@@ -13,10 +13,26 @@ from telegram import Bot, Update
 from ...models.conversation import Conversation, ConversationStatus
 from ...models.message import Message, MessageRole
 from ...models.telegram_bot import TelegramBot, TelegramConversation
-from ...services.agents.agent_manager import AgentManager
 from ...services.agents.security import decrypt_value
 
 logger = logging.getLogger(__name__)
+
+# Module-level singleton — reused across webhook requests so the in-process agent registry stays warm.
+_telegram_webhook_chat_service = None
+
+
+def _get_telegram_webhook_chat_service():
+    global _telegram_webhook_chat_service
+    if _telegram_webhook_chat_service is None:
+        from ...services.agents.agent_loader_service import AgentLoaderService
+        from ...services.agents.agent_manager import AgentManager
+        from ...services.agents.chat_service import ChatService
+        from ...services.agents.chat_stream_service import ChatStreamService
+
+        _telegram_webhook_chat_service = ChatStreamService(
+            agent_loader=AgentLoaderService(AgentManager()), chat_service=ChatService()
+        )
+    return _telegram_webhook_chat_service
 
 
 class TelegramWebhookService:
@@ -24,7 +40,6 @@ class TelegramWebhookService:
 
     def __init__(self, db_session: AsyncSession):
         self.db_session = db_session
-        self.agent_manager = AgentManager()
 
     async def setup_webhook(self, telegram_bot: TelegramBot, base_url: str) -> bool:
         """
@@ -260,9 +275,6 @@ class TelegramWebhookService:
             try:
                 # Get agent response
                 from ...models.agent import Agent
-                from ...services.agents.agent_loader_service import AgentLoaderService
-                from ...services.agents.chat_service import ChatService
-                from ...services.agents.chat_stream_service import ChatStreamService
                 from ...services.conversation_service import ConversationService
 
                 agent = await self.db_session.get(Agent, telegram_bot.agent_id)
@@ -273,9 +285,7 @@ class TelegramWebhookService:
                     db=self.db_session, conversation_id=conversation.id, limit=30
                 )
 
-                chat_stream_service = ChatStreamService(
-                    agent_loader=AgentLoaderService(self.agent_manager), chat_service=ChatService()
-                )
+                chat_stream_service = _get_telegram_webhook_chat_service()
 
                 # Collect response
                 response_chunks = []

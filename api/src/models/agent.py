@@ -161,13 +161,19 @@ class Agent(BaseModel, StatusMixin, TenantMixin):
         String(30),
         nullable=False,
         default="fixed",
-        comment="Model routing mode: fixed | round_robin | cost_opt | intent | latency_opt",
+        comment="Model routing mode: fixed | round_robin | cost_opt | intent | latency_opt | jev",
     )
 
     routing_config = Column(
         JSON,
         nullable=True,
-        comment="Routing configuration: quality_floor, max_cost_per_1k, etc.",
+        comment=(
+            "Routing configuration. For jev mode, add a 'jev' key: "
+            "{'jev': {'model': 'jev-latest', 'features': {'model_routing': true, 'tool_filtering': true}, "
+            "'model_tier_map': {'fast': '<uuid>', 'standard': '<uuid>', 'heavy': '<uuid>'}, "
+            "'tool_filtering_threshold': 'yes'}}. "
+            "Other keys: quality_floor, max_cost_per_1k, etc."
+        ),
     )
 
     # Execution backend
