@@ -528,19 +528,25 @@ class ChatStreamService:
             if platform_tool_names:
                 mcp_tool_names = list(set((mcp_tool_names or []) + platform_tool_names))
 
-            # JEV per-turn tool filtering: prune the registry to only tools JEV approved.
-            # MCP + platform tools always bypass the filter (they are loaded per-turn and
-            # were not part of the JEV questions asked at routing time).
+            # JEV per-turn tool filtering: restrict the tools advertised to the LLM this turn.
+            # Only the initial shortlist is restricted. The registry and the discovery pool
+            # (all_configured_tool_names) stay complete, so a tool JEV wrongly drops can still
+            # be found with internal_search_available_tools and executed.
+            # MCP + platform tools were not part of the JEV questions (they load after routing)
+            # and the always-include tools (discovery, handoff, spawn) must never be dropped,
+            # so all of these bypass the filter.
             _jev_filtered = False
+            _jev_allowed_names: set[str] | None = None
             if load_result.allowed_tool_names is not None:
-                self.tool_registry = self.tool_registry.filter_tools(
-                    allowed_names=load_result.allowed_tool_names,
-                    always_include=set(mcp_tool_names or []),
+                from src.services.agents.tool_filter import ALWAYS_INCLUDE_TOOLS
+
+                _jev_allowed_names = (
+                    set(load_result.allowed_tool_names) | set(mcp_tool_names or []) | set(ALWAYS_INCLUDE_TOOLS)
                 )
                 _jev_filtered = True
 
             final_tool_names, all_configured_tool_names = self._select_tools(
-                agent, agent_tools, message, mcp_tool_names
+                agent, agent_tools, message, mcp_tool_names, allowed_names=_jev_allowed_names
             )
 
             trace_id = self._create_trace(agent, agent_name, message, final_tool_names)
@@ -2152,13 +2158,21 @@ class ChatStreamService:
         return system_prompt, structured_messages
 
     def _select_tools(
-        self, agent, agent_tools: list[Any], message: str = "", mcp_tool_names: list[str] | None = None
-    ) -> list[str]:
+        self,
+        agent,
+        agent_tools: list[Any],
+        message: str = "",
+        mcp_tool_names: list[str] | None = None,
+        allowed_names: set[str] | None = None,
+    ) -> tuple[list[str], list[str]]:
         """
         Select tools for the current request.
 
         Uses context-aware filtering to only send relevant tools to the LLM,
         reducing token usage and improving response time.
+
+        ``allowed_names`` (JEV) narrows what is advertised initially; the second return
+        value is always the full configured set so discovery can still expose the rest.
         """
         from src.services.agents.tool_filter import (
             ALWAYS_INCLUDE_TOOLS,
@@ -2200,16 +2214,20 @@ class ChatStreamService:
             min_score_threshold=1.0,
         )
 
+        # Score only JEV-approved names so the shortlist cap isn't spent on dropped tools.
+        candidate_names = tool_names if allowed_names is None else [n for n in tool_names if n in allowed_names]
+
         filtered_tools = filter_tool_names_by_message(
             message=message,
-            available_tool_names=tool_names,
+            available_tool_names=candidate_names,
             tool_registry=self.tool_registry,
             config=filter_config,
         )
 
         msg_preview = message[:50] + "..." if len(message) > 50 else message
         logger.info(
-            f"Tool selection: {len(tool_names)} configured → {len(filtered_tools)} filtered (message: '{msg_preview}')"
+            f"Tool selection: {len(tool_names)} configured → {len(filtered_tools)} filtered "
+            f"(jev_allowed={len(candidate_names) if allowed_names is not None else 'n/a'}, message: '{msg_preview}')"
         )
 
         # Return both the filtered set (for initial LLM context) and the full
