@@ -423,6 +423,57 @@ class TestSelectTools:
         for tool in ALWAYS_INCLUDE_TOOLS:
             assert tool in all_tools
 
+    def test_select_tools_jev_allowed_narrows_shortlist_but_not_discovery_pool(
+        self, mock_agent_loader, mock_chat_service, mock_tool_registry
+    ):
+        """JEV-dropped tools stay in the full configured set so discovery can still surface them."""
+        from src.services.agents.chat_stream_service import ChatStreamService
+
+        mock_tool_registry.list_tools.return_value = [
+            {"name": "kept", "description": "Kept tool", "parameters": {}},
+            {"name": "dropped", "description": "Dropped tool", "parameters": {}},
+            {"name": "internal_search_available_tools", "description": "Search tools", "parameters": {}},
+            {"name": "internal_list_tool_categories", "description": "List tool categories", "parameters": {}},
+        ]
+        service = ChatStreamService(mock_agent_loader, mock_chat_service, tool_registry=mock_tool_registry)
+
+        agent = Mock()
+        kept, dropped = Mock(), Mock()
+        kept.name = "kept"
+        dropped.name = "dropped"
+        agent.config.tools = [kept, dropped]
+
+        shortlist, all_tools = service._select_tools(
+            agent,
+            [],
+            "use the kept tool",
+            allowed_names={"kept", "internal_search_available_tools", "internal_list_tool_categories"},
+        )
+
+        assert "dropped" not in shortlist
+        assert "kept" in shortlist
+        assert "dropped" in all_tools  # still discoverable
+        assert "internal_search_available_tools" in shortlist
+
+    def test_select_tools_jev_allowed_none_is_unrestricted(
+        self, mock_agent_loader, mock_chat_service, mock_tool_registry
+    ):
+        from src.services.agents.chat_stream_service import ChatStreamService
+
+        mock_tool_registry.list_tools.return_value = [
+            {"name": "a", "description": "A", "parameters": {}},
+            {"name": "b", "description": "B", "parameters": {}},
+        ]
+        service = ChatStreamService(mock_agent_loader, mock_chat_service, tool_registry=mock_tool_registry)
+        agent = Mock()
+        a, b = Mock(), Mock()
+        a.name, b.name = "a", "b"
+        agent.config.tools = [a, b]
+
+        shortlist, _ = service._select_tools(agent, [], "anything", allowed_names=None)
+
+        assert {"a", "b"} <= set(shortlist)
+
 
 class TestCreateTrace:
     """Tests for _create_trace method."""
