@@ -259,7 +259,7 @@ export default function RoutingModePanel({
               <span>
                 <span className="font-medium">Tool filtering</span>
                 <span className="block text-xs text-gray-500">
-                  Remove built-in tools the query doesn&apos;t need. MCP tools are never filtered.
+                  Hide built-in tools the query doesn&apos;t need. MCP tools are not part of this step; agents with very large tool sets are still trimmed by keyword matching, and dropped tools can be found through tool discovery.
                 </span>
               </span>
             </label>
