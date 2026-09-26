@@ -197,6 +197,7 @@ export default function AgentLLMConfigsPage() {
               agentName={agentName}
               currentMode={routingMode}
               routingConfig={routingConfig}
+              configs={configs}
               onSave={handleSaveRouting}
             />
 
