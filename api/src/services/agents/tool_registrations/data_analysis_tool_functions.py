@@ -276,12 +276,27 @@ async def query_datadog_logs(
         logs_query = f"logs: {query}" if not query.strip().lower().startswith("logs:") else query
 
         service = DataAnalysisService(db_session, tenant_id)
-        return await service.query_datadog_connection(
+        result = await service.query_datadog_connection(
             connection_id=UUID(connection_id),
             query=logs_query,
             from_time=from_time,
             to_time=to_time,
         )
+
+        if isinstance(result, dict) and result.get("success") and isinstance(result.get("rows"), list):
+            from src.services.agents.context_relevance_pruner import (
+                resolve_typesafe_client_for_pruning,
+            )
+            from src.services.agents.internal_tools.log_triage import triage_log_lines
+
+            client = await resolve_typesafe_client_for_pruning(tenant_id, db_session)
+            kept_rows, note = await triage_log_lines(client, result["rows"], source="datadog_logs", query_context=query)
+            if note.applied:
+                result["rows"] = kept_rows
+                result["returned_count"] = len(kept_rows)
+                result["triage"] = note.to_dict()
+
+        return result
 
     except Exception as e:
         logger.error(f"Datadog logs query error: {e}", exc_info=True)
@@ -383,10 +398,33 @@ async def query_docker_logs(
             docker_query = "containers"
 
         service = DataAnalysisService(db_session, tenant_id)
-        return await service.query_docker_connection(
+        result = await service.query_docker_connection(
             connection_id=UUID(connection_id),
             query=docker_query,
         )
+
+        data = result.get("data") if isinstance(result, dict) else None
+        if (
+            isinstance(result, dict)
+            and result.get("success")
+            and isinstance(data, dict)
+            and isinstance(data.get("logs"), str)
+        ):
+            from src.services.agents.context_relevance_pruner import (
+                resolve_typesafe_client_for_pruning,
+            )
+            from src.services.agents.internal_tools.log_triage import triage_log_lines
+
+            raw_lines = [line for line in data["logs"].splitlines() if line.strip()]
+            client = await resolve_typesafe_client_for_pruning(tenant_id, db_session)
+            kept_lines, note = await triage_log_lines(
+                client, raw_lines, source="docker_logs", query_context=target or ""
+            )
+            if note.applied:
+                data["logs"] = "\n".join(kept_lines)
+                data["triage"] = note.to_dict()
+
+        return result
 
     except Exception as e:
         logger.error(f"Docker logs query error: {e}", exc_info=True)
