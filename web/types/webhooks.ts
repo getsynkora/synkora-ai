@@ -36,7 +36,7 @@ export interface WebhookEvent {
   event_id: string | null
   event_type: string
   payload: Record<string, any>
-  status: 'pending' | 'processing' | 'completed' | 'success' | 'failed' | 'retrying' | 'retry'
+  status: 'pending' | 'processing' | 'completed' | 'success' | 'failed' | 'retrying' | 'retry' | 'skipped'
   parsed_data: Record<string, any> | null
   error_message: string | null
   retry_count: number
@@ -53,4 +53,21 @@ export interface WebhookStats {
   failure_count: number
   last_triggered_at: string | null
   event_status_counts: Record<string, number>
+}
+
+/** Stored in webhook.config.jev_gate. */
+export interface JevGateConfig {
+  enabled: boolean
+  mode: 'shadow' | 'enforce'
+  min_actionable: number
+  instructions?: string
+}
+
+/** Stored in event.parsed_data.jev_gate when the gate was enabled. */
+export interface JevGateVerdict {
+  action: 'run' | 'skip'
+  mode: 'shadow' | 'enforce'
+  actionable: number | null
+  reason: string
+  latency_ms: number | null
 }

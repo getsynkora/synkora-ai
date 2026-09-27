@@ -124,7 +124,11 @@ function EditModal({
     name: webhook.name,
     is_active: webhook.is_active,
     event_types: webhook.event_types || [],
-    verify_signature: webhook.config?.verify_signature !== false
+    verify_signature: webhook.config?.verify_signature !== false,
+    jev_enabled: webhook.config?.jev_gate?.enabled === true,
+    jev_mode: (webhook.config?.jev_gate?.mode === 'enforce' ? 'enforce' : 'shadow') as 'shadow' | 'enforce',
+    jev_min_actionable: Number(webhook.config?.jev_gate?.min_actionable ?? 0.2),
+    jev_instructions: (webhook.config?.jev_gate?.instructions as string | undefined) ?? ''
   })
 
   const availableEvents = providerEventTypes[webhook.provider.toLowerCase()] || []
@@ -148,18 +152,29 @@ function EditModal({
       toast.error('Please select at least one event type')
       return
     }
+    const config: Record<string, any> = { ...(webhook.config || {}), verify_signature: formData.verify_signature }
+    // Keep stored gate settings when switching it off; only add the key once it has been used.
+    if (formData.jev_enabled || webhook.config?.jev_gate) {
+      config.jev_gate = {
+        ...(webhook.config?.jev_gate || {}),
+        enabled: formData.jev_enabled,
+        mode: formData.jev_mode,
+        min_actionable: formData.jev_min_actionable,
+        instructions: formData.jev_instructions.trim()
+      }
+    }
     onSave({
       name: formData.name,
       is_active: formData.is_active,
       event_types: formData.event_types,
-      config: { ...(webhook.config || {}), verify_signature: formData.verify_signature }
+      config
     })
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
-      <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg mx-4">
+      <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h3 className="text-base font-semibold text-gray-900">Edit Webhook</h3>
@@ -253,6 +268,90 @@ function EditModal({
                 </p>
               </div>
             </label>
+          </div>
+
+          {/* Smart filtering (Jev) */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Smart filtering (Jev)</label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  className="sr-only"
+                  checked={formData.jev_enabled}
+                  onChange={e => setFormData(prev => ({ ...prev, jev_enabled: e.target.checked }))}
+                />
+                <div className={`w-10 h-6 rounded-full transition-colors ${formData.jev_enabled ? 'bg-red-500' : 'bg-gray-300'}`} />
+                <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${formData.jev_enabled ? 'translate-x-4' : 'translate-x-0'}`} />
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-900">{formData.jev_enabled ? 'Enabled' : 'Disabled'}</span>
+                <p className="text-xs text-gray-500">
+                  Check each event before running the agent, so routine noise (bot chatter, status changes, &quot;LGTM&quot;)
+                  doesn&apos;t use an agent run.
+                </p>
+              </div>
+            </label>
+
+            {formData.jev_enabled && (
+              <div className="mt-3 p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-4">
+                <div className="space-y-2">
+                  {([
+                    ['shadow', 'Test only', 'Score every event and record it, but always run the agent. Start here.'],
+                    ['enforce', 'Skip noise', 'Skip events that are confidently not actionable. Skipped events stay in the event log.']
+                  ] as const).map(([value, label, hint]) => (
+                    <label key={value} className="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="jev_mode"
+                        checked={formData.jev_mode === value}
+                        onChange={() => setFormData(prev => ({ ...prev, jev_mode: value }))}
+                        className="mt-0.5 accent-red-500"
+                      />
+                      <span>
+                        <span className="text-sm font-medium text-gray-900">{label}</span>
+                        <span className="block text-xs text-gray-500">{hint}</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+
+                <div>
+                  <label className="flex items-center justify-between text-sm text-gray-700 mb-1.5">
+                    <span>Skip only when needs-action is below</span>
+                    <span className="font-mono text-xs bg-white border border-gray-200 px-2 py-0.5 rounded">
+                      {Math.round(formData.jev_min_actionable * 100)}%
+                    </span>
+                  </label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={0.5}
+                    step={0.05}
+                    value={formData.jev_min_actionable}
+                    onChange={e => setFormData(prev => ({ ...prev, jev_min_actionable: parseFloat(e.target.value) }))}
+                    className="w-full accent-red-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Lower is safer: fewer events are skipped, more reach the agent.</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-700 mb-1.5">What should the agent act on? (optional)</label>
+                  <textarea
+                    value={formData.jev_instructions}
+                    onChange={e => setFormData(prev => ({ ...prev, jev_instructions: e.target.value.slice(0, 1000) }))}
+                    rows={3}
+                    placeholder="Act on new pull requests and failing builds. Ignore bot comments and label changes."
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  />
+                </div>
+
+                <p className="text-xs text-slate-600">
+                  Event text is sent to TypeSafe for scoring and needs a TypeSafe API key under Settings → Integrations.
+                  If TypeSafe is unavailable or unsure, the event runs normally.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Actions */}

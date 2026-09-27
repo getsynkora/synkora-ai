@@ -12,10 +12,11 @@ import {
   ChevronDown,
   ChevronRight,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  SkipForward
 } from 'lucide-react'
 import { useWebhooks } from '@/hooks/useWebhooks'
-import { WebhookEvent } from '@/types/webhooks'
+import { WebhookEvent, JevGateVerdict } from '@/types/webhooks'
 
 export interface WebhookEventsProps {
   agentName: string
@@ -29,6 +30,7 @@ const statusConfig: Record<string, { icon: any; color: string; bg: string; label
   failed:    { icon: XCircle,      color: 'text-red-600',    bg: 'bg-red-100',    label: 'Failed' },
   retrying:  { icon: RotateCw,     color: 'text-orange-600', bg: 'bg-orange-100', label: 'Retrying' },
   retry:     { icon: RotateCw,     color: 'text-orange-600', bg: 'bg-orange-100', label: 'Retrying' },
+  skipped:   { icon: SkipForward,  color: 'text-slate-600',  bg: 'bg-slate-100',  label: 'Skipped' },
 }
 
 export function WebhookEvents({ agentName }: WebhookEventsProps) {
@@ -187,6 +189,17 @@ export function WebhookEvents({ agentName }: WebhookEventsProps) {
                               Retry {event.retry_count}
                             </span>
                           )}
+                          {(() => {
+                            const gate = event.parsed_data?.jev_gate as JevGateVerdict | undefined
+                            if (gate?.mode === 'shadow' && gate.reason.startsWith('shadow: would skip')) {
+                              return (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                                  Jev would skip
+                                </span>
+                              )
+                            }
+                            return null
+                          })()}
                         </div>
                         <div className="flex items-center gap-4 text-xs text-gray-500">
                           {event.event_id && (
@@ -235,6 +248,38 @@ export function WebhookEvents({ agentName }: WebhookEventsProps) {
                           </div>
                         </div>
                       )}
+
+                      {/* Jev gate verdict */}
+                      {(() => {
+                        const gate = event.parsed_data?.jev_gate as JevGateVerdict | undefined
+                        if (!gate) return null
+                        return (
+                          <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                            <p className="text-xs font-semibold text-slate-800 mb-1.5">
+                              Jev gate ({gate.mode === 'enforce' ? 'enforcing' : 'test only'})
+                            </p>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                              <div>
+                                <span className="text-slate-500">Decision:</span>
+                                <span className="ml-2 font-medium text-slate-900">{gate.action === 'skip' ? 'Skipped' : 'Ran agent'}</span>
+                              </div>
+                              <div>
+                                <span className="text-slate-500">Needs action:</span>
+                                <span className="ml-2 font-medium text-slate-900">
+                                  {gate.actionable === null ? '—' : `${Math.round(gate.actionable * 100)}%`}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-slate-500">Latency:</span>
+                                <span className="ml-2 font-medium text-slate-900">
+                                  {gate.latency_ms === null ? '—' : `${gate.latency_ms} ms`}
+                                </span>
+                              </div>
+                            </div>
+                            <p className="text-xs text-slate-600 mt-1.5">{gate.reason}</p>
+                          </div>
+                        )
+                      })()}
 
                       {/* Payload */}
                       <div>

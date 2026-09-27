@@ -9,6 +9,7 @@ from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.agent_webhook import AgentWebhook, AgentWebhookEvent
+from src.services.webhooks import jev_gate
 from src.services.webhooks.provider_parsers import ProviderParser
 from src.services.webhooks.signature_verifier import SignatureVerifier
 
@@ -150,17 +151,25 @@ class WebhookProcessor:
         return False
 
     async def create_webhook_event(
-        self, webhook: AgentWebhook, payload: dict[str, Any], parsed_data: dict[str, Any], event_id: str | None = None
+        self,
+        webhook: AgentWebhook,
+        payload: dict[str, Any],
+        parsed_data: dict[str, Any],
+        event_id: str | None = None,
+        status: str = "pending",
     ) -> AgentWebhookEvent:
         """Create webhook event record."""
+        now = datetime.now(UTC)
         event = AgentWebhookEvent(
             webhook_id=webhook.id,
             event_id=event_id,
             event_type=parsed_data.get("event_type", "unknown"),
-            status="pending",
+            status=status,
             payload=payload,
             parsed_data=parsed_data,
-            processing_started_at=datetime.now(UTC),
+            processing_started_at=now,
+            # A skipped event is finished the moment it is recorded.
+            processing_completed_at=now if status == "skipped" else None,
         )
 
         self.db.add(event)
@@ -168,6 +177,48 @@ class WebhookProcessor:
         await self.db.refresh(event)
 
         return event
+
+    async def evaluate_jev_gate(
+        self, webhook: AgentWebhook, parsed_data: dict[str, Any]
+    ) -> jev_gate.JevGateDecision | None:
+        """
+        Score the event with the Jev gate when it is enabled on this webhook.
+
+        Returns None when the gate is off. Never raises: any failure is a "run" decision
+        carrying the reason, so the event is processed exactly as it would be without the gate.
+        """
+        cfg = jev_gate.JevGateConfig.from_webhook_config(webhook.config)
+        if cfg is None:
+            return None
+
+        try:
+            from src.models.agent import Agent
+            from src.services.agents.context_relevance_pruner import resolve_typesafe_client_for_pruning
+
+            result = await self.db.execute(select(Agent).where(Agent.id == webhook.agent_id))
+            agent = result.scalar_one_or_none()
+            if agent is None:
+                return jev_gate.JevGateDecision(action="run", mode=cfg.mode, reason="agent_not_found")
+
+            client = await resolve_typesafe_client_for_pruning(agent.tenant_id, self.db)
+            decision = await jev_gate.evaluate_event(
+                cfg=cfg,
+                client=client,
+                agent_name=agent.agent_name,
+                description=agent.description,
+                provider=webhook.provider,
+                parsed_data=parsed_data,
+            )
+        except Exception as exc:
+            logger.warning(f"Jev gate failed for webhook {webhook.id}: {exc}", exc_info=True)
+            return jev_gate.JevGateDecision(action="run", mode=cfg.mode, reason="error")
+
+        logger.info(
+            f"Jev gate webhook={webhook.id} event_type={parsed_data.get('event_type')} "
+            f"action={decision.action} mode={decision.mode} actionable={decision.actionable} "
+            f"reason={decision.reason} latency_ms={decision.latency_ms}"
+        )
+        return decision
 
     async def trigger_agent_execution(
         self, webhook: AgentWebhook, event: AgentWebhookEvent, parsed_data: dict[str, Any]
@@ -268,9 +319,30 @@ class WebhookProcessor:
                     logger.warning(f"Replay detected: event_id {event_id} already processed for webhook {webhook.id}")
                     return {"status": "skipped", "message": "Duplicate delivery ID — replay rejected"}
 
+            # Jev gate: after every cheap check, before we pay for an agent run.
+            gate = await self.evaluate_jev_gate(webhook, parsed_data)
+            # The gate verdict is stored on the event for auditing; the agent still receives
+            # the original parsed_data unchanged.
+            stored_data = {**parsed_data, "jev_gate": gate.to_dict()} if gate else parsed_data
+
+            if gate is not None and gate.action == "skip":
+                event = await self.create_webhook_event(
+                    webhook=webhook,
+                    payload=payload_dict,
+                    parsed_data=stored_data,
+                    event_id=event_id,
+                    status="skipped",
+                )
+                return {
+                    "status": "skipped",
+                    "message": "Skipped by Jev gate",
+                    "event_id": event.id,
+                    "actionable": gate.actionable,
+                }
+
             # Create event record
             event = await self.create_webhook_event(
-                webhook=webhook, payload=payload_dict, parsed_data=parsed_data, event_id=event_id
+                webhook=webhook, payload=payload_dict, parsed_data=stored_data, event_id=event_id
             )
 
             # Trigger agent — event stays "pending" until the Celery task picks it up
