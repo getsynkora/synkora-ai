@@ -1,4 +1,5 @@
 """Well-known URIs — RFC 8615 / RFC 9116."""
+
 from fastapi import APIRouter
 from fastapi.responses import PlainTextResponse
 

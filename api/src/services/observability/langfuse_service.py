@@ -229,7 +229,10 @@ class LangfuseService:
         if isinstance(input_data, str):
             input_data = redact(input_data)
         elif isinstance(input_data, dict):
-            input_data = {k: redact(v) if isinstance(v, str) else (redact_messages(v) if isinstance(v, list) else v) for k, v in input_data.items()}
+            input_data = {
+                k: redact(v) if isinstance(v, str) else (redact_messages(v) if isinstance(v, list) else v)
+                for k, v in input_data.items()
+            }
         if isinstance(output_data, str):
             output_data = redact(output_data)
         elif isinstance(output_data, dict):

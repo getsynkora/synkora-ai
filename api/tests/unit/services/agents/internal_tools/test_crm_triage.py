@@ -70,15 +70,19 @@ class TestFreshdesktriage:
         """triage key present in result (applied=False for too few tickets)."""
         raw_tickets = _make_raw_freshdesk_tickets(MIN_ISSUES_TO_TRIAGE - 1)
 
-        with patch(
-            "src.services.agents.internal_tools.freshdesk_tools._get_freshdesk_credentials",
-            AsyncMock(return_value={"subdomain": "test", "api_key": "key"}),
-        ), patch(
-            "src.services.agents.internal_tools.freshdesk_tools._make_freshdesk_request",
-            AsyncMock(return_value=raw_tickets),
-        ), patch(
-            "src.services.agents.internal_tools.freshdesk_tools._get_typesafe_client",
-            AsyncMock(return_value=None),
+        with (
+            patch(
+                "src.services.agents.internal_tools.freshdesk_tools._get_freshdesk_credentials",
+                AsyncMock(return_value={"subdomain": "test", "api_key": "key"}),
+            ),
+            patch(
+                "src.services.agents.internal_tools.freshdesk_tools._make_freshdesk_request",
+                AsyncMock(return_value=raw_tickets),
+            ),
+            patch(
+                "src.services.agents.internal_tools.freshdesk_tools._get_typesafe_client",
+                AsyncMock(return_value=None),
+            ),
         ):
             from src.services.agents.internal_tools.freshdesk_tools import internal_list_freshdesk_tickets
 
@@ -102,23 +106,26 @@ class TestFreshdesktriage:
         kept_note = IssueTriageNote(applied=True, total=n, scored=n, kept=2)
         # _triage_items built from formatted tickets; keep items with _id in kept_ids
         kept_triage_items = [
-            {"title": f"Ticket {i}", "summary": f"Description {i}", "_id": i}
-            for i in range(n)
-            if i in kept_ids
+            {"title": f"Ticket {i}", "summary": f"Description {i}", "_id": i} for i in range(n) if i in kept_ids
         ]
 
-        with patch(
-            "src.services.agents.internal_tools.freshdesk_tools._get_freshdesk_credentials",
-            AsyncMock(return_value={"subdomain": "test", "api_key": "key"}),
-        ), patch(
-            "src.services.agents.internal_tools.freshdesk_tools._make_freshdesk_request",
-            AsyncMock(return_value=raw_tickets),
-        ), patch(
-            "src.services.agents.internal_tools.freshdesk_tools._get_typesafe_client",
-            AsyncMock(return_value=MagicMock()),
-        ), patch(
-            "src.services.agents.internal_tools.issue_triage.triage_issues",
-            AsyncMock(return_value=(kept_triage_items, kept_note)),
+        with (
+            patch(
+                "src.services.agents.internal_tools.freshdesk_tools._get_freshdesk_credentials",
+                AsyncMock(return_value={"subdomain": "test", "api_key": "key"}),
+            ),
+            patch(
+                "src.services.agents.internal_tools.freshdesk_tools._make_freshdesk_request",
+                AsyncMock(return_value=raw_tickets),
+            ),
+            patch(
+                "src.services.agents.internal_tools.freshdesk_tools._get_typesafe_client",
+                AsyncMock(return_value=MagicMock()),
+            ),
+            patch(
+                "src.services.agents.internal_tools.issue_triage.triage_issues",
+                AsyncMock(return_value=(kept_triage_items, kept_note)),
+            ),
         ):
             from src.services.agents.internal_tools.freshdesk_tools import internal_list_freshdesk_tickets
 
@@ -135,15 +142,19 @@ class TestHubSpotTriage:
         """triage key present in result (applied=False for too few tickets)."""
         raw_tickets = _make_raw_hubspot_tickets(MIN_ISSUES_TO_TRIAGE - 1)
 
-        with patch(
-            "src.services.agents.internal_tools.hubspot_tools._get_hubspot_credentials",
-            AsyncMock(return_value={"access_token": "token"}),
-        ), patch(
-            "src.services.agents.internal_tools.hubspot_tools._make_hubspot_request",
-            AsyncMock(return_value={"results": raw_tickets, "total": len(raw_tickets)}),
-        ), patch(
-            "src.services.agents.internal_tools.hubspot_tools._get_typesafe_client",
-            AsyncMock(return_value=None),
+        with (
+            patch(
+                "src.services.agents.internal_tools.hubspot_tools._get_hubspot_credentials",
+                AsyncMock(return_value={"access_token": "token"}),
+            ),
+            patch(
+                "src.services.agents.internal_tools.hubspot_tools._make_hubspot_request",
+                AsyncMock(return_value={"results": raw_tickets, "total": len(raw_tickets)}),
+            ),
+            patch(
+                "src.services.agents.internal_tools.hubspot_tools._get_typesafe_client",
+                AsyncMock(return_value=None),
+            ),
         ):
             from src.services.agents.internal_tools.hubspot_tools import internal_list_hubspot_tickets
 
@@ -164,23 +175,26 @@ class TestHubSpotTriage:
 
         kept_note = IssueTriageNote(applied=True, total=n, scored=n, kept=2)
         kept_triage_items = [
-            {"title": f"Issue {i}", "summary": f"Content {i}", "_id": str(i)}
-            for i in range(n)
-            if str(i) in kept_ids
+            {"title": f"Issue {i}", "summary": f"Content {i}", "_id": str(i)} for i in range(n) if str(i) in kept_ids
         ]
 
-        with patch(
-            "src.services.agents.internal_tools.hubspot_tools._get_hubspot_credentials",
-            AsyncMock(return_value={"access_token": "token"}),
-        ), patch(
-            "src.services.agents.internal_tools.hubspot_tools._make_hubspot_request",
-            AsyncMock(return_value={"results": raw_tickets, "total": n}),
-        ), patch(
-            "src.services.agents.internal_tools.hubspot_tools._get_typesafe_client",
-            AsyncMock(return_value=MagicMock()),
-        ), patch(
-            "src.services.agents.internal_tools.issue_triage.triage_issues",
-            AsyncMock(return_value=(kept_triage_items, kept_note)),
+        with (
+            patch(
+                "src.services.agents.internal_tools.hubspot_tools._get_hubspot_credentials",
+                AsyncMock(return_value={"access_token": "token"}),
+            ),
+            patch(
+                "src.services.agents.internal_tools.hubspot_tools._make_hubspot_request",
+                AsyncMock(return_value={"results": raw_tickets, "total": n}),
+            ),
+            patch(
+                "src.services.agents.internal_tools.hubspot_tools._get_typesafe_client",
+                AsyncMock(return_value=MagicMock()),
+            ),
+            patch(
+                "src.services.agents.internal_tools.issue_triage.triage_issues",
+                AsyncMock(return_value=(kept_triage_items, kept_note)),
+            ),
         ):
             from src.services.agents.internal_tools.hubspot_tools import internal_list_hubspot_tickets
 
@@ -197,15 +211,19 @@ class TestSalesforceTriage:
         """triage key present in result (applied=False for too few cases)."""
         raw_records = _make_raw_salesforce_records(MIN_ISSUES_TO_TRIAGE - 1)
 
-        with patch(
-            "src.services.agents.internal_tools.salesforce_tools._get_salesforce_credentials",
-            AsyncMock(return_value={"instance_url": "https://test.salesforce.com", "access_token": "tok"}),
-        ), patch(
-            "src.services.agents.internal_tools.salesforce_tools._soql",
-            AsyncMock(return_value=raw_records),
-        ), patch(
-            "src.services.agents.internal_tools.salesforce_tools._get_typesafe_client",
-            AsyncMock(return_value=None),
+        with (
+            patch(
+                "src.services.agents.internal_tools.salesforce_tools._get_salesforce_credentials",
+                AsyncMock(return_value={"instance_url": "https://test.salesforce.com", "access_token": "tok"}),
+            ),
+            patch(
+                "src.services.agents.internal_tools.salesforce_tools._soql",
+                AsyncMock(return_value=raw_records),
+            ),
+            patch(
+                "src.services.agents.internal_tools.salesforce_tools._get_typesafe_client",
+                AsyncMock(return_value=None),
+            ),
         ):
             from src.services.agents.internal_tools.salesforce_tools import internal_list_salesforce_cases
 
@@ -235,18 +253,23 @@ class TestSalesforceTriage:
             if f"case{i}" in kept_ids
         ]
 
-        with patch(
-            "src.services.agents.internal_tools.salesforce_tools._get_salesforce_credentials",
-            AsyncMock(return_value={"instance_url": "https://test.salesforce.com", "access_token": "tok"}),
-        ), patch(
-            "src.services.agents.internal_tools.salesforce_tools._soql",
-            AsyncMock(return_value=raw_records),
-        ), patch(
-            "src.services.agents.internal_tools.salesforce_tools._get_typesafe_client",
-            AsyncMock(return_value=MagicMock()),
-        ), patch(
-            "src.services.agents.internal_tools.issue_triage.triage_issues",
-            AsyncMock(return_value=(kept_triage_items, kept_note)),
+        with (
+            patch(
+                "src.services.agents.internal_tools.salesforce_tools._get_salesforce_credentials",
+                AsyncMock(return_value={"instance_url": "https://test.salesforce.com", "access_token": "tok"}),
+            ),
+            patch(
+                "src.services.agents.internal_tools.salesforce_tools._soql",
+                AsyncMock(return_value=raw_records),
+            ),
+            patch(
+                "src.services.agents.internal_tools.salesforce_tools._get_typesafe_client",
+                AsyncMock(return_value=MagicMock()),
+            ),
+            patch(
+                "src.services.agents.internal_tools.issue_triage.triage_issues",
+                AsyncMock(return_value=(kept_triage_items, kept_note)),
+            ),
         ):
             from src.services.agents.internal_tools.salesforce_tools import internal_list_salesforce_cases
 

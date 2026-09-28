@@ -9,6 +9,7 @@ Tests:
 - Rows with undecodable ciphertext increment the error counter.
 - _get_encrypted_fields returns a non-empty list of (model, field, type) tuples.
 """
+
 from __future__ import annotations
 
 import os
@@ -16,7 +17,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from cryptography.fernet import Fernet
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -117,6 +117,7 @@ async def test_rotate_plain_field_re_encrypts_with_old_key():
     db = _make_db_with_rows([mock_row])
 
     from cryptography.fernet import Fernet, MultiFernet
+
     from src.tasks.key_rotation_task import _rotate_model_field
 
     multi = MultiFernet([Fernet(new_key), Fernet(old_key)])
@@ -151,6 +152,7 @@ async def test_rotate_plain_field_null_skipped():
     db = _make_db_with_rows([mock_row])
 
     from cryptography.fernet import Fernet, MultiFernet
+
     from src.tasks.key_rotation_task import _rotate_model_field
 
     key = make_key()
@@ -181,6 +183,7 @@ async def test_rotate_plain_field_invalid_ciphertext_increments_errors():
     db = _make_db_with_rows([mock_row])
 
     from cryptography.fernet import Fernet, MultiFernet
+
     from src.tasks.key_rotation_task import _rotate_model_field
 
     key = make_key()
@@ -225,6 +228,7 @@ async def test_rotate_enc_prefix_field_re_encrypts():
     db = _make_db_with_rows([mock_row])
 
     from cryptography.fernet import Fernet, MultiFernet
+
     from src.tasks.key_rotation_task import _rotate_model_field
 
     multi = MultiFernet([Fernet(new_key), Fernet(old_key)])
@@ -236,9 +240,7 @@ async def test_rotate_enc_prefix_field_re_encrypts():
         pass
 
     with patch("src.tasks.key_rotation_task.select", return_value=MagicMock()):
-        await _rotate_model_field(
-            db, FakeModel, "_auth_config_enc", "enc:", multi, primary, stats, dry_run=False
-        )
+        await _rotate_model_field(db, FakeModel, "_auth_config_enc", "enc:", multi, primary, stats, dry_run=False)
 
     assert stats["rotated"] == 1
     assert stats["errors"] == 0
@@ -263,6 +265,7 @@ async def test_rotate_enc_prefix_field_plain_value_skipped():
     db = _make_db_with_rows([mock_row])
 
     from cryptography.fernet import Fernet, MultiFernet
+
     from src.tasks.key_rotation_task import _rotate_model_field
 
     key = make_key()
@@ -275,9 +278,7 @@ async def test_rotate_enc_prefix_field_plain_value_skipped():
         pass
 
     with patch("src.tasks.key_rotation_task.select", return_value=MagicMock()):
-        await _rotate_model_field(
-            db, FakeModel, "_env_vars_enc", "enc:", multi, primary, stats, dry_run=False
-        )
+        await _rotate_model_field(db, FakeModel, "_env_vars_enc", "enc:", multi, primary, stats, dry_run=False)
 
     assert stats["skipped"] == 1
     assert stats["rotated"] == 0
@@ -308,6 +309,7 @@ async def test_dry_run_does_not_write():
     db = _make_db_with_rows([mock_row])
 
     from cryptography.fernet import Fernet, MultiFernet
+
     from src.tasks.key_rotation_task import _rotate_model_field
 
     multi = MultiFernet([Fernet(new_key), Fernet(old_key)])
@@ -353,7 +355,6 @@ async def test_rotate_async_dry_run_returns_stats():
     with (
         patch.dict(os.environ, {"ENCRYPTION_KEY": enc_key_str}),
         patch("src.tasks.key_rotation_task.create_celery_async_session", mock_create),
-
         patch("src.tasks.key_rotation_task.select", return_value=MagicMock()),
     ):
         from src.tasks.key_rotation_task import _rotate_async
@@ -389,7 +390,6 @@ async def test_rotate_async_commits_when_not_dry_run():
     with (
         patch.dict(os.environ, {"ENCRYPTION_KEY": enc_key_str}),
         patch("src.tasks.key_rotation_task.create_celery_async_session", mock_create),
-
         patch("src.tasks.key_rotation_task.select", return_value=MagicMock()),
     ):
         from src.tasks.key_rotation_task import _rotate_async

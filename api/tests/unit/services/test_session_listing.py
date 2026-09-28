@@ -15,7 +15,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -109,9 +108,7 @@ class TestTokenBlacklistMetadata:
 
         with patch("src.services.security.token_blacklist.settings") as mock_settings:
             mock_settings.jwt_refresh_token_expires = 3600
-            svc.store_session_metadata(
-                account_id, family_id, ip_address="9.9.9.9", user_agent="NewAgent"
-            )
+            svc.store_session_metadata(account_id, family_id, ip_address="9.9.9.9", user_agent="NewAgent")
 
         # Original values must be preserved
         meta = svc.get_session_metadata(account_id, family_id)
@@ -327,10 +324,10 @@ class TestCreateSessionMetadata:
             bl_svc.store_session_metadata.return_value = True
             mock_bl.return_value = bl_svc
 
-            from src.services.session_service import SessionService
-
             # Need AsyncSession mock for db.execute
             import asyncio
+
+            from src.services.session_service import SessionService
 
             async def _fake_execute(*args, **kwargs):
                 return result_mock

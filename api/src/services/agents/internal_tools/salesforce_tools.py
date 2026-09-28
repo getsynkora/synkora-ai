@@ -321,9 +321,7 @@ async def internal_list_salesforce_cases(
             }
             for c in cases
         ]
-        _kept_items, _triage_note = await triage_issues(
-            _typesafe_client, _triage_items, query_context=status or ""
-        )
+        _kept_items, _triage_note = await triage_issues(_typesafe_client, _triage_items, query_context=status or "")
         _kept_ids = {item["_id"] for item in _kept_items}
         cases = [c for c in cases if c["id"] in _kept_ids]
         return {"success": True, "cases": cases, "total": len(cases), "triage": _triage_note.to_dict()}

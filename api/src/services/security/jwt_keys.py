@@ -1,4 +1,5 @@
 """RSA/EC key management for asymmetric JWT signing."""
+
 from __future__ import annotations
 
 import base64

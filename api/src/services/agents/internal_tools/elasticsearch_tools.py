@@ -197,17 +197,13 @@ async def internal_elasticsearch_search(
                             or r.get("id", "")
                         ),
                         "summary": " ".join(
-                            f"{k}={v}"
-                            for k, v in list((r.get("source") or {}).items())[:5]
-                            if v is not None
+                            f"{k}={v}" for k, v in list((r.get("source") or {}).items())[:5] if v is not None
                         )[:300],
                         "_id": r.get("id", ""),
                     }
                     for r in _raw_results
                 ]
-                _kept_items, _triage_note = await triage_issues(
-                    _typesafe_client, _triage_items, query_context=query
-                )
+                _kept_items, _triage_note = await triage_issues(_typesafe_client, _triage_items, query_context=query)
                 _kept_ids = {item["_id"] for item in _kept_items}
                 results["results"] = [r for r in _raw_results if r.get("id", "") in _kept_ids]
                 results["triage"] = _triage_note.to_dict()

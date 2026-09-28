@@ -1,5 +1,7 @@
 """Redact PII and secrets from LLM traces before sending to Langfuse."""
+
 from __future__ import annotations
+
 import os
 import re
 
@@ -21,7 +23,10 @@ _PATTERNS: list[tuple[re.Pattern, str]] = [
     # SSN
     (re.compile(r"\b\d{3}[- ]\d{2}[- ]\d{4}\b"), "[SSN]"),
     # Private keys
-    (re.compile(r"-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----.*?-----END \1PRIVATE KEY-----", re.S), "[PRIVATE_KEY]"),
+    (
+        re.compile(r"-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----.*?-----END \1PRIVATE KEY-----", re.S),
+        "[PRIVATE_KEY]",
+    ),
 ]
 
 

@@ -7,7 +7,6 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -88,9 +87,7 @@ class TestDiscover:
         mock_resp.json.return_value = discovery_doc
         mock_resp.raise_for_status = MagicMock()
 
-        with patch(
-            "src.services.sso.oidc_sso.request_checked_url", new_callable=AsyncMock
-        ) as mock_req:
+        with patch("src.services.sso.oidc_sso.request_checked_url", new_callable=AsyncMock) as mock_req:
             mock_req.return_value = mock_resp
             doc = await svc._discover()
 
@@ -105,12 +102,14 @@ class TestDiscover:
         svc = OIDCSSOService(cfg)
 
         mock_resp = MagicMock()
-        mock_resp.json.return_value = {"authorization_endpoint": "https://a", "token_endpoint": "https://b", "userinfo_endpoint": "https://c"}
+        mock_resp.json.return_value = {
+            "authorization_endpoint": "https://a",
+            "token_endpoint": "https://b",
+            "userinfo_endpoint": "https://c",
+        }
         mock_resp.raise_for_status = MagicMock()
 
-        with patch(
-            "src.services.sso.oidc_sso.request_checked_url", new_callable=AsyncMock
-        ) as mock_req:
+        with patch("src.services.sso.oidc_sso.request_checked_url", new_callable=AsyncMock) as mock_req:
             mock_req.return_value = mock_resp
             await svc._discover()
             await svc._discover()
@@ -179,9 +178,7 @@ class TestGetAuthorizationUrl:
 class TestExtractUserAttributes:
     def test_uses_configured_email_claim(self):
         svc = _make_svc(email_claim="upn", name_claim="displayName")
-        attrs = svc.extract_user_attributes(
-            {"upn": "alice@corp.example.com", "displayName": "Alice Smith"}
-        )
+        attrs = svc.extract_user_attributes({"upn": "alice@corp.example.com", "displayName": "Alice Smith"})
         assert attrs["email"] == "alice@corp.example.com"
         assert attrs["name"] == "Alice Smith"
 
@@ -202,9 +199,7 @@ class TestExtractUserAttributes:
 
     def test_uses_configured_name_claim(self):
         svc = _make_svc(name_claim="preferred_username")
-        attrs = svc.extract_user_attributes(
-            {"email": "a@b.com", "preferred_username": "alice42"}
-        )
+        attrs = svc.extract_user_attributes({"email": "a@b.com", "preferred_username": "alice42"})
         assert attrs["name"] == "alice42"
 
     def test_falls_back_to_name_key(self):
@@ -236,7 +231,7 @@ class TestProvisionOrGetAccount:
         execute_result.scalar_one_or_none = MagicMock(side_effect=[None, None])
         db.execute = AsyncMock(return_value=execute_result)
 
-        result = await svc.provision_or_get_account(db, tenant_id, email, name)
+        await svc.provision_or_get_account(db, tenant_id, email, name)
 
         # db.add should have been called twice: once for Account, once for TenantAccountJoin
         assert db.add.call_count == 2
@@ -272,13 +267,9 @@ class TestProvisionOrGetAccount:
         existing_membership = MagicMock()
 
         db = AsyncMock()
-        db.execute.return_value.scalar_one_or_none = MagicMock(
-            side_effect=[existing_account, existing_membership]
-        )
+        db.execute.return_value.scalar_one_or_none = MagicMock(side_effect=[existing_account, existing_membership])
 
-        result = await svc.provision_or_get_account(
-            db, _uuid.uuid4(), "existing@example.com", "Existing"
-        )
+        result = await svc.provision_or_get_account(db, _uuid.uuid4(), "existing@example.com", "Existing")
 
         # No new objects should be added to the session
         db.add.assert_not_called()
@@ -295,9 +286,7 @@ class TestProvisionOrGetAccount:
 
         db = AsyncMock()
         # Account exists, but no membership
-        db.execute.return_value.scalar_one_or_none = MagicMock(
-            side_effect=[existing_account, None]
-        )
+        db.execute.return_value.scalar_one_or_none = MagicMock(side_effect=[existing_account, None])
 
         with pytest.raises(ValueError, match="auto-provisioning is disabled"):
             await svc.provision_or_get_account(db, _uuid.uuid4(), "existing@example.com", "E")
@@ -318,10 +307,9 @@ class TestExchangeCode:
         mock_resp.json.return_value = {"access_token": "at-123", "token_type": "Bearer"}
         mock_resp.raise_for_status = MagicMock()
 
-        with patch(
-            "src.services.sso.oidc_sso.request_checked_url", new_callable=AsyncMock
-        ) as mock_req, patch(
-            "src.services.agents.security.decrypt_value", return_value="plaintext-secret"
+        with (
+            patch("src.services.sso.oidc_sso.request_checked_url", new_callable=AsyncMock) as mock_req,
+            patch("src.services.agents.security.decrypt_value", return_value="plaintext-secret"),
         ):
             mock_req.return_value = mock_resp
             result = await svc.exchange_code(code="auth-code", redirect_uri="https://app/cb")
@@ -355,9 +343,7 @@ class TestGetUserInfo:
         mock_resp.json.return_value = {"email": "alice@example.com", "name": "Alice"}
         mock_resp.raise_for_status = MagicMock()
 
-        with patch(
-            "src.services.sso.oidc_sso.request_checked_url", new_callable=AsyncMock
-        ) as mock_req:
+        with patch("src.services.sso.oidc_sso.request_checked_url", new_callable=AsyncMock) as mock_req:
             mock_req.return_value = mock_resp
             result = await svc.get_user_info("my-access-token")
 

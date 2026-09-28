@@ -11,6 +11,7 @@ Usage:
 3. Verify the task completes with no errors (check the returned stats / task result).
 4. Set ENCRYPTION_KEY=NEW_KEY and restart.
 """
+
 from __future__ import annotations
 
 import logging
@@ -114,8 +115,8 @@ def _get_encrypted_fields() -> list[tuple]:
     from src.models.agent_compute import AgentCompute
     from src.models.agent_llm_config import AgentLLMConfig
     from src.models.agent_widget import AgentWidget
-    from src.models.database_connection import DatabaseConnection
     from src.models.data_source import DataSource
+    from src.models.database_connection import DatabaseConnection
     from src.models.load_test import LoadTest
     from src.models.mcp_server import MCPServer
     from src.models.monitoring_integration import MonitoringIntegration

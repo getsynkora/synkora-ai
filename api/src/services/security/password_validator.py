@@ -124,9 +124,6 @@ class PasswordValidator:
         "changeme1234",
         "changeme123!",
         "password123",
-        "password1234",
-        "letmein12345",
-        "welcome12345",
         "admin123456",
         # Additional common patterns
         "1q2w3e4r5t12",

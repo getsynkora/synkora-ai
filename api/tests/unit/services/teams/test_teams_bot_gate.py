@@ -83,12 +83,15 @@ class TestTeamsGate:
             "id": "act123",
         }
 
-        with patch(
-            "src.services.agents.context_relevance_pruner.resolve_typesafe_client_for_pruning",
-            AsyncMock(return_value=None),
-        ), patch(
-            "src.services.slack.slack_bot_gate.evaluate_slack_message",
-            AsyncMock(return_value=_skip_decision()),
+        with (
+            patch(
+                "src.services.agents.context_relevance_pruner.resolve_typesafe_client_for_pruning",
+                AsyncMock(return_value=None),
+            ),
+            patch(
+                "src.services.slack.slack_bot_gate.evaluate_slack_message",
+                AsyncMock(return_value=_skip_decision()),
+            ),
         ):
             await service._handle_message(bot, activity)
 
@@ -121,16 +124,20 @@ class TestTeamsGate:
         }
 
         # Shadow mode run decision → handler proceeds
-        with patch(
-            "src.services.agents.context_relevance_pruner.resolve_typesafe_client_for_pruning",
-            AsyncMock(return_value=None),
-        ), patch(
-            "src.services.slack.slack_bot_gate.evaluate_slack_message",
-            AsyncMock(return_value=_run_decision()),
-        ), patch(
-            "src.controllers.agents.chat.stream_agent_response",
-            AsyncMock(return_value=_empty_aiter()),
-            create=True,
+        with (
+            patch(
+                "src.services.agents.context_relevance_pruner.resolve_typesafe_client_for_pruning",
+                AsyncMock(return_value=None),
+            ),
+            patch(
+                "src.services.slack.slack_bot_gate.evaluate_slack_message",
+                AsyncMock(return_value=_run_decision()),
+            ),
+            patch(
+                "src.controllers.agents.chat.stream_agent_response",
+                AsyncMock(return_value=_empty_aiter()),
+                create=True,
+            ),
         ):
             await service._handle_message(bot, activity)
 
@@ -161,13 +168,16 @@ class TestTeamsGate:
             "id": "act123",
         }
 
-        with patch(
-            "src.services.agents.context_relevance_pruner.resolve_typesafe_client_for_pruning",
-            AsyncMock(return_value=None),
-        ), patch(
-            "src.controllers.agents.chat.stream_agent_response",
-            AsyncMock(return_value=_empty_aiter()),
-            create=True,
+        with (
+            patch(
+                "src.services.agents.context_relevance_pruner.resolve_typesafe_client_for_pruning",
+                AsyncMock(return_value=None),
+            ),
+            patch(
+                "src.controllers.agents.chat.stream_agent_response",
+                AsyncMock(return_value=_empty_aiter()),
+                create=True,
+            ),
         ):
             # Should not raise even with no agent found
             await service._handle_message(bot, activity)

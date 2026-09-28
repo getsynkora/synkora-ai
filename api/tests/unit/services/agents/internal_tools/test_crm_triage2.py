@@ -29,21 +29,23 @@ class TestClickUpTriage:
             for i in range(MIN_ISSUES_TO_TRIAGE - 1)
         ]
 
-        with patch(
-            "src.services.agents.internal_tools.clickup_tools._get_clickup_token",
-            AsyncMock(return_value="token"),
-        ), patch(
-            "src.services.agents.internal_tools.clickup_tools._make_clickup_request",
-            AsyncMock(return_value={"tasks": tasks}),
-        ), patch(
-            "src.services.agents.internal_tools.clickup_tools._get_typesafe_client",
-            AsyncMock(return_value=None),
+        with (
+            patch(
+                "src.services.agents.internal_tools.clickup_tools._get_clickup_token",
+                AsyncMock(return_value="token"),
+            ),
+            patch(
+                "src.services.agents.internal_tools.clickup_tools._make_clickup_request",
+                AsyncMock(return_value={"tasks": tasks}),
+            ),
+            patch(
+                "src.services.agents.internal_tools.clickup_tools._get_typesafe_client",
+                AsyncMock(return_value=None),
+            ),
         ):
             from src.services.agents.internal_tools.clickup_tools import internal_search_clickup_tasks
 
-            result = await internal_search_clickup_tasks(
-                list_id="list1", query="bug", runtime_context=MagicMock()
-            )
+            result = await internal_search_clickup_tasks(list_id="list1", query="bug", runtime_context=MagicMock())
 
         assert result["success"] is True
         assert "triage" in result
@@ -67,15 +69,19 @@ class TestIntercomTriage:
             for i in range(MIN_ISSUES_TO_TRIAGE - 1)
         ]
 
-        with patch(
-            "src.services.agents.internal_tools.intercom_tools._get_intercom_credentials",
-            AsyncMock(return_value={"access_token": "token"}),
-        ), patch(
-            "src.services.agents.internal_tools.intercom_tools._make_intercom_request",
-            AsyncMock(return_value={"conversations": raw_convs, "total_count": len(raw_convs)}),
-        ), patch(
-            "src.services.agents.internal_tools.intercom_tools._get_typesafe_client",
-            AsyncMock(return_value=None),
+        with (
+            patch(
+                "src.services.agents.internal_tools.intercom_tools._get_intercom_credentials",
+                AsyncMock(return_value={"access_token": "token"}),
+            ),
+            patch(
+                "src.services.agents.internal_tools.intercom_tools._make_intercom_request",
+                AsyncMock(return_value={"conversations": raw_convs, "total_count": len(raw_convs)}),
+            ),
+            patch(
+                "src.services.agents.internal_tools.intercom_tools._get_typesafe_client",
+                AsyncMock(return_value=None),
+            ),
         ):
             from src.services.agents.internal_tools.intercom_tools import internal_list_intercom_conversations
 
@@ -104,23 +110,23 @@ class TestZohoCRMTriage:
             for i in range(MIN_ISSUES_TO_TRIAGE - 1)
         ]
 
-        with patch(
-            "src.services.agents.internal_tools.zoho_crm_tools._get_zoho_crm_credentials",
-            AsyncMock(
-                return_value={"access_token": "tok", "api_domain": "https://www.zohoapis.com"}
+        with (
+            patch(
+                "src.services.agents.internal_tools.zoho_crm_tools._get_zoho_crm_credentials",
+                AsyncMock(return_value={"access_token": "tok", "api_domain": "https://www.zohoapis.com"}),
             ),
-        ), patch(
-            "src.services.agents.internal_tools.zoho_crm_tools._make_zoho_request",
-            AsyncMock(return_value={"data": raw_records}),
-        ), patch(
-            "src.services.agents.internal_tools.zoho_crm_tools._get_typesafe_client",
-            AsyncMock(return_value=None),
+            patch(
+                "src.services.agents.internal_tools.zoho_crm_tools._make_zoho_request",
+                AsyncMock(return_value={"data": raw_records}),
+            ),
+            patch(
+                "src.services.agents.internal_tools.zoho_crm_tools._get_typesafe_client",
+                AsyncMock(return_value=None),
+            ),
         ):
             from src.services.agents.internal_tools.zoho_crm_tools import internal_search_zoho_crm_records
 
-            result = await internal_search_zoho_crm_records(
-                module="Leads", query="acme", runtime_context=MagicMock()
-            )
+            result = await internal_search_zoho_crm_records(module="Leads", query="acme", runtime_context=MagicMock())
 
         assert result["success"] is True
         assert "triage" in result
@@ -142,17 +148,19 @@ class TestZohoCRMTriage:
             for i in range(MIN_ISSUES_TO_TRIAGE - 1)
         ]
 
-        with patch(
-            "src.services.agents.internal_tools.zoho_crm_tools._get_zoho_crm_credentials",
-            AsyncMock(
-                return_value={"access_token": "tok", "api_domain": "https://www.zohoapis.com"}
+        with (
+            patch(
+                "src.services.agents.internal_tools.zoho_crm_tools._get_zoho_crm_credentials",
+                AsyncMock(return_value={"access_token": "tok", "api_domain": "https://www.zohoapis.com"}),
             ),
-        ), patch(
-            "src.services.agents.internal_tools.zoho_crm_tools._make_zoho_request",
-            AsyncMock(return_value={"data": raw_records}),
-        ), patch(
-            "src.services.agents.internal_tools.zoho_crm_tools._get_typesafe_client",
-            AsyncMock(return_value=None),
+            patch(
+                "src.services.agents.internal_tools.zoho_crm_tools._make_zoho_request",
+                AsyncMock(return_value={"data": raw_records}),
+            ),
+            patch(
+                "src.services.agents.internal_tools.zoho_crm_tools._get_typesafe_client",
+                AsyncMock(return_value=None),
+            ),
         ):
             from src.services.agents.internal_tools.zoho_crm_tools import internal_list_zoho_crm_records
 

@@ -32,10 +32,7 @@ def _build_questions(tool_names: list[str], registry: Any) -> dict[str, dict[str
         desc = ((tool or {}).get("description") or "")[:_MAX_DESC_CHARS]
         questions[f"tool_{name}"] = {
             "type": "noul",
-            "question": (
-                f"Is the tool '{name}' needed to answer this query? "
-                f"Tool description: {desc}"
-            ),
+            "question": (f"Is the tool '{name}' needed to answer this query? Tool description: {desc}"),
         }
     return questions
 
@@ -43,9 +40,7 @@ def _build_questions(tool_names: list[str], registry: Any) -> dict[str, dict[str
 def _build_state(query: str, agent: Any, history: list[dict] | None) -> dict[str, Any]:
     history_summary = ""
     if history:
-        history_summary = " | ".join(
-            f"{m.get('role', '?')}: {str(m.get('content', ''))[:100]}" for m in history[-5:]
-        )
+        history_summary = " | ".join(f"{m.get('role', '?')}: {str(m.get('content', ''))[:100]}" for m in history[-5:])
     return {
         "agent_purpose": (getattr(agent, "description", "") or "General purpose agent")[:_MAX_PURPOSE_CHARS],
         "query": query[:_MAX_QUERY_CHARS],

@@ -1,4 +1,5 @@
 """Generic OIDC SSO service — supports any OIDC-compliant IdP."""
+
 from __future__ import annotations
 
 import logging
@@ -141,15 +142,9 @@ class OIDCSSOService:
         configured claim is absent.
         """
         email = userinfo.get(self.config.email_claim) or userinfo.get("email")
-        name = (
-            userinfo.get(self.config.name_claim)
-            or userinfo.get("name")
-            or userinfo.get("given_name", "")
-        )
+        name = userinfo.get(self.config.name_claim) or userinfo.get("name") or userinfo.get("given_name", "")
         if not email:
-            raise ValueError(
-                f"No email found in OIDC userinfo (tried claim '{self.config.email_claim}' then 'email')"
-            )
+            raise ValueError(f"No email found in OIDC userinfo (tried claim '{self.config.email_claim}' then 'email')")
         return {"email": email.lower().strip(), "name": name}
 
     # ------------------------------------------------------------------
@@ -158,7 +153,7 @@ class OIDCSSOService:
 
     async def provision_or_get_account(
         self,
-        db: "AsyncSession",
+        db: AsyncSession,
         tenant_id,
         email: str,
         name: str,
@@ -181,9 +176,7 @@ class OIDCSSOService:
 
         if account is None:
             if not self.config.auto_provision:
-                raise ValueError(
-                    f"Account {email!r} not found and auto-provisioning is disabled for this tenant"
-                )
+                raise ValueError(f"Account {email!r} not found and auto-provisioning is disabled for this tenant")
             account = Account(
                 email=email.lower(),
                 name=name,
@@ -205,9 +198,7 @@ class OIDCSSOService:
 
         if membership is None:
             if not self.config.auto_provision:
-                raise ValueError(
-                    f"Account {email!r} is not a member of this tenant and auto-provisioning is disabled"
-                )
+                raise ValueError(f"Account {email!r} is not a member of this tenant and auto-provisioning is disabled")
             membership = TenantAccountJoin(
                 tenant_id=tenant_id,
                 account_id=account.id,

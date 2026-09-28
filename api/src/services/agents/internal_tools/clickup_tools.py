@@ -183,13 +183,8 @@ async def internal_search_clickup_tasks(
         from src.services.agents.internal_tools.issue_triage import triage_issues
 
         _typesafe_client = await _get_typesafe_client(runtime_context)
-        _triage_items = [
-            {"title": t["name"], "summary": t.get("description", ""), "_id": t["id"]}
-            for t in tasks
-        ]
-        _kept_items, _triage_note = await triage_issues(
-            _typesafe_client, _triage_items, query_context=query or ""
-        )
+        _triage_items = [{"title": t["name"], "summary": t.get("description", ""), "_id": t["id"]} for t in tasks]
+        _kept_items, _triage_note = await triage_issues(_typesafe_client, _triage_items, query_context=query or "")
         _kept_ids = {item["_id"] for item in _kept_items}
         tasks = [t for t in tasks if t["id"] in _kept_ids]
         return {"success": True, "tasks": tasks, "total": len(tasks), "triage": _triage_note.to_dict()}

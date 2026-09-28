@@ -31,6 +31,8 @@ async def _get_typesafe_client(runtime_context: Any | None) -> Any | None:
     except Exception as exc:
         logger.warning("Could not build TypeSafe client for ticket triage: %s", exc)
         return None
+
+
 _STATUS = {"open": 2, "pending": 3, "resolved": 4, "closed": 5}
 
 
@@ -270,12 +272,9 @@ async def internal_list_freshdesk_tickets(
 
         _typesafe_client = await _get_typesafe_client(runtime_context)
         _triage_items = [
-            {"title": t.get("subject", ""), "summary": t.get("description", ""), "_id": t["id"]}
-            for t in tickets
+            {"title": t.get("subject", ""), "summary": t.get("description", ""), "_id": t["id"]} for t in tickets
         ]
-        _kept_items, _triage_note = await triage_issues(
-            _typesafe_client, _triage_items, query_context=status or ""
-        )
+        _kept_items, _triage_note = await triage_issues(_typesafe_client, _triage_items, query_context=status or "")
         _kept_ids = {item["_id"] for item in _kept_items}
         tickets = [t for t in tickets if t["id"] in _kept_ids]
         return {"success": True, "tickets": tickets, "total": len(tickets), "triage": _triage_note.to_dict()}

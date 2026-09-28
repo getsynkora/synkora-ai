@@ -64,7 +64,7 @@ class TestFailOpen:
     async def test_timeout_returns_all_issues(self):
         issues = _make_issues(MIN_ISSUES_TO_TRIAGE + 1)
         client = MagicMock()
-        client.evaluate = AsyncMock(side_effect=asyncio.TimeoutError())
+        client.evaluate = AsyncMock(side_effect=TimeoutError())
         kept, note = await triage_issues(client, issues, query_context="crash")
         assert kept == issues
         assert note.reason == "timeout"

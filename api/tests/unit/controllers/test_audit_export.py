@@ -69,11 +69,16 @@ def app_client(mock_activity_service, mock_team_service, mock_verify_chain):
     app.dependency_overrides[get_current_tenant_id] = lambda: tenant_id
 
     client = TestClient(app, raise_server_exceptions=False)
-    return client, tenant_id, mock_account, {
-        "activity": mock_activity_service,
-        "team": mock_team_service,
-        "chain": mock_verify_chain,
-    }
+    return (
+        client,
+        tenant_id,
+        mock_account,
+        {
+            "activity": mock_activity_service,
+            "team": mock_team_service,
+            "chain": mock_verify_chain,
+        },
+    )
 
 
 class TestExportActivityLogsCSV:
@@ -175,7 +180,7 @@ class TestExportActivityLogsCSV:
         response = client.get("/api/v1/activity-logs/export?format=csv")
 
         assert response.status_code == status.HTTP_200_OK
-        lines = [l for l in response.text.splitlines() if l.strip()]
+        lines = [line for line in response.text.splitlines() if line.strip()]
         # Only the CSV header row, no data rows
         assert len(lines) == 1
         assert "action" in lines[0]
@@ -339,9 +344,7 @@ class TestExportActivityLogsFilters:
         mock_team.get_team_member.return_value = {"role": AccountRole.OWNER.value}
         mock_activity.list_logs.return_value = []
 
-        response = client.get(
-            "/api/v1/activity-logs/export?format=json&action=login&resource_type=auth"
-        )
+        response = client.get("/api/v1/activity-logs/export?format=json&action=login&resource_type=auth")
 
         assert response.status_code == status.HTTP_200_OK
         call_kwargs = mock_activity.list_logs.call_args[1]

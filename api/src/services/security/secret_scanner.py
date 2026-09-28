@@ -13,6 +13,7 @@ Policy:
 Enabled by default. Disable per-deployment via SECRETS_SCANNER_ENABLED=false.
 Mode controlled by SECRETS_SCANNER_MODE=redact|alert|block (default: alert).
 """
+
 from __future__ import annotations
 
 import logging
@@ -102,9 +103,7 @@ _PATTERNS: list[tuple[str, re.Pattern, str]] = [
     # Credit card numbers (Visa, Mastercard, Amex -- simplified Luhn prefix check)
     (
         "credit_card",
-        re.compile(
-            r"\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12})\b"
-        ),
+        re.compile(r"\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12})\b"),
         "[CARD_NUMBER]",
     ),
     # Password in JSON/form context: "password": "value"

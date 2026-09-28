@@ -64,31 +64,34 @@ class TestGmailTriageIntegration:
             }
 
         mock_service = MagicMock()
-        mock_service.users.return_value.messages.return_value.list.return_value.execute.side_effect = (
-            lambda: {"messages": [{"id": e["id"]} for e in emails], "resultSizeEstimate": len(emails)}
-        )
-        mock_service.users.return_value.messages.return_value.get.return_value.execute.side_effect = (
-            lambda: fake_get_message_sync()
+        mock_service.users.return_value.messages.return_value.list.return_value.execute.side_effect = lambda: {
+            "messages": [{"id": e["id"]} for e in emails],
+            "resultSizeEstimate": len(emails),
+        }
+        mock_service.users.return_value.messages.return_value.get.return_value.execute.side_effect = lambda: (
+            fake_get_message_sync()
         )
 
         # Use a simpler mock: patch _get_gmail_service and triage_issues
-        mock_runtime = MagicMock()
-
-        with patch(
-            "src.services.agents.internal_tools.gmail_tools._get_gmail_service",
-            AsyncMock(return_value=mock_service),
-        ), patch(
-            "src.services.agents.internal_tools.gmail_tools._get_typesafe_client",
-            AsyncMock(return_value=MagicMock()),
-        ), patch(
-            "src.services.agents.internal_tools.issue_triage.triage_issues",
-            AsyncMock(
-                return_value=(
-                    [{"title": e["subject"], "summary": "", "_id": e["id"]} for e in kept_emails],
-                    kept_note,
-                )
+        with (
+            patch(
+                "src.services.agents.internal_tools.gmail_tools._get_gmail_service",
+                AsyncMock(return_value=mock_service),
             ),
-        ) as mock_triage:
+            patch(
+                "src.services.agents.internal_tools.gmail_tools._get_typesafe_client",
+                AsyncMock(return_value=MagicMock()),
+            ),
+            patch(
+                "src.services.agents.internal_tools.issue_triage.triage_issues",
+                AsyncMock(
+                    return_value=(
+                        [{"title": e["subject"], "summary": "", "_id": e["id"]} for e in kept_emails],
+                        kept_note,
+                    )
+                ),
+            ),
+        ):
             from src.services.agents.internal_tools.gmail_tools import internal_gmail_list_emails
 
             # Build a simplified result by mocking at a higher level
@@ -131,12 +134,15 @@ class TestGmailTriageIntegration:
 
         mock_service.users.return_value.messages.return_value.get.return_value.execute.side_effect = _get_exec
 
-        with patch(
-            "src.services.agents.internal_tools.gmail_tools._get_gmail_service",
-            AsyncMock(return_value=mock_service),
-        ), patch(
-            "src.services.agents.internal_tools.gmail_tools._get_typesafe_client",
-            AsyncMock(return_value=None),
+        with (
+            patch(
+                "src.services.agents.internal_tools.gmail_tools._get_gmail_service",
+                AsyncMock(return_value=mock_service),
+            ),
+            patch(
+                "src.services.agents.internal_tools.gmail_tools._get_typesafe_client",
+                AsyncMock(return_value=None),
+            ),
         ):
             from src.services.agents.internal_tools.gmail_tools import internal_gmail_list_emails
 

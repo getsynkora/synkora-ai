@@ -31,7 +31,14 @@ def _client(noul: float | None = None, *, result: dict | None = None) -> MagicMo
     return client
 
 
-async def _eval(cfg, client, *, text="Hey bot, can you help with the outage?", agent_name="ops-bot", description="Monitors infrastructure"):
+async def _eval(
+    cfg,
+    client,
+    *,
+    text="Hey bot, can you help with the outage?",
+    agent_name="ops-bot",
+    description="Monitors infrastructure",
+):
     return await evaluate_slack_message(
         cfg=cfg,
         client=client,
@@ -74,7 +81,7 @@ class TestFailOpen:
     @pytest.mark.asyncio
     async def test_timeout_returns_run(self):
         client = MagicMock()
-        client.evaluate = AsyncMock(side_effect=asyncio.TimeoutError())
+        client.evaluate = AsyncMock(side_effect=TimeoutError())
         decision = await _eval(_cfg(), client, text="Help me!")
         assert decision.action == "run"
         assert decision.reason == "timeout"

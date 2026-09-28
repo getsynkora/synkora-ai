@@ -1,4 +1,5 @@
 """Unit tests for Langfuse trace PII redactor."""
+
 from __future__ import annotations
 
 import pytest
@@ -87,7 +88,7 @@ class TestRedact:
         assert redact(42) == 42  # type: ignore[arg-type]
 
     def test_multiple_patterns_in_same_string(self):
-        text = f"key=AKIAIOSFODNN7EXAMPLE ssn=123-45-6789"
+        text = "key=AKIAIOSFODNN7EXAMPLE ssn=123-45-6789"
         result = redact(text)
         assert "[AWS_KEY]" in result
         assert "[SSN]" in result

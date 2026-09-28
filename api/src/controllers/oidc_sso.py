@@ -163,9 +163,7 @@ class OIDCConfigUpdateRequest(PydanticModel):
 
 
 async def _get_oidc_config(db: AsyncSession, tenant_id: uuid.UUID) -> OIDCConfig | None:
-    result = await db.execute(
-        select(OIDCConfig).where(OIDCConfig.tenant_id == tenant_id)
-    )
+    result = await db.execute(select(OIDCConfig).where(OIDCConfig.tenant_id == tenant_id))
     return result.scalar_one_or_none()
 
 
@@ -238,8 +236,7 @@ async def upsert_oidc_config(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=(
-                "Provide either discovery_url or all of: "
-                "authorization_endpoint, token_endpoint, userinfo_endpoint"
+                "Provide either discovery_url or all of: authorization_endpoint, token_endpoint, userinfo_endpoint"
             ),
         )
 
@@ -467,9 +464,7 @@ async def oidc_callback(
         oidc_access_token = session_data["access_token"]
         final_url = f"{redirect_url}#oidc_token={oidc_access_token}"
 
-        logger.info(
-            "OIDC SSO: login successful for account %s (tenant %s)", account.id, tenant_uuid
-        )
+        logger.info("OIDC SSO: login successful for account %s (tenant %s)", account.id, tenant_uuid)
 
         response = RedirectResponse(url=final_url, status_code=status.HTTP_302_FOUND)
         response.set_cookie(

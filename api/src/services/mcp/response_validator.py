@@ -1,13 +1,15 @@
 """Validate MCP tool responses for prompt injection and oversized payloads."""
+
 from __future__ import annotations
+
 import logging
 import re
 
 logger = logging.getLogger(__name__)
 
 # Hard limits
-MAX_RESPONSE_CHARS = 50_000   # 50K chars per tool response
-MAX_RESPONSE_ITEMS = 100      # max items in a list response
+MAX_RESPONSE_CHARS = 50_000  # 50K chars per tool response
+MAX_RESPONSE_ITEMS = 100  # max items in a list response
 
 # Prompt injection patterns in tool responses (simplified — LLM will also scan)
 _INJECTION_PATTERNS = [
@@ -18,6 +20,7 @@ _INJECTION_PATTERNS = [
     re.compile(r"\[INST\]|\[/INST\]|\[SYS\]|\[/SYS\]", re.I),
     re.compile(r"###\s*(Human|Assistant|System)\s*:", re.I),
 ]
+
 
 def validate_mcp_response(tool_name: str, result: object) -> object:
     """
@@ -36,7 +39,9 @@ def validate_mcp_response(tool_name: str, result: object) -> object:
         _check_injection(tool_name, result)
     elif isinstance(result, list):
         if len(result) > MAX_RESPONSE_ITEMS:
-            logger.warning("MCP tool %r response list truncated (%d → %d items)", tool_name, len(result), MAX_RESPONSE_ITEMS)
+            logger.warning(
+                "MCP tool %r response list truncated (%d → %d items)", tool_name, len(result), MAX_RESPONSE_ITEMS
+            )
             result = result[:MAX_RESPONSE_ITEMS]
         for item in result:
             if isinstance(item, str):
@@ -54,6 +59,7 @@ def _check_injection(tool_name: str, text: str) -> None:
         if pat.search(text):
             logger.warning(
                 "MCP tool %r response contains possible prompt injection pattern: %r",
-                tool_name, pat.pattern,
+                tool_name,
+                pat.pattern,
             )
             break  # one warning per response is enough

@@ -77,12 +77,15 @@ class TestPollingGate:
         mock_context = MagicMock()
         mock_context.bot = AsyncMock()
 
-        with patch(
-            "src.services.agents.context_relevance_pruner.resolve_typesafe_client_for_pruning",
-            AsyncMock(return_value=None),
-        ), patch(
-            "src.services.slack.slack_bot_gate.evaluate_slack_message",
-            AsyncMock(return_value=_skip_decision()),
+        with (
+            patch(
+                "src.services.agents.context_relevance_pruner.resolve_typesafe_client_for_pruning",
+                AsyncMock(return_value=None),
+            ),
+            patch(
+                "src.services.slack.slack_bot_gate.evaluate_slack_message",
+                AsyncMock(return_value=_skip_decision()),
+            ),
         ):
             await service._handle_message(
                 telegram_bot=telegram_bot,
@@ -119,15 +122,19 @@ class TestPollingGate:
         mock_context.bot = AsyncMock()
 
         # Patch evaluate_slack_message to return run (fail-open path when client=None)
-        with patch(
-            "src.services.agents.context_relevance_pruner.resolve_typesafe_client_for_pruning",
-            AsyncMock(return_value=None),
-        ), patch(
-            "src.services.slack.slack_bot_gate.evaluate_slack_message",
-            AsyncMock(return_value=_run_decision()),
-        ), patch(
-            "src.services.agents.chat_stream_service.ChatStreamService",
-            MagicMock(return_value=MagicMock(stream_agent_response=AsyncMock(return_value=_empty_aiter()))),
+        with (
+            patch(
+                "src.services.agents.context_relevance_pruner.resolve_typesafe_client_for_pruning",
+                AsyncMock(return_value=None),
+            ),
+            patch(
+                "src.services.slack.slack_bot_gate.evaluate_slack_message",
+                AsyncMock(return_value=_run_decision()),
+            ),
+            patch(
+                "src.services.agents.chat_stream_service.ChatStreamService",
+                MagicMock(return_value=MagicMock(stream_agent_response=AsyncMock(return_value=_empty_aiter()))),
+            ),
         ):
             # This will fail when trying to stream, but we only care that flush was called (gate passed)
             try:
@@ -166,12 +173,15 @@ class TestWebhookGate:
         telegram_bot = _make_telegram_bot()
         mock_bot_api = AsyncMock()
 
-        with patch(
-            "src.services.agents.context_relevance_pruner.resolve_typesafe_client_for_pruning",
-            AsyncMock(return_value=None),
-        ), patch(
-            "src.services.slack.slack_bot_gate.evaluate_slack_message",
-            AsyncMock(return_value=_skip_decision()),
+        with (
+            patch(
+                "src.services.agents.context_relevance_pruner.resolve_typesafe_client_for_pruning",
+                AsyncMock(return_value=None),
+            ),
+            patch(
+                "src.services.slack.slack_bot_gate.evaluate_slack_message",
+                AsyncMock(return_value=_skip_decision()),
+            ),
         ):
             await service._handle_message(
                 telegram_bot=telegram_bot,
@@ -195,6 +205,7 @@ class TestWebhookGate:
 
 def _empty_aiter():
     """Return an async iterator that yields nothing."""
+
     async def _gen():
         return
         yield  # noqa: unreachable

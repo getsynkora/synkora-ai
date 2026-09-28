@@ -38,12 +38,15 @@ class TestElasticsearchTriage:
         mock_db = AsyncMock()
         mock_runtime.db_session = mock_db
 
-        with patch(
-            "src.services.agents.internal_tools.elasticsearch_tools._get_typesafe_client",
-            AsyncMock(return_value=None),
-        ), patch(
-            "src.services.search.elasticsearch_service.ElasticsearchService",
-        ) as MockES:
+        with (
+            patch(
+                "src.services.agents.internal_tools.elasticsearch_tools._get_typesafe_client",
+                AsyncMock(return_value=None),
+            ),
+            patch(
+                "src.services.search.elasticsearch_service.ElasticsearchService",
+            ) as MockES,
+        ):
             # Mock the connection lookup
             mock_connection = MagicMock()
             mock_connection.status = "active"
@@ -53,7 +56,9 @@ class TestElasticsearchTriage:
             mock_connection.password_encrypted = None
             mock_connection.connection_params = {}
 
-            mock_db.execute = AsyncMock(return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=mock_connection)))
+            mock_db.execute = AsyncMock(
+                return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=mock_connection))
+            )
 
             mock_es_instance = AsyncMock()
             mock_es_instance.search = AsyncMock(return_value=mock_es_response)

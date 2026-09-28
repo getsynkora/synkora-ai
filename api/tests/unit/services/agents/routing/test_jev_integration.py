@@ -199,9 +199,7 @@ class TestJevIntegrationRoundTrip:
 
 class TestJevIntegrationFallback:
     @pytest.mark.asyncio
-    async def test_api_error_raises_jev_routing_error_for_caller_to_catch(
-        self, db_agent, llm_configs, tool_list
-    ):
+    async def test_api_error_raises_jev_routing_error_for_caller_to_catch(self, db_agent, llm_configs, tool_list):
         """TypeSafe error → JevRoutingError raised so caller can fall back gracefully."""
         import httpx
 
@@ -223,9 +221,7 @@ class TestJevIntegrationFallback:
                 )
 
     @pytest.mark.asyncio
-    async def test_jev_routing_error_propagates_for_caller_fallback(
-        self, db_agent, llm_configs, tool_list
-    ):
+    async def test_jev_routing_error_propagates_for_caller_fallback(self, db_agent, llm_configs, tool_list):
         """JevRoutingError is caught by _run_jev_routing_with_fallback; agent still responds."""
         from src.services.agents.routing.jev_router import JevRoutingError
 

@@ -1,9 +1,9 @@
 """Unit tests for secret_scanner.py."""
+
 import pytest
 
 import src.services.security.secret_scanner as scanner_module
 from src.services.security.secret_scanner import ScanMode, ScanResult, scan
-
 
 # ---------------------------------------------------------------------------
 # Detection tests

@@ -146,9 +146,7 @@ async def internal_search_zoho_crm_records(
             }
             for r in records
         ]
-        _kept_items, _triage_note = await triage_issues(
-            _typesafe_client, _triage_items, query_context=query
-        )
+        _kept_items, _triage_note = await triage_issues(_typesafe_client, _triage_items, query_context=query)
         _kept_ids = {item["_id"] for item in _kept_items}
         records = [r for r in records if r.get("id", "") in _kept_ids]
         return {
@@ -243,9 +241,7 @@ async def internal_list_zoho_crm_records(
             }
             for r in records
         ]
-        _kept_items, _triage_note = await triage_issues(
-            _typesafe_client, _triage_items, query_context=module
-        )
+        _kept_items, _triage_note = await triage_issues(_typesafe_client, _triage_items, query_context=module)
         _kept_ids = {item["_id"] for item in _kept_items}
         records = [r for r in records if r.get("id", "") in _kept_ids]
         return {

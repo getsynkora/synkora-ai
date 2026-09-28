@@ -93,7 +93,7 @@ class TestFailOpen:
     async def test_timeout_returns_original_diff(self):
         diff = _make_diff([f"file{i}.py" for i in range(MIN_FILES_TO_TRIAGE + 1)])
         client = MagicMock()
-        client.evaluate = AsyncMock(side_effect=asyncio.TimeoutError())
+        client.evaluate = AsyncMock(side_effect=TimeoutError())
         kept_diff, note = await triage_pr_diff(client, diff, pr_title="Fix")
         assert kept_diff == diff
         assert note.reason == "timeout"

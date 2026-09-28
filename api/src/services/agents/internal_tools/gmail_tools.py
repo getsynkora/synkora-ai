@@ -314,9 +314,7 @@ async def internal_gmail_list_emails(
             }
             for e in emails
         ]
-        _kept_items, _triage_note = await triage_issues(
-            _typesafe_client, _triage_items, query_context=query or ""
-        )
+        _kept_items, _triage_note = await triage_issues(_typesafe_client, _triage_items, query_context=query or "")
         _kept_ids = {item["_id"] for item in _kept_items}
         emails = [e for e in emails if e["id"] in _kept_ids]
 

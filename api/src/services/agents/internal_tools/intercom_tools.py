@@ -320,9 +320,7 @@ async def internal_list_intercom_conversations(
             }
             for c in convs
         ]
-        _kept_items, _triage_note = await triage_issues(
-            _typesafe_client, _triage_items, query_context=state
-        )
+        _kept_items, _triage_note = await triage_issues(_typesafe_client, _triage_items, query_context=state)
         _kept_ids = {item["_id"] for item in _kept_items}
         convs = [c for c in convs if c.get("id", "") in _kept_ids]
         return {

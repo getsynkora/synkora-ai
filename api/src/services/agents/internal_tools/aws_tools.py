@@ -144,9 +144,7 @@ async def internal_aws_list_alerts(
                 }
                 for a in alerts
             ]
-            _kept_items, _note = await triage_issues(
-                _typesafe_client, _triage_items, query_context="cloudwatch alarms"
-            )
+            _kept_items, _note = await triage_issues(_typesafe_client, _triage_items, query_context="cloudwatch alarms")
             _kept_names = {item["_id"] for item in _kept_items}
             result["alerts"] = [a for a in alerts if a.get("AlarmName", "") in _kept_names]
             result["triage"] = _note.to_dict()
