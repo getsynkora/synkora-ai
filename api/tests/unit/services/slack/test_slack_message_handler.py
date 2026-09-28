@@ -23,6 +23,16 @@ def mock_db_session():
     return session
 
 
+def _make_gate_run_decision():
+    """Return a mock SlackBotGateDecision with action='run'."""
+    decision = MagicMock()
+    decision.action = "run"
+    decision.reason = "shadow mode"
+    decision.actionable = True
+    decision.latency_ms = 0
+    return decision
+
+
 @pytest.fixture
 def handler(mock_db_session):
     return SlackMessageHandler(db_session=mock_db_session, agent_manager=MagicMock())

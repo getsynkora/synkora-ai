@@ -88,6 +88,7 @@ from .mcp_server import MCPServer
 from .message import Message, MessageRole, MessageStatus
 from .monitoring_integration import MonitoringIntegration, MonitoringProvider
 from .oauth_app import OAuthApp
+from .oidc_config import OIDCConfig
 from .okta_tenant import OktaTenant
 from .permission import Permission
 from .phone_call import PhoneCall, PhoneCallStatus
@@ -283,6 +284,8 @@ __all__ = [
     "AccountProvider",
     # SAML SSO models
     "SAMLConfig",
+    # OIDC SSO models
+    "OIDCConfig",
     # Billing and Pricing models
     "SubscriptionPlan",
     "PlanTier",

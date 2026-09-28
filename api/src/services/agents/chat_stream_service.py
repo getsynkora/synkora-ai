@@ -42,6 +42,7 @@ from src.services.agents.execution_budget import chat_execution_deadline
 from src.services.agents.token_counter import TokenCounter
 from src.services.cache.conversation_cache_service import get_conversation_cache
 from src.services.security.output_sanitizer import output_sanitizer as default_output_sanitizer
+from src.services.security.secret_scanner import scan as _scan_secrets
 
 logger = logging.getLogger(__name__)
 
@@ -278,6 +279,16 @@ class ChatStreamService:
                         )
                 except Exception as e:
                     logger.warning(f"Failed to load conversation history from cache/DB: {e}")
+
+            # SECURITY: Scan for accidentally-pasted secrets/PII before persisting.
+            # Fail-open: scan() never raises; blocked=True only in BLOCK mode.
+            _secret_scan = _scan_secrets(message, agent_id=agent_name)
+            if _secret_scan.blocked:
+                yield await generate_error_event("Message content failed security validation")
+                return
+            # In REDACT mode, use the sanitised text for both storage and LLM.
+            if _secret_scan.has_findings and _secret_scan.content != message:
+                message = _secret_scan.content
 
             if conversation_uuid:
                 _persisted_page_context = _resolve_page_context_for_persistence(page_context, conversation_history)
@@ -529,9 +540,6 @@ class ChatStreamService:
                 mcp_tool_names = list(set((mcp_tool_names or []) + platform_tool_names))
 
             # JEV per-turn tool filtering: restrict the tools advertised to the LLM this turn.
-            # Only the initial shortlist is restricted. The registry and the discovery pool
-            # (all_configured_tool_names) stay complete, so a tool JEV wrongly drops can still
-            # be found with internal_search_available_tools and executed.
             # MCP + platform tools were not part of the JEV questions (they load after routing)
             # and the always-include tools (discovery, handoff, spawn) must never be dropped,
             # so all of these bypass the filter.
@@ -540,8 +548,27 @@ class ChatStreamService:
             if load_result.allowed_tool_names is not None:
                 from src.services.agents.tool_filter import ALWAYS_INCLUDE_TOOLS
 
+                # Apply TypeSafe MCP tool pre-filtering when JEV routing is active.
+                # Filters MCP tools by query relevance; fails open (all pass through) on any error.
+                _filtered_mcp_names = list(mcp_tool_names or [])
+                _jev_client = shared_state.get("_jev_client")
+                if _filtered_mcp_names and _jev_client is not None:
+                    try:
+                        from src.services.agents.mcp_tool_triage import filter_mcp_tools
+
+                        _filtered_mcp_names = await filter_mcp_tools(
+                            client=_jev_client,
+                            tool_names=_filtered_mcp_names,
+                            registry=self.tool_registry,
+                            query=message,
+                            agent=db_agent,
+                            history=history[-5:] if history else None,
+                        )
+                    except Exception as _mcp_triage_exc:
+                        logger.warning("[mcp-tool-triage] unexpected error, all MCP tools kept: %s", _mcp_triage_exc)
+
                 _jev_allowed_names = (
-                    set(load_result.allowed_tool_names) | set(mcp_tool_names or []) | set(ALWAYS_INCLUDE_TOOLS)
+                    set(load_result.allowed_tool_names) | set(_filtered_mcp_names) | set(ALWAYS_INCLUDE_TOOLS)
                 )
                 _jev_filtered = True
 
@@ -2201,7 +2228,7 @@ class ChatStreamService:
 
         if not tool_names:
             logger.info("No tools configured, using no tools")
-            return []
+            return [], []
 
         # Apply context-aware filtering based on message content
         # Note: max_tools is dynamically adjusted by filter based on task complexity.

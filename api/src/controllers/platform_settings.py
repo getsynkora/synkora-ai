@@ -2,6 +2,8 @@
 Platform Settings Controller - Admin endpoints for platform configuration
 """
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.database import get_async_db
 from src.middleware.auth_middleware import require_platform_admin
 from src.services.billing.platform_settings_service import PlatformSettingsService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/platform-settings", tags=["Platform Settings"])
 
@@ -154,3 +158,78 @@ async def clear_stripe_keys(db: AsyncSession = Depends(get_async_db), _: None = 
         stripe_configured=await service.is_stripe_configured(),
         stripe_publishable_key=settings.stripe_publishable_key,
     )
+
+
+# ---------------------------------------------------------------------------
+# Encryption key rotation endpoints
+# ---------------------------------------------------------------------------
+
+
+class KeyRotationResponse(BaseModel):
+    """Response schema for key-rotation endpoints."""
+
+    task_id: str
+    status: str
+    message: str
+
+
+@router.post("/key-rotation/start", response_model=KeyRotationResponse)
+async def start_key_rotation(_: None = Depends(require_platform_admin)):
+    """
+    Trigger asynchronous encryption key rotation.
+
+    Re-encrypts all sensitive database fields with the current primary key
+    (the first key in the ENCRYPTION_KEY comma-separated list).
+
+    Rotation workflow:
+    1. Set ENCRYPTION_KEY=NEW_KEY,OLD_KEY and restart the API + workers.
+    2. Call this endpoint to re-encrypt all rows.
+    3. Verify the task completes without errors (check task result by task_id).
+    4. Set ENCRYPTION_KEY=NEW_KEY and restart.
+
+    Requires: platform admin permission
+    """
+    try:
+        from src.tasks.key_rotation_task import rotate_encryption_keys
+
+        task = rotate_encryption_keys.delay(dry_run=False)
+        logger.info("Key rotation task enqueued: task_id=%s", task.id)
+        return KeyRotationResponse(
+            task_id=task.id,
+            status="queued",
+            message="Key rotation task enqueued. Poll the task result by task_id to track progress.",
+        )
+    except Exception as exc:
+        logger.error("Failed to enqueue key rotation task: %s", exc, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to enqueue key rotation task: {exc}",
+        ) from exc
+
+
+@router.post("/key-rotation/dry-run", response_model=KeyRotationResponse)
+async def dry_run_key_rotation(_: None = Depends(require_platform_admin)):
+    """
+    Trigger a dry-run of the encryption key rotation.
+
+    Counts how many rows would be re-encrypted without writing any changes.
+    Useful to verify the rotation scope before running the real rotation.
+
+    Requires: platform admin permission
+    """
+    try:
+        from src.tasks.key_rotation_task import rotate_encryption_keys
+
+        task = rotate_encryption_keys.delay(dry_run=True)
+        logger.info("Key rotation dry-run task enqueued: task_id=%s", task.id)
+        return KeyRotationResponse(
+            task_id=task.id,
+            status="queued",
+            message="Key rotation dry-run task enqueued. No data will be written.",
+        )
+    except Exception as exc:
+        logger.error("Failed to enqueue key rotation dry-run task: %s", exc, exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to enqueue key rotation dry-run task: {exc}",
+        ) from exc

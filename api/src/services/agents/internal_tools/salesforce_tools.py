@@ -15,6 +15,23 @@ logger = logging.getLogger(__name__)
 _SF_API_VERSION = "v59.0"
 
 
+async def _get_typesafe_client(runtime_context: Any | None) -> Any | None:
+    """Return a TypeSafeClient for ticket triage, or None if not configured."""
+    if not runtime_context:
+        return None
+    try:
+        from src.core.typesafe_client import make_typesafe_client
+        from src.services.agents.credential_resolver import CredentialResolver
+
+        credentials = await CredentialResolver(runtime_context).get_typesafe_credentials()
+        if not credentials:
+            return None
+        return make_typesafe_client(credentials)
+    except Exception as exc:
+        logger.warning("Could not build TypeSafe client for ticket triage: %s", exc)
+        return None
+
+
 async def _get_salesforce_credentials(runtime_context: Any, tool_name: str) -> dict[str, Any]:
     """Resolve Salesforce credentials via CredentialResolver."""
     if not runtime_context:
@@ -292,7 +309,24 @@ async def internal_list_salesforce_cases(
         )
         records = await _soql(creds, query)
         cases = [_format_case(r, creds["instance_url"]) for r in records]
-        return {"success": True, "cases": cases, "total": len(cases)}
+        # TypeSafe triage: filter cases by relevance before returning
+        from src.services.agents.internal_tools.issue_triage import triage_issues
+
+        _typesafe_client = await _get_typesafe_client(runtime_context)
+        _triage_items = [
+            {
+                "title": f"Case {c.get('case_number', '')}: {c.get('subject', '')}",
+                "summary": c.get("description", ""),
+                "_id": c["id"],
+            }
+            for c in cases
+        ]
+        _kept_items, _triage_note = await triage_issues(
+            _typesafe_client, _triage_items, query_context=status or ""
+        )
+        _kept_ids = {item["_id"] for item in _kept_items}
+        cases = [c for c in cases if c["id"] in _kept_ids]
+        return {"success": True, "cases": cases, "total": len(cases), "triage": _triage_note.to_dict()}
     except Exception as e:
         logger.error("Failed to list Salesforce cases: %s", e, exc_info=True)
         return {"success": False, "error": str(e)}

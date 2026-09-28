@@ -109,6 +109,23 @@ async def _make_jira_request(
         return response.json()
 
 
+async def _get_typesafe_client(runtime_context: Any | None) -> Any | None:
+    """Return a TypeSafeClient for issue triage, or None if not configured."""
+    if not runtime_context:
+        return None
+    try:
+        from src.core.typesafe_client import make_typesafe_client
+        from src.services.agents.credential_resolver import CredentialResolver
+
+        credentials = await CredentialResolver(runtime_context).get_typesafe_credentials()
+        if not credentials:
+            return None
+        return make_typesafe_client(credentials)
+    except Exception as exc:
+        logger.warning("Could not build TypeSafe client for issue triage: %s", exc)
+        return None
+
+
 async def internal_get_jira_issue(
     issue_key: str, config: dict[str, Any] | None = None, runtime_context: Any | None = None
 ) -> dict[str, Any]:
@@ -237,11 +254,21 @@ async def internal_search_jira_issues(
                 }
             )
 
+        # TypeSafe triage: score issues for query relevance before returning
+        from src.services.agents.internal_tools.issue_triage import triage_issues
+
+        _typesafe_client = await _get_typesafe_client(runtime_context)
+        _triage_items = [{"title": f"{iss['key']}: {iss['summary']}", "summary": iss["summary"]} for iss in issues]
+        _kept_items, _triage_note = await triage_issues(_typesafe_client, _triage_items, query_context=jql)
+        _kept_titles = {item["title"] for item in _kept_items}
+        issues = [iss for iss in issues if f"{iss['key']}: {iss['summary']}" in _kept_titles]
+
         return {
             "success": True,
             "issues": issues,
             "total": result.get("total", 0),
             "max_results": result.get("maxResults", 0),
+            "triage": _triage_note.to_dict(),
         }
 
     except Exception as e:

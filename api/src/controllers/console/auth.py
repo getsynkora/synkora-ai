@@ -208,6 +208,41 @@ async def login(request: Request, data: LoginRequest, db: AsyncSession = Depends
         logger.exception("Error checking tenant mfa_required during login for account %s", account.id)
         raise HTTPException(status_code=503, detail="Authentication policy is temporarily unavailable")
 
+    # SECURITY: Enforce tenant-level console IP allowlist.
+    # If any tenant this account belongs to has a non-null console_ip_allowlist,
+    # the client IP must be covered by at least one entry in that list.
+    try:
+        from src.models.tenant import Tenant as _IPTenant
+        from src.models.tenant import TenantAccountJoin as _IJTAJ
+        from src.services.agent_api.api_key_service import AgentApiKeyService
+
+        _ip_result = await db.execute(
+            select(_IPTenant)
+            .join(_IJTAJ, _IJTAJ.tenant_id == _IPTenant.id)
+            .filter(
+                _IJTAJ.account_id == account.id,
+                _IPTenant.console_ip_allowlist.isnot(None),
+            )
+            .limit(1)
+        )
+        _ip_tenant = _ip_result.scalar_one_or_none()
+        if _ip_tenant is not None and _ip_tenant.console_ip_allowlist:
+            if not AgentApiKeyService._ip_matches_allowlist(client_ip, _ip_tenant.console_ip_allowlist):
+                logger.warning(
+                    "Login blocked by IP allowlist for tenant %s: client_ip=%s",
+                    _ip_tenant.id,
+                    client_ip,
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access denied: your IP address is not allowed for this workspace",
+                )
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Error checking tenant console_ip_allowlist during login for account %s", account.id)
+        raise HTTPException(status_code=503, detail="Authentication policy is temporarily unavailable")
+
     # SECURITY: Check if 2FA is enabled AND configured for this account
     # Only require 2FA if both the flag is set AND the secret exists
     # SECURITY FIX: Removed ENFORCE_2FA bypass - 2FA cannot be bypassed via environment variable
@@ -358,7 +393,9 @@ async def login(request: Request, data: LoginRequest, db: AsyncSession = Depends
 
     # Create session with first tenant (or None if no tenants)
     tenant_id = tenants[0]["tenant_id"] if tenants else None
-    session_data = await SessionService.create_session(db, account, tenant_id)
+    session_data = await SessionService.create_session(
+        db, account, tenant_id, ip_address=client_ip, user_agent=user_agent
+    )
 
     # Audit: persist IP and user-agent to account record for audit trail.
     # Also check whether this is a new-IP login and fire a background notification.

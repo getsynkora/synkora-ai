@@ -250,6 +250,35 @@ class TelegramWebhookService:
 
             logger.info(f"Webhook received message from {user_display}: {text[:100]}...")
 
+            # TypeSafe gate: score message before committing to a full agent run.
+            # Set agent.tools_config["slack_bot_gate"]["mode"] = "enforce" to enable skipping.
+            from ...models.agent import Agent as _Agent
+            from ...services.agents.context_relevance_pruner import resolve_typesafe_client_for_pruning
+            from ...services.slack.slack_bot_gate import SlackBotGateConfig, evaluate_slack_message
+
+            _gate_agent = await self.db_session.get(_Agent, telegram_bot.agent_id)
+            if not _gate_agent:
+                raise ValueError(f"Agent {telegram_bot.agent_id} not found")
+            _gate_cfg = SlackBotGateConfig.from_agent_tools_config(
+                _gate_agent.tools_config if isinstance(_gate_agent.tools_config, dict) else None
+            )
+            _gate_client = await resolve_typesafe_client_for_pruning(telegram_bot.tenant_id, self.db_session)
+            _gate_decision = await evaluate_slack_message(
+                cfg=_gate_cfg,
+                client=_gate_client,
+                text=text,
+                agent_name=_gate_agent.agent_name,
+                description=_gate_agent.description,
+            )
+            logger.info(
+                "Telegram webhook gate decision for agent=%s: action=%s reason=%s",
+                _gate_agent.agent_name,
+                _gate_decision.action,
+                _gate_decision.reason,
+            )
+            if _gate_decision.action == "skip":
+                return
+
             # Save user message
             user_message = Message(
                 conversation_id=conversation.id,

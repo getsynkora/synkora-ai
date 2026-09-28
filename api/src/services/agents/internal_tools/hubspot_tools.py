@@ -14,6 +14,23 @@ logger = logging.getLogger(__name__)
 
 _HUBSPOT_BASE = "https://api.hubapi.com"
 
+
+async def _get_typesafe_client(runtime_context: Any | None) -> Any | None:
+    """Return a TypeSafeClient for ticket triage, or None if not configured."""
+    if not runtime_context:
+        return None
+    try:
+        from src.core.typesafe_client import make_typesafe_client
+        from src.services.agents.credential_resolver import CredentialResolver
+
+        credentials = await CredentialResolver(runtime_context).get_typesafe_credentials()
+        if not credentials:
+            return None
+        return make_typesafe_client(credentials)
+    except Exception as exc:
+        logger.warning("Could not build TypeSafe client for ticket triage: %s", exc)
+        return None
+
 _PRIORITY_MAP = {"low": "LOW", "normal": "MEDIUM", "medium": "MEDIUM", "high": "HIGH", "urgent": "HIGH"}
 
 
@@ -263,7 +280,20 @@ async def internal_list_hubspot_tickets(
             },
         )
         tickets = [_format_ticket(t) for t in data.get("results", [])]
-        return {"success": True, "tickets": tickets, "total": data.get("total", len(tickets))}
+        # TypeSafe triage: filter tickets by relevance before returning
+        from src.services.agents.internal_tools.issue_triage import triage_issues
+
+        _typesafe_client = await _get_typesafe_client(runtime_context)
+        _triage_items = [
+            {"title": t.get("subject", ""), "summary": t.get("content", ""), "_id": t["id"]}
+            for t in tickets
+        ]
+        _kept_items, _triage_note = await triage_issues(
+            _typesafe_client, _triage_items, query_context=""
+        )
+        _kept_ids = {item["_id"] for item in _kept_items}
+        tickets = [t for t in tickets if t["id"] in _kept_ids]
+        return {"success": True, "tickets": tickets, "total": len(tickets), "triage": _triage_note.to_dict()}
     except Exception as e:
         logger.error("Failed to list HubSpot tickets: %s", e, exc_info=True)
         return {"success": False, "error": str(e)}

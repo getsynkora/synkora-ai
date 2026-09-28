@@ -68,13 +68,16 @@ class TeamsWebhookService:
             _stripped = text.strip()
             if _stripped in ("👍", "👎", ":thumbsup:", ":thumbsdown:", "+1", "-1"):
                 try:
-                    from sqlalchemy import select
+                    from sqlalchemy import select as _fb_select
 
-                    from ...models.message import Message
+                    from ...models.message import Message as _FbMessage
                     from ...services.eval.feedback_service import record_feedback
 
                     _msg_result = await self.db_session.execute(
-                        select(Message).filter(Message.role == "assistant").order_by(Message.created_at.desc()).limit(1)
+                        _fb_select(_FbMessage)
+                        .filter(_FbMessage.role == "assistant")
+                        .order_by(_FbMessage.created_at.desc())
+                        .limit(1)
                     )
                     _last_msg = _msg_result.scalar_one_or_none()
                     if _last_msg:
@@ -113,6 +116,35 @@ class TeamsWebhookService:
                     activity_id,
                 )
                 return
+
+            # TypeSafe gate: score message before committing to a full agent run.
+            # Set agent.tools_config["slack_bot_gate"]["mode"] = "enforce" to enable skipping.
+            from ...models.agent import Agent as _Agent
+            from ...services.agents.context_relevance_pruner import resolve_typesafe_client_for_pruning
+            from ...services.slack.slack_bot_gate import SlackBotGateConfig, evaluate_slack_message
+
+            _gate_agent = await self.db_session.get(_Agent, bot.agent_id)
+            if _gate_agent:
+                _gate_cfg = SlackBotGateConfig.from_agent_tools_config(
+                    _gate_agent.tools_config if isinstance(_gate_agent.tools_config, dict) else None
+                )
+                _gate_client = await resolve_typesafe_client_for_pruning(bot.tenant_id, self.db_session)
+                _gate_decision = await evaluate_slack_message(
+                    cfg=_gate_cfg,
+                    client=_gate_client,
+                    text=text,
+                    agent_name=_gate_agent.agent_name,
+                    description=_gate_agent.description,
+                )
+                logger.info(
+                    "Teams gate decision for agent=%s: action=%s reason=%s actionable=%s",
+                    _gate_agent.agent_name,
+                    _gate_decision.action,
+                    _gate_decision.reason,
+                    _gate_decision.actionable,
+                )
+                if _gate_decision.action == "skip":
+                    return
 
             # Save user message
             user_message = Message(

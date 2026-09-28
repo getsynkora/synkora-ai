@@ -1,0 +1,6 @@
+Contact: mailto:security@synkora.ai
+Expires: 2027-09-28T00:00:00.000Z
+Preferred-Languages: en
+Policy: https://synkora.ai/security-policy
+Acknowledgments: https://synkora.ai/security/hall-of-fame
+Canonical: https://synkora.ai/.well-known/security.txt

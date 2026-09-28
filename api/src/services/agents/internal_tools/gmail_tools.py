@@ -14,6 +14,23 @@ from sqlalchemy import select
 logger = logging.getLogger(__name__)
 
 
+async def _get_typesafe_client(runtime_context: Any | None) -> Any | None:
+    """Return a TypeSafeClient for email triage, or None if not configured."""
+    if not runtime_context:
+        return None
+    try:
+        from src.core.typesafe_client import make_typesafe_client
+        from src.services.agents.credential_resolver import CredentialResolver
+
+        credentials = await CredentialResolver(runtime_context).get_typesafe_credentials()
+        if not credentials:
+            return None
+        return make_typesafe_client(credentials)
+    except Exception as exc:
+        logger.warning("Could not build TypeSafe client for email triage: %s", exc)
+        return None
+
+
 async def _get_gmail_service(runtime_context: Any) -> Any:
     """
     Get authenticated Gmail service.
@@ -285,6 +302,24 @@ async def internal_gmail_list_emails(
 
         logger.info(f"Listed {len(emails)} emails with query: {query}")
 
+        # TypeSafe triage: score emails for query relevance before returning
+        from src.services.agents.internal_tools.issue_triage import triage_issues
+
+        _typesafe_client = await _get_typesafe_client(runtime_context)
+        _triage_items = [
+            {
+                "title": e.get("subject", ""),
+                "summary": f"From: {e.get('from', '')}. {e.get('snippet', '')}",
+                "_id": e["id"],
+            }
+            for e in emails
+        ]
+        _kept_items, _triage_note = await triage_issues(
+            _typesafe_client, _triage_items, query_context=query or ""
+        )
+        _kept_ids = {item["_id"] for item in _kept_items}
+        emails = [e for e in emails if e["id"] in _kept_ids]
+
         return {
             "success": True,
             "emails": emails,
@@ -292,6 +327,7 @@ async def internal_gmail_list_emails(
             "total_estimate": result_size_estimate,
             "next_page_token": next_page_token,
             "has_more": next_page_token is not None,
+            "triage": _triage_note.to_dict(),
         }
 
     except HttpError as e:

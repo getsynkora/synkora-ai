@@ -1,10 +1,70 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useProfile } from '@/hooks/useProfile';
 import { AvatarUpload } from '@/components/profile/AvatarUpload';
 import { toast } from 'react-hot-toast';
-import { User, Mail, Phone, MapPin, Briefcase, Building2, Globe, FileText, Shield, Clock } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Briefcase, Building2, Globe, FileText, Shield, Clock, Monitor, Smartphone, Laptop, AlertTriangle } from 'lucide-react';
+import { apiClient } from '@/lib/api/client';
+
+// ── Types ────────────────────────────────────────────────────────────────────
+
+interface Session {
+  session_id: string;
+  created_at: string;
+  ip_address: string | null;
+  user_agent: string | null;
+  is_current: boolean;
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function parseUserAgent(ua: string | null): { device: string; browser: string; os: string } {
+  if (!ua) return { device: 'Unknown device', browser: 'Unknown browser', os: '' };
+
+  let browser = 'Unknown browser';
+  let os = '';
+
+  // Browser detection (order matters — Edge/Opera include "Chrome" in their UA)
+  if (/Edg\//.test(ua)) browser = 'Edge';
+  else if (/OPR\/|Opera\//.test(ua)) browser = 'Opera';
+  else if (/Firefox\//.test(ua)) browser = 'Firefox';
+  else if (/Chrome\//.test(ua)) browser = 'Chrome';
+  else if (/Safari\//.test(ua) && /Version\//.test(ua)) browser = 'Safari';
+  else if (/MSIE|Trident/.test(ua)) browser = 'Internet Explorer';
+
+  // OS detection
+  if (/iPhone|iPad|iPod/.test(ua)) os = 'iOS';
+  else if (/Android/.test(ua)) os = 'Android';
+  else if (/Macintosh|Mac OS X/.test(ua)) os = 'macOS';
+  else if (/Windows/.test(ua)) os = 'Windows';
+  else if (/Linux/.test(ua)) os = 'Linux';
+
+  const device = os ? `${browser} on ${os}` : browser;
+  return { device, browser, os };
+}
+
+function DeviceIcon({ ua }: { ua: string | null }) {
+  if (!ua) return <Monitor className="w-4 h-4 text-gray-400" />;
+  if (/iPhone|iPod/.test(ua) || /Android.*Mobile/.test(ua)) {
+    return <Smartphone className="w-4 h-4 text-gray-400" />;
+  }
+  if (/iPad|Android(?!.*Mobile)/.test(ua)) {
+    return <Laptop className="w-4 h-4 text-gray-400" />;
+  }
+  return <Monitor className="w-4 h-4 text-gray-400" />;
+}
+
+function formatSessionDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 
 export default function ProfilePage() {
   const { profile, loading, updateProfile, uploadAvatar } = useProfile();
@@ -20,6 +80,60 @@ export default function ProfilePage() {
     website: '',
     bio: '',
   });
+
+  // ── Active Sessions state ─────────────────────────────────────────────────
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [revokingAll, setRevokingAll] = useState(false);
+
+  const fetchSessions = useCallback(async () => {
+    setSessionsLoading(true);
+    try {
+      const res = await apiClient.request('GET', '/console/api/me/sessions');
+      const data = (res as any)?.data ?? res;
+      setSessions(data?.sessions ?? []);
+    } catch {
+      toast.error('Failed to load sessions');
+    } finally {
+      setSessionsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
+
+  const handleRevokeSession = async (sessionId: string) => {
+    // Optimistic removal
+    setSessions(prev => prev.filter(s => s.session_id !== sessionId));
+    setRevokingId(sessionId);
+    try {
+      await apiClient.request('DELETE', `/console/api/me/sessions/${sessionId}`);
+      toast.success('Session revoked');
+    } catch {
+      toast.error('Failed to revoke session');
+      // Restore on failure
+      fetchSessions();
+    } finally {
+      setRevokingId(null);
+    }
+  };
+
+  const handleRevokeAllSessions = async () => {
+    setRevokingAll(true);
+    // Optimistic: keep only current session
+    setSessions(prev => prev.filter(s => s.is_current));
+    try {
+      await apiClient.request('DELETE', '/console/api/me/sessions');
+      toast.success('All other sessions revoked');
+    } catch {
+      toast.error('Failed to revoke sessions');
+      fetchSessions();
+    } finally {
+      setRevokingAll(false);
+    }
+  };
 
   useEffect(() => {
     if (profile) {
@@ -328,6 +442,112 @@ export default function ProfilePage() {
                   </div>
                 </form>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Active Sessions — full-width below the two-column grid */}
+        <div className="mt-5">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            {/* Card header */}
+            <div className="px-5 py-3.5 border-b border-gray-200">
+              <h3 className="text-base font-semibold text-gray-900">Active Sessions</h3>
+              <p className="text-xs text-gray-500 mt-0.5">Manage devices and sessions signed into your account</p>
+            </div>
+
+            {/* Card body */}
+            <div className="p-5">
+              {sessionsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-600" />
+                </div>
+              ) : sessions.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-6">No active sessions found.</p>
+              ) : (
+                <>
+                  <ul className="divide-y divide-gray-100">
+                    {sessions.map(session => {
+                      const { device } = parseUserAgent(session.user_agent);
+                      const isRevoking = revokingId === session.session_id;
+                      return (
+                        <li key={session.session_id} className="py-3 flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3 min-w-0">
+                            <div className="mt-0.5 flex-shrink-0">
+                              <DeviceIcon ua={session.user_agent} />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-medium text-gray-900 truncate">{device}</span>
+                                {session.is_current && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 border border-green-200">
+                                    Current session
+                                  </span>
+                                )}
+                              </div>
+                              <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
+                                <span className="text-xs text-gray-500">
+                                  {session.ip_address ?? 'Unknown location'}
+                                </span>
+                                <span className="text-xs text-gray-400">
+                                  Signed in {formatSessionDate(session.created_at)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {!session.is_current && (
+                            <button
+                              onClick={() => handleRevokeSession(session.session_id)}
+                              disabled={isRevoking || revokingAll}
+                              className="flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {isRevoking ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-3 w-3 border-b border-red-600" />
+                                  Revoking...
+                                </>
+                              ) : (
+                                <>
+                                  <AlertTriangle className="w-3 h-3" />
+                                  Revoke
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+
+                  {/* Footer: revoke all other sessions */}
+                  {sessions.filter(s => !s.is_current).length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
+                      <button
+                        onClick={handleRevokeAllSessions}
+                        disabled={revokingAll}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {revokingAll ? (
+                          <>
+                            <div className="animate-spin rounded-full h-3 w-3 border-b border-red-700" />
+                            Revoking all...
+                          </>
+                        ) : (
+                          <>
+                            <AlertTriangle className="w-3 h-3" />
+                            Revoke all other sessions
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Empty other-sessions state */}
+                  {sessions.filter(s => !s.is_current).length === 0 && !sessionsLoading && (
+                    <p className="mt-3 text-xs text-gray-400 text-center">No other active sessions.</p>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>

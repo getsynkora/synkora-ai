@@ -7,7 +7,7 @@ import PricingPreviewClient from '@/components/landing/PricingPreviewClient'
 import CTASectionClient from '@/components/landing/CTASectionClient'
 import CountdownPage from '@/components/CountdownPage'
 import Link from 'next/link'
-import { MessageSquare, ArrowRight, Play, Code2, Blocks, Rocket } from 'lucide-react'
+import { MessageSquare, ArrowRight, Play, Code2, Blocks, Rocket, ShieldCheck, Lock, Users, UserCheck, Server, FileSearch, KeyRound, Fingerprint } from 'lucide-react'
 
 const COMING_SOON = process.env.NEXT_PUBLIC_COMING_SOON === 'true'
 
@@ -39,6 +39,15 @@ export default async function LandingPage() {
       className="min-h-screen bg-[#f7f2e7] text-[#191919]"
       style={{ fontFamily: '"Avenir Next", "Helvetica Neue", "Segoe UI", sans-serif' }}
     >
+      {/* Beta announcement banner */}
+      <div className="bg-[#171717] px-4 py-2.5 text-center text-xs font-medium tracking-[0.12em] text-white/80">
+        <span className="mr-2 rounded-full border border-[#7de5c1]/40 bg-[#7de5c1]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#7de5c1]">Beta</span>
+        Enterprise-ready AI agent platform — SAML/OIDC SSO, audit logs, RBAC, and full self-hosting.{' '}
+        <a href="https://app.synkora.ai/signup" className="underline underline-offset-2 hover:text-white">
+          Get early access
+        </a>
+      </div>
+
       <AnimatedNav />
       <AnimatedHero stars={stars} />
 
@@ -51,13 +60,13 @@ export default async function LandingPage() {
             </div>
             <div className="hidden h-8 w-px bg-black/10 sm:block" />
             <div>
-              <div className="text-2xl font-semibold tracking-[-0.04em] text-[#171717]">Self-host</div>
-              <div className="mt-1 text-xs uppercase tracking-[0.22em] text-[#6d675f]">in 5 minutes</div>
+              <div className="text-2xl font-semibold tracking-[-0.04em] text-[#171717]">SOC 2</div>
+              <div className="mt-1 text-xs uppercase tracking-[0.22em] text-[#6d675f]">Ready architecture</div>
             </div>
             <div className="hidden h-8 w-px bg-black/10 sm:block" />
             <div>
-              <div className="text-2xl font-semibold tracking-[-0.04em] text-[#171717]">6+</div>
-              <div className="mt-1 text-xs uppercase tracking-[0.22em] text-[#6d675f]">Deployment channels</div>
+              <div className="text-2xl font-semibold tracking-[-0.04em] text-[#171717]">SAML</div>
+              <div className="mt-1 text-xs uppercase tracking-[0.22em] text-[#6d675f]">+ OIDC SSO</div>
             </div>
             <div className="hidden h-8 w-px bg-black/10 sm:block" />
             <div>
@@ -129,6 +138,101 @@ export default async function LandingPage() {
               See the full walkthrough
               <ArrowRight className="h-4 w-4" />
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Enterprise Security Section */}
+      <section className="bg-[#f7f2e7] px-4 py-14 sm:px-6 sm:py-20">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-14 text-center">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/60 px-4 py-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#4b463e]">
+              <ShieldCheck className="h-4 w-4 text-[#2d8b69]" />
+              Enterprise Security
+            </div>
+            <h2 className="mb-4 text-4xl font-medium tracking-[-0.05em] text-[#171717]">
+              Security built in, not bolted on
+            </h2>
+            <p className="mx-auto max-w-2xl text-xl leading-relaxed text-[#565149]">
+              Every enterprise control your security team will ask for — available out of the box.
+            </p>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                icon: UserCheck,
+                title: 'SAML & OIDC SSO',
+                desc: 'One-click SSO with Okta, Azure AD, Google Workspace, and any SAML 2.0 or OIDC provider',
+                accent: '#79dfbc',
+              },
+              {
+                icon: Users,
+                title: 'RBAC & Roles',
+                desc: 'Owner, Admin, Editor, and custom roles with granular per-resource permission overrides',
+                accent: '#79dfbc',
+              },
+              {
+                icon: FileSearch,
+                title: 'Audit Logs',
+                desc: 'Tamper-evident chain-hashed audit trail of every action. Export to CSV or JSON for compliance',
+                accent: '#79dfbc',
+              },
+              {
+                icon: Fingerprint,
+                title: 'MFA Enforcement',
+                desc: 'TOTP-based 2FA with tenant-wide enforcement and backup recovery codes',
+                accent: '#79dfbc',
+              },
+              {
+                icon: Server,
+                title: 'IP Allowlisting',
+                desc: 'Restrict console access to approved CIDR ranges. Block unauthorized network access entirely',
+                accent: '#f0c56d',
+              },
+              {
+                icon: KeyRound,
+                title: 'Encryption Key Rotation',
+                desc: 'MultiFernet key rotation across all 28 encrypted fields with dry-run preview and zero downtime',
+                accent: '#f0c56d',
+              },
+              {
+                icon: Lock,
+                title: 'RS256 / ES256 JWT',
+                desc: 'Asymmetric JWT signing with JWKS endpoint. Rotate keys without re-deploying clients',
+                accent: '#f0c56d',
+              },
+              {
+                icon: ShieldCheck,
+                title: 'Secret Scanning',
+                desc: 'Automatic detection of leaked API keys and credentials in agent inputs, with configurable policies',
+                accent: '#f0c56d',
+              },
+            ].map((feature, idx) => (
+              <div
+                key={idx}
+                className="relative rounded-[1.75rem] border border-black/10 bg-white/60 p-6 shadow-[0_18px_40px_rgba(0,0,0,0.05)] backdrop-blur"
+              >
+                <div
+                  className="mb-4 flex h-11 w-11 items-center justify-center rounded-[1rem] border border-black/8"
+                  style={{ background: `linear-gradient(135deg, ${feature.accent}30, rgba(255,255,255,0.9))` }}
+                >
+                  <feature.icon className="h-5 w-5 text-[#171717]" />
+                </div>
+                <h3 className="mb-2 text-base font-semibold tracking-[-0.03em] text-[#171717]">{feature.title}</h3>
+                <p className="text-sm leading-relaxed text-[#575149]">{feature.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-10 text-center">
+            <a
+              href="/docs/security"
+              className="inline-flex items-center gap-2 font-semibold text-[#1f1d19] hover:text-black"
+            >
+              Security documentation
+              <ArrowRight className="h-4 w-4" />
+            </a>
           </div>
         </div>
       </section>
@@ -210,7 +314,7 @@ export default async function LandingPage() {
                 color: 'border-black/10',
                 tag: 'Framework',
                 tagColor: 'bg-black/5 text-[#5f5a52]',
-                points: ['Python code only', 'No web UI', 'No deployment infrastructure', 'No multi-tenancy', 'You build everything yourself'],
+                points: ['Python code only', 'No web UI', 'No deployment infrastructure', 'No multi-tenancy', 'No SSO or audit logs', 'You build everything yourself'],
                 cta: null,
               },
               {
@@ -218,7 +322,7 @@ export default async function LandingPage() {
                 color: 'border-[#79dfbc] ring-2 ring-[#79dfbc]',
                 tag: 'Platform',
                 tagColor: 'bg-[#79dfbc]/25 text-[#153129]',
-                points: ['Web UI + REST API', 'Multi-tenant workspaces', 'Deploy to 6+ channels', 'RAG, billing, scheduling built in', 'Self-host or cloud'],
+                points: ['Web UI + REST API', 'Multi-tenant workspaces', 'Deploy to 6+ channels', 'SAML / OIDC SSO + RBAC', 'Audit logs + IP allowlist', 'Self-host or cloud — MIT license'],
                 cta: 'Get Started Free',
               },
               {
@@ -226,7 +330,7 @@ export default async function LandingPage() {
                 color: 'border-black/10',
                 tag: 'Visual builder',
                 tagColor: 'bg-black/5 text-[#5f5a52]',
-                points: ['Drag-and-drop UI', 'Single-user, local-first', 'Good for prototyping', 'Not built for production teams', 'No multi-tenancy'],
+                points: ['Drag-and-drop UI', 'Single-user, local-first', 'Good for prototyping', 'Not built for production teams', 'No SSO or audit logs', 'No multi-tenancy'],
                 cta: null,
               },
             ].map((col, i) => (

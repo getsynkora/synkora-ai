@@ -17,6 +17,23 @@ from src.models.database_connection import DatabaseConnection
 logger = logging.getLogger(__name__)
 
 
+async def _get_typesafe_client(runtime_context: Any | None) -> Any | None:
+    """Return a TypeSafeClient for search result triage, or None if not configured."""
+    if not runtime_context:
+        return None
+    try:
+        from src.core.typesafe_client import make_typesafe_client
+        from src.services.agents.credential_resolver import CredentialResolver
+
+        credentials = await CredentialResolver(runtime_context).get_typesafe_credentials()
+        if not credentials:
+            return None
+        return make_typesafe_client(credentials)
+    except Exception as exc:
+        logger.warning("Could not build TypeSafe client for ES triage: %s", exc)
+        return None
+
+
 async def internal_elasticsearch_search(
     connection_name: str,
     index_pattern: str,
@@ -166,6 +183,34 @@ async def internal_elasticsearch_search(
             # Add helpful message
             if results.get("success"):
                 results["message"] = f"Found {results['total']} results in {results['took_ms']}ms"
+                # TypeSafe triage: score results for query relevance before returning
+                from src.services.agents.internal_tools.issue_triage import triage_issues
+
+                _typesafe_client = await _get_typesafe_client(runtime_context)
+                _raw_results = results.get("results", [])
+                _triage_items = [
+                    {
+                        "title": str(
+                            r.get("source", {}).get("title")
+                            or r.get("source", {}).get("name")
+                            or r.get("source", {}).get("subject")
+                            or r.get("id", "")
+                        ),
+                        "summary": " ".join(
+                            f"{k}={v}"
+                            for k, v in list((r.get("source") or {}).items())[:5]
+                            if v is not None
+                        )[:300],
+                        "_id": r.get("id", ""),
+                    }
+                    for r in _raw_results
+                ]
+                _kept_items, _triage_note = await triage_issues(
+                    _typesafe_client, _triage_items, query_context=query
+                )
+                _kept_ids = {item["_id"] for item in _kept_items}
+                results["results"] = [r for r in _raw_results if r.get("id", "") in _kept_ids]
+                results["triage"] = _triage_note.to_dict()
 
             return results
 

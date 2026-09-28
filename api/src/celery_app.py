@@ -63,6 +63,7 @@ celery_app = Celery(
         "src.tasks.payout_tasks",  # Agent subscription expiry and creator payouts
         "src.tasks.analysis_tasks",  # Agent conversation analysis jobs
         "src.tasks.video_tasks",  # AI video generation jobs (Kling, Minimax Hailuo)
+        "src.tasks.key_rotation_task",  # Encryption key rotation
     ],
 )
 

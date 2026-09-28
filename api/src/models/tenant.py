@@ -104,6 +104,14 @@ class Tenant(BaseModel, StatusMixin):
         comment="Whether 2FA is required for all members of this tenant (stored as string)",
     )
 
+    # Admin-configured IP allowlist for console access (null = all IPs allowed)
+    console_ip_allowlist = Column(
+        JSON,
+        nullable=True,
+        default=None,
+        comment="List of IP addresses/CIDR ranges allowed to access the console. Null = all IPs allowed.",
+    )
+
     # Whether to auto-assign new users with matching email domain
     auto_assign_domain_users = Column(
         String(10),

@@ -318,6 +318,42 @@ class SlackMessageHandler:
                     "nothing at all rather than acknowledging or restating.]\n\n" + clean_text
                 )
 
+            # TypeSafe gate: score message before committing to a full agent run.
+            # Runs in shadow mode by default (logs decisions, never skips).
+            # Set agent.tools_config["slack_bot_gate"]["mode"] = "enforce" to enable skipping.
+            from ...models.agent import Agent
+            from ...services.agents.context_relevance_pruner import resolve_typesafe_client_for_pruning
+            from ...services.slack.slack_bot_gate import (
+                SlackBotGateConfig,
+                evaluate_slack_message,
+            )
+
+            agent = await self.db_session.get(Agent, slack_bot.agent_id)
+            if not agent:
+                raise ValueError(f"Agent {slack_bot.agent_id} not found")
+
+            _gate_cfg = SlackBotGateConfig.from_agent_tools_config(
+                agent.tools_config if isinstance(agent.tools_config, dict) else None
+            )
+            _gate_client = await resolve_typesafe_client_for_pruning(slack_bot.tenant_id, self.db_session)
+            _gate_decision = await evaluate_slack_message(
+                cfg=_gate_cfg,
+                client=_gate_client,
+                text=clean_text,
+                agent_name=agent.agent_name,
+                description=agent.description,
+            )
+            logger.info(
+                "Slack gate decision for agent=%s: action=%s reason=%s actionable=%s latency_ms=%s",
+                agent.agent_name,
+                _gate_decision.action,
+                _gate_decision.reason,
+                _gate_decision.actionable,
+                _gate_decision.latency_ms,
+            )
+            if _gate_decision.action == "skip":
+                return None
+
             # Slack-specific metadata to attach to the user message. The actual message row
             # is saved by ChatStreamService.stream_agent_response() below (via
             # user_message_metadata) — saving it here too would create a duplicate row.
@@ -346,16 +382,12 @@ class SlackMessageHandler:
             first_chunk_seen = False
 
             # Get agent response using the existing chat infrastructure
-            from ...models.agent import Agent
             from ...services.agents.agent_loader_service import AgentLoaderService
             from ...services.agents.chat_service import ChatService
             from ...services.agents.chat_stream_service import ChatStreamService
             from ...services.conversation_service import ConversationService
 
-            # Get agent name from database
-            agent = await self.db_session.get(Agent, slack_bot.agent_id)
-            if not agent:
-                raise ValueError(f"Agent {slack_bot.agent_id} not found")
+            # agent was already fetched above for the gate
 
             # Load conversation history with caching support
             conversation_history = await ConversationService.get_conversation_history_cached(

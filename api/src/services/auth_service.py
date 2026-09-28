@@ -115,7 +115,9 @@ class AuthService:
         if role:
             payload["role"] = role.value
 
-        return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+        from src.services.security.jwt_keys import get_signing_key
+
+        return jwt.encode(payload, get_signing_key(settings), algorithm=settings.jwt_algorithm)
 
     @staticmethod
     def generate_refresh_token(
@@ -151,7 +153,9 @@ class AuthService:
         if family_id:
             payload["fid"] = family_id
 
-        return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+        from src.services.security.jwt_keys import get_signing_key
+
+        return jwt.encode(payload, get_signing_key(settings), algorithm=settings.jwt_algorithm)
 
     @staticmethod
     def validate_account_auth_version(payload: dict, account: Account) -> None:
@@ -190,9 +194,11 @@ class AuthService:
         else:
             options["verify_aud"] = False
 
+        from src.services.security.jwt_keys import get_verification_key
+
         return jwt.decode(
             token,
-            settings.jwt_secret_key,
+            get_verification_key(settings),
             options=options,
             **kwargs,
         )
