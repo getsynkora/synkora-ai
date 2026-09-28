@@ -16,6 +16,7 @@ from typing import Any
 from langfuse import Langfuse
 
 from src.config.settings import settings
+from src.services.observability.trace_redactor import redact, redact_messages
 
 logger = logging.getLogger(__name__)
 
@@ -224,6 +225,19 @@ class LangfuseService:
         if not self.is_enabled or not self._client:
             return None
 
+        # Redact PII/secrets before sending to Langfuse
+        if isinstance(input_data, str):
+            input_data = redact(input_data)
+        elif isinstance(input_data, dict):
+            input_data = {
+                k: redact(v) if isinstance(v, str) else (redact_messages(v) if isinstance(v, list) else v)
+                for k, v in input_data.items()
+            }
+        if isinstance(output_data, str):
+            output_data = redact(output_data)
+        elif isinstance(output_data, dict):
+            output_data = {k: redact(v) if isinstance(v, str) else v for k, v in output_data.items()}
+
         try:
             generation = self._client.generation(
                 name=name,
@@ -258,6 +272,12 @@ class LangfuseService:
         """
         if not self.is_enabled or not self._client:
             return
+
+        # Redact PII/secrets before sending to Langfuse
+        if isinstance(output_data, str):
+            output_data = redact(output_data)
+        elif isinstance(output_data, dict):
+            output_data = {k: redact(v) if isinstance(v, str) else v for k, v in output_data.items()}
 
         try:
             self._client.generation(

@@ -14,10 +14,7 @@ from src.services.agents.adk_tools import ADKToolRegistry
 
 def _make_registry(*names: str) -> ADKToolRegistry:
     registry = object.__new__(ADKToolRegistry)
-    registry.tools = {
-        name: {"name": name, "description": f"Tool {name}", "parameters": {}}
-        for name in names
-    }
+    registry.tools = {name: {"name": name, "description": f"Tool {name}", "parameters": {}} for name in names}
     registry._request_owned = False
     return registry
 

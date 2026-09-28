@@ -71,9 +71,7 @@ class TestMaybeSummarizeOldMessagesWithPruning:
             assert to_summarize == old_messages
             return pruned
 
-        monkeypatch.setattr(
-            "src.services.agents.context_relevance_pruner.prune_irrelevant_messages", fake_prune
-        )
+        monkeypatch.setattr("src.services.agents.context_relevance_pruner.prune_irrelevant_messages", fake_prune)
 
         fake_typesafe_client = object()
         recent, summary = await manager.maybe_summarize_old_messages(
@@ -94,13 +92,9 @@ class TestMaybeSummarizeOldMessagesWithPruning:
         async def fake_prune(to_summarize, recent, client):
             return None  # pruning couldn't run — must not change anything
 
-        monkeypatch.setattr(
-            "src.services.agents.context_relevance_pruner.prune_irrelevant_messages", fake_prune
-        )
+        monkeypatch.setattr("src.services.agents.context_relevance_pruner.prune_irrelevant_messages", fake_prune)
 
-        recent, summary = await manager.maybe_summarize_old_messages(
-            messages, llm_client, typesafe_client=object()
-        )
+        recent, summary = await manager.maybe_summarize_old_messages(messages, llm_client, typesafe_client=object())
 
         prompt = llm_client.generate_content.call_args[0][0]
         for i in range(4):
@@ -115,14 +109,10 @@ class TestMaybeSummarizeOldMessagesWithPruning:
         async def raising_prune(*args, **kwargs):
             raise RuntimeError("boom")
 
-        monkeypatch.setattr(
-            "src.services.agents.context_relevance_pruner.prune_irrelevant_messages", raising_prune
-        )
+        monkeypatch.setattr("src.services.agents.context_relevance_pruner.prune_irrelevant_messages", raising_prune)
 
         # Must not raise, and must still summarize successfully with the original messages.
-        recent, summary = await manager.maybe_summarize_old_messages(
-            messages, llm_client, typesafe_client=object()
-        )
+        recent, summary = await manager.maybe_summarize_old_messages(messages, llm_client, typesafe_client=object())
         assert summary == "a summary"
         prompt = llm_client.generate_content.call_args[0][0]
         for i in range(4):

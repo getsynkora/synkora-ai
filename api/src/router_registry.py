@@ -291,6 +291,13 @@ ROUTER_REGISTRY: list[RouteConfig] = [
         prefix="",
         tags=["okta-sso"],
     ),
+    # ===== Generic OIDC SSO =====
+    RouteConfig(
+        module="src.controllers.oidc_sso",
+        attribute="router",
+        prefix="",
+        tags=["oidc-sso"],
+    ),
     # ===== SAML 2.0 SSO =====
     RouteConfig(
         module="src.controllers.console.saml_sso",
@@ -502,6 +509,13 @@ ROUTER_REGISTRY: list[RouteConfig] = [
         attribute="public_router",
         prefix="",
         tags=["domain-resolution"],
+    ),
+    # ===== Well-Known URIs (RFC 8615 / RFC 9116) =====
+    RouteConfig(
+        module="src.controllers.well_known",
+        attribute="router",
+        prefix="",
+        tags=["well-known"],
     ),
     # ===== Public =====
     RouteConfig(

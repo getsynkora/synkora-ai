@@ -120,6 +120,29 @@ class SecurityConfig(BaseSettings):
         ),
     )
 
+    jwt_private_key: str = Field(
+        default="",
+        description=(
+            "PEM-encoded private key for RS256/ES256 JWT signing. "
+            "Required when jwt_algorithm is an asymmetric algorithm (RS256, RS384, RS512, ES256). "
+            "Generate RSA key: openssl genrsa -out jwt_private.pem 2048 && cat jwt_private.pem"
+        ),
+    )
+
+    jwt_public_key: str = Field(
+        default="",
+        description=(
+            "PEM-encoded public key for RS256/ES256 JWT verification. "
+            "Derived from jwt_private_key if not set explicitly. "
+            "Generate: openssl rsa -in jwt_private.pem -pubout -out jwt_public.pem"
+        ),
+    )
+
+    @property
+    def is_asymmetric_jwt(self) -> bool:
+        """Return True when the JWT algorithm is asymmetric (RS* or ES*)."""
+        return not self.jwt_algorithm.startswith("HS")
+
     @field_validator("secret_key", "jwt_secret_key")
     @classmethod
     def validate_key_entropy(cls, v: str) -> str:

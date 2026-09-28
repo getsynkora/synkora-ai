@@ -7,6 +7,7 @@ When a user logs out, their tokens are blacklisted until they expire.
 
 import hashlib
 import hmac
+import json
 import logging
 import uuid
 
@@ -268,6 +269,64 @@ class TokenBlacklistService:
         except Exception as e:
             logger.warning(f"Failed to get session created_at: {e}")
             return None
+
+    def store_session_metadata(
+        self,
+        account_id: uuid.UUID,
+        family_id: str,
+        *,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
+    ) -> bool:
+        """
+        Store per-session metadata (IP address, User-Agent) in Redis.
+
+        The entry is set only on creation (nx=True) so that refresh rotation
+        does not overwrite the original login metadata.  TTL matches the
+        refresh token lifetime so the key auto-expires with the session.
+
+        Args:
+            account_id: Account UUID
+            family_id: Refresh-token family ID
+            ip_address: Client IP address recorded at login (may be None)
+            user_agent: User-Agent string recorded at login (may be None)
+
+        Returns:
+            True if stored (or already present), False on Redis error
+        """
+        try:
+            key = f"session:meta:{account_id}:{family_id}"
+            payload = json.dumps({"ip_address": ip_address, "user_agent": user_agent})
+            # nx=True — only write on first creation; rotation keeps original values
+            from src.config import settings
+
+            self.redis.set(key, payload, ex=settings.jwt_refresh_token_expires, nx=True)
+            return True
+        except Exception as e:
+            logger.warning(f"Failed to store session metadata: {e}")
+            return False
+
+    def get_session_metadata(self, account_id: uuid.UUID, family_id: str) -> dict:
+        """
+        Retrieve per-session metadata stored at login time.
+
+        Args:
+            account_id: Account UUID
+            family_id: Refresh-token family ID
+
+        Returns:
+            Dict with ``ip_address`` and ``user_agent`` keys (values may be None).
+            Returns an empty dict on Redis error or missing key.
+        """
+        try:
+            key = f"session:meta:{account_id}:{family_id}"
+            raw = self.redis.get(key)
+            if raw is None:
+                return {}
+            return json.loads(raw.decode() if isinstance(raw, bytes) else raw)
+        except Exception as e:
+            logger.warning(f"Failed to get session metadata: {e}")
+            return {}
 
 
 # Module-level singleton — initialized once at import time, which is inherently

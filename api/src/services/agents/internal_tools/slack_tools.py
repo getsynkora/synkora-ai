@@ -15,6 +15,7 @@ from sqlalchemy import select
 
 from src.core.database import get_async_db
 from src.models.slack_bot import SlackBot
+from src.services.agents.internal_tools.slack_message_triage import triage_slack_messages
 from src.services.agents.internal_tools.web_tools import internal_download_url_bytes
 from src.services.agents.security import decrypt_value
 from src.services.storage.s3_storage import get_s3_storage
@@ -95,6 +96,23 @@ async def _get_slack_client(runtime_context: dict[str, Any], config: dict[str, A
 
     except Exception as e:
         logger.error(f"Error getting Slack client: {e}", exc_info=True)
+        return None
+
+
+async def _get_typesafe_client(runtime_context: dict[str, Any] | None) -> Any | None:
+    """Return a TypeSafeClient for this tenant, or None if not configured."""
+    if not runtime_context:
+        return None
+    try:
+        from src.core.typesafe_client import make_typesafe_client
+        from src.services.agents.credential_resolver import CredentialResolver
+
+        credentials = await CredentialResolver(runtime_context).get_typesafe_credentials()
+        if not credentials:
+            return None
+        return make_typesafe_client(credentials)
+    except Exception as exc:
+        logger.warning("Could not build TypeSafe client for Slack triage: %s", exc)
         return None
 
 
@@ -319,12 +337,27 @@ async def internal_slack_read_channel_messages(
         # Reverse to show oldest first (chronological order)
         messages.reverse()
 
+        # Triage with TypeSafe before returning — filter noise before LLM sees it
+        typesafe_client = await _get_typesafe_client(runtime_context)
+        query_context = ""
+        if isinstance(runtime_context, dict):
+            shared = runtime_context.get("shared_state") or {}
+            query_context = shared.get("query") or runtime_context.get("query", "")
+
+        messages, triage_note = await triage_slack_messages(
+            client=typesafe_client,
+            messages=messages,
+            source="channel",
+            query_context=str(query_context),
+        )
+
         return {
             "success": True,
             "channel_id": channel_id,
             "channel_name": channel_name,
             "messages": messages,
             "total_messages": len(messages),
+            "triage": triage_note.to_dict(),
         }
 
     except SlackApiError as e:
@@ -392,12 +425,27 @@ async def internal_slack_read_thread(
                 }
             )
 
+        # Triage with TypeSafe before returning
+        typesafe_client = await _get_typesafe_client(runtime_context)
+        query_context = ""
+        if isinstance(runtime_context, dict):
+            shared = runtime_context.get("shared_state") or {}
+            query_context = shared.get("query") or runtime_context.get("query", "")
+
+        messages, triage_note = await triage_slack_messages(
+            client=typesafe_client,
+            messages=messages,
+            source="thread",
+            query_context=str(query_context),
+        )
+
         return {
             "success": True,
             "channel_id": channel_id,
             "thread_ts": thread_ts,
             "messages": messages,
             "total_messages": len(messages),
+            "triage": triage_note.to_dict(),
         }
 
     except SlackApiError as e:

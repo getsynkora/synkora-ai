@@ -68,6 +68,23 @@ async def _make_github_request(
         return response.json()
 
 
+async def _get_typesafe_client(runtime_context: Any | None) -> Any | None:
+    """Return a TypeSafeClient for issue triage, or None if not configured."""
+    if not runtime_context:
+        return None
+    try:
+        from src.core.typesafe_client import make_typesafe_client
+        from src.services.agents.credential_resolver import CredentialResolver
+
+        credentials = await CredentialResolver(runtime_context).get_typesafe_credentials()
+        if not credentials:
+            return None
+        return make_typesafe_client(credentials)
+    except Exception as exc:
+        logger.warning("Could not build TypeSafe client for GitHub issue triage: %s", exc)
+        return None
+
+
 async def internal_github_create_issue(
     owner: str,
     repo: str,
@@ -261,12 +278,24 @@ async def internal_github_list_issues(
                 }
             )
 
+        # TypeSafe triage: score issues for query relevance
+        from src.services.agents.internal_tools.issue_triage import triage_issues
+
+        _typesafe_client = await _get_typesafe_client(runtime_context)
+        _triage_items = [{"title": f"#{iss['number']}: {iss['title']}", "summary": iss["title"]} for iss in issues]
+        _kept_items, _triage_note = await triage_issues(
+            _typesafe_client, _triage_items, query_context=f"{owner}/{repo} {state}"
+        )
+        _kept_numbers = {item["title"].split(": ", 1)[0].lstrip("#") for item in _kept_items}
+        issues = [iss for iss in issues if str(iss["number"]) in _kept_numbers]
+
         return {
             "success": True,
             "issues": issues,
             "count": len(issues),
             "page": page,
             "per_page": per_page,
+            "triage": _triage_note.to_dict(),
         }
 
     except Exception as e:
@@ -651,12 +680,22 @@ async def internal_github_search_issues(
                 }
             )
 
+        # TypeSafe triage: score issues for query relevance
+        from src.services.agents.internal_tools.issue_triage import triage_issues
+
+        _typesafe_client = await _get_typesafe_client(runtime_context)
+        _triage_items = [{"title": f"#{item['number']}: {item['title']}", "summary": item["title"]} for item in items]
+        _kept_items, _triage_note = await triage_issues(_typesafe_client, _triage_items, query_context=query)
+        _kept_numbers = {item["title"].split(": ", 1)[0].lstrip("#") for item in _kept_items}
+        items = [item for item in items if str(item["number"]) in _kept_numbers]
+
         return {
             "success": True,
             "total_count": result.get("total_count", 0),
             "items": items,
             "page": page,
             "per_page": per_page,
+            "triage": _triage_note.to_dict(),
         }
 
     except Exception as e:

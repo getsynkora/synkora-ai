@@ -4,6 +4,7 @@ Session management service.
 Handles user sessions, refresh tokens, and session tracking.
 """
 
+import json
 import logging
 import secrets
 import uuid
@@ -30,6 +31,8 @@ class SessionService:
         account: Account,
         tenant_id: uuid.UUID | None = None,
         family_id: str | None = None,
+        ip_address: str | None = None,
+        user_agent: str | None = None,
     ) -> dict:
         """
         Create a new session for an account.
@@ -39,6 +42,8 @@ class SessionService:
             account: Account object
             tenant_id: Optional tenant ID for multi-tenancy
             family_id: Optional refresh token family ID for rotation
+            ip_address: Optional client IP address for session metadata
+            user_agent: Optional User-Agent string for session metadata
 
         Returns:
             Dict with access_token, refresh_token, and expiry info
@@ -80,6 +85,15 @@ class SessionService:
         _now_ts = datetime.now(UTC).timestamp()
         if not blacklist_service.store_session_created_at(account.id, family_id, _now_ts):
             raise ValueError("Session state could not be stored")
+
+        # Store session metadata (ip, user-agent) so the sessions list endpoint
+        # can surface per-device information without querying the DB.
+        blacklist_service.store_session_metadata(
+            account.id,
+            family_id,
+            ip_address=ip_address,
+            user_agent=user_agent,
+        )
 
         return {
             "access_token": access_token,
@@ -363,19 +377,101 @@ class SessionService:
         """
         Get count of active sessions for an account.
 
-        In a production system, this would query Redis for active tokens.
-        For now, this is a placeholder.
-
         Args:
             db: Async database session
             account_id: Account UUID
 
         Returns:
-            Number of active sessions
+            Number of active sessions (based on Redis family keys)
         """
-        # Session tracking in Redis can be added for distributed deployments
-        # For now, just verify account exists
-        stmt = select(Account).filter_by(id=account_id)
-        result = await db.execute(stmt)
-        account = result.scalar_one_or_none()
-        return 1 if account else 0
+        sessions = await SessionService.get_active_sessions(account_id)
+        return len(sessions)
+
+    @staticmethod
+    async def get_active_sessions(account_id: uuid.UUID) -> list[dict]:
+        """
+        Return a list of active sessions (refresh-token families) for an account.
+
+        Each entry has:
+            family_id    – the refresh-token family identifier
+            created_at   – ISO-8601 string (UTC) when the session was first created
+            ip_address   – client IP recorded at login time (may be None)
+            user_agent   – User-Agent recorded at login time (may be None)
+            is_current   – always False here; caller sets it based on the JWT family
+
+        Args:
+            account_id: Account UUID
+
+        Returns:
+            List of session dicts
+        """
+        blacklist_service = get_token_blacklist_service()
+        redis = blacklist_service.redis
+
+        pattern = f"refresh:family:{account_id}:*"
+        cursor = 0
+        family_keys: list[str] = []
+        while True:
+            cursor, keys = redis.scan(cursor, match=pattern, count=200)
+            family_keys.extend(k.decode() if isinstance(k, bytes) else k for k in keys)
+            if cursor == 0:
+                break
+
+        sessions: list[dict] = []
+        for key in family_keys:
+            # key format: refresh:family:{account_id}:{family_id}
+            parts = key.split(":")
+            if len(parts) < 4:
+                continue
+            family_id = parts[3]
+
+            # Session creation timestamp
+            created_at_ts = blacklist_service.get_session_created_at(account_id, family_id)
+            created_at: str | None = None
+            if created_at_ts is not None:
+                created_at = datetime.fromtimestamp(created_at_ts, tz=UTC).isoformat()
+
+            # Per-session metadata (ip, user-agent)
+            meta = blacklist_service.get_session_metadata(account_id, family_id)
+
+            sessions.append(
+                {
+                    "family_id": family_id,
+                    "created_at": created_at,
+                    "ip_address": meta.get("ip_address"),
+                    "user_agent": meta.get("user_agent"),
+                    "is_current": False,  # caller must set this
+                }
+            )
+
+        return sessions
+
+    @staticmethod
+    async def revoke_session_by_family(account_id: uuid.UUID, family_id: str) -> bool:
+        """
+        Revoke a specific session identified by its refresh-token family ID.
+
+        Deletes the family key and its associated session metadata from Redis
+        so the refresh token can no longer be used for rotation.
+
+        Args:
+            account_id: Account UUID
+            family_id: Refresh-token family ID to revoke
+
+        Returns:
+            True if the family was found and invalidated, False if it did not exist
+        """
+        blacklist_service = get_token_blacklist_service()
+        redis = blacklist_service.redis
+
+        # Verify the family actually exists before claiming success
+        family_key = f"refresh:family:{account_id}:{family_id}"
+        exists = redis.exists(family_key)
+
+        blacklist_service.invalidate_refresh_token_family(account_id, family_id)
+        # Also remove stored session metadata
+        meta_key = f"session:meta:{account_id}:{family_id}"
+        redis.delete(meta_key)
+
+        logger.info("Session family %s revoked for account %s", family_id, account_id)
+        return bool(exists)

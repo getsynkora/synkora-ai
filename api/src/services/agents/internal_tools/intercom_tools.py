@@ -15,6 +15,23 @@ logger = logging.getLogger(__name__)
 _INTERCOM_BASE = "https://api.intercom.io"
 
 
+async def _get_typesafe_client(runtime_context: Any | None) -> Any | None:
+    """Return a TypeSafeClient for triage, or None if not configured."""
+    if not runtime_context:
+        return None
+    try:
+        from src.core.typesafe_client import make_typesafe_client
+        from src.services.agents.credential_resolver import CredentialResolver
+
+        credentials = await CredentialResolver(runtime_context).get_typesafe_credentials()
+        if not credentials:
+            return None
+        return make_typesafe_client(credentials)
+    except Exception as exc:
+        logger.warning("Could not build TypeSafe client for triage: %s", exc)
+        return None
+
+
 async def _get_intercom_credentials(runtime_context: Any, tool_name: str) -> dict[str, Any]:
     """Resolve Intercom credentials via CredentialResolver."""
     if not runtime_context:
@@ -290,7 +307,28 @@ async def internal_list_intercom_conversations(
 
         data = await _make_intercom_request("GET", "/conversations", creds, params=params)
         convs = [_format_conversation(c) for c in data.get("conversations", [])]
-        return {"success": True, "conversations": convs, "total": data.get("total_count", len(convs))}
+
+        # TypeSafe triage: filter conversations by relevance before returning
+        from src.services.agents.internal_tools.issue_triage import triage_issues
+
+        _typesafe_client = await _get_typesafe_client(runtime_context)
+        _triage_items = [
+            {
+                "title": c.get("title", "") or f"Conversation {c.get('id', '')}",
+                "summary": f"State: {c.get('state', '')}",
+                "_id": c.get("id", ""),
+            }
+            for c in convs
+        ]
+        _kept_items, _triage_note = await triage_issues(_typesafe_client, _triage_items, query_context=state)
+        _kept_ids = {item["_id"] for item in _kept_items}
+        convs = [c for c in convs if c.get("id", "") in _kept_ids]
+        return {
+            "success": True,
+            "conversations": convs,
+            "total": len(convs),
+            "triage": _triage_note.to_dict(),
+        }
     except Exception as e:
         logger.error("Failed to list Intercom conversations: %s", e, exc_info=True)
         return {"success": False, "error": str(e)}

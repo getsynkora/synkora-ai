@@ -95,6 +95,23 @@ def _format_ticket(ticket: dict[str, Any], subdomain: str) -> dict[str, Any]:
     }
 
 
+async def _get_typesafe_client(runtime_context: Any | None) -> Any | None:
+    """Return a TypeSafeClient for ticket triage, or None if not configured."""
+    if not runtime_context:
+        return None
+    try:
+        from src.core.typesafe_client import make_typesafe_client
+        from src.services.agents.credential_resolver import CredentialResolver
+
+        credentials = await CredentialResolver(runtime_context).get_typesafe_credentials()
+        if not credentials:
+            return None
+        return make_typesafe_client(credentials)
+    except Exception as exc:
+        logger.warning("Could not build TypeSafe client for Zendesk triage: %s", exc)
+        return None
+
+
 async def internal_search_zendesk_tickets(
     query: str,
     status: str | None = None,
@@ -137,10 +154,20 @@ async def internal_search_zendesk_tickets(
             _format_ticket(t, zd["subdomain"]) for t in data.get("results", []) if t.get("result_type") == "ticket"
         ]
 
+        # TypeSafe triage: score tickets for query relevance
+        from src.services.agents.internal_tools.issue_triage import triage_issues
+
+        _typesafe_client = await _get_typesafe_client(runtime_context)
+        _triage_items = [{"title": t["subject"], "summary": t.get("description", t["subject"])} for t in tickets]
+        _kept_items, _triage_note = await triage_issues(_typesafe_client, _triage_items, query_context=query)
+        _kept_subjects = {item["title"] for item in _kept_items}
+        tickets = [t for t in tickets if t["subject"] in _kept_subjects]
+
         return {
             "success": True,
             "tickets": tickets,
             "total": data.get("count", len(tickets)),
+            "triage": _triage_note.to_dict(),
         }
 
     except Exception as e:
@@ -384,7 +411,18 @@ async def internal_list_zendesk_tickets(
             tickets = [_format_ticket(t, zd["subdomain"]) for t in data.get("tickets", [])]
             total = data.get("count", len(tickets))
 
-        return {"success": True, "tickets": tickets, "total": total}
+        # TypeSafe triage: score tickets for relevance
+        from src.services.agents.internal_tools.issue_triage import triage_issues
+
+        _typesafe_client = await _get_typesafe_client(runtime_context)
+        _triage_items = [{"title": t["subject"], "summary": t.get("description", t["subject"])} for t in tickets]
+        _kept_items, _triage_note = await triage_issues(
+            _typesafe_client, _triage_items, query_context=f"status:{status or 'any'}"
+        )
+        _kept_subjects = {item["title"] for item in _kept_items}
+        tickets = [t for t in tickets if t["subject"] in _kept_subjects]
+
+        return {"success": True, "tickets": tickets, "total": total, "triage": _triage_note.to_dict()}
 
     except Exception as e:
         logger.error("Failed to list Zendesk tickets: %s", e, exc_info=True)

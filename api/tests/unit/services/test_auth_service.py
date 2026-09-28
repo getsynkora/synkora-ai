@@ -63,6 +63,7 @@ class TestAccessTokenGeneration:
         """Test basic access token generation."""
         mock_settings.jwt_secret_key = "test_secret"
         mock_settings.jwt_algorithm = "HS256"
+        mock_settings.is_asymmetric_jwt = False
         mock_settings.jwt_access_token_expires = 3600
         mock_settings.jwt_issuer = "synkora-api"
         mock_settings.jwt_audience = "synkora-app"
@@ -78,6 +79,7 @@ class TestAccessTokenGeneration:
         """Test access token generation with tenant ID."""
         mock_settings.jwt_secret_key = "test_secret"
         mock_settings.jwt_algorithm = "HS256"
+        mock_settings.is_asymmetric_jwt = False
         mock_settings.jwt_access_token_expires = 3600
         mock_settings.jwt_issuer = "synkora-api"
         mock_settings.jwt_audience = "synkora-app"
@@ -101,6 +103,7 @@ class TestAccessTokenGeneration:
         """Test access token generation with role."""
         mock_settings.jwt_secret_key = "test_secret"
         mock_settings.jwt_algorithm = "HS256"
+        mock_settings.is_asymmetric_jwt = False
         mock_settings.jwt_access_token_expires = 3600
         mock_settings.jwt_issuer = "synkora-api"
         mock_settings.jwt_audience = "synkora-app"
@@ -123,6 +126,7 @@ class TestAccessTokenGeneration:
         """Test access token payload has correct structure."""
         mock_settings.jwt_secret_key = "test_secret"
         mock_settings.jwt_algorithm = "HS256"
+        mock_settings.is_asymmetric_jwt = False
         mock_settings.jwt_access_token_expires = 3600
         mock_settings.jwt_issuer = "synkora-api"
         mock_settings.jwt_audience = "synkora-app"
@@ -151,6 +155,7 @@ class TestRefreshTokenGeneration:
         """Test refresh token generation."""
         mock_settings.jwt_secret_key = "test_secret"
         mock_settings.jwt_algorithm = "HS256"
+        mock_settings.is_asymmetric_jwt = False
         mock_settings.jwt_refresh_token_expires = 86400
         mock_settings.jwt_issuer = "synkora-api"
         mock_settings.jwt_audience = "synkora-app"
@@ -166,6 +171,7 @@ class TestRefreshTokenGeneration:
         """Test refresh token payload structure."""
         mock_settings.jwt_secret_key = "test_secret"
         mock_settings.jwt_algorithm = "HS256"
+        mock_settings.is_asymmetric_jwt = False
         mock_settings.jwt_refresh_token_expires = 86400
         mock_settings.jwt_issuer = "synkora-api"
         mock_settings.jwt_audience = "synkora-app"
@@ -192,6 +198,7 @@ class TestTokenDecoding:
         """Test decoding a valid token."""
         mock_settings.jwt_secret_key = "test_secret"
         mock_settings.jwt_algorithm = "HS256"
+        mock_settings.is_asymmetric_jwt = False
         mock_settings.jwt_access_token_expires = 3600
         mock_settings.jwt_issuer = "synkora-api"
         mock_settings.jwt_audience = "synkora-app"
@@ -207,6 +214,7 @@ class TestTokenDecoding:
         """Test decoding an invalid token raises exception."""
         mock_settings.jwt_secret_key = "test_secret"
         mock_settings.jwt_algorithm = "HS256"
+        mock_settings.is_asymmetric_jwt = False
 
         with pytest.raises(jwt.InvalidTokenError):
             AuthService.decode_token("invalid.token.here")
@@ -216,6 +224,7 @@ class TestTokenDecoding:
         """Test decoding an expired token raises exception."""
         mock_settings.jwt_secret_key = "test_secret"
         mock_settings.jwt_algorithm = "HS256"
+        mock_settings.is_asymmetric_jwt = False
 
         # Create an already-expired token
         payload = {

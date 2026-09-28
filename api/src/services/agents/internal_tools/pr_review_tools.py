@@ -66,6 +66,23 @@ async def _make_github_request(
         return response.json()
 
 
+async def _get_typesafe_client(runtime_context: Any | None) -> Any | None:
+    """Return a TypeSafeClient for PR diff triage, or None if not configured."""
+    if not runtime_context:
+        return None
+    try:
+        from src.core.typesafe_client import make_typesafe_client
+        from src.services.agents.credential_resolver import CredentialResolver
+
+        credentials = await CredentialResolver(runtime_context).get_typesafe_credentials()
+        if not credentials:
+            return None
+        return make_typesafe_client(credentials)
+    except Exception as exc:
+        logger.warning("Could not build TypeSafe client for PR diff triage: %s", exc)
+        return None
+
+
 async def internal_get_pr_details(
     owner: str,
     repo: str,
@@ -209,7 +226,21 @@ async def internal_get_pr_diff(
             response.raise_for_status()
             diff_content = response.text
 
-        return {"success": True, "diff": diff_content, "size_bytes": len(diff_content.encode("utf-8"))}
+        # TypeSafe triage: score changed files for review relevance
+        from src.services.agents.internal_tools.pr_diff_triage import triage_pr_diff
+
+        _typesafe_client = await _get_typesafe_client(runtime_context)
+        _triaged_diff, _triage_note = await triage_pr_diff(
+            _typesafe_client,
+            diff_content,
+            pr_title=f"{owner}/{repo}#{pr_number}",
+        )
+        return {
+            "success": True,
+            "diff": _triaged_diff,
+            "size_bytes": len(_triaged_diff.encode("utf-8")),
+            "triage": _triage_note.to_dict(),
+        }
 
     except Exception as e:
         logger.error(f"Failed to get PR diff: {e}", exc_info=True)

@@ -2,11 +2,15 @@
 Activity logs controller
 """
 
+import csv
+import io
+import json
 import logging
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,6 +18,7 @@ from src.core.database import get_async_db
 from src.middleware.auth_middleware import get_current_account, get_current_tenant_id
 from src.models.tenant import AccountRole
 from src.services.activity.activity_log_service import ActivityLogService
+from src.services.audit_chain_service import verify_chain
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +101,121 @@ async def list_activity_logs(
     except Exception as e:
         logger.error(f"Error listing activity logs: {str(e)}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to list activity logs")
+
+
+@router.get("/export")
+async def export_activity_logs(
+    format: str = Query("json", pattern="^(csv|json)$", description="Export format: csv or json"),
+    account_id: str | None = None,
+    action: str | None = None,
+    resource_type: str | None = None,
+    resource_id: str | None = None,
+    start_date: datetime | None = Query(None, description="Filter logs from this date"),
+    end_date: datetime | None = Query(None, description="Filter logs until this date"),
+    limit: int = Query(1000, ge=1, le=10000, description="Max records to export (up to 10000)"),
+    db: AsyncSession = Depends(get_async_db),
+    current_account=Depends(get_current_account),
+    tenant_id: uuid.UUID = Depends(get_current_tenant_id),
+):
+    """Export audit logs as CSV or JSON with chain integrity header."""
+    try:
+        from src.services.team.team_service import TeamService
+
+        team_service = TeamService(db)
+        current_member = await team_service.get_team_member(tenant_id, str(current_account.id))
+
+        if not current_member or current_member["role"] not in [AccountRole.OWNER.value, AccountRole.ADMIN.value]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only owners and admins can export audit logs",
+            )
+
+        activity_service = ActivityLogService(db)
+        logs = await activity_service.list_logs(
+            tenant_id=tenant_id,
+            account_id=account_id,
+            action=action,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            start_date=start_date,
+            end_date=end_date,
+            skip=0,
+            limit=limit,
+        )
+
+        chain_result = await verify_chain(db, tenant_id, limit=min(limit, 1000))
+        chain_valid = chain_result.get("valid", False)
+
+        today = datetime.now(UTC).strftime("%Y-%m-%d")
+        extra_headers = {"X-Audit-Chain-Valid": str(chain_valid).lower()}
+
+        if format == "csv":
+            output = io.StringIO()
+            fieldnames = [
+                "id",
+                "action",
+                "resource_type",
+                "resource_id",
+                "description",
+                "ip_address",
+                "user_agent",
+                "status",
+                "account_id",
+                "created_at",
+            ]
+            writer = csv.DictWriter(output, fieldnames=fieldnames, extrasaction="ignore")
+            writer.writeheader()
+            for log in logs:
+                writer.writerow(
+                    {
+                        "id": str(log.id) if log.id else "",
+                        "action": log.action or "",
+                        "resource_type": log.resource_type or "",
+                        "resource_id": str(log.resource_id) if log.resource_id else "",
+                        "description": log.description or "",
+                        "ip_address": log.ip_address or "",
+                        "user_agent": log.user_agent or "",
+                        "status": log.status or "",
+                        "account_id": str(log.account_id) if log.account_id else "",
+                        "created_at": log.created_at.isoformat() if log.created_at else "",
+                    }
+                )
+            csv_content = output.getvalue()
+            extra_headers["Content-Disposition"] = f'attachment; filename="audit-logs-{today}.csv"'
+            return Response(
+                content=csv_content,
+                media_type="text/csv",
+                headers=extra_headers,
+            )
+
+        # JSON format
+        def _serialize(log) -> dict:
+            return {
+                "id": str(log.id) if log.id else None,
+                "action": log.action,
+                "resource_type": log.resource_type,
+                "resource_id": str(log.resource_id) if log.resource_id else None,
+                "description": log.description,
+                "ip_address": log.ip_address,
+                "user_agent": log.user_agent,
+                "status": log.status,
+                "account_id": str(log.account_id) if log.account_id else None,
+                "created_at": log.created_at.isoformat() if log.created_at else None,
+            }
+
+        json_content = json.dumps([_serialize(log) for log in logs], default=str)
+        extra_headers["Content-Disposition"] = f'attachment; filename="audit-logs-{today}.json"'
+        return Response(
+            content=json_content,
+            media_type="application/json",
+            headers=extra_headers,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error exporting activity logs: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to export activity logs")
 
 
 @router.get("/stats", response_model=ActivityLogStats)

@@ -13,14 +13,13 @@ import pytest
 sys.modules.setdefault("httpx", MagicMock())
 
 from src.services.agents.routing.jev_router import (
+    _MAX_TOOL_QUESTIONS,
     JevRoutingError,
     JevRoutingResult,
-    _MAX_TOOL_QUESTIONS,
     build_jev_questions,
     parse_jev_answers,
     run_jev_routing,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -250,9 +249,7 @@ class TestRunJevRouting:
             "tool_filtering_threshold": "yes",
         }
 
-        with patch(
-            "src.services.agents.adk_tools.get_tool_registry"
-        ) as mock_registry:
+        with patch("src.services.agents.adk_tools.get_tool_registry") as mock_registry:
             mock_registry.return_value.list_tools.return_value = tool_list
             result = await run_jev_routing(
                 db_agent=db_agent,
@@ -281,9 +278,7 @@ class TestRunJevRouting:
             "model_tier_map": {"standard": "sonnet-uuid"},
         }
 
-        with patch(
-            "src.services.agents.adk_tools.get_tool_registry"
-        ) as mock_registry:
+        with patch("src.services.agents.adk_tools.get_tool_registry") as mock_registry:
             mock_registry.return_value.list_tools.return_value = tool_list
             with pytest.raises(JevRoutingError):
                 await run_jev_routing(
@@ -305,9 +300,7 @@ class TestRunJevRouting:
             "model_tier_map": {"standard": "sonnet-uuid"},
         }
 
-        with patch(
-            "src.services.agents.adk_tools.get_tool_registry"
-        ) as mock_registry:
+        with patch("src.services.agents.adk_tools.get_tool_registry") as mock_registry:
             mock_registry.return_value.list_tools.return_value = tool_list
             with pytest.raises(JevRoutingError, match="JEV API returned error"):
                 await run_jev_routing(
@@ -327,9 +320,7 @@ class TestRunJevRouting:
             "model_tier_map": {},
         }
 
-        with patch(
-            "src.services.agents.adk_tools.get_tool_registry"
-        ) as mock_registry:
+        with patch("src.services.agents.adk_tools.get_tool_registry") as mock_registry:
             mock_registry.return_value.list_tools.return_value = tool_list
             with pytest.raises(JevRoutingError, match="all features disabled"):
                 await run_jev_routing(

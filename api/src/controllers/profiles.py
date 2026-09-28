@@ -502,31 +502,12 @@ async def list_sessions(
     """List active sessions for the current account.
 
     Returns all active refresh-token families stored in Redis, each with
-    available metadata (creation time, last-used time, IP, user-agent).
+    available metadata (creation time, IP, user-agent).
     The current session is identified by matching the family ID embedded in
     the request's Authorization token.
     """
     try:
-        from src.config.redis import get_redis
-
-        redis = get_redis()
-        if not redis:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Session store unavailable",
-            )
-
-        account_id = str(current_account.id)
-
-        # Discover all family keys: refresh:family:{account_id}:*
-        pattern = f"refresh:family:{account_id}:*"
-        cursor = 0
-        family_keys: list[str] = []
-        while True:
-            cursor, keys = redis.scan(cursor, match=pattern, count=200)
-            family_keys.extend(k.decode() if isinstance(k, bytes) else k for k in keys)
-            if cursor == 0:
-                break
+        from src.services.session_service import SessionService
 
         # Determine current family_id from the JWT in the Authorization header
         current_family_id: str | None = None
@@ -540,49 +521,11 @@ async def list_sessions(
             except Exception:
                 pass
 
-        sessions: list[dict[str, Any]] = []
-        for key in family_keys:
-            # key format: refresh:family:{account_id}:{family_id}
-            parts = key.split(":")
-            if len(parts) < 4:
-                continue
-            family_id = parts[3]
+        sessions = await SessionService.get_active_sessions(current_account.id)
 
-            # Retrieve session creation timestamp
-            ts_key = f"session:created:{account_id}:{family_id}"
-            ts_raw = redis.get(ts_key)
-            created_at: str | None = None
-            if ts_raw:
-                try:
-                    from datetime import UTC, datetime
-
-                    ts = float(ts_raw.decode() if isinstance(ts_raw, bytes) else ts_raw)
-                    created_at = datetime.fromtimestamp(ts, tz=UTC).isoformat()
-                except Exception:
-                    pass
-
-            # Retrieve per-session metadata (ip, user-agent) if stored
-            meta_key = f"session:meta:{account_id}:{family_id}"
-            meta_raw = redis.get(meta_key)
-            meta: dict[str, Any] = {}
-            if meta_raw:
-                try:
-                    import json
-
-                    meta = json.loads(meta_raw.decode() if isinstance(meta_raw, bytes) else meta_raw)
-                except Exception:
-                    pass
-
-            sessions.append(
-                {
-                    "session_id": family_id,
-                    "created_at": created_at,
-                    "last_used_at": meta.get("last_used_at"),
-                    "ip_address": meta.get("ip_address"),
-                    "user_agent": meta.get("user_agent"),
-                    "is_current": family_id == current_family_id,
-                }
-            )
+        # Mark the current session
+        for s in sessions:
+            s["is_current"] = s["family_id"] == current_family_id
 
         return {"sessions": sessions, "total": len(sessions)}
 
@@ -604,20 +547,39 @@ async def revoke_session(
 ):
     """Revoke a specific session (refresh-token family) by its family ID.
 
-    The current session is NOT protected from self-revocation — the caller
-    should avoid passing their own session_id if they want to stay logged in.
+    Returns 400 if the caller attempts to revoke their own current session
+    (use POST /logout to end the current session cleanly instead).
     """
     try:
-        from src.services.security.token_blacklist import get_token_blacklist_service
+        # Identify the current session so we can reject self-revocation
+        current_family_id: str | None = None
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            try:
+                from src.services.auth_service import AuthService
 
-        blacklist_service = get_token_blacklist_service()
-        blacklist_service.invalidate_refresh_token_family(current_account.id, session_id)
+                payload = AuthService.decode_token(auth_header[7:])
+                current_family_id = payload.get("fid")
+            except Exception:
+                pass
+
+        if current_family_id and session_id == current_family_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot revoke the current session. Use POST /auth/logout instead.",
+            )
+
+        from src.services.session_service import SessionService
+
+        await SessionService.revoke_session_by_family(current_account.id, session_id)
         logger.info(
             "Session %s revoked by account %s (remote revocation)",
             session_id,
             current_account.id,
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("Error revoking session %s: %s", session_id, e)
         raise HTTPException(
@@ -636,17 +598,7 @@ async def revoke_all_other_sessions(
     Returns the count of revoked sessions.
     """
     try:
-        from src.config.redis import get_redis
-        from src.services.security.token_blacklist import get_token_blacklist_service
-
-        redis = get_redis()
-        if not redis:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Session store unavailable",
-            )
-
-        account_id = str(current_account.id)
+        from src.services.session_service import SessionService
 
         # Identify the current family
         current_family_id: str | None = None
@@ -660,26 +612,12 @@ async def revoke_all_other_sessions(
             except Exception:
                 pass
 
-        # Scan all family keys
-        pattern = f"refresh:family:{account_id}:*"
-        cursor = 0
-        family_keys: list[str] = []
-        while True:
-            cursor, keys = redis.scan(cursor, match=pattern, count=200)
-            family_keys.extend(k.decode() if isinstance(k, bytes) else k for k in keys)
-            if cursor == 0:
-                break
-
-        blacklist_service = get_token_blacklist_service()
+        all_sessions = await SessionService.get_active_sessions(current_account.id)
         revoked = 0
-        for key in family_keys:
-            parts = key.split(":")
-            if len(parts) < 4:
-                continue
-            family_id = parts[3]
-            if family_id == current_family_id:
-                continue  # Keep the current session
-            blacklist_service.invalidate_refresh_token_family(current_account.id, family_id)
+        for s in all_sessions:
+            if s["family_id"] == current_family_id:
+                continue  # Keep the current session alive
+            await SessionService.revoke_session_by_family(current_account.id, s["family_id"])
             revoked += 1
 
         logger.info(

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { Check, Database, Globe2, ShieldCheck, Sparkles, Workflow } from 'lucide-react'
+import { Check, Database, Globe2, ShieldCheck, Sparkles, Workflow, Lock } from 'lucide-react'
 import { formatStars } from '@/lib/utils/formatStars'
 
 const surfaceCards = [
@@ -303,6 +303,11 @@ export default function AnimatedHero({ stars }: { stars?: number | null }) {
               <span className="text-black/20">|</span>
               <span className="text-sm font-medium text-[#5f5a52]">MIT License</span>
               <span className="text-black/20">|</span>
+              <div className="flex items-center gap-1.5">
+                <Lock className="h-3.5 w-3.5 text-[#2d8b69]" />
+                <span className="text-sm font-semibold text-[#2d8b69]">Enterprise-ready</span>
+              </div>
+              <span className="text-black/20">|</span>
               <a
                 href="https://github.com/getsynkora/synkora-ai"
                 target="_blank"
@@ -356,10 +361,11 @@ export default function AnimatedHero({ stars }: { stars?: number | null }) {
 
             <div className="mt-12 flex flex-wrap items-center gap-x-6 gap-y-3">
               {[
-                'No vendor lock-in',
+                'SAML / OIDC SSO',
+                'RBAC + Audit Logs',
                 'Bring your own LLM keys',
-                'Self-host on your infrastructure',
-                'Slack / WhatsApp / Teams / API',
+                'No vendor lock-in',
+                'Self-host on your infra',
               ].map((item, i) => (
                 <div key={i} className="hero-trust flex items-center gap-1.5 text-sm text-[#5b564e]">
                   <Check className="h-3.5 w-3.5 shrink-0 text-[#2d8b69]" />

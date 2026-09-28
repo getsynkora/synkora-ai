@@ -21,6 +21,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models import AgentMCPServer, MCPServer
+from src.services.mcp.response_validator import validate_mcp_response
 
 logger = logging.getLogger(__name__)
 
@@ -381,9 +382,12 @@ class MCPClient:
         # A transport failure does not prove a remote write failed. Never replay here.
         try:
             async with self._operation():
-                return await asyncio.wait_for(
+                result = await asyncio.wait_for(
                     self._client.call_tool(name=tool_name, arguments=arguments), timeout=_TOOL_TIMEOUT
                 )
+            return validate_mcp_response(tool_name, result)
+        except MCPToolExecutionError:
+            raise
         except Exception as exc:
             logger.warning("MCP tool %s failed (%s)", tool_name, type(exc).__name__)
             raise MCPToolExecutionError(f"MCP tool {tool_name} failed; completion may be unknown") from exc

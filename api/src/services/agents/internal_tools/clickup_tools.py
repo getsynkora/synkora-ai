@@ -12,6 +12,23 @@ import httpx
 logger = logging.getLogger(__name__)
 
 
+async def _get_typesafe_client(runtime_context: Any | None) -> Any | None:
+    """Return a TypeSafeClient for triage, or None if not configured."""
+    if not runtime_context:
+        return None
+    try:
+        from src.core.typesafe_client import make_typesafe_client
+        from src.services.agents.credential_resolver import CredentialResolver
+
+        credentials = await CredentialResolver(runtime_context).get_typesafe_credentials()
+        if not credentials:
+            return None
+        return make_typesafe_client(credentials)
+    except Exception as exc:
+        logger.warning("Could not build TypeSafe client for triage: %s", exc)
+        return None
+
+
 async def _get_clickup_token(runtime_context: Any, tool_name: str) -> str:
     """Get ClickUp API token from runtime context using CredentialResolver."""
     if not runtime_context:
@@ -162,7 +179,15 @@ async def internal_search_clickup_tasks(
             for task in result.get("tasks", [])
         ]
 
-        return {"success": True, "tasks": tasks, "total": len(tasks)}
+        # TypeSafe triage: filter tasks by query relevance before returning
+        from src.services.agents.internal_tools.issue_triage import triage_issues
+
+        _typesafe_client = await _get_typesafe_client(runtime_context)
+        _triage_items = [{"title": t["name"], "summary": t.get("description", ""), "_id": t["id"]} for t in tasks]
+        _kept_items, _triage_note = await triage_issues(_typesafe_client, _triage_items, query_context=query or "")
+        _kept_ids = {item["_id"] for item in _kept_items}
+        tasks = [t for t in tasks if t["id"] in _kept_ids]
+        return {"success": True, "tasks": tasks, "total": len(tasks), "triage": _triage_note.to_dict()}
 
     except Exception as e:
         logger.error(f"Failed to search ClickUp tasks: {e}", exc_info=True)

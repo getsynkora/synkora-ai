@@ -15,6 +15,23 @@ logger = logging.getLogger(__name__)
 VALID_MODULES = {"Leads", "Contacts", "Accounts", "Deals", "Tasks", "Calls", "Events", "Notes"}
 
 
+async def _get_typesafe_client(runtime_context: Any | None) -> Any | None:
+    """Return a TypeSafeClient for triage, or None if not configured."""
+    if not runtime_context:
+        return None
+    try:
+        from src.core.typesafe_client import make_typesafe_client
+        from src.services.agents.credential_resolver import CredentialResolver
+
+        credentials = await CredentialResolver(runtime_context).get_typesafe_credentials()
+        if not credentials:
+            return None
+        return make_typesafe_client(credentials)
+    except Exception as exc:
+        logger.warning("Could not build TypeSafe client for triage: %s", exc)
+        return None
+
+
 async def _get_zoho_crm_credentials(runtime_context: Any, tool_name: str) -> dict[str, Any]:
     """Get Zoho CRM credentials from runtime context via CredentialResolver."""
     if not runtime_context:
@@ -117,11 +134,27 @@ async def internal_search_zoho_crm_records(
 
         records = [_format_record(r) for r in data.get("data", [])]
 
+        # TypeSafe triage: filter records by search query relevance before returning
+        from src.services.agents.internal_tools.issue_triage import triage_issues
+
+        _typesafe_client = await _get_typesafe_client(runtime_context)
+        _triage_items = [
+            {
+                "title": r.get("name", ""),
+                "summary": f"Module: {module}. Email: {r.get('email', '')}",
+                "_id": r.get("id", ""),
+            }
+            for r in records
+        ]
+        _kept_items, _triage_note = await triage_issues(_typesafe_client, _triage_items, query_context=query)
+        _kept_ids = {item["_id"] for item in _kept_items}
+        records = [r for r in records if r.get("id", "") in _kept_ids]
         return {
             "success": True,
             "module": module,
             "records": records,
             "total": len(records),
+            "triage": _triage_note.to_dict(),
         }
 
     except Exception as e:
@@ -196,11 +229,27 @@ async def internal_list_zoho_crm_records(
         data = await _make_zoho_request("GET", f"/{module}", zoho, params=params)
         records = [_format_record(r) for r in data.get("data", [])]
 
+        # TypeSafe triage: filter records by relevance before returning
+        from src.services.agents.internal_tools.issue_triage import triage_issues
+
+        _typesafe_client = await _get_typesafe_client(runtime_context)
+        _triage_items = [
+            {
+                "title": r.get("name", ""),
+                "summary": f"Module: {module}. Email: {r.get('email', '')}",
+                "_id": r.get("id", ""),
+            }
+            for r in records
+        ]
+        _kept_items, _triage_note = await triage_issues(_typesafe_client, _triage_items, query_context=module)
+        _kept_ids = {item["_id"] for item in _kept_items}
+        records = [r for r in records if r.get("id", "") in _kept_ids]
         return {
             "success": True,
             "module": module,
             "records": records,
             "total": len(records),
+            "triage": _triage_note.to_dict(),
         }
 
     except Exception as e:

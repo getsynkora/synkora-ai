@@ -1,10 +1,33 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { TeamMembersList } from '@/components/team/TeamMembersList';
 import { TeamInviteForm } from '@/components/team/TeamInviteForm';
 import { useTeam } from '@/hooks/useTeam';
+import { apiClient } from '@/lib/api/client';
+import { extractErrorMessage } from '@/lib/api/error';
 import type { TeamMember, TeamInvitation } from '@/types/team';
+
+// ---------- helpers for IP allowlist validation ----------
+function isValidIpEntry(value: string): boolean {
+  const trimmed = value.trim();
+  if (trimmed === '*') return true;
+  // CIDR: x.x.x.x/prefix or x:x:x:x:x:x:x:x/prefix
+  const cidr = /^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/.test(trimmed) ||
+               /^[0-9a-fA-F:]+\/\d{1,3}$/.test(trimmed);
+  if (cidr) return true;
+  // Plain IPv4
+  const ipv4 = /^(\d{1,3}\.){3}\d{1,3}$/.test(trimmed);
+  if (ipv4) return trimmed.split('.').every((p) => parseInt(p, 10) <= 255);
+  // Plain IPv6 (loose check)
+  return /^[0-9a-fA-F:]+$/.test(trimmed) && trimmed.includes(':');
+}
+
+interface TenantSecurity {
+  mfa_required: boolean;
+  console_ip_allowlist: string[] | null;
+}
 
 export default function TeamSettingsPage() {
   const {
@@ -26,6 +49,14 @@ export default function TeamSettingsPage() {
   const [invitations, setInvitations] = useState<TeamInvitation[]>([]);
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+
+  // -------- Security / IP Allowlist state --------
+  const [security, setSecurity] = useState<TenantSecurity>({ mfa_required: false, console_ip_allowlist: null });
+  const [allowlistInput, setAllowlistInput] = useState('');
+  const [allowlistInputError, setAllowlistInputError] = useState<string | null>(null);
+  const [isSavingSecurity, setIsSavingSecurity] = useState(false);
+  // Determine current user role from members list — resolved after loadData
+  const [currentUserRole, setCurrentUserRole] = useState<string>('member');
 
   // Domain settings state
   const [domainSettings, setDomainSettings] = useState<{ domain: string | null; auto_assign_domain_users: boolean }>({
@@ -52,10 +83,11 @@ export default function TeamSettingsPage() {
   }, [success, clearMessages]);
 
   const loadData = async () => {
-    const [membersData, invitationsData, domainData] = await Promise.all([
+    const [membersData, invitationsData, domainData, securityData] = await Promise.all([
       getTeamMembers(tenantId),
       getPendingInvitations(tenantId),
       getDomainSettings(),
+      apiClient.request('GET', '/console/api/tenant/security').catch(() => null),
     ]);
     setMembers(membersData);
     setInvitations(Array.isArray(invitationsData) ? invitationsData : []);
@@ -63,6 +95,24 @@ export default function TeamSettingsPage() {
       setDomainSettings(domainData);
       setDomainInput(domainData.domain || '');
       setAutoAssignEnabled(domainData.auto_assign_domain_users);
+    }
+    if (securityData) {
+      const sd = securityData.data || securityData;
+      setSecurity({
+        mfa_required: sd.mfa_required ?? false,
+        console_ip_allowlist: sd.console_ip_allowlist ?? null,
+      });
+    }
+    // Determine current user role by matching account_id via profile endpoint
+    try {
+      const profileResp = await apiClient.request('GET', '/api/v1/profile/me');
+      const profileId = (profileResp?.data || profileResp)?.id;
+      if (profileId && Array.isArray(membersData)) {
+        const me = membersData.find((m: TeamMember) => m.account_id === profileId);
+        if (me) setCurrentUserRole(me.role);
+      }
+    } catch {
+      // ignore — defaults to 'member' (read-only view)
     }
     setIsInitialLoading(false);
   };
@@ -80,6 +130,49 @@ export default function TeamSettingsPage() {
       if (result) {
         await loadData();
       }
+    }
+  };
+
+  // -------- Security handlers --------
+  const isOwner = currentUserRole === 'owner';
+
+  const handleAddAllowlistEntry = () => {
+    const val = allowlistInput.trim();
+    if (!val) return;
+    if (!isValidIpEntry(val)) {
+      setAllowlistInputError('Enter a valid IP address, CIDR range (e.g. 10.0.0.0/8), or * to allow all.');
+      return;
+    }
+    const current = security.console_ip_allowlist ?? [];
+    if (current.includes(val)) {
+      setAllowlistInputError('This entry is already in the allowlist.');
+      return;
+    }
+    setAllowlistInputError(null);
+    setSecurity((prev) => ({ ...prev, console_ip_allowlist: [...current, val] }));
+    setAllowlistInput('');
+  };
+
+  const handleRemoveAllowlistEntry = (entry: string) => {
+    setSecurity((prev) => ({
+      ...prev,
+      console_ip_allowlist: (prev.console_ip_allowlist ?? []).filter((e) => e !== entry),
+    }));
+  };
+
+  const handleSaveSecurity = async () => {
+    setIsSavingSecurity(true);
+    try {
+      const payload: Record<string, unknown> = {
+        mfa_required: security.mfa_required,
+        console_ip_allowlist: security.console_ip_allowlist?.length ? security.console_ip_allowlist : null,
+      };
+      await apiClient.request('PATCH', '/console/api/tenant/security', payload);
+      toast.success('Security settings saved.');
+    } catch (err: any) {
+      toast.error(extractErrorMessage(err, 'Failed to save security settings.'));
+    } finally {
+      setIsSavingSecurity(false);
     }
   };
 
@@ -331,6 +424,127 @@ export default function TeamSettingsPage() {
                 <p className="text-2xl font-semibold text-gray-900">{invitations?.length || 0}</p>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Security — Console Access Restrictions */}
+        <div className="mt-6 bg-white shadow rounded-lg overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 flex items-center">
+              <svg className="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+              Console Access Restrictions
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Restrict console access to specific IP addresses or CIDR ranges. Leave empty to allow all IPs.
+            </p>
+          </div>
+
+          <div className="px-6 py-5 space-y-5">
+            {/* MFA toggle */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-700">Require MFA for all members</p>
+                <p className="text-xs text-gray-500 mt-0.5">Members must have multi-factor authentication enabled to access the console.</p>
+              </div>
+              <button
+                type="button"
+                disabled={!isOwner}
+                onClick={() => isOwner && setSecurity((prev) => ({ ...prev, mfa_required: !prev.mfa_required }))}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 ${security.mfa_required ? 'bg-red-600' : 'bg-gray-200'} ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
+                aria-pressed={security.mfa_required}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${security.mfa_required ? 'translate-x-5' : 'translate-x-0'}`}
+                />
+              </button>
+            </div>
+
+            {/* IP allowlist display */}
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-2">IP Allowlist</p>
+              {(!security.console_ip_allowlist || security.console_ip_allowlist.length === 0) ? (
+                <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <svg className="w-4 h-4 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm text-blue-700">All IPs allowed — no restrictions currently configured.</span>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {security.console_ip_allowlist.map((entry) => (
+                    <span key={entry} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-300">
+                      {entry}
+                      {isOwner && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveAllowlistEntry(entry)}
+                          className="ml-0.5 text-gray-500 hover:text-red-600 focus:outline-none"
+                          aria-label={`Remove ${entry}`}
+                        >
+                          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Add entry input — owner only */}
+            {isOwner && (
+              <div>
+                <label htmlFor="ip-entry" className="block text-sm font-medium text-gray-700 mb-1">
+                  Add IP / CIDR / wildcard
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="ip-entry"
+                    type="text"
+                    value={allowlistInput}
+                    onChange={(e) => { setAllowlistInput(e.target.value); setAllowlistInputError(null); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddAllowlistEntry(); }}}
+                    placeholder='e.g. 192.168.1.0/24 or 10.0.0.1 or *'
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddAllowlistEntry}
+                    className="px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-md text-sm font-medium text-gray-700 transition-colors"
+                  >
+                    Add
+                  </button>
+                </div>
+                {allowlistInputError && (
+                  <p className="mt-1 text-xs text-red-600">{allowlistInputError}</p>
+                )}
+                <p className="mt-1 text-xs text-gray-500">
+                  Accepts: exact IP (1.2.3.4), CIDR range (10.0.0.0/8), or * (allow all).
+                </p>
+              </div>
+            )}
+
+            {/* Read-only notice for non-owners */}
+            {!isOwner && (
+              <p className="text-xs text-gray-400 italic">Only Owners can modify security settings.</p>
+            )}
+
+            {/* Save — owner only */}
+            {isOwner && (
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={handleSaveSecurity}
+                  disabled={isSavingSecurity}
+                  className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all text-sm font-medium shadow-sm disabled:opacity-50"
+                >
+                  {isSavingSecurity ? 'Saving...' : 'Save Security Settings'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
