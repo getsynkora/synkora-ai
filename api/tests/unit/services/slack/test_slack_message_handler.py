@@ -235,18 +235,26 @@ class TestAckReactionAndThinkingStatus:
         mock_client.reactions_add = AsyncMock()
         mock_client.api_call = AsyncMock(return_value={"ok": True})
         handler._get_or_create_conversation = AsyncMock(return_value=MagicMock(handoff_status=None))
-        mock_db_session.get = AsyncMock(return_value=None)  # short-circuit: triggers "Agent not found"
-
-        await handler.handle_message(
-            slack_bot=mock_slack_bot,
-            channel_id="C123",
-            user_id="U123",
-            text="hello",
-            message_ts="123.456",
-            thread_ts=None,
-            client=mock_client,
-            say=AsyncMock(),
+        # Agent must resolve (it's now also needed for the pre-ack TypeSafe gate check);
+        # short-circuit happens later instead, once the ack/status calls are done.
+        mock_db_session.get = AsyncMock(
+            return_value=MagicMock(slug="test-agent", agent_name="test_agent", tools_config=None, description=None)
         )
+
+        with patch(
+            "src.services.conversation_service.ConversationService.get_conversation_history_cached",
+            new=AsyncMock(side_effect=RuntimeError("stop-here")),
+        ):
+            await handler.handle_message(
+                slack_bot=mock_slack_bot,
+                channel_id="C123",
+                user_id="U123",
+                text="hello",
+                message_ts="123.456",
+                thread_ts=None,
+                client=mock_client,
+                say=AsyncMock(),
+            )
 
         mock_client.reactions_add.assert_called_once_with(channel="C123", timestamp="123.456", name="eyes")
         mock_client.api_call.assert_called_once()
