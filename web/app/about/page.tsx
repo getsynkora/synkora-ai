@@ -76,8 +76,8 @@ export default function AboutPage() {
           </div>
           <h1 className="text-4xl sm:text-6xl font-medium tracking-[-0.06em] text-[#171717]">
             The Open-Source
-            <span className="editorial-highlight mt-3 inline-block sm:block sm:w-fit sm:mx-auto">
-              AI and LLM Platform
+            <span className="mt-3 block text-[#2d8b69] sm:w-fit sm:mx-auto">
+              Enterprise AI Platform
             </span>
           </h1>
           <p className="mt-6 max-w-3xl mx-auto text-base sm:text-xl leading-8 text-[#5a544a]">
@@ -86,9 +86,9 @@ export default function AboutPage() {
 
           <div className="mt-12 grid gap-4 sm:grid-cols-3 text-left">
             {[
-              { label: 'Own your stack', value: 'Open-source by default' },
-              { label: 'Build once', value: 'Deploy across channels' },
-              { label: 'Run in production', value: 'Tenants, APIs, controls' },
+              { label: 'Enterprise security', value: 'SAML/OIDC · RBAC · Audit Logs' },
+              { label: 'Full data ownership', value: 'Self-host · MIT Licensed' },
+              { label: 'Multi-tenant platform', value: 'APIs, controls, isolation' },
             ].map((item) => (
               <div
                 key={item.label}
@@ -224,7 +224,7 @@ export default function AboutPage() {
                   Get Started Free
                 </Link>
                 <Link
-                  href="https://github.com/rajuniit/synkora-ai"
+                  href="https://github.com/getsynkora/synkora-ai"
                   target="_blank"
                   className="inline-flex items-center gap-2 rounded-full border border-white/16 bg-white/6 px-8 py-4 font-semibold text-white transition-colors hover:bg-white/10"
                 >

@@ -21,7 +21,7 @@ export default function Footer() {
       </div>
 
       <div className="relative mx-auto max-w-7xl">
-        <div className="mb-10 grid grid-cols-2 gap-8 md:grid-cols-5">
+        <div className="mb-10 grid grid-cols-2 gap-8 md:grid-cols-6">
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="mb-4 flex items-center gap-2">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#7de5c1] text-[#101915] shadow-[0_14px_30px_rgba(125,229,193,0.16)]">
@@ -30,7 +30,7 @@ export default function Footer() {
               <span className="text-xl font-semibold tracking-[0.08em]">Synkora</span>
             </Link>
             <p className="text-sm leading-relaxed text-[#b8b0a4]">
-              The open-source LLM application platform. Build, deploy, and manage AI agents at any scale.
+              The open-source enterprise AI agent platform. SAML/OIDC SSO, RBAC, audit logs, and full self-hosting — MIT licensed.
             </p>
           </div>
 
@@ -102,6 +102,32 @@ export default function Footer() {
               <li>
                 <Link href="/security" className="text-sm text-[#b8b0a4] transition-colors hover:text-white">
                   Security
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="mb-4 text-sm font-semibold uppercase tracking-[0.16em] text-white">Enterprise</h4>
+            <ul className="space-y-2.5">
+              <li>
+                <Link href="/security" className="text-sm text-[#b8b0a4] transition-colors hover:text-white">
+                  Security
+                </Link>
+              </li>
+              <li>
+                <a href="mailto:enterprise@synkora.ai" className="text-sm text-[#b8b0a4] transition-colors hover:text-white">
+                  Talk to Sales
+                </a>
+              </li>
+              <li>
+                <Link href="/docs/sso" className="text-sm text-[#b8b0a4] transition-colors hover:text-white">
+                  SSO / SAML
+                </Link>
+              </li>
+              <li>
+                <Link href="/docs/self-hosting" className="text-sm text-[#b8b0a4] transition-colors hover:text-white">
+                  Self-hosting
                 </Link>
               </li>
             </ul>

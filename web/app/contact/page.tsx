@@ -53,50 +53,46 @@ export default function ContactPage() {
           <div className="grid lg:grid-cols-2 gap-12">
             {/* Contact Info */}
             <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm font-semibold mb-6">
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/65 px-4 py-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#4b463e]">
                 <MessageSquare className="w-4 h-4" />
                 Get in Touch
               </div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-6">
-                We'd Love to
-                <span className="editorial-highlight mt-3 block w-fit">
-                  Hear from You
-                </span>
+              <h1 className="mb-6 text-4xl font-medium tracking-[-0.05em] text-[#171717]">
+                Talk to the Synkora team
               </h1>
-              <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-                Have questions about Synkora? Want to discuss enterprise licensing?
-                Or just want to say hello? We're here to help.
+              <p className="mb-8 text-lg leading-relaxed text-[#5a544a]">
+                Have questions about enterprise features, self-hosting, or want to discuss your use case? We respond within 24 hours.
               </p>
 
               {/* Contact Methods */}
               <div className="space-y-6">
                 <a
                   href="mailto:hello@synkora.ai"
-                  className="flex items-start gap-4 p-4 bg-white rounded-xl border border-gray-100 hover:border-red-200 hover:shadow-md transition-all group"
+                  className="flex items-start gap-4 rounded-[1.25rem] border border-black/10 bg-white/60 p-4 shadow-[0_8px_24px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-[0_12px_32px_rgba(0,0,0,0.07)]"
                 >
-                  <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-red-200 transition-colors">
-                    <Mail className="w-6 h-6 text-red-600" />
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[0.875rem] bg-[#79dfbc]/25">
+                    <Mail className="w-6 h-6 text-[#2d8b69]" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Email Us</h3>
-                    <p className="text-red-600 font-medium">hello@synkora.ai</p>
-                    <p className="text-sm text-gray-500 mt-1">We typically respond within 24 hours</p>
+                    <h3 className="mb-1 font-semibold text-[#171717]">Email Us</h3>
+                    <p className="font-medium text-[#2d8b69]">hello@synkora.ai</p>
+                    <p className="mt-1 text-sm text-[#7a736a]">We typically respond within 24 hours</p>
                   </div>
                 </a>
 
                 <a
-                  href="https://github.com/rajuniit/synkora-ai/issues"
+                  href="https://github.com/getsynkora/synkora-ai/issues"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-start gap-4 p-4 bg-white rounded-xl border border-gray-100 hover:border-gray-300 hover:shadow-md transition-all group"
+                  className="flex items-start gap-4 rounded-[1.25rem] border border-black/10 bg-white/60 p-4 shadow-[0_8px_24px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-[0_12px_32px_rgba(0,0,0,0.07)]"
                 >
-                  <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-gray-200 transition-colors">
-                    <Github className="w-6 h-6 text-gray-700" />
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[0.875rem] bg-black/6">
+                    <Github className="w-6 h-6 text-[#171717]" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">GitHub Issues</h3>
-                    <p className="text-gray-600 font-medium">Report bugs & request features</p>
-                    <p className="text-sm text-gray-500 mt-1">For technical issues and feature requests</p>
+                    <h3 className="mb-1 font-semibold text-[#171717]">GitHub Issues</h3>
+                    <p className="font-medium text-[#5f5a52]">Report bugs & request features</p>
+                    <p className="mt-1 text-sm text-[#7a736a]">For technical issues and feature requests</p>
                   </div>
                 </a>
 
@@ -104,44 +100,44 @@ export default function ContactPage() {
                   href="https://discord.gg/synkora-ai"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-start gap-4 p-4 bg-white rounded-xl border border-gray-100 hover:border-indigo-200 hover:shadow-md transition-all group"
+                  className="flex items-start gap-4 rounded-[1.25rem] border border-black/10 bg-white/60 p-4 shadow-[0_8px_24px_rgba(0,0,0,0.04)] transition-shadow hover:shadow-[0_12px_32px_rgba(0,0,0,0.07)]"
                 >
-                  <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-200 transition-colors">
-                    <svg className="w-6 h-6 text-indigo-600" fill="currentColor" viewBox="0 0 24 24">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[0.875rem] bg-[#79dfbc]/25">
+                    <svg className="w-6 h-6 text-[#2d8b69]" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189z"/>
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Discord Community</h3>
-                    <p className="text-gray-600 font-medium">Join our community</p>
-                    <p className="text-sm text-gray-500 mt-1">Chat with other developers and get help</p>
+                    <h3 className="mb-1 font-semibold text-[#171717]">Discord Community</h3>
+                    <p className="font-medium text-[#5f5a52]">Join our community</p>
+                    <p className="mt-1 text-sm text-[#7a736a]">Chat with other developers and get help</p>
                   </div>
                 </a>
               </div>
 
               {/* Other Emails */}
-              <div className="mt-8 p-6 bg-gray-50 rounded-xl">
-                <h3 className="font-semibold text-gray-900 mb-4">Other Inquiries</h3>
+              <div className="mt-6 rounded-[1.25rem] border border-black/10 bg-white/60 p-5 shadow-[0_8px_24px_rgba(0,0,0,0.04)]">
+                <h3 className="mb-3 text-sm font-semibold uppercase tracking-[0.16em] text-[#4b463e]">Specific Inquiries</h3>
                 <ul className="space-y-2 text-sm">
-                  <li>
-                    <span className="text-gray-500">Enterprise Licensing:</span>{' '}
-                    <a href="mailto:licensing@synkora.ai" className="text-red-600 hover:underline">licensing@synkora.ai</a>
+                  <li className="flex items-center justify-between gap-4">
+                    <span className="text-[#7a736a]">Enterprise Sales</span>
+                    <a href="mailto:enterprise@synkora.ai" className="font-medium text-[#2d8b69] hover:underline">enterprise@synkora.ai</a>
                   </li>
-                  <li>
-                    <span className="text-gray-500">Security Issues:</span>{' '}
-                    <a href="mailto:security@synkora.ai" className="text-red-600 hover:underline">security@synkora.ai</a>
+                  <li className="flex items-center justify-between gap-4">
+                    <span className="text-[#7a736a]">Security Issues</span>
+                    <a href="mailto:security@synkora.ai" className="font-medium text-[#2d8b69] hover:underline">security@synkora.ai</a>
                   </li>
-                  <li>
-                    <span className="text-gray-500">Support:</span>{' '}
-                    <a href="mailto:support@synkora.ai" className="text-red-600 hover:underline">support@synkora.ai</a>
+                  <li className="flex items-center justify-between gap-4">
+                    <span className="text-[#7a736a]">Support</span>
+                    <a href="mailto:support@synkora.ai" className="font-medium text-[#2d8b69] hover:underline">support@synkora.ai</a>
                   </li>
                 </ul>
               </div>
             </div>
 
             {/* Contact Form */}
-            <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Send us a Message</h2>
+            <div className="rounded-[2rem] border border-black/10 bg-white/60 p-8 shadow-[0_18px_40px_rgba(0,0,0,0.05)] backdrop-blur">
+              <h2 className="mb-6 text-2xl font-semibold tracking-[-0.03em] text-[#171717]">Send us a Message</h2>
 
               {status === 'success' ? (
                 <div className="text-center py-12">
@@ -154,7 +150,7 @@ export default function ContactPage() {
                   </p>
                   <button
                     onClick={() => setStatus('idle')}
-                    className="text-red-600 hover:text-red-700 font-medium"
+                    className="font-medium text-[#2d8b69] hover:text-[#1f6b50]"
                   >
                     Send Another Message
                   </button>
@@ -170,7 +166,7 @@ export default function ContactPage() {
                   </p>
                   <button
                     onClick={() => setStatus('idle')}
-                    className="text-red-600 hover:text-red-700 font-medium"
+                    className="font-medium text-[#2d8b69] hover:text-[#1f6b50]"
                   >
                     Try Again
                   </button>
@@ -178,7 +174,7 @@ export default function ContactPage() {
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label htmlFor="name" className="mb-1.5 block text-sm font-medium text-[#4b463e]">
                       Your Name
                     </label>
                     <input
@@ -187,13 +183,13 @@ export default function ContactPage() {
                       required
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-200 transition-all outline-none"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#2d8b69] focus:ring-2 focus:ring-[#79dfbc]/30 transition-all outline-none"
                       placeholder="John Doe"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-[#4b463e]">
                       Email Address
                     </label>
                     <input
@@ -202,13 +198,13 @@ export default function ContactPage() {
                       required
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-200 transition-all outline-none"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#2d8b69] focus:ring-2 focus:ring-[#79dfbc]/30 transition-all outline-none"
                       placeholder="john@example.com"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label htmlFor="subject" className="mb-1.5 block text-sm font-medium text-[#4b463e]">
                       Subject
                     </label>
                     <select
@@ -216,7 +212,7 @@ export default function ContactPage() {
                       required
                       value={formData.subject}
                       onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-200 transition-all outline-none bg-white"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#2d8b69] focus:ring-2 focus:ring-[#79dfbc]/30 transition-all outline-none bg-white"
                     >
                       <option value="">Select a topic</option>
                       <option value="General Inquiry">General Inquiry</option>
@@ -229,7 +225,7 @@ export default function ContactPage() {
                   </div>
 
                   <div>
-                    <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label htmlFor="message" className="mb-1.5 block text-sm font-medium text-[#4b463e]">
                       Message
                     </label>
                     <textarea
@@ -238,7 +234,7 @@ export default function ContactPage() {
                       rows={5}
                       value={formData.message}
                       onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-red-500 focus:ring-2 focus:ring-red-200 transition-all outline-none resize-none"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#2d8b69] focus:ring-2 focus:ring-[#79dfbc]/30 transition-all outline-none resize-none"
                       placeholder="Tell us what's on your mind..."
                     />
                   </div>
@@ -246,7 +242,7 @@ export default function ContactPage() {
                   <button
                     type="submit"
                     disabled={status === 'loading'}
-                    className="w-full px-6 py-3.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-semibold rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 disabled:opacity-70"
+                    className="flex w-full items-center justify-center gap-2 rounded-full bg-[#191919] px-6 py-3.5 font-semibold text-[#f7f2e7] shadow-sm transition-transform hover:-translate-y-0.5 disabled:opacity-70"
                   >
                     {status === 'loading' ? (
                       <>

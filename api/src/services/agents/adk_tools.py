@@ -2229,6 +2229,7 @@ internal_write_file instead. To inspect files, use internal_read_file or interna
 
                         # Extract content from CallToolResult object
                         # FastMCP returns CallToolResult with content array
+                        parsed: Any = None
                         if hasattr(result, "content") and result.content:
                             # Extract text from content array
                             content_parts = []
@@ -2245,15 +2246,36 @@ internal_write_file instead. To inspect files, use internal_read_file or interna
                                 try:
                                     import json
 
-                                    return json.loads(combined_text)
+                                    parsed = json.loads(combined_text)
                                 except (json.JSONDecodeError, ValueError):
                                     # Not JSON, return as text
-                                    return {"result": combined_text}
+                                    parsed = {"result": combined_text}
 
-                        if isinstance(result, dict):
-                            return result
-                        else:
-                            return {"result": str(result)}
+                        if parsed is None:
+                            parsed = result if isinstance(result, dict) else {"result": str(result)}
+
+                        # A remote MCP tool can request a deterministic handoff by including
+                        # requires_human_handoff in its response — e.g. a refund/dispute tool
+                        # whose action always needs a human's attention. This does NOT depend on
+                        # the LLM separately deciding to call handoff_to_human afterward: without
+                        # this, a tool call that creates real follow-up work (a refund request,
+                        # a support ticket) can go completely unnoticed if the model just
+                        # summarizes the result to the user and moves on — the conversation never
+                        # gets flagged for a human, and nothing else in the system catches that.
+                        if isinstance(parsed, dict) and parsed.get("requires_human_handoff"):
+                            try:
+                                from src.services.agents.tool_registrations.handoff_tools_registry import (
+                                    handoff_to_human,
+                                )
+
+                                reason = parsed.get("handoff_reason") or f"Follow-up needed after {mcp_tool_name}"
+                                await handoff_to_human(reason=reason, config=config)
+                            except Exception as handoff_exc:
+                                logger.warning(
+                                    f"Auto-handoff after MCP tool {mcp_server_name}.{mcp_tool_name} failed: {handoff_exc}"
+                                )
+
+                        return parsed
 
                     except Exception as e:
                         logger.warning(f"MCP tool execution error ({mcp_server_name}.{mcp_tool_name}): {e}")

@@ -293,21 +293,16 @@ export default function AnimatedHero({ stars }: { stars?: number | null }) {
       <div className="relative z-10 px-6 pb-20">
         <div className="mx-auto grid max-w-[1480px] gap-14 xl:grid-cols-[1fr_0.98fr] xl:items-center">
           <div className="max-w-4xl">
-            <div className="hero-badge mb-8 inline-flex items-center gap-3 rounded-full border border-black/10 bg-white/65 px-4 py-2 shadow-[0_12px_32px_rgba(0,0,0,0.05)] backdrop-blur">
+            <div className="hero-badge mb-8 inline-flex flex-wrap items-center gap-2.5 rounded-full border border-black/10 bg-white/65 px-4 py-2.5 shadow-[0_12px_32px_rgba(0,0,0,0.05)] backdrop-blur">
               <div className="flex items-center gap-1.5">
-                <svg className="h-4 w-4 text-gray-800" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
-                </svg>
-                <span className="text-sm font-semibold uppercase tracking-[0.14em] text-[#221f1c]">Open Source</span>
+                <ShieldCheck className="h-4 w-4 text-[#2d8b69]" />
+                <span className="text-sm font-semibold text-[#2d8b69]">Enterprise Security</span>
               </div>
-              <span className="text-black/20">|</span>
+              <span className="text-black/15">|</span>
+              <span className="text-sm font-medium text-[#5f5a52]">SAML / OIDC SSO</span>
+              <span className="text-black/15">|</span>
               <span className="text-sm font-medium text-[#5f5a52]">MIT License</span>
-              <span className="text-black/20">|</span>
-              <div className="flex items-center gap-1.5">
-                <Lock className="h-3.5 w-3.5 text-[#2d8b69]" />
-                <span className="text-sm font-semibold text-[#2d8b69]">Enterprise-ready</span>
-              </div>
-              <span className="text-black/20">|</span>
+              <span className="text-black/15">|</span>
               <a
                 href="https://github.com/getsynkora/synkora-ai"
                 target="_blank"
@@ -323,22 +318,22 @@ export default function AnimatedHero({ stars }: { stars?: number | null }) {
 
             <h1 ref={titleRef} className="max-w-4xl text-5xl font-medium leading-[0.92] tracking-[-0.05em] text-[#171717] md:text-7xl">
               <span className="word mr-3 inline-block">The</span>
+              <span className="word mr-3 inline-block">enterprise</span>
               <span className="word mr-3 inline-block">AI</span>
-              <span className="word mr-3 inline-block">agent</span>
               <span className="word mr-3 inline-block">platform</span>
               <br />
               <span className="word mr-3 inline-block">
-                <span className="editorial-highlight">your</span>
+                <span className="border-b-[3px] border-[#2d8b69] pb-1">your</span>
               </span>
               <span className="word mr-3 inline-block">
-                <span className="editorial-highlight">team</span>
+                <span className="border-b-[3px] border-[#2d8b69] pb-1">team</span>
               </span>
               <span className="word mr-3 inline-block">actually</span>
-              <span className="word inline-block">owns</span>
+              <span className="word inline-block">controls</span>
             </h1>
 
             <p className="hero-subtext mt-8 max-w-2xl text-xl leading-relaxed text-[#4f4a42]">
-              Build agents that connect to your data, deploy to Slack, WhatsApp, Teams, and your product - using your own OpenAI or Anthropic keys. Self-host for free or use Synkora Cloud.
+              Deploy secure, auditable AI agents across your organization. SAML/OIDC SSO, RBAC, encrypted data at rest, full audit logs — on your infrastructure, under your rules.
             </p>
 
             <div className="mt-10 flex flex-col items-start gap-4 sm:flex-row">
@@ -349,13 +344,10 @@ export default function AnimatedHero({ stars }: { stars?: number | null }) {
                 Start Building Free
               </Link>
               <a
-                href="#demo"
+                href="mailto:enterprise@synkora.ai"
                 className="hero-cta inline-flex w-full items-center justify-center gap-2 rounded-full border border-black/10 bg-white/68 px-8 py-4 text-lg font-semibold text-[#1a1a1a] shadow-[0_12px_32px_rgba(0,0,0,0.04)] transition-colors hover:bg-white sm:w-auto"
               >
-                <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-                Watch Demo
+                Talk to Sales
               </a>
             </div>
 

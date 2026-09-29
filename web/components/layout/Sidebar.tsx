@@ -524,7 +524,6 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                     <span className="whitespace-nowrap text-[1.35rem] font-semibold uppercase tracking-[0.18em] text-[#f7f2e7]">
                       SYNKORA
                     </span>
-                    <span className="rounded-full border border-white/10 bg-white/[0.08] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-[#d2cabf]">Beta</span>
                   </div>
                   <span className="mt-1 text-[10px] uppercase tracking-[0.22em] text-[#857d70]">Enterprise platform</span>
                 </div>

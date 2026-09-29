@@ -3,8 +3,8 @@ import { Zap, ArrowRight, Users, Code, BarChart3, HeadphonesIcon, PenTool, Datab
 import PublicPageFrame from '@/components/public/PublicPageFrame'
 
 export const metadata = {
-  title: 'Use Cases – Synkora LLM Platform',
-  description: 'See what you can build on Synkora — AI agents for product management, engineering, customer support, marketing, and more. API-first, multitenant, self-hostable.',
+  title: 'Use Cases – Synkora Enterprise AI Platform',
+  description: 'Enterprise AI agents for every team — product, engineering, support, marketing, data, and HR. SAML SSO, RBAC, audit logs, and self-hosting included. API-first, multitenant.',
 }
 
 const useCases = [
@@ -132,51 +132,52 @@ export default function UseCasesPage() {
     <PublicPageFrame mainClassName="pt-28">
 
       {/* Hero Section */}
-      <section className="py-12 sm:py-20 px-4 sm:px-6">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm font-semibold mb-6">
+      <section className="relative overflow-hidden bg-[#f7f2e7] px-4 pb-14 pt-28 sm:px-6 sm:pb-20 sm:pt-32">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute left-[8%] top-[8%] h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.94),transparent_72%)]" />
+          <div className="absolute right-[6%] top-[10%] h-[30rem] w-[30rem] rounded-full bg-[radial-gradient(circle,rgba(240,232,216,0.92),transparent_72%)]" />
+        </div>
+        <div className="relative max-w-4xl mx-auto text-center">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/65 px-4 py-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#4b463e] shadow-[0_12px_28px_rgba(0,0,0,0.04)] backdrop-blur">
             <Users className="w-4 h-4" />
             Use Cases
           </div>
-          <h1 className="text-3xl sm:text-5xl font-bold text-gray-900 mb-6">
-            Build AI Agents for
-            <span className="editorial-highlight mt-3 block w-fit mx-auto">
-              Every Role in Your Company
-            </span>
+          <h1 className="text-4xl font-medium tracking-[-0.06em] text-[#171717] sm:text-6xl">
+            Enterprise AI agents
+            <span className="mt-3 block text-[#2d8b69]">for every team</span>
           </h1>
-          <p className="text-base sm:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            From product management to engineering to customer support—deploy AI teammates that handle real work around the clock. Use your own LLM keys for full control and transparency.
+          <p className="mx-auto mt-6 max-w-3xl text-base leading-8 text-[#5a544a] sm:text-xl">
+            Deploy auditable AI agents across product, engineering, support, and ops — with SAML SSO, RBAC, and your own LLM keys. Built for teams that need production-grade control.
           </p>
         </div>
       </section>
 
       {/* Use Cases Grid */}
-      <section className="py-12 sm:py-16 px-4 sm:px-6">
+      <section className="bg-[#f4eee1] px-4 py-14 sm:px-6 sm:py-20">
         <div className="max-w-6xl mx-auto">
-          <div className="space-y-24">
+          <div className="space-y-10">
             {useCases.map((useCase, index) => {
-              const colors = colorClasses[useCase.color as keyof typeof colorClasses]
               const isEven = index % 2 === 0
 
               return (
                 <div key={useCase.id} id={useCase.id} className="scroll-mt-24">
-                  <div className={`grid lg:grid-cols-2 gap-12 items-center ${!isEven ? 'lg:flex-row-reverse' : ''}`}>
+                  <div className={`grid lg:grid-cols-2 gap-8 items-stretch ${!isEven ? '' : ''}`}>
                     {/* Content */}
-                    <div className={!isEven ? 'lg:order-2' : ''}>
-                      <div className={`inline-flex items-center gap-2 px-3 py-1.5 ${colors.bg} ${colors.text} rounded-full text-sm font-semibold mb-4`}>
+                    <div className={`rounded-[2rem] border border-black/8 bg-white/72 p-8 shadow-[0_18px_40px_rgba(0,0,0,0.05)] backdrop-blur ${!isEven ? 'lg:order-2' : ''}`}>
+                      <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-[#e4f2ef] px-3 py-1.5 text-sm font-semibold text-[#2d8b69] mb-4">
                         <useCase.icon className="w-4 h-4" />
                         {useCase.subtitle}
                       </div>
-                      <h2 className="text-3xl font-bold text-gray-900 mb-4">{useCase.title}</h2>
-                      <p className="text-lg text-gray-600 mb-6">{useCase.description}</p>
+                      <h2 className="text-2xl font-semibold tracking-[-0.04em] text-[#171717] mb-3">{useCase.title}</h2>
+                      <p className="text-[#5f594f] mb-6 leading-7">{useCase.description}</p>
 
                       {/* Capabilities */}
                       <div className="mb-6">
-                        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Capabilities</h3>
+                        <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-[#7a736a] mb-3">Capabilities</h3>
                         <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           {useCase.capabilities.map((cap, i) => (
-                            <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                              <svg className={`w-5 h-5 ${colors.text} flex-shrink-0 mt-0.5`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <li key={i} className="flex items-start gap-2 text-sm text-[#39352f]">
+                              <svg className="w-5 h-5 text-[#2d8b69] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                               </svg>
                               {cap}
@@ -187,10 +188,10 @@ export default function UseCasesPage() {
 
                       {/* Integrations */}
                       <div className="mb-6">
-                        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Integrations</h3>
+                        <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-[#7a736a] mb-3">Integrations</h3>
                         <div className="flex flex-wrap gap-2">
                           {useCase.integrations.map((int, i) => (
-                            <span key={i} className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full">
+                            <span key={i} className="rounded-full border border-black/10 bg-white/80 px-3 py-1 text-sm text-[#4b463e]">
                               {int}
                             </span>
                           ))}
@@ -199,33 +200,31 @@ export default function UseCasesPage() {
 
                       <Link
                         href="/signup"
-                        className={`inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r ${colors.gradient} text-white font-semibold rounded-xl hover:opacity-90 transition-opacity`}
+                        className="inline-flex items-center gap-2 rounded-full bg-[#191919] px-6 py-3 text-sm font-semibold text-[#f7f2e7] transition-transform hover:-translate-y-0.5"
                       >
-                        Build Your {useCase.title.replace('AI ', '')}
+                        Deploy this agent
                         <ArrowRight className="w-4 h-4" />
                       </Link>
                     </div>
 
                     {/* Example Card */}
-                    <div className={!isEven ? 'lg:order-1' : ''}>
-                      <div className={`bg-white rounded-2xl p-8 shadow-xl border ${colors.border}`}>
-                        <div className={`w-16 h-16 ${colors.bg} rounded-2xl flex items-center justify-center mb-6`}>
-                          <useCase.icon className={`w-8 h-8 ${colors.text}`} />
-                        </div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-3">Example in Action</h3>
-                        <p className="text-gray-600 leading-relaxed">{useCase.example}</p>
+                    <div className={`rounded-[2rem] border border-black/8 bg-white/60 p-8 shadow-[0_18px_40px_rgba(0,0,0,0.05)] backdrop-blur ${!isEven ? 'lg:order-1' : ''}`}>
+                      <div className="flex h-14 w-14 items-center justify-center rounded-[1.1rem] bg-[#e4f2ef] mb-6">
+                        <useCase.icon className="w-7 h-7 text-[#2d8b69]" />
+                      </div>
+                      <h3 className="text-base font-semibold uppercase tracking-[0.1em] text-[#4b463e] mb-3">Example in Action</h3>
+                      <p className="text-[#5f594f] leading-7">{useCase.example}</p>
 
-                        <div className="mt-6 pt-6 border-t border-gray-100">
-                          <div className="flex items-center gap-4">
-                            <div className="flex -space-x-2">
-                              {[...Array(3)].map((_, i) => (
-                                <div key={i} className={`w-8 h-8 rounded-full ${colors.bg} border-2 border-white flex items-center justify-center`}>
-                                  <span className={`text-xs font-semibold ${colors.text}`}>{['PM', 'ENG', 'MKT'][i]}</span>
-                                </div>
-                              ))}
-                            </div>
-                            <span className="text-sm text-gray-500">Teams using this agent</span>
+                      <div className="mt-6 pt-6 border-t border-black/8">
+                        <div className="flex items-center gap-4">
+                          <div className="flex -space-x-2">
+                            {[...Array(3)].map((_, i) => (
+                              <div key={i} className="w-8 h-8 rounded-full bg-[#e4f2ef] border-2 border-white flex items-center justify-center">
+                                <span className="text-xs font-semibold text-[#2d8b69]">{['PM', 'ENG', 'MKT'][i]}</span>
+                              </div>
+                            ))}
                           </div>
+                          <span className="text-sm text-[#7a736a]">Teams using this agent</span>
                         </div>
                       </div>
                     </div>
@@ -238,62 +237,66 @@ export default function UseCasesPage() {
       </section>
 
       {/* Why Synkora Section */}
-      <section className="py-20 px-6 bg-white">
+      <section className="bg-[#f7f2e7] px-4 py-14 sm:px-6 sm:py-20">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Why Teams Choose Synkora</h2>
-            <p className="text-lg text-gray-600">Built different from day one</p>
+            <h2 className="text-3xl font-medium tracking-[-0.05em] text-[#171717] sm:text-4xl mb-4">Why enterprises choose Synkora</h2>
+            <p className="text-lg text-[#5d564c]">Production-grade controls, not an afterthought</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center p-6">
-              <div className="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Shield className="w-7 h-7 text-red-600" />
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="rounded-[2rem] border border-black/8 bg-white/72 p-8 shadow-[0_18px_40px_rgba(0,0,0,0.05)] backdrop-blur text-center">
+              <div className="w-14 h-14 bg-[#e4f2ef] rounded-[1.1rem] flex items-center justify-center mx-auto mb-4">
+                <Shield className="w-7 h-7 text-[#2d8b69]" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Your LLM Keys</h3>
-              <p className="text-gray-600">Use your own API keys from OpenAI, Anthropic, or Google. No vendor lock-in, complete cost transparency.</p>
+              <h3 className="text-xl font-semibold tracking-[-0.03em] text-[#171717] mb-2">SAML / OIDC SSO</h3>
+              <p className="text-[#5f594f] leading-7">Integrate with Okta, Azure AD, Google Workspace, and any SAML 2.0 or OIDC provider. JIT provisioning included.</p>
             </div>
-            <div className="text-center p-6">
-              <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Code className="w-7 h-7 text-blue-600" />
+            <div className="rounded-[2rem] border border-black/8 bg-white/72 p-8 shadow-[0_18px_40px_rgba(0,0,0,0.05)] backdrop-blur text-center">
+              <div className="w-14 h-14 bg-[#e4f2ef] rounded-[1.1rem] flex items-center justify-center mx-auto mb-4">
+                <Code className="w-7 h-7 text-[#2d8b69]" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Open Source</h3>
-              <p className="text-gray-600">Full source code access. Self-host on your infrastructure or use our cloud. You own your data.</p>
+              <h3 className="text-xl font-semibold tracking-[-0.03em] text-[#171717] mb-2">Open Source · MIT</h3>
+              <p className="text-[#5f594f] leading-7">Full source code. Self-host on your infrastructure for complete data ownership. No usage fees, no vendor lock-in.</p>
             </div>
-            <div className="text-center p-6">
-              <div className="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Database className="w-7 h-7 text-green-600" />
+            <div className="rounded-[2rem] border border-black/8 bg-white/72 p-8 shadow-[0_18px_40px_rgba(0,0,0,0.05)] backdrop-blur text-center">
+              <div className="w-14 h-14 bg-[#e4f2ef] rounded-[1.1rem] flex items-center justify-center mx-auto mb-4">
+                <Database className="w-7 h-7 text-[#2d8b69]" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Enterprise Ready</h3>
-              <p className="text-gray-600">Multi-tenancy, RBAC, SSO, audit logs, and SOC 2 compliance. Ready for serious workloads.</p>
+              <h3 className="text-xl font-semibold tracking-[-0.03em] text-[#171717] mb-2">RBAC + Audit Logs</h3>
+              <p className="text-[#5f594f] leading-7">Granular role-based access control with SHA-256 chain-hashed audit trails. Export to CSV or JSON for your SIEM.</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-12 sm:py-16 px-4 sm:px-6">
+      <section className="bg-[#f7f2e7] px-4 pb-14 sm:px-6 sm:pb-20">
         <div className="max-w-4xl mx-auto">
-          <div className="bg-gradient-to-br from-red-600 via-red-500 to-rose-600 rounded-3xl p-12 text-center shadow-xl">
-            <h2 className="text-3xl font-bold text-white mb-4">Ready to Build Your AI Team?</h2>
-            <p className="text-lg text-white/90 mb-8 max-w-xl mx-auto">
-              Start with a template or build from scratch. Deploy your first AI agent in minutes.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                href="/signup"
-                className="inline-flex items-center gap-2 px-8 py-4 bg-white hover:bg-gray-50 text-red-600 font-semibold rounded-xl transition-all shadow-lg"
-              >
-                <Zap className="w-5 h-5" />
-                Get Started Free
-              </Link>
-              <Link
-                href="/pricing"
-                className="inline-flex items-center gap-2 px-8 py-4 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl transition-all border border-white/20"
-              >
-                View Pricing
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+          <div className="relative overflow-hidden rounded-[2.7rem] border border-black/10 bg-[#171717] p-10 text-center shadow-[0_34px_90px_rgba(0,0,0,0.2)] md:p-14">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.08),transparent_24%),radial-gradient(circle_at_82%_18%,rgba(125,229,193,0.16),transparent_22%),radial-gradient(circle_at_18%_80%,rgba(255,143,178,0.12),transparent_20%)]" />
+            <div className="absolute inset-[10px] rounded-[2.2rem] border border-white/8" />
+            <div className="relative">
+              <h2 className="text-3xl font-medium tracking-[-0.05em] text-white mb-4">Ready to deploy enterprise AI?</h2>
+              <p className="text-lg text-white/85 mb-8 max-w-xl mx-auto leading-8">
+                Self-host free with full enterprise features, or start on cloud. SAML SSO, RBAC, audit logs — MIT licensed.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Link
+                  href="/signup"
+                  className="inline-flex items-center gap-2 rounded-full bg-[#7de5c1] px-8 py-4 font-semibold text-[#101915] transition-transform hover:-translate-y-0.5"
+                >
+                  <Zap className="w-5 h-5" />
+                  Get Started Free
+                </Link>
+                <a
+                  href="mailto:enterprise@synkora.ai"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/16 bg-white/6 px-8 py-4 font-semibold text-white transition-colors hover:bg-white/10"
+                >
+                  Talk to Sales
+                  <ArrowRight className="w-4 h-4" />
+                </a>
+              </div>
             </div>
           </div>
         </div>

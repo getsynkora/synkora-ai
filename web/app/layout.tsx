@@ -16,19 +16,19 @@ const inter = localFont({
 
 export const metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://synkora.ai'),
-  title: 'Synkora – Open-Source LLM Application Platform',
-  description: 'Multitenant, API-first platform for building, deploying, and managing AI agents. Multi-provider LLM support, RAG, tool registry, and full observability. Self-host or cloud.',
+  title: 'Synkora – Enterprise AI Agent Platform',
+  description: 'The open-source enterprise AI agent platform with SAML/OIDC SSO, RBAC, audit logs, IP allowlist, and encryption key rotation. Self-host on your infrastructure — MIT licensed.',
   openGraph: {
-    title: 'Synkora – Open-Source LLM Application Platform',
-    description: 'Multitenant, API-first platform for building, deploying, and managing AI agents. Multi-provider LLM support, RAG, tool registry, and full observability. Self-host or cloud.',
+    title: 'Synkora – Enterprise AI Agent Platform',
+    description: 'The open-source enterprise AI agent platform with SAML/OIDC SSO, RBAC, audit logs, IP allowlist, and encryption key rotation. Self-host on your infrastructure — MIT licensed.',
     type: 'website',
     siteName: 'Synkora',
     images: [{ url: '/images/screenshot-dashboard-full.png', width: 1200, height: 630, alt: 'Synkora – Open-Source LLM Platform' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Synkora – Open-Source LLM Application Platform',
-    description: 'Multitenant, API-first platform for building, deploying, and managing AI agents. Multi-provider LLM support, RAG, tool registry, and full observability. Self-host or cloud.',
+    title: 'Synkora – Enterprise AI Agent Platform',
+    description: 'The open-source enterprise AI agent platform with SAML/OIDC SSO, RBAC, audit logs, IP allowlist, and encryption key rotation. Self-host on your infrastructure — MIT licensed.',
     images: ['/images/screenshot-dashboard-full.png'],
   },
 }
@@ -39,7 +39,7 @@ const jsonLd = {
   name: 'Synkora',
   applicationCategory: 'DeveloperApplication',
   operatingSystem: 'Web',
-  description: 'Multitenant, API-first open-source LLM application platform for building, deploying, and managing AI agents.',
+  description: 'Open-source enterprise AI agent platform with SAML/OIDC SSO, RBAC, audit logs, and full self-hosting. MIT licensed.',
   url: 'https://synkora.ai',
   softwareVersion: 'latest',
   license: 'https://opensource.org/licenses/MIT',

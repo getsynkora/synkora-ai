@@ -153,7 +153,7 @@ export default function AdvancedChatPage() {
           links: [
             { label: 'Twitter', handle: '@synkora', url: 'https://twitter.com/synkora', icon: '🐦' },
             { label: 'LinkedIn', handle: 'company/synkora', url: 'https://linkedin.com/company/synkora', icon: '💼' },
-            { label: 'GitHub', handle: '@rajuniit/synkora-ai', url: 'https://github.com/rajuniit/synkora-ai', icon: '💻' },
+            { label: 'GitHub', handle: '@getsynkora/synkora-ai', url: 'https://github.com/getsynkora/synkora-ai', icon: '💻' },
             { label: 'Email', handle: 'hello@synkora.ai', url: 'mailto:hello@synkora.ai', icon: '✉️' }
           ]
         }

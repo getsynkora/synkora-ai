@@ -39,13 +39,40 @@ export default async function LandingPage() {
       className="min-h-screen bg-[#f7f2e7] text-[#191919]"
       style={{ fontFamily: '"Avenir Next", "Helvetica Neue", "Segoe UI", sans-serif' }}
     >
-      {/* Beta announcement banner */}
-      <div className="bg-[#171717] px-4 py-2.5 text-center text-xs font-medium tracking-[0.12em] text-white/80">
-        <span className="mr-2 rounded-full border border-[#7de5c1]/40 bg-[#7de5c1]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#7de5c1]">Beta</span>
-        Enterprise-ready AI agent platform — SAML/OIDC SSO, audit logs, RBAC, and full self-hosting.{' '}
-        <a href="https://app.synkora.ai/signup" className="underline underline-offset-2 hover:text-white">
-          Get early access
-        </a>
+      {/* Enterprise feature strip */}
+      <div className="bg-[#171717] px-4 py-2.5">
+        <div className="mx-auto flex max-w-6xl items-center justify-center gap-6 text-xs font-medium tracking-[0.1em] text-white/55">
+          <div className="flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#7de5c1]" />
+            <span>SAML / OIDC SSO</span>
+          </div>
+          <span className="hidden text-white/20 sm:block">·</span>
+          <div className="hidden items-center gap-1.5 sm:flex">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#7de5c1]" />
+            <span>RBAC + Audit Logs</span>
+          </div>
+          <span className="hidden text-white/20 sm:block">·</span>
+          <div className="hidden items-center gap-1.5 sm:flex">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#7de5c1]" />
+            <span>IP Allowlist</span>
+          </div>
+          <span className="hidden text-white/20 lg:block">·</span>
+          <div className="hidden items-center gap-1.5 lg:flex">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#7de5c1]" />
+            <span>Encryption Key Rotation</span>
+          </div>
+          <span className="hidden text-white/20 lg:block">·</span>
+          <div className="hidden items-center gap-1.5 lg:flex">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#7de5c1]" />
+            <span>MIT Licensed · Self-host</span>
+          </div>
+          <a
+            href="mailto:enterprise@synkora.ai"
+            className="ml-2 whitespace-nowrap rounded-full border border-white/15 px-3 py-1 text-white/70 transition-colors hover:border-white/30 hover:text-white"
+          >
+            Talk to Sales →
+          </a>
+        </div>
       </div>
 
       <AnimatedNav />

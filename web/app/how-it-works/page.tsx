@@ -484,11 +484,11 @@ export default function HowItWorksPage() {
               How It Works
             </div>
             <h1 className="text-4xl font-medium tracking-[-0.06em] text-[#171717] sm:text-6xl">
-              Build LLM Applications
-              <span className="editorial-highlight ml-3 inline-block">in Minutes</span>
+              Deploy Enterprise AI
+              <span className="mt-3 block text-[#2d8b69] sm:inline sm:ml-3">in Minutes</span>
             </h1>
             <p className="mx-auto mt-6 max-w-3xl text-base leading-8 text-[#5a544a] sm:text-xl">
-              From agent definition to production deployment - with API access, RAG, tool integrations, and multi-channel delivery.
+              From agent definition to production deployment — with SSO, RBAC, audit logs, RAG, tool integrations, and multi-channel delivery all included.
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
               <Link
@@ -509,9 +509,9 @@ export default function HowItWorksPage() {
 
           <div className="mt-14 grid gap-4 sm:grid-cols-3">
             {[
-              { label: 'Create, connect, deploy', value: '4-step flow' },
+              { label: 'SAML / OIDC SSO + RBAC', value: 'Enterprise auth' },
               { label: 'Tools, data, and channels', value: 'Production stack' },
-              { label: 'UI-first with API control', value: 'Built for teams' },
+              { label: 'Audit logs + IP allowlist', value: 'Full control' },
             ].map((item) => (
               <div
                 key={item.label}
@@ -671,10 +671,10 @@ export default function HowItWorksPage() {
                 Start shipping
               </div>
               <h2 className="text-2xl sm:text-4xl font-medium tracking-[-0.05em] text-white mb-4 sm:mb-6">
-            Ready to Build Your First Agent?
+                Ready to build enterprise AI?
               </h2>
               <p className="text-base sm:text-xl text-white/90 mb-8 sm:mb-10">
-            Join thousands of teams already using Synkora to automate their workflows.
+                Self-host with full enterprise security, or start on cloud. SAML SSO, RBAC, audit logs, and your own LLM keys — MIT licensed.
               </p>
               <Link
                 href="/signup"
