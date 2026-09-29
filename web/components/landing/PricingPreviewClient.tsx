@@ -21,9 +21,9 @@ interface PricingPlan {
 }
 
 const staticPlans = [
-  { name: 'Self-hosted', price: 'Free', desc: 'Run on your own infrastructure. MIT licensed. No limits.', features: ['Unlimited agents', 'Unlimited team members', 'All features included', 'Your own LLM keys'], popular: false },
-  { name: 'Cloud Starter', price: '$29', desc: 'Managed cloud hosting for small teams.', features: ['5 agents', '3 team members', '50,000 credits/month', 'Slack + web widget'], popular: true },
-  { name: 'Cloud Pro', price: '$99', desc: 'For teams shipping production AI products.', features: ['Unlimited agents', 'Unlimited team members', '500,000 credits/month', 'All channels + priority support'], popular: false },
+  { name: 'Self-hosted', price: 'Free', desc: 'Full enterprise features on your own infrastructure. MIT licensed, no usage fees.', features: ['Unlimited agents + team members', 'SAML / OIDC SSO', 'RBAC + Audit Logs', 'Encryption key rotation', 'Your own LLM keys'], popular: false },
+  { name: 'Cloud Pro', price: '$99', desc: 'Managed cloud for production teams with enterprise controls included.', features: ['Unlimited agents', 'SAML / OIDC SSO', 'RBAC + Audit Logs', '500K credits/month', 'All channels + priority support'], popular: true },
+  { name: 'Enterprise', price: 'Custom', desc: 'Dedicated deployment, SLA, custom contracts, and premium enterprise support.', features: ['Dedicated infrastructure', 'Custom SLA & contracts', 'SSO + IP allowlist + SCIM', 'Onboarding & training', 'Dedicated Slack channel'], popular: false },
 ]
 
 export default function PricingPreviewClient() {
@@ -56,8 +56,8 @@ export default function PricingPreviewClient() {
     <section className="bg-[#f7f2e7] px-4 py-14 sm:px-6 sm:py-20">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
-          <h2 className="mb-4 text-4xl font-medium tracking-[-0.05em] text-[#171717]">Simple, Transparent Pricing</h2>
-          <p className="text-xl leading-relaxed text-[#575149]">Start free. Self-host forever for free. Scale on cloud as you grow.</p>
+          <h2 className="mb-4 text-4xl font-medium tracking-[-0.05em] text-[#171717]">Enterprise pricing, open-source flexibility</h2>
+          <p className="text-xl leading-relaxed text-[#575149]">Self-host free with all enterprise features included. Scale to cloud or dedicated when you're ready.</p>
         </div>
 
         {loading ? (
@@ -126,18 +126,27 @@ export default function PricingPreviewClient() {
                 <p className="mb-4 text-sm text-[#6d675f]">{plan.desc}</p>
                 <div className="mb-4">
                   <span className="text-3xl font-semibold text-[#171717]">{plan.price}</span>
-                  {plan.price !== 'Free' && <span className="text-[#6d675f]">/month</span>}
+                  {plan.price !== 'Free' && plan.price !== 'Custom' && <span className="text-[#6d675f]">/month</span>}
+                  {plan.price === 'Custom' && <span className="text-[#6d675f] text-base"> — talk to us</span>}
                 </div>
-                <ul className="space-y-2">
+                <ul className="space-y-2 mb-4">
                   {plan.features.map((f, j) => (
                     <li key={j} className="flex items-center gap-2 text-sm text-[#575149]">
-                      <svg className="h-4 w-4 text-[#2d8b69]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="h-4 w-4 shrink-0 text-[#2d8b69]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                       {f}
                     </li>
                   ))}
                 </ul>
+                {plan.price === 'Custom' && (
+                  <a
+                    href="mailto:enterprise@synkora.ai"
+                    className="mt-2 block w-full rounded-full border border-black/15 px-4 py-2.5 text-center text-sm font-semibold text-[#171717] transition-colors hover:bg-black/5"
+                  >
+                    Talk to Sales
+                  </a>
+                )}
               </div>
             ))}
           </div>

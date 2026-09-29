@@ -64,7 +64,7 @@ export default function NotFound() {
 
               <h1 className="mt-3 max-w-3xl text-4xl font-medium tracking-[-0.06em] text-[#171717] sm:text-6xl">
                 This page is
-                <span className="editorial-highlight mt-3 inline-block">not here</span>
+                <span className="mt-3 inline-block text-[#2d8b69]">not here</span>
               </h1>
               <p className="mt-6 max-w-2xl text-base leading-8 text-[#5b554c] sm:text-xl">
                 The link may be outdated, the route may have changed, or the page may no longer exist. Use one of the paths below to get back into the platform.

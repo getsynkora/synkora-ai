@@ -136,8 +136,8 @@ export default function IntegrationsPage() {
             Integrations
           </div>
           <h1 className="text-4xl sm:text-6xl font-medium tracking-[-0.06em] text-[#171717] mb-6">
-            Bring AI agents<br />
-            <span className="editorial-highlight inline-block mt-2">everywhere you work</span>
+            Deploy enterprise agents<br />
+            <span className="mt-2 inline-block text-[#2d8b69]">everywhere you work</span>
           </h1>
           <p className="text-lg sm:text-xl text-[#5a544a] max-w-2xl mx-auto leading-8">
             Embed agents into any surface. Connect them to the tools your team already uses.

@@ -57,12 +57,9 @@ export default function AnimatedNav() {
                 <span className="whitespace-nowrap text-[2rem] font-semibold leading-none tracking-[0.18em] text-[#141414] sm:text-[2.2rem]">
                   SYNKORA
                 </span>
-                <span className="rounded-full border border-black/10 bg-white/65 px-2.5 py-1 text-[10px] font-semibold uppercase leading-none tracking-[0.24em] text-[#5d564c]">
-                  Beta
-                </span>
               </div>
               <span className="mt-2 whitespace-nowrap text-xs uppercase tracking-[0.22em] text-[#7a7267]">
-                Open-source AI platform
+                Enterprise AI Platform
               </span>
             </Link>
           </div>
