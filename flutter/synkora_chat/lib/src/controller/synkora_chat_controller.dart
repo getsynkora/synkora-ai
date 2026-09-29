@@ -53,12 +53,40 @@ class SynkoraChatController extends ChangeNotifier {
     String? userHash,
     String? identityToken,
   }) {
+    final oldIdentityKey = _identityKey;
+
     this.user = user;
     this.userId = userId;
     this.userHash = userHash;
     _client.setIdentity(
         userId: user?.id ?? userId, userHash: userHash, token: identityToken);
+
+    // SECURITY: if this controller is being reused for a different person
+    // (e.g. the host app didn't rebuild it fresh across a logout/login), the
+    // in-memory _messages list may still hold the previous identity's chat.
+    // The local cache is scoped by identityKey so it can't cross-contaminate
+    // on disk, but the already-loaded in-memory state must be dropped and
+    // reloaded for the new identity too -- never let it carry over as-is.
+    if (_identityKey != oldIdentityKey) {
+      _inactivityTimer?.cancel();
+      _inactivityTimer = null;
+      _handoffPollTimer?.cancel();
+      _handoffPollTimer = null;
+      _seenOperatorMsgIds.clear();
+      _messages = [];
+      _conversationId = null;
+      _isHandoffActive = false;
+      _pendingApproval = null;
+      _sessions = [];
+      _notify();
+      unawaited(init());
+    }
   }
+
+  /// Resolves the identity that scopes the local message cache. Falls back to
+  /// [sessionId] for unidentified chats, and finally to a constant so cache
+  /// operations always have a stable key. See LocalCache's class doc.
+  String get _identityKey => user?.id ?? userId ?? sessionId ?? 'anon';
 
   // ---------------------------------------------------------------------------
   // Programmatic message trigger (for external button-driven sends)
@@ -163,16 +191,16 @@ class SynkoraChatController extends ChangeNotifier {
   Future<void> init() async {
     _isLoading = true;
     _error = null;
-    notifyListeners();
+    _notify();
 
     try {
       // Clean up messages stuck mid-stream from a previous session
-      await _cache.cleanupIncomplete(_client.widgetKey);
+      await _cache.cleanupIncomplete(_client.widgetKey, _identityKey);
 
       // Load local cache immediately — gives instant display
-      final cached = await _cache.loadMessages(_client.widgetKey);
+      final cached = await _cache.loadMessages(_client.widgetKey, _identityKey);
       _messages = List.from(cached);
-      notifyListeners();
+      _notify();
 
       // Fetch config + session list + server history in parallel
       final historyUserId = user?.id ?? userId;
@@ -201,6 +229,7 @@ class SynkoraChatController extends ChangeNotifier {
           ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
         await _cache.upsertMessages(
           _client.widgetKey,
+          _identityKey,
           _messages,
           convId: _conversationId,
         );
@@ -222,7 +251,7 @@ class SynkoraChatController extends ChangeNotifier {
       _error = e.toString();
     } finally {
       _isLoading = false;
-      notifyListeners();
+      _notify();
     }
   }
 
@@ -254,12 +283,17 @@ class SynkoraChatController extends ChangeNotifier {
     );
     _messages = [..._messages, userMsg, streamingMsg];
     _isStreaming = true;
-    notifyListeners(); // immediate — user sees their message + dots in the same frame
+    _notify(); // immediate — user sees their message + dots in the same frame
 
     // Persist user message to local cache async — non-blocking, cache is not
     // the source of truth (server history is fetched on reload).
     unawaited(
-      _cache.upsertMessage(_client.widgetKey, userMsg, convId: _conversationId),
+      _cache.upsertMessage(
+        _client.widgetKey,
+        _identityKey,
+        userMsg,
+        convId: _conversationId,
+      ),
     );
 
     final buffer = StringBuffer();
@@ -312,6 +346,7 @@ class SynkoraChatController extends ChangeNotifier {
           }
           await _cache.upsertMessage(
             _client.widgetKey,
+            _identityKey,
             _messages.firstWhere((m) => m.id == streamingId),
             convId: _conversationId,
           );
@@ -322,7 +357,7 @@ class SynkoraChatController extends ChangeNotifier {
           _error = event.message;
           _appendAssistantErrorMessage(event.message);
           _isStreaming = false;
-          notifyListeners();
+          _notify();
           return;
         } else if (event is ApprovalRequiredEvent) {
           _renderFlushTimer?.cancel();
@@ -330,7 +365,7 @@ class SynkoraChatController extends ChangeNotifier {
           _removeMessage(streamingId);
           _pendingApproval = event;
           _isStreaming = false;
-          notifyListeners();
+          _notify();
           return;
         } else if (event is HandoffInitiatedEvent) {
           _renderFlushTimer?.cancel();
@@ -348,7 +383,7 @@ class SynkoraChatController extends ChangeNotifier {
             MessageRole.operator,
           );
           _isStreaming = false;
-          notifyListeners();
+          _notify();
           _startHandoffPolling();
           return;
         } else if (event is StatusEvent) {
@@ -367,7 +402,7 @@ class SynkoraChatController extends ChangeNotifier {
               event.content,
               MessageRole.operator,
             );
-            notifyListeners();
+            _notify();
           }
         } else if (event is HandoffResolvedEvent) {
           _isHandoffActive = false;
@@ -377,7 +412,7 @@ class SynkoraChatController extends ChangeNotifier {
             'Support session ended',
             MessageRole.operator,
           );
-          notifyListeners();
+          _notify();
         }
       }
     } catch (e) {
@@ -388,7 +423,7 @@ class SynkoraChatController extends ChangeNotifier {
       _appendAssistantErrorMessage(_error!);
     } finally {
       _isStreaming = false;
-      notifyListeners();
+      _notify();
     }
   }
 
@@ -398,7 +433,7 @@ class SynkoraChatController extends ChangeNotifier {
     _preChatEmail = email?.trim().isEmpty == true ? null : email?.trim();
     _preChatPhone = phone?.trim().isEmpty == true ? null : phone?.trim();
     _preChatSubmitted = true;
-    notifyListeners();
+    _notify();
   }
 
   void retry() {
@@ -417,8 +452,8 @@ class SynkoraChatController extends ChangeNotifier {
     _conversationId = null;
     _error = null;
     _lastMessage = null;
-    await _cache.clearMessages(_client.widgetKey);
-    notifyListeners();
+    await _cache.clearMessages(_client.widgetKey, _identityKey);
+    _notify();
   }
 
   // ---------------------------------------------------------------------------
@@ -430,7 +465,7 @@ class SynkoraChatController extends ChangeNotifier {
       if (m.id == id) return m.copyWith(content: content);
       return m;
     }).toList();
-    notifyListeners();
+    _notify();
   }
 
   void _finalizeStreamingMessage(String id, String content) {
@@ -438,7 +473,7 @@ class SynkoraChatController extends ChangeNotifier {
       if (m.id == id) return m.copyWith(content: content, isStreaming: false);
       return m;
     }).toList();
-    notifyListeners();
+    _notify();
   }
 
   void _removeMessage(String id) {
@@ -461,7 +496,7 @@ class SynkoraChatController extends ChangeNotifier {
   /// different channel, or the approval times out).
   void dismissApproval() {
     _pendingApproval = null;
-    notifyListeners();
+    _notify();
   }
 
   /// Respond to a pending approval request. [decision] is 'approved' or 'rejected'.
@@ -473,7 +508,7 @@ class SynkoraChatController extends ChangeNotifier {
       // Non-fatal — still clear local state so the UI doesn't get stuck
     } finally {
       _pendingApproval = null;
-      notifyListeners();
+      _notify();
     }
   }
 
@@ -509,7 +544,7 @@ class SynkoraChatController extends ChangeNotifier {
     if (uid == null) return;
 
     _sessionsLoading = true;
-    notifyListeners();
+    _notify();
 
     try {
       final fetched = await _client.listSessions(userId: uid);
@@ -518,7 +553,7 @@ class SynkoraChatController extends ChangeNotifier {
       // Non-fatal — leave existing list intact
     } finally {
       _sessionsLoading = false;
-      notifyListeners();
+      _notify();
     }
   }
 
@@ -548,7 +583,7 @@ class SynkoraChatController extends ChangeNotifier {
       }
       return s;
     }).toList();
-    notifyListeners();
+    _notify();
   }
 
   /// Resume an existing session: sets conversation ID and loads its messages.
@@ -557,7 +592,7 @@ class SynkoraChatController extends ChangeNotifier {
     _messages = [];
     _error = null;
     _isLoading = true;
-    notifyListeners();
+    _notify();
 
     try {
       final bundle = await _client.loadHistoryBundle(
@@ -570,6 +605,7 @@ class SynkoraChatController extends ChangeNotifier {
       _messages = bundle.messages;
       await _cache.upsertMessages(
         _client.widgetKey,
+        _identityKey,
         _messages,
         convId: _conversationId,
       );
@@ -577,7 +613,7 @@ class SynkoraChatController extends ChangeNotifier {
       // Non-fatal — show empty chat, user can still send messages
     } finally {
       _isLoading = false;
-      notifyListeners();
+      _notify();
     }
     _resetInactivityTimer();
   }
@@ -592,8 +628,8 @@ class SynkoraChatController extends ChangeNotifier {
     _error = null;
     _lastMessage = null;
     _forceNewOnNextSend = true;
-    await _cache.clearMessages(_client.widgetKey);
-    notifyListeners();
+    await _cache.clearMessages(_client.widgetKey, _identityKey);
+    _notify();
   }
 
   void _resetInactivityTimer() {
@@ -634,7 +670,7 @@ class SynkoraChatController extends ChangeNotifier {
         // Only append if not already in _messages
         if (!_messages.any((m) => m.id == msg.id)) {
           _messages = [..._messages, msg];
-          notifyListeners();
+          _notify();
         }
       }
     } catch (_) {
@@ -646,8 +682,23 @@ class SynkoraChatController extends ChangeNotifier {
   // Dispose
   // ---------------------------------------------------------------------------
 
+  bool _disposed = false;
+
+  /// notifyListeners() is unsafe to call once dispose() has run (it asserts
+  /// in debug mode). updateIdentity() can now kick off an unawaited init()
+  /// reload, and every other async method here resumes after awaits too --
+  /// any of them may still be in flight when the owning widget is torn down
+  /// (e.g. an account switch that disposes this controller mid-request).
+  /// Route every notify through this guard instead of calling
+  /// notifyListeners() directly.
+  void _notify() {
+    if (_disposed) return;
+    notifyListeners();
+  }
+
   @override
   void dispose() {
+    _disposed = true;
     _inactivityTimer?.cancel();
     _handoffPollTimer?.cancel();
     _renderFlushTimer?.cancel();

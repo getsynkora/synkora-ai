@@ -1,3 +1,26 @@
+## 1.15.5
+
+- **Security fix (critical): cross-user chat history leak.** The local
+  message cache was keyed only by `widgetKey` — the org's static widget
+  config, identical for every rider on a given app build — never by the
+  person using it. On any device previously used by more than one identified
+  user (shared/reused test devices, family devices, etc.), the next person to
+  open the chat would instantly see the previous user's entire cached
+  conversation, including trip GPS, charges, and refund details, layered
+  underneath their own new messages (the server-side history fetch merges by
+  message id rather than replacing).
+  Fixed by scoping the on-device cache (`Messages` table, schema v2) by
+  `(widgetKey, identityKey)` instead of `widgetKey` alone, and by having
+  `updateIdentity()` detect an identity change and reload from scratch for
+  the new identity instead of leaving the previous identity's already-loaded
+  messages in memory. v1 cached rows (unscoped, and therefore untrustworthy)
+  are dropped on upgrade — this is a pure cache the server always re-syncs,
+  so nothing is lost beyond the instant-display cache warm-up.
+  If you construct and own your own `SynkoraChatController` directly (rather
+  than letting `SynkoraChatWidget` own it), make sure you call
+  `updateIdentity()` — or rebuild with a fresh controller — every time the
+  authenticated end user changes, including on logout.
+
 ## 1.15.4
 
 - Fix: removed the duplicate error banner shown above the chat when a message

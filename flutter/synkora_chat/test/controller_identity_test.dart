@@ -1,4 +1,6 @@
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:synkora_chat/src/cache/cache_database.dart';
 import 'package:synkora_chat/synkora_chat.dart';
 
 /// Regression test for the bug where a rebuilt SynkoraChatWidget with a
@@ -8,11 +10,15 @@ import 'package:synkora_chat/synkora_chat.dart';
 /// construction and SynkoraChatWidget never called one.
 void main() {
   group('SynkoraChatController.updateIdentity', () {
-    test('replaces userHash, user, and userId with the new values', () {
+    test('replaces userHash, user, and userId with the new values', () async {
       final controller = SynkoraChatController(
-        client: SynkoraClient(widgetKey: 'wk_test', baseUrl: 'https://example.test'),
+        client: SynkoraClient(
+            widgetKey: 'wk_test', baseUrl: 'https://example.test'),
         userId: 'old-user',
         userHash: 'old-hash',
+        // In-memory cache: avoids path_provider (no platform channel in a
+        // plain `test()`) and isolates each test from the on-disk cache file.
+        cacheDatabase: CacheDatabase(NativeDatabase.memory()),
       );
 
       expect(controller.userId, 'old-user');
@@ -29,12 +35,23 @@ void main() {
       expect(controller.userId, 'new-user');
       expect(controller.userHash, 'new-hash');
       expect(controller.user?.id, 'new-user');
+
+      // SECURITY: a changed identity must trigger a reload (see
+      // SynkoraChatController.updateIdentity) so a previous identity's
+      // already-loaded messages never linger in memory under the new one.
+      // Let that unawaited reload settle (it'll fail closed against the fake
+      // host -- irrelevant here) before disposing.
+      await pumpEventQueue();
       controller.dispose();
     });
 
-    test('starting with no identity, then identifying a user via updateIdentity, sticks', () {
+    test(
+        'starting with no identity, then identifying a user via updateIdentity, sticks',
+        () async {
       final controller = SynkoraChatController(
-        client: SynkoraClient(widgetKey: 'wk_test', baseUrl: 'https://example.test'),
+        client: SynkoraClient(
+            widgetKey: 'wk_test', baseUrl: 'https://example.test'),
+        cacheDatabase: CacheDatabase(NativeDatabase.memory()),
       );
 
       expect(controller.userId, isNull);
@@ -47,6 +64,8 @@ void main() {
 
       expect(controller.userId, 'late-user');
       expect(controller.userHash, 'late-hash');
+
+      await pumpEventQueue();
       controller.dispose();
     });
   });
