@@ -11,96 +11,62 @@ class $MessagesTable extends Messages with TableInfo<$MessagesTable, Message> {
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
-    'id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _widgetKeyMeta = const VerificationMeta(
-    'widgetKey',
-  );
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _widgetKeyMeta =
+      const VerificationMeta('widgetKey');
   @override
   late final GeneratedColumn<String> widgetKey = GeneratedColumn<String>(
-    'widget_key',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
+      'widget_key', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _identityKeyMeta =
+      const VerificationMeta('identityKey');
+  @override
+  late final GeneratedColumn<String> identityKey = GeneratedColumn<String>(
+      'identity_key', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _convIdMeta = const VerificationMeta('convId');
   @override
   late final GeneratedColumn<String> convId = GeneratedColumn<String>(
-    'conv_id',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
+      'conv_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _roleMeta = const VerificationMeta('role');
   @override
   late final GeneratedColumn<String> role = GeneratedColumn<String>(
-    'role',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _contentMeta = const VerificationMeta(
-    'content',
-  );
+      'role', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _contentMeta =
+      const VerificationMeta('content');
   @override
   late final GeneratedColumn<String> content = GeneratedColumn<String>(
-    'content',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
+      'content', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _tsMeta = const VerificationMeta('ts');
   @override
   late final GeneratedColumn<DateTime> ts = GeneratedColumn<DateTime>(
-    'ts',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _isStreamingMeta = const VerificationMeta(
-    'isStreaming',
-  );
+      'ts', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _isStreamingMeta =
+      const VerificationMeta('isStreaming');
   @override
   late final GeneratedColumn<bool> isStreaming = GeneratedColumn<bool>(
-    'is_streaming',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_streaming" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
+      'is_streaming', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("is_streaming" IN (0, 1))'),
+      defaultValue: const Constant(false));
   @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    widgetKey,
-    convId,
-    role,
-    content,
-    ts,
-    isStreaming,
-  ];
+  List<GeneratedColumn> get $columns =>
+      [id, widgetKey, identityKey, convId, role, content, ts, isStreaming];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
   static const String $name = 'messages';
   @override
-  VerificationContext validateIntegrity(
-    Insertable<Message> instance, {
-    bool isInserting = false,
-  }) {
+  VerificationContext validateIntegrity(Insertable<Message> instance,
+      {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
@@ -109,32 +75,32 @@ class $MessagesTable extends Messages with TableInfo<$MessagesTable, Message> {
       context.missing(_idMeta);
     }
     if (data.containsKey('widget_key')) {
-      context.handle(
-        _widgetKeyMeta,
-        widgetKey.isAcceptableOrUnknown(data['widget_key']!, _widgetKeyMeta),
-      );
+      context.handle(_widgetKeyMeta,
+          widgetKey.isAcceptableOrUnknown(data['widget_key']!, _widgetKeyMeta));
     } else if (isInserting) {
       context.missing(_widgetKeyMeta);
     }
-    if (data.containsKey('conv_id')) {
+    if (data.containsKey('identity_key')) {
       context.handle(
-        _convIdMeta,
-        convId.isAcceptableOrUnknown(data['conv_id']!, _convIdMeta),
-      );
+          _identityKeyMeta,
+          identityKey.isAcceptableOrUnknown(
+              data['identity_key']!, _identityKeyMeta));
+    } else if (isInserting) {
+      context.missing(_identityKeyMeta);
+    }
+    if (data.containsKey('conv_id')) {
+      context.handle(_convIdMeta,
+          convId.isAcceptableOrUnknown(data['conv_id']!, _convIdMeta));
     }
     if (data.containsKey('role')) {
       context.handle(
-        _roleMeta,
-        role.isAcceptableOrUnknown(data['role']!, _roleMeta),
-      );
+          _roleMeta, role.isAcceptableOrUnknown(data['role']!, _roleMeta));
     } else if (isInserting) {
       context.missing(_roleMeta);
     }
     if (data.containsKey('content')) {
-      context.handle(
-        _contentMeta,
-        content.isAcceptableOrUnknown(data['content']!, _contentMeta),
-      );
+      context.handle(_contentMeta,
+          content.isAcceptableOrUnknown(data['content']!, _contentMeta));
     } else if (isInserting) {
       context.missing(_contentMeta);
     }
@@ -145,50 +111,35 @@ class $MessagesTable extends Messages with TableInfo<$MessagesTable, Message> {
     }
     if (data.containsKey('is_streaming')) {
       context.handle(
-        _isStreamingMeta,
-        isStreaming.isAcceptableOrUnknown(
-          data['is_streaming']!,
           _isStreamingMeta,
-        ),
-      );
+          isStreaming.isAcceptableOrUnknown(
+              data['is_streaming']!, _isStreamingMeta));
     }
     return context;
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {id, widgetKey};
+  Set<GeneratedColumn> get $primaryKey => {id, widgetKey, identityKey};
   @override
   Message map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return Message(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}id'],
-      )!,
-      widgetKey: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}widget_key'],
-      )!,
-      convId: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}conv_id'],
-      ),
-      role: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}role'],
-      )!,
-      content: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}content'],
-      )!,
-      ts: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}ts'],
-      )!,
-      isStreaming: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}is_streaming'],
-      )!,
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      widgetKey: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}widget_key'])!,
+      identityKey: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}identity_key'])!,
+      convId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}conv_id']),
+      role: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}role'])!,
+      content: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}content'])!,
+      ts: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}ts'])!,
+      isStreaming: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_streaming'])!,
     );
   }
 
@@ -201,25 +152,27 @@ class $MessagesTable extends Messages with TableInfo<$MessagesTable, Message> {
 class Message extends DataClass implements Insertable<Message> {
   final String id;
   final String widgetKey;
+  final String identityKey;
   final String? convId;
   final String role;
   final String content;
   final DateTime ts;
   final bool isStreaming;
-  const Message({
-    required this.id,
-    required this.widgetKey,
-    this.convId,
-    required this.role,
-    required this.content,
-    required this.ts,
-    required this.isStreaming,
-  });
+  const Message(
+      {required this.id,
+      required this.widgetKey,
+      required this.identityKey,
+      this.convId,
+      required this.role,
+      required this.content,
+      required this.ts,
+      required this.isStreaming});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['widget_key'] = Variable<String>(widgetKey);
+    map['identity_key'] = Variable<String>(identityKey);
     if (!nullToAbsent || convId != null) {
       map['conv_id'] = Variable<String>(convId);
     }
@@ -234,9 +187,9 @@ class Message extends DataClass implements Insertable<Message> {
     return MessagesCompanion(
       id: Value(id),
       widgetKey: Value(widgetKey),
-      convId: convId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(convId),
+      identityKey: Value(identityKey),
+      convId:
+          convId == null && nullToAbsent ? const Value.absent() : Value(convId),
       role: Value(role),
       content: Value(content),
       ts: Value(ts),
@@ -244,14 +197,13 @@ class Message extends DataClass implements Insertable<Message> {
     );
   }
 
-  factory Message.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
+  factory Message.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Message(
       id: serializer.fromJson<String>(json['id']),
       widgetKey: serializer.fromJson<String>(json['widgetKey']),
+      identityKey: serializer.fromJson<String>(json['identityKey']),
       convId: serializer.fromJson<String?>(json['convId']),
       role: serializer.fromJson<String>(json['role']),
       content: serializer.fromJson<String>(json['content']),
@@ -265,6 +217,7 @@ class Message extends DataClass implements Insertable<Message> {
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
       'widgetKey': serializer.toJson<String>(widgetKey),
+      'identityKey': serializer.toJson<String>(identityKey),
       'convId': serializer.toJson<String?>(convId),
       'role': serializer.toJson<String>(role),
       'content': serializer.toJson<String>(content),
@@ -273,34 +226,37 @@ class Message extends DataClass implements Insertable<Message> {
     };
   }
 
-  Message copyWith({
-    String? id,
-    String? widgetKey,
-    Value<String?> convId = const Value.absent(),
-    String? role,
-    String? content,
-    DateTime? ts,
-    bool? isStreaming,
-  }) => Message(
-    id: id ?? this.id,
-    widgetKey: widgetKey ?? this.widgetKey,
-    convId: convId.present ? convId.value : this.convId,
-    role: role ?? this.role,
-    content: content ?? this.content,
-    ts: ts ?? this.ts,
-    isStreaming: isStreaming ?? this.isStreaming,
-  );
+  Message copyWith(
+          {String? id,
+          String? widgetKey,
+          String? identityKey,
+          Value<String?> convId = const Value.absent(),
+          String? role,
+          String? content,
+          DateTime? ts,
+          bool? isStreaming}) =>
+      Message(
+        id: id ?? this.id,
+        widgetKey: widgetKey ?? this.widgetKey,
+        identityKey: identityKey ?? this.identityKey,
+        convId: convId.present ? convId.value : this.convId,
+        role: role ?? this.role,
+        content: content ?? this.content,
+        ts: ts ?? this.ts,
+        isStreaming: isStreaming ?? this.isStreaming,
+      );
   Message copyWithCompanion(MessagesCompanion data) {
     return Message(
       id: data.id.present ? data.id.value : this.id,
       widgetKey: data.widgetKey.present ? data.widgetKey.value : this.widgetKey,
+      identityKey:
+          data.identityKey.present ? data.identityKey.value : this.identityKey,
       convId: data.convId.present ? data.convId.value : this.convId,
       role: data.role.present ? data.role.value : this.role,
       content: data.content.present ? data.content.value : this.content,
       ts: data.ts.present ? data.ts.value : this.ts,
-      isStreaming: data.isStreaming.present
-          ? data.isStreaming.value
-          : this.isStreaming,
+      isStreaming:
+          data.isStreaming.present ? data.isStreaming.value : this.isStreaming,
     );
   }
 
@@ -309,6 +265,7 @@ class Message extends DataClass implements Insertable<Message> {
     return (StringBuffer('Message(')
           ..write('id: $id, ')
           ..write('widgetKey: $widgetKey, ')
+          ..write('identityKey: $identityKey, ')
           ..write('convId: $convId, ')
           ..write('role: $role, ')
           ..write('content: $content, ')
@@ -319,14 +276,15 @@ class Message extends DataClass implements Insertable<Message> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, widgetKey, convId, role, content, ts, isStreaming);
+  int get hashCode => Object.hash(
+      id, widgetKey, identityKey, convId, role, content, ts, isStreaming);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is Message &&
           other.id == this.id &&
           other.widgetKey == this.widgetKey &&
+          other.identityKey == this.identityKey &&
           other.convId == this.convId &&
           other.role == this.role &&
           other.content == this.content &&
@@ -337,6 +295,7 @@ class Message extends DataClass implements Insertable<Message> {
 class MessagesCompanion extends UpdateCompanion<Message> {
   final Value<String> id;
   final Value<String> widgetKey;
+  final Value<String> identityKey;
   final Value<String?> convId;
   final Value<String> role;
   final Value<String> content;
@@ -346,6 +305,7 @@ class MessagesCompanion extends UpdateCompanion<Message> {
   const MessagesCompanion({
     this.id = const Value.absent(),
     this.widgetKey = const Value.absent(),
+    this.identityKey = const Value.absent(),
     this.convId = const Value.absent(),
     this.role = const Value.absent(),
     this.content = const Value.absent(),
@@ -356,20 +316,23 @@ class MessagesCompanion extends UpdateCompanion<Message> {
   MessagesCompanion.insert({
     required String id,
     required String widgetKey,
+    required String identityKey,
     this.convId = const Value.absent(),
     required String role,
     required String content,
     required DateTime ts,
     this.isStreaming = const Value.absent(),
     this.rowid = const Value.absent(),
-  }) : id = Value(id),
-       widgetKey = Value(widgetKey),
-       role = Value(role),
-       content = Value(content),
-       ts = Value(ts);
+  })  : id = Value(id),
+        widgetKey = Value(widgetKey),
+        identityKey = Value(identityKey),
+        role = Value(role),
+        content = Value(content),
+        ts = Value(ts);
   static Insertable<Message> custom({
     Expression<String>? id,
     Expression<String>? widgetKey,
+    Expression<String>? identityKey,
     Expression<String>? convId,
     Expression<String>? role,
     Expression<String>? content,
@@ -380,6 +343,7 @@ class MessagesCompanion extends UpdateCompanion<Message> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (widgetKey != null) 'widget_key': widgetKey,
+      if (identityKey != null) 'identity_key': identityKey,
       if (convId != null) 'conv_id': convId,
       if (role != null) 'role': role,
       if (content != null) 'content': content,
@@ -389,19 +353,20 @@ class MessagesCompanion extends UpdateCompanion<Message> {
     });
   }
 
-  MessagesCompanion copyWith({
-    Value<String>? id,
-    Value<String>? widgetKey,
-    Value<String?>? convId,
-    Value<String>? role,
-    Value<String>? content,
-    Value<DateTime>? ts,
-    Value<bool>? isStreaming,
-    Value<int>? rowid,
-  }) {
+  MessagesCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? widgetKey,
+      Value<String>? identityKey,
+      Value<String?>? convId,
+      Value<String>? role,
+      Value<String>? content,
+      Value<DateTime>? ts,
+      Value<bool>? isStreaming,
+      Value<int>? rowid}) {
     return MessagesCompanion(
       id: id ?? this.id,
       widgetKey: widgetKey ?? this.widgetKey,
+      identityKey: identityKey ?? this.identityKey,
       convId: convId ?? this.convId,
       role: role ?? this.role,
       content: content ?? this.content,
@@ -419,6 +384,9 @@ class MessagesCompanion extends UpdateCompanion<Message> {
     }
     if (widgetKey.present) {
       map['widget_key'] = Variable<String>(widgetKey.value);
+    }
+    if (identityKey.present) {
+      map['identity_key'] = Variable<String>(identityKey.value);
     }
     if (convId.present) {
       map['conv_id'] = Variable<String>(convId.value);
@@ -446,6 +414,7 @@ class MessagesCompanion extends UpdateCompanion<Message> {
     return (StringBuffer('MessagesCompanion(')
           ..write('id: $id, ')
           ..write('widgetKey: $widgetKey, ')
+          ..write('identityKey: $identityKey, ')
           ..write('convId: $convId, ')
           ..write('role: $role, ')
           ..write('content: $content, ')
@@ -468,28 +437,28 @@ abstract class _$CacheDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [messages];
 }
 
-typedef $$MessagesTableCreateCompanionBuilder =
-    MessagesCompanion Function({
-      required String id,
-      required String widgetKey,
-      Value<String?> convId,
-      required String role,
-      required String content,
-      required DateTime ts,
-      Value<bool> isStreaming,
-      Value<int> rowid,
-    });
-typedef $$MessagesTableUpdateCompanionBuilder =
-    MessagesCompanion Function({
-      Value<String> id,
-      Value<String> widgetKey,
-      Value<String?> convId,
-      Value<String> role,
-      Value<String> content,
-      Value<DateTime> ts,
-      Value<bool> isStreaming,
-      Value<int> rowid,
-    });
+typedef $$MessagesTableCreateCompanionBuilder = MessagesCompanion Function({
+  required String id,
+  required String widgetKey,
+  required String identityKey,
+  Value<String?> convId,
+  required String role,
+  required String content,
+  required DateTime ts,
+  Value<bool> isStreaming,
+  Value<int> rowid,
+});
+typedef $$MessagesTableUpdateCompanionBuilder = MessagesCompanion Function({
+  Value<String> id,
+  Value<String> widgetKey,
+  Value<String> identityKey,
+  Value<String?> convId,
+  Value<String> role,
+  Value<String> content,
+  Value<DateTime> ts,
+  Value<bool> isStreaming,
+  Value<int> rowid,
+});
 
 class $$MessagesTableFilterComposer
     extends Composer<_$CacheDatabase, $MessagesTable> {
@@ -501,39 +470,28 @@ class $$MessagesTableFilterComposer
     super.$removeJoinBuilderFromRootComposer,
   });
   ColumnFilters<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.id, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get widgetKey => $composableBuilder(
-    column: $table.widgetKey,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.widgetKey, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get identityKey => $composableBuilder(
+      column: $table.identityKey, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get convId => $composableBuilder(
-    column: $table.convId,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.convId, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get role => $composableBuilder(
-    column: $table.role,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.role, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get content => $composableBuilder(
-    column: $table.content,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.content, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get ts => $composableBuilder(
-    column: $table.ts,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.ts, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get isStreaming => $composableBuilder(
-    column: $table.isStreaming,
-    builder: (column) => ColumnFilters(column),
-  );
+      column: $table.isStreaming, builder: (column) => ColumnFilters(column));
 }
 
 class $$MessagesTableOrderingComposer
@@ -546,39 +504,28 @@ class $$MessagesTableOrderingComposer
     super.$removeJoinBuilderFromRootComposer,
   });
   ColumnOrderings<String> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.id, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get widgetKey => $composableBuilder(
-    column: $table.widgetKey,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.widgetKey, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get identityKey => $composableBuilder(
+      column: $table.identityKey, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get convId => $composableBuilder(
-    column: $table.convId,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.convId, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get role => $composableBuilder(
-    column: $table.role,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.role, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get content => $composableBuilder(
-    column: $table.content,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.content, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<DateTime> get ts => $composableBuilder(
-    column: $table.ts,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.ts, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<bool> get isStreaming => $composableBuilder(
-    column: $table.isStreaming,
-    builder: (column) => ColumnOrderings(column),
-  );
+      column: $table.isStreaming, builder: (column) => ColumnOrderings(column));
 }
 
 class $$MessagesTableAnnotationComposer
@@ -596,6 +543,9 @@ class $$MessagesTableAnnotationComposer
   GeneratedColumn<String> get widgetKey =>
       $composableBuilder(column: $table.widgetKey, builder: (column) => column);
 
+  GeneratedColumn<String> get identityKey => $composableBuilder(
+      column: $table.identityKey, builder: (column) => column);
+
   GeneratedColumn<String> get convId =>
       $composableBuilder(column: $table.convId, builder: (column) => column);
 
@@ -609,29 +559,23 @@ class $$MessagesTableAnnotationComposer
       $composableBuilder(column: $table.ts, builder: (column) => column);
 
   GeneratedColumn<bool> get isStreaming => $composableBuilder(
-    column: $table.isStreaming,
-    builder: (column) => column,
-  );
+      column: $table.isStreaming, builder: (column) => column);
 }
 
-class $$MessagesTableTableManager
-    extends
-        RootTableManager<
-          _$CacheDatabase,
-          $MessagesTable,
-          Message,
-          $$MessagesTableFilterComposer,
-          $$MessagesTableOrderingComposer,
-          $$MessagesTableAnnotationComposer,
-          $$MessagesTableCreateCompanionBuilder,
-          $$MessagesTableUpdateCompanionBuilder,
-          (Message, BaseReferences<_$CacheDatabase, $MessagesTable, Message>),
-          Message,
-          PrefetchHooks Function()
-        > {
+class $$MessagesTableTableManager extends RootTableManager<
+    _$CacheDatabase,
+    $MessagesTable,
+    Message,
+    $$MessagesTableFilterComposer,
+    $$MessagesTableOrderingComposer,
+    $$MessagesTableAnnotationComposer,
+    $$MessagesTableCreateCompanionBuilder,
+    $$MessagesTableUpdateCompanionBuilder,
+    (Message, BaseReferences<_$CacheDatabase, $MessagesTable, Message>),
+    Message,
+    PrefetchHooks Function()> {
   $$MessagesTableTableManager(_$CacheDatabase db, $MessagesTable table)
-    : super(
-        TableManagerState(
+      : super(TableManagerState(
           db: db,
           table: table,
           createFilteringComposer: () =>
@@ -640,68 +584,69 @@ class $$MessagesTableTableManager
               $$MessagesTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$MessagesTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<String> id = const Value.absent(),
-                Value<String> widgetKey = const Value.absent(),
-                Value<String?> convId = const Value.absent(),
-                Value<String> role = const Value.absent(),
-                Value<String> content = const Value.absent(),
-                Value<DateTime> ts = const Value.absent(),
-                Value<bool> isStreaming = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => MessagesCompanion(
-                id: id,
-                widgetKey: widgetKey,
-                convId: convId,
-                role: role,
-                content: content,
-                ts: ts,
-                isStreaming: isStreaming,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                required String id,
-                required String widgetKey,
-                Value<String?> convId = const Value.absent(),
-                required String role,
-                required String content,
-                required DateTime ts,
-                Value<bool> isStreaming = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => MessagesCompanion.insert(
-                id: id,
-                widgetKey: widgetKey,
-                convId: convId,
-                role: role,
-                content: content,
-                ts: ts,
-                isStreaming: isStreaming,
-                rowid: rowid,
-              ),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> widgetKey = const Value.absent(),
+            Value<String> identityKey = const Value.absent(),
+            Value<String?> convId = const Value.absent(),
+            Value<String> role = const Value.absent(),
+            Value<String> content = const Value.absent(),
+            Value<DateTime> ts = const Value.absent(),
+            Value<bool> isStreaming = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              MessagesCompanion(
+            id: id,
+            widgetKey: widgetKey,
+            identityKey: identityKey,
+            convId: convId,
+            role: role,
+            content: content,
+            ts: ts,
+            isStreaming: isStreaming,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String widgetKey,
+            required String identityKey,
+            Value<String?> convId = const Value.absent(),
+            required String role,
+            required String content,
+            required DateTime ts,
+            Value<bool> isStreaming = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              MessagesCompanion.insert(
+            id: id,
+            widgetKey: widgetKey,
+            identityKey: identityKey,
+            convId: convId,
+            role: role,
+            content: content,
+            ts: ts,
+            isStreaming: isStreaming,
+            rowid: rowid,
+          ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
           prefetchHooksCallback: null,
-        ),
-      );
+        ));
 }
 
-typedef $$MessagesTableProcessedTableManager =
-    ProcessedTableManager<
-      _$CacheDatabase,
-      $MessagesTable,
-      Message,
-      $$MessagesTableFilterComposer,
-      $$MessagesTableOrderingComposer,
-      $$MessagesTableAnnotationComposer,
-      $$MessagesTableCreateCompanionBuilder,
-      $$MessagesTableUpdateCompanionBuilder,
-      (Message, BaseReferences<_$CacheDatabase, $MessagesTable, Message>),
-      Message,
-      PrefetchHooks Function()
-    >;
+typedef $$MessagesTableProcessedTableManager = ProcessedTableManager<
+    _$CacheDatabase,
+    $MessagesTable,
+    Message,
+    $$MessagesTableFilterComposer,
+    $$MessagesTableOrderingComposer,
+    $$MessagesTableAnnotationComposer,
+    $$MessagesTableCreateCompanionBuilder,
+    $$MessagesTableUpdateCompanionBuilder,
+    (Message, BaseReferences<_$CacheDatabase, $MessagesTable, Message>),
+    Message,
+    PrefetchHooks Function()>;
 
 class $CacheDatabaseManager {
   final _$CacheDatabase _db;
