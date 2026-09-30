@@ -124,12 +124,17 @@ jobs:
 
       - name: Scan Python dependencies (pip-audit)
         run: |
+          # CVE-2026-49265 (oauthlib 3.3.1, fixed 4.0.0): cannot bump -- transitive via
+          # google-auth-oauthlib -> requests-oauthlib -> oauthlib, and databricks-sql-connector
+          # (even its latest 4.6.0) hard-pins oauthlib>=3.1.0,<4.0.0. Revisit once
+          # databricks-sql-connector supports oauthlib 4.x.
           pip-audit \
             --requirement /tmp/requirements-audit.txt \
             --ignore-vuln CVE-2025-69872 \
             --ignore-vuln CVE-2026-35029 \
             --ignore-vuln GHSA-69x8-hrgq-fjj8 \
             --ignore-vuln PYSEC-2026-1325 \
+            --ignore-vuln CVE-2026-49265 \
             --format markdown \
             --output api/pip-audit-report.md
         continue-on-error: false
