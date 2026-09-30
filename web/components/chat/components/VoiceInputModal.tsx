@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Mic, Square, X, Check, Loader2 } from 'lucide-react';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { Button } from '@/components/ui/Button';
@@ -94,7 +95,7 @@ export function VoiceInputModal({
   if (!isOpen) return null;
 
   if (!isSupported) {
-    return (
+    return createPortal(
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
           <div className="text-center">
@@ -112,11 +113,12 @@ export function VoiceInputModal({
             </Button>
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full mx-4 animate-in zoom-in-95 duration-200">
         {/* Header */}
@@ -229,6 +231,7 @@ export function VoiceInputModal({
           {isRecording ? 'Recording will continue until you click Done or Cancel' : 'Paused - Click microphone to resume'}
         </p>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
