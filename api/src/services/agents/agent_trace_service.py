@@ -97,14 +97,77 @@ async def _index_event(event: dict) -> None:
         logger.warning("ES index event failed (non-critical): %s", e)
 
 
+_AGG_METRIC_TYPES = {
+    "sum",
+    "avg",
+    "min",
+    "max",
+    "value_count",
+    "cardinality",
+    "weighted_avg",
+    "median_absolute_deviation",
+}
+_AGG_BUCKET_TYPES = {"terms", "date_histogram", "histogram", "range", "date_range"}
+_AGG_SINGLE_BUCKET_TYPES = {"filter", "filters", "nested", "reverse_nested", "global"}
+
+
+def _empty_agg_result(agg_def: dict) -> dict:
+    """Zero-result stub for one ES aggregation definition, recursing into sub-aggs.
+
+    Mirrors the shape callers access directly (e.g. aggs["llm_stats"]["count"]["value"],
+    aggs["by_conversation"]["buckets"]) so a missing index behaves like "no data" instead
+    of a KeyError on top of the already-handled 404.
+    """
+    result: dict = {}
+    for agg_type in agg_def:
+        if agg_type in ("aggs", "aggregations"):
+            continue
+        if agg_type in _AGG_METRIC_TYPES:
+            result["value"] = 0
+        elif agg_type in _AGG_BUCKET_TYPES:
+            result["buckets"] = []
+            if agg_type == "terms":
+                result["doc_count_error_upper_bound"] = 0
+                result["sum_other_doc_count"] = 0
+        elif agg_type in _AGG_SINGLE_BUCKET_TYPES:
+            result["doc_count"] = 0
+        elif agg_type == "top_hits":
+            result["hits"] = {"total": {"value": 0, "relation": "eq"}, "max_score": None, "hits": []}
+    for sub_name, sub_def in (agg_def.get("aggs") or agg_def.get("aggregations") or {}).items():
+        result[sub_name] = _empty_agg_result(sub_def)
+    return result
+
+
+def _empty_search_response(body: dict) -> dict:
+    """Zero-result ES search response shaped to match whatever `body` requested."""
+    aggs_request = body.get("aggs") or body.get("aggregations") or {}
+    return {
+        "took": 0,
+        "timed_out": False,
+        "_shards": {"total": 0, "successful": 0, "skipped": 0, "failed": 0},
+        "hits": {"total": {"value": 0, "relation": "eq"}, "max_score": None, "hits": []},
+        "aggregations": {name: _empty_agg_result(defn) for name, defn in aggs_request.items()},
+    }
+
+
 async def _safe_es_search(es, index: str, body: dict) -> dict:
-    """Wrap es.search; raises HTTP 503 when Elasticsearch is unavailable."""
-    from elasticsearch import ApiError
+    """Wrap es.search; raises HTTP 503 when Elasticsearch is genuinely unavailable.
+
+    An index that doesn't exist yet is NOT an outage -- it just means no trace event has
+    been written for this scope yet (a brand new agent, or a fresh deployment before the
+    first event lands). Returning a zero-result response shaped like a real one lets every
+    caller's direct aggregation access (aggs["llm_stats"]["count"]["value"], etc.) keep
+    working instead of surfacing a scary "service unavailable" error for a normal state.
+    """
+    from elasticsearch import ApiError, NotFoundError
     from elasticsearch import ConnectionError as ESConnectionError
     from fastapi import HTTPException
 
     try:
         return await es.search(index=index, body=body)
+    except NotFoundError:
+        logger.info("Elasticsearch index %r not found -- no trace data yet, returning empty result", index)
+        return _empty_search_response(body)
     except (ApiError, ESConnectionError, Exception) as exc:
         logger.warning("Elasticsearch search failed: %s", exc)
         raise HTTPException(status_code=503, detail="Analytics service temporarily unavailable (Elasticsearch)")
