@@ -1,10 +1,32 @@
 """Human Handoff tool registry."""
 
 import logging
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def _isolated_credential_context(runtime_context: Any):
+    """Give the caller its own DB session instead of runtime_context's shared one.
+
+    The _try_create_* helpers below all run concurrently via asyncio.gather() in
+    handoff_to_human, and each resolves credentials through CredentialResolver,
+    which runs queries on runtime_context.db_session. SQLAlchemy's AsyncSession
+    isn't safe for concurrent use from multiple coroutines -- sharing the one
+    session across these six parallel branches raises "This session is
+    provisioning a new connection; concurrent operations are not permitted"
+    the moment two configured providers need the DB at the same time.
+    """
+    factory = getattr(runtime_context, "db_session_factory", None)
+    if factory is None:
+        from src.core.database import get_async_session_factory
+
+        factory = get_async_session_factory()
+    async with factory() as session:
+        yield runtime_context.with_db_session(session)
 
 
 def _get_user_info(runtime_context: Any) -> tuple[str, str | None]:
@@ -26,8 +48,9 @@ async def _try_create_zendesk_ticket(runtime_context: Any, reason: str, conversa
         from src.services.agents.credential_resolver import CredentialResolver
         from src.services.agents.internal_tools.zendesk_tools import _make_zendesk_request
 
-        resolver = CredentialResolver(runtime_context)
-        zd = await resolver.get_zendesk_credentials("internal_create_zendesk_ticket")
+        async with _isolated_credential_context(runtime_context) as isolated_ctx:
+            resolver = CredentialResolver(isolated_ctx)
+            zd = await resolver.get_zendesk_credentials("internal_create_zendesk_ticket")
         if not zd:
             return None
 
@@ -68,8 +91,9 @@ async def _try_create_zoho_lead(runtime_context: Any, reason: str, conversation_
         from src.services.agents.credential_resolver import CredentialResolver
         from src.services.agents.internal_tools.zoho_crm_tools import _make_zoho_request
 
-        resolver = CredentialResolver(runtime_context)
-        zoho = await resolver.get_zoho_crm_credentials("internal_create_zoho_crm_record")
+        async with _isolated_credential_context(runtime_context) as isolated_ctx:
+            resolver = CredentialResolver(isolated_ctx)
+            zoho = await resolver.get_zoho_crm_credentials("internal_create_zoho_crm_record")
         if not zoho:
             return None
 
@@ -107,8 +131,9 @@ async def _try_create_freshdesk_ticket(runtime_context: Any, reason: str, conver
         from src.services.agents.credential_resolver import CredentialResolver
         from src.services.agents.internal_tools.freshdesk_tools import create_freshdesk_ticket
 
-        resolver = CredentialResolver(runtime_context)
-        creds = await resolver.get_freshdesk_credentials("internal_create_freshdesk_ticket")
+        async with _isolated_credential_context(runtime_context) as isolated_ctx:
+            resolver = CredentialResolver(isolated_ctx)
+            creds = await resolver.get_freshdesk_credentials("internal_create_freshdesk_ticket")
         if not creds:
             return None
 
@@ -145,8 +170,9 @@ async def _try_create_hubspot_ticket(runtime_context: Any, reason: str, conversa
         from src.services.agents.credential_resolver import CredentialResolver
         from src.services.agents.internal_tools.hubspot_tools import create_hubspot_ticket
 
-        resolver = CredentialResolver(runtime_context)
-        creds = await resolver.get_hubspot_credentials("internal_create_hubspot_ticket")
+        async with _isolated_credential_context(runtime_context) as isolated_ctx:
+            resolver = CredentialResolver(isolated_ctx)
+            creds = await resolver.get_hubspot_credentials("internal_create_hubspot_ticket")
         if not creds:
             return None
 
@@ -181,8 +207,9 @@ async def _try_create_salesforce_case(runtime_context: Any, reason: str, convers
         from src.services.agents.credential_resolver import CredentialResolver
         from src.services.agents.internal_tools.salesforce_tools import create_salesforce_case
 
-        resolver = CredentialResolver(runtime_context)
-        creds = await resolver.get_salesforce_credentials("internal_create_salesforce_case")
+        async with _isolated_credential_context(runtime_context) as isolated_ctx:
+            resolver = CredentialResolver(isolated_ctx)
+            creds = await resolver.get_salesforce_credentials("internal_create_salesforce_case")
         if not creds:
             return None
 
@@ -220,8 +247,9 @@ async def _try_create_intercom_conversation(runtime_context: Any, reason: str, c
         from src.services.agents.credential_resolver import CredentialResolver
         from src.services.agents.internal_tools.intercom_tools import create_intercom_conversation
 
-        resolver = CredentialResolver(runtime_context)
-        creds = await resolver.get_intercom_credentials("internal_create_intercom_conversation")
+        async with _isolated_credential_context(runtime_context) as isolated_ctx:
+            resolver = CredentialResolver(isolated_ctx)
+            creds = await resolver.get_intercom_credentials("internal_create_intercom_conversation")
         if not creds:
             return None
 
