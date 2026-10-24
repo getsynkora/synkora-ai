@@ -321,6 +321,10 @@ PLATFORM_TOOL_CATALOG = {
         "description": "Generate static maps and turn-by-turn directions via Mapbox",
         "requires_oauth": ["mapbox"],
     },
+    "higgsfield_tools": {
+        "description": "Generate AI images and videos (text-to-video, image-to-video) via Higgsfield",
+        "requires_oauth": ["higgsfield"],
+    },
     "blog_site_tools": {
         "description": "Generate a blog site and deploy it to GitHub Pages. Requires a GitHub integration for deployment.",
         "requires_oauth": ["github"],
@@ -1053,6 +1057,11 @@ TOOL_CATEGORY_TO_PATTERNS: dict[str, list[str]] = {
     ],
     "events_tools": ["internal_get_predicthq_events", "internal_get_ticketmaster_events"],
     "mapbox_tools": ["internal_get_static_map", "internal_get_directions"],
+    "higgsfield_tools": [
+        "internal_higgsfield_generate_image",
+        "internal_higgsfield_generate_video",
+        "internal_higgsfield_check_request",
+    ],
     "blog_site_tools": [
         "internal_generate_blog_site",
         "internal_create_github_repository",

@@ -424,7 +424,7 @@ export default function AdvancedChatPage() {
               newMsg.id = existing.id
 
               if (newMsg.role !== 'assistant' || existing.role !== 'assistant') return
-              const { fleet_cards, charts, diagrams, infographics, vehicle_maps, generated_images, forms } = existing.metadata || {}
+              const { fleet_cards, charts, diagrams, infographics, vehicle_maps, generated_images, generated_videos, forms } = existing.metadata || {}
               newMsg.metadata = {
                 ...newMsg.metadata,
                 ...(fleet_cards?.length && { fleet_cards }),
@@ -433,6 +433,7 @@ export default function AdvancedChatPage() {
                 ...(infographics?.length && { infographics }),
                 ...(vehicle_maps?.length && { vehicle_maps }),
                 ...(generated_images?.length && { generated_images }),
+                ...(generated_videos?.length && { generated_videos }),
                 ...(forms?.length && { forms }),
               }
             })
@@ -760,6 +761,25 @@ export default function AdvancedChatPage() {
                   generated_images: [
                     ...(currentMetadata.generated_images || []),
                     event.generated_image as import('@/components/chat/types').GeneratedImageData,
+                  ],
+                },
+              }
+            }
+            return newMessages
+          })
+        } else if (event.type === 'generated_video' && event.generated_video) {
+          setMessages((prev) => {
+            const newMessages = [...prev]
+            const lastIndex = newMessages.length - 1
+            if (lastIndex >= 0 && newMessages[lastIndex].role === 'assistant') {
+              const currentMetadata = newMessages[lastIndex].metadata || {}
+              newMessages[lastIndex] = {
+                ...newMessages[lastIndex],
+                metadata: {
+                  ...currentMetadata,
+                  generated_videos: [
+                    ...(currentMetadata.generated_videos || []),
+                    event.generated_video as import('@/components/chat/types').GeneratedVideoData,
                   ],
                 },
               }
