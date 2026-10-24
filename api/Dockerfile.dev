@@ -38,7 +38,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv for faster dependency management
-ENV UV_VERSION=0.5.11
+ENV UV_VERSION=0.13.5
 RUN pip install --no-cache-dir uv==${UV_VERSION}
 
 # Copy dependency files

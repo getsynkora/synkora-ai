@@ -4,7 +4,7 @@ FROM python:3.11-slim-bookworm AS base
 WORKDIR /app/api
 
 # Install uv
-ENV UV_VERSION=0.5.11
+ENV UV_VERSION=0.13.5
 RUN pip install --no-cache-dir uv==${UV_VERSION}
 
 
