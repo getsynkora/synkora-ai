@@ -70,13 +70,17 @@ jobs:
       - name: Audit Python dependencies for CVEs
         run: |
           uv export --no-hashes --no-emit-project --format requirements-txt -o /tmp/requirements-audit.txt
+          # filelock CVE-2026-112907/112913/112940: ReadWriteLock-only, unused here; fix needs filelock 4 but snowflake-connector 4.x caps <4
           uvx pip-audit \
             --requirement /tmp/requirements-audit.txt \
             --ignore-vuln CVE-2025-69872 \
             --ignore-vuln CVE-2026-35029 \
             --ignore-vuln GHSA-69x8-hrgq-fjj8 \
             --ignore-vuln PYSEC-2026-1325 \
-            --ignore-vuln CVE-2026-49265
+            --ignore-vuln CVE-2026-49265 \
+            --ignore-vuln CVE-2026-112907 \
+            --ignore-vuln CVE-2026-112913 \
+            --ignore-vuln CVE-2026-112940
 
       - name: Run unit tests
         env:
