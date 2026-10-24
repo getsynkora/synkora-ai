@@ -367,6 +367,11 @@ class ADKToolRegistry:
 
         register_mapbox_tools(self)
 
+        # Higgsfield tools - AI image and video generation
+        from src.services.agents.tool_registrations.higgsfield_tools_registry import register_higgsfield_tools
+
+        register_higgsfield_tools(self)
+
         # Document generation tools - use modular registry
         from src.services.agents.tool_registrations.document_tools_registry import (
             register_document_tools,

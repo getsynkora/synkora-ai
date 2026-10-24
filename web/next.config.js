@@ -57,6 +57,8 @@ const nextConfig = {
       // Images from self, data URIs, blobs, and any HTTPS source (for user avatars etc.)
       // In development, also allow HTTP for local MinIO presigned URLs
       isDev ? "img-src 'self' data: blob: https: http:" : "img-src 'self' data: blob: https:",
+      // Generated videos (S3 presigned URLs or provider CDN) play inline in chat
+      isDev ? "media-src 'self' blob: https: http:" : "media-src 'self' blob: https:",
       "font-src 'self' data:",
       // Critical: restrict where JS can make network requests — blocks token exfiltration
       [

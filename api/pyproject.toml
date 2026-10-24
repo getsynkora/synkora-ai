@@ -42,14 +42,14 @@ dependencies = [
     # HTTP Client
     "httpx>=0.28.0,<1.0.0",
     "requests>=2.33.0,<3.0.0",
-    "aiohttp>=3.14.3,<4.0.0",  # PYSEC-2026-3545/3546/3547 fixed in 3.14.3
+    "aiohttp>=3.14.4,<4.0.0",  # CVE-2026-111063..111066, 111748..111750 fixed in 3.14.4
     # Utilities
     "python-dotenv>=1.2.2,<2.0.0",
     "click>=8.3.3,<9.0.0",
     "tenacity>=9.0.0,<10.0.0",
     # Google Agent SDK & MCP
     "google-genai>=1.0.0,<2.0.0",
-    "fastmcp>=3.2.0,<4.0.0",
+    "fastmcp>=3.4.10,<4.0.0",  # GHSA-7xgj-8392-5q4r
     "asyncpg>=0.30.0",
     "jsonschema>=4.0.0,<5.0.0",
     # Multi-Provider LLM Support
@@ -58,7 +58,7 @@ dependencies = [
     "anthropic>=0.42.0,<1.0.0",
     "tiktoken>=0.9.0,<1.0.0",
     # Claude Agent SDK (for Claude Code Agent)
-    "claude-agent-sdk>=0.1.44",
+    "claude-agent-sdk>=0.2.121",  # CVE-2026-96620
     # Voice Services
     "elevenlabs>=1.0.0,<2.0.0",
     "google-search-results>=2.4.2",
@@ -91,8 +91,8 @@ dependencies = [
     # Document Processing & Image Extraction
     "pymupdf>=1.24.0,<2.0.0",
     "python-docx>=1.1.0,<2.0.0",
-    "pypdf>=6.13.3,<7.0.0",
-    "pillow>=12.3.0,<13.0.0",
+    "pypdf>=6.21.2,<7.0.0",  # PYSEC-2026-4153..4160, CVE-2026-113786..115585
+    "pillow>=13.0.0,<14.0.0",  # CVE-2026-112390..112406, 96636..96644, 114501
     "python-magic>=0.4.27,<1.0.0",
     # Database Connectors — all native async
     "aiomysql>=0.2.0,<1.0.0",           # MySQL  — native async pool

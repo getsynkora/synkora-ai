@@ -24,6 +24,7 @@ from .gmail_tools_registry import register_gmail_tools
 from .google_calendar_tools_registry import register_google_calendar_tools
 from .google_drive_tools_registry import register_google_drive_tools
 from .hackernews_tools_registry import register_hackernews_tools
+from .higgsfield_tools_registry import register_higgsfield_tools
 from .infographic_tools_registry import register_infographic_tools
 from .jira_tools_registry import register_jira_tools
 from .kb_ingest_tools_registry import register_kb_ingest_tools
@@ -76,6 +77,7 @@ __all__ = [
     "register_linkedin_tools",
     "register_mailisk_tools",
     "register_hackernews_tools",
+    "register_higgsfield_tools",
     "register_gitlab_tools",
     "register_recall_tools",
     "register_tool_discovery_tools",

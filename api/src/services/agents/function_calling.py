@@ -960,7 +960,7 @@ class FunctionCallingHandler:
                         }
 
                 # Image generation tool detection
-                if func_name == "internal_generate_image":
+                if func_name in ("internal_generate_image", "internal_higgsfield_generate_image"):
                     if isinstance(result, dict) and result.get("success"):
                         yield {
                             "type": "generated_image",
@@ -972,6 +972,23 @@ class FunctionCallingHandler:
                                 "model": result.get("model", ""),
                                 "provider": result.get("provider", ""),
                                 "size": result.get("size", ""),
+                                "created_at": datetime.datetime.now().isoformat(),
+                            },
+                        }
+
+                # Higgsfield video — emit as inline video player
+                if func_name == "internal_higgsfield_generate_video":
+                    if isinstance(result, dict) and result.get("success") and result.get("video_url"):
+                        yield {
+                            "type": "generated_video",
+                            "generated_video": {
+                                "id": f"vid_{uuid.uuid4().hex[:8]}",
+                                "url": result["video_url"],
+                                "prompt": result.get("prompt", ""),
+                                "model": result.get("model", ""),
+                                "provider": result.get("provider", ""),
+                                "duration": result.get("duration"),
+                                "resolution": result.get("resolution", ""),
                                 "created_at": datetime.datetime.now().isoformat(),
                             },
                         }
@@ -1099,13 +1116,24 @@ class FunctionCallingHandler:
                         }
 
                 # Strip URL from image generation results — already emitted as a separate SSE event.
-                if exec_result.name == "internal_generate_image":
+                if exec_result.name in ("internal_generate_image", "internal_higgsfield_generate_image"):
                     if isinstance(result, dict) and result.get("success"):
                         result = {
                             "success": True,
                             "message": "Image generated and displayed to the user inline.",
                             "model": result.get("model"),
                             "provider": result.get("provider"),
+                        }
+
+                # Strip URL from video results — already emitted as a separate SSE event.
+                if exec_result.name == "internal_higgsfield_generate_video":
+                    if isinstance(result, dict) and result.get("success"):
+                        result = {
+                            "success": True,
+                            "message": "Video generated and displayed to the user inline.",
+                            "model": result.get("model"),
+                            "provider": result.get("provider"),
+                            "request_id": result.get("request_id"),
                         }
 
                 # Strip full form schema after it has been rendered inline.

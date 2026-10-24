@@ -54,6 +54,7 @@ class StreamState:
     diagram_data: list[dict[str, Any]] = None
     infographic_data: list[dict[str, Any]] = None
     generated_images_data: list[dict[str, Any]] = None
+    generated_videos_data: list[dict[str, Any]] = None
     forms_data: list[dict[str, Any]] = None
     fleet_card_data: list[dict[str, Any]] = None
     total_output_tokens: int = 0
@@ -67,6 +68,8 @@ class StreamState:
             self.infographic_data = []
         if self.generated_images_data is None:
             self.generated_images_data = []
+        if self.generated_videos_data is None:
+            self.generated_videos_data = []
         if self.forms_data is None:
             self.forms_data = []
         if self.fleet_card_data is None:
@@ -767,6 +770,7 @@ class ChatStreamService:
                         diagrams=state.diagram_data,
                         infographics=state.infographic_data,
                         generated_images=state.generated_images_data,
+                        generated_videos=state.generated_videos_data,
                         forms=state.forms_data,
                         fleet_cards=state.fleet_card_data,
                         timing=timing_metrics,
@@ -2564,6 +2568,12 @@ class ChatStreamService:
                         state.generated_images_data.append(image)
                         image_payload = {k: v for k, v in event.items() if k != "type"}
                         yield await generate_sse_event("generated_image", image_payload)
+
+                    elif event["type"] == "generated_video":
+                        video = event.get("generated_video", {})
+                        state.generated_videos_data.append(video)
+                        video_payload = {k: v for k, v in event.items() if k != "type"}
+                        yield await generate_sse_event("generated_video", video_payload)
 
                     elif event["type"] == "form":
                         form = event.get("form", {})

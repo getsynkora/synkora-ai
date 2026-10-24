@@ -459,6 +459,14 @@ const TOOL_GROUPS: ToolGroup[] = [
     expanded: false
   },
   {
+    id: 'higgsfield',
+    name: 'Higgsfield',
+    description: 'Generate AI images and videos (text-to-video and image-to-video) with Higgsfield',
+    icon: Globe,
+    tools: [],
+    expanded: false
+  },
+  {
     id: 'mapbox',
     name: 'Mapbox',
     description: 'Generate static map images with vehicle markers and route overlays, plus turn-by-turn directions',
@@ -654,7 +662,7 @@ export default function AgentToolsPage() {
 
   const loadAllOAuthApps = async () => {
     try {
-      const providers = ['github', 'gitlab', 'SLACK', 'gmail', 'mailisk', 'zoom', 'google_calendar', 'google_drive', 'clickup', 'jira', 'twitter', 'linkedin', 'recall', 'newsapi', 'micromobility', 'openweather', 'predicthq', 'ticketmaster', 'mapbox', 'aws', 'gcp', 'azure', 'digitalocean'];
+      const providers = ['github', 'gitlab', 'SLACK', 'gmail', 'mailisk', 'zoom', 'google_calendar', 'google_drive', 'clickup', 'jira', 'twitter', 'linkedin', 'recall', 'newsapi', 'micromobility', 'openweather', 'predicthq', 'ticketmaster', 'mapbox', 'higgsfield', 'aws', 'gcp', 'azure', 'digitalocean'];
       const allApps: any[] = [];
       
       for (const provider of providers) {
@@ -715,7 +723,7 @@ export default function AgentToolsPage() {
 
   const getAuthMethodForProvider = (provider: string) => {
     // Providers that only support API tokens (no OAuth flow)
-    const apiTokenOnlyProviders = ['recall', 'TELEGRAM', 'onepassword', 'mailisk', 'newsapi', 'micromobility', 'openweather', 'predicthq', 'ticketmaster', 'mapbox', 'aws', 'gcp', 'azure', 'digitalocean'];
+    const apiTokenOnlyProviders = ['recall', 'TELEGRAM', 'onepassword', 'mailisk', 'newsapi', 'micromobility', 'openweather', 'predicthq', 'ticketmaster', 'mapbox', 'higgsfield', 'aws', 'gcp', 'azure', 'digitalocean'];
     if (apiTokenOnlyProviders.includes(provider.toLowerCase()) ||
         apiTokenOnlyProviders.includes(provider)) {
       return 'api_token';
@@ -743,7 +751,7 @@ export default function AgentToolsPage() {
       const app = providerApps[0]; // Use first available app
 
       // Providers that only support API tokens (no OAuth flow)
-      const apiTokenOnlyProviders = ['recall', 'TELEGRAM', 'onepassword', 'mailisk', 'newsapi', 'micromobility', 'openweather', 'predicthq', 'ticketmaster', 'mapbox', 'aws', 'gcp', 'azure', 'digitalocean'];
+      const apiTokenOnlyProviders = ['recall', 'TELEGRAM', 'onepassword', 'mailisk', 'newsapi', 'micromobility', 'openweather', 'predicthq', 'ticketmaster', 'mapbox', 'higgsfield', 'aws', 'gcp', 'azure', 'digitalocean'];
       const isApiTokenOnly = apiTokenOnlyProviders.includes(provider.toLowerCase()) ||
                              apiTokenOnlyProviders.includes(provider);
 
@@ -857,6 +865,8 @@ export default function AgentToolsPage() {
         groupId = 'events_predicthq';
       } else if (toolName.includes('ticketmaster')) {
         groupId = 'events_ticketmaster';
+      } else if (toolName.includes('higgsfield')) {
+        groupId = 'higgsfield';
       } else if (toolName.includes('static_map') || toolName.includes('get_directions') || toolName.includes('mapbox')) {
         groupId = 'mapbox';
       }
@@ -1213,6 +1223,22 @@ export default function AgentToolsPage() {
           ];
         }
 
+        // Higgsfield tools
+        if (tool.name.includes('higgsfield')) {
+          baseTool.configurable = true;
+          baseTool.oauthProvider = 'higgsfield';
+          baseTool.requiredFields = [
+            {
+              key: 'oauth_app_id',
+              label: 'Higgsfield API Key',
+              description: 'Select a configured Higgsfield integration',
+              placeholder: 'Select integration',
+              type: 'select',
+              options: []
+            }
+          ];
+        }
+
         // Add OAuth selector for ALL Gmail tools (both internal_gmail_* and gmail_* legacy tools)
         if (tool.name.includes('gmail')) {
           baseTool.configurable = true;
@@ -1340,6 +1366,7 @@ export default function AgentToolsPage() {
     if (name.includes('micromobility')) return '🛴';
     if (name.includes('weather')) return '🌤️';
     if (name.includes('predicthq') || name.includes('ticketmaster')) return '🎟️';
+    if (name.includes('higgsfield')) return '🎬';
     if (name.includes('static_map') || name.includes('directions') || name.includes('mapbox')) return '🗺️';
     if (name.includes('recall')) return '🎥';
     if (name.includes('gitlab')) return '🦊';
@@ -1973,6 +2000,7 @@ export default function AgentToolsPage() {
                 if (group.id === 'events_predicthq') return 'predicthq';
                 if (group.id === 'events_ticketmaster') return 'ticketmaster';
                 if (group.id === 'mapbox') return 'mapbox';
+                if (group.id === 'higgsfield') return 'higgsfield';
                 if (group.id === 'aws') return 'aws';
                 if (group.id === 'gcp') return 'gcp';
                 if (group.id === 'azure') return 'azure';

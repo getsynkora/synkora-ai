@@ -62,6 +62,17 @@ export interface GeneratedImageData {
   created_at?: string
 }
 
+export interface GeneratedVideoData {
+  id?: string
+  url?: string | null
+  prompt?: string
+  model?: string
+  provider?: string
+  duration?: number
+  resolution?: string
+  created_at?: string
+}
+
 export interface FormOption {
   label: string
   value: string
@@ -126,6 +137,7 @@ export interface MessageMetadata {
   diagrams?: DiagramData[]
   infographics?: InfographicData[]
   generated_images?: GeneratedImageData[]
+  generated_videos?: GeneratedVideoData[]
   forms?: FormDefinition[]
   tables?: TableData[]
   keyPeople?: Person[]

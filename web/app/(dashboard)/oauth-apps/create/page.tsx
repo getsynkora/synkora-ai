@@ -189,6 +189,13 @@ const MapboxIcon = () => (
   </svg>
 )
 
+const HiggsfieldIcon = () => (
+  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
+    <rect width="24" height="24" rx="6" fill="#0B0B0F"/>
+    <path d="M8 6V18M16 6V18M8 12H16" stroke="#C6FF3D" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+)
+
 const ZendeskIcon = () => (
   <svg className="w-8 h-8" viewBox="0 0 24 24" fill="#03363D">
     <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm-1.5 17.25L4.5 9h13l-6 8.25zm1.5-9.75c-2.07 0-3.75-1.68-3.75-3.75S9.93 0 12 0s3.75 1.68 3.75 3.75S14.07 7.5 12 7.5z"/>
@@ -594,6 +601,20 @@ const PROVIDERS = [
     supportsOAuth: false,
     supportsApiToken: true,
     apiTokenDescription: 'Use a Mapbox public access token (pk.*) from your Mapbox account',
+  },
+  {
+    value: 'higgsfield',
+    label: 'Higgsfield',
+    icon: <HiggsfieldIcon />,
+    color: 'text-gray-900',
+    bgColor: 'bg-gray-100',
+    description: 'Generate AI images and videos from text or images',
+    defaultScopes: [],
+    redirectUri: '',
+    setupGuide: 'https://docs.higgsfield.ai/docs/how-to/introduction',
+    supportsOAuth: false,
+    supportsApiToken: true,
+    apiTokenDescription: 'Enter your API key as KEY_ID:KEY_SECRET (create one at console.higgsfield.ai)',
   },
   {
     value: 'zendesk',
@@ -1787,6 +1808,7 @@ export default function CreateOAuthAppPage() {
                         {formData.provider === 'predicthq' && ' Find your API token in the PredictHQ Control Center under API Credentials.'}
                         {formData.provider === 'ticketmaster' && ' Use the Consumer Key from your app at developer.ticketmaster.com.'}
                         {formData.provider === 'mapbox' && ' Use a public token (pk.*) from your Mapbox account tokens page.'}
+                        {formData.provider === 'higgsfield' && ' Format: KEY_ID:KEY_SECRET from console.higgsfield.ai. The secret is shown only once.'}
                       </p>
                     </div>
                   </div>

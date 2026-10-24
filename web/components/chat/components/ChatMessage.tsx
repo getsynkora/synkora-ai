@@ -5,7 +5,7 @@ import Image from 'next/image'
 import dynamic from 'next/dynamic'
 import { Copy, Check, RefreshCw, Sparkles, FileText, Image as ImageIcon, Download, File, Trash2, ThumbsUp, ThumbsDown, Square } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Message, Attachment, GeneratedImageData, FormDefinition } from '../types'
+import { Message, Attachment, GeneratedImageData, GeneratedVideoData, FormDefinition } from '../types'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import DOMPurify from 'dompurify'
@@ -937,6 +937,54 @@ export const ChatMessage = memo(function ChatMessage({
                   <div className="px-4 py-6 text-sm text-zinc-400 bg-zinc-900 text-center rounded-xl">
                     Image unavailable — S3 storage not configured
                   </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Generated Videos */}
+        {message.metadata?.generated_videos && message.metadata.generated_videos.length > 0 && (
+          <div className="mt-3 space-y-4">
+            {message.metadata.generated_videos.map((vid: GeneratedVideoData, index: number) => (
+              <div key={vid.id || index} className="rounded-xl overflow-hidden shadow-lg bg-zinc-900">
+                {vid.url ? (
+                  <>
+                    <video
+                      src={vid.url}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className="w-full h-auto block"
+                      style={{ maxHeight: '640px', background: '#0a0a0a' }}
+                    >
+                      Your browser does not support video playback.
+                    </video>
+                    <div className="flex items-center justify-between gap-3 px-3 py-2">
+                      <p className="text-zinc-300 text-xs leading-relaxed line-clamp-2 flex-1 min-w-0">
+                        {vid.prompt}
+                      </p>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {(vid.duration || vid.resolution) && (
+                          <span className="text-zinc-500 text-xs font-mono hidden sm:block">
+                            {[vid.duration ? `${vid.duration}s` : null, vid.resolution].filter(Boolean).join(' · ')}
+                          </span>
+                        )}
+                        <a
+                          href={vid.url}
+                          download={`generated-${vid.id || index}.mp4`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-lg transition-colors border border-white/20"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          Download
+                        </a>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="px-4 py-6 text-sm text-zinc-400 text-center">Video unavailable</div>
                 )}
               </div>
             ))}

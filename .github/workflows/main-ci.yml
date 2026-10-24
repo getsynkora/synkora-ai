@@ -124,6 +124,7 @@ jobs:
 
       - name: Scan Python dependencies (pip-audit)
         run: |
+          # filelock CVE-2026-112907/112913/112940: ReadWriteLock-only, unused here; fix needs filelock 4 but snowflake-connector 4.x caps <4
           pip-audit \
             --requirement /tmp/requirements-audit.txt \
             --ignore-vuln CVE-2025-69872 \
@@ -131,6 +132,9 @@ jobs:
             --ignore-vuln GHSA-69x8-hrgq-fjj8 \
             --ignore-vuln PYSEC-2026-1325 \
             --ignore-vuln CVE-2026-49265 \
+            --ignore-vuln CVE-2026-112907 \
+            --ignore-vuln CVE-2026-112913 \
+            --ignore-vuln CVE-2026-112940 \
             --format markdown \
             --output api/pip-audit-report.md
         continue-on-error: false
