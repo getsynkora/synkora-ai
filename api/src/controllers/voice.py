@@ -140,6 +140,7 @@ class SynthesizeRequest(BaseModel):
     language: str | None = Field(None, description="Language code")
     agent_id: str | None = Field(None, description="Agent ID for usage tracking")
     config: dict[str, Any] | None = Field(None, description="Provider-specific configuration")
+    speed: float | None = Field(None, ge=0.25, le=4.0, description="Speaking rate multiplier (OpenAI TTS)")
 
 
 class SaveApiKeyRequest(BaseModel):
@@ -251,6 +252,7 @@ async def synthesize_speech(
             language=request.language,
             agent_id=agent_uuid,
             config=request.config,
+            **({"speed": request.speed} if request.speed is not None else {}),
         )
 
         # Determine content type based on provider

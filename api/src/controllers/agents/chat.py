@@ -431,6 +431,7 @@ async def chat_stream(
             db=None,
             user_id=current_account_id,
             tenant_id=tenant_id,
+            voice_mode=request.voice_mode,
         ),
         media_type="text/event-stream",
         headers={

@@ -138,6 +138,28 @@ class TestSynthesizeSpeech:
 
         assert response.status_code == status.HTTP_200_OK
 
+    def test_synthesize_speech_passes_speed(self, client):
+        """Speaking rate is forwarded to the provider only when supplied."""
+        test_client, tenant_id, mock_db = client
+
+        with patch("src.controllers.voice.VoiceService") as MockVoiceService:
+            mock_service = MockVoiceService.return_value
+            mock_service.synthesize = AsyncMock(return_value=b"audio data")
+
+            response = test_client.post("/synthesize", json={"text": "Hi", "provider": "openai_tts", "speed": 1.2})
+            assert response.status_code == status.HTTP_200_OK
+            assert mock_service.synthesize.call_args.kwargs["speed"] == 1.2
+
+            test_client.post("/synthesize", json={"text": "Hi", "provider": "openai_tts"})
+            assert "speed" not in mock_service.synthesize.call_args.kwargs
+
+    def test_synthesize_speech_rejects_out_of_range_speed(self, client):
+        test_client, tenant_id, mock_db = client
+
+        response = test_client.post("/synthesize", json={"text": "Hi", "provider": "openai_tts", "speed": 9})
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
     def test_synthesize_speech_invalid_agent_id(self, client):
         """Test synthesis with invalid agent ID."""
         test_client, tenant_id, mock_db = client
