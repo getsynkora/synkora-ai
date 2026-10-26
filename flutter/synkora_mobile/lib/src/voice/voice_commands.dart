@@ -74,6 +74,31 @@ const _endPhrases = {
   'good night',
 };
 
+// Words that, on their own, mean the user is wrapping up. An utterance made
+// only of these (plus at least one real goodbye word) ends the conversation, so
+// "thanks, that's all, goodbye" works as well as just "goodbye".
+const _farewellKeywords = {
+  'goodbye', 'bye', 'all', 'done', 'finished', 'later', 'night', 'enough',
+  'sleep', 'thanks', 'cheers', //
+};
+const _farewellFiller = {
+  'ok', 'okay', 'alright', 'right', 'so', 'well', 'thank', 'you', 'thanks',
+  'much', 'very', 'that', "that's", 'thats', 'is', 'it', "it's", 'for', 'now',
+  'see', 'talk', 'to', 'good', 'we', "we're", 'are', 'am', "i'm", 'i', 'all',
+  'cheers', 'take', 'care', 'have', 'a', 'great', 'nice', 'day', 'bye',
+  'goodbye', 'done', 'finished', 'later', 'night', 'enough', 'sleep', 'the',
+  'help', 'your', 'appreciate', //
+};
+
+bool _isFarewell(List<String> words) {
+  if (words.isEmpty || words.length > 9) return false;
+  if (!words.every(_farewellFiller.contains)) return false;
+  // "thank you so much" alone is a thanks, not necessarily goodbye.
+  return words.any(
+    (w) => _farewellKeywords.contains(w) && w != 'thanks' && w != 'cheers',
+  );
+}
+
 const _cancelPhrases = {
   'stop',
   'stop it',
@@ -138,6 +163,7 @@ VoiceCommand? parseVoiceCommand(String transcript) {
   if (_endPhrases.contains(t)) return const EndSessionCommand();
   if (_cancelPhrases.contains(t)) return const CancelCommand();
   if (_repeatPhrases.contains(t)) return const RepeatCommand();
+  if (_isFarewell(words)) return const EndSessionCommand();
 
   // "ok thanks bye" style endings: peel off any leading filler words.
   final stripped = t.replaceAll(

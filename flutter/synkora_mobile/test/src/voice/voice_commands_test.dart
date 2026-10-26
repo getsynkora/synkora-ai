@@ -15,6 +15,40 @@ void main() {
       }
     });
 
+    test('compound goodbyes end the session', () {
+      for (final text in [
+        'That’s all, thanks. Goodbye.',
+        'Thanks, that is all for now',
+        'ok thank you so much, bye',
+        'alright talk to you later',
+        'Okay we are done, thanks',
+        'Good night, thank you',
+        'thanks for your help, goodbye',
+      ]) {
+        expect(parseVoiceCommand(text), isA<EndSessionCommand>(), reason: text);
+      }
+    });
+
+    test(
+      'thanks alone, or goodbye words inside a real request, do not end it',
+      () {
+        for (final text in [
+          'Thank you so much',
+          'thanks',
+          'That is all I know about the project, can you summarize it',
+          'Tell me when all the tests are done',
+          'What time is it in Tokyo tonight',
+          'Is the build done',
+        ]) {
+          expect(
+            parseVoiceCommand(text),
+            isNot(isA<EndSessionCommand>()),
+            reason: text,
+          );
+        }
+      },
+    );
+
     test('recognizes cancel and repeat', () {
       expect(parseVoiceCommand('Stop.'), isA<CancelCommand>());
       expect(parseVoiceCommand('never mind'), isA<CancelCommand>());

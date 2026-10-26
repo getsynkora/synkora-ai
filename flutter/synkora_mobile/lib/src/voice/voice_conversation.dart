@@ -102,6 +102,7 @@ class VoiceConversation extends ChangeNotifier {
     this.config = const VoiceConversationConfig(),
     this.onCue,
     this.agentsProvider,
+    this.prepareAgent,
   }) : _turnEndpointer = TurnEndpointer(config.turnEndpoint),
        _bargeInEndpointer = TurnEndpointer(config.bargeInEndpoint) {
     _outputLevelSub = output.level.listen((level) {
@@ -118,6 +119,10 @@ class VoiceConversation extends ChangeNotifier {
   final VoiceConversationConfig config;
   final void Function(VoiceCue cue)? onCue;
   final List<AgentSummary> Function()? agentsProvider;
+
+  /// Called before an agent becomes active (voice, language and so on), so the
+  /// very first thing it says already uses the right settings.
+  final Future<void> Function(AgentSummary agent)? prepareAgent;
 
   /// 0..1 microphone loudness, for the UI. Separate notifiers so meters can
   /// repaint at audio rate without rebuilding the whole screen.
@@ -149,6 +154,7 @@ class VoiceConversation extends ChangeNotifier {
   String? _status;
   String? _error;
   bool _muted = false;
+  late bool _bargeInEnabled = config.bargeInEnabled;
   bool _wakeEnabled = false;
   bool _agentDone = false;
   int _loopRun = -1;
@@ -176,6 +182,14 @@ class VoiceConversation extends ChangeNotifier {
   String? get status => _status;
   String? get error => _error;
   bool get muted => _muted;
+
+  /// Whether talking over the assistant interrupts it.
+  bool get bargeInEnabled => _bargeInEnabled;
+  set bargeInEnabled(bool value) {
+    _bargeInEnabled = value;
+    notifyListeners();
+  }
+
   bool get wakeEnabled => _wakeEnabled;
   bool get userSpeaking =>
       _phase == VoicePhase.listening && _turnEndpointer.inSpeech;
@@ -226,6 +240,7 @@ class VoiceConversation extends ChangeNotifier {
       _agent = agent;
       _conversationId = conversationId;
       _turns.clear();
+      await _prepare(agent);
     } else if (conversationId != null) {
       _conversationId = conversationId;
     }
@@ -263,6 +278,24 @@ class VoiceConversation extends ChangeNotifier {
     }
   }
 
+  /// Releases the microphone, for example while the app is in the background.
+  /// Wake listening resumes with [resume].
+  Future<void> suspend() async {
+    if (_phase == VoicePhase.idle) return;
+    _cancelRun();
+    _cancelListenTimeout();
+    _liveReply = '';
+    _speaking = '';
+    _status = null;
+    await _closeMic();
+    _setPhase(VoicePhase.idle);
+  }
+
+  /// Re-opens wake listening after [suspend] if it is enabled.
+  Future<void> resume() async {
+    if (_wakeEnabled && _phase == VoicePhase.idle) await arm();
+  }
+
   void toggleMute() {
     _muted = !_muted;
     if (_muted) inputLevel.value = 0;
@@ -279,8 +312,25 @@ class VoiceConversation extends ChangeNotifier {
     _liveReply = '';
     _spokenText = '';
     _lastReply = '';
+    _speaking = '';
+    _status = null;
     notifyListeners();
+    await _prepare(agent);
+    // Do not keep "speaking" (or "thinking") on screen for the old agent.
+    if (sessionActive && _phase != VoicePhase.error) _resumeListening();
   }
+
+  Future<void> _prepare(AgentSummary agent) async {
+    try {
+      await prepareAgent?.call(agent);
+    } catch (_) {
+      // Settings for this agent are best effort; defaults still work.
+    }
+  }
+
+  /// Shows a problem (for example "no speech key configured") as the error
+  /// state without trying to talk.
+  void reportProblem(String message) => _fail(message, fatal: true);
 
   /// Handles a tap on the orb: interrupt the agent, finish the user's
   /// utterance early, or wake the assistant.
@@ -406,7 +456,7 @@ class VoiceConversation extends ChangeNotifier {
   }
 
   void _feedBargeIn(Int16List frame) {
-    if (!config.bargeInEnabled) return;
+    if (!_bargeInEnabled) return;
     // While audio is audible, require speech to stand clearly above it.
     final playback = outputLevel.value;
     final extra = playback > 0.03 ? (playback * 50 - 60) - 12 : null;

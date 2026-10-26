@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -10,9 +11,13 @@ import 'services/auth_service.dart';
 import 'services/secure_token_store.dart';
 import 'state/session_controller.dart';
 import 'theme/app_theme.dart';
+import 'voice/voice_hub.dart';
+import 'voice/voice_settings.dart';
 import 'ui/screens/home_screen.dart';
 import 'ui/screens/sign_in_screen.dart';
 import 'ui/screens/tenant_selection_screen.dart';
+import 'ui/voice/voice_hub_scope.dart';
+import 'ui/voice/voice_mode_screen.dart';
 import 'ui/widgets/mesh_background.dart';
 
 class SynkoraMobileApp extends StatefulWidget {
@@ -25,6 +30,10 @@ class SynkoraMobileApp extends StatefulWidget {
 class _SynkoraMobileAppState extends State<SynkoraMobileApp> {
   late final SessionController _sessionController;
   late final SynkoraAgentService _agentService;
+  late final SynkoraApiClient _apiClient;
+  final _navigatorKey = GlobalKey<NavigatorState>();
+  VoiceHub? _voiceHub;
+  StreamSubscription<void>? _wakeSub;
 
   @override
   void initState() {
@@ -34,16 +43,64 @@ class _SynkoraMobileAppState extends State<SynkoraMobileApp> {
       authService: authService,
       tokenStore: const SecureTokenStore(),
     );
-    final apiClient = SynkoraApiClient(
+    _apiClient = SynkoraApiClient(
       baseUrl: AppEnvironment.apiBaseUrl,
       accessTokenProvider: () => _sessionController.accessToken,
     );
-    _agentService = SynkoraAgentService(apiClient);
+    _agentService = SynkoraAgentService(_apiClient);
     _sessionController.bootstrap();
+    _sessionController.addListener(_syncVoiceWithSession);
+    unawaited(_initVoice());
+  }
+
+  Future<void> _initVoice() async {
+    final settings = await VoiceSettings.load();
+    if (!mounted) return;
+    final hub = VoiceHub(
+      api: _apiClient,
+      agentService: _agentService,
+      settings: settings,
+    );
+    _wakeSub = hub.wakeEvents.listen((_) => _openVoiceFromWake());
+    setState(() => _voiceHub = hub);
+    _syncVoiceWithSession();
+  }
+
+  /// Wake listening only runs while someone is signed in to a workspace.
+  void _syncVoiceWithSession() {
+    final hub = _voiceHub;
+    if (hub == null) return;
+    if (_sessionController.stage == SessionStage.ready) {
+      unawaited(hub.start());
+    } else {
+      unawaited(hub.conversation.suspend());
+    }
+  }
+
+  Future<void> _openVoiceFromWake() async {
+    final hub = _voiceHub;
+    final navigator = _navigatorKey.currentState;
+    if (hub == null || navigator == null) return;
+    final agent = hub.conversation.agent ?? hub.defaultAgent;
+    if (agent == null) {
+      await hub.close();
+      return;
+    }
+    if (hub.conversation.agent == null) {
+      await hub.conversation.switchAgent(agent);
+    }
+    unawaited(
+      navigator.push(
+        VoiceModeScreen.route(hub: hub, agent: agent, alreadyListening: true),
+      ),
+    );
   }
 
   @override
   void dispose() {
+    _wakeSub?.cancel();
+    _sessionController.removeListener(_syncVoiceWithSession);
+    _voiceHub?.dispose();
     _sessionController.dispose();
     super.dispose();
   }
@@ -54,9 +111,15 @@ class _SynkoraMobileAppState extends State<SynkoraMobileApp> {
       animation: _sessionController,
       builder: (context, _) {
         return MaterialApp(
+          navigatorKey: _navigatorKey,
           debugShowCheckedModeBanner: false,
           title: 'Synkora AI',
           theme: buildSynkoraTheme(),
+          builder: (context, child) {
+            final hub = _voiceHub;
+            if (hub == null || child == null) return child ?? const SizedBox();
+            return VoiceHubScope(hub: hub, child: child);
+          },
           home: switch (_sessionController.stage) {
             SessionStage.booting => const _BootScreen(),
             SessionStage.signedOut => SignInScreen(

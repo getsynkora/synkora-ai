@@ -4,6 +4,8 @@ import '../../models/synkora_models.dart';
 import '../../services/agent_service.dart';
 import '../../state/session_controller.dart';
 import '../../theme/app_theme.dart';
+import '../voice/voice_entry_card.dart';
+import '../voice/voice_hub_scope.dart';
 import '../widgets/mesh_background.dart';
 import 'agent_detail_screen.dart';
 
@@ -118,6 +120,11 @@ class _AgentsHomeTabState extends State<AgentsHomeTab> {
     try {
       final agents = await widget.agentService.loadAgents(search: search);
       setState(() => _agents = agents);
+      if (mounted && (search == null || search.isEmpty)) {
+        final hub = VoiceHubScope.maybeOf(context);
+        hub?.updateAgents(agents);
+        hub?.prepareDefaultAgent();
+      }
     } catch (error) {
       setState(() {
         _error = error.toString();
@@ -184,6 +191,7 @@ class _AgentsHomeTabState extends State<AgentsHomeTab> {
                       ),
                     ),
                     const SizedBox(height: 24),
+                    const VoiceEntryCard(),
                     Card(
                       child: Padding(
                         padding: const EdgeInsets.all(20),

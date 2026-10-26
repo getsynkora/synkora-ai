@@ -399,6 +399,37 @@ void main() {
     },
   );
 
+  test('suspend releases the microphone and resume re-arms wake listening', () {
+    fakeAsync((async) {
+      final h = Harness(withWake: true);
+      h.convo.setWakeEnabled(true);
+      async.settle(Duration.zero);
+      expect(h.mic.running, isTrue);
+
+      h.convo.suspend();
+      async.settle(Duration.zero);
+      expect(h.mic.running, isFalse);
+      expect(h.convo.phase, VoicePhase.idle);
+
+      h.convo.resume();
+      async.settle(Duration.zero);
+      expect(h.convo.phase, VoicePhase.armed);
+      expect(h.mic.running, isTrue);
+      h.dispose();
+    });
+  });
+
+  test('resume does nothing when wake listening is off', () {
+    fakeAsync((async) {
+      final h = Harness();
+      h.convo.resume();
+      async.settle(Duration.zero);
+      expect(h.convo.phase, VoicePhase.idle);
+      expect(h.mic.running, isFalse);
+      h.dispose();
+    });
+  });
+
   test('speech recognition that is not configured surfaces a clear error', () {
     fakeAsync((async) {
       final h = Harness();
@@ -549,6 +580,50 @@ void main() {
       async.flushMicrotasks();
       expect(h.convo.phase, VoicePhase.listening);
       expect(h.output.stopCount, greaterThan(0));
+      h.dispose();
+    });
+  });
+
+  test(
+    'switching agent mid-reply stops speaking and listens to the new agent',
+    () {
+      fakeAsync((async) {
+        final h = Harness();
+        h.open(async);
+        h.userSays(async, 'Tell me a long story');
+        h.output.playTime = const Duration(seconds: 10);
+        h.gateway.chunk('Once upon a very long time ago. ');
+        async.settle(Duration.zero);
+        expect(h.convo.phase, VoicePhase.speaking);
+
+        h.convo.switchAgent(
+          h.convo.agent == null ? h.muse : fakeAgent('GrokBot'),
+        );
+        async.settle(Duration.zero);
+
+        expect(h.convo.agent!.name, 'GrokBot');
+        expect(h.convo.phase, VoicePhase.listening);
+        expect(h.output.stopCount, greaterThan(0));
+        expect(h.convo.speakingSentence, isEmpty);
+        h.dispose();
+      });
+    },
+  );
+
+  test('interrupting by voice can be turned off', () {
+    fakeAsync((async) {
+      final h = Harness();
+      h.open(async);
+      h.userSays(async, 'Hello');
+      h.output.playTime = const Duration(seconds: 10);
+      h.gateway.chunk('A reply that keeps going for a while. ');
+      async.settle(Duration.zero);
+      h.convo.bargeInEnabled = false;
+
+      h.mic.feed(speech(1200, db: -18));
+      async.settle(Duration.zero);
+
+      expect(h.convo.phase, VoicePhase.speaking);
       h.dispose();
     });
   });
