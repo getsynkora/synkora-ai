@@ -1,0 +1,222 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:synkora_mobile/src/models/synkora_models.dart';
+import 'package:synkora_mobile/src/voice/audio/pcm.dart';
+import 'package:synkora_mobile/src/voice/ports.dart';
+
+AgentSummary fakeAgent(
+  String name, {
+  String? id,
+  Map<String, dynamic> voice = const {},
+}) => AgentSummary(
+  id: id ?? name.toLowerCase(),
+  name: name,
+  slug: name.toLowerCase().replaceAll(' ', '-'),
+  description: '',
+  agentType: 'assistant',
+  avatarUrl: null,
+  status: 'ACTIVE',
+  category: null,
+  tags: const [],
+  isPublic: false,
+  isSubAgent: false,
+  subAgentsCount: 0,
+  executionCount: 0,
+  successRate: null,
+  createdAt: null,
+  voiceConfig: voice,
+);
+
+AgentSummary fakeAgentWithVoice(Map<String, dynamic> voice) =>
+    fakeAgent('Muse', voice: voice);
+
+class FakeMic implements VoiceMic {
+  final _controller = StreamController<Int16List>.broadcast(sync: true);
+  bool running = false;
+  int starts = 0;
+  int stops = 0;
+
+  @override
+  Stream<Int16List> get frames => _controller.stream;
+
+  @override
+  bool get isRunning => running;
+
+  @override
+  Future<void> start() async {
+    running = true;
+    starts++;
+  }
+
+  @override
+  Future<void> stop() async {
+    running = false;
+    stops++;
+  }
+
+  /// Pushes [signal] through as 20 ms frames, synchronously.
+  void feed(Int16List signal) {
+    for (
+      var o = 0;
+      o + kVoiceFrameSamples <= signal.length;
+      o += kVoiceFrameSamples
+    ) {
+      _controller.add(Int16List.sublistView(signal, o, o + kVoiceFrameSamples));
+    }
+  }
+}
+
+class FakeRecognizer implements SpeechRecognizer {
+  final List<Object> results = [];
+  final List<int> receivedBytes = [];
+  Duration delay = Duration.zero;
+
+  @override
+  Future<String> transcribe(Uint8List wav, {String? language}) async {
+    receivedBytes.add(wav.length);
+    if (delay > Duration.zero) await Future<void>.delayed(delay);
+    final next = results.isEmpty ? '' : results.removeAt(0);
+    if (next is Exception) throw next;
+    return next as String;
+  }
+}
+
+class FakeSynth implements SpeechSynthesizer {
+  final List<String> requested = [];
+  final Set<String> failing = {};
+  Duration delay = Duration.zero;
+  Object? failAllWith;
+
+  @override
+  Future<SynthesizedAudio> synthesize(String text, {String? language}) async {
+    requested.add(text);
+    if (delay > Duration.zero) await Future<void>.delayed(delay);
+    final failure = failAllWith;
+    if (failure != null) throw failure;
+    if (failing.contains(text)) throw Exception('synthesis failed');
+    return SynthesizedAudio(
+      bytes: Uint8List.fromList(utf8.encode(text)),
+      mimeType: 'audio/wav',
+    );
+  }
+}
+
+/// Plays clips for [playTime] of fake time, or until stopped.
+class FakeOutput implements AudioOutput {
+  final List<String> played = [];
+  final List<String> stoppedDuring = [];
+  final _level = StreamController<double>.broadcast(sync: true);
+  Duration playTime = const Duration(milliseconds: 500);
+  Completer<void>? _current;
+  Timer? _timer;
+  String? _currentText;
+  int stopCount = 0;
+
+  @override
+  Stream<double> get level => _level.stream;
+
+  void emitLevel(double value) => _level.add(value);
+
+  @override
+  Future<void> play(SynthesizedAudio audio) {
+    final text = utf8.decode(audio.bytes);
+    played.add(text);
+    _currentText = text;
+    final completer = Completer<void>();
+    _current = completer;
+    _timer = Timer(playTime, () {
+      if (!completer.isCompleted) completer.complete();
+    });
+    return completer.future;
+  }
+
+  @override
+  Future<void> stop() async {
+    stopCount++;
+    _timer?.cancel();
+    final c = _current;
+    if (c != null && !c.isCompleted) {
+      if (_currentText != null) stoppedDuring.add(_currentText!);
+      c.complete();
+    }
+  }
+
+  @override
+  Future<void> dispose() async {
+    await _level.close();
+  }
+}
+
+class FakeGateway implements VoiceAgentGateway {
+  final List<({String agent, String message, String conversationId})> requests =
+      [];
+  final List<String> created = [];
+  StreamController<ChatEvent>? current;
+  bool cancelled = false;
+  Object? createFailure;
+
+  @override
+  Future<String> createConversation(
+    AgentSummary agent, {
+    required String name,
+  }) async {
+    if (createFailure != null) throw createFailure!;
+    created.add(agent.name);
+    return 'conv-${created.length}';
+  }
+
+  @override
+  Stream<ChatEvent> stream({
+    required AgentSummary agent,
+    required String message,
+    required String conversationId,
+  }) {
+    requests.add((
+      agent: agent.name,
+      message: message,
+      conversationId: conversationId,
+    ));
+    final controller = StreamController<ChatEvent>(
+      onCancel: () => cancelled = true,
+    );
+    current = controller;
+    return controller.stream;
+  }
+
+  void chunk(String text) =>
+      current!.add(ChatEvent(type: 'chunk', content: text));
+  void tool(String name, String status) => current!.add(
+    ChatEvent(type: 'tool_status', toolName: name, status: status),
+  );
+  void done() {
+    current!.add(const ChatEvent(type: 'done'));
+    current!.close();
+  }
+
+  void error(String message) =>
+      current!.add(ChatEvent(type: 'error', error: message));
+}
+
+class FakeWake implements WakeWordDetector {
+  bool triggerOnNextFrame = false;
+  int resets = 0;
+  int processed = 0;
+
+  @override
+  bool process(Int16List frame) {
+    processed++;
+    if (triggerOnNextFrame) {
+      triggerOnNextFrame = false;
+      return true;
+    }
+    return false;
+  }
+
+  @override
+  void reset() => resets++;
+
+  @override
+  Future<void> dispose() async {}
+}

@@ -160,6 +160,20 @@ class TestSynthesizeSpeech:
 
         assert response.status_code == status.HTTP_200_OK
 
+    def test_synthesize_speech_labels_response_with_requested_format(self, client):
+        test_client, tenant_id, mock_db = client
+
+        with patch("src.controllers.voice.VoiceService") as MockVoiceService:
+            mock_service = MockVoiceService.return_value
+            mock_service.synthesize = AsyncMock(return_value=b"RIFFdata")
+
+            response = test_client.post(
+                "/synthesize", json={"text": "Hi", "provider": "openai_tts", "config": {"format": "wav"}}
+            )
+
+        assert response.headers["content-type"] == "audio/wav"
+        assert "speech.wav" in response.headers["content-disposition"]
+
     def test_synthesize_speech_passes_speed(self, client):
         """Speaking rate is forwarded to the provider only when supplied."""
         test_client, tenant_id, mock_db = client

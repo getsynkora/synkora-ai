@@ -98,8 +98,12 @@ class SynkoraAgentService {
     required String message,
     String? conversationId,
     List<ChatAttachment> attachments = const [],
+    bool voiceMode = false,
   }) {
     final data = <String, dynamic>{'agent_slug': agentSlug, 'message': message};
+    if (voiceMode) {
+      data['voice_mode'] = true;
+    }
     if (conversationId != null) {
       data['conversation_id'] = conversationId;
     }

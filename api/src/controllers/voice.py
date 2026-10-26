@@ -274,11 +274,24 @@ async def synthesize_speech(
             "elevenlabs": "audio/mpeg",  # mp3
         }
         content_type = content_type_map.get(request.provider, "audio/mpeg")
+        extension = "mp3"
+
+        # Providers return whatever container the client asked for in config["format"].
+        requested_format = str((request.config or {}).get("format", "")).split("_")[0].lower()
+        formats = {
+            "wav": ("audio/wav", "wav"),
+            "opus": ("audio/ogg", "opus"),
+            "aac": ("audio/aac", "aac"),
+            "flac": ("audio/flac", "flac"),
+            "pcm": ("audio/L16", "pcm"),
+        }
+        if requested_format in formats:
+            content_type, extension = formats[requested_format]
 
         return Response(
             content=audio_data,
             media_type=content_type,
-            headers={"Content-Disposition": "attachment; filename=speech.mp3"},
+            headers={"Content-Disposition": f"attachment; filename=speech.{extension}"},
         )
 
     except HTTPException:

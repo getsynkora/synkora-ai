@@ -153,6 +153,7 @@ class AgentSummary {
     required this.executionCount,
     required this.successRate,
     required this.createdAt,
+    this.voiceConfig = const {},
   });
 
   final String id;
@@ -170,6 +171,10 @@ class AgentSummary {
   final int executionCount;
   final double? successRate;
   final DateTime? createdAt;
+
+  /// Per-agent voice settings (`stt_provider`, `tts_provider`, `tts_voice`,
+  /// `tts_model`, `language`). Only returned by the agent detail endpoint.
+  final Map<String, dynamic> voiceConfig;
 
   factory AgentSummary.fromJson(Map<String, dynamic> json) {
     return AgentSummary(
@@ -199,6 +204,9 @@ class AgentSummary {
       executionCount: _intValue(json['execution_count']),
       successRate: _doubleValue(json['success_rate']),
       createdAt: _dateValue(json['created_at']),
+      voiceConfig: (json['voice_config'] is Map)
+          ? Map<String, dynamic>.from(json['voice_config'] as Map)
+          : const {},
     );
   }
 }
