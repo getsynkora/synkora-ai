@@ -9,12 +9,10 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
-import '../src/models/synkora_models.dart';
 import '../src/services/agent_service.dart';
-import '../src/services/api_client.dart';
+import 'demo_backend.dart';
 import '../src/theme/app_theme.dart';
 import '../src/ui/voice/voice_entry_card.dart';
 import '../src/ui/voice/voice_hub_scope.dart';
@@ -61,7 +59,13 @@ class _DemoRootState extends State<_DemoRoot> {
   Future<void> _boot() async {
     final settings = await VoiceSettings.load();
     await settings.setWakeEnabled(true);
-    final api = _DemoApi();
+    final api = DemoApi(
+      voiceConfig: const {
+        'stt_provider': 'openai_whisper',
+        'tts_provider': 'openai_tts',
+        'tts_voice': 'nova',
+      },
+    );
     final hub = VoiceHub(
       api: api,
       agentService: SynkoraAgentService(api),
@@ -70,7 +74,7 @@ class _DemoRootState extends State<_DemoRoot> {
       output: _DemoOutput(),
       wake: _wake,
     );
-    hub.updateAgents(_demoAgents);
+    hub.updateAgents(demoAgents);
     await hub.prepareDefaultAgent();
     await hub.start();
     hub.wakeEvents.listen((_) {
@@ -78,7 +82,7 @@ class _DemoRootState extends State<_DemoRoot> {
       Navigator.of(context).push(
         VoiceModeScreen.route(
           hub: hub,
-          agent: hub.conversation.agent ?? _demoAgents.first,
+          agent: hub.conversation.agent ?? demoAgents.first,
           alreadyListening: true,
         ),
       );
@@ -134,30 +138,6 @@ class _DemoRootState extends State<_DemoRoot> {
 // ---------------------------------------------------------------------------
 // Simulated agents, microphone, wake word, API and speaker
 // ---------------------------------------------------------------------------
-
-final _demoAgents = [
-  _agent('muse', 'Muse', 'Your personal creative assistant'),
-  _agent('grokbot', 'GrokBot', 'Fast answers and live research'),
-];
-
-AgentSummary _agent(String slug, String name, String description) =>
-    AgentSummary(
-      id: slug,
-      name: name,
-      slug: slug,
-      description: description,
-      agentType: 'assistant',
-      avatarUrl: null,
-      status: 'ACTIVE',
-      category: null,
-      tags: const [],
-      isPublic: false,
-      isSubAgent: false,
-      subAgentsCount: 0,
-      executionCount: 0,
-      successRate: null,
-      createdAt: null,
-    );
 
 class _DemoMic implements VoiceMic {
   final _frames = StreamController<Int16List>.broadcast();
@@ -227,121 +207,6 @@ class _DemoWake implements WakeWordDetector {
 
   @override
   Future<void> dispose() async {}
-}
-
-class _DemoApi extends SynkoraApiClient {
-  _DemoApi() : super(baseUrl: 'http://demo');
-
-  int _turn = 0;
-
-  @override
-  Future<Map<String, dynamic>> getJson(
-    String path, {
-    Map<String, dynamic>? queryParameters,
-    bool authenticated = true,
-  }) async {
-    if (path.endsWith('/voice/api-keys')) {
-      return {
-        'data': {
-          'api_keys': [
-            {'provider': 'openai_whisper', 'is_active': true},
-            {'provider': 'openai_tts', 'is_active': true},
-          ],
-        },
-      };
-    }
-    return {
-      'data': {
-        'id': 'muse',
-        'agent_name': 'Muse',
-        'slug': 'muse',
-        'voice_config': {'tts_provider': 'openai_tts', 'tts_voice': 'nova'},
-      },
-    };
-  }
-
-  @override
-  Future<Map<String, dynamic>> postJson(
-    String path, {
-    Object? data,
-    bool authenticated = true,
-    Map<String, dynamic>? headers,
-  }) async => {
-    'data': {
-      'id': 'demo-conversation',
-      'name': 'Voice chat',
-      'status': 'active',
-    },
-  };
-
-  @override
-  Future<Map<String, dynamic>> postMultipart(
-    String path, {
-    required FormData data,
-    Map<String, dynamic>? queryParameters,
-    bool authenticated = true,
-    Map<String, dynamic>? headers,
-  }) async {
-    debugPrint('DEMO stt call #$_turn');
-    final said = _turn == 0
-        ? 'What’s the weather like in Paris today?'
-        : 'That’s all, thanks. Goodbye.';
-    _turn++;
-    return {
-      'data': {'text': said},
-    };
-  }
-
-  @override
-  Future<Uint8List> postForBytes(
-    String path, {
-    required Object data,
-    bool authenticated = true,
-    Duration receiveTimeout = const Duration(seconds: 60),
-  }) async {
-    final text = (data as Map)['text'] as String;
-    await Future<void>.delayed(const Duration(milliseconds: 350));
-    final ms = (text.length * 62).clamp(700, 6000);
-    final n = kChimeSampleRate * ms ~/ 1000;
-    final samples = Int16List(n);
-    for (var i = 0; i < n; i++) {
-      final t = i / kChimeSampleRate;
-      final syl = 0.5 + 0.5 * math.sin(2 * math.pi * 3.4 * t);
-      final phrase = 0.7 + 0.3 * math.sin(2 * math.pi * 0.7 * t + 1);
-      final v =
-          (math.sin(2 * math.pi * 170 * t) * 0.6 +
-              math.sin(2 * math.pi * 510 * t) * 0.3) *
-          syl *
-          phrase;
-      samples[i] = (v * 9000).round();
-    }
-    return pcm16ToWav(samples, sampleRate: kChimeSampleRate);
-  }
-
-  @override
-  Stream<ChatEvent> postEventStream(
-    String path, {
-    required Map<String, dynamic> data,
-    bool authenticated = true,
-  }) async* {
-    debugPrint('DEMO agent stream: ${data['message']}');
-    await Future<void>.delayed(const Duration(milliseconds: 500));
-    yield const ChatEvent(
-      type: 'tool_status',
-      toolName: 'Checking the forecast',
-      status: 'running',
-    );
-    await Future<void>.delayed(const Duration(milliseconds: 1800));
-    for (final part in const [
-      'It’s a pleasant day in Paris right now. ',
-      'Around twenty-two degrees with a light breeze and mostly sunny skies. ',
-      'You might want a light jacket for this evening, when it cools down to about fifteen.',
-    ]) {
-      yield ChatEvent(type: 'chunk', content: part);
-      await Future<void>.delayed(const Duration(milliseconds: 700));
-    }
-    yield const ChatEvent(type: 'done');
-  }
 }
 
 class _DemoOutput implements AudioOutput {

@@ -30,6 +30,7 @@ class Harness {
       synthesizer: synth,
       output: output,
       gateway: gateway,
+      liveRecognizer: live,
       wake: withWake ? wake : null,
       config: config,
       onCue: cues.add,
@@ -45,6 +46,7 @@ class Harness {
   final output = FakeOutput();
   final gateway = FakeGateway();
   final wake = FakeWake();
+  final live = FakeLive();
   final cues = <VoiceCue>[];
   late final VoiceConversation convo;
   late final AgentSummary muse;
@@ -674,4 +676,233 @@ void main() {
       });
     },
   );
+
+  group('listening with the phone\'s own recognizer (web_speech)', () {
+    Harness builtIn() => Harness()..convo.useDeviceListening = true;
+
+    test(
+      'a full turn: phone hears, agent answers, assistant speaks, listens again',
+      () {
+        fakeAsync((async) {
+          final h = builtIn();
+          h.live.queued.add('What is the weather in Paris?');
+          h.convo.begin(agent: h.muse);
+          async.settle(Duration.zero);
+
+          expect(
+            h.gateway.requests.single.message,
+            'What is the weather in Paris?',
+          );
+          expect(
+            h.mic.running,
+            isFalse,
+            reason: 'the phone recognizer owns the mic',
+          );
+          expect(
+            h.recognizer.receivedBytes,
+            isEmpty,
+            reason: 'no cloud transcription',
+          );
+
+          h.gateway.chunk('It is sunny.');
+          h.gateway.done();
+          async.settle(const Duration(seconds: 2));
+
+          expect(h.output.played, ['It is sunny.']);
+          expect(h.convo.phase, VoicePhase.listening);
+          expect(
+            h.live.listenCalls,
+            greaterThanOrEqualTo(2),
+            reason: 'listens again',
+          );
+          h.dispose();
+        });
+      },
+    );
+
+    test('the agent locale reaches the recognizer', () {
+      fakeAsync((async) {
+        final h = builtIn();
+        h.convo.deviceLocale = 'es-MX';
+        h.convo.begin(agent: h.muse);
+        async.settle(Duration.zero);
+
+        expect(h.live.lastLocale, 'es-MX');
+        h.dispose();
+      });
+    });
+
+    test('words appear live while the user is still speaking', () {
+      fakeAsync((async) {
+        final h = builtIn();
+        h.convo.begin(agent: h.muse);
+        async.settle(Duration.zero);
+        expect(h.convo.userSpeaking, isFalse);
+
+        h.live.partial('what is the');
+        expect(h.convo.liveTranscript, 'what is the');
+        expect(h.convo.userSpeaking, isTrue);
+
+        h.live.partial('what is the weather');
+        expect(h.convo.liveTranscript, 'what is the weather');
+        h.live.finish('what is the weather');
+        async.settle(Duration.zero);
+
+        expect(h.convo.liveTranscript, isEmpty);
+        expect(h.gateway.requests.single.message, 'what is the weather');
+        h.dispose();
+      });
+    });
+
+    test(
+      'hearing nothing keeps listening, then the session ends on its own',
+      () {
+        fakeAsync((async) {
+          final h = builtIn();
+          h.live.queued.addAll([null, null, null]);
+          h.convo.begin(agent: h.muse);
+          async.settle(const Duration(seconds: 1));
+
+          expect(h.live.listenCalls, greaterThan(1), reason: 'it retries');
+          expect(h.gateway.requests, isEmpty);
+
+          async.settle(const Duration(seconds: 12));
+          expect(h.convo.phase, VoicePhase.idle);
+          h.dispose();
+        });
+      },
+    );
+
+    test('speaking over the assistant interrupts it and listens again', () {
+      fakeAsync((async) {
+        final h = builtIn();
+        h.live.queued.add('Tell me about Rome');
+        h.convo.begin(agent: h.muse);
+        async.settle(Duration.zero);
+        h.output.playTime = const Duration(seconds: 10);
+        h.gateway.chunk('Rome is the capital of Italy. ');
+        async.settle(Duration.zero);
+        expect(h.convo.phase, VoicePhase.speaking);
+        expect(
+          h.mic.running,
+          isTrue,
+          reason: 'mic reopens to hear an interruption',
+        );
+
+        final listensBefore = h.live.listenCalls;
+        h.mic.feed(noise(600));
+        h.mic.feed(speech(900, db: -20));
+        async.settle(Duration.zero);
+
+        expect(h.convo.phase, VoicePhase.listening);
+        expect(h.output.stopCount, greaterThan(0));
+        expect(h.live.listenCalls, greaterThan(listensBefore));
+        h.dispose();
+      });
+    });
+
+    test('tapping the orb finishes the turn with what was heard so far', () {
+      fakeAsync((async) {
+        final h = builtIn();
+        h.convo.begin(agent: h.muse);
+        async.settle(Duration.zero);
+        h.live.partial('send this now');
+
+        h.convo.interrupt();
+        async.settle(Duration.zero);
+
+        expect(h.live.stopCalls, 1);
+        expect(h.gateway.requests.single.message, 'send this now');
+        h.dispose();
+      });
+    });
+
+    test('spoken commands work the same way ("goodbye" ends the session)', () {
+      fakeAsync((async) {
+        final h = builtIn();
+        h.live.queued.add('That is all, thanks. Goodbye.');
+        h.convo.begin(agent: h.muse);
+        async.settle(Duration.zero);
+
+        expect(h.gateway.requests, isEmpty);
+        expect(h.convo.phase, VoicePhase.idle);
+        h.dispose();
+      });
+    });
+
+    test('a recognizer that is not permitted surfaces a clear error', () {
+      fakeAsync((async) {
+        final h = builtIn();
+        h.live.queued.add(
+          const VoiceUnavailableException(
+            'Allow Speech Recognition in Settings.',
+          ),
+        );
+        h.convo.begin(agent: h.muse);
+        async.settle(Duration.zero);
+
+        expect(h.convo.phase, VoicePhase.error);
+        expect(h.convo.error, 'Allow Speech Recognition in Settings.');
+        h.dispose();
+      });
+    });
+
+    test('ending the conversation stops the recognizer', () {
+      fakeAsync((async) {
+        final h = builtIn();
+        h.convo.begin(agent: h.muse);
+        async.settle(Duration.zero);
+
+        h.convo.end();
+        async.settle(Duration.zero);
+
+        expect(h.live.cancelCalls, greaterThan(0));
+        expect(h.convo.phase, VoicePhase.idle);
+        h.dispose();
+      });
+    });
+
+    test('switching agent mid-listen restarts listening for the new agent', () {
+      fakeAsync((async) {
+        final h = builtIn();
+        h.convo.begin(agent: h.muse);
+        async.settle(Duration.zero);
+        final before = h.live.listenCalls;
+
+        h.convo.switchAgent(fakeAgent('GrokBot'));
+        async.settle(Duration.zero);
+
+        expect(h.convo.agent!.name, 'GrokBot');
+        expect(h.live.cancelCalls, greaterThan(0));
+        expect(h.live.listenCalls, greaterThan(before));
+        h.dispose();
+      });
+    });
+
+    test('the cloud path is untouched when the profile says cloud', () {
+      fakeAsync((async) {
+        final h = Harness(); // useDeviceListening stays false
+        h.open(async);
+        h.userSays(async, 'Hello there friend');
+
+        expect(h.live.listenCalls, 0);
+        expect(h.gateway.requests.single.message, 'Hello there friend');
+        expect(h.mic.running, isTrue);
+        h.dispose();
+      });
+    });
+
+    test('the setting is ignored when no built-in recognizer exists', () {
+      final convo = VoiceConversation(
+        mic: FakeMic(),
+        recognizer: FakeRecognizer(),
+        synthesizer: FakeSynth(),
+        output: FakeOutput(),
+        gateway: FakeGateway(),
+      )..useDeviceListening = true;
+
+      expect(convo.useDeviceListening, isFalse);
+      convo.dispose();
+    });
+  });
 }

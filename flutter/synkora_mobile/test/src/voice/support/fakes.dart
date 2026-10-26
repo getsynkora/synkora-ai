@@ -120,10 +120,18 @@ class FakeOutput implements AudioOutput {
 
   void emitLevel(double value) => _level.add(value);
 
+  /// Text spoken by the phone's own voice (clips with no audio data).
+  final List<String> playedDevice = [];
+
   @override
   Future<void> play(SynthesizedAudio audio) {
-    final text = utf8.decode(audio.bytes);
-    played.add(text);
+    final device = audio.deviceSpeech;
+    final text = device?.text ?? utf8.decode(audio.bytes);
+    if (device != null) {
+      playedDevice.add(text);
+    } else {
+      played.add(text);
+    }
     _currentText = text;
     final completer = Completer<void>();
     _current = completer;
@@ -237,4 +245,61 @@ class FakeWake
 
   @override
   Future<void> dispose() async {}
+}
+
+/// The phone's built-in recognizer: finals are queued by the test, or the
+/// call waits until [finish] is called.
+class FakeLive implements LiveSpeechRecognizer {
+  final _partials = StreamController<String>.broadcast(sync: true);
+  final List<Object?> queued = [];
+  Completer<String?>? _pending;
+  int listenCalls = 0;
+  int stopCalls = 0;
+  int cancelCalls = 0;
+  String? lastLocale;
+  String _last = '';
+
+  @override
+  Stream<String> get partials => _partials.stream;
+
+  @override
+  Future<String?> listenOnce({
+    String? locale,
+    Duration listenFor = const Duration(seconds: 30),
+    Duration pauseFor = const Duration(milliseconds: 1600),
+  }) {
+    listenCalls++;
+    lastLocale = locale;
+    _last = '';
+    if (queued.isNotEmpty) {
+      final next = queued.removeAt(0);
+      if (next is Exception) return Future.error(next);
+      return Future.value(next as String?);
+    }
+    return (_pending = Completer<String?>()).future;
+  }
+
+  /// Streams words as the user speaks.
+  void partial(String words) {
+    _last = words;
+    _partials.add(words);
+  }
+
+  /// Ends the current listen with [text] (null = nothing heard).
+  void finish(String? text) {
+    final p = _pending;
+    if (p != null && !p.isCompleted) p.complete(text);
+  }
+
+  @override
+  Future<void> stop() async {
+    stopCalls++;
+    finish(_last.isEmpty ? null : _last);
+  }
+
+  @override
+  Future<void> cancel() async {
+    cancelCalls++;
+    finish(null);
+  }
 }

@@ -30,6 +30,14 @@ class SynkoraAgentService {
     return AgentSummary.fromJson(data);
   }
 
+  /// Turns voice chat on or off for an agent (the agent's owner only).
+  Future<void> setVoiceEnabled(String slug, bool enabled) async {
+    await _client.putJson(
+      '/api/v1/agents/$slug',
+      data: {'voice_enabled': enabled},
+    );
+  }
+
   Future<ConversationSummary> createConversation(
     String agentId, {
     required String name,

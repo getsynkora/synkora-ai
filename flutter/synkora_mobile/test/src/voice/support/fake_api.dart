@@ -9,6 +9,9 @@ class RecordingApi extends SynkoraApiClient {
   Map<String, dynamic> jsonResponse = const {};
   final Map<String, Map<String, dynamic>> jsonByPath = {};
   int getCount = 0;
+  final List<String> getPaths = [];
+  final List<({String path, Object? body})> puts = [];
+  SynkoraApiException? putFailure;
   Uint8List bytesResponse = Uint8List(0);
   SynkoraApiException? failure;
 
@@ -25,8 +28,20 @@ class RecordingApi extends SynkoraApiClient {
   }) async {
     lastPath = path;
     getCount++;
+    getPaths.add(path);
     if (failure != null) throw failure!;
     return jsonByPath[path] ?? jsonResponse;
+  }
+
+  @override
+  Future<Map<String, dynamic>> putJson(
+    String path, {
+    Object? data,
+    bool authenticated = true,
+  }) async {
+    puts.add((path: path, body: data));
+    if (putFailure != null) throw putFailure!;
+    return const {};
   }
 
   @override

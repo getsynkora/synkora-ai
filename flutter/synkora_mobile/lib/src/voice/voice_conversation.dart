@@ -98,6 +98,7 @@ class VoiceConversation extends ChangeNotifier {
     required this.synthesizer,
     required this.output,
     required this.gateway,
+    this.liveRecognizer,
     this.wake,
     this.config = const VoiceConversationConfig(),
     this.onCue,
@@ -115,6 +116,10 @@ class VoiceConversation extends ChangeNotifier {
   final SpeechSynthesizer synthesizer;
   final AudioOutput output;
   final VoiceAgentGateway gateway;
+
+  /// The phone's built-in recognizer, used when the agent is set to the free
+  /// `web_speech` provider (see [useDeviceListening]).
+  final LiveSpeechRecognizer? liveRecognizer;
   final WakeWordDetector? wake;
   final VoiceConversationConfig config;
   final void Function(VoiceCue cue)? onCue;
@@ -154,6 +159,11 @@ class VoiceConversation extends ChangeNotifier {
   String? _status;
   String? _error;
   bool _muted = false;
+  bool _deviceListening = false;
+  int _listenToken = 0;
+  bool _deviceHeard = false;
+  String _liveTranscript = '';
+  StreamSubscription<String>? _partialSub;
   late bool _bargeInEnabled = config.bargeInEnabled;
   bool _wakeEnabled = false;
   bool _agentDone = false;
@@ -192,7 +202,25 @@ class VoiceConversation extends ChangeNotifier {
 
   bool get wakeEnabled => _wakeEnabled;
   bool get userSpeaking =>
-      _phase == VoicePhase.listening && _turnEndpointer.inSpeech;
+      _phase == VoicePhase.listening &&
+      (_turnEndpointer.inSpeech || _deviceHeard);
+
+  /// What the built-in recognizer has heard so far this turn, for captions.
+  String get liveTranscript => _liveTranscript;
+
+  /// Locale (BCP-47, e.g. `en-US`) for the phone's recognizer, from the
+  /// active agent's language setting. Null uses the device default.
+  String? deviceLocale;
+
+  /// Listen with the phone's own recognizer instead of recording audio for the
+  /// cloud. Set by the agent's voice profile; ignored if none is available.
+  bool get useDeviceListening => _deviceListening;
+  set useDeviceListening(bool value) {
+    final next = value && liveRecognizer != null;
+    if (next == _deviceListening) return;
+    _deviceListening = next;
+    notifyListeners();
+  }
 
   /// True while a conversation is in progress (as opposed to idle/armed).
   bool get sessionActive =>
@@ -246,17 +274,20 @@ class VoiceConversation extends ChangeNotifier {
     }
     if (sessionActive && _phase != VoicePhase.error) return;
     _error = null;
-    try {
-      await _openMic();
-    } catch (e) {
-      _fail(_describe(e), fatal: true);
-      return;
+    if (!_deviceListening) {
+      try {
+        await _openMic();
+      } catch (e) {
+        _fail(_describe(e), fatal: true);
+        return;
+      }
     }
     _turnEndpointer.reset();
     _bargeInEndpointer.reset();
     _setPhase(VoicePhase.listening);
     _startListenTimeout(config.firstListenTimeout);
     onCue?.call(VoiceCue.listening);
+    _startDeviceListening();
   }
 
   /// Leaves the conversation. Returns to wake listening if enabled, otherwise
@@ -342,7 +373,9 @@ class VoiceConversation extends ChangeNotifier {
         _cancelRun();
         _resumeListening();
       case VoicePhase.listening:
-        if (_turnEndpointer.inSpeech) {
+        if (_deviceListening) {
+          unawaited(liveRecognizer?.stop());
+        } else if (_turnEndpointer.inSpeech) {
           final taken = _turnEndpointer.takeInProgress();
           if (taken.speechMs >= config.turnEndpoint.minSpeechMs) {
             unawaited(
@@ -377,6 +410,8 @@ class VoiceConversation extends ChangeNotifier {
     _cancelRun();
     _cancelListenTimeout();
     _outputLevelSub?.cancel();
+    _partialSub?.cancel();
+    unawaited(liveRecognizer?.cancel());
     _micSub?.cancel();
     unawaited(mic.stop());
     unawaited(wake?.dispose());
@@ -467,6 +502,14 @@ class VoiceConversation extends ChangeNotifier {
     _markLastAgentInterrupted();
     _cancelRun();
     _turnEndpointer.reset();
+    if (_deviceListening) {
+      // The built-in recognizer takes over the microphone; the first words are
+      // lost, which is the cost of using the free provider.
+      _setPhase(VoicePhase.listening);
+      _startListenTimeout(config.followUpTimeout);
+      _startDeviceListening();
+      return;
+    }
     _turnEndpointer.adoptInProgress(carried.audio, speechMs: carried.speechMs);
     _setPhase(VoicePhase.listening);
   }
@@ -497,8 +540,17 @@ class VoiceConversation extends ChangeNotifier {
       return;
     }
     if (!_isCurrent(run)) return;
+    await _handleTranscript(text, speechDuration, run);
+  }
 
-    text = text.trim();
+  /// Everything that happens once we know what the user said, however it was
+  /// recognized: filter noise, handle spoken commands, then ask the agent.
+  Future<void> _handleTranscript(
+    String transcript,
+    Duration speechDuration,
+    int run,
+  ) async {
+    final text = transcript.trim();
     if (isLikelyTranscriptionHallucination(
       text,
       speechDuration: speechDuration,
@@ -735,6 +787,9 @@ class VoiceConversation extends ChangeNotifier {
           _status = null;
           _setPhase(VoicePhase.speaking);
           _bargeInEndpointer.reset();
+          if (_deviceListening && _bargeInEnabled && !mic.isRunning) {
+            unawaited(_openMic().catchError((Object _) {}));
+          }
         }
         _spokeAnything = true;
         _speaking = job.text;
@@ -768,6 +823,68 @@ class VoiceConversation extends ChangeNotifier {
     _turnEndpointer.reset();
     _setPhase(VoicePhase.listening);
     _startListenTimeout(config.followUpTimeout);
+    _startDeviceListening();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Listening with the phone's built-in recognizer (agent uses web_speech)
+  // ---------------------------------------------------------------------------
+
+  void _startDeviceListening() {
+    if (!_deviceListening || liveRecognizer == null) return;
+    unawaited(_listenWithDevice());
+  }
+
+  Future<void> _listenWithDevice() async {
+    final live = liveRecognizer!;
+    final token = ++_listenToken;
+    _deviceHeard = false;
+    _liveTranscript = '';
+    unawaited(_partialSub?.cancel());
+    _partialSub = live.partials.listen((text) {
+      if (token != _listenToken) return;
+      if (text.isNotEmpty && !_deviceHeard) {
+        _deviceHeard = true;
+        _cancelListenTimeout();
+      }
+      _liveTranscript = text;
+      notifyListeners();
+    });
+    // The built-in recognizer needs the microphone to itself.
+    await _closeMic();
+    if (token != _listenToken || _phase != VoicePhase.listening) return;
+
+    String? heard;
+    try {
+      heard = await live.listenOnce(locale: deviceLocale ?? config.language);
+    } on VoiceUnavailableException catch (e) {
+      if (token == _listenToken) _fail(e.message, fatal: true);
+      return;
+    } catch (_) {
+      heard = null;
+    }
+    if (token != _listenToken || _phase != VoicePhase.listening) return;
+    unawaited(_partialSub?.cancel());
+    _partialSub = null;
+
+    final text = heard?.trim() ?? '';
+    _deviceHeard = false;
+    if (text.isEmpty) {
+      // Nothing heard. Keep listening until the follow-up timer ends the
+      // session; a short pause avoids hammering a rate-limited recognizer.
+      _liveTranscript = '';
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      if (token == _listenToken && _phase == VoicePhase.listening) {
+        _startDeviceListening();
+      }
+      return;
+    }
+    _cancelListenTimeout();
+    final run = _cancelRun();
+    _liveTranscript = '';
+    _setPhase(VoicePhase.thinking);
+    onCue?.call(VoiceCue.sent);
+    await _handleTranscript(text, const Duration(seconds: 2), run);
   }
 
   void _startListenTimeout(Duration timeout) {
@@ -787,6 +904,9 @@ class VoiceConversation extends ChangeNotifier {
   /// Invalidates everything in flight and returns the id of the new run.
   int _cancelRun() {
     _run++;
+    _listenToken++;
+    _deviceHeard = false;
+    unawaited(liveRecognizer?.cancel());
     _thinkingHintTimer?.cancel();
     final sub = _agentSub;
     _agentSub = null;

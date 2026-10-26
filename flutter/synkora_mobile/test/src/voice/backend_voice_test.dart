@@ -4,7 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:synkora_mobile/src/services/api_client.dart';
 import 'package:synkora_mobile/src/voice/audio/pcm.dart';
 import 'package:synkora_mobile/src/voice/engines/backend_voice.dart';
+import 'package:synkora_mobile/src/voice/engines/device_speech.dart';
 import 'package:synkora_mobile/src/voice/ports.dart';
+import 'package:synkora_mobile/src/voice/voice_profile.dart';
 
 import 'support/fake_api.dart';
 import 'support/fakes.dart';
@@ -13,99 +15,31 @@ import 'support/signals.dart';
 VoiceCapabilities caps(List<String> providers) =>
     VoiceCapabilities(providers.toSet());
 
+VoiceProfile profile(
+  Map<String, dynamic> voice,
+  List<String> keys, {
+  double speed = 1.0,
+}) => VoiceProfile.resolve(
+  fakeAgentWithVoice(voice).withVoice(voiceEnabled: true),
+  capabilities: caps(keys),
+  speed: speed,
+);
+
 void main() {
-  group('VoiceCapabilities.load', () {
-    test('reads active providers, tolerating enum-style names', () async {
-      final api = RecordingApi()
-        ..jsonResponse = {
-          'data': {
-            'api_keys': [
-              {'provider': 'openai_whisper', 'is_active': true},
-              {'provider': 'VoiceProvider.OPENAI_TTS', 'is_active': true},
-              {'provider': 'elevenlabs', 'is_active': false},
-            ],
-          },
-        };
+  test('loadVoiceCapabilities reads the workspace keys', () async {
+    final api = RecordingApi()
+      ..jsonByPath['/api/v1/voice/api-keys'] = {
+        'data': {
+          'api_keys': [
+            {'provider': 'openai_whisper', 'is_active': true},
+          ],
+        },
+      };
 
-      final c = await VoiceCapabilities.load(api);
+    final c = await loadVoiceCapabilities(api);
 
-      expect(c.providers, {'openai_whisper', 'openai_tts'});
-      expect(c.ready, isTrue);
-      expect(c.problem, isNull);
-    });
-
-    test('explains what is missing', () {
-      expect(caps([]).problem, contains('speech provider key'));
-      expect(caps(['openai_tts']).problem, contains('speech recognition'));
-      expect(caps(['openai_whisper']).problem, contains('speech output'));
-    });
-  });
-
-  group('VoiceProfile.resolve', () {
-    test('uses the agent\'s configured provider, voice and language', () {
-      final agent = fakeAgentWithVoice({
-        'tts_provider': 'elevenlabs',
-        'tts_voice': 'rachel-id',
-        'tts_model': 'eleven_turbo_v2',
-        'language': 'fr-FR',
-      });
-      final p = VoiceProfile.resolve(
-        agent,
-        caps(['openai_whisper', 'openai_tts', 'elevenlabs']),
-      );
-
-      expect(p.ttsProvider, 'elevenlabs');
-      expect(p.voiceId, 'rachel-id');
-      expect(p.model, 'eleven_turbo_v2');
-      expect(p.language, 'fr');
-    });
-
-    test(
-      'falls back to a configured provider and drops the foreign voice id',
-      () {
-        final agent = fakeAgentWithVoice({
-          'tts_provider': 'elevenlabs',
-          'tts_voice': 'rachel-id',
-        });
-        final p = VoiceProfile.resolve(
-          agent,
-          caps(['openai_whisper', 'openai_tts']),
-        );
-
-        expect(p.ttsProvider, 'openai_tts');
-        expect(
-          p.voiceId,
-          isNull,
-          reason: 'an ElevenLabs id is invalid for OpenAI',
-        );
-      },
-    );
-
-    test('browser-only "web_speech" is replaced by an available provider', () {
-      final p = VoiceProfile.resolve(
-        fakeAgentWithVoice({'tts_provider': 'web_speech'}),
-        caps(['openai_tts']),
-      );
-      expect(p.ttsProvider, 'openai_tts');
-    });
-
-    test('no provider when none is configured; language auto-detects', () {
-      final p = VoiceProfile.resolve(fakeAgent('Muse'), caps([]));
-      expect(p.ttsProvider, isNull);
-      expect(p.language, isNull);
-    });
-
-    test('hint lists Synkora and agent names for the recognizer', () {
-      final p = VoiceProfile.resolve(
-        fakeAgent('Muse'),
-        caps(['openai_tts']),
-        knownNames: ['GrokBot'],
-      );
-      expect(
-        p.hint,
-        allOf(contains('Synkora'), contains('Muse'), contains('GrokBot')),
-      );
-    });
+    expect(c.has('openai_whisper'), isTrue);
+    expect(api.lastPath, '/api/v1/voice/api-keys');
   });
 
   group('BackendSpeechRecognizer', () {
@@ -117,9 +51,9 @@ void main() {
             'data': {'text': 'hello there'},
           };
         final stt = BackendSpeechRecognizer(api, model: 'gpt-4o-transcribe')
-          ..profile = VoiceProfile.resolve(
-            fakeAgentWithVoice({'language': 'en-US'}),
-            caps(['openai_tts']),
+          ..profile = profile(
+            {'stt_provider': 'openai_whisper', 'language': 'en-US'},
+            ['openai_whisper'],
           );
 
         final text = await stt.transcribe(pcm16ToWav(speech(300)));
@@ -168,12 +102,9 @@ void main() {
       final api = RecordingApi()
         ..bytesResponse = pcm16ToWav(speech(500), sampleRate: 24000);
       final tts = BackendSpeechSynthesizer(api)
-        ..profile = VoiceProfile.resolve(
-          fakeAgentWithVoice({
-            'tts_voice': 'shimmer',
-            'tts_provider': 'openai_tts',
-          }),
-          caps(['openai_tts']),
+        ..profile = profile(
+          {'tts_voice': 'shimmer', 'tts_provider': 'openai_tts'},
+          ['openai_tts'],
           speed: 1.15,
         );
 
@@ -193,10 +124,7 @@ void main() {
     test('defaults the OpenAI voice and omits speed at normal rate', () async {
       final api = RecordingApi()..bytesResponse = pcm16ToWav(speech(100));
       final tts = BackendSpeechSynthesizer(api)
-        ..profile = VoiceProfile.resolve(
-          fakeAgent('Muse'),
-          caps(['openai_tts']),
-        );
+        ..profile = profile({'tts_provider': 'openai_tts'}, ['openai_tts']);
 
       await tts.synthesize('Hi');
 
@@ -209,13 +137,13 @@ void main() {
       final api = RecordingApi()
         ..bytesResponse = Uint8List.fromList([0x49, 0x44, 0x33, 4, 0, 0]);
       final tts = BackendSpeechSynthesizer(api)
-        ..profile = VoiceProfile.resolve(
-          fakeAgentWithVoice({
+        ..profile = profile(
+          {
             'tts_provider': 'elevenlabs',
             'tts_voice': 'abc',
             'tts_model': 'eleven_turbo_v2',
-          }),
-          caps(['elevenlabs']),
+          },
+          ['elevenlabs'],
         );
 
       final audio = await tts.synthesize('Hi');
@@ -227,7 +155,7 @@ void main() {
       expect(audio.envelope, isEmpty);
     });
 
-    test('no configured provider is VoiceUnavailable', () {
+    test('without a cloud provider in the profile it refuses to guess', () {
       final tts = BackendSpeechSynthesizer(RecordingApi());
       expect(tts.synthesize('Hi'), throwsA(isA<VoiceUnavailableException>()));
     });
@@ -235,11 +163,91 @@ void main() {
     test('empty audio is an error, not silence', () {
       final api = RecordingApi();
       final tts = BackendSpeechSynthesizer(api)
-        ..profile = VoiceProfile.resolve(
-          fakeAgent('Muse'),
-          caps(['openai_tts']),
-        );
+        ..profile = profile({'tts_provider': 'openai_tts'}, ['openai_tts']);
       expect(tts.synthesize('Hi'), throwsA(isA<SynkoraApiException>()));
+    });
+  });
+
+  group('RoutingSpeechSynthesizer', () {
+    test(
+      'built-in speech yields a text clip for the phone voice, with locale and speed',
+      () async {
+        final cloud = RecordingApi();
+        final router = RoutingSpeechSynthesizer(BackendSpeechSynthesizer(cloud))
+          ..profile = profile({'language': 'fr-FR'}, [], speed: 1.2);
+
+        final clip = await router.synthesize('Bonjour');
+
+        expect(clip.deviceSpeech!.text, 'Bonjour');
+        expect(clip.deviceSpeech!.locale, 'fr-FR');
+        expect(clip.deviceSpeech!.speed, 1.2);
+        expect(clip.bytes, isEmpty);
+        expect(
+          cloud.lastPath,
+          isNull,
+          reason: 'no network call for built-in speech',
+        );
+      },
+    );
+
+    test('a cloud profile delegates to the cloud voice', () async {
+      final api = RecordingApi()..bytesResponse = pcm16ToWav(speech(100));
+      final cloud = BackendSpeechSynthesizer(api);
+      final p = profile({'tts_provider': 'openai_tts'}, ['openai_tts']);
+      cloud.profile = p;
+      final router = RoutingSpeechSynthesizer(cloud)..profile = p;
+
+      final clip = await router.synthesize('Hello');
+
+      expect(clip.deviceSpeech, isNull);
+      expect(api.lastPath, '/api/v1/voice/synthesize');
+    });
+  });
+
+  group('RoutingAudioOutput', () {
+    test(
+      'text clips go to the phone voice and audio clips to the player',
+      () async {
+        final audio = FakeOutput();
+        final device = FakeOutput();
+        final router = RoutingAudioOutput(audio: audio, device: device);
+
+        await router.play(
+          SynthesizedAudio.device(const DeviceSpeech(text: 'spoken by phone')),
+        );
+        await router.play(
+          SynthesizedAudio(
+            bytes: Uint8List.fromList([97]),
+            mimeType: 'audio/wav',
+          ),
+        );
+
+        expect(device.playedDevice, ['spoken by phone']);
+        expect(audio.played, ['a']);
+      },
+    );
+
+    test('stop reaches both players', () async {
+      final audio = FakeOutput();
+      final device = FakeOutput();
+      await RoutingAudioOutput(audio: audio, device: device).stop();
+
+      expect(audio.stopCount, 1);
+      expect(device.stopCount, 1);
+    });
+
+    test('levels from either player are forwarded', () async {
+      final audio = FakeOutput();
+      final device = FakeOutput();
+      final router = RoutingAudioOutput(audio: audio, device: device);
+      final seen = <double>[];
+      router.level.listen(seen.add);
+
+      audio.emitLevel(0.3);
+      device.emitLevel(0.8);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(seen, [0.3, 0.8]);
     });
   });
 }

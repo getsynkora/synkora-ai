@@ -90,23 +90,82 @@ void main() {
     expect(f.mic.running, isFalse);
   });
 
-  testWidgets('a missing speech key shows a clear message with a retry', (
+  testWidgets(
+    'a default agent works with no keys, and shows your words as you speak',
+    (tester) async {
+      final f = await HubFixture.create(
+        providers: const [],
+        agentVoice: builtInVoice,
+      );
+      f.hub.updateAgents([muse]);
+      await tester.pumpWidget(host(f, muse));
+
+      await tester.tap(find.text('open voice'));
+      await settle(tester, 1000);
+
+      expect(find.text('I’m listening'), findsOneWidget);
+      expect(find.text('Something went wrong'), findsNothing);
+
+      f.live.partial('what is on my calendar');
+      await settle(tester, 500);
+
+      expect(find.text('Listening…'), findsOneWidget);
+      expect(find.text('what is on my calendar'), findsOneWidget);
+
+      await tester.tap(find.bySemanticsLabel('End conversation'));
+      await settle(tester, 800);
+    },
+  );
+
+  testWidgets(
+    'a paid provider with no key explains it and offers the phone\'s voice',
+    (tester) async {
+      final f = await HubFixture.create(providers: const []);
+      f.hub.updateAgents([muse]);
+      await tester.pumpWidget(host(f, muse));
+
+      await tester.tap(find.text('open voice'));
+      await settle(tester, 1000);
+
+      expect(find.text('Something went wrong'), findsOneWidget);
+      expect(find.textContaining('OpenAI Whisper'), findsOneWidget);
+      expect(find.text('Use my phone’s voice'), findsOneWidget);
+
+      await tester.tap(find.text('Use my phone’s voice'));
+      await settle(tester, 1000);
+
+      expect(find.text('I’m listening'), findsOneWidget);
+      expect(f.hub.activeProfile.speak.name, 'device');
+
+      await tester.tap(find.bySemanticsLabel('End conversation'));
+      await settle(tester, 800);
+    },
+  );
+
+  testWidgets('voice turned off offers to turn it on, then starts', (
     tester,
   ) async {
-    final f = await HubFixture.create(providers: const []);
+    final f = await HubFixture.create(
+      agentVoice: builtInVoice,
+      voiceEnabled: false,
+    );
     f.hub.updateAgents([muse]);
     await tester.pumpWidget(host(f, muse));
 
     await tester.tap(find.text('open voice'));
     await settle(tester, 1000);
 
-    expect(find.text('Something went wrong'), findsOneWidget);
-    expect(find.textContaining('speech provider key'), findsOneWidget);
-    expect(find.text('Try again'), findsOneWidget);
+    expect(find.textContaining('Voice is turned off for Muse'), findsOneWidget);
+    expect(find.text('Turn on voice'), findsOneWidget);
+
+    await tester.tap(find.text('Turn on voice'));
+    await settle(tester, 1000);
+
+    expect(f.api.puts.single.body, {'voice_enabled': true});
+    expect(find.text('I’m listening'), findsOneWidget);
 
     await tester.tap(find.bySemanticsLabel('End conversation'));
     await settle(tester, 800);
-    expect(find.text('open voice'), findsOneWidget);
   });
 
   testWidgets('the end button closes the conversation and releases the mic', (

@@ -7,126 +7,16 @@ import '../../services/agent_service.dart';
 import '../../services/api_client.dart';
 import '../audio/wav_envelope.dart';
 import '../ports.dart';
+import '../voice_profile.dart';
 
 const _missingKeyMessage =
-    'Voice needs a speech provider key. Add an OpenAI (or ElevenLabs) key '
-    'under Voice settings in the Synkora dashboard.';
+    'This agent is set to a paid speech provider, but no key is saved for it. '
+    'Add one under Voice settings, or use your phone\'s built-in voice.';
 
-/// Which speech providers the workspace has configured.
-class VoiceCapabilities {
-  const VoiceCapabilities(this.providers);
-
-  const VoiceCapabilities.none() : providers = const {};
-
-  /// Active provider ids such as `openai_whisper`, `openai_tts`, `elevenlabs`.
-  final Set<String> providers;
-
-  bool get canTranscribe => providers.contains('openai_whisper');
-  bool get canSpeak =>
-      providers.contains('openai_tts') || providers.contains('elevenlabs');
-  bool get ready => canTranscribe && canSpeak;
-
-  static Future<VoiceCapabilities> load(SynkoraApiClient api) async {
-    final response = await api.getJson('/api/v1/voice/api-keys');
-    final data = (response['data'] as Map<String, dynamic>?) ?? const {};
-    final keys = (data['api_keys'] as List<dynamic>? ?? const []);
-    final providers = <String>{};
-    for (final key in keys) {
-      if (key is! Map) continue;
-      if (key['is_active'] == false) continue;
-      final raw = key['provider']?.toString().toLowerCase() ?? '';
-      // Enum members may serialize as "VoiceProvider.OPENAI_TTS" or "openai_tts".
-      providers.add(raw.split('.').last);
-    }
-    return VoiceCapabilities(providers);
-  }
-
-  /// Explains what is missing, or null when voice can work.
-  String? get problem {
-    if (!canTranscribe && !canSpeak) return _missingKeyMessage;
-    if (!canTranscribe) {
-      return 'Voice needs an OpenAI key for speech recognition. Add it under '
-          'Voice settings in the Synkora dashboard.';
-    }
-    if (!canSpeak) {
-      return 'Voice needs an OpenAI or ElevenLabs key for speech output. Add '
-          'one under Voice settings in the Synkora dashboard.';
-    }
-    return null;
-  }
-}
-
-/// How one agent should sound and be understood.
-class VoiceProfile {
-  const VoiceProfile({
-    this.ttsProvider,
-    this.voiceId,
-    this.model,
-    this.language,
-    this.speed = 1.0,
-    this.agentId,
-    this.hint,
-  });
-
-  /// `openai_tts` or `elevenlabs`; null when no provider is available.
-  final String? ttsProvider;
-  final String? voiceId;
-  final String? model;
-
-  /// ISO-639-1 code (`en`) when the agent pins a language, else auto-detect.
-  final String? language;
-  final double speed;
-  final String? agentId;
-
-  /// Vocabulary hint for the recognizer (names it would otherwise misspell).
-  final String? hint;
-
-  static const empty = VoiceProfile();
-
-  /// Picks the provider and voice for [agent] from what the workspace has.
-  factory VoiceProfile.resolve(
-    AgentSummary agent,
-    VoiceCapabilities capabilities, {
-    double speed = 1.0,
-    List<String> knownNames = const [],
-  }) {
-    final config = agent.voiceConfig;
-    final wanted = config['tts_provider']?.toString();
-
-    String? provider;
-    if (wanted != null && capabilities.providers.contains(wanted)) {
-      provider = wanted;
-    } else if (capabilities.providers.contains('openai_tts')) {
-      provider = 'openai_tts';
-    } else if (capabilities.providers.contains('elevenlabs')) {
-      provider = 'elevenlabs';
-    }
-
-    // Voice ids are provider specific; only reuse the agent's when it was
-    // chosen for the provider we ended up with.
-    final voice = (provider == wanted) ? config['tts_voice']?.toString() : null;
-    final model = (provider == wanted) ? config['tts_model']?.toString() : null;
-    final language = config['language']?.toString();
-
-    final names = <String>{'Synkora', agent.name, ...knownNames};
-    return VoiceProfile(
-      ttsProvider: provider,
-      voiceId: (voice == null || voice.isEmpty) ? null : voice,
-      model: (model == null || model.isEmpty) ? null : model,
-      language: _isoLanguage(language),
-      speed: speed,
-      agentId: agent.id,
-      hint:
-          'Conversation with a voice assistant. Names: '
-          '${names.take(8).join(', ')}.',
-    );
-  }
-
-  static String? _isoLanguage(String? tag) {
-    if (tag == null || tag.isEmpty) return null;
-    final base = tag.split(RegExp('[-_]')).first.toLowerCase();
-    return RegExp(r'^[a-z]{2}$').hasMatch(base) ? base : null;
-  }
+/// Loads which speech providers the workspace has keys for.
+Future<VoiceCapabilities> loadVoiceCapabilities(SynkoraApiClient api) async {
+  final response = await api.getJson('/api/v1/voice/api-keys');
+  return VoiceCapabilities.fromApiKeys(response);
 }
 
 VoiceUnavailableException? _asUnavailable(SynkoraApiException error) {
@@ -202,6 +92,8 @@ class BackendSpeechSynthesizer implements SpeechSynthesizer {
     final p = profile;
     final provider = p.ttsProvider;
     if (provider == null) {
+      // The profile routes to the built-in voice unless the agent chose a
+      // cloud provider, so this only happens if routing is bypassed.
       throw const VoiceUnavailableException(_missingKeyMessage);
     }
 

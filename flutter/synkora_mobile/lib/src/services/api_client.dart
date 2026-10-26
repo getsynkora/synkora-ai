@@ -67,6 +67,23 @@ class SynkoraApiClient {
     }
   }
 
+  Future<Map<String, dynamic>> putJson(
+    String path, {
+    Object? data,
+    bool authenticated = true,
+  }) async {
+    try {
+      final response = await _dio.put<Map<String, dynamic>>(
+        path,
+        data: data,
+        options: Options(headers: _headers(authenticated: authenticated)),
+      );
+      return response.data ?? const {};
+    } on DioException catch (error) {
+      throw _wrapDioException(error);
+    }
+  }
+
   Future<Map<String, dynamic>> postMultipart(
     String path, {
     required FormData data,

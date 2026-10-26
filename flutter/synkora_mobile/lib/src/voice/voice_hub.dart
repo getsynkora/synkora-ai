@@ -6,16 +6,19 @@ import '../models/synkora_models.dart';
 import '../services/agent_service.dart';
 import '../services/api_client.dart';
 import 'engines/backend_voice.dart';
+import 'engines/device_speech.dart';
 import 'engines/just_audio_output.dart';
 import 'engines/record_mic.dart';
 import 'engines/voice_cue_player.dart';
 import 'ports.dart';
 import 'voice_conversation.dart';
+import 'voice_profile.dart';
 import 'voice_settings.dart';
 
 /// App-level voice service: wires the real microphone, speaker and Synkora
-/// backend into one [VoiceConversation], keeps each agent's voice profile in
-/// sync, and releases the microphone when the app goes to the background.
+/// backend into one [VoiceConversation], plans each agent's voice from the
+/// agent's own settings, and releases the microphone when the app goes to the
+/// background.
 class VoiceHub extends ChangeNotifier with WidgetsBindingObserver {
   VoiceHub({
     required SynkoraApiClient api,
@@ -23,23 +26,31 @@ class VoiceHub extends ChangeNotifier with WidgetsBindingObserver {
     required this.settings,
     VoiceMic? mic,
     AudioOutput? output,
+    LiveSpeechRecognizer? liveRecognizer,
     WakeWordDetector? wake,
     VoiceCuePlayer? cues,
   }) : _api = api,
        _agentService = agentService,
        _recognizer = BackendSpeechRecognizer(api),
-       _synthesizer = BackendSpeechSynthesizer(api),
+       _cloudSynthesizer = BackendSpeechSynthesizer(api),
        _cues =
            cues ??
            VoiceCuePlayer(
              sounds: settings.cueSounds,
              haptics: settings.cueHaptics,
            ) {
+    _synthesizer = RoutingSpeechSynthesizer(_cloudSynthesizer);
     conversation = VoiceConversation(
       mic: mic ?? RecordMic(),
       recognizer: _recognizer,
       synthesizer: _synthesizer,
-      output: output ?? JustAudioOutput(),
+      output:
+          output ??
+          RoutingAudioOutput(
+            audio: JustAudioOutput(),
+            device: DeviceSpeechOutput(),
+          ),
+      liveRecognizer: liveRecognizer ?? DeviceSpeechRecognizer(),
       gateway: ServiceVoiceAgentGateway(agentService),
       wake: wake,
       config: VoiceConversationConfig(bargeInEnabled: settings.bargeIn),
@@ -65,17 +76,25 @@ class VoiceHub extends ChangeNotifier with WidgetsBindingObserver {
   final SynkoraAgentService _agentService;
   final VoiceSettings settings;
   final BackendSpeechRecognizer _recognizer;
-  final BackendSpeechSynthesizer _synthesizer;
+  final BackendSpeechSynthesizer _cloudSynthesizer;
+  late final RoutingSpeechSynthesizer _synthesizer;
   final VoiceCuePlayer _cues;
   late final VoiceConversation conversation;
 
   List<AgentSummary> _agents = const [];
-  VoiceCapabilities _capabilities = const VoiceCapabilities.none();
-  bool _capabilitiesKnown = false;
+  VoiceProfile _profile = VoiceProfile.empty;
+
+  /// Agent details (voice settings), fetched once per agent per session.
+  final Map<String, AgentSummary> _details = {};
+
+  /// Agents the user chose to talk to with the phone's built-in voice even
+  /// though they are set to a paid provider with no key.
+  final Set<String> _useBuiltIn = {};
+
+  VoiceCapabilities? _capabilities;
   DateTime? _capabilitiesLoadedAt;
 
   List<AgentSummary> get agents => _agents;
-  VoiceCapabilities get capabilities => _capabilities;
 
   /// Fires when the wake phrase is heard; the UI opens the voice screen.
   Stream<void> get wakeEvents => conversation.wakeEvents;
@@ -102,37 +121,17 @@ class VoiceHub extends ChangeNotifier with WidgetsBindingObserver {
     await conversation.switchAgent(agent);
   }
 
-  /// Loads which speech providers the workspace has (cached for a minute).
-  Future<void> ensureCapabilities({bool force = false}) async {
-    final loadedAt = _capabilitiesLoadedAt;
-    if (!force &&
-        _capabilitiesKnown &&
-        loadedAt != null &&
-        DateTime.now().difference(loadedAt) < const Duration(minutes: 1)) {
-      return;
-    }
-    try {
-      _capabilities = await VoiceCapabilities.load(_api);
-      _capabilitiesKnown = true;
-      _capabilitiesLoadedAt = DateTime.now();
-      notifyListeners();
-    } catch (_) {
-      // Unknown: stay optimistic and let a real request report any problem.
-      _capabilitiesKnown = false;
-    }
-  }
-
-  /// Why voice cannot work right now, or null.
-  String? get setupProblem => _capabilitiesKnown ? _capabilities.problem : null;
+  /// Why the current agent cannot be spoken to yet, with the way to fix it.
+  VoiceIssue? get issue => _profile.issue;
 
   /// Opens a spoken conversation with [agent] and starts listening.
   Future<void> open(AgentSummary agent, {String? conversationId}) async {
     unawaited(settings.setLastAgentId(agent.id));
-    await ensureCapabilities();
-    final problem = setupProblem;
+    await _applyProfile(agent);
+    final problem = _profile.issue;
     if (problem != null) {
       await conversation.switchAgent(agent);
-      conversation.reportProblem(problem);
+      conversation.reportProblem(problem.message);
       return;
     }
     await conversation.begin(agent: agent, conversationId: conversationId);
@@ -146,31 +145,96 @@ class VoiceHub extends ChangeNotifier with WidgetsBindingObserver {
   /// Ends the session; returns to wake listening if enabled.
   Future<void> close() => conversation.end();
 
+  /// Fixes the current [issue] with one tap, then starts the conversation:
+  /// turns voice on for the agent, or continues with the phone's own voice.
+  Future<void> resolveIssue() async {
+    final agent = conversation.agent;
+    final problem = _profile.issue;
+    if (agent == null || problem == null) return;
+    switch (problem.kind) {
+      case VoiceIssueKind.voiceDisabled:
+        try {
+          await _agentService.setVoiceEnabled(agent.slug, true);
+        } catch (_) {
+          conversation.reportProblem(
+            'Could not turn voice on for ${agent.name}. Only its owner can; '
+            'open Voice settings on the web to enable it.',
+          );
+          return;
+        }
+        _details[agent.id] = (_details[agent.id] ?? agent).withVoice(
+          voiceEnabled: true,
+        );
+      case VoiceIssueKind.missingKey:
+        _useBuiltIn.add(agent.id);
+    }
+    await _applyProfile(agent);
+    if (_profile.issue == null) {
+      await conversation.begin(agent: agent);
+    }
+  }
+
+  /// Loads which paid speech providers the workspace has keys for (cached).
+  Future<VoiceCapabilities?> _loadCapabilities() async {
+    final loadedAt = _capabilitiesLoadedAt;
+    if (_capabilities != null &&
+        loadedAt != null &&
+        DateTime.now().difference(loadedAt) < const Duration(minutes: 1)) {
+      return _capabilities;
+    }
+    try {
+      _capabilities = await loadVoiceCapabilities(_api);
+      _capabilitiesLoadedAt = DateTime.now();
+    } catch (_) {
+      // Unknown: stay optimistic and let a real request report any problem.
+      _capabilities = null;
+    }
+    return _capabilities;
+  }
+
   /// The voice profile currently in use (exposed for tests).
   @visibleForTesting
-  VoiceProfile get activeProfile => _synthesizer.profile;
+  VoiceProfile get activeProfile => _profile;
 
+  /// Plans how to hear and speak to [agent] from the agent's own settings.
   Future<void> _applyProfile(AgentSummary agent) async {
-    // The profile depends on which providers the workspace has, so make sure
-    // that is known first (cached). Hands-free wake reaches here without ever
-    // going through open().
-    await ensureCapabilities();
-    var detailed = agent;
-    if (agent.voiceConfig.isEmpty) {
+    var detailed = _details[agent.id];
+    if (detailed == null) {
       try {
+        // The agent list does not carry voice settings; the detail does.
         detailed = await _agentService.getAgent(agent.slug);
+        _details[agent.id] = detailed;
       } catch (_) {
-        // The list entry is enough to talk; only the custom voice is lost.
+        detailed = agent;
       }
     }
-    final profile = VoiceProfile.resolve(
+
+    final builtIn = _useBuiltIn.contains(agent.id);
+    final names = [for (final a in _agents) a.name];
+    var profile = VoiceProfile.resolve(
       detailed,
-      _capabilities,
       speed: settings.speed,
-      knownNames: [for (final a in _agents) a.name],
+      knownNames: names,
+      useBuiltIn: builtIn,
     );
+    // Only agents on a paid provider need to know what the workspace has.
+    if (profile.usesCloud && profile.issue == null) {
+      profile = VoiceProfile.resolve(
+        detailed,
+        capabilities: await _loadCapabilities(),
+        speed: settings.speed,
+        knownNames: names,
+        useBuiltIn: builtIn,
+      );
+    }
+
+    _profile = profile;
     _recognizer.profile = profile;
+    _cloudSynthesizer.profile = profile;
     _synthesizer.profile = profile;
+    conversation.deviceLocale = profile.locale;
+    conversation.useDeviceListening = profile.listen == SpeechSource.device;
+    notifyListeners();
   }
 
   void _onSettingsChanged() {
@@ -202,7 +266,6 @@ class VoiceHub extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Applies saved settings; call once after construction.
   Future<void> start() async {
-    unawaited(ensureCapabilities());
     _prepareWake();
     await conversation.setWakeEnabled(settings.wakeEnabled);
   }

@@ -32,6 +32,20 @@ abstract class SpeechRecognizer {
   Future<String> transcribe(Uint8List wav, {String? language});
 }
 
+/// Text to be spoken by the phone's built-in voice instead of played back as
+/// audio (the agent uses the free `web_speech` provider).
+class DeviceSpeech {
+  const DeviceSpeech({required this.text, this.locale, this.speed = 1.0});
+
+  final String text;
+
+  /// BCP-47 locale such as `en-US`; null for the device default.
+  final String? locale;
+
+  /// 1.0 is normal speed.
+  final double speed;
+}
+
 /// A synthesized piece of speech.
 class SynthesizedAudio {
   const SynthesizedAudio({
@@ -40,10 +54,23 @@ class SynthesizedAudio {
     this.duration,
     this.envelope = const [],
     this.envelopeStep = const Duration(milliseconds: 50),
+    this.deviceSpeech,
   });
+
+  /// A clip the built-in voice will speak; there is no audio data to play.
+  SynthesizedAudio.device(DeviceSpeech speech)
+    : bytes = Uint8List(0),
+      mimeType = 'application/x-device-speech',
+      duration = null,
+      envelope = const [],
+      envelopeStep = const Duration(milliseconds: 50),
+      deviceSpeech = speech;
 
   final Uint8List bytes;
   final String mimeType;
+
+  /// Set when the phone's own voice should speak this clip.
+  final DeviceSpeech? deviceSpeech;
 
   /// Known playback length, when it can be computed up front.
   final Duration? duration;
@@ -56,6 +83,30 @@ class SynthesizedAudio {
 
 abstract class SpeechSynthesizer {
   Future<SynthesizedAudio> synthesize(String text, {String? language});
+}
+
+/// Listens through the phone's built-in recognizer.
+///
+/// Unlike [SpeechRecognizer] this owns the microphone and decides when the
+/// user has finished, so the shared capture stream must be closed first.
+abstract class LiveSpeechRecognizer {
+  /// Words recognized so far in the current turn (for live captions).
+  Stream<String> get partials;
+
+  /// Listens for one utterance and returns what was said, or null if nothing
+  /// was heard. Throws [VoiceUnavailableException] if speech recognition is
+  /// not allowed or not available on this device.
+  Future<String?> listenOnce({
+    String? locale,
+    Duration listenFor = const Duration(seconds: 30),
+    Duration pauseFor = const Duration(milliseconds: 1600),
+  });
+
+  /// Stops listening and delivers what was heard so far as the result.
+  Future<void> stop();
+
+  /// Stops listening now, discarding anything not yet final.
+  Future<void> cancel();
 }
 
 /// Plays synthesized speech through the speaker.

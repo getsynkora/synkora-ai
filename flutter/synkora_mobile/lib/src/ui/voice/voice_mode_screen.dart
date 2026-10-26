@@ -7,6 +7,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '../../models/synkora_models.dart';
 import '../../voice/voice_conversation.dart';
 import '../../voice/voice_hub.dart';
+import '../../voice/voice_profile.dart';
 import 'voice_backdrop.dart';
 import 'voice_orb.dart';
 import 'voice_palette.dart';
@@ -214,6 +215,8 @@ class _VoiceModeScreenState extends State<VoiceModeScreen> {
                       controller: _c,
                       hint: _hints[_hintIndex],
                       wakeEnabled: widget.hub.settings.wakeEnabled,
+                      issueKind: widget.hub.issue?.kind,
+                      onResolve: () => unawaited(widget.hub.resolveIssue()),
                       onRetry: () => unawaited(
                         widget.hub.open(
                           agent,
@@ -357,12 +360,18 @@ class _StatusBlock extends StatelessWidget {
     required this.controller,
     required this.hint,
     required this.wakeEnabled,
+    required this.issueKind,
+    required this.onResolve,
     required this.onRetry,
   });
 
   final VoiceConversation controller;
   final String hint;
   final bool wakeEnabled;
+
+  /// Set when the agent cannot be spoken to yet and there is a one-tap fix.
+  final VoiceIssueKind? issueKind;
+  final VoidCallback onResolve;
   final VoidCallback onRetry;
 
   @override
@@ -390,7 +399,9 @@ class _StatusBlock extends StatelessWidget {
         c.status ?? (lastUser == null ? '' : '“${lastUser.text}”'),
       VoicePhase.speaking => c.speakingSentence,
       VoicePhase.listening =>
-        c.status ?? (c.turns.isEmpty && !c.userSpeaking ? hint : ''),
+        c.liveTranscript.isNotEmpty
+            ? c.liveTranscript
+            : (c.status ?? (c.turns.isEmpty && !c.userSpeaking ? hint : '')),
       VoicePhase.error => c.error ?? '',
       _ => '',
     };
@@ -415,7 +426,11 @@ class _StatusBlock extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 84, maxHeight: 132),
+            constraints: BoxConstraints(
+              minHeight: 84,
+              // Error explanations can be long; do not cut off what to do.
+              maxHeight: phase == VoicePhase.error ? 190 : 132,
+            ),
             child: Center(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 320),
@@ -435,7 +450,7 @@ class _StatusBlock extends StatelessWidget {
                         caption,
                         key: ValueKey(caption),
                         textAlign: TextAlign.center,
-                        maxLines: 4,
+                        maxLines: phase == VoicePhase.error ? 7 : 4,
                         overflow: TextOverflow.fade,
                         style:
                             (phase == VoicePhase.speaking
@@ -457,10 +472,19 @@ class _StatusBlock extends StatelessWidget {
           if (phase == VoicePhase.error) ...[
             const SizedBox(height: 6),
             TextButton.icon(
-              onPressed: onRetry,
-              icon: Icon(Icons.refresh_rounded, color: palette.core),
+              onPressed: issueKind == null ? onRetry : onResolve,
+              icon: Icon(switch (issueKind) {
+                VoiceIssueKind.voiceDisabled =>
+                  Icons.power_settings_new_rounded,
+                VoiceIssueKind.missingKey => Icons.phone_iphone_rounded,
+                null => Icons.refresh_rounded,
+              }, color: palette.core),
               label: Text(
-                'Try again',
+                switch (issueKind) {
+                  VoiceIssueKind.voiceDisabled => 'Turn on voice',
+                  VoiceIssueKind.missingKey => 'Use my phone’s voice',
+                  null => 'Try again',
+                },
                 style: TextStyle(
                   color: palette.core,
                   fontWeight: FontWeight.w700,
