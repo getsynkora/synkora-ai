@@ -83,6 +83,25 @@ class TestOpenAIWhisperProviderTranscribe:
         with pytest.raises(ValueError, match="API key"):
             await p.transcribe(b"audio")
 
+    async def test_uploads_with_the_real_filename_and_content_type(self):
+        p = OpenAIWhisperProvider(api_key="k")
+        mock_client, _ = _make_httpx_client(json_data={"text": "hi"})
+        with patch("src.services.voice.openai_provider.httpx.AsyncClient", return_value=mock_client):
+            await p.transcribe(b"RIFF....", filename="speech.wav", content_type="audio/wav", prompt="Synkora, Muse")
+
+        call = mock_client.post.call_args
+        assert call.kwargs["files"]["file"][0] == "speech.wav"
+        assert call.kwargs["files"]["file"][2] == "audio/wav"
+        assert call.kwargs["data"]["prompt"] == "Synkora, Muse"
+
+    async def test_defaults_to_webm_for_browser_uploads(self):
+        p = OpenAIWhisperProvider(api_key="k")
+        mock_client, _ = _make_httpx_client(json_data={"text": "hi"})
+        with patch("src.services.voice.openai_provider.httpx.AsyncClient", return_value=mock_client):
+            await p.transcribe(b"audio")
+
+        assert mock_client.post.call_args.kwargs["files"]["file"][0] == "audio.webm"
+
     async def test_returns_formatted_dict(self):
         p = OpenAIWhisperProvider(api_key="k")
         mock_client, _ = _make_httpx_client(

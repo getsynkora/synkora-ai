@@ -159,6 +159,8 @@ async def transcribe_audio(
     provider: str = "openai_whisper",
     language: str | None = None,
     agent_id: str | None = None,
+    prompt: str | None = None,
+    model: str | None = None,
     tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
@@ -172,6 +174,8 @@ async def transcribe_audio(
         provider: STT provider to use
         language: Optional language code
         agent_id: Optional agent ID for tracking
+        prompt: Optional vocabulary/context hint (names, jargon) to improve recognition
+        model: Optional STT model override (e.g. gpt-4o-transcribe)
         tenant_id: Current tenant ID
         db: Database session
 
@@ -200,8 +204,17 @@ async def transcribe_audio(
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid agent ID format")
 
         # Transcribe
+        options: dict[str, Any] = {
+            "filename": file.filename or "audio.webm",
+            "content_type": file.content_type or "audio/webm",
+        }
+        if prompt:
+            options["prompt"] = prompt[:500]
+        if model:
+            options["config"] = {"model": model}
+
         result = await voice_service.transcribe(
-            audio_data=audio_data, provider=provider, language=language, agent_id=agent_uuid
+            audio_data=audio_data, provider=provider, language=language, agent_id=agent_uuid, **options
         )
 
         return VoiceResponse(success=True, message="Audio transcribed successfully", data=result)

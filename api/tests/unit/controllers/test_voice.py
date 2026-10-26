@@ -60,6 +60,28 @@ class TestTranscribeAudio:
         assert data["success"] is True
         assert data["data"]["text"] == "Hello world"
 
+    def test_transcribe_audio_forwards_upload_details_hint_and_model(self, client):
+        """The real file name/type, vocabulary prompt and model reach the voice service."""
+        test_client, tenant_id, mock_db = client
+        wav = b"RIFF" + b"\x00" * 100
+
+        with patch("src.controllers.voice.VoiceService") as MockVoiceService:
+            mock_service = MockVoiceService.return_value
+            mock_service.transcribe = AsyncMock(return_value={"text": "hi"})
+
+            response = test_client.post(
+                "/transcribe",
+                files={"file": ("speech.wav", BytesIO(wav), "audio/wav")},
+                params={"prompt": "Synkora, Muse", "model": "gpt-4o-transcribe"},
+            )
+
+        assert response.status_code == status.HTTP_200_OK
+        kwargs = mock_service.transcribe.call_args.kwargs
+        assert kwargs["filename"] == "speech.wav"
+        assert kwargs["content_type"] == "audio/wav"
+        assert kwargs["prompt"] == "Synkora, Muse"
+        assert kwargs["config"] == {"model": "gpt-4o-transcribe"}
+
     def test_transcribe_audio_with_language(self, client):
         """Test transcription with language specified."""
         test_client, tenant_id, mock_db = client
