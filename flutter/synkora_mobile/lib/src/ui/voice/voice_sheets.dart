@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/synkora_models.dart';
 import '../../voice/voice_conversation.dart';
 import '../../voice/voice_hub.dart';
+import '../../voice/wake/wake_keywords.dart';
 
 const _sheetColor = Color(0xFF0E1526);
 
@@ -308,6 +309,8 @@ Future<void> showVoiceSettings(BuildContext context, VoiceHub hub) {
                 ),
               ),
               const SizedBox(height: 8),
+              if (hub.wakeSupported && hub.wakeProblem != null)
+                _WakeProblem(message: hub.wakeProblem!),
               if (hub.wakeSupported)
                 _SwitchRow(
                   title: 'Wake with “Hey Synkora”',
@@ -317,6 +320,11 @@ Future<void> showVoiceSettings(BuildContext context, VoiceHub hub) {
                       'only sent once you start speaking.',
                   value: settings.wakeEnabled,
                   onChanged: settings.setWakeEnabled,
+                ),
+              if (hub.wakeSupported && settings.wakeEnabled)
+                _SensitivityChooser(
+                  value: settings.wakeSensitivity,
+                  onChanged: settings.setWakeSensitivity,
                 ),
               _SwitchRow(
                 title: 'Interrupt by speaking',
@@ -404,6 +412,116 @@ class _SwitchRow extends StatelessWidget {
             height: 1.3,
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _SensitivityChooser extends StatelessWidget {
+  const _SensitivityChooser({required this.value, required this.onChanged});
+
+  final WakeSensitivity value;
+  final ValueChanged<WakeSensitivity> onChanged;
+
+  static const _labels = {
+    WakeSensitivity.low: 'Fewer wakes',
+    WakeSensitivity.balanced: 'Balanced',
+    WakeSensitivity.high: 'Catch more',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Wake sensitivity',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<WakeSensitivity>(
+              showSelectedIcon: false,
+              segments: [
+                for (final level in WakeSensitivity.values)
+                  ButtonSegment(value: level, label: Text(_labels[level]!)),
+              ],
+              selected: {value},
+              onSelectionChanged: (set) => onChanged(set.first),
+              style: ButtonStyle(
+                foregroundColor: WidgetStateProperty.resolveWith(
+                  (states) => states.contains(WidgetState.selected)
+                      ? const Color(0xFF06121A)
+                      : Colors.white,
+                ),
+                backgroundColor: WidgetStateProperty.resolveWith(
+                  (states) => states.contains(WidgetState.selected)
+                      ? const Color(0xFF3CF0B8)
+                      : Colors.white.withValues(alpha: 0.07),
+                ),
+                side: WidgetStatePropertyAll(
+                  BorderSide(color: Colors.white.withValues(alpha: 0.14)),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'If it wakes when you did not say it, choose “Fewer wakes”. '
+            'If it misses you, choose “Catch more”.',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.55),
+              height: 1.3,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WakeProblem extends StatelessWidget {
+  const _WakeProblem({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 4, bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFF4D5E).withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.error_outline_rounded,
+            color: Color(0xFFFF9AA3),
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '“Hey Synkora” is unavailable on this device right now. You can '
+              'still tap the orb to talk.\n$message',
+              style: const TextStyle(
+                color: Colors.white,
+                height: 1.3,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

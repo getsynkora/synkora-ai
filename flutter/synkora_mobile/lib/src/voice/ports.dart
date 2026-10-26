@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import '../models/synkora_models.dart';
+import 'wake/wake_keywords.dart';
 
 /// Thrown when voice cannot work at all as configured (for example the
 /// workspace has no speech provider key), as opposed to a transient failure.
@@ -80,6 +81,24 @@ abstract class WakeWordDetector {
   void reset();
 
   Future<void> dispose();
+}
+
+/// Optional: a detector that can report whether it is working.
+abstract interface class WakeWordStatus {
+  /// True once the model is loaded and listening.
+  bool get isReady;
+
+  /// Why the detector could not start, if it could not.
+  String? get failure;
+
+  /// Loads the model now (otherwise it loads on the first audio frame).
+  Future<void> start();
+}
+
+/// Optional: a detector whose eagerness can be changed while running.
+abstract interface class WakeSensitivityControl {
+  WakeSensitivity get sensitivity;
+  set sensitivity(WakeSensitivity value);
 }
 
 /// What the voice layer needs from the Synkora chat backend.

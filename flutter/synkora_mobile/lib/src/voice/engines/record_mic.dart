@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:audio_session/audio_session.dart';
 import 'package:record/record.dart';
 
 import '../audio/pcm.dart';
@@ -41,6 +42,14 @@ class RecordMic implements VoiceMic {
       );
     }
     await configureVoiceAudioSession();
+    // Starting capture with no input device makes iOS wait for the audio server
+    // and then abort the whole app, so check first and fail with a message.
+    if (!await _hasInputDevice()) {
+      throw const VoiceUnavailableException(
+        'No microphone is available right now. Check that nothing else is '
+        'using it, or plug in a headset, then try again.',
+      );
+    }
     // Our session (voice-chat mode) must not be reset by the recorder.
     await _recorder.ios?.manageAudioSession(false);
 
@@ -70,6 +79,17 @@ class RecordMic implements VoiceMic {
       },
     );
     _running = true;
+  }
+
+  Future<bool> _hasInputDevice() async {
+    try {
+      final session = await AudioSession.instance;
+      final devices = await session.getDevices(includeOutputs: false);
+      return devices.any((d) => d.isInput);
+    } catch (_) {
+      // If we cannot tell, let the recorder try rather than blocking voice.
+      return true;
+    }
   }
 
   @override

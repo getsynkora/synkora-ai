@@ -31,10 +31,20 @@ class JustAudioOutput implements AudioOutput {
   Future<void> play(SynthesizedAudio audio) async {
     final file = await _writeClip(audio);
     try {
+      // After a clip ends just_audio leaves `playing` true, which turns the
+      // next play() into a no-op that returns at once (and would make the
+      // conversation think every sentence finished instantly). stop() resets it.
+      await _player.stop();
       await _player.setFilePath(file.path);
       _startLevelTimer(audio);
-      // Completes when playback reaches the end or stop() is called.
-      await _player.play();
+      // Wait for the real end of playback (or stop()), not for play() to return.
+      final finished = _player.playerStateStream.firstWhere(
+        (s) =>
+            s.processingState == ProcessingState.completed ||
+            s.processingState == ProcessingState.idle,
+      );
+      unawaited(_player.play());
+      await finished;
     } finally {
       _levelTimer?.cancel();
       _levelTimer = null;

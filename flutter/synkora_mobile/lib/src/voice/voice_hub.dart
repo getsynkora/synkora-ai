@@ -47,12 +47,19 @@ class VoiceHub extends ChangeNotifier with WidgetsBindingObserver {
       agentsProvider: () => _agents,
       prepareAgent: _applyProfile,
     );
+    _applyWakeSensitivity();
     settings.addListener(_onSettingsChanged);
     WidgetsBinding.instance.addObserver(this);
   }
 
   /// Whether a wake-phrase engine is available on this device.
   bool get wakeSupported => conversation.wake != null;
+
+  /// Why "Hey Synkora" cannot work right now, or null if it can.
+  String? get wakeProblem {
+    final wake = conversation.wake;
+    return wake is WakeWordStatus ? (wake as WakeWordStatus).failure : null;
+  }
 
   final SynkoraApiClient _api;
   final SynkoraAgentService _agentService;
@@ -171,14 +178,32 @@ class VoiceHub extends ChangeNotifier with WidgetsBindingObserver {
       ..sounds = settings.cueSounds
       ..haptics = settings.cueHaptics;
     conversation.bargeInEnabled = settings.bargeIn;
+    _applyWakeSensitivity();
+    _prepareWake();
     unawaited(conversation.setWakeEnabled(settings.wakeEnabled));
     final agent = conversation.agent;
     if (agent != null) unawaited(_applyProfile(agent));
   }
 
+  /// Loads the wake model right away so any problem is known (and shown) up
+  /// front, instead of surfacing only after the first sound.
+  void _prepareWake() {
+    final wake = conversation.wake;
+    if (wake is! WakeWordStatus || !settings.wakeEnabled) return;
+    unawaited((wake as WakeWordStatus).start().whenComplete(notifyListeners));
+  }
+
+  void _applyWakeSensitivity() {
+    final wake = conversation.wake;
+    if (wake is WakeSensitivityControl) {
+      (wake as WakeSensitivityControl).sensitivity = settings.wakeSensitivity;
+    }
+  }
+
   /// Applies saved settings; call once after construction.
   Future<void> start() async {
     unawaited(ensureCapabilities());
+    _prepareWake();
     await conversation.setWakeEnabled(settings.wakeEnabled);
   }
 

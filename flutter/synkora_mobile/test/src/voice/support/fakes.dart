@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:synkora_mobile/src/models/synkora_models.dart';
 import 'package:synkora_mobile/src/voice/audio/pcm.dart';
 import 'package:synkora_mobile/src/voice/ports.dart';
+import 'package:synkora_mobile/src/voice/wake/wake_keywords.dart';
 
 AgentSummary fakeAgent(
   String name, {
@@ -199,8 +200,25 @@ class FakeGateway implements VoiceAgentGateway {
       current!.add(ChatEvent(type: 'error', error: message));
 }
 
-class FakeWake implements WakeWordDetector {
+class FakeWake
+    implements WakeWordDetector, WakeWordStatus, WakeSensitivityControl {
   bool triggerOnNextFrame = false;
+  @override
+  WakeSensitivity sensitivity = WakeSensitivity.balanced;
+  @override
+  String? failure;
+  bool ready = false;
+  int startCalls = 0;
+
+  @override
+  bool get isReady => ready;
+
+  @override
+  Future<void> start() async {
+    startCalls++;
+    ready = failure == null;
+  }
+
   int resets = 0;
   int processed = 0;
 

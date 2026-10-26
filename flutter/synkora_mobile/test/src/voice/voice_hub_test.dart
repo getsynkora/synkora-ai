@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:synkora_mobile/src/services/api_client.dart';
 import 'package:synkora_mobile/src/voice/voice_conversation.dart';
 import 'package:synkora_mobile/src/voice/voice_settings.dart';
+import 'package:synkora_mobile/src/voice/wake/wake_keywords.dart';
 
 import 'support/hub_fixture.dart';
 import 'support/fakes.dart';
@@ -158,4 +159,80 @@ void main() {
     await s.setBargeIn(false);
     expect(s.bargeIn, isFalse);
   });
+
+  test(
+    'wake sensitivity defaults to balanced and survives a bad stored value',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      expect(
+        (await VoiceSettings.load()).wakeSensitivity,
+        WakeSensitivity.balanced,
+      );
+
+      SharedPreferences.setMockInitialValues({'voice.wakeSensitivity': 99});
+      expect(
+        (await VoiceSettings.load()).wakeSensitivity,
+        WakeSensitivity.balanced,
+      );
+
+      SharedPreferences.setMockInitialValues({});
+      final s = await VoiceSettings.load();
+      await s.setWakeSensitivity(WakeSensitivity.low);
+      expect(s.wakeSensitivity, WakeSensitivity.low);
+    },
+  );
+
+  test(
+    'the saved sensitivity is applied to the wake detector, and changes follow',
+    () async {
+      final f = await HubFixture.create(
+        prefs: {'voice.wakeSensitivity': WakeSensitivity.high.index},
+      );
+      expect(f.wake.sensitivity, WakeSensitivity.high);
+
+      await f.settings.setWakeSensitivity(WakeSensitivity.low);
+
+      expect(f.wake.sensitivity, WakeSensitivity.low);
+      f.hub.dispose();
+    },
+  );
+
+  test(
+    'the wake model is loaded up front so problems show before first use',
+    () async {
+      final f = await HubFixture.create(prefs: {'voice.wakeEnabled': true});
+      f.wake.failure = 'model file missing';
+      var notified = 0;
+      f.hub.addListener(() => notified++);
+
+      await f.hub.start();
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(f.wake.startCalls, greaterThan(0));
+      expect(f.hub.wakeProblem, 'model file missing');
+      expect(notified, greaterThan(0), reason: 'the UI must be told');
+      f.hub.dispose();
+    },
+  );
+
+  test(
+    'no wake problem is reported when the detector is healthy or wake is off',
+    () async {
+      final f = await HubFixture.create(prefs: {'voice.wakeEnabled': true});
+      await f.hub.start();
+      expect(f.hub.wakeProblem, isNull);
+
+      final off = await HubFixture.create();
+      off.wake.failure = 'ignored until enabled';
+      await off.hub.start();
+      expect(
+        off.wake.startCalls,
+        0,
+        reason: 'wake is off, so do not load the model',
+      );
+      f.hub.dispose();
+      off.hub.dispose();
+    },
+  );
 }

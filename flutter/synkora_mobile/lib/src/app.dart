@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -13,6 +14,7 @@ import 'state/session_controller.dart';
 import 'theme/app_theme.dart';
 import 'voice/voice_hub.dart';
 import 'voice/voice_settings.dart';
+import 'voice/wake/sherpa_wake_word_detector.dart';
 import 'ui/screens/home_screen.dart';
 import 'ui/screens/sign_in_screen.dart';
 import 'ui/screens/tenant_selection_screen.dart';
@@ -60,6 +62,10 @@ class _SynkoraMobileAppState extends State<SynkoraMobileApp> {
       api: _apiClient,
       agentService: _agentService,
       settings: settings,
+      // On-device "Hey Synkora"; not available on the web build.
+      wake: kIsWeb
+          ? null
+          : SherpaWakeWordDetector(sensitivity: settings.wakeSensitivity),
     );
     _wakeSub = hub.wakeEvents.listen((_) => _openVoiceFromWake());
     setState(() => _voiceHub = hub);

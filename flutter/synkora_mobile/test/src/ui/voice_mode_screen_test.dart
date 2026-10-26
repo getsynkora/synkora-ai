@@ -5,6 +5,7 @@ import 'package:synkora_mobile/src/ui/voice/voice_hub_scope.dart';
 import 'package:synkora_mobile/src/ui/voice/voice_mode_screen.dart';
 import 'package:synkora_mobile/src/voice/audio/pcm.dart';
 import 'package:synkora_mobile/src/voice/voice_conversation.dart';
+import 'package:synkora_mobile/src/voice/wake/wake_keywords.dart';
 
 import '../voice/support/fakes.dart';
 import '../voice/support/hub_fixture.dart';
@@ -190,4 +191,58 @@ void main() {
       await settle(tester, 800);
     },
   );
+
+  testWidgets(
+    'wake sensitivity is offered once hands-free is on and can be changed',
+    (tester) async {
+      final f = await HubFixture.create(prefs: {'voice.wakeEnabled': true});
+      f.hub.updateAgents([muse]);
+      await tester.pumpWidget(host(f, muse));
+      await tester.tap(find.text('open voice'));
+      await settle(tester, 1000);
+
+      await tester.tap(find.byTooltip('Voice settings'));
+      await settle(tester, 600);
+
+      expect(find.text('Wake sensitivity'), findsOneWidget);
+      expect(find.text('Balanced'), findsOneWidget);
+      await tester.tap(find.text('Fewer wakes'));
+      await settle(tester, 300);
+
+      expect(f.settings.wakeSensitivity, WakeSensitivity.low);
+      expect(f.wake.sensitivity, WakeSensitivity.low);
+
+      await tester.tapAt(const Offset(10, 10));
+      await settle(tester, 500);
+      await tester.tap(find.bySemanticsLabel('End conversation'));
+      await settle(tester, 800);
+    },
+  );
+
+  testWidgets('a wake problem is explained instead of silently not working', (
+    tester,
+  ) async {
+    final f = await HubFixture.create(prefs: {'voice.wakeEnabled': true});
+    f.wake.failure = 'could not load the speech model';
+    f.hub.updateAgents([muse]);
+    await tester.pumpWidget(host(f, muse));
+    await f.hub.start();
+    await tester.tap(find.text('open voice'));
+    await settle(tester, 1000);
+
+    await tester.tap(find.byTooltip('Voice settings'));
+    await settle(tester, 600);
+
+    expect(find.textContaining('unavailable on this device'), findsOneWidget);
+    expect(
+      find.textContaining('could not load the speech model'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('tap the orb'), findsOneWidget);
+
+    await tester.tapAt(const Offset(10, 10));
+    await settle(tester, 500);
+    await tester.tap(find.bySemanticsLabel('End conversation'));
+    await settle(tester, 800);
+  });
 }

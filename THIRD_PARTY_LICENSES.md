@@ -130,6 +130,12 @@ cd web && pnpm list
 
 We thank all the maintainers and contributors of the above projects for their excellent work. Their efforts make Synkora possible.
 
+### Mobile voice (Flutter)
+
+- **sherpa-onnx** (on-device speech inference) - Apache License 2.0 - https://github.com/k2-fsa/sherpa-onnx
+- **sherpa-onnx-kws-zipformer-gigaspeech-3.3M-2024-01-01** (wake-word model bundled in `flutter/synkora_mobile/assets/voice/wake`) - Apache License 2.0 - https://github.com/k2-fsa/sherpa-onnx/releases/tag/kws-models
+- **record**, **just_audio**, **audio_session**, **wakelock_plus**, **shared_preferences** - BSD/MIT/Apache-2.0 - https://pub.dev
+
 ## Reporting License Issues
 
 If you believe any dependency or license information is incorrect or missing, please:

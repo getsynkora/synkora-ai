@@ -23,7 +23,10 @@ class VoiceEntryCard extends StatelessWidget {
       listenable: Listenable.merge([hub, hub.settings]),
       builder: (context, _) {
         final target = agent ?? hub.defaultAgent;
-        final handsFree = hub.settings.wakeEnabled && hub.wakeSupported;
+        final handsFree =
+            hub.settings.wakeEnabled &&
+            hub.wakeSupported &&
+            hub.wakeProblem == null;
         return Padding(
           padding: const EdgeInsets.only(bottom: 14),
           child: _Card(
