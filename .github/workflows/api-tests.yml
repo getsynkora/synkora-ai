@@ -61,8 +61,20 @@ jobs:
       - name: Install system dependencies for xmlsec
         run: |
           # The runner's mirror list points at azure.archive.ubuntu.com, which
-          # intermittently fails to resolve; use the main archive and retry.
-          echo "http://archive.ubuntu.com/ubuntu/ priority:1" | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
+          # intermittently fails to resolve; use the main hosts and retry.
+          sudo tee /etc/apt/sources.list.d/ubuntu.sources >/dev/null <<'EOF'
+          Types: deb
+          URIs: http://archive.ubuntu.com/ubuntu
+          Suites: noble noble-updates noble-backports
+          Components: main universe restricted multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+
+          Types: deb
+          URIs: http://security.ubuntu.com/ubuntu
+          Suites: noble-security
+          Components: main universe restricted multiverse
+          Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+          EOF
           sudo apt-get -o Acquire::Retries=5 update
           sudo apt-get -o Acquire::Retries=5 install -y pkg-config libxml2-dev libxmlsec1-dev libxmlsec1-openssl
 
