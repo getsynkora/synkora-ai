@@ -60,8 +60,11 @@ jobs:
 
       - name: Install system dependencies for xmlsec
         run: |
-          sudo apt-get update
-          sudo apt-get install -y pkg-config libxml2-dev libxmlsec1-dev libxmlsec1-openssl
+          # The runner's mirror list points at azure.archive.ubuntu.com, which
+          # intermittently fails to resolve; use the main archive and retry.
+          echo "http://archive.ubuntu.com/ubuntu/ priority:1" | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
+          sudo apt-get -o Acquire::Retries=5 update
+          sudo apt-get -o Acquire::Retries=5 install -y pkg-config libxml2-dev libxmlsec1-dev libxmlsec1-openssl
 
       - name: Install dependencies
         run: |
