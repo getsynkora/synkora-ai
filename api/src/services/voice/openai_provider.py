@@ -29,7 +29,7 @@ class OpenAIWhisperProvider(BaseSTTProvider):
         Args:
             audio_data: Audio file bytes
             language: Language code (optional, Whisper auto-detects)
-            **kwargs: Additional options (prompt, temperature, etc.)
+            **kwargs: Additional options (prompt, temperature, filename, content_type)
 
         Returns:
             Dict with transcription results
@@ -39,8 +39,11 @@ class OpenAIWhisperProvider(BaseSTTProvider):
 
         try:
             async with httpx.AsyncClient(timeout=60.0) as client:
-                # Prepare the multipart form data
-                files = {"file": ("audio.webm", BytesIO(audio_data), "audio/webm")}
+                # OpenAI picks its decoder from the file name, so label the upload with what it
+                # really is (the browser sends webm, the mobile app sends wav).
+                filename = kwargs.get("filename") or "audio.webm"
+                content_type = kwargs.get("content_type") or "audio/webm"
+                files = {"file": (filename, BytesIO(audio_data), content_type)}
 
                 data = {
                     "model": self.model,

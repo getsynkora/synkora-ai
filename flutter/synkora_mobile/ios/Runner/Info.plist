@@ -29,7 +29,7 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Synkora AI needs camera access so you can scan images into chat.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Synkora AI needs microphone access so you can dictate messages.</string>
+	<string>Synkora AI uses the microphone for voice conversations with your agents and dictation. If you turn on “Hey Synkora”, it listens for that phrase on your device while the app is open; nothing is sent until you start speaking.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Synkora AI needs photo library access so you can attach images in chat.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

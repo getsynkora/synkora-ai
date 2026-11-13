@@ -153,6 +153,8 @@ class AgentSummary {
     required this.executionCount,
     required this.successRate,
     required this.createdAt,
+    this.voiceConfig = const {},
+    this.voiceEnabled,
   });
 
   final String id;
@@ -170,6 +172,38 @@ class AgentSummary {
   final int executionCount;
   final double? successRate;
   final DateTime? createdAt;
+
+  /// Per-agent voice settings (`stt_provider`, `tts_provider`, `tts_voice`,
+  /// `tts_model`, `language`). Only returned by the agent detail endpoint.
+  final Map<String, dynamic> voiceConfig;
+
+  /// Whether the agent's owner turned voice on. Null when unknown (the agent
+  /// list does not say; the detail endpoint does).
+  final bool? voiceEnabled;
+
+  /// A copy with the voice fields replaced (everything else unchanged).
+  AgentSummary withVoice({
+    Map<String, dynamic>? voiceConfig,
+    bool? voiceEnabled,
+  }) => AgentSummary(
+    id: id,
+    name: name,
+    slug: slug,
+    description: description,
+    agentType: agentType,
+    avatarUrl: avatarUrl,
+    status: status,
+    category: category,
+    tags: tags,
+    isPublic: isPublic,
+    isSubAgent: isSubAgent,
+    subAgentsCount: subAgentsCount,
+    executionCount: executionCount,
+    successRate: successRate,
+    createdAt: createdAt,
+    voiceConfig: voiceConfig ?? this.voiceConfig,
+    voiceEnabled: voiceEnabled ?? this.voiceEnabled,
+  );
 
   factory AgentSummary.fromJson(Map<String, dynamic> json) {
     return AgentSummary(
@@ -199,6 +233,12 @@ class AgentSummary {
       executionCount: _intValue(json['execution_count']),
       successRate: _doubleValue(json['success_rate']),
       createdAt: _dateValue(json['created_at']),
+      voiceConfig: (json['voice_config'] is Map)
+          ? Map<String, dynamic>.from(json['voice_config'] as Map)
+          : const {},
+      voiceEnabled: json['voice_enabled'] is bool
+          ? json['voice_enabled'] as bool
+          : null,
     );
   }
 }

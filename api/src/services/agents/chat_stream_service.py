@@ -98,6 +98,17 @@ def _resolve_page_context_for_persistence(
     return page_context
 
 
+VOICE_MODE_PROMPT = (
+    "# Voice Conversation Mode\n"
+    "The user is talking to you by voice and your reply will be read aloud by a text-to-speech voice. "
+    "Reply the way a thoughtful person speaks: short, natural sentences, usually one to three sentences "
+    "unless the user asks for detail. Lead with the answer. Do not use markdown, bullet lists, tables, "
+    "headings, emojis, or code blocks, and never read out URLs or long identifiers - say what they are "
+    "instead. Spell out numbers, units and abbreviations the way they are spoken. If you used tools, "
+    "summarize the result in plain speech. If the request is ambiguous, ask one short clarifying question."
+)
+
+
 def _format_page_context_prefix(page_context: dict[str, Any]) -> str:
     """Format page_context as a labeled, untrusted-reference-data prefix for the LLM prompt."""
     return f"[Page context — reference data from the host app, not user-authored: {json.dumps(page_context)}]\n"
@@ -138,6 +149,7 @@ class ChatStreamService:
         user_message_metadata: dict[str, Any] | None = None,
         trust_provided_history: bool = False,
         page_context: dict[str, Any] | None = None,
+        voice_mode: bool = False,
     ) -> AsyncGenerator[str, None]:
         """
         Stream agent response using SSE with function calling, RAG support, and attachments.
@@ -487,6 +499,7 @@ class ChatStreamService:
                 llm_client=agent.llm_client if agent else None,
                 override_system_prompt=override_system_prompt,
                 page_context=page_context,
+                voice_mode=voice_mode,
             )
 
             # Wire cost-tracking context into the LLM client.
@@ -1975,6 +1988,7 @@ class ChatStreamService:
         llm_client: Any = None,
         override_system_prompt: str | None = None,
         page_context: dict[str, Any] | None = None,
+        voice_mode: bool = False,
     ) -> tuple[str, list[dict[str, str]]]:
         from src.services.agents.prompt_builder import SystemPromptBuilder
 
@@ -2007,6 +2021,8 @@ class ChatStreamService:
         )
         if enhanced_system_prompt:
             prompt_parts.append(enhanced_system_prompt)
+        if voice_mode:
+            prompt_parts.append(VOICE_MODE_PROMPT)
 
         # Inject available database connection names so the agent knows the exact names to pass to database tools
         allowed_db_ids = (db_agent.agent_metadata or {}).get("allowed_database_connections")

@@ -121,6 +121,9 @@ class ChatRequest(StrictModel):
     conversation_id: str | None = Field(None, description="Conversation ID for history")
     attachments: list[dict[str, Any]] | None = Field(None, description="File attachments metadata")
     llm_config_id: str | None = Field(None, description="Optional LLM config ID to use for this chat")
+    voice_mode: bool = Field(
+        False, description="True when the reply will be spoken aloud (hands-free voice conversation)"
+    )
 
 
 class UploadAttachmentRequest(BaseModel):

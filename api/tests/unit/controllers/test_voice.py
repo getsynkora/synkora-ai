@@ -60,6 +60,28 @@ class TestTranscribeAudio:
         assert data["success"] is True
         assert data["data"]["text"] == "Hello world"
 
+    def test_transcribe_audio_forwards_upload_details_hint_and_model(self, client):
+        """The real file name/type, vocabulary prompt and model reach the voice service."""
+        test_client, tenant_id, mock_db = client
+        wav = b"RIFF" + b"\x00" * 100
+
+        with patch("src.controllers.voice.VoiceService") as MockVoiceService:
+            mock_service = MockVoiceService.return_value
+            mock_service.transcribe = AsyncMock(return_value={"text": "hi"})
+
+            response = test_client.post(
+                "/transcribe",
+                files={"file": ("speech.wav", BytesIO(wav), "audio/wav")},
+                params={"prompt": "Synkora, Muse", "model": "gpt-4o-transcribe"},
+            )
+
+        assert response.status_code == status.HTTP_200_OK
+        kwargs = mock_service.transcribe.call_args.kwargs
+        assert kwargs["filename"] == "speech.wav"
+        assert kwargs["content_type"] == "audio/wav"
+        assert kwargs["prompt"] == "Synkora, Muse"
+        assert kwargs["config"] == {"model": "gpt-4o-transcribe"}
+
     def test_transcribe_audio_with_language(self, client):
         """Test transcription with language specified."""
         test_client, tenant_id, mock_db = client
@@ -137,6 +159,42 @@ class TestSynthesizeSpeech:
             )
 
         assert response.status_code == status.HTTP_200_OK
+
+    def test_synthesize_speech_labels_response_with_requested_format(self, client):
+        test_client, tenant_id, mock_db = client
+
+        with patch("src.controllers.voice.VoiceService") as MockVoiceService:
+            mock_service = MockVoiceService.return_value
+            mock_service.synthesize = AsyncMock(return_value=b"RIFFdata")
+
+            response = test_client.post(
+                "/synthesize", json={"text": "Hi", "provider": "openai_tts", "config": {"format": "wav"}}
+            )
+
+        assert response.headers["content-type"] == "audio/wav"
+        assert "speech.wav" in response.headers["content-disposition"]
+
+    def test_synthesize_speech_passes_speed(self, client):
+        """Speaking rate is forwarded to the provider only when supplied."""
+        test_client, tenant_id, mock_db = client
+
+        with patch("src.controllers.voice.VoiceService") as MockVoiceService:
+            mock_service = MockVoiceService.return_value
+            mock_service.synthesize = AsyncMock(return_value=b"audio data")
+
+            response = test_client.post("/synthesize", json={"text": "Hi", "provider": "openai_tts", "speed": 1.2})
+            assert response.status_code == status.HTTP_200_OK
+            assert mock_service.synthesize.call_args.kwargs["speed"] == 1.2
+
+            test_client.post("/synthesize", json={"text": "Hi", "provider": "openai_tts"})
+            assert "speed" not in mock_service.synthesize.call_args.kwargs
+
+    def test_synthesize_speech_rejects_out_of_range_speed(self, client):
+        test_client, tenant_id, mock_db = client
+
+        response = test_client.post("/synthesize", json={"text": "Hi", "provider": "openai_tts", "speed": 9})
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     def test_synthesize_speech_invalid_agent_id(self, client):
         """Test synthesis with invalid agent ID."""

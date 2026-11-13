@@ -30,6 +30,14 @@ class SynkoraAgentService {
     return AgentSummary.fromJson(data);
   }
 
+  /// Turns voice chat on or off for an agent (the agent's owner only).
+  Future<void> setVoiceEnabled(String slug, bool enabled) async {
+    await _client.putJson(
+      '/api/v1/agents/$slug',
+      data: {'voice_enabled': enabled},
+    );
+  }
+
   Future<ConversationSummary> createConversation(
     String agentId, {
     required String name,
@@ -98,8 +106,12 @@ class SynkoraAgentService {
     required String message,
     String? conversationId,
     List<ChatAttachment> attachments = const [],
+    bool voiceMode = false,
   }) {
     final data = <String, dynamic>{'agent_slug': agentSlug, 'message': message};
+    if (voiceMode) {
+      data['voice_mode'] = true;
+    }
     if (conversationId != null) {
       data['conversation_id'] = conversationId;
     }

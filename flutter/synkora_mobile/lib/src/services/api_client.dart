@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 
@@ -66,9 +67,27 @@ class SynkoraApiClient {
     }
   }
 
+  Future<Map<String, dynamic>> putJson(
+    String path, {
+    Object? data,
+    bool authenticated = true,
+  }) async {
+    try {
+      final response = await _dio.put<Map<String, dynamic>>(
+        path,
+        data: data,
+        options: Options(headers: _headers(authenticated: authenticated)),
+      );
+      return response.data ?? const {};
+    } on DioException catch (error) {
+      throw _wrapDioException(error);
+    }
+  }
+
   Future<Map<String, dynamic>> postMultipart(
     String path, {
     required FormData data,
+    Map<String, dynamic>? queryParameters,
     bool authenticated = true,
     Map<String, dynamic>? headers,
   }) async {
@@ -76,6 +95,7 @@ class SynkoraApiClient {
       final response = await _dio.post<Map<String, dynamic>>(
         path,
         data: data,
+        queryParameters: queryParameters,
         options: Options(
           contentType: 'multipart/form-data',
           headers: _headers(authenticated: authenticated, extra: headers),
@@ -84,6 +104,29 @@ class SynkoraApiClient {
       return response.data ?? const {};
     } on DioException catch (error) {
       throw _wrapDioException(error);
+    }
+  }
+
+  /// POSTs JSON and returns the raw response body (for example audio).
+  Future<Uint8List> postForBytes(
+    String path, {
+    required Object data,
+    bool authenticated = true,
+    Duration receiveTimeout = const Duration(seconds: 60),
+  }) async {
+    try {
+      final response = await _dio.post<List<int>>(
+        path,
+        data: data,
+        options: Options(
+          responseType: ResponseType.bytes,
+          receiveTimeout: receiveTimeout,
+          headers: _headers(authenticated: authenticated),
+        ),
+      );
+      return Uint8List.fromList(response.data ?? const []);
+    } on DioException catch (error) {
+      throw _wrapBytesException(error);
     }
   }
 
@@ -175,6 +218,34 @@ class SynkoraApiClient {
       headers.addAll(extra);
     }
     return headers;
+  }
+
+  /// Like [_wrapDioException], but the error body arrives as raw bytes when
+  /// the request asked for a binary response.
+  SynkoraApiException _wrapBytesException(DioException error) {
+    final body = error.response?.data;
+    if (body is List<int>) {
+      try {
+        final decoded = jsonDecode(utf8.decode(body));
+        if (decoded is Map<String, dynamic>) {
+          return _wrapDioException(
+            DioException(
+              requestOptions: error.requestOptions,
+              response: Response<dynamic>(
+                requestOptions: error.requestOptions,
+                statusCode: error.response?.statusCode,
+                data: decoded,
+              ),
+              type: error.type,
+              message: error.message,
+            ),
+          );
+        }
+      } catch (_) {
+        // Not JSON; fall through to the generic message.
+      }
+    }
+    return _wrapDioException(error);
   }
 
   SynkoraApiException _wrapDioException(DioException error) {

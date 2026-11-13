@@ -140,6 +140,7 @@ class SynthesizeRequest(BaseModel):
     language: str | None = Field(None, description="Language code")
     agent_id: str | None = Field(None, description="Agent ID for usage tracking")
     config: dict[str, Any] | None = Field(None, description="Provider-specific configuration")
+    speed: float | None = Field(None, ge=0.25, le=4.0, description="Speaking rate multiplier (OpenAI TTS)")
 
 
 class SaveApiKeyRequest(BaseModel):
@@ -158,6 +159,8 @@ async def transcribe_audio(
     provider: str = "openai_whisper",
     language: str | None = None,
     agent_id: str | None = None,
+    prompt: str | None = None,
+    model: str | None = None,
     tenant_id: uuid.UUID = Depends(get_current_tenant_id),
     db: AsyncSession = Depends(get_async_db),
 ):
@@ -171,6 +174,8 @@ async def transcribe_audio(
         provider: STT provider to use
         language: Optional language code
         agent_id: Optional agent ID for tracking
+        prompt: Optional vocabulary/context hint (names, jargon) to improve recognition
+        model: Optional STT model override (e.g. gpt-4o-transcribe)
         tenant_id: Current tenant ID
         db: Database session
 
@@ -199,8 +204,17 @@ async def transcribe_audio(
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid agent ID format")
 
         # Transcribe
+        options: dict[str, Any] = {
+            "filename": file.filename or "audio.webm",
+            "content_type": file.content_type or "audio/webm",
+        }
+        if prompt:
+            options["prompt"] = prompt[:500]
+        if model:
+            options["config"] = {"model": model}
+
         result = await voice_service.transcribe(
-            audio_data=audio_data, provider=provider, language=language, agent_id=agent_uuid
+            audio_data=audio_data, provider=provider, language=language, agent_id=agent_uuid, **options
         )
 
         return VoiceResponse(success=True, message="Audio transcribed successfully", data=result)
@@ -251,6 +265,7 @@ async def synthesize_speech(
             language=request.language,
             agent_id=agent_uuid,
             config=request.config,
+            **({"speed": request.speed} if request.speed is not None else {}),
         )
 
         # Determine content type based on provider
@@ -259,11 +274,24 @@ async def synthesize_speech(
             "elevenlabs": "audio/mpeg",  # mp3
         }
         content_type = content_type_map.get(request.provider, "audio/mpeg")
+        extension = "mp3"
+
+        # Providers return whatever container the client asked for in config["format"].
+        requested_format = str((request.config or {}).get("format", "")).split("_")[0].lower()
+        formats = {
+            "wav": ("audio/wav", "wav"),
+            "opus": ("audio/ogg", "opus"),
+            "aac": ("audio/aac", "aac"),
+            "flac": ("audio/flac", "flac"),
+            "pcm": ("audio/L16", "pcm"),
+        }
+        if requested_format in formats:
+            content_type, extension = formats[requested_format]
 
         return Response(
             content=audio_data,
             media_type=content_type,
-            headers={"Content-Disposition": "attachment; filename=speech.mp3"},
+            headers={"Content-Disposition": f"attachment; filename=speech.{extension}"},
         )
 
     except HTTPException:

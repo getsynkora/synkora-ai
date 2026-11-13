@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../models/synkora_models.dart';
 import '../../services/agent_service.dart';
 import '../../theme/app_theme.dart';
+import '../voice/voice_entry_card.dart';
+import '../voice/voice_hub_scope.dart';
 import 'agent_chat_screen.dart';
 
 class AgentDetailScreen extends StatefulWidget {
@@ -130,11 +132,17 @@ class _AgentDetailScreenState extends State<AgentDetailScreen> {
                           _ActionButton(
                             icon: Icons.mic_none_rounded,
                             label: 'Talk',
-                            onTap: () => _openChat(
-                              context,
-                              agent,
-                              initialIntent: AgentChatLaunchIntent.talk,
-                            ),
+                            onTap: () {
+                              if (VoiceHubScope.maybeOf(context) != null) {
+                                openVoice(context, agent);
+                              } else {
+                                _openChat(
+                                  context,
+                                  agent,
+                                  initialIntent: AgentChatLaunchIntent.talk,
+                                );
+                              }
+                            },
                           ),
                           _ActionButton(
                             icon: Icons.document_scanner_outlined,

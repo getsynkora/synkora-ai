@@ -13,6 +13,8 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../../models/synkora_models.dart';
 import '../../services/agent_service.dart';
 import '../../theme/app_theme.dart';
+import '../voice/voice_entry_card.dart';
+import '../voice/voice_hub_scope.dart';
 import '../widgets/mesh_background.dart';
 import '../widgets/rich_chat_message.dart';
 
@@ -721,6 +723,26 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
     return uploaded;
   }
 
+  /// Continues this chat as a hands-free spoken conversation, then shows
+  /// whatever was said when the user comes back.
+  Future<void> _openVoiceMode() async {
+    final hub = VoiceHubScope.maybeOf(context);
+    if (hub == null) return;
+    await openVoice(
+      context,
+      widget.agent,
+      conversationId: _activeConversation?.id,
+    );
+    if (!mounted) return;
+    final spoken = hub.conversation.conversationId ?? _activeConversation?.id;
+    if (spoken == null) return;
+    try {
+      await _refreshConversationState(activeConversationId: spoken);
+    } catch (_) {
+      // Pull-to-refresh will catch up; not worth interrupting the user.
+    }
+  }
+
   Future<void> _refreshConversationState({
     required String activeConversationId,
   }) async {
@@ -837,6 +859,12 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
           ],
         ),
         actions: [
+          if (VoiceHubScope.maybeOf(context) != null)
+            IconButton(
+              onPressed: _isSending ? null : _openVoiceMode,
+              icon: const Icon(Icons.graphic_eq_rounded),
+              tooltip: 'Voice conversation',
+            ),
           IconButton(
             onPressed: _isSending ? null : _startNewChat,
             icon: const Icon(Icons.edit_square),
