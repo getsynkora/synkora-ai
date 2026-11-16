@@ -92,6 +92,45 @@ this overdue?" or "what's this user's plan?" don't need to be spelled out.
   the widget take actions on your app. Actions still go through your own MCP
   server/tool integration, which the agent already connects to separately.
 
+## Language
+
+English and German are built in. By default the widget follows the page's
+`<html lang="...">`, then the visitor's browser language. Set it explicitly with
+`locale`:
+
+```html
+<script>
+  SynkoraWidget.init({ widgetId: "your-widget-id", apiKey: "swk_...", locale: "de" });
+</script>
+```
+
+The language does three things:
+
+- **Fixed text** (buttons, menus, errors, time labels) switches to it.
+- **Widget text** (title, welcome message, placeholder, agent description,
+  suggested prompts, privacy text) is loaded in that language. Add it in the
+  dashboard under the widget's **Translations**. Anything you leave blank uses
+  the default text.
+- **Agent replies** default to that language. If the visitor writes in another
+  one, the agent follows them.
+
+For another language, or to reword some text, pass `strings`. Anything you leave
+out is English:
+
+```js
+SynkoraWidget.init({
+  widgetId: "your-widget-id",
+  apiKey: "swk_...",
+  locale: "fr",
+  strings: { fr: { send: "Envoyer", new_chat: "Nouvelle discussion" } },
+});
+```
+
+The keys are the English table at the top of `widget.js` (`STRINGS.en`). The
+language is read when the widget starts. To switch it afterwards, reload the
+widget with the new `locale`. Right-to-left layout (Arabic, Hebrew) is not
+supported yet.
+
 ## Agent Routing
 
 Widgets can route different organizations to different agents when:
