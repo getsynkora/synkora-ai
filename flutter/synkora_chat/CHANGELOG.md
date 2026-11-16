@@ -1,4 +1,4 @@
-## Unreleased
+## 1.16.0
 
 - **Languages.** `SynkoraChatWidget` now takes a `locale` (and optional
   `strings`). English and German are built in; with no `locale` it follows the
@@ -13,6 +13,14 @@
   the bubbles).
   The error messages shown inside the chat (no connection, sending too fast,
   something went wrong) are translated too.
+
+  **Upgrading.** Nothing needs to change in your code, but note two things:
+  - A host app whose language is German (and lists `de` in its `supportedLocales`)
+    now gets a German chat automatically. To keep English, pass
+    `locale: const Locale('en')`.
+  - Widget text and agent replies in the chosen language need a Synkora server
+    that includes this release; an older server ignores the language and keeps
+    answering in English.
 
 ## 1.15.5
 
