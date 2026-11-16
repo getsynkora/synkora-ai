@@ -19,6 +19,7 @@ from src.middleware import get_current_account
 from src.models import Account
 from src.schemas.base import StrictModel
 from src.services import AuthService, SessionService
+from src.services.i18n import DEFAULT_LANGUAGE, normalize_interface_language
 from src.services.security.origins import allowed_dashboard_origin, dashboard_origins
 from src.services.security.password_validator import PasswordValidator, check_hibp
 from src.utils.config_helper import get_app_base_url
@@ -53,6 +54,11 @@ class RegisterRequest(StrictModel):
         default=None,
         max_length=100,
         description=("Optional portal context; does not grant tenant membership."),
+    )
+    interface_language: str | None = Field(
+        default=None,
+        max_length=20,
+        description="Language the person is signing up in (e.g. 'de'); unsupported values are ignored.",
     )
 
     @field_validator("password")
@@ -526,6 +532,7 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_async_d
             password=data.password,
             name=data.name,
             tenant_name=data.tenant_name,
+            interface_language=data.interface_language,
         )
 
         # Send verification email asynchronously using Celery
@@ -760,6 +767,8 @@ async def get_current_user(
                 "email": current_account.email,
                 "name": current_account.name,
                 "status": current_account.status,
+                "interface_language": normalize_interface_language(current_account.interface_language)
+                or DEFAULT_LANGUAGE,
                 "created_at": current_account.created_at.isoformat(),
             },
             "tenants": tenants,

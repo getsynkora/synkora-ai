@@ -3,6 +3,7 @@
 import React from 'react';
 import { ProviderIcon } from './ProviderIcon';
 import { SocialProvider } from '@/types/social-auth';
+import { useTranslations } from 'next-intl';
 
 interface SocialLoginButtonProps {
   provider: SocialProvider;
@@ -19,6 +20,7 @@ export const SocialLoginButton: React.FC<SocialLoginButtonProps> = ({
   loading = false,
   variant = 'icon',
 }) => {
+  const t = useTranslations('auth.social');
   const providerNames: Record<SocialProvider, string> = {
     google: 'Google',
     microsoft: 'Microsoft',
@@ -36,7 +38,7 @@ export const SocialLoginButton: React.FC<SocialLoginButtonProps> = ({
       <button
         onClick={onClick}
         disabled={disabled || loading}
-        title={`Continue with ${providerNames[provider]}`}
+        title={t('continueWith', { provider: providerNames[provider] })}
         className={`
           flex items-center justify-center
           w-12 h-12 rounded-lg
@@ -76,7 +78,7 @@ export const SocialLoginButton: React.FC<SocialLoginButtonProps> = ({
         <ProviderIcon provider={provider} size="sm" />
       )}
       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-        {loading ? 'Connecting...' : `Continue with ${providerNames[provider]}`}
+        {loading ? t('connecting') : t('continueWith', { provider: providerNames[provider] })}
       </span>
     </button>
   );

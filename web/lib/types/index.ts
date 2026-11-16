@@ -3,6 +3,8 @@ export interface User {
   email: string
   name: string
   avatar?: string
+  /** Language of the dashboard saved on the account ('en', 'de'). */
+  interface_language?: string
   created_at: string
 }
 

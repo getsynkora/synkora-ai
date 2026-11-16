@@ -6,8 +6,13 @@ export async function login(email: string, password: string) {
   return data.data
 }
 
-export async function signup(email: string, password: string, name: string) {
-  const { data } = await apiClient.axios.post('/console/api/auth/signup', { email, password, name })
+export async function signup(email: string, password: string, name: string, interfaceLanguage?: string) {
+  const { data } = await apiClient.axios.post('/console/api/auth/signup', {
+    email,
+    password,
+    name,
+    ...(interfaceLanguage ? { interface_language: interfaceLanguage } : {}),
+  })
   return data.data
 }
 

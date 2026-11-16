@@ -9,6 +9,7 @@ import {
   Settings, Copy, Globe, Lock, Activity, Search, Sparkles, ChevronDown
 } from 'lucide-react'
 import { apiClient } from '@/lib/api/client'
+import { useLocale, useTranslations } from 'next-intl'
 
 interface SubAgent {
   id: string
@@ -350,9 +351,9 @@ const formatNumber = (num: number): string => {
   return num.toString()
 }
 
-const formatDate = (value: string): string => {
-  if (!value) return 'Recently'
-  return new Intl.DateTimeFormat('en-US', {
+const formatDate = (value: string, locale: string, fallback: string): string => {
+  if (!value) return fallback
+  return new Intl.DateTimeFormat(locale, {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
@@ -361,10 +362,10 @@ const formatDate = (value: string): string => {
 
 // Filter Dropdown — portal-based so it escapes the overflow-y-auto scroll container
 const FILTER_OPTIONS = [
-  { value: 'all', label: 'All' },
-  { value: 'active', label: 'Active' },
-  { value: 'public', label: 'Public' },
-  { value: 'workflow', label: 'Workflows' },
+  { value: 'all', label: 'filterAll' },
+  { value: 'active', label: 'filterActive' },
+  { value: 'public', label: 'filterPublic' },
+  { value: 'workflow', label: 'filterWorkflows' },
 ] as const
 
 type FilterType = 'all' | 'active' | 'public' | 'workflow'
@@ -376,6 +377,7 @@ function FilterDropdown({
   value: FilterType
   onChange: (v: FilterType) => void
 }) {
+  const t = useTranslations('agents.list')
   const [open, setOpen] = useState(false)
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null)
   const btnRef = useRef<HTMLButtonElement>(null)
@@ -409,7 +411,7 @@ function FilterDropdown({
         className="flex w-full items-center justify-between rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] text-[#171717] outline-none transition-all focus:border-[#ff5f8f] focus:ring-2 focus:ring-[#ff5f8f]/20 md:text-[14px]"
         style={{ borderColor: open ? '#ff5f8f' : undefined, boxShadow: open ? '0 0 0 2px rgba(255,95,143,0.2)' : undefined }}
       >
-        <span>{selected.label}</span>
+        <span>{t(selected.label)}</span>
         <ChevronDown className={`h-4 w-4 text-[#5b564e] transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && anchorRect && createPortal(
@@ -430,7 +432,7 @@ function FilterDropdown({
               onClick={() => { onChange(opt.value); setOpen(false) }}
               className={`flex w-full items-center gap-2.5 px-4 py-2 text-[13px] text-left transition-colors hover:bg-black/5 ${value === opt.value ? 'font-semibold text-[#ff5f8f]' : 'text-gray-700'}`}
             >
-              {opt.label}
+              {t(opt.label)}
             </button>
           ))}
         </div>,
@@ -452,6 +454,7 @@ const DropdownMenu = ({
   onClose: () => void
   anchorRect: DOMRect
 }) => {
+  const t = useTranslations('agents.list')
   const router = useRouter()
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -484,35 +487,35 @@ const DropdownMenu = ({
         className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-black/5"
       >
         <Settings size={15} className="text-gray-400" />
-        Edit
+        {t('menuEdit')}
       </button>
       <button
         onClick={() => { router.push(`/agents/${agent.slug}/landing-page`); onClose() }}
         className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-black/5"
       >
         <Globe size={15} className="text-[#ff5f8f]" />
-        Landing Page
+        {t('menuLandingPage')}
       </button>
       <button
         onClick={() => { router.push(`/agents/${agent.slug}/sub-agents`); onClose() }}
         className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-black/5"
       >
         <Users size={15} className="text-gray-400" />
-        Sub-Agents
+        {t('menuSubAgents')}
       </button>
       <button
         onClick={() => { router.push(`/agents/${agent.slug}/clone`); onClose() }}
         className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-black/5"
       >
         <Copy size={15} className="text-gray-400" />
-        Duplicate
+        {t('menuDuplicate')}
       </button>
       <button
         onClick={() => { router.push(`/agents/${agent.slug}/lens`); onClose() }}
         className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-black/5"
       >
         <Activity size={15} className="text-indigo-400" />
-        Lens
+        {t('menuLens')}
       </button>
       <div className="my-1.5 h-px bg-black/[0.08]" />
       <button
@@ -520,7 +523,7 @@ const DropdownMenu = ({
         className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
       >
         <Trash2 size={15} />
-        Delete
+        {t('delete')}
       </button>
     </div>,
     document.body
@@ -535,6 +538,8 @@ const AgentCard = ({
   agent: Agent
   onDelete: (agent: { id: string; name: string }) => void
 }) => {
+  const t = useTranslations('agents.list')
+  const locale = useLocale()
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null)
@@ -594,36 +599,36 @@ const AgentCard = ({
           <div className="flex shrink-0 items-center gap-1.5 text-[#7a736a]">
             {agent.is_public ? <Globe className="h-4 w-4 text-[#2d8b69]" /> : <Lock className="h-4 w-4" />}
             <span className="text-[11px] font-semibold uppercase tracking-[0.16em]">
-              {agent.is_public ? 'Public' : 'Private'}
+              {agent.is_public ? t('public') : t('private')}
             </span>
           </div>
         </div>
 
         <p className="mb-3 text-sm uppercase tracking-[0.16em] text-[#7a736a]">
-          {agent.category || agent.agent_type || 'AI Agent'}
+          {agent.category || agent.agent_type || t('defaultCategory')}
         </p>
 
         <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-[#575149]">
-          {agent.description || 'No description provided'}
+          {agent.description || t('noDescription')}
         </p>
 
         <p className="text-xs text-[#7a736a]">
-          Created {formatDate(agent.created_at)}
+          {t('created', { date: formatDate(agent.created_at, locale, t('recently')) })}
         </p>
 
         <div className="my-4 border-t border-black/10" />
 
         <div className="mb-5 flex items-center gap-6">
           <div>
-            <p className="mb-0.5 text-xs uppercase tracking-[0.16em] text-[#7a736a]">Uses</p>
+            <p className="mb-0.5 text-xs uppercase tracking-[0.16em] text-[#7a736a]">{t('uses')}</p>
             <p className="text-xl font-semibold text-[#171717]">{formatNumber(agent.execution_count || 0)}</p>
           </div>
           <div>
-            <p className="mb-0.5 text-xs uppercase tracking-[0.16em] text-[#7a736a]">Success</p>
+            <p className="mb-0.5 text-xs uppercase tracking-[0.16em] text-[#7a736a]">{t('success')}</p>
             <p className="text-xl font-semibold text-[#171717]">{(agent.success_rate || 0).toFixed(0)}%</p>
           </div>
           <div>
-            <p className="mb-0.5 text-xs uppercase tracking-[0.16em] text-[#7a736a]">Team</p>
+            <p className="mb-0.5 text-xs uppercase tracking-[0.16em] text-[#7a736a]">{t('team')}</p>
             <p className="text-xl font-semibold text-[#171717]">{agent.sub_agents_count || 0}</p>
           </div>
         </div>
@@ -633,20 +638,20 @@ const AgentCard = ({
             onClick={() => router.push(`/agents/${agent.slug}/chat`)}
             className="flex-1 rounded-[0.35rem] border border-black/15 bg-white/70 px-5 py-2.5 text-center text-sm font-semibold uppercase tracking-[0.14em] text-[#171717] transition-colors hover:bg-white"
           >
-            Start Chat
+            {t('startChat')}
           </button>
           <button
             onClick={() => router.push(`/agents/${agent.slug}/view`)}
             className="px-4 py-2.5 text-sm font-medium text-[#7a736a] transition-colors hover:text-[#171717]"
           >
-            View Details
+            {t('viewDetails')}
           </button>
           <a
             href={`/a/${agent.public_slug || slugify(agent.agent_name)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex h-10 w-10 items-center justify-center rounded-[0.35rem] border border-black/10 bg-white/70 text-[#7a736a] transition-colors hover:bg-white hover:text-[#171717]"
-            title="View public page"
+            title={t('viewPublicPage')}
           >
             <Globe className="h-4 w-4" />
           </a>
@@ -657,6 +662,7 @@ const AgentCard = ({
 }
 
 export default function AgentsPage() {
+  const t = useTranslations('agents.list')
   const router = useRouter()
   const [agents, setAgents] = useState<Agent[]>([])
   const [loading, setLoading] = useState(true)
@@ -692,7 +698,7 @@ export default function AgentsPage() {
     } catch (error) {
       if (id !== fetchIdRef.current) return
       console.error('Failed to fetch agents:', error)
-      toast.error('Failed to load agents')
+      toast.error(t('loadFailed'))
     } finally {
       if (id === fetchIdRef.current) {
         setLoading(false)
@@ -731,13 +737,13 @@ export default function AgentsPage() {
     if (!agentToDelete) return
     try {
       await apiClient.deleteAgent(agentToDelete.id)
-      toast.success('Agent deleted')
+      toast.success(t('deleted'))
       setShowDeleteModal(false)
       setAgentToDelete(null)
       fetchAgents(searchQuery, currentPage, false)
     } catch (error) {
       console.error('Failed to delete agent:', error)
-      toast.error('Failed to delete agent')
+      toast.error(t('deleteFailed'))
     }
   }
 
@@ -768,13 +774,13 @@ export default function AgentsPage() {
             <div>
               <div className="mb-3 inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/70 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6e675d]">
                 <Sparkles className="h-3 w-3 text-[#ff5f8f]" />
-                Agent Library
+                {t('library')}
               </div>
               <h1 className="text-[1.8rem] font-semibold tracking-[-0.05em] text-[#171717] md:text-[2.65rem]">
-                <span className="editorial-highlight">Agents</span>
+                <span className="editorial-highlight">{t('heading')}</span>
               </h1>
               <p className="mt-3 max-w-3xl text-[13px] leading-relaxed text-[#5b564e] md:text-[15px]">
-                {parentAgentCount} agents, {activeCount} active, and {publicCount} public. Search, filter, and jump directly into the ones doing the work.
+                {t('summary', { total: parentAgentCount, active: activeCount, public: publicCount })}
               </p>
             </div>
             <button
@@ -782,16 +788,16 @@ export default function AgentsPage() {
               className="inline-flex flex-shrink-0 items-center gap-2 rounded-[0.35rem] bg-[#181818] px-5 py-3 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 md:text-[14px]"
             >
               <Plus size={18} />
-              <span className="hidden sm:inline">New Agent</span>
-              <span className="sm:hidden">New</span>
+              <span className="hidden sm:inline">{t('newAgent')}</span>
+              <span className="sm:hidden">{t('newShort')}</span>
             </button>
           </div>
 
           <div className="mt-5 flex flex-wrap gap-3">
-            <div className="dashboard-chip px-4 py-2 text-[13px] font-medium">{parentAgentCount} total</div>
-            <div className="dashboard-chip px-4 py-2 text-[13px] font-medium">{activeCount} active</div>
-            <div className="dashboard-chip px-4 py-2 text-[13px] font-medium">{workflowCount} workflows</div>
-            <div className="dashboard-chip px-4 py-2 text-[13px] font-medium">{publicCount} public</div>
+            <div className="dashboard-chip px-4 py-2 text-[13px] font-medium">{t('chipTotal', { count: parentAgentCount })}</div>
+            <div className="dashboard-chip px-4 py-2 text-[13px] font-medium">{t('chipActive', { count: activeCount })}</div>
+            <div className="dashboard-chip px-4 py-2 text-[13px] font-medium">{t('chipWorkflows', { count: workflowCount })}</div>
+            <div className="dashboard-chip px-4 py-2 text-[13px] font-medium">{t('chipPublic', { count: publicCount })}</div>
           </div>
 
           <div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
@@ -799,7 +805,7 @@ export default function AgentsPage() {
               <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a8378]" />
               <input
                 type="text"
-                placeholder="Search agents..."
+                placeholder={t('searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 className="w-full rounded-[0.35rem] border border-black/10 bg-white/[0.72] py-3 pl-11 pr-4 text-[13px] text-[#171717] outline-none transition-all focus:border-[#ff5f8f] focus:ring-2 focus:ring-[#ff5f8f]/20 md:text-[14px]"
@@ -855,12 +861,12 @@ export default function AgentsPage() {
               <Bot className="h-10 w-10 text-[#171717]" />
             </div>
             <h3 className="mb-2 text-[1.05rem] font-semibold text-[#171717] md:text-[1.35rem]">
-              {searchQuery || filterType !== 'all' ? 'No matching agents' : 'No agents yet'}
+              {searchQuery || filterType !== 'all' ? t('noMatching') : t('noAgents')}
             </h3>
             <p className="mb-6 text-[13px] text-[#6c655c] md:text-[14px]">
               {searchQuery || filterType !== 'all'
-                ? 'Try adjusting your search or filter'
-                : 'Create your first AI agent to get started'}
+                ? t('tryAdjusting')
+                : t('createFirst')}
             </p>
             {!searchQuery && filterType === 'all' && (
               <button
@@ -868,7 +874,7 @@ export default function AgentsPage() {
                 className="inline-flex items-center gap-2 rounded-[0.35rem] bg-[#181818] px-6 py-3 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 md:text-[14px]"
               >
                 <Plus size={20} />
-                Create Agent
+                {t('createAgent')}
               </button>
             )}
           </div>
@@ -894,17 +900,17 @@ export default function AgentsPage() {
                   disabled={currentPage === 1}
                   className="rounded-[0.35rem] px-4 py-2 text-[13px] font-medium text-[#5b564e] transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Previous
+                  {t('previous')}
                 </button>
                 <span className="text-[13px] text-[#6c655c]">
-                  {currentPage} of {totalPages}
+                  {t('pageOf', { current: currentPage, total: totalPages })}
                 </span>
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
                   className="rounded-[0.35rem] px-4 py-2 text-[13px] font-medium text-[#5b564e] transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Next
+                  {t('next')}
                 </button>
               </div>
             )}
@@ -920,23 +926,23 @@ export default function AgentsPage() {
               <Trash2 className="w-6 h-6 text-red-600" />
             </div>
             <h3 className="mb-2 text-center text-[1rem] font-semibold text-[#171717] md:text-[1.1rem]">
-              Delete Agent
+              {t('deleteTitle')}
             </h3>
             <p className="mb-6 text-center text-[13px] text-[#6c655c] md:text-[14px]">
-              Delete <strong className="text-[#171717]">{agentToDelete.name}</strong>? This cannot be undone.
+              {t.rich('deleteBody', { name: agentToDelete.name, strong: (chunks) => <strong className="text-[#171717]">{chunks}</strong> })}
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => { setShowDeleteModal(false); setAgentToDelete(null) }}
                 className="flex-1 rounded-[0.35rem] bg-white/70 px-4 py-2 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white"
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button
                 onClick={handleDeleteAgent}
                 className="flex-1 rounded-[0.35rem] bg-[#181818] px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-black"
               >
-                Delete
+                {t('delete')}
               </button>
             </div>
           </div>

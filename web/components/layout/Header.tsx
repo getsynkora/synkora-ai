@@ -3,12 +3,15 @@
 import { useAuthStore } from '@/lib/store/authStore'
 import { useRouter } from 'next/navigation'
 import { useSubscription, useCredits } from '@/hooks/useBilling'
+import { useTranslations } from 'next-intl'
+import { LanguageSwitcher } from '@/components/i18n/LanguageSwitcher'
 
 interface HeaderProps {
   onMobileMenuToggle?: () => void
 }
 
 export function Header({ onMobileMenuToggle }: HeaderProps) {
+  const t = useTranslations('layout.header')
   const user = useAuthStore((state) => state.user)
   const signOut = useAuthStore((state) => state.signOut)
   const router = useRouter()
@@ -41,7 +44,7 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
       <button
         className="rounded-xl border border-black/10 bg-white/60 p-2 text-gray-600 transition-colors hover:bg-white md:hidden"
         onClick={onMobileMenuToggle}
-        aria-label="Open menu"
+        aria-label={t('openMenu')}
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -49,6 +52,8 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
       </button>
 
       <div className="flex items-center gap-2 md:gap-4 ml-auto">
+        <LanguageSwitcher />
+
         {/* Credits Badge */}
         <div className="flex cursor-pointer items-center gap-1.5 rounded-full border border-black/10 bg-white/70 px-3 py-2 transition-colors hover:bg-white" onClick={() => router.push('/billing')}>
           <div className={`h-2 w-2 flex-shrink-0 rounded-full ${hasSubscription ? 'bg-[#2d8b69]' : 'bg-gray-400'}`}></div>
@@ -68,7 +73,7 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
             onClick={handleUpgradeClick}
             className="hidden rounded-full bg-[#181818] px-4 py-2 text-sm font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 sm:inline-flex"
           >
-            Upgrade
+            {t('upgrade')}
           </button>
         )}
 
@@ -78,7 +83,7 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#181818] text-sm font-semibold text-white">
               {user?.name?.charAt(0).toUpperCase() || 'U'}
             </div>
-            <span className="text-sm font-medium text-gray-700">{user?.name || 'User'}</span>
+            <span className="text-sm font-medium text-gray-700">{user?.name || t('defaultUser')}</span>
             <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
@@ -91,7 +96,7 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
                 onClick={handleSignOut}
                 className="w-full rounded-2xl px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-black/5"
               >
-                Sign out
+                {t('signOut')}
               </button>
             </div>
           </div>

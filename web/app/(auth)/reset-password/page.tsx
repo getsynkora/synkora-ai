@@ -7,8 +7,10 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import axios from 'axios'
 import AuthPageFrame from '@/components/auth/AuthPageFrame'
+import { useTranslations } from 'next-intl'
 
 function ResetPasswordForm() {
+  const t = useTranslations('auth.resetPassword')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -21,7 +23,7 @@ function ResetPasswordForm() {
     if (tokenParam) {
       setToken(tokenParam)
     } else {
-      toast.error('Invalid reset link')
+      toast.error(t('invalidLink'))
       router.push('/signin')
     }
   }, [searchParams, router])
@@ -30,12 +32,12 @@ function ResetPasswordForm() {
     e.preventDefault()
 
     if (password !== confirmPassword) {
-      toast.error('Passwords do not match')
+      toast.error(t('mismatch'))
       return
     }
 
     if (password.length < 6) {
-      toast.error('Password must be at least 6 characters')
+      toast.error(t('tooShort'))
       return
     }
 
@@ -48,10 +50,10 @@ function ResetPasswordForm() {
         new_password: password
       })
       
-      toast.success('Password reset successfully!')
+      toast.success(t('success'))
       router.push('/signin')
     } catch (err: any) {
-      const errorMessage = extractErrorMessage(err, 'Failed to reset password')
+      const errorMessage = extractErrorMessage(err, t('failed'))
       toast.error(errorMessage)
     } finally {
       setIsLoading(false)
@@ -68,15 +70,15 @@ function ResetPasswordForm() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Set new password</h1>
-          <p className="text-gray-600">Enter your new password below</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('title')}</h1>
+          <p className="text-gray-600">{t('subtitle')}</p>
         </div>
 
         <div className="rounded-[1.9rem] border border-black/10 bg-white p-5 shadow-[0_24px_60px_rgba(0,0,0,0.08)] sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                New password
+                {t('newPassword')}
               </label>
               <input
                 id="password"
@@ -88,12 +90,12 @@ function ResetPasswordForm() {
                 className="w-full rounded-[1.1rem] border border-gray-200 bg-gray-50 px-4 py-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
                 placeholder="••••••••"
               />
-              <p className="mt-1 text-xs text-gray-500">Must be at least 6 characters</p>
+              <p className="mt-1 text-xs text-gray-500">{t('hint')}</p>
             </div>
 
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                Confirm password
+                {t('confirm')}
               </label>
               <input
                 id="confirmPassword"
@@ -118,17 +120,17 @@ function ResetPasswordForm() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Resetting...
+                  {t('resetting')}
                 </span>
               ) : (
-                'Reset password'
+                t('submit')
               )}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <Link href="/signin" className="text-sm font-medium text-red-500 hover:text-red-600">
-              ← Back to sign in
+              {t('back')}
             </Link>
           </div>
         </div>

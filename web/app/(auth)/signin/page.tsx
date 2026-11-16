@@ -9,8 +9,10 @@ import { secureStorage } from '@/lib/auth/secure-storage'
 import { SocialLoginButton } from '@/components/social-auth'
 import AuthPageFrame from '@/components/auth/AuthPageFrame'
 import { Bot, KeyRound, Layers3, Shield, Sparkles, Workflow } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 function SignInContent() {
+  const t = useTranslations('auth.signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -44,16 +46,16 @@ function SignInContent() {
         })
         .then(({ access_token, expires_in }) => {
           secureStorage.storeTokens({ access_token, expires_in })
-          toast.success(`Signed in successfully with ${provider}!`)
+          toast.success(t('successWithProvider', { provider: provider ?? '' }))
           window.location.href = redirectUrl ? decodeURIComponent(redirectUrl) : '/agents'
         })
         .catch(() => {
-          const msg = 'Sign-in failed. Please try again.'
+          const msg = t('failedRetry')
           setError(msg)
           toast.error(msg)
         })
     } else if (loginStatus === 'error') {
-      const message = searchParams.get('message') || 'Social login failed'
+      const message = searchParams.get('message') || t('socialFailed')
       toast.error(message)
       setError(message)
     }
@@ -77,7 +79,7 @@ function SignInContent() {
 
     try {
       await signIn(email, password)
-      toast.success('Signed in successfully!')
+      toast.success(t('success'))
       // Redirect to original page or default to dashboard
       const targetUrl = redirectUrl ? decodeURIComponent(redirectUrl) : '/dashboard'
       router.push(targetUrl)
@@ -85,8 +87,8 @@ function SignInContent() {
       const errorMessage = err.response?.data?.detail
         ? (typeof err.response.data.detail === 'string'
             ? err.response.data.detail
-            : 'Invalid email or password')
-        : err.message || 'Failed to sign in'
+            : t('invalidCredentials'))
+        : err.message || t('failed')
       setError(errorMessage)
       toast.error(errorMessage)
     } finally {
@@ -102,22 +104,22 @@ function SignInContent() {
   const workspaceSignals = [
     {
       icon: Bot,
-      title: 'Agents',
-      description: 'Manage active agents, prompts, and deployment states.',
+      title: t('agentsTitle'),
+      description: t('agentsDescription'),
       className: 'border-[#7de5c1]/20 bg-[#7de5c1]/12',
       iconClassName: 'bg-[#7de5c1] text-[#101915]',
     },
     {
       icon: Workflow,
-      title: 'Workflows',
-      description: 'Track tools, channels, and production automations.',
+      title: t('workflowsTitle'),
+      description: t('workflowsDescription'),
       className: 'border-white/10 bg-white/[0.08]',
       iconClassName: 'bg-white/12 text-[#f7f2e7]',
     },
     {
       icon: Layers3,
-      title: 'Knowledge',
-      description: 'Keep retrieval, documents, and sources aligned.',
+      title: t('knowledgeTitle'),
+      description: t('knowledgeDescription'),
       className: 'border-[#f6c794]/18 bg-[#f6c794]/10',
       iconClassName: 'bg-[#f6c794] text-[#2f2414]',
     },
@@ -135,15 +137,15 @@ function SignInContent() {
           <div className="relative z-10">
             <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-[#d8d0c3]">
               <Sparkles className="h-4 w-4 text-[#7de5c1]" />
-              Workspace Access
+              {t('workspaceAccess')}
             </div>
 
             <h2 className="max-w-xl text-4xl font-semibold leading-tight text-white">
-              Return to your
-              <span className="block text-[#7de5c1]">platform workspace</span>
+              {t('heroLine1')}
+              <span className="block text-[#7de5c1]">{t('heroLine2')}</span>
             </h2>
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-[#c8c0b5]">
-              Sign in to manage agents, knowledge, tools, and delivery channels from one control layer.
+              {t('heroBody')}
             </p>
           </div>
 
@@ -152,14 +154,14 @@ function SignInContent() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d8d0c3]">
-                    Session-ready platform
+                    {t('sessionReadyTitle')}
                   </div>
                   <p className="mt-3 max-w-lg text-base leading-relaxed text-[#c8c0b5]">
-                    Pick up where you left off across orchestration, retrieval, and shipping surfaces.
+                    {t('sessionReadyBody')}
                   </p>
                 </div>
                 <div className="rounded-full border border-white/10 bg-white/[0.08] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-[#f7f2e7]">
-                  Live
+                  {t('live')}
                 </div>
               </div>
             </div>
@@ -186,13 +188,13 @@ function SignInContent() {
 
           <div className="relative z-10 flex flex-wrap gap-3 pt-2">
             <div className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-medium text-[#f7f2e7] backdrop-blur-sm">
-              Bring your LLM keys
+              {t('bringKeys')}
             </div>
             <div className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-medium text-[#f7f2e7] backdrop-blur-sm">
-              Open-source core
+              {t('openSource')}
             </div>
             <div className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-medium text-[#f7f2e7] backdrop-blur-sm">
-              Self-host ready
+              {t('selfHost')}
             </div>
           </div>
         </div>
@@ -202,11 +204,11 @@ function SignInContent() {
             <div className="mb-8">
               <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/55 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#6e675d]">
                 <KeyRound className="h-3.5 w-3.5 text-[#2d8b69]" />
-                Sign in
+                {t('badge')}
               </div>
-              <h1 className="mt-5 text-3xl font-semibold tracking-tight text-gray-900 sm:text-5xl">Sign in</h1>
+              <h1 className="mt-5 text-3xl font-semibold tracking-tight text-gray-900 sm:text-5xl">{t('title')}</h1>
               <p className="mt-3 text-base text-gray-600 sm:text-lg">
-                Access your agents, workflows, and platform workspace.
+                {t('subtitle')}
               </p>
             </div>
 
@@ -224,7 +226,7 @@ function SignInContent() {
                   <div className="w-full border-t border-gray-200"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="bg-white px-4 font-medium text-gray-500">or continue with email</span>
+                  <span className="bg-white px-4 font-medium text-gray-500">{t('orContinue')}</span>
                 </div>
               </div>
 
@@ -240,7 +242,7 @@ function SignInContent() {
 
                 <div>
                   <label htmlFor="email" className="mb-2 block text-sm font-semibold text-gray-700">
-                    Email
+                    {t('email')}
                   </label>
                   <input
                     id="email"
@@ -249,13 +251,13 @@ function SignInContent() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     className="w-full rounded-[1.15rem] border border-gray-200 bg-gray-50 px-4 py-4 text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
-                    placeholder="Enter your email"
+                    placeholder={t('emailPlaceholder')}
                   />
                 </div>
 
                 <div>
                   <label htmlFor="password" className="mb-2 block text-sm font-semibold text-gray-700">
-                    Password
+                    {t('password')}
                   </label>
                   <input
                     id="password"
@@ -264,7 +266,7 @@ function SignInContent() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     className="w-full rounded-[1.15rem] border border-gray-200 bg-gray-50 px-4 py-4 text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
-                    placeholder="Enter your password"
+                    placeholder={t('passwordPlaceholder')}
                   />
                 </div>
 
@@ -274,10 +276,10 @@ function SignInContent() {
                       type="checkbox"
                       className="h-5 w-5 cursor-pointer rounded border-gray-300 text-red-500 focus:ring-red-500"
                     />
-                    <span className="ml-2">Remember me</span>
+                    <span className="ml-2">{t('remember')}</span>
                   </label>
                   <Link href="/forgot-password" className="text-sm font-semibold text-red-500 transition-colors hover:text-red-600">
-                    Forgot password?
+                    {t('forgot')}
                   </Link>
                 </div>
 
@@ -292,47 +294,51 @@ function SignInContent() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Signing in...
+                      {t('submitting')}
                     </span>
                   ) : (
-                    'Sign in'
+                    t('submit')
                   )}
                 </button>
               </form>
 
               <div className="mt-8 text-center">
                 <p className="text-gray-600">
-                  Don&apos;t have an account?{' '}
+                  {t('noAccount')}{' '}
                   <Link href="/signup" className="font-bold text-red-500 transition-colors hover:text-red-600">
-                    Sign up for free
+                    {t('signUpFree')}
                   </Link>
                 </p>
               </div>
             </div>
 
             <p className="mt-8 text-center text-sm text-gray-500">
-              By signing in, you agree to our{' '}
-              <Link href="/terms" className="font-medium text-red-500 hover:text-red-600">Terms</Link>
-              {' '}and{' '}
-              <Link href="/privacy" className="font-medium text-red-500 hover:text-red-600">Privacy Policy</Link>
+              {t.rich('agree', {
+                terms: (chunks) => (
+                  <Link href="/terms" className="font-medium text-red-500 hover:text-red-600">{chunks}</Link>
+                ),
+                privacy: (chunks) => (
+                  <Link href="/privacy" className="font-medium text-red-500 hover:text-red-600">{chunks}</Link>
+                ),
+              })}
             </p>
 
             <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-sm text-gray-500">
               <div className="flex items-center gap-2 rounded-full border border-black/10 bg-white/55 px-4 py-2">
                 <Shield className="h-4 w-4" />
-                <span>256-bit SSL</span>
+                <span>{t('ssl')}</span>
               </div>
               <div className="flex items-center gap-2 rounded-full border border-black/10 bg-white/55 px-4 py-2">
                 <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
-                <span>Data encrypted at rest</span>
+                <span>{t('encrypted')}</span>
               </div>
               <div className="flex items-center gap-2 rounded-full border border-black/10 bg-white/55 px-4 py-2">
                 <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
-                <span>Your data stays private</span>
+                <span>{t('private')}</span>
               </div>
             </div>
           </div>

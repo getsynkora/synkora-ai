@@ -4,10 +4,12 @@ import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { secureStorage } from '@/lib/auth/secure-storage'
 import AuthPageFrame from '@/components/auth/AuthPageFrame'
+import { useTranslations } from 'next-intl'
 
 type Status = 'loading' | 'authorizing' | 'success' | 'needs_login' | 'error'
 
 function ExtensionAuthContent() {
+  const t = useTranslations('auth.extensionAuth')
   const searchParams = useSearchParams()
   const router = useRouter()
   const [status, setStatus] = useState<Status>('loading')
@@ -20,7 +22,7 @@ function ExtensionAuthContent() {
     const redirect_uri = searchParams.get('redirect_uri')
 
     if (!code_challenge || !state || !redirect_uri) {
-      setError('Invalid authorization request — missing required parameters.')
+      setError(t('invalidRequest'))
       setStatus('error')
       return
     }
@@ -43,7 +45,7 @@ function ExtensionAuthContent() {
     })
       .then((r) => r.json())
       .then((data) => {
-        if (!data.code) throw new Error(data.detail ?? 'Authorization failed')
+        if (!data.code) throw new Error(data.detail ?? t('failed'))
         setStatus('success')
         // Include api_url so the extension can call the API directly for token exchange
         const callbackParams = new URLSearchParams({
@@ -54,7 +56,7 @@ function ExtensionAuthContent() {
         window.location.href = `${redirect_uri}?${callbackParams}`
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : 'Authorization failed')
+        setError(err instanceof Error ? err.message : t('failed'))
         setStatus('error')
       })
   }, [searchParams, router])
@@ -64,7 +66,7 @@ function ExtensionAuthContent() {
       <div className="flex flex-col items-center gap-3">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-red-500 border-t-transparent" />
         <p className="text-sm text-gray-500">
-          {status === 'authorizing' ? 'Authorizing extension…' : 'Loading…'}
+          {status === 'authorizing' ? t('authorizing') : t('loading')}
         </p>
       </div>
     )
@@ -78,7 +80,7 @@ function ExtensionAuthContent() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <p className="text-sm font-medium text-gray-800">Authorized! Returning to extension…</p>
+        <p className="text-sm font-medium text-gray-800">{t('authorized')}</p>
       </div>
     )
   }
@@ -90,7 +92,7 @@ function ExtensionAuthContent() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
         </svg>
       </div>
-      <p className="text-sm font-medium text-gray-800">Authorization failed</p>
+      <p className="text-sm font-medium text-gray-800">{t('failed')}</p>
       <p className="text-xs text-gray-500 text-center">{error}</p>
     </div>
   )
