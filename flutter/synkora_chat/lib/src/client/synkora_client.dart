@@ -14,6 +14,10 @@ class SynkoraClient {
   late final Dio _dio;
   String? identityToken;
   String? sessionToken;
+
+  /// Language of the host UI as a BCP-47 tag (e.g. `de`, `pt-BR`). Widget text is
+  /// loaded in it, and the agent answers in it by default.
+  String? language;
   final void Function(String token)? onSessionToken;
 
   /// Restore a capability saved by the host app, alongside its conversation ID.
@@ -57,6 +61,7 @@ class SynkoraClient {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         '/api/v1/widgets/config',
+        queryParameters: {if (language != null) 'lang': language},
       );
       return WidgetConfig.fromJson(response.data!);
     } on DioException catch (e) {
@@ -124,6 +129,7 @@ class SynkoraClient {
         if (forceNew) 'force_new': true,
         if (userEmail != null) 'user_email': userEmail,
         if (userPhone != null) 'user_phone': userPhone,
+        if (language != null) 'language': language,
       };
 
       final response = await _dio.post<ResponseBody>(
