@@ -7,14 +7,17 @@ import 'package:record/record.dart';
 import '../audio/pcm.dart';
 import '../ports.dart';
 import 'voice_audio_session.dart';
+import '../voice_messages.dart';
 
 /// Microphone capture using the `record` plugin: 16 kHz mono PCM16, re-chunked
 /// into 20 ms frames, with echo cancellation and noise suppression requested.
 class RecordMic implements VoiceMic {
-  RecordMic({AudioRecorder? recorder})
-    : _recorder = recorder ?? AudioRecorder();
+  RecordMic({AudioRecorder? recorder, VoiceMessages Function()? messages})
+    : _recorder = recorder ?? AudioRecorder(),
+      _messages = messages ?? (() => const EnglishVoiceMessages());
 
   final AudioRecorder _recorder;
+  final VoiceMessages Function() _messages;
   final StreamController<Int16List> _frames = StreamController.broadcast();
   final PcmFramer _framer = PcmFramer();
   StreamSubscription<Uint8List>? _subscription;
@@ -36,19 +39,13 @@ class RecordMic implements VoiceMic {
     if (_running) return;
     final allowed = await _recorder.hasPermission();
     if (!allowed) {
-      throw const VoiceUnavailableException(
-        'Microphone access is turned off. Enable it for Synkora in your '
-        'phone settings to talk to your agents.',
-      );
+      throw VoiceUnavailableException(_messages().microphoneOff);
     }
     await configureVoiceAudioSession();
     // Starting capture with no input device makes iOS wait for the audio server
     // and then abort the whole app, so check first and fail with a message.
     if (!await _hasInputDevice()) {
-      throw const VoiceUnavailableException(
-        'No microphone is available right now. Check that nothing else is '
-        'using it, or plug in a headset, then try again.',
-      );
+      throw VoiceUnavailableException(_messages().noMicrophone);
     }
     // Our session (voice-chat mode) must not be reset by the recorder.
     await _recorder.ios?.manageAudioSession(false);

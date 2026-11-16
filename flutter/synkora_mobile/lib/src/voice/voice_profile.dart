@@ -1,4 +1,5 @@
 import '../models/synkora_models.dart';
+import 'voice_messages.dart';
 
 /// Where listening or speaking happens for one agent.
 enum SpeechSource {
@@ -110,8 +111,12 @@ class VoiceProfile {
     double speed = 1.0,
     List<String> knownNames = const [],
     bool useBuiltIn = false,
+    VoiceMessages? messages,
   }) {
     final config = agent.voiceConfig;
+    // What the assistant says follows the language of the agent's voice setting.
+    final text =
+        messages ?? VoiceMessages.forLanguage(config['language']?.toString());
     final sttWanted = config['stt_provider']?.toString();
     final ttsWanted = config['tts_provider']?.toString();
 
@@ -123,21 +128,19 @@ class VoiceProfile {
     if (agent.voiceEnabled == false) {
       issue = VoiceIssue(
         VoiceIssueKind.voiceDisabled,
-        'Voice is turned off for ${agent.name}. Turn it on to talk to it.',
+        text.voiceDisabled(agent.name),
       );
     } else if (capabilities != null) {
       final missing = <String>[
         if (cloudListen && !capabilities.has('openai_whisper'))
-          'OpenAI Whisper (speech recognition)',
+          text.whisperProvider,
         if (cloudSpeak && !capabilities.has(ttsWanted!))
-          ttsWanted == 'elevenlabs' ? 'ElevenLabs' : 'OpenAI text-to-speech',
+          text.ttsProvider(elevenLabs: ttsWanted == 'elevenlabs'),
       ];
       if (missing.isNotEmpty) {
         issue = VoiceIssue(
           VoiceIssueKind.missingKey,
-          '${agent.name} is set to use ${missing.join(' and ')}, but no key '
-          'is saved for it. Add one under Voice settings, or use your '
-          "phone's built-in voice for now.",
+          text.missingKey(agent.name, missing),
         );
       }
     }
@@ -159,9 +162,7 @@ class VoiceProfile {
       locale: locale,
       speed: speed,
       agentId: agent.id,
-      hint:
-          'Conversation with a voice assistant. Names: '
-          '${names.take(8).join(', ')}.',
+      hint: text.recognitionHint(names.take(8).toList()),
       issue: issue,
     );
   }

@@ -7,11 +7,8 @@ import '../../services/agent_service.dart';
 import '../../services/api_client.dart';
 import '../audio/wav_envelope.dart';
 import '../ports.dart';
+import '../voice_messages.dart';
 import '../voice_profile.dart';
-
-const _missingKeyMessage =
-    'This agent is set to a paid speech provider, but no key is saved for it. '
-    'Add one under Voice settings, or use your phone\'s built-in voice.';
 
 /// Loads which speech providers the workspace has keys for.
 Future<VoiceCapabilities> loadVoiceCapabilities(SynkoraApiClient api) async {
@@ -19,19 +16,20 @@ Future<VoiceCapabilities> loadVoiceCapabilities(SynkoraApiClient api) async {
   return VoiceCapabilities.fromApiKeys(response);
 }
 
-VoiceUnavailableException? _asUnavailable(SynkoraApiException error) {
+VoiceUnavailableException? _asUnavailable(
+  SynkoraApiException error,
+  VoiceMessages messages,
+) {
   final text = error.message.toLowerCase();
   final missingKey =
       text.contains('api key') ||
       text.contains('unknown stt provider') ||
       text.contains('unknown tts provider');
   if (error.statusCode == 400 && missingKey) {
-    return const VoiceUnavailableException(_missingKeyMessage);
+    return VoiceUnavailableException(messages.missingKeyShort);
   }
   if (error.statusCode == 401 || error.statusCode == 403) {
-    return const VoiceUnavailableException(
-      'Your session expired. Sign in again to keep talking.',
-    );
+    return VoiceUnavailableException(messages.sessionExpired);
   }
   return null;
 }
@@ -73,7 +71,7 @@ class BackendSpeechRecognizer implements SpeechRecognizer {
       final data = (response['data'] as Map<String, dynamic>?) ?? const {};
       return (data['text'] ?? '').toString();
     } on SynkoraApiException catch (e) {
-      throw _asUnavailable(e) ?? e;
+      throw _asUnavailable(e, VoiceMessages.forLanguage(profile.locale)) ?? e;
     }
   }
 }
@@ -94,7 +92,9 @@ class BackendSpeechSynthesizer implements SpeechSynthesizer {
     if (provider == null) {
       // The profile routes to the built-in voice unless the agent chose a
       // cloud provider, so this only happens if routing is bypassed.
-      throw const VoiceUnavailableException(_missingKeyMessage);
+      throw VoiceUnavailableException(
+        VoiceMessages.forLanguage(p.locale).missingKeyShort,
+      );
     }
 
     final isOpenAi = provider == 'openai_tts';
@@ -118,10 +118,10 @@ class BackendSpeechSynthesizer implements SpeechSynthesizer {
     try {
       bytes = await _api.postForBytes('/api/v1/voice/synthesize', data: body);
     } on SynkoraApiException catch (e) {
-      throw _asUnavailable(e) ?? e;
+      throw _asUnavailable(e, VoiceMessages.forLanguage(p.locale)) ?? e;
     }
     if (bytes.isEmpty) {
-      throw const SynkoraApiException('The voice service returned no audio.');
+      throw SynkoraApiException(VoiceMessages.forLanguage(p.locale).noAudio);
     }
     return describeAudio(bytes);
   }
@@ -173,12 +173,14 @@ class ServiceVoiceAgentGateway implements VoiceAgentGateway {
     required AgentSummary agent,
     required String message,
     required String conversationId,
+    String? language,
   }) {
     return _service.streamChat(
       agentSlug: agent.slug,
       message: message,
       conversationId: conversationId,
       voiceMode: true,
+      language: language,
     );
   }
 }

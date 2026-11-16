@@ -1887,6 +1887,7 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
                         conversation_id=conv_id,
                         agent_name=_agent_name,
                         reply_preview=preview,
+                        language=request.language,
                     )
                 except Exception as _fcm_err:
                     logger.warning(f"FCM push dispatch failed (non-critical): {_fcm_err}")

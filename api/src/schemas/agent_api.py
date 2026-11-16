@@ -17,6 +17,11 @@ class ChatRequest(BaseModel):
     message: str = Field(..., description="The message to send to the agent")
     conversation_id: UUID | None = Field(None, description="Optional conversation ID to continue existing conversation")
     metadata: dict[str, Any] | None = Field(default_factory=dict, description="Optional metadata for the message")
+    language: str | None = Field(
+        None,
+        max_length=20,
+        description="Language of the client UI as a BCP-47 code (e.g. 'de'); the agent replies in it by default",
+    )
 
 
 class CreateApiKeyRequest(BaseModel):

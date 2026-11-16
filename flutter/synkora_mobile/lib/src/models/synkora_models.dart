@@ -1,6 +1,7 @@
 import 'package:intl/intl.dart';
 
 import '../config/app_environment.dart';
+import '../../l10n/app_localizations.dart';
 
 class SynkoraAccount {
   const SynkoraAccount({
@@ -8,6 +9,7 @@ class SynkoraAccount {
     required this.email,
     required this.name,
     required this.status,
+    this.interfaceLanguage,
   });
 
   final String id;
@@ -15,12 +17,16 @@ class SynkoraAccount {
   final String name;
   final String status;
 
+  /// Language of the Synkora screens saved on the account (`en`, `de`), if any.
+  final String? interfaceLanguage;
+
   factory SynkoraAccount.fromJson(Map<String, dynamic> json) {
     return SynkoraAccount(
       id: _stringValue(json['id']),
       email: _stringValue(json['email']),
       name: _stringValue(json['name'], fallback: 'Synkora User'),
       status: _stringValue(json['status'], fallback: 'UNKNOWN'),
+      interfaceLanguage: _nullableStringValue(json['interface_language']),
     );
   }
 }
@@ -422,15 +428,15 @@ class ChatEvent {
   }
 }
 
-String formatRelativeTimestamp(DateTime? value) {
-  if (value == null) return 'Unknown';
+String formatRelativeTimestamp(DateTime? value, AppLocalizations l10n) {
+  if (value == null) return l10n.unknown;
   final now = DateTime.now();
   final difference = now.difference(value);
-  if (difference.inMinutes < 1) return 'Just now';
-  if (difference.inHours < 1) return '${difference.inMinutes}m ago';
-  if (difference.inDays < 1) return '${difference.inHours}h ago';
-  if (difference.inDays < 7) return '${difference.inDays}d ago';
-  return DateFormat('MMM d').format(value);
+  if (difference.inMinutes < 1) return l10n.timeJustNow;
+  if (difference.inHours < 1) return l10n.timeMinutesAgo(difference.inMinutes);
+  if (difference.inDays < 1) return l10n.timeHoursAgo(difference.inHours);
+  if (difference.inDays < 7) return l10n.timeDaysAgo(difference.inDays);
+  return DateFormat.MMMd(l10n.localeName).format(value);
 }
 
 String formatByteSize(int bytes) {

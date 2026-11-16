@@ -1,8 +1,10 @@
+import 'dart:ui' show Locale;
 import 'package:flutter/foundation.dart';
 
 import '../models/synkora_models.dart';
 import '../services/auth_service.dart';
 import '../services/secure_token_store.dart';
+import '../../l10n/app_localizations.dart';
 
 enum SessionStage { booting, signedOut, selectingTenant, ready }
 
@@ -10,8 +12,15 @@ class SessionController extends ChangeNotifier {
   SessionController({
     required AuthService authService,
     required TokenStore tokenStore,
+    AppLocalizations Function()? strings,
   }) : _authService = authService,
-       _tokenStore = tokenStore;
+       _tokenStore = tokenStore,
+       _strings = strings ?? _englishStrings;
+
+  static AppLocalizations _englishStrings() =>
+      lookupAppLocalizations(const Locale('en'));
+
+  final AppLocalizations Function() _strings;
 
   final AuthService _authService;
   final TokenStore _tokenStore;
@@ -131,13 +140,13 @@ class SessionController extends ChangeNotifier {
       orElse: () => null,
     );
     if (target == null) {
-      _error = 'Selected workspace was not found.';
+      _error = _strings().workspaceNotFound;
       notifyListeners();
       return;
     }
 
     if (_accessToken == null || _refreshToken == null) {
-      _error = 'Your session is incomplete. Please sign in again.';
+      _error = _strings().sessionIncomplete;
       _resetToSignedOut(notify: true);
       return;
     }

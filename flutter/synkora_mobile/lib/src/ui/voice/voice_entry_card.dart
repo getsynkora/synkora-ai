@@ -7,6 +7,7 @@ import 'voice_hub_scope.dart';
 import 'voice_mode_screen.dart';
 import 'voice_orb.dart';
 import 'voice_palette.dart';
+import '../../../l10n/app_localizations.dart';
 
 /// Home-screen call to action: start (or wake) a spoken conversation.
 class VoiceEntryCard extends StatelessWidget {
@@ -19,6 +20,7 @@ class VoiceEntryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final hub = VoiceHubScope.maybeOf(context);
     if (hub == null) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
     return ListenableBuilder(
       listenable: Listenable.merge([hub, hub.settings]),
       builder: (context, _) {
@@ -32,11 +34,9 @@ class VoiceEntryCard extends StatelessWidget {
           child: _Card(
             hub: hub,
             title: target == null
-                ? 'Talk to your agents'
-                : 'Talk to ${target.name}',
-            subtitle: handsFree
-                ? 'Hands-free is on. Just say “Hey Synkora”.'
-                : 'Have a real voice conversation. Tap to start.',
+                ? l10n.talkToAgents
+                : l10n.talkToAgent(target.name),
+            subtitle: handsFree ? l10n.handsFreeOn : l10n.startVoice,
             handsFree: handsFree,
             onTap: target == null ? null : () => openVoice(context, target),
           ),
@@ -132,7 +132,8 @@ class _Card extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        maxLines: 1,
+                        // Two lines: translated titles ("Mit Muse sprechen") are longer.
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: theme.titleLarge?.copyWith(
                           color: Colors.white,

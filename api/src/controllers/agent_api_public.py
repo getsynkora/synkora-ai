@@ -156,6 +156,7 @@ async def chat_with_agent_stream(
             llm_config_id=None,
             db=None,
             tenant_id=tenant_id,
+            language=request.language,
         ),
         media_type="text/event-stream",
         headers={

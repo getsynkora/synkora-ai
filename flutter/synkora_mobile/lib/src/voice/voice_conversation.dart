@@ -10,6 +10,7 @@ import 'audio/vad.dart';
 import 'ports.dart';
 import 'text/speech_text.dart';
 import 'voice_commands.dart';
+import 'voice_messages.dart';
 
 enum VoicePhase {
   /// Microphone closed; nothing is happening.
@@ -211,6 +212,10 @@ class VoiceConversation extends ChangeNotifier {
   /// Locale (BCP-47, e.g. `en-US`) for the phone's recognizer, from the
   /// active agent's language setting. Null uses the device default.
   String? deviceLocale;
+
+  /// Lines the assistant speaks or shows by itself, in the language of the
+  /// conversation (the agent's voice language).
+  VoiceMessages get _messages => VoiceMessages.forLanguage(deviceLocale);
 
   /// Listen with the phone's own recognizer instead of recording audio for the
   /// cloud. Set by the agent's voice profile; ignored if none is available.
@@ -535,7 +540,7 @@ class VoiceConversation extends ChangeNotifier {
       return;
     } catch (_) {
       if (!_isCurrent(run)) return;
-      _status = "Sorry, I didn't catch that.";
+      _status = _messages.didntCatch;
       _resumeListening();
       return;
     }
@@ -554,12 +559,13 @@ class VoiceConversation extends ChangeNotifier {
     if (isLikelyTranscriptionHallucination(
       text,
       speechDuration: speechDuration,
+      language: _messages.language,
     )) {
       _resumeListening();
       return;
     }
 
-    final command = parseVoiceCommand(text);
+    final command = parseVoiceCommand(text, language: _messages.language);
     if (command != null && await _handleCommand(command, text, run)) return;
     if (!_isCurrent(run)) return;
 
@@ -597,16 +603,13 @@ class VoiceConversation extends ChangeNotifier {
         );
         if (match == null) {
           if (!command.explicit) return false;
-          _speakOnly(
-            "I couldn't find an agent called ${command.agentName}.",
-            run,
-          );
+          _speakOnly(_messages.noAgentNamed(command.agentName), run);
           return true;
         }
         await switchAgent(match);
         final next = _cancelRun();
         _setPhase(VoicePhase.thinking);
-        _speakOnly("Okay, you're now talking to ${match.name}.", next);
+        _speakOnly(_messages.nowTalkingTo(match.name), next);
         return true;
     }
   }
@@ -614,13 +617,13 @@ class VoiceConversation extends ChangeNotifier {
   Future<void> _converse(String text, int run) async {
     final agent = _agent;
     if (agent == null) {
-      _fail('No agent selected.', fatal: true);
+      _fail(_messages.noAgentSelected, fatal: true);
       return;
     }
     _beginReply();
     _thinkingHintTimer = Timer(config.thinkingHintAfter, () {
       if (_isCurrent(run) && _phase == VoicePhase.thinking && _status == null) {
-        _status = 'Still working on it…';
+        _status = _messages.stillWorking;
         notifyListeners();
       }
     });
@@ -628,7 +631,7 @@ class VoiceConversation extends ChangeNotifier {
     try {
       _conversationId ??= await gateway.createConversation(
         agent,
-        name: 'Voice chat',
+        name: _messages.voiceChatName,
       );
     } catch (e) {
       if (_isCurrent(run)) _failTurn(_describe(e), run);
@@ -640,6 +643,8 @@ class VoiceConversation extends ChangeNotifier {
       agent: agent,
       message: text,
       conversationId: _conversationId!,
+      // The agent answers in the language the person is speaking.
+      language: deviceLocale?.split(RegExp('[-_]')).first,
     );
     _agentSub = stream.listen(
       (event) => _onAgentEvent(event, run),
@@ -673,7 +678,7 @@ class VoiceConversation extends ChangeNotifier {
       case 'done':
         _finishAgentStream(run);
       case 'error':
-        _failTurn(event.error ?? 'The agent ran into a problem.', run);
+        _failTurn(event.error ?? _messages.agentProblem, run);
     }
   }
 
@@ -686,10 +691,10 @@ class VoiceConversation extends ChangeNotifier {
         !_spokeAnything &&
         _speechQueue.isEmpty) {
       // The reply had nothing speakable (for example only code or a table).
-      _enqueueSpeech("I've put the details in the chat.", run);
+      _enqueueSpeech(_messages.detailsInChat, run);
     }
     if (_liveReply.trim().isEmpty && !_spokeAnything) {
-      _status = "I didn't get a response.";
+      _status = _messages.noResponse;
     }
     _agentDone = true;
     _wakePlayLoop();

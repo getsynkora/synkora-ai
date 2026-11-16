@@ -12,6 +12,7 @@ import 'engines/record_mic.dart';
 import 'engines/voice_cue_player.dart';
 import 'ports.dart';
 import 'voice_conversation.dart';
+import 'voice_messages.dart';
 import 'voice_profile.dart';
 import 'voice_settings.dart';
 
@@ -41,7 +42,9 @@ class VoiceHub extends ChangeNotifier with WidgetsBindingObserver {
            ) {
     _synthesizer = RoutingSpeechSynthesizer(_cloudSynthesizer);
     conversation = VoiceConversation(
-      mic: mic ?? RecordMic(),
+      mic:
+          mic ??
+          RecordMic(messages: () => VoiceMessages.forLanguage(_profile.locale)),
       recognizer: _recognizer,
       synthesizer: _synthesizer,
       output:
@@ -157,8 +160,7 @@ class VoiceHub extends ChangeNotifier with WidgetsBindingObserver {
           await _agentService.setVoiceEnabled(agent.slug, true);
         } catch (_) {
           conversation.reportProblem(
-            'Could not turn voice on for ${agent.name}. Only its owner can; '
-            'open Voice settings on the web to enable it.',
+            VoiceMessages.forLanguage(_profile.locale).turnOnFailed(agent.name),
           );
           return;
         }

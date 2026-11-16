@@ -22,6 +22,7 @@ import '../src/voice/audio/pcm.dart';
 import '../src/voice/ports.dart';
 import '../src/voice/voice_hub.dart';
 import '../src/voice/voice_settings.dart';
+import '../../l10n/app_localizations.dart';
 
 void main() => runApp(const _DemoApp());
 
@@ -32,6 +33,8 @@ class _DemoApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: buildSynkoraTheme(),
       home: const _DemoRoot(),
     );

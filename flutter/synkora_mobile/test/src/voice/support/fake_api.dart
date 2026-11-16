@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:synkora_mobile/src/models/synkora_models.dart';
 import 'package:synkora_mobile/src/services/api_client.dart';
 
 class RecordingApi extends SynkoraApiClient {
@@ -16,6 +17,8 @@ class RecordingApi extends SynkoraApiClient {
   SynkoraApiException? failure;
 
   String? lastPath;
+  String? lastStreamPath;
+  Map<String, dynamic>? lastStreamBody;
   Map<String, dynamic>? lastQuery;
   Object? lastBody;
   FormData? lastForm;
@@ -57,6 +60,17 @@ class RecordingApi extends SynkoraApiClient {
     lastQuery = queryParameters;
     if (failure != null) throw failure!;
     return jsonResponse;
+  }
+
+  @override
+  Stream<ChatEvent> postEventStream(
+    String path, {
+    required Map<String, dynamic> data,
+    bool authenticated = true,
+  }) {
+    lastStreamPath = path;
+    lastStreamBody = data;
+    return const Stream.empty();
   }
 
   @override

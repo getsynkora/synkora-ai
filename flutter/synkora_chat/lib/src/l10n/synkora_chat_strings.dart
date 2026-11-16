@@ -131,6 +131,11 @@ class SynkoraChatStrings {
   String get approve => _t('approve');
   String get reject => _t('reject');
 
+  // Errors shown inside the chat
+  String get errorConnection => _t('error_connection');
+  String get errorTooFast => _t('error_too_fast');
+  String get errorGeneric => _t('error_generic');
+
   // Connection errors
   String get connectionIssue => _t('connection_issue');
   String expectedUrl(String url) => _t('expected_url', {'url': url});
@@ -199,6 +204,11 @@ class SynkoraChatStrings {
     'expires_label': 'Expires: {when}',
     'approve': 'Approve',
     'reject': 'Reject',
+    'error_connection':
+        "I'm having trouble connecting right now. Please check your connection and try again.",
+    'error_too_fast':
+        "You're sending messages a little too fast. Please wait a moment and try again.",
+    'error_generic': 'Something went wrong. Please try again.',
     'connection_issue': 'Connection issue',
     'expected_url': 'Expected: {url}',
     'retry_connection': 'Retry connection',
@@ -267,6 +277,11 @@ class SynkoraChatStrings {
     'expires_label': 'Läuft ab: {when}',
     'approve': 'Freigeben',
     'reject': 'Ablehnen',
+    'error_connection':
+        'Die Verbindung klappt gerade nicht. Bitte prüfen Sie Ihre Verbindung und versuchen Sie es erneut.',
+    'error_too_fast':
+        'Sie senden Nachrichten etwas zu schnell. Bitte warten Sie einen Moment und versuchen Sie es erneut.',
+    'error_generic': 'Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.',
     'connection_issue': 'Verbindungsproblem',
     'expected_url': 'Erwartet: {url}',
     'retry_connection': 'Verbindung erneut versuchen',

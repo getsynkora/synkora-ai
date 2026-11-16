@@ -432,6 +432,7 @@ async def chat_stream(
             user_id=current_account_id,
             tenant_id=tenant_id,
             voice_mode=request.voice_mode,
+            language=request.language,
         ),
         media_type="text/event-stream",
         headers={
@@ -462,6 +463,7 @@ async def _ws_chat_pipeline(
     db: AsyncSession,
     tenant_id: uuid.UUID,
     current_account: Account,
+    language: str | None = None,
 ) -> AsyncGenerator[str, None]:
     """
     Full chat pipeline for WebSocket transport.
@@ -664,6 +666,7 @@ async def _ws_chat_pipeline(
         db=db,
         user_id=str(current_account.id),
         tenant_id=tenant_id,
+        language=language,
     ):
         # sse_frame = "data: {...}\n\n" — strip SSE framing for WebSocket
         json_str = sse_frame.removeprefix("data: ").rstrip("\n")
@@ -691,7 +694,8 @@ async def chat_websocket(websocket: WebSocket) -> None:
                      "conversation_id": "<uuid or null>",
                      "conversation_history": [...],
                      "attachments": [...],
-                     "llm_config_id": "<uuid or null>"
+                     "llm_config_id": "<uuid or null>",
+                     "language": "<BCP-47 code such as 'de', optional>"
                    }
         server  →  stream of JSON frames identical to SSE events:
                    {"type": "start", ...}
@@ -757,6 +761,7 @@ async def chat_websocket(websocket: WebSocket) -> None:
         conversation_history: list = frame.get("conversation_history") or []
         attachments: list | None = frame.get("attachments")
         llm_config_id: str | None = frame.get("llm_config_id")
+        language: str | None = frame.get("language") if isinstance(frame.get("language"), str) else None
 
         # Fresh DB session per message — avoids holding a pool slot idle between turns
         async with get_async_session_factory()() as msg_db:
@@ -778,6 +783,7 @@ async def chat_websocket(websocket: WebSocket) -> None:
                     db=msg_db,
                     tenant_id=tenant_id,
                     current_account=current_account,
+                    language=language,
                 ):
                     await websocket.send_text(json_str)
             except WebSocketDisconnect:

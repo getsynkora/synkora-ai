@@ -104,6 +104,7 @@ class SynkoraChatController extends ChangeNotifier {
     final newStrings = strings ?? SynkoraChatStrings.forLocale(locale);
     final stringsChanged = !identical(this.strings, newStrings);
     _client.language = tag;
+    _client.strings = newStrings;
     this.strings = newStrings;
     if (changed && _config != null) unawaited(_reloadConfig());
     if (changed || stringsChanged) _notify();

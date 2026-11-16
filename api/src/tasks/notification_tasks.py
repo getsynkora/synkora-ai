@@ -13,6 +13,7 @@ from celery.exceptions import MaxRetriesExceededError
 
 from src.celery_app import celery_app
 from src.core.database import SessionLocal
+from src.services.i18n import translate
 
 logger = logging.getLogger(__name__)
 
@@ -465,6 +466,7 @@ def send_fcm_push_task(
     conversation_id: str,
     agent_name: str,
     reply_preview: str,
+    language: str | None = None,
 ) -> dict[str, Any]:
     """
     Send FCM push notification to all subscribed devices for a conversation.
@@ -518,7 +520,9 @@ def send_fcm_push_task(
             app = firebase_admin.initialize_app(cred, name=app_name)
 
         tokens = [s.fcm_token for s in subs]
-        notification = messaging.Notification(title=agent_name, body=clean_preview or "Your answer is ready.")
+        notification = messaging.Notification(
+            title=agent_name, body=clean_preview or translate("answer_ready", language)
+        )
         data = {"widget_id": widget_id, "conversation_id": conversation_id, "type": "agent_reply"}
 
         batch = messaging.MulticastMessage(notification=notification, data=data, tokens=tokens)

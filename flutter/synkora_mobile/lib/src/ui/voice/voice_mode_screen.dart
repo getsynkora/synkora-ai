@@ -12,6 +12,8 @@ import 'voice_backdrop.dart';
 import 'voice_orb.dart';
 import 'voice_palette.dart';
 import 'voice_sheets.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../voice/voice_messages.dart';
 
 /// Full-screen, hands-free conversation with an agent.
 class VoiceModeScreen extends StatefulWidget {
@@ -83,12 +85,8 @@ class _VoiceModeScreenState extends State<VoiceModeScreen> {
   var _wasActive = false;
   var _closing = false;
 
-  static const _hints = [
-    'Ask me anything',
-    'Say “switch to” and an agent’s name',
-    'Talk over me to interrupt',
-    'Say “goodbye” when you’re done',
-  ];
+  /// Tips that name the spoken commands of the conversation's language.
+  List<String> get _hints => VoiceMessages.forLanguage(_c.deviceLocale).hints;
 
   @override
   void initState() {
@@ -154,6 +152,7 @@ class _VoiceModeScreenState extends State<VoiceModeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final phase = _c.phase;
     final agent = _c.agent ?? widget.agent;
     final size = MediaQuery.sizeOf(context);
@@ -197,7 +196,7 @@ class _VoiceModeScreenState extends State<VoiceModeScreen> {
                               onTap: _onOrbTap,
                               child: Semantics(
                                 button: true,
-                                label: _semanticLabel(phase),
+                                label: _semanticLabel(l10n, phase),
                                 child: VoiceOrb(
                                   phase: phase,
                                   inputLevel: _c.inputLevel,
@@ -256,13 +255,14 @@ class _VoiceModeScreenState extends State<VoiceModeScreen> {
     );
   }
 
-  String _semanticLabel(VoicePhase phase) => switch (phase) {
-    VoicePhase.speaking => 'Assistant is speaking. Double tap to interrupt.',
-    VoicePhase.thinking => 'Assistant is thinking. Double tap to cancel.',
-    VoicePhase.listening => 'Listening. Double tap to send what you said now.',
-    VoicePhase.error => 'There was a problem. Double tap to retry.',
-    VoicePhase.armed || VoicePhase.idle => 'Double tap to start talking.',
-  };
+  String _semanticLabel(AppLocalizations l10n, VoicePhase phase) =>
+      switch (phase) {
+        VoicePhase.speaking => l10n.voiceSemanticSpeaking,
+        VoicePhase.thinking => l10n.voiceSemanticThinking,
+        VoicePhase.listening => l10n.voiceSemanticListening,
+        VoicePhase.error => l10n.voiceSemanticError,
+        VoicePhase.armed || VoicePhase.idle => l10n.voiceSemanticIdle,
+      };
 }
 
 class _TopBar extends StatelessWidget {
@@ -291,7 +291,7 @@ class _TopBar extends StatelessWidget {
         children: [
           _RoundIcon(
             icon: Icons.keyboard_arrow_down_rounded,
-            tooltip: 'Close',
+            tooltip: AppLocalizations.of(context).close,
             onTap: onClose,
           ),
           const SizedBox(width: 8),
@@ -340,13 +340,13 @@ class _TopBar extends StatelessWidget {
           const SizedBox(width: 8),
           _RoundIcon(
             icon: Icons.subject_rounded,
-            tooltip: 'Transcript',
+            tooltip: AppLocalizations.of(context).transcript,
             onTap: onTranscript,
           ),
           const SizedBox(width: 6),
           _RoundIcon(
             icon: Icons.tune_rounded,
-            tooltip: 'Voice settings',
+            tooltip: AppLocalizations.of(context).voiceSettings,
             onTap: onSettings,
           ),
         ],
@@ -376,6 +376,7 @@ class _StatusBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final c = controller;
     final theme = Theme.of(context).textTheme;
     final phase = c.phase;
@@ -383,14 +384,14 @@ class _StatusBlock extends StatelessWidget {
 
     final title = switch (phase) {
       VoicePhase.armed ||
-      VoicePhase.idle => wakeEnabled ? 'Say “Hey Synkora”' : 'Tap to talk',
+      VoicePhase.idle => wakeEnabled ? l10n.voiceTitleWake : l10n.voiceTitleTap,
       VoicePhase.listening =>
         c.muted
-            ? 'Mic is muted'
-            : (c.userSpeaking ? 'Listening…' : 'I’m listening'),
-      VoicePhase.thinking => 'Thinking…',
-      VoicePhase.speaking => 'Speaking',
-      VoicePhase.error => 'Something went wrong',
+            ? l10n.micMuted
+            : (c.userSpeaking ? l10n.listeningDots : l10n.imListening),
+      VoicePhase.thinking => l10n.thinkingTitle,
+      VoicePhase.speaking => l10n.speakingTitle,
+      VoicePhase.error => l10n.somethingWrong,
     };
 
     final lastUser = c.turns.reversed.where((t) => t.isUser).firstOrNull;
@@ -481,9 +482,9 @@ class _StatusBlock extends StatelessWidget {
               }, color: palette.core),
               label: Text(
                 switch (issueKind) {
-                  VoiceIssueKind.voiceDisabled => 'Turn on voice',
-                  VoiceIssueKind.missingKey => 'Use my phone’s voice',
-                  null => 'Try again',
+                  VoiceIssueKind.voiceDisabled => l10n.turnOnVoice,
+                  VoiceIssueKind.missingKey => l10n.usePhoneVoice,
+                  null => l10n.tryAgain,
                 },
                 style: TextStyle(
                   color: palette.core,
@@ -515,19 +516,20 @@ class _Controls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _GlassButton(
           icon: muted ? Icons.mic_off_rounded : Icons.mic_rounded,
-          label: muted ? 'Unmute microphone' : 'Mute microphone',
+          label: muted ? l10n.unmuteMic : l10n.muteMic,
           active: muted,
           onTap: onMute,
         ),
         const SizedBox(width: 26),
         Semantics(
           button: true,
-          label: 'End conversation',
+          label: l10n.endConversation,
           child: GestureDetector(
             onTap: onEnd,
             child: Container(
@@ -559,7 +561,7 @@ class _Controls extends StatelessWidget {
         const SizedBox(width: 26),
         _GlassButton(
           icon: Icons.keyboard_alt_outlined,
-          label: 'Type a message',
+          label: l10n.typeMessage,
           active: typing,
           onTap: onType,
         ),
@@ -682,7 +684,7 @@ class _TypeBar extends StatelessWidget {
                 textInputAction: TextInputAction.send,
                 onSubmitted: (_) => onSend(),
                 decoration: InputDecoration(
-                  hintText: 'Type instead…',
+                  hintText: AppLocalizations.of(context).typeInstead,
                   hintStyle: TextStyle(
                     color: Colors.white.withValues(alpha: 0.45),
                   ),
@@ -698,7 +700,7 @@ class _TypeBar extends StatelessWidget {
               icon: const Icon(Icons.arrow_upward_rounded),
               color: const Color(0xFF0B1220),
               style: IconButton.styleFrom(backgroundColor: Colors.white),
-              tooltip: 'Send',
+              tooltip: AppLocalizations.of(context).send,
             ),
           ],
         ),

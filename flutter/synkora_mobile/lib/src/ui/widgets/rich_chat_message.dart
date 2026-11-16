@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/synkora_models.dart';
 import '../../theme/app_theme.dart';
+import '../../../l10n/app_localizations.dart';
 
 class RichChatMessage extends StatelessWidget {
   const RichChatMessage({
@@ -21,6 +22,7 @@ class RichChatMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final bubbleColor = _isUser
         ? SynkoraColors.ink
         : (message.isError ? const Color(0xFFFFF1F2) : Colors.white);
@@ -96,8 +98,8 @@ class RichChatMessage extends StatelessWidget {
                   const SizedBox(height: 10),
                   Text(
                     [
-                      formatRelativeTimestamp(message.createdAt),
-                      if (message.isStreaming) 'Streaming',
+                      formatRelativeTimestamp(message.createdAt, l10n),
+                      if (message.isStreaming) l10n.streaming,
                     ].join(' • '),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: _isUser

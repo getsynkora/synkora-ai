@@ -17,6 +17,9 @@ class _FakeWidgetServer {
 
   final HttpServer _server;
   bool preChatEnabled = false;
+
+  /// When set, chat requests fail with this HTTP status.
+  int? chatStatus;
   final List<Uri> configRequests = [];
   final List<Map<String, dynamic>> chatBodies = [];
 
@@ -60,6 +63,13 @@ class _FakeWidgetServer {
         jsonDecode(await utf8.decoder.bind(request).join())
             as Map<String, dynamic>,
       );
+      if (chatStatus != null) {
+        request.response.statusCode = chatStatus!;
+        request.response.headers.contentType = ContentType.json;
+        request.response.write(jsonEncode({'detail': 'server detail'}));
+        await request.response.close();
+        return;
+      }
       request.response.headers.contentType =
           ContentType('text', 'event-stream');
       request.response.write('data: {"type":"chunk","content":"ok"}\n\n');
@@ -211,6 +221,34 @@ void main() {
 
       expect(server.configRequests, hasLength(1));
       controller.dispose();
+    });
+
+    test('chat errors are shown in the controller language', () async {
+      server.chatStatus = 429;
+      final client =
+          SynkoraClient(widgetKey: 'wk_test', baseUrl: server.baseUrl);
+      final controller = SynkoraChatController(
+        client: client,
+        cacheDatabase: CacheDatabase(NativeDatabase.memory()),
+      )..setLocale(const Locale('de'));
+
+      final events = await client.sendMessage('Hallo').toList();
+
+      final error = events.whereType<ErrorEvent>().single;
+      expect(error.message, SynkoraChatStrings.de.errorTooFast);
+      expect(error.message, contains('zu schnell'));
+      controller.dispose();
+    });
+
+    test('chat errors stay English by default', () async {
+      server.chatStatus = 500;
+      final client =
+          SynkoraClient(widgetKey: 'wk_test', baseUrl: server.baseUrl);
+
+      final events = await client.sendMessage('hi').toList();
+
+      expect(events.whereType<ErrorEvent>().single.message,
+          'Something went wrong. Please try again.');
     });
 
     test('an own strings table wins over the built-in one', () {

@@ -124,6 +124,11 @@ class ChatRequest(StrictModel):
     voice_mode: bool = Field(
         False, description="True when the reply will be spoken aloud (hands-free voice conversation)"
     )
+    language: str | None = Field(
+        None,
+        max_length=20,
+        description="Language of the client UI as a BCP-47 code (e.g. 'de'); the agent replies in it by default",
+    )
 
 
 class UploadAttachmentRequest(BaseModel):

@@ -159,8 +159,10 @@ class FakeOutput implements AudioOutput {
 }
 
 class FakeGateway implements VoiceAgentGateway {
-  final List<({String agent, String message, String conversationId})> requests =
-      [];
+  final List<
+    ({String agent, String message, String conversationId, String? language})
+  >
+  requests = [];
   final List<String> created = [];
   StreamController<ChatEvent>? current;
   bool cancelled = false;
@@ -181,11 +183,13 @@ class FakeGateway implements VoiceAgentGateway {
     required AgentSummary agent,
     required String message,
     required String conversationId,
+    String? language,
   }) {
     requests.add((
       agent: agent.name,
       message: message,
       conversationId: conversationId,
+      language: language,
     ));
     final controller = StreamController<ChatEvent>(
       onCancel: () => cancelled = true,

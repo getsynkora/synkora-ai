@@ -4,6 +4,8 @@ import '../../models/synkora_models.dart';
 import '../../voice/voice_conversation.dart';
 import '../../voice/voice_hub.dart';
 import '../../voice/wake/wake_keywords.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../voice/voice_messages.dart';
 
 const _sheetColor = Color(0xFF0E1526);
 
@@ -85,6 +87,7 @@ Future<void> showAgentPicker(
   return _showSheet(context, (sheetContext) {
     final agents = hub.agents.where((a) => !a.isSubAgent).toList();
     final theme = Theme.of(sheetContext).textTheme;
+    final l10n = AppLocalizations.of(sheetContext);
     return SafeArea(
       child: ConstrainedBox(
         constraints: BoxConstraints(
@@ -97,7 +100,7 @@ Future<void> showAgentPicker(
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 4),
               child: Text(
-                'Talk to',
+                l10n.talkTo,
                 style: theme.titleLarge?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
@@ -107,7 +110,9 @@ Future<void> showAgentPicker(
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
               child: Text(
-                'You can also say “switch to” followed by a name.',
+                VoiceMessages.forLanguage(
+                  hub.conversation.deviceLocale,
+                ).switchHint,
                 style: theme.bodySmall?.copyWith(
                   color: Colors.white.withValues(alpha: 0.55),
                 ),
@@ -118,7 +123,7 @@ Future<void> showAgentPicker(
                   ? Padding(
                       padding: const EdgeInsets.all(24),
                       child: Text(
-                        'No other agents yet.',
+                        l10n.noOtherAgents,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.6),
                         ),
@@ -188,6 +193,7 @@ Future<void> showTranscript(BuildContext context, VoiceConversation c) {
           builder: (context, _) {
             final turns = c.turns;
             final theme = Theme.of(context).textTheme;
+            final l10n = AppLocalizations.of(context);
             return Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,7 +201,7 @@ Future<void> showTranscript(BuildContext context, VoiceConversation c) {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
                   child: Text(
-                    'Transcript',
+                    l10n.transcript,
                     style: theme.titleLarge?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
@@ -207,7 +213,7 @@ Future<void> showTranscript(BuildContext context, VoiceConversation c) {
                       ? Padding(
                           padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
                           child: Text(
-                            'Nothing yet. Start talking and your conversation will appear here.',
+                            l10n.transcriptEmpty,
                             style: TextStyle(
                               color: Colors.white.withValues(alpha: 0.55),
                             ),
@@ -271,7 +277,7 @@ class _TurnBubble extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
-                    'Interrupted',
+                    AppLocalizations.of(context).interrupted,
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.45),
                       fontSize: 11,
@@ -292,6 +298,7 @@ Future<void> showVoiceSettings(BuildContext context, VoiceHub hub) {
   return _showSheet(context, (sheetContext) {
     final settings = hub.settings;
     final theme = Theme.of(sheetContext).textTheme;
+    final l10n = AppLocalizations.of(sheetContext);
     return SafeArea(
       child: ListenableBuilder(
         listenable: settings,
@@ -302,7 +309,7 @@ Future<void> showVoiceSettings(BuildContext context, VoiceHub hub) {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Voice settings',
+                l10n.voiceSettings,
                 style: theme.titleLarge?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
@@ -313,11 +320,8 @@ Future<void> showVoiceSettings(BuildContext context, VoiceHub hub) {
                 _WakeProblem(message: hub.wakeProblem!),
               if (hub.wakeSupported)
                 _SwitchRow(
-                  title: 'Wake with “Hey Synkora”',
-                  subtitle:
-                      'Listens for the phrase while Synkora is open, so you can '
-                      'talk hands-free. Audio is checked on your phone and is '
-                      'only sent once you start speaking.',
+                  title: l10n.wakeTitle,
+                  subtitle: l10n.wakeSubtitle,
                   value: settings.wakeEnabled,
                   onChanged: settings.setWakeEnabled,
                 ),
@@ -327,26 +331,26 @@ Future<void> showVoiceSettings(BuildContext context, VoiceHub hub) {
                   onChanged: settings.setWakeSensitivity,
                 ),
               _SwitchRow(
-                title: 'Interrupt by speaking',
-                subtitle: 'Talk over the assistant to cut it off.',
+                title: l10n.interruptTitle,
+                subtitle: l10n.interruptSubtitle,
                 value: settings.bargeIn,
                 onChanged: settings.setBargeIn,
               ),
               _SwitchRow(
-                title: 'Sounds',
-                subtitle: 'A soft chime when it wakes or finishes.',
+                title: l10n.soundsTitle,
+                subtitle: l10n.soundsSubtitle,
                 value: settings.cueSounds,
                 onChanged: settings.setCueSounds,
               ),
               _SwitchRow(
-                title: 'Haptics',
-                subtitle: 'Gentle taps at key moments.',
+                title: l10n.hapticsTitle,
+                subtitle: l10n.hapticsSubtitle,
                 value: settings.cueHaptics,
                 onChanged: settings.setCueHaptics,
               ),
               const SizedBox(height: 10),
               Text(
-                'Speaking speed  ·  ${settings.speed.toStringAsFixed(2)}×',
+                l10n.speakingSpeed(settings.speed.toStringAsFixed(2)),
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
@@ -423,21 +427,22 @@ class _SensitivityChooser extends StatelessWidget {
   final WakeSensitivity value;
   final ValueChanged<WakeSensitivity> onChanged;
 
-  static const _labels = {
-    WakeSensitivity.low: 'Fewer wakes',
-    WakeSensitivity.balanced: 'Balanced',
-    WakeSensitivity.high: 'Catch more',
+  static Map<WakeSensitivity, String> _labels(AppLocalizations l10n) => {
+    WakeSensitivity.low: l10n.wakeLow,
+    WakeSensitivity.balanced: l10n.wakeBalanced,
+    WakeSensitivity.high: l10n.wakeHigh,
   };
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Wake sensitivity',
+            l10n.wakeSensitivity,
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w600,
@@ -450,7 +455,10 @@ class _SensitivityChooser extends StatelessWidget {
               showSelectedIcon: false,
               segments: [
                 for (final level in WakeSensitivity.values)
-                  ButtonSegment(value: level, label: Text(_labels[level]!)),
+                  ButtonSegment(
+                    value: level,
+                    label: Text(_labels(l10n)[level]!),
+                  ),
               ],
               selected: {value},
               onSelectionChanged: (set) => onChanged(set.first),
@@ -473,8 +481,7 @@ class _SensitivityChooser extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'If it wakes when you did not say it, choose “Fewer wakes”. '
-            'If it misses you, choose “Catch more”.',
+            l10n.wakeHelp,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.55),
               height: 1.3,
@@ -494,6 +501,7 @@ class _WakeProblem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       margin: const EdgeInsets.only(top: 4, bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -512,8 +520,7 @@ class _WakeProblem extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              '“Hey Synkora” is unavailable on this device right now. You can '
-              'still tap the orb to talk.\n$message',
+              l10n.wakeUnavailable(message),
               style: const TextStyle(
                 color: Colors.white,
                 height: 1.3,

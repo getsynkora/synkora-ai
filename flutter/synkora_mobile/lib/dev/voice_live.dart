@@ -20,10 +20,13 @@ import '../src/voice/voice_hub.dart';
 import '../src/voice/voice_settings.dart';
 import '../src/voice/wake/sherpa_wake_word_detector.dart';
 import 'demo_backend.dart';
+import '../../l10n/app_localizations.dart';
 
 void main() => runApp(
   MaterialApp(
     debugShowCheckedModeBanner: false,
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     theme: buildSynkoraTheme(),
     home: const _LiveRoot(),
   ),
