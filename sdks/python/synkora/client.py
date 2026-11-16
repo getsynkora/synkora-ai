@@ -170,6 +170,7 @@ class SynkoraClient:
         *,
         conversation_id: str | UUID | None = None,
         metadata: dict[str, Any] | None = None,
+        language: str | None = None,
     ) -> ChatResponse:
         """
         Send a message and return the full response when complete.
@@ -185,6 +186,7 @@ class SynkoraClient:
             message=message,
             conversation_id=conversation_id,
             metadata=metadata,
+            language=language,
         ):
             if hasattr(event, "content") and event.type == "chunk":
                 content_parts.append(event.content)
@@ -213,6 +215,7 @@ class SynkoraClient:
         *,
         conversation_id: str | UUID | None = None,
         metadata: dict[str, Any] | None = None,
+        language: str | None = None,
     ) -> Iterator[StreamEvent]:
         """
         Stream a chat response, yielding typed events as they arrive.
@@ -230,6 +233,8 @@ class SynkoraClient:
             body["conversation_id"] = str(conversation_id)
         if metadata is not None:
             body["metadata"] = metadata
+        if language is not None:
+            body["language"] = language
 
         with self._http.stream(
             "POST",
@@ -357,6 +362,7 @@ class AsyncSynkoraClient:
         *,
         conversation_id: str | UUID | None = None,
         metadata: dict[str, Any] | None = None,
+        language: str | None = None,
     ) -> ChatResponse:
         """Send a message and return the full response when complete."""
         content_parts: list[str] = []
@@ -368,6 +374,7 @@ class AsyncSynkoraClient:
             message=message,
             conversation_id=conversation_id,
             metadata=metadata,
+            language=language,
         ):
             if hasattr(event, "content") and event.type == "chunk":
                 content_parts.append(event.content)
@@ -396,6 +403,7 @@ class AsyncSynkoraClient:
         *,
         conversation_id: str | UUID | None = None,
         metadata: dict[str, Any] | None = None,
+        language: str | None = None,
     ) -> AsyncIterator[StreamEvent]:
         """Stream a chat response, yielding typed events as they arrive."""
         body: dict[str, Any] = {"message": message}
@@ -403,6 +411,8 @@ class AsyncSynkoraClient:
             body["conversation_id"] = str(conversation_id)
         if metadata is not None:
             body["metadata"] = metadata
+        if language is not None:
+            body["language"] = language
 
         async with self._http.stream(
             "POST",

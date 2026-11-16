@@ -3,6 +3,7 @@ import { headers } from 'next/headers'
 import { getSharedConversation } from '@/lib/api/conversations'
 import { extractMindsetShareData } from '@/lib/share/mindsetShare'
 import { SharedChatView } from './SharedChatView'
+import { getTranslations } from 'next-intl/server'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
 
@@ -59,6 +60,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function SharePage({ params }: Props) {
+  const t = await getTranslations('share.unavailable')
   const { token } = await params
 
   let data = null
@@ -79,9 +81,9 @@ export default async function SharePage({ params }: Props) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
           </div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Link not available</h1>
+          <h1 className="text-xl font-bold text-gray-900 mb-2">{t('title')}</h1>
           <p className="text-sm text-gray-500">
-            This share link has expired, been revoked, or does not exist.
+            {t('body')}
           </p>
         </div>
       </div>

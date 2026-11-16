@@ -200,6 +200,50 @@ func TestChatStreamYieldsEvents(t *testing.T) {
 	}
 }
 
+func TestChatStreamSendsTheLanguage(t *testing.T) {
+	var sent map[string]any
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/public/agents/agent-1/chat/stream", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&sent)
+		sseHandler(`{"type":"done","metadata":{},"sources":[]}`)(w, r)
+	})
+	client, _ := newTestClient(t, mux)
+
+	stream, err := client.ChatStream(context.Background(), "agent-1", "Hallo", &ChatOptions{Language: "de"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stream.Close()
+	for stream.Next() {
+	}
+
+	if sent["language"] != "de" {
+		t.Fatalf("expected language de, got %v", sent["language"])
+	}
+}
+
+func TestChatStreamOmitsLanguageByDefault(t *testing.T) {
+	var sent map[string]any
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /api/v1/public/agents/agent-1/chat/stream", func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewDecoder(r.Body).Decode(&sent)
+		sseHandler(`{"type":"done","metadata":{},"sources":[]}`)(w, r)
+	})
+	client, _ := newTestClient(t, mux)
+
+	stream, err := client.ChatStream(context.Background(), "agent-1", "Hi", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stream.Close()
+	for stream.Next() {
+	}
+
+	if _, ok := sent["language"]; ok {
+		t.Fatalf("language should be omitted, got %v", sent["language"])
+	}
+}
+
 func TestChatStreamErrorEventReturnsStreamError(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/public/agents/agent-1/chat/stream", sseHandler(

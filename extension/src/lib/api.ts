@@ -11,10 +11,11 @@
  */
 
 import type { Agent } from '@/types';
+import { browserLanguageTag, t } from './i18n';
 
 function assertHttps(url: string): void {
   if (!url.startsWith('https://') && !url.startsWith('http://localhost') && !url.startsWith('http://127.')) {
-    throw new Error(`Insecure URL rejected: ${url}`);
+    throw new Error(t('insecureUrl', { url }));
   }
 }
 
@@ -55,7 +56,7 @@ interface AgentsListResponse {
 
 export async function fetchAgents(synkoraUrl: string, accessToken: string): Promise<Agent[]> {
   const resp = await apiFetch(synkoraUrl, '/api/v1/agents/', accessToken);
-  if (!resp.ok) throw new Error(`Failed to fetch agents: ${resp.status}`);
+  if (!resp.ok) throw new Error(t('fetchAgentsFailed', { status: resp.status }));
 
   const json = await resp.json() as AgentsListResponse;
   const list = json.data?.agents_list ?? [];
@@ -123,6 +124,8 @@ export async function streamChat(
       message: messageWithContext,
       conversation_id: conversationId,
       conversation_history: history.length > 0 ? history : undefined,
+      // The agent answers in the browser's language by default.
+      language: browserLanguageTag(),
     }),
     signal,
   });
@@ -130,10 +133,10 @@ export async function streamChat(
   if (!resp.ok) {
     const err = await resp.json().catch(() => ({})) as { detail?: unknown };
     const detail = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail);
-    throw new Error(detail ?? `Chat stream failed: ${resp.status}`);
+    throw new Error(detail ?? t('chatStreamFailed', { status: resp.status }));
   }
 
-  if (!resp.body) throw new Error('No response body from chat stream');
+  if (!resp.body) throw new Error(t('noResponseBody'));
 
   const reader = resp.body
     .pipeThrough(new TextDecoderStream())

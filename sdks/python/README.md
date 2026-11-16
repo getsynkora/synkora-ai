@@ -74,6 +74,15 @@ r2 = client.chat(
 print(r2.message)  # "Your name is Alice."
 ```
 
+## Reply language
+
+Pass `language` (a BCP-47 code such as `de` or `pt-BR`) and the agent replies in it
+by default. If the user writes in another language, the agent follows them.
+
+```python
+response = client.chat(agent_id=agent_id, message="Hallo!", language="de")
+```
+
 ## Environment variables
 
 | Variable | Description |

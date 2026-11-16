@@ -82,6 +82,15 @@ r2, err := client.Chat(ctx, agentID, "What is my name?", &synkora.ChatOptions{
 fmt.Println(r2.Message) // "Your name is Alice."
 ```
 
+## Reply language
+
+Set `Language` (a BCP-47 code such as `"de"` or `"pt-BR"`) and the agent replies in
+it by default. If the user writes in another language, the agent follows them.
+
+```go
+resp, err := client.Chat(ctx, agentID, "Hallo!", &synkora.ChatOptions{Language: "de"})
+```
+
 ## Environment variables
 
 | Variable | Description |

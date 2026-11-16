@@ -11,6 +11,8 @@
   The relative-time labels in the message bubbles and sessions list now follow
   the language (English `5min` in the sessions list is now `5 min`, as in
   the bubbles).
+  The error messages shown inside the chat (no connection, sending too fast,
+  something went wrong) are translated too.
 
 ## 1.15.5
 

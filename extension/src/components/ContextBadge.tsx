@@ -1,6 +1,7 @@
 import { Globe, EyeOff, ChevronDown, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 import { useExtensionStore } from '@/store/extension';
+import { t } from '../lib/i18n';
 
 interface Props {
   pageUrl: string;
@@ -28,7 +29,7 @@ export function ContextBadge({ pageUrl, contextAvailable, onGrantPermission }: P
       {needsPermission && onGrantPermission ? (
         <button
           onClick={onGrantPermission}
-          title="Grant access to read this page"
+          title={t('grantAccess')}
           className="flex items-center gap-1 text-[#b35630] hover:text-[#944726] transition-colors"
         >
           <ShieldAlert size={11} />
@@ -40,10 +41,10 @@ export function ContextBadge({ pageUrl, contextAvailable, onGrantPermission }: P
           onClick={() => contextAvailable && setPageContextEnabled(!pageContextEnabled)}
           title={
             !contextAvailable
-              ? 'Page context unavailable on this page'
+              ? t('contextUnavailable')
               : pageContextEnabled
-              ? 'Click to disable page context'
-              : 'Click to enable page context'
+              ? t('contextDisable')
+              : t('contextEnable')
           }
           className={`flex items-center gap-1 transition-colors ${
             contextAvailable ? 'cursor-pointer hover:text-brand-ink' : 'cursor-default opacity-50'
@@ -78,7 +79,7 @@ export function ContextBadge({ pageUrl, contextAvailable, onGrantPermission }: P
                       pageContextMode === m ? 'text-synkora-700 font-medium' : 'text-brand-ink'
                     }`}
                   >
-                    {m === 'viewport' ? 'Viewport only' : 'Full page'}
+                    {m === 'viewport' ? t('viewportOnly') : t('fullPage')}
                   </button>
                 ))}
               </div>

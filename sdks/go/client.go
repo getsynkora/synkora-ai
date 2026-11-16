@@ -90,6 +90,9 @@ type ChatOptions struct {
 	ConversationID string
 	// Metadata is arbitrary key-value data passed to the agent.
 	Metadata map[string]any
+	// Language is the language the agent should reply in by default, as a
+	// BCP-47 code such as "de" or "pt-BR".
+	Language string
 }
 
 // ---------------------------------------------------------------------------
@@ -423,6 +426,7 @@ type chatRequest struct {
 	Message        string         `json:"message"`
 	ConversationID string         `json:"conversation_id,omitempty"`
 	Metadata       map[string]any `json:"metadata,omitempty"`
+	Language       string         `json:"language,omitempty"`
 }
 
 func chatRequestBody(message string, opts *ChatOptions) chatRequest {
@@ -430,6 +434,7 @@ func chatRequestBody(message string, opts *ChatOptions) chatRequest {
 	if opts != nil {
 		r.ConversationID = opts.ConversationID
 		r.Metadata = opts.Metadata
+		r.Language = opts.Language
 	}
 	return r
 }

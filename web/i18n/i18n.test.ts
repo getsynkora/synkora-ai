@@ -112,16 +112,22 @@ describe('translation keys used in the code', () => {
     'components/auth/AuthPageFrame.tsx',
     'components/social-auth/SocialLoginButton.tsx',
     'components/layout/Header.tsx',
+    'components/chat/components/ChatMessage.tsx',
+    'components/chat/components/ChatMessages.tsx',
+    'app/share/[token]/page.tsx',
+    'app/share/[token]/SharedChatView.tsx',
+    'app/(public)/creators/[username]/page.tsx',
+    'app/(public)/a/[slug]/AnimatedLanding.tsx',
   ]
   const english = flatten(load('en'))
 
   for (const file of files) {
     it(`${file} only uses keys that exist`, () => {
       const source = readFileSync(path.join(ROOT, file), 'utf8')
-      const namespaces = [...source.matchAll(/useTranslations\('([\w.]+)'\)/g)].map((m) => m[1])
-      expect(namespaces.length, 'uses useTranslations').toBeGreaterThan(0)
+      const namespaces = [...source.matchAll(/(?:useTranslations|getTranslations)\('([\w.]+)'\)/g)].map((m) => m[1])
+      expect(namespaces.length, 'uses useTranslations or getTranslations').toBeGreaterThan(0)
 
-      const keys = [...source.matchAll(/\bt(?:\.rich)?\(\s*'([\w.]+)'/g)].map((m) => m[1])
+      const keys = [...source.matchAll(/\bt{1,2}(?:\.rich)?\(\s*'([\w.]+)'/g)].map((m) => m[1])
       expect(keys.length).toBeGreaterThan(0)
       for (const key of keys) {
         const found = namespaces.some((ns) => `${ns}.${key}` in english)

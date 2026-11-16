@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { streamChat, parseSseLine } from '@/lib/api';
 import { loadAccessToken, loadSynkoraUrl, loadApiUrl } from '@/lib/auth';
 import { useExtensionStore } from '@/store/extension';
+import { t } from '../lib/i18n';
 
 export function useChat(agentSlug: string, pageUrl: string) {
   const [isStreaming, setIsStreaming] = useState(false);
@@ -22,7 +23,7 @@ export function useChat(agentSlug: string, pageUrl: string) {
     if (!isConnected || !agentSlug || isStreaming) return;
 
     const synkoraUrl = await loadSynkoraUrl();
-    if (!synkoraUrl) { setError('Not connected to Synkora'); return; }
+    if (!synkoraUrl) { setError(t('notConnected')); return; }
 
     const tokenData = await loadAccessToken();
     if (!tokenData) { setError('Session expired — please reconnect'); return; }
@@ -86,9 +87,9 @@ export function useChat(agentSlug: string, pageUrl: string) {
         const current = conversations[key]?.messages.at(-1)?.content ?? '';
         updateLastMessage(key, current || '_(stopped)_', false);
       } else {
-        const msg = err instanceof Error ? err.message : 'Stream error';
+        const msg = err instanceof Error ? err.message : t('streamError');
         setError(msg);
-        updateLastMessage(key, `Error: ${msg}`, false);
+        updateLastMessage(key, t('errorPrefix', { message: msg }), false);
       }
     } finally {
       setIsStreaming(false);

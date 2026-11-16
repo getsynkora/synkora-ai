@@ -144,6 +144,26 @@ describe('SynkoraClient', () => {
       expect(body.conversation_id).toBe('conv-99')
     })
 
+    it('sends the language so the agent replies in it', async () => {
+      fetchMock.mockResolvedValue(
+        sseResponse({ type: 'done', metadata: {}, sources: [] }),
+      )
+      const client = new SynkoraClient({ apiKey: 'sk-test' })
+      for await (const _ of client.chatStream('agent-1', 'Hallo', { language: 'de' })) { /* drain */ }
+      const body = JSON.parse(fetchMock.mock.calls[0][1].body as string)
+      expect(body.language).toBe('de')
+    })
+
+    it('sends no language unless one is given', async () => {
+      fetchMock.mockResolvedValue(
+        sseResponse({ type: 'done', metadata: {}, sources: [] }),
+      )
+      const client = new SynkoraClient({ apiKey: 'sk-test' })
+      for await (const _ of client.chatStream('agent-1', 'Hi')) { /* drain */ }
+      const body = JSON.parse(fetchMock.mock.calls[0][1].body as string)
+      expect('language' in body).toBe(false)
+    })
+
     it('sends Authorization header with Bearer token', async () => {
       fetchMock.mockResolvedValue(
         sseResponse({ type: 'done', metadata: {}, sources: [] }),

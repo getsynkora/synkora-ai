@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { ChatMessages } from '@/components/chat/components'
 import type { SharedConversationData } from '@/lib/api/conversations'
 import type { Message } from '@/components/chat/types'
+import { useTranslations } from 'next-intl'
 import {
   buildLinkedInShareUrl,
   buildSocialShareText,
@@ -15,9 +16,9 @@ interface Props {
   data: SharedConversationData
 }
 
-function formatExpiry(expiresAt: string): string {
+function formatExpiry(expiresAt: string, expiredLabel: string): string {
   const diff = new Date(expiresAt).getTime() - Date.now()
-  if (diff <= 0) return 'expired'
+  if (diff <= 0) return expiredLabel
   const h = Math.floor(diff / 3_600_000)
   const m = Math.floor((diff % 3_600_000) / 60_000)
   if (h >= 24) return `${Math.floor(h / 24)}d ${h % 24}h`
@@ -26,6 +27,7 @@ function formatExpiry(expiresAt: string): string {
 }
 
 export function SharedChatView({ data }: Props) {
+  const t = useTranslations('share.view')
   const { conversation, messages: rawMessages, agent, expires_at } = data
   const [copied, setCopied] = useState<'caption' | 'link' | null>(null)
 
@@ -82,7 +84,7 @@ export function SharedChatView({ data }: Props) {
                 <div className="space-y-5">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/[0.72]">
-                      Synkora Mindset Snapshot
+                      {t('mindsetSnapshot')}
                     </span>
                     <span className="rounded-full border border-[#7C3AED]/40 bg-[#7C3AED]/16 px-3 py-1 text-xs font-semibold text-[#d8c8ff]">
                       {mindsetShare.classification}
@@ -109,18 +111,18 @@ export function SharedChatView({ data }: Props) {
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/[0.45]">
-                        Strongest Signal
+                        {t('strongestSignal')}
                       </p>
                       <p className="mt-2 text-sm leading-6 text-white/[0.84]">
-                        {mindsetShare.strengths[0] || 'Belief that ability can improve through practice.'}
+                        {mindsetShare.strengths[0] || t('defaultStrength')}
                       </p>
                     </div>
                     <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/[0.45]">
-                        Next Growth Edge
+                        {t('nextGrowthEdge')}
                       </p>
                       <p className="mt-2 text-sm leading-6 text-white/[0.84]">
-                        {mindsetShare.growthEdges[0] || 'Stay growth-oriented when the stakes feel personal.'}
+                        {mindsetShare.growthEdges[0] || t('defaultGrowthEdge')}
                       </p>
                     </div>
                   </div>
@@ -130,10 +132,10 @@ export function SharedChatView({ data }: Props) {
                   <div>
                     <div className="flex items-center justify-between">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/[0.45]">
-                        Share-Ready Caption
+                        {t('shareCaption')}
                       </p>
                       <span className="rounded-full border border-white/10 bg-black/[0.15] px-2.5 py-1 text-[11px] text-white/[0.52]">
-                        OG enabled
+                        {t('ogEnabled')}
                       </span>
                     </div>
                     <p className="mt-4 text-base leading-7 text-white/[0.92]">
@@ -146,13 +148,13 @@ export function SharedChatView({ data }: Props) {
                       onClick={() => handleCopy(shareCopyText, 'caption')}
                       className="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-[#0b1020] transition hover:bg-white/90"
                     >
-                      {copied === 'caption' ? 'Copied post' : 'Copy post'}
+                      {copied === 'caption' ? t('copiedPost') : t('copyPost')}
                     </button>
                     <button
                       onClick={() => handleCopy(shareUrl, 'link')}
                       className="rounded-xl border border-white/15 bg-white/[0.08] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/[0.14]"
                     >
-                      {copied === 'link' ? 'Copied link' : 'Copy link'}
+                      {copied === 'link' ? t('copiedLink') : t('copyLink')}
                     </button>
                     <a
                       href={linkedInUrl}
@@ -160,7 +162,7 @@ export function SharedChatView({ data }: Props) {
                       rel="noreferrer"
                       className="rounded-xl border border-white/15 bg-white/[0.08] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/[0.14]"
                     >
-                      Share on LinkedIn
+                      {t('shareLinkedIn')}
                     </a>
                     <a
                       href={xUrl}
@@ -168,7 +170,7 @@ export function SharedChatView({ data }: Props) {
                       rel="noreferrer"
                       className="rounded-xl border border-white/15 bg-white/[0.08] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/[0.14]"
                     >
-                      Share on X
+                      {t('shareX')}
                     </a>
                   </div>
                 </div>
@@ -194,15 +196,15 @@ export function SharedChatView({ data }: Props) {
 
               <div className="min-w-0 flex-1">
                 <h2 className="truncate text-sm font-semibold text-slate-900">
-                  {conversation?.name || 'Shared Conversation'}
+                  {conversation?.name || t('sharedConversation')}
                 </h2>
                 <p className="text-xs text-slate-500">
-                  {agent?.name || 'Synkora Agent'} · Read-only share
+                  {agent?.name || t('defaultAgent')} · {t('readOnly')}
                 </p>
               </div>
 
               <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
-                Expires in {formatExpiry(expires_at)}
+                {t('expiresIn', { time: formatExpiry(expires_at, t('expired')) })}
               </span>
             </header>
 
@@ -223,7 +225,7 @@ export function SharedChatView({ data }: Props) {
 
             <div className="border-t border-slate-200/80 bg-white px-4 py-3 sm:px-5">
               <p className="text-center text-xs text-slate-400">
-                Shared via Synkora
+                {t('sharedVia')}
               </p>
             </div>
           </section>

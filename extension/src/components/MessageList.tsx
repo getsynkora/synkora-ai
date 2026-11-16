@@ -3,6 +3,7 @@ import { CheckCircle, AlertCircle, Sparkles } from 'lucide-react';
 import type { Message, Agent } from '@/types';
 import { AgentAvatar } from './AgentPicker';
 import { fillFormOnPage, splitContentSegments } from '@/lib/form-filler';
+import { t } from '../lib/i18n';
 
 interface Props {
   messages: Message[];
@@ -81,7 +82,7 @@ function AssistantContent({ content, isStreaming }: { content: string; isStreami
         setFillState('done');
       }
     } catch (e) {
-      setFillError(e instanceof Error ? e.message : 'Fill failed');
+      setFillError(e instanceof Error ? e.message : t('fillFailed'));
       setFillState('error');
     }
   };
@@ -125,8 +126,8 @@ function FillFormBlock({
         <Sparkles size={14} className="text-synkora-600 flex-shrink-0" />
         <span className="text-[13px] text-brand-ink font-medium truncate">
           {state === 'done'
-            ? `${fieldCount} field${fieldCount !== 1 ? 's' : ''} filled`
-            : `Fill ${fieldCount} field${fieldCount !== 1 ? 's' : ''}`}
+            ? fieldCount === 1 ? t('fieldsFilledOne') : t('fieldsFilledMany', { count: fieldCount })
+            : fieldCount === 1 ? t('fillOne') : t('fillMany', { count: fieldCount })}
         </span>
       </div>
 
@@ -135,7 +136,7 @@ function FillFormBlock({
           onClick={onFill}
           className="flex-shrink-0 text-[12px] font-semibold bg-synkora-500 hover:bg-synkora-400 text-brand-ink px-3 py-1.5 rounded-xl transition-colors shadow-soft active:scale-95"
         >
-          Fill Form
+          {t('fillForm')}
         </button>
       )}
 
@@ -157,7 +158,7 @@ function FillFormBlock({
             onClick={onFill}
             className="text-[11px] font-semibold text-[#b35630] underline underline-offset-2"
           >
-            Retry
+            {t('retry')}
           </button>
         </div>
       )}

@@ -126,6 +126,26 @@ class TestSynkoraClientChat:
         sent = json.loads(route.calls[0].request.content)
         assert sent["conversation_id"] == "conv-99"
 
+    def test_chat_sends_the_language(self):
+        body = _sse({"type": "done", "metadata": {}, "sources": []})
+        route = respx.post(f"{_BASE}/api/v1/public/agents/agent-1/chat/stream").mock(
+            return_value=httpx.Response(200, content=body)
+        )
+        with SynkoraClient(api_key=_KEY) as client:
+            client.chat(agent_id="agent-1", message="Hallo", language="de")
+        sent = json.loads(route.calls[0].request.content)
+        assert sent["language"] == "de"
+
+    def test_chat_stream_sends_no_language_unless_given(self):
+        body = _sse({"type": "done", "metadata": {}, "sources": []})
+        route = respx.post(f"{_BASE}/api/v1/public/agents/agent-1/chat/stream").mock(
+            return_value=httpx.Response(200, content=body)
+        )
+        with SynkoraClient(api_key=_KEY) as client:
+            list(client.chat_stream(agent_id="agent-1", message="Hi"))
+        sent = json.loads(route.calls[0].request.content)
+        assert "language" not in sent
+
     def test_chat_stream_yields_typed_events(self):
         body = _sse(
             {"type": "chunk", "content": "A"},
