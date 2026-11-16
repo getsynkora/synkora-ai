@@ -1,3 +1,17 @@
+## Unreleased
+
+- **Languages.** `SynkoraChatWidget` now takes a `locale` (and optional
+  `strings`). English and German are built in; with no `locale` it follows the
+  host app's language, so a German app gets a German chat with no extra setup.
+  The language also reaches the server: widget text (title, welcome message,
+  placeholder, suggested prompts) is loaded in that language from the widget's
+  new **Translations** settings, and the agent answers in it by default. Add
+  another language, or reword a few strings, with `SynkoraChatStrings.custom`.
+  Headless users get the same through `SynkoraChatController.setLocale`.
+  The relative-time labels in the message bubbles and sessions list now follow
+  the language (English `5min` in the sessions list is now `5 min`, as in
+  the bubbles).
+
 ## 1.15.5
 
 - **Security fix (critical): cross-user chat history leak.** The local

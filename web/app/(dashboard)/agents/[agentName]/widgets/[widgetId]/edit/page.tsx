@@ -17,8 +17,18 @@ import {
   CheckCircle,
   AlertTriangle,
   Palette,
+  Languages,
 } from "lucide-react";
 import { apiClient } from "@/lib/api/client";
+import {
+  TRANSLATION_LANGUAGES,
+  normalizeLanguageCode,
+  pruneTranslations,
+  readTranslations,
+  type TranslatedPrompt,
+  type WidgetTranslation,
+  type WidgetTranslations,
+} from "@/lib/widgetTranslations";
 import toast from "react-hot-toast";
 import AgentPageShell, { AgentPagePanel } from '@/components/agents/AgentPageShell'
 
@@ -33,7 +43,7 @@ interface Widget {
   identity_verification_required: boolean;
   enable_agent_routing: boolean;
   mobile_allowed: boolean;
-  theme_config?: Record<string, string>;
+  theme_config?: Record<string, any>;
 }
 
 interface AgentRoute {
@@ -69,6 +79,11 @@ export default function WidgetEditPage() {
   const [primaryColor, setPrimaryColor] = useState("#ff444f");
   const [welcomeMessage, setWelcomeMessage] = useState("");
   const [chatPlaceholder, setChatPlaceholder] = useState("");
+
+  // Per-language widget text
+  const [translations, setTranslations] = useState<WidgetTranslations>({});
+  const [newLanguage, setNewLanguage] = useState(TRANSLATION_LANGUAGES[0].code);
+  const [customLanguage, setCustomLanguage] = useState("");
 
   // Identity verification
   const [identityVerificationRequired, setIdentityVerificationRequired] = useState(false);
@@ -117,6 +132,7 @@ export default function WidgetEditPage() {
       setPrimaryColor(theme.chat_primary_color || "#ff444f");
       setWelcomeMessage(theme.chat_welcome_message || "");
       setChatPlaceholder(theme.chat_placeholder || "");
+      setTranslations(readTranslations(theme.translations));
       setEnableAgentRouting(widgetData.enable_agent_routing ?? false);
       setMobileAllowed(widgetData.mobile_allowed ?? false);
       setFcmServerKey("");
@@ -164,6 +180,8 @@ export default function WidgetEditPage() {
         mobile_allowed: mobileAllowed,
         ...(fcmServerKey.trim() ? { fcm_server_key: fcmServerKey.trim() } : {}),
         theme_config: {
+          // Keep settings this page does not edit (title, branding, translations...).
+          ...(widget?.theme_config ?? {}),
           chat_primary_color: primaryColor,
           chat_welcome_message: welcomeMessage,
           chat_placeholder: chatPlaceholder,
@@ -174,6 +192,7 @@ export default function WidgetEditPage() {
             show_phone: preChatShowPhone,
             skippable: preChatSkippable,
           },
+          translations: pruneTranslations(translations),
         },
       });
       toast.success("Widget settings saved");
@@ -240,6 +259,63 @@ export default function WidgetEditPage() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text).then(() => toast.success("Copied to clipboard"));
+  };
+
+  const addTranslationLanguage = () => {
+    const code = normalizeLanguageCode(customLanguage || newLanguage);
+    if (!code) {
+      toast.error("Enter a language code such as de, en or pt-BR");
+      return;
+    }
+    if (translations[code]) {
+      toast.error(`${code} is already added`);
+      return;
+    }
+    setTranslations((prev) => ({ ...prev, [code]: {} }));
+    setCustomLanguage("");
+  };
+
+  const removeTranslationLanguage = (code: string) =>
+    setTranslations((prev) => {
+      const next = { ...prev };
+      delete next[code];
+      return next;
+    });
+
+  const updateTranslation = (code: string, patch: Partial<WidgetTranslation>) =>
+    setTranslations((prev) => ({ ...prev, [code]: { ...prev[code], ...patch } }));
+
+  const updateTranslatedPrompt = (code: string, index: number, patch: Partial<TranslatedPrompt>) =>
+    setTranslations((prev) => {
+      const prompts = [...(prev[code]?.suggestion_prompts ?? [])];
+      prompts[index] = { ...prompts[index], ...patch };
+      return { ...prev, [code]: { ...prev[code], suggestion_prompts: prompts } };
+    });
+
+  const addTranslatedPrompt = (code: string) =>
+    setTranslations((prev) => ({
+      ...prev,
+      [code]: {
+        ...prev[code],
+        suggestion_prompts: [
+          ...(prev[code]?.suggestion_prompts ?? []),
+          { title: "", description: "", icon: "", prompt: "" },
+        ],
+      },
+    }));
+
+  const removeTranslatedPrompt = (code: string, index: number) =>
+    setTranslations((prev) => ({
+      ...prev,
+      [code]: {
+        ...prev[code],
+        suggestion_prompts: (prev[code]?.suggestion_prompts ?? []).filter((_, i) => i !== index),
+      },
+    }));
+
+  const languageLabel = (code: string) => {
+    const known = TRANSLATION_LANGUAGES.find((l) => l.code === code.split("-")[0]);
+    return known ? `${known.label} (${code})` : code;
   };
 
   const sectionClass =
@@ -511,6 +587,176 @@ export default function WidgetEditPage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* ── Translations ──────────────────────────────────────────────────── */}
+          <div className={sectionClass}>
+            <div className="flex items-center gap-2 mb-1">
+              <Languages className="h-5 w-5 text-[#2d8b69]" />
+              <h2 className="text-lg font-semibold text-gray-900">Translations</h2>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">
+              Text for people who open the chat in another language. Anything left blank uses the default text
+              above. The agent itself answers in the language the chat is set to.
+            </p>
+
+            <div className="mb-4 flex flex-wrap items-end gap-2">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Language</label>
+                <select
+                  value={newLanguage}
+                  onChange={(e) => setNewLanguage(e.target.value)}
+                  disabled={customLanguage.trim() !== ""}
+                  className={compactInputClass}
+                >
+                  {TRANSLATION_LANGUAGES.map((l) => (
+                    <option key={l.code} value={l.code}>
+                      {l.label} ({l.code})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">or another code</label>
+                <input
+                  type="text"
+                  value={customLanguage}
+                  onChange={(e) => setCustomLanguage(e.target.value)}
+                  placeholder="e.g. pt-BR"
+                  className={`w-32 ${compactInputClass}`}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={addTranslationLanguage}
+                className="inline-flex items-center gap-1.5 rounded-[1rem] border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                <Plus className="h-4 w-4" /> Add language
+              </button>
+            </div>
+
+            {Object.keys(translations).length === 0 ? (
+              <p className="text-sm text-gray-400">No translations yet.</p>
+            ) : (
+              <div className="space-y-4">
+                {Object.entries(translations).map(([code, entry]) => (
+                  <div key={code} className="rounded-[1.2rem] border border-black/10 bg-white/70 p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold text-gray-800">{languageLabel(code)}</h3>
+                      <button
+                        type="button"
+                        onClick={() => removeTranslationLanguage(code)}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" /> Remove
+                      </button>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1">Title</label>
+                      <input
+                        type="text"
+                        value={entry.title ?? ""}
+                        onChange={(e) => updateTranslation(code, { title: e.target.value })}
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1">
+                        Welcome message
+                        <span className="ml-1 font-normal text-gray-500">(newline splits title and subtitle)</span>
+                      </label>
+                      <textarea
+                        value={entry.welcome_message ?? ""}
+                        onChange={(e) => updateTranslation(code, { welcome_message: e.target.value })}
+                        rows={2}
+                        className={`${inputClass} resize-none`}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1">Input placeholder</label>
+                      <input
+                        type="text"
+                        value={entry.placeholder ?? ""}
+                        onChange={(e) => updateTranslation(code, { placeholder: e.target.value })}
+                        className={inputClass}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1">Agent description</label>
+                      <textarea
+                        value={entry.agent_description ?? ""}
+                        onChange={(e) => updateTranslation(code, { agent_description: e.target.value })}
+                        rows={2}
+                        className={`${inputClass} resize-none`}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1">Privacy policy text</label>
+                      <input
+                        type="text"
+                        value={entry.privacy_policy_text ?? ""}
+                        onChange={(e) => updateTranslation(code, { privacy_policy_text: e.target.value })}
+                        className={inputClass}
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-xs font-semibold text-gray-600">
+                          Suggested prompts
+                          <span className="ml-1 font-normal text-gray-500">
+                            (replace the agent&apos;s prompts in this language)
+                          </span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => addTranslatedPrompt(code)}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-[#2d8b69] hover:underline"
+                        >
+                          <Plus className="h-3.5 w-3.5" /> Add prompt
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        {(entry.suggestion_prompts ?? []).map((p, i) => (
+                          <div key={i} className="grid gap-2 sm:grid-cols-[1fr_1fr_1.4fr_auto]">
+                            <input
+                              type="text"
+                              value={p.title}
+                              onChange={(e) => updateTranslatedPrompt(code, i, { title: e.target.value })}
+                              placeholder="Title"
+                              className={compactInputClass}
+                            />
+                            <input
+                              type="text"
+                              value={p.description}
+                              onChange={(e) => updateTranslatedPrompt(code, i, { description: e.target.value })}
+                              placeholder="Description"
+                              className={compactInputClass}
+                            />
+                            <input
+                              type="text"
+                              value={p.prompt}
+                              onChange={(e) => updateTranslatedPrompt(code, i, { prompt: e.target.value })}
+                              placeholder="Message sent when tapped"
+                              className={compactInputClass}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeTranslatedPrompt(code, i)}
+                              aria-label="Remove prompt"
+                              className="rounded-[1rem] border border-black/10 bg-white px-3 text-gray-500 hover:text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* ── Pre-chat Form ─────────────────────────────────────────────────── */}

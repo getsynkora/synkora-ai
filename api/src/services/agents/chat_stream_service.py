@@ -39,6 +39,7 @@ from src.services.agents.chat_service import ChatService
 from src.services.agents.context_manager import ContextConfig, ContextManager, ContextStrategy
 from src.services.agents.context_window_guard import get_context_guard
 from src.services.agents.execution_budget import chat_execution_deadline
+from src.services.agents.response_language import language_instruction
 from src.services.agents.token_counter import TokenCounter
 from src.services.cache.conversation_cache_service import get_conversation_cache
 from src.services.security.output_sanitizer import output_sanitizer as default_output_sanitizer
@@ -150,6 +151,7 @@ class ChatStreamService:
         trust_provided_history: bool = False,
         page_context: dict[str, Any] | None = None,
         voice_mode: bool = False,
+        language: str | None = None,
     ) -> AsyncGenerator[str, None]:
         """
         Stream agent response using SSE with function calling, RAG support, and attachments.
@@ -500,6 +502,7 @@ class ChatStreamService:
                 override_system_prompt=override_system_prompt,
                 page_context=page_context,
                 voice_mode=voice_mode,
+                language=language,
             )
 
             # Wire cost-tracking context into the LLM client.
@@ -1989,6 +1992,7 @@ class ChatStreamService:
         override_system_prompt: str | None = None,
         page_context: dict[str, Any] | None = None,
         voice_mode: bool = False,
+        language: str | None = None,
     ) -> tuple[str, list[dict[str, str]]]:
         from src.services.agents.prompt_builder import SystemPromptBuilder
 
@@ -2023,6 +2027,8 @@ class ChatStreamService:
             prompt_parts.append(enhanced_system_prompt)
         if voice_mode:
             prompt_parts.append(VOICE_MODE_PROMPT)
+        if language_prompt := language_instruction(language):
+            prompt_parts.append(language_prompt)
 
         # Inject available database connection names so the agent knows the exact names to pass to database tools
         allowed_db_ids = (db_agent.agent_metadata or {}).get("allowed_database_connections")
