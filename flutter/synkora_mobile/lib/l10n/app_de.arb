@@ -1,0 +1,320 @@
+{
+  "@@locale": "de",
+  "appTitle": "Synkora AI",
+  "signInTitle": "Synkora AI",
+  "signInSubtitle": "Nutzen Sie jeden Agenten Ihres Arbeitsbereichs in einer eigenen nativen App.",
+  "email": "E-Mail",
+  "password": "Passwort",
+  "signIn": "Anmelden",
+  "orContinueWith": "oder weiter mit",
+  "continueWithGoogle": "Weiter mit Google",
+  "signInFootnote": "Diese App verwendet dasselbe Synkora-Konto und dasselbe Zugriffsmodell für Workspaces wie die Web-App.",
+  "chooseWorkspace": "Workspace wählen",
+  "chooseWorkspaceBody": "Ihr Konto hat Zugriff auf mehrere Synkora-Workspaces. Wählen Sie den, den Sie mobil nutzen möchten.",
+  "bootBranding": "Powered by Synkora",
+  "bootLoading": "Ihr Workspace, Ihre Agenten und Aktionen werden geladen.",
+  "signInCancelled": "Die Anmeldung wurde abgebrochen oder konnte nicht abgeschlossen werden.",
+  "signInNotCompleted": "Die Anmeldung wurde nicht abgeschlossen.",
+  "authRequestFailed": "Die Anmeldeanfrage ist fehlgeschlagen.",
+  "workspaceNotFound": "Der ausgewählte Workspace wurde nicht gefunden.",
+  "sessionIncomplete": "Ihre Sitzung ist unvollständig. Bitte melden Sie sich erneut an.",
+  "streamFailed": "Die Antwort des Agenten konnte nicht übertragen werden: {error}",
+  "@streamFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "authRequired": "Anmeldung erforderlich.",
+  "networkError": "Unerwarteter Netzwerkfehler",
+  "timeJustNow": "Gerade eben",
+  "timeMinutesAgo": "vor {count} Min.",
+  "@timeMinutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeHoursAgo": "vor {count} Std.",
+  "@timeHoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeDaysAgo": "vor {count} T.",
+  "@timeDaysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unknown": "Unbekannt",
+  "navAgents": "Agenten",
+  "navInbox": "Posteingang",
+  "navActivity": "Aktivität",
+  "navProfile": "Profil",
+  "inboxSubtitle": "Push-Antworten, Freigaben und Abschlüsse erscheinen hier.",
+  "activitySubtitle": "Betriebsaktivität und Arbeitsprotokolle der Agenten erscheinen hier.",
+  "welcomeBack": "Willkommen zurück, {name}",
+  "@welcomeBack": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeBackAnonymous": "Willkommen zurück",
+  "workspaceName": "Workspace: {name}",
+  "@workspaceName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "searchAgents": "Agenten durchsuchen",
+  "filtersSoon": "Filter folgen im nächsten Mobile-Update.",
+  "heroTitle": "Alle Agenten Ihres Workspaces in einer App",
+  "heroBody": "Springen Sie in jeden Agenten – mit vollständiger Kontoanmeldung und nativer Flutter-Performance.",
+  "retry": "Erneut versuchen",
+  "spotlight": "Im Fokus",
+  "allAgents": "Alle Agenten",
+  "runsCount": "{count, plural, one{{count} Ausführung} other{{count} Ausführungen}}",
+  "@runsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "successPercent": "{percent}% erfolgreich",
+  "@successPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "profileTitle": "Profil",
+  "synkoraUser": "Synkora-Nutzer",
+  "workspace": "Workspace",
+  "role": "Rolle",
+  "switchWorkspace": "Workspace wechseln",
+  "switchWorkspaceHint": "Einen anderen Workspace auf diesem Gerät verwenden",
+  "signOut": "Abmelden",
+  "signOutHint": "Geräte-Sitzung beenden und zur Anmeldung zurückkehren",
+  "language": "Sprache",
+  "languageSystem": "Systemstandard",
+  "agentTitle": "Agent",
+  "actionMessage": "Nachricht",
+  "actionTalk": "Sprechen",
+  "actionScan": "Scannen",
+  "capabilities": "Fähigkeiten",
+  "recentSessions": "Letzte mobile Unterhaltungen",
+  "noSessions": "Noch keine mobilen Unterhaltungen",
+  "noSessionsHint": "Starten Sie mit diesem Agenten eine neue Unterhaltung.",
+  "imageSelectionFailed": "Bildauswahl fehlgeschlagen: {error}",
+  "@imageSelectionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scanAttachedHint": "Scan angehängt. Fügen Sie Anweisungen hinzu und senden Sie ihn an den Agenten.",
+  "scanAttachedSnack": "Scan angehängt. Anweisungen hinzufügen und senden.",
+  "cameraScanFailed": "Kamerascan fehlgeschlagen: {error}",
+  "@cameraScanFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "voiceStarting": "Die Spracheingabe startet noch. Einen Moment bitte.",
+  "speechRateLimitedHint": "Die Spracherkennung wird von Android vorübergehend gedrosselt. Versuchen Sie es in {seconds} s erneut.",
+  "@speechRateLimitedHint": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "speechCoolingDown": "Die Spracherkennung pausiert kurz. Versuchen Sie es in {seconds} s erneut.",
+  "@speechCoolingDown": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "voiceListening": "Ich höre zu … Sie können sprechen. Bleibt die Anzeige flach, empfängt der Emulator kein Mikrofonsignal.",
+  "voiceStartFailedHint": "Die Spracheingabe konnte nicht gestartet werden. Warten Sie kurz und versuchen Sie es erneut.",
+  "voiceStartFailedSnack": "Die Spracheingabe konnte nicht gestartet werden: {error}",
+  "@voiceStartFailedSnack": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "speechUnavailable": "Die Spracherkennung ist auf diesem Gerät nicht verfügbar.",
+  "voiceDraftReady": "Spracheingabe als Entwurf bereit. Prüfen Sie ihn und senden Sie ihn ab.",
+  "audioDetected": "Ton erkannt. Sprechen Sie weiter.",
+  "androidRateLimitedHint": "Die Android-Spracherkennung wird gedrosselt. Warten Sie 15 s und tippen Sie dann erneut auf Sprechen.",
+  "androidRateLimitedSnack": "Die Android-Spracherkennung wird gedrosselt. Warten Sie 15 Sekunden und versuchen Sie es erneut.",
+  "voiceUnavailable": "Die Spracheingabe ist derzeit nicht verfügbar. Sie können weiter tippen.",
+  "voiceFailed": "Spracheingabe fehlgeschlagen: {error}",
+  "@voiceFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "noTranscript": "Es wurde Ton erkannt, aber Android lieferte kein Transkript. Der Erkenner im Emulator ist unzuverlässig.",
+  "noSpeech": "Keine Sprache erkannt. Tippen Sie auf Sprechen und fangen Sie sofort an zu sprechen.",
+  "tapTalkHint": "Tippen Sie einmal auf Sprechen, um die Spracheingabe zu starten.",
+  "noSupportedFiles": "Es wurden keine unterstützten Dateien ausgewählt.",
+  "fileSelectionFailed": "Dateiauswahl fehlgeschlagen: {error}",
+  "@fileSelectionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "addMessageFirst": "Fügen Sie eine Nachricht hinzu, bevor Sie Anhänge senden.",
+  "toolStatus": "{tool} • {status}",
+  "@toolStatus": {
+    "placeholders": {
+      "tool": {
+        "type": "String"
+      },
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "toolDefaultName": "Agent",
+  "toolDefaultStatus": "arbeitet",
+  "agentError": "Der Agent hat einen Fehler gemeldet.",
+  "uploading": "Hochladen {current}/{total} • {name}",
+  "@uploading": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "fileNotReadable": "Die ausgewählte Datei „{name}“ ist nicht lesbar.",
+  "@fileNotReadable": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "freshConversation": "Neue Unterhaltung",
+  "voiceConversation": "Sprachunterhaltung",
+  "newChat": "Neuer Chat",
+  "listening": "Hört zu",
+  "stopVoiceInput": "Spracheingabe beenden",
+  "attachImage": "Bild anhängen",
+  "attachFile": "Datei anhängen",
+  "messageHint": "Nachricht an diesen Agenten",
+  "attachmentsNeedMessage": "Fügen Sie eine Nachricht hinzu, damit der Agent weiß, was er mit Ihren Anhängen tun soll.",
+  "emptyPromptStrengths": "Fasse zusammen, worin dieser Agent am besten ist.",
+  "emptyPromptPlan": "Hilf mir, aus einer groben Aufgabe einen konkreten Plan zu machen.",
+  "emptyPromptReview": "Prüfe den aktuellen Kontext und sag mir, was Aufmerksamkeit braucht.",
+  "emptyTitle": "Starten Sie eine Premium-Unterhaltung mit {agentName}",
+  "@emptyTitle": {
+    "placeholders": {
+      "agentName": {
+        "type": "String"
+      }
+    }
+  },
+  "emptyBody": "Bitten Sie um strukturierte Analysen, senden Sie Dateien oder Screenshots und lassen Sie den Agenten mit echtem Kontext arbeiten.",
+  "streaming": "Wird geschrieben",
+  "voiceSemanticSpeaking": "Der Assistent spricht. Zum Unterbrechen doppelt tippen.",
+  "voiceSemanticThinking": "Der Assistent denkt nach. Zum Abbrechen doppelt tippen.",
+  "voiceSemanticListening": "Ich höre zu. Doppelt tippen, um das Gesagte jetzt zu senden.",
+  "voiceSemanticError": "Es gab ein Problem. Zum Wiederholen doppelt tippen.",
+  "voiceSemanticIdle": "Doppelt tippen, um zu sprechen.",
+  "close": "Schließen",
+  "transcript": "Transkript",
+  "voiceSettings": "Spracheinstellungen",
+  "voiceTitleWake": "Sagen Sie „Hey Synkora“",
+  "voiceTitleTap": "Zum Sprechen tippen",
+  "micMuted": "Mikrofon stummgeschaltet",
+  "listeningDots": "Hört zu …",
+  "imListening": "Ich höre zu",
+  "thinkingTitle": "Denkt nach …",
+  "speakingTitle": "Spricht",
+  "somethingWrong": "Etwas ist schiefgelaufen",
+  "turnOnVoice": "Sprache einschalten",
+  "usePhoneVoice": "Stimme meines Telefons nutzen",
+  "tryAgain": "Erneut versuchen",
+  "unmuteMic": "Mikrofon einschalten",
+  "muteMic": "Mikrofon stummschalten",
+  "endConversation": "Unterhaltung beenden",
+  "typeMessage": "Nachricht tippen",
+  "typeInstead": "Stattdessen tippen …",
+  "send": "Senden",
+  "talkTo": "Sprechen mit",
+  "noOtherAgents": "Noch keine weiteren Agenten.",
+  "transcriptEmpty": "Noch nichts. Fangen Sie an zu sprechen, dann erscheint Ihre Unterhaltung hier.",
+  "interrupted": "Unterbrochen",
+  "wakeTitle": "Mit „Hey Synkora“ aufwecken",
+  "wakeSubtitle": "Hört auf die Wortfolge, solange Synkora geöffnet ist, damit Sie freihändig sprechen können. Das Audio wird auf Ihrem Telefon geprüft und erst gesendet, wenn Sie zu sprechen beginnen.",
+  "interruptTitle": "Durch Sprechen unterbrechen",
+  "interruptSubtitle": "Sprechen Sie dazwischen, um den Assistenten zu unterbrechen.",
+  "soundsTitle": "Töne",
+  "soundsSubtitle": "Ein sanfter Ton beim Aufwachen und Beenden.",
+  "hapticsTitle": "Haptik",
+  "hapticsSubtitle": "Sanfte Vibrationen an wichtigen Stellen.",
+  "speakingSpeed": "Sprechtempo  ·  {speed}×",
+  "@speakingSpeed": {
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
+  "wakeLow": "Weniger Aktivierungen",
+  "wakeBalanced": "Ausgewogen",
+  "wakeHigh": "Mehr erkennen",
+  "wakeSensitivity": "Empfindlichkeit",
+  "wakeHelp": "Wenn es ohne Ihr Zutun aufwacht, wählen Sie „Weniger Aktivierungen“. Wenn es Sie überhört, wählen Sie „Mehr erkennen“.",
+  "wakeUnavailable": "„Hey Synkora“ ist auf diesem Gerät derzeit nicht verfügbar. Sie können weiterhin auf die Kugel tippen, um zu sprechen.\n{message}",
+  "@wakeUnavailable": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "talkToAgents": "Mit Ihren Agenten sprechen",
+  "talkToAgent": "Mit {name} sprechen",
+  "@talkToAgent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "handsFreeOn": "Freihändig ist aktiv. Sagen Sie einfach „Hey Synkora“.",
+  "startVoice": "Führen Sie ein echtes Sprachgespräch. Zum Starten tippen."
+}

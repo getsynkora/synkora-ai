@@ -8,21 +8,25 @@ import { useAuth } from '@/lib/hooks/useAuth'
 import { SocialLoginButton } from '@/components/social-auth'
 import AuthPageFrame from '@/components/auth/AuthPageFrame'
 import { ArrowRight, Bot, Check, CheckCircle2, Database, KeyRound, Shield, Sparkles, Workflow, X } from 'lucide-react'
+import { useLocale, useTranslations } from 'next-intl'
 
 interface PasswordRequirement {
+  /** Key under auth.signup in the messages files. */
   label: string
   test: (password: string) => boolean
 }
 
 const passwordRequirements: PasswordRequirement[] = [
-  { label: 'At least 12 characters', test: (p) => p.length >= 12 },
-  { label: 'One uppercase letter', test: (p) => /[A-Z]/.test(p) },
-  { label: 'One lowercase letter', test: (p) => /[a-z]/.test(p) },
-  { label: 'One number', test: (p) => /\d/.test(p) },
-  { label: 'One special character', test: (p) => /[!@#$%^&*(),.?":{}|<>\[\]\\;'`~_+=\-/]/.test(p) },
+  { label: 'reqMinLength', test: (p) => p.length >= 12 },
+  { label: 'reqUppercase', test: (p) => /[A-Z]/.test(p) },
+  { label: 'reqLowercase', test: (p) => /[a-z]/.test(p) },
+  { label: 'reqNumber', test: (p) => /\d/.test(p) },
+  { label: 'reqSpecial', test: (p) => /[!@#$%^&*(),.?":{}|<>\[\]\\;'`~_+=\-/]/.test(p) },
 ]
 
 export default function SignUpPage() {
+  const t = useTranslations('auth.signup')
+  const locale = useLocale()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -65,27 +69,27 @@ export default function SignUpPage() {
     setError('')
 
     if (!isPasswordValid) {
-      setError('Password does not meet all requirements')
+      setError(t('passwordRequirements'))
       return
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match')
+      setError(t('passwordsMismatch'))
       return
     }
 
     setIsLoading(true)
 
     try {
-      await signUp(email, password, name)
-      toast.success('Account created successfully! Please check your email to verify your account.')
+      await signUp(email, password, name, locale)
+      toast.success(t('created'))
       router.push('/signin')
     } catch (err: any) {
       const errorMessage = err.response?.data?.detail
         ? (Array.isArray(err.response.data.detail)
             ? err.response.data.detail.map((e: any) => e.msg).join(', ')
             : err.response.data.detail)
-        : err.message || 'Failed to sign up'
+        : err.message || t('failed')
       setError(errorMessage)
       toast.error(errorMessage)
     } finally {
@@ -102,22 +106,22 @@ export default function SignUpPage() {
   const platformCapabilities = [
     {
       icon: Bot,
-      title: 'Agents',
-      description: 'Ship task-specific agents with configurable behavior and memory.',
+      title: t('agentsTitle'),
+      description: t('agentsDescription'),
       className: 'border-[#7de5c1]/18 bg-[#7de5c1]/10',
       iconClassName: 'bg-[#7de5c1] text-[#101915]',
     },
     {
       icon: Database,
-      title: 'Knowledge',
-      description: 'Connect documents, sources, and retrieval pipelines in one place.',
+      title: t('knowledgeTitle'),
+      description: t('knowledgeDescription'),
       className: 'border-white/10 bg-white/[0.08]',
       iconClassName: 'bg-white/12 text-[#f7f2e7]',
     },
     {
       icon: Workflow,
-      title: 'Workflows',
-      description: 'Route tools, channels, and automation without fragmentation.',
+      title: t('workflowsTitle'),
+      description: t('workflowsDescription'),
       className: 'border-[#f6c794]/18 bg-[#f6c794]/10',
       iconClassName: 'bg-[#f6c794] text-[#2f2414]',
     },
@@ -131,13 +135,13 @@ export default function SignUpPage() {
             <div className="mb-8">
               <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/55 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#6e675d]">
                 <Sparkles className="h-3.5 w-3.5 text-[#2d8b69]" />
-                Build on Synkora
+                {t('badge')}
               </div>
               <h1 className="mt-5 text-3xl font-semibold tracking-tight text-gray-900 sm:text-5xl">
-                Create your platform workspace
+                {t('title')}
               </h1>
               <p className="mt-3 text-base text-gray-600 sm:text-lg">
-                Build agents, workflows, and LLM-powered products from one workspace.
+                {t('subtitle')}
               </p>
             </div>
 
@@ -155,7 +159,7 @@ export default function SignUpPage() {
                   <div className="w-full border-t border-gray-200"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="bg-white px-4 font-medium text-gray-500">or continue with email</span>
+                  <span className="bg-white px-4 font-medium text-gray-500">{t('orContinue')}</span>
                 </div>
               </div>
 
@@ -171,7 +175,7 @@ export default function SignUpPage() {
 
                 <div>
                   <label htmlFor="name" className="mb-2 block text-sm font-semibold text-gray-700">
-                    Full name
+                    {t('fullName')}
                   </label>
                   <input
                     id="name"
@@ -180,13 +184,13 @@ export default function SignUpPage() {
                     onChange={(e) => setName(e.target.value)}
                     required
                     className="w-full rounded-[1.15rem] border border-gray-200 bg-gray-50 px-4 py-4 text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
-                    placeholder="Enter your full name"
+                    placeholder={t('fullNamePlaceholder')}
                   />
                 </div>
 
                 <div>
                   <label htmlFor="email" className="mb-2 block text-sm font-semibold text-gray-700">
-                    Work email
+                    {t('workEmail')}
                   </label>
                   <input
                     id="email"
@@ -195,13 +199,13 @@ export default function SignUpPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     className="w-full rounded-[1.15rem] border border-gray-200 bg-gray-50 px-4 py-4 text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
-                    placeholder="you@company.com"
+                    placeholder={t('workEmailPlaceholder')}
                   />
                 </div>
 
                 <div>
                   <label htmlFor="password" className="mb-2 block text-sm font-semibold text-gray-700">
-                    Password
+                    {t('password')}
                   </label>
                   <input
                     id="password"
@@ -211,7 +215,7 @@ export default function SignUpPage() {
                     onFocus={() => setShowPasswordRequirements(true)}
                     required
                     className="w-full rounded-[1.15rem] border border-gray-200 bg-gray-50 px-4 py-4 text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
-                    placeholder="Create a strong password"
+                    placeholder={t('passwordPlaceholder')}
                   />
                   {showPasswordRequirements && password.length > 0 && (
                     <div className="mt-3 space-y-1.5 rounded-[1.15rem] border border-black/10 bg-[#f4efe4] p-3">
@@ -223,7 +227,7 @@ export default function SignUpPage() {
                             <X className="h-3.5 w-3.5 flex-shrink-0 text-gray-400" />
                           )}
                           <span className={`text-xs ${req.met ? 'text-green-600' : 'text-gray-500'}`}>
-                            {req.label}
+                            {t(req.label)}
                           </span>
                         </div>
                       ))}
@@ -231,14 +235,14 @@ export default function SignUpPage() {
                   )}
                   {!showPasswordRequirements || password.length === 0 ? (
                     <p className="mt-2 text-xs text-gray-500">
-                      Min 12 characters with uppercase, lowercase, number & special character
+                      {t('passwordHint')}
                     </p>
                   ) : null}
                 </div>
 
                 <div>
                   <label htmlFor="confirmPassword" className="mb-2 block text-sm font-semibold text-gray-700">
-                    Confirm password
+                    {t('confirmPassword')}
                   </label>
                   <input
                     id="confirmPassword"
@@ -247,19 +251,19 @@ export default function SignUpPage() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
                     className="w-full rounded-[1.15rem] border border-gray-200 bg-gray-50 px-4 py-4 text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
-                    placeholder="Confirm your password"
+                    placeholder={t('confirmPasswordPlaceholder')}
                   />
                   {confirmPassword.length > 0 && (
                     <div className="mt-2 flex items-center gap-1.5">
                       {passwordsMatch ? (
                         <>
                           <Check className="h-3.5 w-3.5 text-green-500" />
-                          <span className="text-xs text-green-600">Passwords match</span>
+                          <span className="text-xs text-green-600">{t('passwordsMatch')}</span>
                         </>
                       ) : (
                         <>
                           <X className="h-3.5 w-3.5 text-red-500" />
-                          <span className="text-xs text-red-500">Passwords do not match</span>
+                          <span className="text-xs text-red-500">{t('passwordsMismatch')}</span>
                         </>
                       )}
                     </div>
@@ -273,14 +277,14 @@ export default function SignUpPage() {
                     className="mt-0.5 h-5 w-5 cursor-pointer rounded border-gray-300 text-red-500 focus:ring-red-500"
                   />
                   <label className="ml-3 text-sm text-gray-600">
-                    I agree to the{' '}
-                    <Link href="/terms" className="font-semibold text-red-500 hover:text-red-600">
-                      Terms of Service
-                    </Link>
-                    {' '}and{' '}
-                    <Link href="/privacy" className="font-semibold text-red-500 hover:text-red-600">
-                      Privacy Policy
-                    </Link>
+                    {t.rich('agree', {
+                      terms: (chunks) => (
+                        <Link href="/terms" className="font-semibold text-red-500 hover:text-red-600">{chunks}</Link>
+                      ),
+                      privacy: (chunks) => (
+                        <Link href="/privacy" className="font-semibold text-red-500 hover:text-red-600">{chunks}</Link>
+                      ),
+                    })}
                   </label>
                 </div>
 
@@ -295,11 +299,11 @@ export default function SignUpPage() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      Creating account...
+                      {t('submitting')}
                     </span>
                   ) : (
                     <>
-                      Create account
+                      {t('submit')}
                       <ArrowRight className="h-5 w-5" />
                     </>
                   )}
@@ -308,9 +312,9 @@ export default function SignUpPage() {
 
               <div className="mt-8 text-center">
                 <p className="text-gray-600">
-                  Already have an account?{' '}
+                  {t('haveAccount')}{' '}
                   <Link href="/signin" className="font-bold text-red-500 transition-colors hover:text-red-600">
-                    Sign in
+                    {t('signIn')}
                   </Link>
                 </p>
               </div>
@@ -319,19 +323,19 @@ export default function SignUpPage() {
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm text-gray-500">
               <div className="flex items-center gap-2 rounded-full border border-black/10 bg-white/55 px-4 py-2">
                 <Shield className="h-4 w-4" />
-                <span>256-bit SSL</span>
+                <span>{t('ssl')}</span>
               </div>
               <div className="flex items-center gap-2 rounded-full border border-black/10 bg-white/55 px-4 py-2">
                 <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
-                <span>Data encrypted at rest</span>
+                <span>{t('encrypted')}</span>
               </div>
               <div className="flex items-center gap-2 rounded-full border border-black/10 bg-white/55 px-4 py-2">
                 <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
-                <span>Your data stays private</span>
+                <span>{t('private')}</span>
               </div>
             </div>
           </div>
@@ -346,14 +350,14 @@ export default function SignUpPage() {
           <div className="relative z-10">
             <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-[#d8d0c3]">
               <KeyRound className="h-4 w-4 text-[#7de5c1]" />
-              Platform Setup
+              {t('setupBadge')}
             </div>
             <h2 className="max-w-xl text-5xl font-semibold leading-tight text-white">
-              Build your
-              <span className="block text-[#7de5c1]">AI platform stack</span>
+              {t('setupLine1')}
+              <span className="block text-[#7de5c1]">{t('setupLine2')}</span>
             </h2>
             <p className="mt-6 max-w-md text-xl leading-relaxed text-[#c8c0b5]">
-              Launch agents, tools, knowledge, and delivery surfaces without stitching together five separate products.
+              {t('setupBody')}
             </p>
           </div>
 
@@ -373,25 +377,25 @@ export default function SignUpPage() {
             })}
             <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.06] p-4 backdrop-blur-sm">
               <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#d8d0c3]">
-                Launch profile
+                {t('launchProfile')}
               </div>
               <div className="mt-4 space-y-3">
                 <div className="flex items-center justify-between gap-3 text-sm text-[#f7f2e7]">
-                  <span>Bring your model keys</span>
+                  <span>{t('modelKeys')}</span>
                   <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7de5c1]">
-                    Optional
+                    {t('optional')}
                   </span>
                 </div>
                 <div className="flex items-center justify-between gap-3 text-sm text-[#f7f2e7]">
-                  <span>Open-source core</span>
+                  <span>{t('openSource')}</span>
                   <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f6c794]">
-                    Flexible
+                    {t('flexible')}
                   </span>
                 </div>
                 <div className="flex items-center justify-between gap-3 text-sm text-[#f7f2e7]">
-                  <span>Self-host when needed</span>
+                  <span>{t('selfHost')}</span>
                   <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f2b8bc]">
-                    Secure
+                    {t('secure')}
                   </span>
                 </div>
               </div>
@@ -423,15 +427,15 @@ export default function SignUpPage() {
           <div className="relative z-10 flex flex-wrap gap-6 text-sm text-gray-300">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-[#7de5c1]" />
-              <span>Bring your LLM keys</span>
+              <span>{t('bringKeys')}</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-[#7de5c1]" />
-              <span>Open-source core</span>
+              <span>{t('openSource')}</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-[#7de5c1]" />
-              <span>Self-host ready</span>
+              <span>{t('selfHostReady')}</span>
             </div>
           </div>
         </div>

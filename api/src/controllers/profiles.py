@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import get_async_db
 from src.middleware.auth_middleware import get_current_account
+from src.services.i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, normalize_interface_language
 from src.services.profile.profile_service import ProfileService
 from src.services.security.password_validator import PasswordValidator
 
@@ -69,6 +70,24 @@ def _validate_image_magic_bytes(content: bytes) -> str | None:
 router = APIRouter(prefix="/profile", tags=["profile"])
 
 
+async def _forget_cached_me(account_id) -> None:
+    """Drop the cached /auth/me so a changed language shows up on the next page load."""
+    from src.config.redis import get_redis_async
+
+    redis = get_redis_async()
+    if not redis:
+        return
+    try:
+        await redis.delete(f"me:{account_id}")
+    except Exception:
+        logger.debug("Could not clear cached /auth/me", exc_info=True)
+
+
+def _interface_language(account) -> str:
+    """The account's language as a supported code; older accounts hold "en-US"."""
+    return normalize_interface_language(account.interface_language) or DEFAULT_LANGUAGE
+
+
 # Pydantic models for request/response
 class ProfileUpdate(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=255)
@@ -79,7 +98,20 @@ class ProfileUpdate(BaseModel):
     job_title: str | None = Field(None, max_length=255)
     location: str | None = Field(None, max_length=255)
     website: str | None = Field(None, max_length=255)
+    interface_language: str | None = Field(
+        None, description="Language of the platform's screens: " + ", ".join(SUPPORTED_LANGUAGES)
+    )
     notification_preferences: dict | None = None
+
+    @field_validator("interface_language")
+    @classmethod
+    def validate_interface_language(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        language = normalize_interface_language(v)
+        if language is None:
+            raise ValueError(f"Unsupported language. Choose one of: {', '.join(SUPPORTED_LANGUAGES)}")
+        return language
 
 
 class PasswordChange(BaseModel):
@@ -120,6 +152,7 @@ class ProfileResponse(BaseModel):
     two_factor_enabled: bool
     is_platform_admin: bool
     notification_preferences: dict
+    interface_language: str
     last_login_at: str | None
     created_at: str
     updated_at: str
@@ -157,6 +190,7 @@ async def get_my_profile(current_account=Depends(get_current_account), db: Async
             "two_factor_enabled": profile.two_factor_enabled or False,
             "is_platform_admin": profile.is_platform_admin or False,
             "notification_preferences": profile.notification_preferences or {},
+            "interface_language": _interface_language(profile),
             "last_login_at": _fmt_dt(profile.last_login_at),
             "created_at": _fmt_dt(profile.created_at),
             "updated_at": _fmt_dt(profile.updated_at),
@@ -192,6 +226,9 @@ async def update_my_profile(
                 current_account.id, notification_preferences
             )
 
+        if "interface_language" in update_data:
+            await _forget_cached_me(current_account.id)
+
         # Convert to dict with proper serialization
         return {
             "id": str(updated_profile.id),
@@ -207,6 +244,7 @@ async def update_my_profile(
             "two_factor_enabled": updated_profile.two_factor_enabled or False,
             "is_platform_admin": updated_profile.is_platform_admin or False,
             "notification_preferences": updated_profile.notification_preferences or {},
+            "interface_language": _interface_language(updated_profile),
             "last_login_at": _fmt_dt(updated_profile.last_login_at),
             "created_at": _fmt_dt(updated_profile.created_at),
             "updated_at": _fmt_dt(updated_profile.updated_at),
@@ -278,6 +316,7 @@ async def upload_avatar(
             "two_factor_enabled": updated_profile.two_factor_enabled or False,
             "is_platform_admin": updated_profile.is_platform_admin or False,
             "notification_preferences": updated_profile.notification_preferences or {},
+            "interface_language": _interface_language(updated_profile),
             "last_login_at": _fmt_dt(updated_profile.last_login_at),
             "created_at": _fmt_dt(updated_profile.created_at),
             "updated_at": _fmt_dt(updated_profile.updated_at),
@@ -312,6 +351,7 @@ async def delete_avatar(current_account=Depends(get_current_account), db: AsyncS
             "two_factor_enabled": updated_profile.two_factor_enabled or False,
             "is_platform_admin": updated_profile.is_platform_admin or False,
             "notification_preferences": updated_profile.notification_preferences or {},
+            "interface_language": _interface_language(updated_profile),
             "last_login_at": _fmt_dt(updated_profile.last_login_at),
             "created_at": _fmt_dt(updated_profile.created_at),
             "updated_at": _fmt_dt(updated_profile.updated_at),
@@ -474,6 +514,7 @@ async def verify_two_factor(
             "two_factor_enabled": updated_profile.two_factor_enabled or False,
             "is_platform_admin": updated_profile.is_platform_admin or False,
             "notification_preferences": updated_profile.notification_preferences or {},
+            "interface_language": _interface_language(updated_profile),
             "last_login_at": _fmt_dt(updated_profile.last_login_at),
             "created_at": _fmt_dt(updated_profile.created_at),
             "updated_at": _fmt_dt(updated_profile.updated_at),
@@ -659,6 +700,7 @@ async def disable_two_factor(current_account=Depends(get_current_account), db: A
             "two_factor_enabled": updated_profile.two_factor_enabled or False,
             "is_platform_admin": updated_profile.is_platform_admin or False,
             "notification_preferences": updated_profile.notification_preferences or {},
+            "interface_language": _interface_language(updated_profile),
             "last_login_at": _fmt_dt(updated_profile.last_login_at),
             "created_at": _fmt_dt(updated_profile.created_at),
             "updated_at": _fmt_dt(updated_profile.updated_at),

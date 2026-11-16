@@ -8,7 +8,7 @@ interface AuthState {
   isAuthenticated: boolean
   isLoading: boolean
   signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string, name: string) => Promise<void>
+  signUp: (email: string, password: string, name: string, interfaceLanguage?: string) => Promise<void>
   signOut: () => Promise<void>
   fetchUser: () => Promise<void>
 }
@@ -39,10 +39,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  signUp: async (email, password, name) => {
+  signUp: async (email, password, name, interfaceLanguage) => {
     set({ isLoading: true })
     try {
-      await apiClient.signup(email, password, name)
+      await apiClient.signup(email, password, name, interfaceLanguage)
       // Don't store tokens or set user - account needs email verification first
       // User will need to verify email and then login
       // No need to store tokens or set authenticated state

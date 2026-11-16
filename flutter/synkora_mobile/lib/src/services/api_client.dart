@@ -1,3 +1,4 @@
+import 'dart:ui' show Locale;
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -5,6 +6,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 
 import '../models/synkora_models.dart';
+import '../../l10n/app_localizations.dart';
 
 class SynkoraApiException implements Exception {
   const SynkoraApiException(this.message, {this.statusCode});
@@ -17,18 +19,32 @@ class SynkoraApiException implements Exception {
 }
 
 class SynkoraApiClient {
-  SynkoraApiClient({required String baseUrl, this.accessTokenProvider})
-    : _dio = Dio(
-        BaseOptions(
-          baseUrl: baseUrl,
-          connectTimeout: const Duration(seconds: 15),
-          receiveTimeout: const Duration(seconds: 60),
-          headers: const {'Content-Type': 'application/json'},
-        ),
-      );
+  SynkoraApiClient({
+    required String baseUrl,
+    this.accessTokenProvider,
+    AppLocalizations Function()? strings,
+    String? Function()? language,
+  }) : _strings = strings ?? _englishStrings,
+       _language = language,
+       _dio = Dio(
+         BaseOptions(
+           baseUrl: baseUrl,
+           connectTimeout: const Duration(seconds: 15),
+           receiveTimeout: const Duration(seconds: 60),
+           headers: const {'Content-Type': 'application/json'},
+         ),
+       );
 
   final Dio _dio;
   final String? Function()? accessTokenProvider;
+  final AppLocalizations Function() _strings;
+  final String? Function()? _language;
+
+  static AppLocalizations _englishStrings() =>
+      lookupAppLocalizations(const Locale('en'));
+
+  /// Language of the app (e.g. `de`), sent with chat requests so the agent replies in it.
+  String? get language => _language?.call();
 
   Future<Map<String, dynamic>> getJson(
     String path, {
@@ -192,7 +208,7 @@ class SynkoraApiClient {
         controller.addError(_wrapDioException(error));
       } catch (error) {
         controller.addError(
-          SynkoraApiException('Failed to stream agent response: $error'),
+          SynkoraApiException(_strings().streamFailed('$error')),
         );
       } finally {
         await controller.close();
@@ -210,7 +226,7 @@ class SynkoraApiClient {
     if (authenticated) {
       final token = accessTokenProvider?.call();
       if (token == null || token.isEmpty) {
-        throw const SynkoraApiException('Authentication required.');
+        throw SynkoraApiException(_strings().authRequired);
       }
       headers['Authorization'] = 'Bearer $token';
     }
@@ -267,7 +283,7 @@ class SynkoraApiClient {
       }
     }
     return SynkoraApiException(
-      error.message ?? 'Unexpected network error',
+      error.message ?? _strings().networkError,
       statusCode: statusCode,
     );
   }

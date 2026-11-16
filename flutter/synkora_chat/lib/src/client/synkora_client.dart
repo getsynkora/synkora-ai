@@ -3,9 +3,10 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 
+import '../l10n/synkora_chat_strings.dart';
 import 'models.dart';
 
-/// Low-level API client. No Flutter dependency — pure Dart.
+/// Low-level API client.
 /// Handles config fetch, SSE streaming, and history loading.
 class SynkoraClient {
   final String widgetKey;
@@ -14,6 +15,14 @@ class SynkoraClient {
   late final Dio _dio;
   String? identityToken;
   String? sessionToken;
+
+  /// Text for the errors shown inside the chat. [SynkoraChatController.setLocale]
+  /// keeps it in step with [language].
+  SynkoraChatStrings strings = SynkoraChatStrings.en;
+
+  /// Language of the host UI as a BCP-47 tag (e.g. `de`, `pt-BR`). Widget text is
+  /// loaded in it, and the agent answers in it by default.
+  String? language;
   final void Function(String token)? onSessionToken;
 
   /// Restore a capability saved by the host app, alongside its conversation ID.
@@ -57,6 +66,7 @@ class SynkoraClient {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         '/api/v1/widgets/config',
+        queryParameters: {if (language != null) 'lang': language},
       );
       return WidgetConfig.fromJson(response.data!);
     } on DioException catch (e) {
@@ -124,6 +134,7 @@ class SynkoraClient {
         if (forceNew) 'force_new': true,
         if (userEmail != null) 'user_email': userEmail,
         if (userPhone != null) 'user_phone': userPhone,
+        if (language != null) 'language': language,
       };
 
       final response = await _dio.post<ResponseBody>(
@@ -393,8 +404,7 @@ class SynkoraClient {
     return serverDetail ?? error.message ?? 'Network error';
   }
 
-  static const _genericUnexpectedErrorMessage =
-      "Something went wrong. Please try again.";
+  String get _genericUnexpectedErrorMessage => strings.errorGeneric;
 
   /// End-user-facing chat error text. Deliberately never mentions Synkora,
   /// status codes, or any other backend/implementation detail — the widget
@@ -407,11 +417,11 @@ class SynkoraClient {
     if (error.type == DioExceptionType.connectionTimeout ||
         error.type == DioExceptionType.connectionError ||
         error.type == DioExceptionType.unknown) {
-      return "I'm having trouble connecting right now. Please check your connection and try again.";
+      return strings.errorConnection;
     }
     final statusCode = error.response?.statusCode;
     if (statusCode == 429) {
-      return "You're sending messages a little too fast. Please wait a moment and try again.";
+      return strings.errorTooFast;
     }
     return _genericUnexpectedErrorMessage;
   }

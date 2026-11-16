@@ -12,7 +12,7 @@ import secrets
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import delete, func, select
@@ -30,7 +30,13 @@ from src.models.agent_widget import AgentWidget, WidgetAnalytics
 from src.models.conversation import Conversation, ConversationStatus
 from src.models.message import Message
 from src.models.widget_agent_route import WidgetAgentRoute
+from src.services.agents.response_language import (
+    language_from_accept_header,
+    normalize_language,
+    translations_for,
+)
 from src.services.security.advanced_prompt_scanner import advanced_prompt_scanner
+from src.services.security.input_sanitizer import sanitize_suggestion_prompts
 
 logger = logging.getLogger(__name__)
 
@@ -300,12 +306,20 @@ async def list_widgets(
 
 # Widget Public Config Endpoint
 @widgets_router.get("/widgets/config")
-async def get_widget_config(http_request: Request, db: AsyncSession = Depends(get_async_db)):
+async def get_widget_config(
+    http_request: Request,
+    lang: str | None = Query(None, max_length=20, description="Language to return widget text in (BCP-47)"),
+    db: AsyncSession = Depends(get_async_db),
+):
     """
     Public endpoint to fetch widget + agent configuration.
     Authenticated via X-Widget-API-Key header.
     Returns agent name, avatar, description, suggestion prompts, and theme config
     so the embedded widget can render itself correctly without hardcoded values.
+
+    Text saved for the requested language (``lang`` or the Accept-Language header) under
+    ``theme_config["translations"]`` replaces the default text; anything not translated
+    falls back to the default.
     """
     try:
         api_key = http_request.headers.get("X-Widget-API-Key")
@@ -327,22 +341,35 @@ async def get_widget_config(http_request: Request, db: AsyncSession = Depends(ge
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
 
         theme = widget.theme_config or {}
+        language = normalize_language(lang) or language_from_accept_header(http_request.headers.get("Accept-Language"))
+        text = translations_for(theme, language)
+
+        def localized(field: str, default: Any) -> Any:
+            value = text.get(field)
+            return value if isinstance(value, str) and value.strip() else default
+
+        suggestion_prompts = agent.suggestion_prompts or []
+        if isinstance(text.get("suggestion_prompts"), list) and text["suggestion_prompts"]:
+            suggestion_prompts = sanitize_suggestion_prompts(
+                [item for item in text["suggestion_prompts"] if isinstance(item, dict)]
+            )
 
         pre_chat = theme.get("pre_chat_form") or {}
         return {
             "widget_id": str(widget.id),
             "widget_name": widget.widget_name,
+            "language": language,
             "agent_name": agent.agent_name,
-            "agent_description": agent.description or "",
+            "agent_description": localized("agent_description", agent.description or ""),
             "agent_avatar": convert_s3_uri_to_presigned_url(agent.avatar or "", agent.tenant_id),
-            "suggestion_prompts": agent.suggestion_prompts or [],
+            "suggestion_prompts": suggestion_prompts,
             "theme": {
                 "primary_color": theme.get("chat_primary_color") or theme.get("primaryColor") or "",
-                "welcome_message": theme.get("chat_welcome_message") or "",
-                "placeholder": theme.get("chat_placeholder") or "",
-                "title": theme.get("chat_title") or "",
+                "welcome_message": localized("welcome_message", theme.get("chat_welcome_message") or ""),
+                "placeholder": localized("placeholder", theme.get("chat_placeholder") or ""),
+                "title": localized("title", theme.get("chat_title") or ""),
                 "privacy_policy_url": theme.get("privacy_policy_url") or "",
-                "privacy_policy_text": theme.get("privacy_policy_text") or "",
+                "privacy_policy_text": localized("privacy_policy_text", theme.get("privacy_policy_text") or ""),
                 # branding_text can be a string or False to hide the bar entirely
                 "branding_text": theme.get("branding_text"),
                 "branding_url": theme.get("branding_url") or "",
@@ -1250,6 +1277,11 @@ class WidgetChatRequest(BaseModel):
     page_context: dict[str, Any] | None = Field(
         None, description="Host-app-supplied context describing what the end user is currently looking at"
     )
+    language: str | None = Field(
+        None,
+        max_length=20,
+        description="Language of the client UI as a BCP-47 code (e.g. 'de'); the agent replies in it by default",
+    )
 
 
 class PushRegisterRequest(BaseModel):
@@ -1799,6 +1831,7 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
             shared_state=_widget_shared_state if _widget_shared_state else None,
             page_context=page_context,
             tenant_id=widget.tenant_id,
+            language=request.language,
         )
 
         # Wrap stream to fire FCM push after done event
@@ -1854,6 +1887,7 @@ async def widget_chat(request: WidgetChatRequest, http_request: Request, db: Asy
                         conversation_id=conv_id,
                         agent_name=_agent_name,
                         reply_preview=preview,
+                        language=request.language,
                     )
                 except Exception as _fcm_err:
                     logger.warning(f"FCM push dispatch failed (non-critical): {_fcm_err}")

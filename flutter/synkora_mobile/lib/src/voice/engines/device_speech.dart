@@ -9,6 +9,7 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../audio/chime.dart';
 import '../ports.dart';
+import '../voice_messages.dart';
 import '../voice_profile.dart';
 
 /// Errors that just mean nobody spoke; they are not a sign of a broken
@@ -18,16 +19,15 @@ const _silenceErrors = {'error_no_match', 'error_speech_timeout', 'error_busy'};
 /// After this many attempts in a row fail for real (not silence), tell the user.
 const _maxConsecutiveFailures = 3;
 
-const _permissionMessage =
-    'Speech recognition is turned off. Allow Microphone and Speech '
-    'Recognition for Synkora in your phone settings to talk to this agent.';
-
 /// Listens with the phone's own recognizer (the free `web_speech` provider).
 class DeviceSpeechRecognizer implements LiveSpeechRecognizer {
   DeviceSpeechRecognizer({stt.SpeechToText? speech})
     : _speech = speech ?? stt.SpeechToText();
 
   final stt.SpeechToText _speech;
+
+  /// Messages in the language of the current listen (set by [listenOnce]).
+  VoiceMessages _messages = const EnglishVoiceMessages();
   final StreamController<String> _partials = StreamController.broadcast();
 
   bool _initialized = false;
@@ -85,8 +85,11 @@ class DeviceSpeechRecognizer implements LiveSpeechRecognizer {
     final blocked = _blockedUntil;
     if (blocked != null && DateTime.now().isBefore(blocked)) return null;
 
+    _messages = VoiceMessages.forLanguage(locale);
     await _ensureInitialized();
-    if (!_available) throw const VoiceUnavailableException(_permissionMessage);
+    if (!_available) {
+      throw VoiceUnavailableException(_messages.speechRecognitionOff);
+    }
 
     _fatal = null;
     _failureCode = null;
@@ -121,9 +124,7 @@ class DeviceSpeechRecognizer implements LiveSpeechRecognizer {
       if (++_consecutiveFailures >= _maxConsecutiveFailures) {
         _consecutiveFailures = 0;
         throw VoiceUnavailableException(
-          "Your phone's speech recognition isn't working right now "
-          '(${_failureCode!}). Check Settings > Siri & Dictation, or switch '
-          'this agent to a cloud voice in its Voice settings.',
+          _messages.recognizerNotWorking(_failureCode!),
         );
       }
     }
@@ -154,7 +155,7 @@ class DeviceSpeechRecognizer implements LiveSpeechRecognizer {
       _blockedUntil = DateTime.now().add(const Duration(seconds: 15));
       _complete(null);
     } else if (code.contains('permission')) {
-      _fatal = const VoiceUnavailableException(_permissionMessage);
+      _fatal = VoiceUnavailableException(_messages.speechRecognitionOff);
       _complete(null);
     } else {
       if (!_silenceErrors.contains(code)) _failureCode = code;

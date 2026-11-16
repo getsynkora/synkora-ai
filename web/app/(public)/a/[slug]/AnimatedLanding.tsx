@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { ExampleConversation } from '@/components/landing/ExampleConversation'
 import { PricingCTA } from '@/components/landing/PricingCTA'
+import { useTranslations } from 'next-intl'
 
 interface LandingData {
   slug: string
@@ -55,6 +56,7 @@ function toEmbedUrl(url: string): string {
 }
 
 export function AnimatedLanding({ data, slug }: { data: LandingData; slug: string }) {
+  const tt = useTranslations('publicAgent')
   const rootRef = useRef<HTMLDivElement>(null)
   const navRef = useRef<HTMLElement>(null)
   const badgeRef = useRef<HTMLDivElement>(null)
@@ -95,7 +97,7 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
       })
       if (!res.ok) {
         const d = await res.json().catch(() => ({}))
-        throw new Error(d?.detail || 'Subscription failed')
+        throw new Error(d?.detail || tt('subscriptionFailed'))
       }
       setEmailDone(true)
     } catch (e: any) {
@@ -113,10 +115,10 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
   const brandMuted = '#6d675f'
   const accent = accent_color || brandAccent
   const pricingTiers = pricing ? [
-    pricing.session_credits && { label: 'Session', credits: pricing.session_credits, tier: 'SESSION', desc: 'Single conversation' },
-    pricing.daily_credits && { label: 'Daily', credits: pricing.daily_credits, tier: 'DAILY', desc: '24-hour access' },
-    pricing.weekly_credits && { label: 'Weekly', credits: pricing.weekly_credits, tier: 'WEEKLY', desc: '7-day access' },
-    pricing.monthly_credits && { label: 'Monthly', credits: pricing.monthly_credits, tier: 'MONTHLY', desc: '30-day access', popular: true },
+    pricing.session_credits && { label: tt('tierSession'), credits: pricing.session_credits, tier: 'SESSION', desc: tt('tierSessionDesc') },
+    pricing.daily_credits && { label: tt('tierDaily'), credits: pricing.daily_credits, tier: 'DAILY', desc: tt('tierDailyDesc') },
+    pricing.weekly_credits && { label: tt('tierWeekly'), credits: pricing.weekly_credits, tier: 'WEEKLY', desc: tt('tierWeeklyDesc') },
+    pricing.monthly_credits && { label: tt('tierMonthly'), credits: pricing.monthly_credits, tier: 'MONTHLY', desc: tt('tierMonthlyDesc'), popular: true },
   ].filter(Boolean) : []
 
   const isFree = !pricing || pricing.pricing_model === 'FREE'
@@ -342,7 +344,7 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
               onClick={() => scrollTo('pricing')}
               className="rounded-full bg-[#191919] px-4 py-2 text-sm font-semibold text-[#f7f2e7] transition-all hover:-translate-y-0.5 hover:bg-black cursor-pointer"
             >
-              Get Started
+              {tt('getStarted')}
             </button>
           </div>
         </div>
@@ -401,14 +403,14 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
               onClick={() => scrollTo('pricing')}
               className="hero-cta-btn rounded-full bg-[#191919] px-8 py-3.5 text-base font-semibold text-[#f7f2e7] shadow-[0_18px_40px_rgba(0,0,0,0.12)] transition-all hover:-translate-y-0.5 hover:bg-black cursor-pointer"
             >
-              {cta_label || 'Try it for Free'}
+              {cta_label || tt('tryFree')}
             </button>
             {long_description && (
               <button
                 onClick={() => scrollTo('about')}
                 className="hero-cta-btn rounded-full border border-black/10 bg-white/70 px-8 py-3.5 text-base font-semibold text-[#171717] transition-all hover:-translate-y-0.5 hover:bg-white cursor-pointer"
               >
-                Learn more
+                {tt('learnMore')}
               </button>
             )}
           </div>
@@ -465,9 +467,9 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
               <span className="mb-4 inline-block rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#4b463e]">
-                Gallery
+                {tt('gallery')}
               </span>
-              <h2 className="text-3xl font-medium tracking-[-0.05em] text-[#171717] md:text-4xl">Screenshots & Media</h2>
+              <h2 className="text-3xl font-medium tracking-[-0.05em] text-[#171717] md:text-4xl">{tt('screenshotsMedia')}</h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
               {validGallery.map((img, i) => (
@@ -513,9 +515,9 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
           <div className="max-w-3xl mx-auto">
             <div className="text-center mb-12">
               <span className="mb-4 inline-block rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#4b463e]">
-                Examples
+                {tt('examples')}
               </span>
-              <h2 className="mb-3 text-3xl font-medium tracking-[-0.05em] text-[#171717] md:text-4xl">Real conversations</h2>
+              <h2 className="mb-3 text-3xl font-medium tracking-[-0.05em] text-[#171717] md:text-4xl">{tt('realConversations')}</h2>
               <p className="text-lg text-[#565149]">See exactly what you can expect</p>
             </div>
             <div className="space-y-5">
@@ -534,9 +536,9 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
         <div className="max-w-5xl mx-auto">
           <div className="section-header text-center mb-16">
             <span className="section-badge mb-4 inline-block rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#4b463e]">
-              Pricing
+              {tt('pricing')}
             </span>
-            <h2 className="section-title mb-4 text-3xl font-medium tracking-[-0.05em] text-[#171717] md:text-4xl">Simple, transparent pricing</h2>
+            <h2 className="section-title mb-4 text-3xl font-medium tracking-[-0.05em] text-[#171717] md:text-4xl">{tt('simplePricing')}</h2>
             <p className="section-sub text-lg text-[#565149]">Pay only for what you use. No hidden fees.</p>
           </div>
 
@@ -558,13 +560,13 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
                   >
                     {t.popular && (
                       <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#171717] px-4 py-1 text-xs font-bold text-[#f7f2e7]" >
-                        Most Popular
+                        {tt('mostPopular')}
                       </div>
                     )}
                     <div className="mb-4 text-xs font-bold uppercase tracking-[0.18em] text-[#7a7267]">{t.label}</div>
                     <div className="flex items-baseline gap-1 mb-1">
                       <span className="text-4xl font-semibold tracking-[-0.05em] text-[#171717]">{t.credits}</span>
-                      <span className="text-sm font-medium text-[#7a7267]">credits</span>
+                      <span className="text-sm font-medium text-[#7a7267]">{tt('credits')}</span>
                     </div>
                     <p className="mt-3 text-sm text-[#565149]">{t.desc}</p>
                     <div className="mt-6">
@@ -573,7 +575,7 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
                         className="block w-full py-2.5 text-center text-sm font-semibold rounded-xl transition-all hover:opacity-90"
                         style={t.popular ? { background: '#171717', color: '#f7f2e7' } : { background: '#f4eee1', color: '#171717' }}
                       >
-                        Get started
+                        {tt('getStartedLower')}
                       </a>
                     </div>
                   </div>
@@ -612,9 +614,9 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
           <div className="max-w-2xl mx-auto">
             <div className="text-center mb-10">
               <span className="mb-4 inline-block rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#4b463e]">
-                Creator
+                {tt('creator')}
               </span>
-              <h2 className="text-3xl font-medium tracking-[-0.05em] text-[#171717]">Meet the creator</h2>
+              <h2 className="text-3xl font-medium tracking-[-0.05em] text-[#171717]">{tt('meetCreator')}</h2>
             </div>
             <div className="creator-card flex flex-col items-center gap-6 rounded-[2rem] border border-black/10 bg-white/75 p-8 shadow-[0_18px_40px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_24px_60px_rgba(0,0,0,0.08)] sm:flex-row sm:items-start">
               {creator?.avatar_url ? (
@@ -646,20 +648,20 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
           <div className="max-w-xl mx-auto text-center">
             <div className="section-header mb-8">
               <span className="section-badge mb-4 inline-block rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#4b463e]">
-                Free Updates
+                {tt('freeUpdates')}
               </span>
               <h2 className="section-title mb-3 text-3xl font-medium tracking-[-0.05em] text-[#171717] md:text-4xl">
-                Stay in the loop
+                {tt('stayInLoop')}
               </h2>
               <p className="section-sub text-lg text-[#565149]">
-                Subscribe to receive agent outputs and updates by email — completely free.
+                {tt('subscribeBlurb')}
               </p>
             </div>
 
             {emailDone ? (
               <div className="flex items-center justify-center gap-3 rounded-[1.6rem] border border-black/10 bg-white/80 px-6 py-4 shadow-[0_18px_40px_rgba(0,0,0,0.05)]">
                 <span className="text-2xl">✓</span>
-                <p className="font-semibold text-[#171717]">You're subscribed! Check your inbox.</p>
+                <p className="font-semibold text-[#171717]">{tt('subscribed')}</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -669,7 +671,7 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
                     value={emailInput}
                     onChange={e => setEmailInput(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleEmailSubscribe()}
-                    placeholder="your@email.com"
+                    placeholder={tt('emailPlaceholder')}
                     className="flex-1 rounded-[1.2rem] border border-black/10 bg-white/90 px-4 py-3.5 text-sm text-[#171717] shadow-sm focus:border-transparent focus:outline-none focus:ring-2"
                     style={{ '--tw-ring-color': brandAccent } as React.CSSProperties}
                   />
@@ -678,7 +680,7 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
                     disabled={emailLoading || !emailInput.trim()}
                     className="rounded-[1.2rem] bg-[#171717] px-6 py-3.5 text-sm font-semibold text-[#f7f2e7] shadow-sm transition-all hover:bg-black disabled:opacity-50"
                   >
-                    {emailLoading ? '...' : 'Subscribe Free'}
+                    {emailLoading ? '...' : tt('subscribeFree')}
                   </button>
                 </div>
                 {emailError && <p className="text-red-500 text-sm">{emailError}</p>}
@@ -702,10 +704,10 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
               href="#pricing"
               className="rounded-full bg-[#f7f2e7] px-8 py-4 text-base font-semibold text-[#171717] transition-all hover:-translate-y-0.5 hover:bg-white"
             >
-              {cta_label || 'Try it for Free'}
+              {cta_label || tt('tryFree')}
             </a>
             <Link href="/signup" className="rounded-full border border-white/20 bg-white/10 px-8 py-4 text-base font-semibold text-white transition-colors hover:bg-white/16">
-              Create account
+              {tt('createAccount')}
             </Link>
           </div>
         </div>
@@ -725,10 +727,10 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
             <span>{agent_name}</span>
           </Link>
           <div className="flex items-center gap-6">
-            <Link href="/signin" className="transition-colors hover:text-white">Sign in</Link>
-            <Link href="/signup" className="transition-colors hover:text-white">Sign up</Link>
+            <Link href="/signin" className="transition-colors hover:text-white">{tt('signIn')}</Link>
+            <Link href="/signup" className="transition-colors hover:text-white">{tt('signUp')}</Link>
           </div>
-          <span>Powered by Synkora</span>
+          <span>{tt('poweredBy')}</span>
         </div>
       </footer>
     </div>

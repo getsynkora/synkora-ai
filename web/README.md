@@ -301,3 +301,25 @@ For issues or questions:
 **Access App**: http://localhost:3000
 **API Endpoint**: http://localhost:5001
 **Docs**: See markdown files in synkora-rebuild/
+
+## Translating the dashboard
+
+The signed-in dashboard and the sign-in pages are translated with
+[next-intl](https://next-intl.dev). English and German are available. There is no
+language in the URL: the choice is kept in the `NEXT_LOCALE` cookie, saved on the
+account (`interface_language`) when signed in, and starts from the browser's
+language. Public marketing pages are not translated and stay statically rendered.
+
+- Text lives in `messages/en.json` and `messages/de.json`, grouped by screen
+  (`auth.signin`, `agents.list`, ...). Use it in a component with
+  `const t = useTranslations('agents.list')` and `t('key')`. For links or bold
+  text inside a sentence use `t.rich`; for counts use ICU plurals
+  (`{count, plural, one {# agent} other {# agents}}`).
+- Dates and numbers: format with the current `useLocale()`, not a fixed locale.
+- Keep every language file in step. `i18n/i18n.test.ts` fails if a key or a
+  `{variable}` / `<tag>` is missing in one language, or if a component uses a key
+  that does not exist.
+- To add a language: add its code to `i18n/config.ts` and `SUPPORTED_LANGUAGES` in
+  `api/src/services/i18n/languages.py`, then add `messages/<code>.json`.
+- Screens not converted yet still show English; convert one at a time.
+- Messages that come from the API (validation and error text) are still English.

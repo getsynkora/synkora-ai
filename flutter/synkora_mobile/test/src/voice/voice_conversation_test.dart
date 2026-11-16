@@ -304,6 +304,91 @@ void main() {
     },
   );
 
+  group('a German conversation', () {
+    test('"wechsle zu GrokBot" switches and confirms in German', () {
+      fakeAsync((async) {
+        final h = Harness();
+        h.convo.deviceLocale = 'de-DE';
+        h.open(async);
+        h.userSays(async, 'Wechsle zu Grok Bot');
+        async.settle(const Duration(seconds: 2));
+
+        expect(h.convo.agent!.name, 'GrokBot');
+        expect(h.gateway.requests, isEmpty);
+        expect(h.output.played, [
+          'In Ordnung, Sie sprechen jetzt mit GrokBot.',
+        ]);
+        h.dispose();
+      });
+    });
+
+    test('an unknown agent is reported in German', () {
+      fakeAsync((async) {
+        final h = Harness();
+        h.convo.deviceLocale = 'de-DE';
+        h.open(async);
+        h.userSays(async, 'Wechsle zu Jarvis');
+        async.settle(const Duration(seconds: 2));
+
+        expect(
+          h.output.played.single,
+          'Ich konnte keinen Agenten namens jarvis finden.',
+        );
+        h.dispose();
+      });
+    });
+
+    test('"tschüss" ends the conversation', () {
+      fakeAsync((async) {
+        final h = Harness();
+        h.convo.deviceLocale = 'de-DE';
+        h.open(async);
+        h.userSays(async, 'Tschüss!');
+        async.settle(const Duration(seconds: 2));
+
+        expect(h.gateway.requests, isEmpty);
+        expect(h.convo.sessionActive, isFalse);
+        h.dispose();
+      });
+    });
+
+    test('the agent is asked to answer in the voice language', () {
+      fakeAsync((async) {
+        final h = Harness();
+        h.convo.deviceLocale = 'de-DE';
+        h.open(async);
+        h.userSays(async, 'Wie wird das Wetter morgen?');
+
+        expect(h.gateway.requests.single.language, 'de');
+        h.dispose();
+      });
+    });
+
+    test('with no voice language set, the agent is not told one', () {
+      fakeAsync((async) {
+        final h = Harness();
+        h.open(async);
+        h.userSays(async, 'What is the weather tomorrow?');
+
+        expect(h.gateway.requests.single.language, isNull);
+        h.dispose();
+      });
+    });
+
+    test('English commands are not understood as German ones', () {
+      fakeAsync((async) {
+        final h = Harness();
+        h.open(async);
+        h.userSays(async, 'Tschüss');
+        async.settle(const Duration(seconds: 2));
+
+        // Not a command here: it is sent to the agent like any other words.
+        expect(h.gateway.requests.single.message, 'Tschüss');
+        h.dispose();
+      });
+    });
+  });
+
   test('"say that again" repeats the last reply without calling the agent', () {
     fakeAsync((async) {
       final h = Harness();

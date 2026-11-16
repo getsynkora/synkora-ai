@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
 import '../client/models.dart';
+import '../l10n/synkora_chat_strings.dart';
 import '../theme/chat_text_styles.dart';
 
 const _kInk = Color(0xFF1A1A2E);
@@ -30,23 +31,25 @@ class MessageBubble extends StatelessWidget {
   bool get _isUser => message.role == MessageRole.user;
   bool get _isOperator => message.role == MessageRole.operator;
 
-  String _formatTime(DateTime dt) {
+  String _formatTime(DateTime dt, SynkoraChatStrings s) {
     final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 1) return 'Now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes} min';
-    if (diff.inHours < 24) return '${diff.inHours}hr';
-    return '${diff.inDays}d';
+    if (diff.inMinutes < 1) return s.now;
+    if (diff.inMinutes < 60) return s.minutesAgo(diff.inMinutes);
+    if (diff.inHours < 24) return s.hoursAgo(diff.inHours);
+    return s.daysAgo(diff.inDays);
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isOperator) return _OperatorBubble(message: message, showAvatar: showAvatar);
+    final s = SynkoraChatStrings.of(context);
+    if (_isOperator)
+      return _OperatorBubble(message: message, showAvatar: showAvatar);
 
     if (_isUser) {
       return _UserBubble(
         message: message,
         primaryColor: primaryColor,
-        timeLabel: _formatTime(message.timestamp),
+        timeLabel: _formatTime(message.timestamp, s),
       );
     }
 
@@ -54,9 +57,9 @@ class MessageBubble extends StatelessWidget {
       message: message,
       primaryColor: primaryColor,
       agentAvatarUrl: agentAvatarUrl,
-      agentName: agentName ?? 'Assistant',
+      agentName: agentName ?? s.defaultAgentName,
       showAvatar: showAvatar,
-      timeLabel: _formatTime(message.timestamp),
+      timeLabel: _formatTime(message.timestamp, s),
       onLinkTap: onLinkTap,
     );
   }
@@ -125,7 +128,8 @@ class _AgentBubble extends StatelessWidget {
                       ),
                     ],
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   child: message.isStreaming && message.content.isEmpty
                       ? _TypingDots(color: primaryColor)
                       : _MarkdownContent(
@@ -189,8 +193,8 @@ class _UserBubble extends StatelessWidget {
                       bottomRight: Radius.circular(16),
                     ),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   child: Text(
                     message.content,
                     style: ChatTextStyles.txtStyleRegular15.copyWith(
@@ -210,7 +214,7 @@ class _UserBubble extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(right: 44),
             child: Text(
-              'You · $timeLabel',
+              '${SynkoraChatStrings.of(context).you} · $timeLabel',
               style: ChatTextStyles.txtStyleRegular11.copyWith(color: _kMuted),
             ),
           ),
@@ -230,16 +234,17 @@ class _OperatorBubble extends StatelessWidget {
 
   const _OperatorBubble({required this.message, required this.showAvatar});
 
-  String _formatTime(DateTime dt) {
+  String _formatTime(DateTime dt, SynkoraChatStrings s) {
     final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 1) return 'Now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes} min';
-    if (diff.inHours < 24) return '${diff.inHours}hr';
-    return '${diff.inDays}d';
+    if (diff.inMinutes < 1) return s.now;
+    if (diff.inMinutes < 60) return s.minutesAgo(diff.inMinutes);
+    if (diff.inHours < 24) return s.hoursAgo(diff.inHours);
+    return s.daysAgo(diff.inDays);
   }
 
   @override
   Widget build(BuildContext context) {
+    final strings = SynkoraChatStrings.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 4, 48, 4),
       child: Row(
@@ -282,8 +287,8 @@ class _OperatorBubble extends StatelessWidget {
                       ),
                     ],
                   ),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   child: Text(
                     message.content,
                     style: ChatTextStyles.txtStyleRegular15.copyWith(
@@ -295,7 +300,7 @@ class _OperatorBubble extends StatelessWidget {
                 if (showAvatar) ...[
                   const SizedBox(height: 4),
                   Text(
-                    'Support · ${_formatTime(message.timestamp)}',
+                    '${strings.support} · ${_formatTime(message.timestamp, strings)}',
                     style: ChatTextStyles.txtStyleRegular11
                         .copyWith(color: _kMuted),
                   ),
@@ -377,8 +382,7 @@ class _MarkdownContentState extends State<_MarkdownContent> {
 
   MarkdownStyleSheet _buildStyleSheet(ThemeData theme) =>
       MarkdownStyleSheet.fromTheme(theme).copyWith(
-        p: ChatTextStyles.txtStyleRegular15
-            .copyWith(color: _kInk, height: 1.4),
+        p: ChatTextStyles.txtStyleRegular15.copyWith(color: _kInk, height: 1.4),
         strong: ChatTextStyles.txtStyleSemiB15.copyWith(color: _kInk),
         em: ChatTextStyles.txtStyleRegular15
             .copyWith(color: _kInk, fontStyle: FontStyle.italic),

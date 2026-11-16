@@ -107,10 +107,16 @@ class SynkoraAgentService {
     String? conversationId,
     List<ChatAttachment> attachments = const [],
     bool voiceMode = false,
+    String? language,
   }) {
     final data = <String, dynamic>{'agent_slug': agentSlug, 'message': message};
     if (voiceMode) {
       data['voice_mode'] = true;
+    }
+    // The agent answers in this language by default: the one asked for, else the app's.
+    final replyLanguage = language ?? _client.language;
+    if (replyLanguage != null && replyLanguage.isNotEmpty) {
+      data['language'] = replyLanguage;
     }
     if (conversationId != null) {
       data['conversation_id'] = conversationId;

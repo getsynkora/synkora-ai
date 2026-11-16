@@ -1,5 +1,6 @@
 import { loadAccessToken, loadSynkoraUrl, refreshAccessToken, isTokenExpiringSoon } from '@/lib/auth';
 import { useExtensionStore } from '@/store/extension';
+import { t } from '../lib/i18n';
 
 export default defineBackground(() => {
   // ── Side panel: open on toolbar icon click ───────────────────────────────
@@ -25,7 +26,7 @@ export default defineBackground(() => {
   // ── Right-click context menu ──────────────────────────────────────────────
   chrome.contextMenus.create({
     id: 'snkr_ask_agent',
-    title: 'Ask Synkora Agent',
+    title: t('askAgent'),
     contexts: ['selection'],
   });
 

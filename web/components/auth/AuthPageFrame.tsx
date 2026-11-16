@@ -1,11 +1,15 @@
+'use client'
+
 import type { ReactNode } from 'react'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 
 export default function AuthPageFrame({
   children,
 }: {
   children: ReactNode
 }) {
+  const t = useTranslations('auth.frame')
   return (
     <div className="auth-page min-h-screen">
       <div className="mx-auto max-w-[1480px] px-6 py-6 lg:px-10">
@@ -16,22 +20,22 @@ export default function AuthPageFrame({
                 SYNKORA
               </span>
               <span className="rounded-full border border-black/10 bg-white/65 px-2.5 py-1 text-[10px] font-semibold uppercase leading-none tracking-[0.24em] text-[#5d564c]">
-                Beta
+                {t('beta')}
               </span>
             </div>
             <span className="mt-2 whitespace-nowrap text-xs uppercase tracking-[0.22em] text-[#7a7267]">
-              Open-source AI platform
+              {t('tagline')}
             </span>
           </Link>
           <div className="hidden items-center gap-4 sm:flex">
             <Link href="/signin" className="text-sm font-medium text-[#4e473e] transition-colors hover:text-black">
-              Sign in
+              {t('signIn')}
             </Link>
             <Link
               href="/signup"
               className="rounded-[1.75rem] bg-[#181818] px-5 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-[#f7f2e7] transition-transform hover:-translate-y-0.5"
             >
-              Get Started
+              {t('getStarted')}
             </Link>
           </div>
         </div>

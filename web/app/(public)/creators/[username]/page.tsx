@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { getTranslations } from 'next-intl/server'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
 
@@ -28,6 +29,7 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
 }
 
 export default async function CreatorProfilePage({ params }: { params: Promise<{ username: string }> }) {
+  const t = await getTranslations('publicCreator')
   const { username } = await params
   const data = await getCreatorData(username)
   if (!data) notFound()
@@ -36,9 +38,9 @@ export default async function CreatorProfilePage({ params }: { params: Promise<{
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-4 border-b border-white/5">
-        <Link href="/" className="text-white/40 text-sm hover:text-white transition-colors">← Home</Link>
+        <Link href="/" className="text-white/40 text-sm hover:text-white transition-colors">{t('home')}</Link>
         <Link href="/signin" className="px-4 py-2 text-sm border border-white/20 rounded-lg text-white/80 hover:border-white/40 transition-all">
-          Sign up free
+          {t('signUpFree')}
         </Link>
       </nav>
 
@@ -94,32 +96,32 @@ export default async function CreatorProfilePage({ params }: { params: Promise<{
           {data.website_url && (
             <a href={data.website_url} target="_blank" rel="noopener noreferrer"
               className="px-4 py-2 border border-white/10 rounded-lg text-sm text-white/60 hover:text-white hover:border-white/30 transition-all">
-              Website
+              {t('website')}
             </a>
           )}
           {data.twitter_url && (
             <a href={data.twitter_url} target="_blank" rel="noopener noreferrer"
               className="px-4 py-2 border border-white/10 rounded-lg text-sm text-white/60 hover:text-white hover:border-white/30 transition-all">
-              Twitter
+              {t('twitter')}
             </a>
           )}
           {data.github_url && (
             <a href={data.github_url} target="_blank" rel="noopener noreferrer"
               className="px-4 py-2 border border-white/10 rounded-lg text-sm text-white/60 hover:text-white hover:border-white/30 transition-all">
-              GitHub
+              {t('github')}
             </a>
           )}
           {data.linkedin_url && (
             <a href={data.linkedin_url} target="_blank" rel="noopener noreferrer"
               className="px-4 py-2 border border-white/10 rounded-lg text-sm text-white/60 hover:text-white hover:border-white/30 transition-all">
-              LinkedIn
+              {t('linkedin')}
             </a>
           )}
         </div>
 
         {/* Published agents grid */}
         <div className="mb-16">
-          <h2 className="text-2xl font-black tracking-tighter mb-6">Published Agents</h2>
+          <h2 className="text-2xl font-black tracking-tighter mb-6">{t('publishedAgents')}</h2>
           {data.agents && data.agents.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {data.agents.map((agent: any) => (
@@ -146,13 +148,13 @@ export default async function CreatorProfilePage({ params }: { params: Promise<{
               ))}
             </div>
           ) : (
-            <div className="text-center py-16 text-white/20">No published agents yet</div>
+            <div className="text-center py-16 text-white/20">{t('noAgents')}</div>
           )}
         </div>
       </div>
 
       <footer className="border-t border-white/5 py-8 px-6 text-center text-white/20 text-sm">
-        Powered by AI
+        {t('poweredBy')}
       </footer>
     </div>
   )

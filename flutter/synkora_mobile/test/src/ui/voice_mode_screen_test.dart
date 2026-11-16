@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:synkora_mobile/l10n/app_localizations.dart';
 import 'package:synkora_mobile/src/models/synkora_models.dart';
 import 'package:synkora_mobile/src/ui/voice/voice_hub_scope.dart';
 import 'package:synkora_mobile/src/ui/voice/voice_mode_screen.dart';
@@ -12,8 +13,16 @@ import '../voice/support/hub_fixture.dart';
 import '../voice/support/signals.dart';
 
 /// Hosts a button that opens the voice screen, like the real app does.
-Widget host(HubFixture f, AgentSummary agent, {bool alreadyListening = false}) {
+Widget host(
+  HubFixture f,
+  AgentSummary agent, {
+  bool alreadyListening = false,
+  Locale locale = const Locale('en'),
+}) {
   return MaterialApp(
+    locale: locale,
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     theme: ThemeData.dark(),
     home: VoiceHubScope(
       hub: f.hub,
@@ -63,6 +72,30 @@ void main() {
 
     // Leave the tree cleanly.
     await tester.tap(find.bySemanticsLabel('End conversation'));
+    await settle(tester, 800);
+  });
+
+  testWidgets('a German app shows the voice screen in German', (tester) async {
+    final f = await HubFixture.create(
+      agentVoice: const {
+        'stt_provider': 'web_speech',
+        'tts_provider': 'web_speech',
+        'language': 'de-DE',
+      },
+    );
+    f.hub.updateAgents([muse]);
+    await tester.pumpWidget(host(f, muse, locale: const Locale('de')));
+
+    await tester.tap(find.text('open voice'));
+    await settle(tester, 1000);
+
+    expect(find.text('Ich höre zu'), findsOneWidget);
+    expect(find.text('I’m listening'), findsNothing);
+    expect(find.bySemanticsLabel('Unterhaltung beenden'), findsOneWidget);
+    expect(find.byTooltip('Spracheinstellungen'), findsOneWidget);
+    expect(find.byTooltip('Transkript'), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel('Unterhaltung beenden'));
     await settle(tester, 800);
   });
 

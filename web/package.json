@@ -37,6 +37,9 @@
     "mermaid": "^11.16.1",
     "motion": "^12.23.26",
     "next": "16.4.3",
+    "next-intl": "^4",
+    "plotly.js-cartesian-dist-min": "3.5.0",
+    "plotly.js-finance-dist-min": "3.5.0",
     "react": "^19.0.0",
     "react-chartjs-2": "^5.3.1",
     "react-dom": "^19.0.0",
@@ -50,9 +53,7 @@
     "swr": "^2.2.5",
     "tailwind-merge": "^2.5.0",
     "zod": "^4.6.7",
-    "zustand": "^4.5.0",
-    "plotly.js-cartesian-dist-min": "3.5.0",
-    "plotly.js-finance-dist-min": "3.5.0"
+    "zustand": "^4.5.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",

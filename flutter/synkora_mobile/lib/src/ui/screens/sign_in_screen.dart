@@ -4,6 +4,7 @@ import 'package:lottie/lottie.dart';
 import '../../state/session_controller.dart';
 import '../../theme/app_theme.dart';
 import '../widgets/mesh_background.dart';
+import '../../../l10n/app_localizations.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key, required this.controller});
@@ -27,6 +28,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return Scaffold(
       body: Stack(
@@ -58,12 +60,12 @@ class _SignInScreenState extends State<SignInScreen> {
                           ),
                           const SizedBox(height: 18),
                           Text(
-                            'Synkora AI',
+                            l10n.signInTitle,
                             style: theme.textTheme.displayMedium,
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            'Use every agent in your workspace from a dedicated native app.',
+                            l10n.signInSubtitle,
                             style: theme.textTheme.bodyLarge?.copyWith(
                               color: SynkoraColors.muted,
                             ),
@@ -84,8 +86,8 @@ class _SignInScreenState extends State<SignInScreen> {
                           TextField(
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
-                            decoration: const InputDecoration(
-                              labelText: 'Email',
+                            decoration: InputDecoration(
+                              labelText: l10n.email,
                               prefixIcon: Icon(Icons.mail_outline_rounded),
                             ),
                           ),
@@ -93,8 +95,8 @@ class _SignInScreenState extends State<SignInScreen> {
                           TextField(
                             controller: _passwordController,
                             obscureText: true,
-                            decoration: const InputDecoration(
-                              labelText: 'Password',
+                            decoration: InputDecoration(
+                              labelText: l10n.password,
                               prefixIcon: Icon(Icons.lock_outline_rounded),
                             ),
                           ),
@@ -140,7 +142,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                       ),
                                     )
                                   : const Icon(Icons.arrow_forward_rounded),
-                              label: const Text('Sign in'),
+                              label: Text(l10n.signIn),
                               style: FilledButton.styleFrom(
                                 backgroundColor: SynkoraColors.ink,
                                 foregroundColor: SynkoraColors.primary,
@@ -164,7 +166,7 @@ class _SignInScreenState extends State<SignInScreen> {
                                   horizontal: 12,
                                 ),
                                 child: Text(
-                                  'or continue with',
+                                  l10n.orContinueWith,
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: SynkoraColors.muted,
                                   ),
@@ -183,7 +185,7 @@ class _SignInScreenState extends State<SignInScreen> {
                           SizedBox(
                             width: double.infinity,
                             child: _SocialLoginButton(
-                              label: 'Continue with Google',
+                              label: l10n.continueWithGoogle,
                               icon: Icons.g_mobiledata_rounded,
                               isBusy: widget.controller.isBusy,
                               onPressed: () async {
@@ -196,7 +198,7 @@ class _SignInScreenState extends State<SignInScreen> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'This app uses the same Synkora account and tenant access model as the web app.',
+                            l10n.signInFootnote,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: SynkoraColors.muted,
                             ),

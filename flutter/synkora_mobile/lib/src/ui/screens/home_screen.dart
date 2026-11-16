@@ -8,6 +8,8 @@ import '../voice/voice_entry_card.dart';
 import '../voice/voice_hub_scope.dart';
 import '../widgets/mesh_background.dart';
 import 'agent_detail_screen.dart';
+import '../../../l10n/app_localizations.dart';
+import '../l10n/language_picker.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({
@@ -28,6 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final tenantKey = ValueKey(widget.sessionController.activeTenant?.tenantId);
     final pages = <Widget>[
       AgentsHomeTab(
@@ -35,14 +38,14 @@ class _HomeScreenState extends State<HomeScreen> {
         sessionController: widget.sessionController,
         agentService: widget.agentService,
       ),
-      const _PlaceholderTab(
-        title: 'Inbox',
-        subtitle: 'Push replies, approvals, and completions will land here.',
+      _PlaceholderTab(
+        title: l10n.navInbox,
+        subtitle: l10n.inboxSubtitle,
         icon: Icons.notifications_active_outlined,
       ),
-      const _PlaceholderTab(
-        title: 'Activity',
-        subtitle: 'Operational activity and agent work logs will appear here.',
+      _PlaceholderTab(
+        title: l10n.navActivity,
+        subtitle: l10n.activitySubtitle,
         icon: Icons.bolt_outlined,
       ),
       ProfileTab(sessionController: widget.sessionController),
@@ -56,22 +59,22 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) => setState(() => _selectedIndex = index),
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view_rounded),
-            label: 'Agents',
+            icon: const Icon(Icons.grid_view_rounded),
+            label: l10n.navAgents,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications_outlined),
-            label: 'Inbox',
+            icon: const Icon(Icons.notifications_outlined),
+            label: l10n.navInbox,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.auto_graph_rounded),
-            label: 'Activity',
+            icon: const Icon(Icons.auto_graph_rounded),
+            label: l10n.navActivity,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline_rounded),
-            label: 'Profile',
+            icon: const Icon(Icons.person_outline_rounded),
+            label: l10n.navProfile,
           ),
         ],
       ),
@@ -138,6 +141,7 @@ class _AgentsHomeTabState extends State<AgentsHomeTab> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final recommended = [..._agents]
       ..sort((left, right) {
@@ -161,12 +165,21 @@ class _AgentsHomeTabState extends State<AgentsHomeTab> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Welcome back, ${widget.sessionController.account?.name.split(' ').first ?? 'there'}',
+                      widget.sessionController.account == null
+                          ? l10n.welcomeBackAnonymous
+                          : l10n.welcomeBack(
+                              widget.sessionController.account!.name
+                                  .split(' ')
+                                  .first,
+                            ),
                       style: theme.textTheme.displayMedium,
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      'Workspace: ${widget.sessionController.activeTenant?.tenantName ?? 'Unknown'}',
+                      l10n.workspaceName(
+                        widget.sessionController.activeTenant?.tenantName ??
+                            l10n.unknown,
+                      ),
                       style: theme.textTheme.bodyLarge,
                     ),
                     const SizedBox(height: 20),
@@ -174,17 +187,13 @@ class _AgentsHomeTabState extends State<AgentsHomeTab> {
                       controller: _searchController,
                       onSubmitted: (value) => _loadAgents(search: value.trim()),
                       decoration: InputDecoration(
-                        hintText: 'Search your agents',
+                        hintText: l10n.searchAgents,
                         prefixIcon: const Icon(Icons.search_rounded),
                         suffixIcon: IconButton(
                           icon: const Icon(Icons.tune_rounded),
                           onPressed: () {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Filters land in the next mobile slice.',
-                                ),
-                              ),
+                              SnackBar(content: Text(l10n.filtersSoon)),
                             );
                           },
                         ),
@@ -215,12 +224,12 @@ class _AgentsHomeTabState extends State<AgentsHomeTab> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'All tenant agents, one app',
+                                    l10n.heroTitle,
                                     style: theme.textTheme.titleLarge,
                                   ),
                                   const SizedBox(height: 6),
                                   Text(
-                                    'Jump into any agent with full account auth and Flutter-native performance.',
+                                    l10n.heroBody,
                                     style: theme.textTheme.bodyMedium,
                                   ),
                                 ],
@@ -254,7 +263,7 @@ class _AgentsHomeTabState extends State<AgentsHomeTab> {
                     const SizedBox(height: 12),
                     FilledButton(
                       onPressed: _loadAgents,
-                      child: const Text('Retry'),
+                      child: Text(l10n.retry),
                     ),
                   ],
                 ),
@@ -266,7 +275,10 @@ class _AgentsHomeTabState extends State<AgentsHomeTab> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                child: Text('Spotlight', style: theme.textTheme.headlineMedium),
+                child: Text(
+                  l10n.spotlight,
+                  style: theme.textTheme.headlineMedium,
+                ),
               ),
             ),
           if (spotlight.isNotEmpty)
@@ -299,7 +311,7 @@ class _AgentsHomeTabState extends State<AgentsHomeTab> {
                 children: [
                   Expanded(
                     child: Text(
-                      'All agents',
+                      l10n.allAgents,
                       style: theme.textTheme.headlineMedium,
                     ),
                   ),
@@ -356,12 +368,15 @@ class _AgentsHomeTabState extends State<AgentsHomeTab> {
                                     if (agent.category != null)
                                       _TagChip(label: agent.category!),
                                     _TagChip(
-                                      label: '${agent.executionCount} runs',
+                                      label: l10n.runsCount(
+                                        agent.executionCount,
+                                      ),
                                     ),
                                     if (agent.successRate != null)
                                       _TagChip(
-                                        label:
-                                            '${(agent.successRate! * 100).round()}% success',
+                                        label: l10n.successPercent(
+                                          (agent.successRate! * 100).round(),
+                                        ),
                                       ),
                                   ],
                                 ),
@@ -392,6 +407,7 @@ class ProfileTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return Stack(
       children: [
@@ -400,7 +416,7 @@ class ProfileTab extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              Text('Profile', style: theme.textTheme.displayMedium),
+              Text(l10n.profileTitle, style: theme.textTheme.displayMedium),
               const SizedBox(height: 22),
               Card(
                 child: Padding(
@@ -409,7 +425,7 @@ class ProfileTab extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        sessionController.account?.name ?? 'Synkora User',
+                        sessionController.account?.name ?? l10n.synkoraUser,
                         style: theme.textTheme.headlineMedium,
                       ),
                       const SizedBox(height: 6),
@@ -419,17 +435,17 @@ class ProfileTab extends StatelessWidget {
                       ),
                       const SizedBox(height: 18),
                       _ProfileRow(
-                        label: 'Workspace',
+                        label: l10n.workspace,
                         value:
                             sessionController.activeTenant?.tenantName ??
-                            'Unknown',
+                            l10n.unknown,
                       ),
                       _ProfileRow(
-                        label: 'Role',
+                        label: l10n.role,
                         value:
                             sessionController.activeTenant?.role
                                 .toUpperCase() ??
-                            'UNKNOWN',
+                            l10n.unknown.toUpperCase(),
                       ),
                     ],
                   ),
@@ -441,21 +457,24 @@ class ProfileTab extends StatelessWidget {
                   children: [
                     ListTile(
                       leading: const Icon(Icons.swap_horiz_rounded),
-                      title: const Text('Switch workspace'),
-                      subtitle: const Text(
-                        'Use a different tenant on this device',
-                      ),
+                      title: Text(l10n.switchWorkspace),
+                      subtitle: Text(l10n.switchWorkspaceHint),
                       onTap: sessionController.tenants.length <= 1
                           ? null
                           : () => _showTenantSwitcher(context),
                     ),
                     const Divider(height: 1),
                     ListTile(
+                      leading: const Icon(Icons.language_rounded),
+                      title: Text(l10n.language),
+                      subtitle: Text(currentLanguageLabel(context)),
+                      onTap: () => showLanguageSheet(context),
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
                       leading: const Icon(Icons.logout_rounded),
-                      title: const Text('Sign out'),
-                      subtitle: const Text(
-                        'Clear the device session and return to login',
-                      ),
+                      title: Text(l10n.signOut),
+                      subtitle: Text(l10n.signOutHint),
                       onTap: () => sessionController.signOut(),
                     ),
                   ],
@@ -481,7 +500,7 @@ class ProfileTab extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             children: [
               Text(
-                'Switch workspace',
+                AppLocalizations.of(context).switchWorkspace,
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               const SizedBox(height: 12),

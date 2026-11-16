@@ -66,6 +66,7 @@ const sidebars: SidebarsConfig = {
             'guides/integrations/telegram-bot',
             'guides/integrations/whatsapp-bot',
             'guides/integrations/chrome-extension',
+            'guides/integrations/languages',
           ],
         },
         {

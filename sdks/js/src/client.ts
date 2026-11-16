@@ -182,6 +182,7 @@ export class SynkoraClient {
     const body: Record<string, unknown> = { message }
     if (options.conversationId) body['conversation_id'] = options.conversationId
     if (options.metadata) body['metadata'] = options.metadata
+    if (options.language) body['language'] = options.language
 
     const resp = await this.fetch(`/api/v1/public/agents/${agentId}/chat/stream`, {
       method: 'POST',

@@ -149,6 +149,50 @@ class TestChatController:
             mock_prompt_scanner.scan_comprehensive_async.assert_called_once()
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(("sent", "expected"), [("de", "de"), (None, None)])
+    async def test_chat_stream_passes_the_language_to_the_agent(
+        self, client, mock_prompt_scanner, mock_agent_manager, mock_db_session, sent, expected
+    ):
+        mock_agent = MagicMock()
+        mock_agent.observability_config = {"sample_rate": 0.0}
+        mock_agent.langfuse_service = MagicMock()
+        mock_agent.langfuse_service.should_trace.return_value = False
+        mock_agent_manager.registry.get.return_value = mock_agent
+
+        mock_llm_config = MagicMock()
+        mock_llm_config.id = uuid.uuid4()
+        mock_llm_config.model_name = "gpt-4"
+        mock_llm_config.is_default = True
+        mock_llm_config.enabled = True
+        db_agent = MagicMock()
+        db_agent.id = uuid.uuid4()
+        db_agent.agent_name = "test_agent"
+        db_agent.tenant_id = uuid.uuid4()
+        db_agent.llm_configs = [mock_llm_config]
+        setup_db_execute_mock(mock_db_session, db_agent)
+
+        request_data = {"agent_slug": "test_agent", "message": "Hallo", "conversation_id": str(uuid.uuid4())}
+        if sent:
+            request_data["language"] = sent
+
+        with (
+            patch("src.services.billing.ChatBillingService") as MockBillingService,
+            patch("src.controllers.agents.chat.chat_stream_service") as mock_stream_service,
+        ):
+            billing = MockBillingService.return_value
+            billing.validate_chat_request = AsyncMock(return_value=MagicMock(is_valid=True))
+
+            async def mock_stream():
+                yield "data: ok\n\n"
+
+            mock_stream_service.stream_agent_response.return_value = mock_stream()
+
+            response = client.post("/chat/stream", json=request_data)
+
+            assert response.status_code == 200
+            assert mock_stream_service.stream_agent_response.call_args.kwargs["language"] == expected
+
+    @pytest.mark.asyncio
     async def test_chat_stream_unsafe(self, client, mock_prompt_scanner, mock_db_session):
         # Mock scanner to return unsafe
         mock_prompt_scanner.scan_comprehensive_async.return_value = {

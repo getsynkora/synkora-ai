@@ -68,6 +68,47 @@ controller.addListener(() {
 controller.dispose();
 ```
 
+## Languages
+
+English and German are built in. The chat follows your app's language, or set it
+explicitly:
+
+```dart
+SynkoraChatWidget(
+  widgetKey: 'wk_xxx',
+  baseUrl: 'https://your-synkora.com',
+  locale: const Locale('de'),
+)
+```
+
+What this changes:
+
+- **Fixed text** (buttons, headers, dialogs, time labels) switches to the language.
+- **Widget text** (title, welcome message, placeholder, agent description,
+  suggested prompts) is loaded in that language. Add it in the dashboard under
+  the widget's **Translations**; anything not translated uses the default text.
+- **Agent replies** default to that language. If a user writes in another one,
+  the agent follows them.
+
+For another language, or to reword a few strings, pass your own table. Anything
+you leave out is English (`SynkoraChatStrings.en.keys` lists every key):
+
+```dart
+SynkoraChatWidget(
+  widgetKey: 'wk_xxx',
+  baseUrl: 'https://your-synkora.com',
+  locale: const Locale('fr'),
+  strings: SynkoraChatStrings.custom('fr', {
+    'cancel': 'Annuler',
+    'message_placeholder': 'Écrivez un message…',
+  }),
+)
+```
+
+With your own `SynkoraChatController`, call `controller.setLocale(const Locale('de'))`.
+A controller you already put in a language keeps it unless the widget is given a
+`locale` or `strings`.
+
 ## Widget Key
 
 Get your `widgetKey` from the **Synkora dashboard → Agents → Widget** tab.

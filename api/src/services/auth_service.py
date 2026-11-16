@@ -27,6 +27,7 @@ from src.models import (
 from src.models.role import Role
 from src.models.subscription_plan import PlanTier
 from src.services.billing.subscription_service import SubscriptionService
+from src.services.i18n import DEFAULT_LANGUAGE, normalize_interface_language
 from src.services.integrations.email_service import EmailService
 
 logger = logging.getLogger(__name__)
@@ -406,6 +407,7 @@ class AuthService:
         password: str,
         name: str,
         tenant_name: str | None = None,
+        interface_language: str | None = None,
     ) -> tuple[Account, Tenant]:
         """
         Register a new user and optionally create a tenant.
@@ -416,6 +418,7 @@ class AuthService:
             password: Plain text password
             name: User name
             tenant_name: Optional tenant name (creates new tenant if provided)
+            interface_language: Language the person signed up in; ignored if not supported
 
         Returns:
             Tuple of (Account, Tenant)
@@ -435,6 +438,7 @@ class AuthService:
             email=email,
             password_hash=AuthService.hash_password(password),
             status=AccountStatus.INACTIVE,
+            interface_language=normalize_interface_language(interface_language) or DEFAULT_LANGUAGE,
         )
         db.add(account)
         await db.flush()

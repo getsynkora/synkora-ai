@@ -1,4 +1,5 @@
 const { withSentryConfig } = require('@sentry/nextjs')
+const createNextIntlPlugin = require('next-intl/plugin')
 const path = require('path')
 const withBundleAnalyzer =
   process.env.ANALYZE === 'true'
@@ -232,7 +233,8 @@ const nextConfig = {
   },
 }
 
-const analyzedConfig = withBundleAnalyzer(nextConfig)
+const withNextIntl = createNextIntlPlugin('./i18n/request.ts')
+const analyzedConfig = withNextIntl(withBundleAnalyzer(nextConfig))
 
 module.exports = process.env.NEXT_PUBLIC_SENTRY_DSN
   ? withSentryConfig(analyzedConfig, {

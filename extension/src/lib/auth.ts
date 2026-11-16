@@ -9,6 +9,7 @@
  */
 
 import type { AuthTokens } from '@/types';
+import { t } from './i18n';
 
 const ACCESS_TOKEN_KEY = 'snkr_access_token';
 const REFRESH_TOKEN_KEY = 'snkr_refresh_token';
@@ -22,7 +23,7 @@ function assertTrustedSynkoraUrl(url: string): void {
   const parsed = new URL(url);
   const isLocalHttp = parsed.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(parsed.hostname);
   if (parsed.protocol !== 'https:' && !isLocalHttp) {
-    throw new Error('Synkora URL must use HTTPS outside local development');
+    throw new Error(t('httpsRequired'));
   }
 }
 
@@ -184,7 +185,7 @@ export async function exchangeCodeForTokens(
 
   if (!resp.ok) {
     const err = await resp.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail ?? 'Token exchange failed');
+    throw new Error((err as { detail?: string }).detail ?? t('tokenExchangeFailed'));
   }
 
   const data = await resp.json() as {

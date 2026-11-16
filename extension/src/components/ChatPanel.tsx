@@ -5,6 +5,7 @@ import { usePageContext } from '@/hooks/usePageContext';
 import { useExtensionStore } from '@/store/extension';
 import { MessageList } from './MessageList';
 import type { Agent } from '@/types';
+import { t } from '../lib/i18n';
 
 interface Props {
   agent: Agent;
@@ -12,12 +13,15 @@ interface Props {
   contextAvailable: boolean;
 }
 
-const SUGGESTIONS = [
-  { icon: '✦', label: 'Summarize this page' },
-  { icon: '?', label: 'What is this about?' },
-  { icon: '→', label: 'Key takeaways' },
-  { icon: '✉', label: 'Draft a reply' },
-];
+/** Prompts offered on a page the agent can read (they are sent as the person's message). */
+function pageSuggestions() {
+  return [
+    { icon: '✦', label: t('suggestSummarize') },
+    { icon: '?', label: t('suggestAbout') },
+    { icon: '→', label: t('suggestTakeaways') },
+    { icon: '✉', label: t('suggestDraftReply') },
+  ];
+}
 
 export function ChatPanel({ agent, pageUrl, contextAvailable }: Props) {
   const [input, setInput] = useState('');
@@ -119,7 +123,7 @@ export function ChatPanel({ agent, pageUrl, contextAvailable }: Props) {
               className="flex items-center gap-1 text-[11px] text-brand-muted hover:text-[#b35630] transition-colors"
             >
               <Trash2 size={11} />
-              Clear
+              {t('clear')}
             </button>
           )}
         </div>
@@ -135,7 +139,7 @@ export function ChatPanel({ agent, pageUrl, contextAvailable }: Props) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={`Message ${agent.name}…`}
+            placeholder={t('messageAgent', { name: agent.name })}
             rows={1}
             disabled={isStreaming}
             className="flex-1 resize-none bg-transparent text-[14px] text-brand-ink placeholder:text-brand-muted/80 outline-none leading-relaxed min-h-[20px] font-sans"
@@ -175,8 +179,8 @@ function WelcomeScreen({
   isStreaming: boolean;
 }) {
   const suggestions = contextAvailable
-    ? SUGGESTIONS
-    : [{ icon: '✦', label: `What can you help me with?` }, { icon: '?', label: 'What are your capabilities?' }];
+    ? pageSuggestions()
+    : [{ icon: '✦', label: t('suggestHelp') }, { icon: '?', label: t('suggestCapabilities') }];
 
   return (
     <div className="flex flex-col items-center px-5 pt-10 pb-5 text-center animate-fade-in">
@@ -204,9 +208,9 @@ function WelcomeScreen({
       {hostname && (
         <p className="text-[11px] text-brand-muted/80 mb-6 flex items-center gap-1">
           {contextAvailable ? (
-            <><Globe size={10} className="text-synkora-500" /> I can see <span className="font-medium text-brand-ink">{hostname}</span></>
+            <><Globe size={10} className="text-synkora-500" /> {t('canSeeBefore')}<span className="font-medium text-brand-ink">{hostname}</span>{t('canSeeAfter')}</>
           ) : (
-            <><FileText size={10} /> No page context on this tab</>
+            <><FileText size={10} /> {t('noPageContext')}</>
           )}
         </p>
       )}

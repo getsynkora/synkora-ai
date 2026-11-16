@@ -2,6 +2,7 @@ import { useCallback, useEffect } from 'react';
 import { fetchAgents } from '@/lib/api';
 import { loadAccessToken, loadSynkoraUrl, loadApiUrl } from '@/lib/auth';
 import { useExtensionStore } from '@/store/extension';
+import { t } from '../lib/i18n';
 
 export function useAgents() {
   const {
@@ -39,7 +40,7 @@ export function useAgents() {
         selectAgent(list[0].id);
       }
     } catch (err) {
-      setAgentsError(err instanceof Error ? err.message : 'Failed to load agents');
+      setAgentsError(err instanceof Error ? err.message : t('agentsFailed'));
     } finally {
       setAgentsLoading(false);
     }

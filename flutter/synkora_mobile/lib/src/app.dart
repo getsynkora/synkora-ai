@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import 'config/app_environment.dart';
+import 'l10n/app_locale_controller.dart';
 import 'services/agent_service.dart';
 import 'services/api_client.dart';
 import 'services/auth_service.dart';
@@ -15,12 +16,14 @@ import 'theme/app_theme.dart';
 import 'voice/voice_hub.dart';
 import 'voice/voice_settings.dart';
 import 'voice/wake/sherpa_wake_word_detector.dart';
+import 'ui/l10n/language_picker.dart';
 import 'ui/screens/home_screen.dart';
 import 'ui/screens/sign_in_screen.dart';
 import 'ui/screens/tenant_selection_screen.dart';
 import 'ui/voice/voice_hub_scope.dart';
 import 'ui/voice/voice_mode_screen.dart';
 import 'ui/widgets/mesh_background.dart';
+import '../l10n/app_localizations.dart';
 
 class SynkoraMobileApp extends StatefulWidget {
   const SynkoraMobileApp({super.key});
@@ -31,6 +34,7 @@ class SynkoraMobileApp extends StatefulWidget {
 
 class _SynkoraMobileAppState extends State<SynkoraMobileApp> {
   late final SessionController _sessionController;
+  late final AppLocaleController _localeController;
   late final SynkoraAgentService _agentService;
   late final SynkoraApiClient _apiClient;
   final _navigatorKey = GlobalKey<NavigatorState>();
@@ -40,18 +44,27 @@ class _SynkoraMobileAppState extends State<SynkoraMobileApp> {
   @override
   void initState() {
     super.initState();
-    final authService = SynkoraAuthService(baseUrl: AppEnvironment.apiBaseUrl);
+    _localeController = AppLocaleController();
+    unawaited(_localeController.restore());
+    final authService = SynkoraAuthService(
+      baseUrl: AppEnvironment.apiBaseUrl,
+      strings: () => _localeController.strings,
+    );
     _sessionController = SessionController(
       authService: authService,
       tokenStore: const SecureTokenStore(),
+      strings: () => _localeController.strings,
     );
     _apiClient = SynkoraApiClient(
       baseUrl: AppEnvironment.apiBaseUrl,
       accessTokenProvider: () => _sessionController.accessToken,
+      strings: () => _localeController.strings,
+      language: () => _localeController.locale.languageCode,
     );
     _agentService = SynkoraAgentService(_apiClient);
     _sessionController.bootstrap();
     _sessionController.addListener(_syncVoiceWithSession);
+    _sessionController.addListener(_syncLanguageWithSession);
     unawaited(_initVoice());
   }
 
@@ -70,6 +83,26 @@ class _SynkoraMobileAppState extends State<SynkoraMobileApp> {
     _wakeSub = hub.wakeEvents.listen((_) => _openVoiceFromWake());
     setState(() => _voiceHub = hub);
     _syncVoiceWithSession();
+  }
+
+  /// A signed-in account's saved language applies unless the person picked one here.
+  void _syncLanguageWithSession() {
+    _localeController.useAccountLanguage(
+      _sessionController.account?.interfaceLanguage,
+    );
+  }
+
+  /// Saves a language the person picked on their Synkora account (best effort).
+  Future<void> _saveLanguageToAccount(String languageCode) async {
+    if (_sessionController.stage != SessionStage.ready) return;
+    try {
+      await _apiClient.putJson(
+        '/api/v1/profile/me',
+        data: {'interface_language': languageCode},
+      );
+    } catch (_) {
+      // The pick still applies on this device.
+    }
   }
 
   /// Wake listening only runs while someone is signed in to a workspace.
@@ -106,6 +139,8 @@ class _SynkoraMobileAppState extends State<SynkoraMobileApp> {
   void dispose() {
     _wakeSub?.cancel();
     _sessionController.removeListener(_syncVoiceWithSession);
+    _sessionController.removeListener(_syncLanguageWithSession);
+    _localeController.dispose();
     _voiceHub?.dispose();
     _sessionController.dispose();
     super.dispose();
@@ -114,17 +149,26 @@ class _SynkoraMobileAppState extends State<SynkoraMobileApp> {
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: _sessionController,
+      animation: Listenable.merge([_sessionController, _localeController]),
       builder: (context, _) {
         return MaterialApp(
           navigatorKey: _navigatorKey,
           debugShowCheckedModeBanner: false,
-          title: 'Synkora AI',
+          onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
+          locale: _localeController.appLocale,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           theme: buildSynkoraTheme(),
           builder: (context, child) {
             final hub = _voiceHub;
-            if (hub == null || child == null) return child ?? const SizedBox();
-            return VoiceHubScope(hub: hub, child: child);
+            final content = (hub == null || child == null)
+                ? (child ?? const SizedBox())
+                : VoiceHubScope(hub: hub, child: child);
+            return AppLocaleScope(
+              controller: _localeController,
+              saveToAccount: _saveLanguageToAccount,
+              child: content,
+            );
           },
           home: switch (_sessionController.stage) {
             SessionStage.booting => const _BootScreen(),
@@ -168,6 +212,7 @@ class _BootScreenState extends State<_BootScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return Scaffold(
       body: Stack(
@@ -261,7 +306,7 @@ class _BootScreenState extends State<_BootScreen>
                         ),
                         const SizedBox(height: 28),
                         Text(
-                          'Synkora AI',
+                          l10n.appTitle,
                           textAlign: TextAlign.center,
                           style: theme.textTheme.displayMedium?.copyWith(
                             color: Colors.white,
@@ -270,7 +315,7 @@ class _BootScreenState extends State<_BootScreen>
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          'Branded by Synkora',
+                          l10n.bootBranding,
                           textAlign: TextAlign.center,
                           style: theme.textTheme.bodyLarge?.copyWith(
                             color: Colors.white.withValues(alpha: 0.72),
@@ -280,7 +325,7 @@ class _BootScreenState extends State<_BootScreen>
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'Loading your workspace, agents, and premium actions.',
+                          l10n.bootLoading,
                           textAlign: TextAlign.center,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: Colors.white.withValues(alpha: 0.54),

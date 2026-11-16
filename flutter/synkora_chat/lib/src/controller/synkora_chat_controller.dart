@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show Locale;
 
 import 'package:flutter/foundation.dart';
 
@@ -6,6 +7,7 @@ import '../cache/cache_database.dart';
 import '../cache/local_cache.dart';
 import '../client/models.dart';
 import '../client/synkora_client.dart';
+import '../l10n/synkora_chat_strings.dart';
 
 /// How long before an inactive session is automatically closed.
 const _kInactivityDuration = Duration(hours: 1);
@@ -15,6 +17,13 @@ const _kInactivityDuration = Duration(hours: 1);
 class SynkoraChatController extends ChangeNotifier {
   final SynkoraClient _client;
   late final LocalCache _cache;
+
+  /// Text the controller itself puts in the conversation (support hand-off notices).
+  /// [SynkoraChatWidget] keeps it in step with its own language.
+  SynkoraChatStrings strings = SynkoraChatStrings.en;
+
+  /// Language the chat runs in, as a BCP-47 tag, or null if none was set.
+  String? get language => _client.language;
 
   String? userId;
   final String? sessionId;
@@ -80,6 +89,37 @@ class SynkoraChatController extends ChangeNotifier {
       _sessions = [];
       _notify();
       unawaited(init());
+    }
+  }
+
+  /// Runs the chat in [locale]: widget text is loaded in that language, the agent
+  /// answers in it by default, and system notices use [strings] (the built-in table
+  /// for the language unless you pass your own).
+  ///
+  /// Safe to call before or after [init]; if the language changes once the config
+  /// is loaded, the config is fetched again so translated text appears.
+  void setLocale(Locale locale, {SynkoraChatStrings? strings}) {
+    final tag = locale.toLanguageTag();
+    final changed = _client.language != tag;
+    final newStrings = strings ?? SynkoraChatStrings.forLocale(locale);
+    final stringsChanged = !identical(this.strings, newStrings);
+    _client.language = tag;
+    _client.strings = newStrings;
+    this.strings = newStrings;
+    if (changed && _config != null) unawaited(_reloadConfig());
+    if (changed || stringsChanged) _notify();
+  }
+
+  Future<void> _reloadConfig() async {
+    final requested = _client.language;
+    try {
+      final fresh = await _client.loadConfig();
+      // A newer language may have been chosen while this was loading.
+      if (_disposed || _client.language != requested) return;
+      _config = fresh;
+      _notify();
+    } catch (_) {
+      // Keep showing the text we already have; the next init() retries.
     }
   }
 
@@ -379,7 +419,9 @@ class SynkoraChatController extends ChangeNotifier {
           }
           _appendSystemMessage(
             'handoff_${DateTime.now().millisecondsSinceEpoch}',
-            event.summary.isNotEmpty ? event.summary : 'Connected to support',
+            event.summary.isNotEmpty
+                ? event.summary
+                : strings.headerConnectedToSupport,
             MessageRole.operator,
           );
           _isStreaming = false;
@@ -409,7 +451,7 @@ class SynkoraChatController extends ChangeNotifier {
           _stopHandoffPolling();
           _appendSystemMessage(
             'handoff_resolved_${DateTime.now().millisecondsSinceEpoch}',
-            'Support session ended',
+            strings.supportSessionEnded,
             MessageRole.operator,
           );
           _notify();

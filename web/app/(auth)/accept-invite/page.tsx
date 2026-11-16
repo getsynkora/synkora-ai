@@ -7,8 +7,10 @@ import toast from 'react-hot-toast'
 import { apiClient } from '@/lib/api/client'
 import { extractErrorMessage } from '@/lib/api/error'
 import AuthPageFrame from '@/components/auth/AuthPageFrame'
+import { useTranslations } from 'next-intl'
 
 function AcceptInviteContent() {
+  const t = useTranslations('auth.acceptInvite')
   const [isProcessing, setIsProcessing] = useState(true)
   const [isSuccess, setIsSuccess] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
@@ -24,14 +26,14 @@ function AcceptInviteContent() {
         setIsSuccess(true)
         const memberData = response.data || response
         setTeamName(memberData.team_name || 'the team')
-        toast.success('Successfully joined the team!')
+        toast.success(t('joinedToast'))
 
         // Redirect to dashboard after 3 seconds
         setTimeout(() => {
           router.push('/agents')
         }, 3000)
       } catch (err: any) {
-        const errorMsg = extractErrorMessage(err, 'Failed to accept invitation')
+        const errorMsg = extractErrorMessage(err, t('failed'))
 
         // Check if user needs to sign in
         if (err.response?.status === 401) {
@@ -53,7 +55,7 @@ function AcceptInviteContent() {
       acceptInvitation(tokenParam)
     } else {
       setIsProcessing(false)
-      setErrorMessage('Invalid invitation link. No token provided.')
+      setErrorMessage(t('noToken'))
     }
   }, [searchParams, router])
 
@@ -70,8 +72,8 @@ function AcceptInviteContent() {
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
               </div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Accepting invitation</h1>
-              <p className="text-gray-600">Please wait while we process your invitation...</p>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('accepting')}</h1>
+              <p className="text-gray-600">{t('pleaseWait')}</p>
             </>
           ) : isSuccess ? (
             <>
@@ -80,8 +82,8 @@ function AcceptInviteContent() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome to the team!</h1>
-              <p className="text-gray-600">You have successfully joined {teamName}. Redirecting to dashboard...</p>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('welcome')}</h1>
+              <p className="text-gray-600">{t('joined', { team: teamName })}</p>
             </>
           ) : (
             <>
@@ -90,7 +92,7 @@ function AcceptInviteContent() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Invitation failed</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('invitationFailed')}</h1>
               <p className="text-gray-600">{errorMessage}</p>
             </>
           )}
@@ -106,24 +108,24 @@ function AcceptInviteContent() {
             </div>
           ) : isSuccess ? (
             <div className="text-center py-4">
-              <p className="text-gray-600 mb-4">You can now access the team&apos;s agents and resources.</p>
+              <p className="text-gray-600 mb-4">{t('canAccess')}</p>
               <Link
                 href="/agents"
                 className="inline-block w-full rounded-[1.1rem] bg-red-500 px-4 py-3 font-bold text-white transition-all"
               >
-                Go to Dashboard
+                {t('goToDashboard')}
               </Link>
             </div>
           ) : (
             <div className="text-center py-4">
               <p className="text-gray-600 mb-4">
                 {errorMessage.includes('expired') || errorMessage.includes('invalid')
-                  ? 'The invitation link may have expired or is invalid. Please ask for a new invitation.'
+                  ? t('linkExpired')
                   : errorMessage.includes('different email')
-                  ? 'Please sign in with the email address the invitation was sent to.'
+                  ? t('differentEmail')
                   : errorMessage.includes('already a member')
-                  ? 'You are already a member of this team.'
-                  : 'Please try again or contact the team administrator.'}
+                  ? t('alreadyMember')
+                  : t('tryAgain')}
               </p>
               <div className="space-y-3">
                 {errorMessage.includes('different email') && (
@@ -131,7 +133,7 @@ function AcceptInviteContent() {
                     href="/signin"
                     className="inline-block w-full rounded-[1.1rem] bg-red-500 px-4 py-3 font-bold text-white transition-all"
                   >
-                    Sign In with Different Account
+                    {t('differentAccount')}
                   </Link>
                 )}
                 {errorMessage.includes('already a member') && (
@@ -139,7 +141,7 @@ function AcceptInviteContent() {
                     href="/agents"
                     className="inline-block w-full rounded-[1.1rem] bg-red-500 px-4 py-3 font-bold text-white transition-all"
                   >
-                    Go to Dashboard
+                    {t('goToDashboard')}
                   </Link>
                 )}
                 {!errorMessage.includes('already a member') && (
@@ -147,7 +149,7 @@ function AcceptInviteContent() {
                     href="/signin"
                     className="inline-block w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-4 rounded-lg transition-colors"
                   >
-                    Back to Sign In
+                    {t('backToSignIn')}
                   </Link>
                 )}
               </div>
@@ -158,9 +160,9 @@ function AcceptInviteContent() {
         {!isProcessing && (
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              Need help?{' '}
+              {t('needHelp')}{' '}
               <a href={`mailto:${process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@localhost'}`} className="font-medium text-red-600 hover:text-red-700">
-                Contact support
+                {t('contactSupport')}
               </a>
             </p>
           </div>

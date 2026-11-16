@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../state/session_controller.dart';
 import '../../theme/app_theme.dart';
 import '../widgets/mesh_background.dart';
+import '../../../l10n/app_localizations.dart';
 
 class TenantSelectionScreen extends StatelessWidget {
   const TenantSelectionScreen({super.key, required this.controller});
@@ -11,6 +12,7 @@ class TenantSelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return Scaffold(
       body: Stack(
@@ -23,12 +25,12 @@ class TenantSelectionScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Choose workspace',
+                    l10n.chooseWorkspace,
                     style: theme.textTheme.displayMedium,
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Your account has access to multiple Synkora tenants. Pick the workspace you want to use on mobile.',
+                    l10n.chooseWorkspaceBody,
                     style: theme.textTheme.bodyLarge,
                   ),
                   const SizedBox(height: 24),

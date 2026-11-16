@@ -17,6 +17,7 @@ import '../voice/voice_entry_card.dart';
 import '../voice/voice_hub_scope.dart';
 import '../widgets/mesh_background.dart';
 import '../widgets/rich_chat_message.dart';
+import '../../../l10n/app_localizations.dart';
 
 enum AgentChatLaunchIntent { none, talk, scan }
 
@@ -39,6 +40,8 @@ class AgentChatScreen extends StatefulWidget {
 }
 
 class _AgentChatScreenState extends State<AgentChatScreen> {
+  AppLocalizations get _l10n => AppLocalizations.of(context);
+
   final _composerController = TextEditingController();
   final _scrollController = ScrollController();
   final _imagePicker = ImagePicker();
@@ -174,7 +177,7 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
         _draftAttachments = _mergeDraftAttachments(attachments);
       });
     } catch (error) {
-      _showSnackBar('Image selection failed: $error');
+      _showSnackBar(_l10n.imageSelectionFailed('$error'));
     }
   }
 
@@ -199,12 +202,11 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
 
       setState(() {
         _draftAttachments = _mergeDraftAttachments([attachment]);
-        _voiceHint =
-            'Scan attached. Add instructions and send it to the agent.';
+        _voiceHint = _l10n.scanAttachedHint;
       });
-      _showSnackBar('Scan attached. Add instructions and send.');
+      _showSnackBar(_l10n.scanAttachedSnack);
     } catch (error) {
-      _showSnackBar('Camera scan failed: $error');
+      _showSnackBar(_l10n.cameraScanFailed('$error'));
     }
   }
 
@@ -217,7 +219,7 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
     if (_isStartingVoiceInput) {
       if (mounted) {
         setState(() {
-          _voiceHint = 'Voice input is still starting. Wait a moment.';
+          _voiceHint = _l10n.voiceStarting;
         });
       }
       return;
@@ -229,13 +231,10 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
       final remainingSeconds = cooldownUntil.difference(now).inSeconds + 1;
       if (mounted) {
         setState(() {
-          _voiceHint =
-              'Speech recognition is temporarily rate-limited by Android. Try again in ${remainingSeconds}s.';
+          _voiceHint = _l10n.speechRateLimitedHint(remainingSeconds);
         });
       }
-      _showSnackBar(
-        'Speech recognition is cooling down. Try again in ${remainingSeconds}s.',
-      );
+      _showSnackBar(_l10n.speechCoolingDown(remainingSeconds));
       return;
     }
 
@@ -267,18 +266,16 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
         _isListening = true;
         _soundLevel = 0;
         _heardSoundDuringSession = false;
-        _voiceHint =
-            'Listening... speak now. If the meter stays flat, the emulator is not receiving mic audio.';
+        _voiceHint = _l10n.voiceListening;
       });
     } catch (error) {
       _cancelVoiceSessionTimer();
       if (mounted) {
         setState(() {
-          _voiceHint =
-              'Voice input failed to start. Wait a moment, then try again.';
+          _voiceHint = _l10n.voiceStartFailedHint;
         });
       }
-      _showSnackBar('Voice input failed to start: $error');
+      _showSnackBar(_l10n.voiceStartFailedSnack('$error'));
     } finally {
       _isStartingVoiceInput = false;
     }
@@ -303,7 +300,7 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
     if (!mounted) return false;
 
     if (!available) {
-      _showSnackBar('Speech recognition is not available on this device.');
+      _showSnackBar(_l10n.speechUnavailable);
       return false;
     }
 
@@ -335,7 +332,7 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
 
     if (result.finalResult) {
       setState(() {
-        _voiceHint = 'Voice draft ready. Review it, then send.';
+        _voiceHint = _l10n.voiceDraftReady;
       });
     }
   }
@@ -374,7 +371,7 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
       if (_isListening && level > 2) {
         _startVoiceSessionTimer();
         _heardSoundDuringSession = true;
-        _voiceHint = 'Audio detected. Keep speaking.';
+        _voiceHint = _l10n.audioDetected;
       }
     });
   }
@@ -395,12 +392,9 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
         _nextSpeechStartAllowedAt = DateTime.now().add(
           const Duration(seconds: 15),
         );
-        _voiceHint =
-            'Android speech recognition is rate-limited. Wait 15s, then try Talk again.';
+        _voiceHint = _l10n.androidRateLimitedHint;
       });
-      _showSnackBar(
-        'Android speech recognition is rate-limited. Wait 15 seconds and try again.',
-      );
+      _showSnackBar(_l10n.androidRateLimitedSnack);
       return;
     }
 
@@ -424,9 +418,9 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
       _isStartingVoiceInput = false;
       _soundLevel = 0;
       _heardSoundDuringSession = false;
-      _voiceHint = 'Voice input unavailable right now. You can keep typing.';
+      _voiceHint = _l10n.voiceUnavailable;
     });
-    _showSnackBar('Voice input failed: ${error.errorMsg}');
+    _showSnackBar(_l10n.voiceFailed(error.errorMsg));
   }
 
   Future<void> _stopVoiceInput() async {
@@ -451,12 +445,12 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
 
   String _resolveVoiceOutcomeHint() {
     if (_hasCapturedVoiceDraft()) {
-      return 'Voice draft ready. Review it, then send.';
+      return _l10n.voiceDraftReady;
     }
     if (_heardSoundDuringSession) {
-      return 'Audio was detected, but Android returned no transcript. This emulator recognizer is unreliable.';
+      return _l10n.noTranscript;
     }
-    return 'No speech detected. Tap Talk and start speaking right away.';
+    return _l10n.noSpeech;
   }
 
   void _startVoiceSessionTimer() {
@@ -494,7 +488,7 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
       switch (intent) {
         case AgentChatLaunchIntent.talk:
           setState(() {
-            _voiceHint = 'Tap Talk once to start voice input.';
+            _voiceHint = _l10n.tapTalkHint;
           });
           break;
         case AgentChatLaunchIntent.scan:
@@ -529,7 +523,7 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
           .toList();
 
       if (attachments.isEmpty) {
-        _showSnackBar('No supported files were selected.');
+        _showSnackBar(_l10n.noSupportedFiles);
         return;
       }
 
@@ -537,7 +531,7 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
         _draftAttachments = _mergeDraftAttachments(attachments);
       });
     } catch (error) {
-      _showSnackBar('File selection failed: $error');
+      _showSnackBar(_l10n.fileSelectionFailed('$error'));
     }
   }
 
@@ -565,7 +559,7 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
     }
 
     if (text.isEmpty) {
-      _showSnackBar('Add a message before sending attachments.');
+      _showSnackBar(_l10n.addMessageFirst);
       return;
     }
 
@@ -626,7 +620,10 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
           case 'tool_status':
             setState(() {
               _toolStatuses = [
-                '${event.toolName ?? 'Agent'} • ${event.status ?? 'working'}',
+                _l10n.toolStatus(
+                  event.toolName ?? _l10n.toolDefaultName,
+                  event.status ?? _l10n.toolDefaultStatus,
+                ),
                 ..._toolStatuses,
               ].take(4).toList();
             });
@@ -635,10 +632,7 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
             _finalizeMessage(placeholderId);
             break;
           case 'error':
-            _markMessageError(
-              placeholderId,
-              event.error ?? 'The agent returned an error.',
-            );
+            _markMessageError(placeholderId, event.error ?? _l10n.agentError);
             break;
           default:
             break;
@@ -702,13 +696,13 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
       final draft = drafts[index];
       setState(() {
         _toolStatuses = [
-          'Uploading ${index + 1}/${drafts.length} • ${draft.fileName}',
+          _l10n.uploading(index + 1, drafts.length, draft.fileName),
           ..._toolStatuses,
         ].take(4).toList();
       });
 
       if (draft.path == null && draft.bytes == null) {
-        throw Exception('Selected file "${draft.fileName}" is not readable.');
+        throw Exception(_l10n.fileNotReadable(draft.fileName));
       }
 
       final attachment = await widget.agentService.uploadAttachment(
@@ -851,7 +845,7 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
           children: [
             Text(widget.agent.name),
             Text(
-              _activeConversation?.name ?? 'Fresh conversation',
+              _activeConversation?.name ?? _l10n.freshConversation,
               style: Theme.of(
                 context,
               ).textTheme.bodySmall?.copyWith(color: SynkoraColors.muted),
@@ -863,12 +857,12 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
             IconButton(
               onPressed: _isSending ? null : _openVoiceMode,
               icon: const Icon(Icons.graphic_eq_rounded),
-              tooltip: 'Voice conversation',
+              tooltip: _l10n.voiceConversation,
             ),
           IconButton(
             onPressed: _isSending ? null : _startNewChat,
             icon: const Icon(Icons.edit_square),
-            tooltip: 'New chat',
+            tooltip: _l10n.newChat,
           ),
         ],
       ),
@@ -1016,6 +1010,7 @@ class _ConversationRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return SizedBox(
       height: 112,
       child: ListView.separated(
@@ -1055,7 +1050,7 @@ class _ConversationRail extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    formatRelativeTimestamp(conversation.updatedAt),
+                    formatRelativeTimestamp(conversation.updatedAt, l10n),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: isActive
                           ? Colors.white.withValues(alpha: 0.72)
@@ -1105,6 +1100,7 @@ class _ComposerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final hasAttachments = draftAttachments.isNotEmpty;
     final needsMessage = hasAttachments && controller.text.trim().isEmpty;
 
@@ -1287,8 +1283,10 @@ class _ComposerCard extends StatelessWidget {
                         icon: isListening
                             ? Icons.mic_rounded
                             : Icons.mic_none_rounded,
-                        label: isListening ? 'Listening' : 'Talk',
-                        tooltip: isListening ? 'Stop voice input' : 'Talk',
+                        label: isListening ? l10n.listening : l10n.actionTalk,
+                        tooltip: isListening
+                            ? l10n.stopVoiceInput
+                            : l10n.actionTalk,
                         onPressed: isSending ? null : onToggleTalk,
                         tone: _ComposerFeatureTone.mint,
                         isActive: isListening,
@@ -1299,8 +1297,8 @@ class _ComposerCard extends StatelessWidget {
                     Expanded(
                       child: _ComposerFeatureButton(
                         icon: Icons.document_scanner_outlined,
-                        label: 'Scan',
-                        tooltip: 'Scan',
+                        label: l10n.actionScan,
+                        tooltip: l10n.actionScan,
                         onPressed: isSending ? null : onScan,
                         tone: _ComposerFeatureTone.gold,
                       ),
@@ -1308,13 +1306,13 @@ class _ComposerCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     _ComposerIconButton(
                       icon: Icons.image_outlined,
-                      tooltip: 'Attach image',
+                      tooltip: l10n.attachImage,
                       onPressed: isSending ? null : onPickImages,
                     ),
                     const SizedBox(width: 8),
                     _ComposerIconButton(
                       icon: Icons.attach_file_rounded,
-                      tooltip: 'Attach file',
+                      tooltip: l10n.attachFile,
                       onPressed: isSending ? null : onPickFiles,
                     ),
                   ],
@@ -1343,8 +1341,8 @@ class _ComposerCard extends StatelessWidget {
                           maxLines: 6,
                           textInputAction: TextInputAction.send,
                           onSubmitted: (_) => canSend ? onSend() : null,
-                          decoration: const InputDecoration(
-                            hintText: 'Message this agent',
+                          decoration: InputDecoration(
+                            hintText: l10n.messageHint,
                             border: InputBorder.none,
                             enabledBorder: InputBorder.none,
                             focusedBorder: InputBorder.none,
@@ -1395,7 +1393,7 @@ class _ComposerCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Add a message so the agent knows what to do with your attachments.',
+                            l10n.attachmentsNeedMessage,
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(color: SynkoraColors.muted),
                           ),
@@ -1874,10 +1872,11 @@ class _EmptyConversationState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final prompts = [
-      'Summarize what this agent is best at.',
-      'Help me turn a rough task into a concrete plan.',
-      'Review the latest context and tell me what needs attention.',
+      l10n.emptyPromptStrengths,
+      l10n.emptyPromptPlan,
+      l10n.emptyPromptReview,
     ];
 
     return Center(
@@ -1905,13 +1904,13 @@ class _EmptyConversationState extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              'Start a premium conversation with $agentName',
+              l10n.emptyTitle(agentName),
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 10),
             Text(
-              'Ask for structured analysis, send files, or drop in screenshots and let the agent work from real context.',
+              l10n.emptyBody,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyLarge,
             ),

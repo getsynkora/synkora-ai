@@ -1,7 +1,8 @@
 /**
  * Synkora Agent Widget
  * Embeddable AI chat widget using Shadow DOM for full CSS isolation.
- * Usage: SynkoraWidget.init({ widgetId, apiKey, containerId, apiUrl })
+ * Usage: SynkoraWidget.init({ widgetId, apiKey, containerId, apiUrl, locale })
+ * `locale` (e.g. "de") sets the language; it defaults to <html lang>, then the browser.
  */
 (function (global) {
   "use strict";
@@ -45,6 +46,199 @@
       .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
+  // ─── Languages ───────────────────────────────────────────────────────────────
+  // English and German are built in. Pass `locale` to init() (e.g. "de", "de-AT"),
+  // or leave it out to follow <html lang> and then the browser language. To add a
+  // language or reword some text, pass `strings`; anything missing is English:
+  //   SynkoraWidget.init({ ..., locale: "fr", strings: { fr: { send: "Envoyer" } } })
+
+  var STRINGS = {
+    en: {
+      "open_chat": "Open chat",
+      "close_chat": "Close chat",
+      "close": "Close",
+      "back": "Back",
+      "more_options": "More options",
+      "dismiss": "Dismiss",
+      "clear_page_context": "Clear page context",
+      "page_context": "Page context",
+      "default_agent_name": "AI Assistant",
+      "message_placeholder": "Message…",
+      "message_label": "Message",
+      "attach_file": "Attach file",
+      "voice_input": "Voice input",
+      "stop_recording": "Stop recording",
+      "send": "Send",
+      "greeting": "Hi there 👋",
+      "greeting_sub": "How can we help?",
+      "send_us_a_message": "Send us a message",
+      "powered_by_ai": "Powered by AI",
+      "powered_by_prefix": "Powered by ",
+      "status_online": "Online",
+      "new_chat": "New chat",
+      "recent_chats": "Recent chats",
+      "expand_window": "Expand window",
+      "collapse_window": "Collapse window",
+      "download_transcript": "Download transcript",
+      "end_chat": "End chat",
+      "copy": "Copy",
+      "copied": "Copied!",
+      "failed": "Failed",
+      "transcript_title": "Conversation with {agent}",
+      "you": "You",
+      "support": "Support",
+      "recent_conversations": "Recent conversations",
+      "view_all": "View all",
+      "no_previous_conversations": "No previous conversations yet.",
+      "just_now": "Just now",
+      "minutes_ago": "{n}m ago",
+      "hours_ago": "{n}h ago",
+      "days_ago": "{n}d ago",
+      "conversation": "Conversation",
+      "privacy_text_default": "By chatting, you agree to our",
+      "privacy_policy": "Privacy Policy",
+      "suggestions": "Suggestions",
+      "chat_ended": "Chat ended",
+      "conversation_ended": "This conversation has ended",
+      "history_saved": "Your chat history is saved above.",
+      "start_new_conversation": "Start new conversation",
+      "remove": "Remove",
+      "mic_blocked_mac": "Allow mic: System Settings → Privacy → Microphone → enable your browser",
+      "mic_blocked": "Microphone blocked — check browser or OS permissions",
+      "voice_note": "Voice note · {time}",
+      "investigating": "Investigating...",
+      "using_tool": "Using {tool}…",
+      "probe_time": "Need help with anything? I'm here to assist.",
+      "probe_scroll": "Looks like you've been exploring — can I answer any questions?",
+      "probe_form": "Stuck on the form? I can help you fill it out.",
+      "pioneer_title": "You sparked an investigation!",
+      "pioneer_body_one": "Your last question was complex enough that the AI used {n} tool to answer it. It may already be helping others.",
+      "pioneer_body_many": "Your last question was complex enough that the AI used {n} tools to answer it. It may already be helping others.",
+      "error_generic": "Sorry, something went wrong. Please try again.",
+      "error_default": "An error occurred.",
+      "notification_replied": "{agent} replied",
+      "answer_ready": "Your answer is ready.",
+      "approval_required": "Approval required: ",
+      "approve": "Approve",
+      "reject": "Reject",
+      "approved": "✓ Approved — action will proceed.",
+      "rejected": "✗ Rejected.",
+      "request_failed": "Request failed.",
+      "handoff_connected": "Connected to support. A human agent will respond shortly.",
+      "handoff_ended": "Support session ended. You are now chatting with the AI assistant again."
+    },
+    de: {
+      "open_chat": "Chat öffnen",
+      "close_chat": "Chat schließen",
+      "close": "Schließen",
+      "back": "Zurück",
+      "more_options": "Weitere Optionen",
+      "dismiss": "Ausblenden",
+      "clear_page_context": "Seitenkontext entfernen",
+      "page_context": "Seitenkontext",
+      "default_agent_name": "KI-Assistent",
+      "message_placeholder": "Nachricht …",
+      "message_label": "Nachricht",
+      "attach_file": "Datei anhängen",
+      "voice_input": "Spracheingabe",
+      "stop_recording": "Aufnahme beenden",
+      "send": "Senden",
+      "greeting": "Hallo 👋",
+      "greeting_sub": "Wie können wir helfen?",
+      "send_us_a_message": "Schreiben Sie uns",
+      "powered_by_ai": "Bereitgestellt von KI",
+      "powered_by_prefix": "Bereitgestellt von ",
+      "status_online": "Online",
+      "new_chat": "Neuer Chat",
+      "recent_chats": "Letzte Chats",
+      "expand_window": "Fenster vergrößern",
+      "collapse_window": "Fenster verkleinern",
+      "download_transcript": "Verlauf herunterladen",
+      "end_chat": "Chat beenden",
+      "copy": "Kopieren",
+      "copied": "Kopiert!",
+      "failed": "Fehlgeschlagen",
+      "transcript_title": "Unterhaltung mit {agent}",
+      "you": "Sie",
+      "support": "Support",
+      "recent_conversations": "Letzte Unterhaltungen",
+      "view_all": "Alle anzeigen",
+      "no_previous_conversations": "Noch keine Unterhaltungen.",
+      "just_now": "Gerade eben",
+      "minutes_ago": "vor {n} Min.",
+      "hours_ago": "vor {n} Std.",
+      "days_ago": "vor {n} T.",
+      "conversation": "Unterhaltung",
+      "privacy_text_default": "Durch die Nutzung des Chats akzeptieren Sie unsere",
+      "privacy_policy": "Datenschutzerklärung",
+      "suggestions": "Vorschläge",
+      "chat_ended": "Chat beendet",
+      "conversation_ended": "Diese Unterhaltung ist beendet",
+      "history_saved": "Ihr Chatverlauf ist oben gespeichert.",
+      "start_new_conversation": "Neue Unterhaltung starten",
+      "remove": "Entfernen",
+      "mic_blocked_mac": "Mikrofon erlauben: Systemeinstellungen → Datenschutz → Mikrofon → Ihren Browser aktivieren",
+      "mic_blocked": "Mikrofon blockiert — prüfen Sie die Berechtigungen von Browser oder Betriebssystem",
+      "voice_note": "Sprachnachricht · {time}",
+      "investigating": "Wird untersucht...",
+      "using_tool": "Verwende {tool}…",
+      "probe_time": "Brauchen Sie bei etwas Hilfe? Ich bin für Sie da.",
+      "probe_scroll": "Sie schauen sich gerade um — kann ich Fragen beantworten?",
+      "probe_form": "Hängen Sie beim Formular fest? Ich helfe Ihnen gern beim Ausfüllen.",
+      "pioneer_title": "Sie haben eine Untersuchung angestoßen!",
+      "pioneer_body_one": "Ihre letzte Frage war so komplex, dass die KI {n} Tool zur Beantwortung genutzt hat. Vielleicht hilft das bereits anderen.",
+      "pioneer_body_many": "Ihre letzte Frage war so komplex, dass die KI {n} Tools zur Beantwortung genutzt hat. Vielleicht hilft das bereits anderen.",
+      "error_generic": "Entschuldigung, etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
+      "error_default": "Ein Fehler ist aufgetreten.",
+      "notification_replied": "{agent} hat geantwortet",
+      "answer_ready": "Ihre Antwort ist fertig.",
+      "approval_required": "Freigabe erforderlich: ",
+      "approve": "Freigeben",
+      "reject": "Ablehnen",
+      "approved": "✓ Freigegeben — die Aktion wird ausgeführt.",
+      "rejected": "✗ Abgelehnt.",
+      "request_failed": "Anfrage fehlgeschlagen.",
+      "handoff_connected": "Mit dem Support verbunden. Ein Mitarbeiter antwortet in Kürze.",
+      "handoff_ended": "Support-Sitzung beendet. Sie chatten jetzt wieder mit dem KI-Assistenten."
+    }
+  };
+
+  // "DE" -> "de", "pt_BR" -> "pt-BR"; "" when it is not a language code.
+  function normalizeLocale(v) {
+    if (typeof v !== "string") return "";
+    var code = v.trim().replace(/_/g, "-");
+    if (!/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8}){0,3}$/.test(code) || code.length > 20) return "";
+    var parts = code.split("-");
+    parts[0] = parts[0].toLowerCase();
+    return parts.join("-");
+  }
+
+  function pickLocale(requested) {
+    return normalizeLocale(requested) ||
+      normalizeLocale(document.documentElement && document.documentElement.lang) ||
+      normalizeLocale(navigator.language) ||
+      "en";
+  }
+
+  // Strings for one language: English, then the built-in language, then the host's own.
+  function buildStrings(tag, custom) {
+    var lang = tag.split("-")[0];
+    var merged = {};
+    [STRINGS.en, STRINGS[lang], custom && custom[tag], custom && custom[lang]].forEach(function (table) {
+      if (!table) return;
+      Object.keys(table).forEach(function (k) {
+        if (typeof table[k] === "string") merged[k] = table[k];
+      });
+    });
+    return merged;
+  }
+
+  function fmt(text, vars) {
+    return String(text).replace(/\{(\w+)\}/g, function (m, name) {
+      return vars && vars[name] !== undefined ? String(vars[name]) : m;
+    });
+  }
+
   function hexToRgb(hex) {
     hex = (hex || "").replace(/^#/, "");
     if (hex.length === 3) hex = hex.split("").map(function (c) { return c + c; }).join("");
@@ -78,8 +272,8 @@
     return 0.2126 * r + 0.7152 * g + 0.0722 * b;
   }
 
-  function timeNow() {
-    return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  function timeNow(locale) {
+    return new Date().toLocaleTimeString(locale || [], { hour: "2-digit", minute: "2-digit" });
   }
 
   // ─── Markdown Parser ─────────────────────────────────────────────────────────
@@ -134,7 +328,7 @@
       });
   }
 
-  function mdParse(text, streaming) {
+  function mdParse(text, streaming, copyLabel) {
     if (!text) return "";
 
     // Close unclosed code fence during streaming for clean partial render
@@ -162,7 +356,7 @@
         out += '<div class="snkr-pre">' +
           '<div class="snkr-code-hdr">' +
             '<span class="snkr-lang-tag">' + (lang ? esc(lang) : "") + '</span>' +
-            '<button class="snkr-copy-btn">Copy</button>' +
+            '<button class="snkr-copy-btn">' + esc(copyLabel || "Copy") + '</button>' +
           '</div>' +
           '<pre><code>' + esc(codeLines.join("\n")) + '</code></pre>' +
           '</div>';
@@ -1022,11 +1216,11 @@
     return String(key).replace(/[_-]+/g, " ").replace(/\b\w/g, function (c) { return c.toUpperCase(); });
   }
 
-  function _contextLabel(ctx) {
+  function _contextLabel(ctx, t) {
     if (!ctx) return "";
     if (typeof ctx.summary === "string" && ctx.summary) return ctx.summary;
     var kind = ctx.type || ctx.entity_type || ctx.page || null;
-    return kind ? _titleCase(kind) : "Page context";
+    return kind ? _titleCase(kind) : t("page_context");
   }
 
   function _contextRows(ctx) {
@@ -1045,7 +1239,7 @@
     return rows;
   }
 
-  function _buildContextBarEl() {
+  function _buildContextBarEl(t) {
     var root = document.createElement("div");
     root.className = "snkr-ctx-bar";
 
@@ -1075,7 +1269,7 @@
     var closeBtn = document.createElement("button");
     closeBtn.type = "button";
     closeBtn.className = "snkr-ctx-close";
-    closeBtn.setAttribute("aria-label", "Clear page context");
+    closeBtn.setAttribute("aria-label", t("clear_page_context"));
     closeBtn.innerHTML = I.xsm;
 
     row.appendChild(summaryBtn);
@@ -1096,6 +1290,9 @@
     this.widgetId       = cfg.widgetId;
     this.apiKey         = cfg.apiKey;
     this.apiUrl         = (cfg.apiUrl || "http://localhost:5001/api/v1").replace(/\/$/, "");
+    this._localeTag     = pickLocale(cfg.locale);   // e.g. "de-AT", sent to the API
+    this._customStrings = cfg.strings || null;
+    this._strings       = buildStrings(this._localeTag, this._customStrings);
     this._user          = cfg.user || null;
     this._userHash      = cfg.userHash || null;
     this._identityToken = cfg.identityToken || null;
@@ -1140,17 +1337,17 @@
     this._handoffPollInterval = null; // HITL: polling timer during active handoff
     this._seenHandoffMsgIds = {};     // HITL: dedup operator messages during polling
     this._cfg = {
-      agentName: "AI Assistant",
+      agentName: this._t("default_agent_name"),
       agentAvatar: "",
       agentDescription: "",
       welcomeMessage: "",
-      placeholder: "Type a message…",
+      placeholder: this._t("message_placeholder"),
       primaryColor: "#79dfbc",
       suggestions: [],
-      brandingText:      cfg.brandingText !== undefined ? cfg.brandingText : "Powered by AI",
+      brandingText:      cfg.brandingText !== undefined ? cfg.brandingText : this._t("powered_by_ai"),
       brandingUrl:       cfg.brandingUrl  || "",
       privacyPolicyUrl:  cfg.privacyPolicyUrl  || "",
-      privacyPolicyText: cfg.privacyPolicyText || "By chatting, you agree to our",
+      privacyPolicyText: cfg.privacyPolicyText || this._t("privacy_text_default"),
     };
     this._attachedFile  = null;
     this._micActive        = false;
@@ -1215,7 +1412,7 @@
     // Toggle FAB
     var toggle = document.createElement("button");
     toggle.id = "snkr-toggle";
-    toggle.setAttribute("aria-label", "Open chat");
+    toggle.setAttribute("aria-label", this._t("open_chat"));
     toggle.innerHTML = I.chat;
     // Feature 5: notification badge
     var badge = document.createElement("span");
@@ -1249,15 +1446,15 @@
     hero.innerHTML =
       '<div id="snkr-home-top">' +
         '<div id="snkr-home-avatar">🤖</div>' +
-        '<button id="snkr-home-close" aria-label="Close">' + I.xsm + '</button>' +
+        '<button id="snkr-home-close" aria-label="' + esc(this._t("close")) + '">' + I.xsm + '</button>' +
       '</div>' +
       '<div id="snkr-home-greeting">' +
-        'Hi there 👋' +
-        '<span class="snkr-greeting-sub">How can we help?</span>' +
+        esc(this._t("greeting")) +
+        '<span class="snkr-greeting-sub">' + esc(this._t("greeting_sub")) + '</span>' +
       '</div>';
     home.appendChild(hero);
 
-    var homeCtxBar = _buildContextBarEl();
+    var homeCtxBar = _buildContextBarEl(this._t.bind(this));
     home.appendChild(homeCtxBar.root);
 
     var homeBody = document.createElement("div");
@@ -1266,18 +1463,16 @@
     var startBtn = document.createElement("button");
     startBtn.id = "snkr-start-btn";
     startBtn.innerHTML =
-      '<span>Send us a message</span>' +
+      '<span>' + esc(this._t("send_us_a_message")) + '</span>' +
       '<span id="snkr-start-btn-icon">' + I.arrow + '</span>';
     homeBody.appendChild(startBtn);
 
     var homeBranding = document.createElement("div");
     homeBranding.id = "snkr-home-branding";
     if (this._cfg.brandingText !== false) {
-      var hbText = this._cfg.brandingText || "Powered by AI";
+      var hbText = this._cfg.brandingText || this._t("powered_by_ai");
       var hbUrl  = this._cfg.brandingUrl;
-      homeBranding.innerHTML = hbUrl
-        ? hbText.replace(/^(Powered by )(.+)$/, '$1<a href="' + esc(hbUrl) + '" target="_blank" rel="noopener">$2</a>')
-        : esc(hbText);
+      homeBranding.innerHTML = this._brandLink(hbText, hbUrl);
     }
 
     home.appendChild(homeBody);
@@ -1292,34 +1487,34 @@
     var header = document.createElement("div");
     header.id = "snkr-header";
     header.innerHTML =
-      '<button id="snkr-back" aria-label="Back">' + I.back + '</button>' +
+      '<button id="snkr-back" aria-label="' + esc(this._t("back")) + '">' + I.back + '</button>' +
       '<div id="snkr-avatar">AI</div>' +
       '<div id="snkr-hdr-info">' +
-        '<div id="snkr-hdr-name">AI Assistant</div>' +
-        '<div id="snkr-hdr-status">Online</div>' +
+        '<div id="snkr-hdr-name">' + esc(this._t("default_agent_name")) + '</div>' +
+        '<div id="snkr-hdr-status">' + esc(this._t("status_online")) + '</div>' +
       '</div>' +
       '<div id="snkr-menu-wrap">' +
-        '<button id="snkr-menu-btn" aria-label="More options">' + I.dots + '</button>' +
+        '<button id="snkr-menu-btn" aria-label="' + esc(this._t("more_options")) + '">' + I.dots + '</button>' +
         '<div id="snkr-menu-dropdown">' +
           '<button class="snkr-menu-item" id="snkr-newchat-btn">' +
-            I.newchat + '<span>New chat</span>' +
+            I.newchat + '<span>' + esc(this._t("new_chat")) + '</span>' +
           '</button>' +
           '<button class="snkr-menu-item" id="snkr-viewhistory-btn">' +
-            I.history + '<span>Recent chats</span>' +
+            I.history + '<span>' + esc(this._t("recent_chats")) + '</span>' +
           '</button>' +
           '<button class="snkr-menu-item" id="snkr-expand-btn">' +
-            I.expand + '<span>Expand window</span>' +
+            I.expand + '<span>' + esc(this._t("expand_window")) + '</span>' +
           '</button>' +
           '<button class="snkr-menu-item" id="snkr-download-btn">' +
-            I.download + '<span>Download transcript</span>' +
+            I.download + '<span>' + esc(this._t("download_transcript")) + '</span>' +
           '</button>' +
           '<div class="snkr-menu-separator"></div>' +
           '<button class="snkr-menu-item snkr-menu-item-danger" id="snkr-endchat-btn">' +
-            I.endchat + '<span>End chat</span>' +
+            I.endchat + '<span>' + esc(this._t("end_chat")) + '</span>' +
           '</button>' +
         '</div>' +
       '</div>' +
-      '<button id="snkr-close" aria-label="Close">' + I.xsm + '</button>';
+      '<button id="snkr-close" aria-label="' + esc(this._t("close")) + '">' + I.xsm + '</button>';
 
     // Body (messages)
     var body = document.createElement("div");
@@ -1358,15 +1553,15 @@
     var input = document.createElement("textarea");
     input.id = "snkr-input";
     input.rows = 1;
-    input.placeholder = "Message…";
-    input.setAttribute("aria-label", "Message");
+    input.placeholder = this._t("message_placeholder");
+    input.setAttribute("aria-label", this._t("message_label"));
     var footerRow = document.createElement("div");
     footerRow.id = "snkr-footer-row";
 
     // Left: attach button
     var attachBtn = document.createElement("button");
     attachBtn.id = "snkr-attach-btn";
-    attachBtn.setAttribute("aria-label", "Attach file");
+    attachBtn.setAttribute("aria-label", this._t("attach_file"));
     attachBtn.innerHTML = I.attach;
 
     // Right: mic + send
@@ -1380,7 +1575,7 @@
 
     var micBtn = document.createElement("button");
     micBtn.id = "snkr-mic-btn";
-    micBtn.setAttribute("aria-label", "Voice input");
+    micBtn.setAttribute("aria-label", this._t("voice_input"));
     micBtn.innerHTML = I.mic;
     // Show mic for both SpeechRecognition (transcription) and MediaRecorder (voice notes)
     if (!window.SpeechRecognition && !window.webkitSpeechRecognition && !window.MediaRecorder) {
@@ -1389,7 +1584,7 @@
 
     var sendBtn = document.createElement("button");
     sendBtn.id = "snkr-send";
-    sendBtn.setAttribute("aria-label", "Send");
+    sendBtn.setAttribute("aria-label", this._t("send"));
     sendBtn.innerHTML = I.send;
 
     footerActions.appendChild(recIndicator);
@@ -1406,11 +1601,9 @@
     var branding = document.createElement("div");
     branding.id = "snkr-branding";
     if (this._cfg.brandingText !== false) {
-      var bText = this._cfg.brandingText || "Powered by AI";
+      var bText = this._cfg.brandingText || this._t("powered_by_ai");
       var bUrl  = this._cfg.brandingUrl;
-      branding.innerHTML = bUrl
-        ? bText.replace(/^(Powered by )(.+)$/, '$1<a href="' + esc(bUrl) + '" target="_blank" rel="noopener">$2</a>')
-        : esc(bText);
+      branding.innerHTML = this._brandLink(bText, bUrl);
     }
 
     // Privacy bar (between header and body)
@@ -1420,7 +1613,7 @@
     privacyText.id = "snkr-privacy-text";
     var privacyClose = document.createElement("button");
     privacyClose.id = "snkr-privacy-close";
-    privacyClose.setAttribute("aria-label", "Dismiss");
+    privacyClose.setAttribute("aria-label", this._t("dismiss"));
     privacyClose.innerHTML = I.xsm;
     privacyBar.appendChild(privacyText);
     privacyBar.appendChild(privacyClose);
@@ -1432,7 +1625,7 @@
     // Context chip sits directly above the input (like a "Context: X" pill
     // anchored to the composer), not up near the header — so it's mounted
     // inside the footer, right before the file-preview/input box.
-    var chatCtxBar = _buildContextBarEl();
+    var chatCtxBar = _buildContextBarEl(this._t.bind(this));
     footer.insertBefore(chatCtxBar.root, footer.firstChild);
 
     chat.appendChild(header);
@@ -1450,11 +1643,11 @@
     histHdr.id = "snkr-hist-overlay-hdr";
     var histBack = document.createElement("button");
     histBack.id = "snkr-hist-overlay-back";
-    histBack.setAttribute("aria-label", "Back");
+    histBack.setAttribute("aria-label", this._t("back"));
     histBack.innerHTML = I.back;
     var histTitle = document.createElement("div");
     histTitle.id = "snkr-hist-overlay-title";
-    histTitle.textContent = "Recent chats";
+    histTitle.textContent = this._t("recent_chats");
     histHdr.appendChild(histBack);
     histHdr.appendChild(histTitle);
     var histBody = document.createElement("div");
@@ -1513,11 +1706,11 @@
         var code = pre && pre.querySelector("code");
         if (code && navigator.clipboard) {
           navigator.clipboard.writeText(code.innerText).then(function () {
-            btn.textContent = "Copied!";
-            setTimeout(function () { btn.textContent = "Copy"; }, 1500);
+            btn.textContent = self._t("copied");
+            setTimeout(function () { btn.textContent = self._t("copy"); }, 1500);
           }).catch(function () {
-            btn.textContent = "Failed";
-            setTimeout(function () { btn.textContent = "Copy"; }, 1500);
+            btn.textContent = self._t("failed");
+            setTimeout(function () { btn.textContent = self._t("copy"); }, 1500);
           });
         }
       }
@@ -1664,20 +1857,21 @@
     this._panel.classList.toggle("snkr-expanded", this._expanded);
     var expandBtn = this._shadow.getElementById("snkr-expand-btn");
     if (expandBtn) {
-      expandBtn.innerHTML = (this._expanded ? I.compress : I.expand) + '<span>' + (this._expanded ? 'Collapse window' : 'Expand window') + '</span>';
+      expandBtn.innerHTML = (this._expanded ? I.compress : I.expand) + '<span>' + esc(this._t(this._expanded ? "collapse_window" : "expand_window")) + '</span>';
     }
   };
 
   Widget.prototype._downloadTranscript = function () {
     var cfg = this._cfg;
+    var youLabel = this._t("you");
     var rows = this._messages.querySelectorAll(".snkr-row");
-    var lines = ["Conversation with " + cfg.agentName, new Date().toLocaleString(), "─".repeat(40), ""];
+    var lines = [this._t("transcript_title", { agent: cfg.agentName }), new Date().toLocaleString(this._localeTag), "─".repeat(40), ""];
     rows.forEach(function (row) {
       var isUser = row.classList.contains("user");
       var bubble = row.querySelector(".snkr-bubble");
       var ts = row.querySelector(".snkr-ts");
       if (!bubble) return;
-      var speaker = isUser ? "You" : cfg.agentName;
+      var speaker = isUser ? youLabel : cfg.agentName;
       var time = ts ? ts.textContent : "";
       lines.push("[" + speaker + (time ? " · " + time : "") + "]");
       lines.push(bubble.innerText || bubble.textContent || "");
@@ -1793,10 +1987,10 @@
           var isOperator = roleUp === "OPERATOR";
           if (isOperator) {
             var opBubble = self._row("agent");
-            opBubble.innerHTML = "<strong style=\"font-size:11px;color:#6b7280;display:block;margin-bottom:3px;\">Support</strong>" + mdParse(m.content || "", false);
+            opBubble.innerHTML = "<strong style=\"font-size:11px;color:#6b7280;display:block;margin-bottom:3px;\">" + esc(self._t("support")) + "</strong>" + mdParse(m.content || "", false, self._t("copy"));
           } else {
             var bubble = self._row(isUser ? "user" : "agent");
-            bubble.innerHTML = isUser ? esc(m.content || "") : mdParse(m.content || "", false);
+            bubble.innerHTML = isUser ? esc(m.content || "") : mdParse(m.content || "", false, self._t("copy"));
           }
         });
 
@@ -1837,10 +2031,10 @@
     labelRow.className = "snkr-history-label-row";
     var label = document.createElement("div");
     label.className = "snkr-history-label";
-    label.textContent = "Recent conversations";
+    label.textContent = self._t("recent_conversations");
     var viewAll = document.createElement("button");
     viewAll.className = "snkr-history-viewall";
-    viewAll.textContent = "View all";
+    viewAll.textContent = self._t("view_all");
     viewAll.addEventListener("click", function (e) {
       e.stopPropagation();
       self._openHistoryOverlay();
@@ -1852,21 +2046,17 @@
     if (history.length === 0) {
       var empty = document.createElement("div");
       empty.className = "snkr-history-empty";
-      empty.textContent = "No previous conversations yet.";
+      empty.textContent = self._t("no_previous_conversations");
       section.appendChild(empty);
     } else {
       history.slice(0, 5).forEach(function (item) {
         var btn = document.createElement("button");
         btn.className = "snkr-history-item";
-        var age = Date.now() - (item.timestamp || 0);
-        var timeStr = age < 60000 ? "Just now"
-          : age < 3600000 ? Math.floor(age / 60000) + "m ago"
-          : age < 86400000 ? Math.floor(age / 3600000) + "h ago"
-          : Math.floor(age / 86400000) + "d ago";
+        var timeStr = self._ago(item.timestamp);
         btn.innerHTML =
           '<span class="snkr-history-dot"></span>' +
           '<span class="snkr-history-content">' +
-            '<div class="snkr-history-preview">' + esc(item.preview || "Conversation") + '</div>' +
+            '<div class="snkr-history-preview">' + esc(item.preview || self._t("conversation")) + '</div>' +
             '<div class="snkr-history-time">' + esc(timeStr) + '</div>' +
           '</span>' +
           '<span class="snkr-history-chevron">' + I.chevron + '</span>';
@@ -1895,10 +2085,10 @@
     try { dismissed = !!localStorage.getItem(this._privacyDismissKey()); } catch (_) {}
     if (dismissed) return;
 
-    var text = cfg.privacyPolicyText || "By chatting, you agree to our";
+    var text = cfg.privacyPolicyText || this._t("privacy_text_default");
     this._privacyText.innerHTML =
       I.shield + " " + esc(text) + ' <a href="' + esc(cfg.privacyPolicyUrl) +
-      '" target="_blank" rel="noopener noreferrer">Privacy Policy</a>';
+      '" target="_blank" rel="noopener noreferrer">' + esc(this._t("privacy_policy")) + '</a>';
     this._privacyBar.classList.add("show");
   };
 
@@ -1926,7 +2116,7 @@
   Widget.prototype._syncContextBar = function () {
     if (!this._ctxBars) return; // called before _mount() finished wiring refs
     var ctx = this._hasCustomContext ? this._pageContext : null;
-    var label = _contextLabel(ctx);
+    var label = _contextLabel(ctx, this._t.bind(this));
     var rows = _contextRows(ctx);
     var open = this._ctxBarOpen;
 
@@ -1969,7 +2159,7 @@
 
     var label = document.createElement("div");
     label.className = "snkr-chat-chips-label";
-    label.textContent = "Suggestions";
+    label.textContent = this._t("suggestions");
     chips.appendChild(label);
 
     var row = document.createElement("div");
@@ -2003,7 +2193,7 @@
     // Show divider + ended banner in messages area
     var divider = document.createElement("div");
     divider.className = "snkr-divider-line";
-    divider.innerHTML = "<span>Chat ended</span>";
+    divider.innerHTML = "<span>" + esc(this._t("chat_ended")) + "</span>";
     this._messages.appendChild(divider);
 
     var wrap = document.createElement("div");
@@ -2011,11 +2201,11 @@
     var self = this;
     wrap.innerHTML =
       '<div class="snkr-ended-ring">' + I.endchat + '</div>' +
-      '<div class="snkr-ended-title">This conversation has ended</div>' +
-      '<div class="snkr-ended-sub">Your chat history is saved above.</div>';
+      '<div class="snkr-ended-title">' + esc(this._t("conversation_ended")) + '</div>' +
+      '<div class="snkr-ended-sub">' + esc(this._t("history_saved")) + '</div>';
     var restartBtn = document.createElement("button");
     restartBtn.className = "snkr-restart-btn";
-    restartBtn.innerHTML = I.newchat + " <span>Start new conversation</span>";
+    restartBtn.innerHTML = I.newchat + " <span>" + esc(this._t("start_new_conversation")) + "</span>";
     restartBtn.addEventListener("click", function (e) {
       e.stopPropagation();
       self._newChat();
@@ -2044,22 +2234,18 @@
     if (history.length === 0) {
       var empty = document.createElement("div");
       empty.className = "snkr-hist-ol-empty";
-      empty.textContent = "No previous conversations yet.";
+      empty.textContent = self._t("no_previous_conversations");
       body.appendChild(empty);
     } else {
       history.forEach(function (item) {
-        var age = Date.now() - (item.timestamp || 0);
-        var timeStr = age < 60000 ? "Just now"
-          : age < 3600000 ? Math.floor(age / 60000) + "m ago"
-          : age < 86400000 ? Math.floor(age / 3600000) + "h ago"
-          : Math.floor(age / 86400000) + "d ago";
+        var timeStr = self._ago(item.timestamp);
 
         var btn = document.createElement("button");
         btn.className = "snkr-hist-ol-item";
         btn.innerHTML =
           '<div class="snkr-hist-ol-dot">' + I.history + '</div>' +
           '<div class="snkr-hist-ol-content">' +
-            '<div class="snkr-hist-ol-preview">' + esc(item.preview || "Conversation") + '</div>' +
+            '<div class="snkr-hist-ol-preview">' + esc(item.preview || self._t("conversation")) + '</div>' +
             '<div class="snkr-hist-ol-time">' + esc(timeStr) + '</div>' +
           '</div>' +
           '<span class="snkr-hist-ol-chevron">' + I.chevron + '</span>';
@@ -2094,7 +2280,7 @@
       '<span class="snkr-file-chip-name">' + esc(file.name) + '</span>';
     var removeBtn = document.createElement("button");
     removeBtn.className = "snkr-file-remove";
-    removeBtn.setAttribute("aria-label", "Remove");
+    removeBtn.setAttribute("aria-label", this._t("remove"));
     removeBtn.innerHTML = I.xsm;
     removeBtn.addEventListener("click", function (e) {
       e.stopPropagation();
@@ -2164,13 +2350,13 @@
     // With false the browser silently auto-stops after a brief pause.
     rec.continuous = true;
     rec.interimResults = true;
-    rec.lang = navigator.language || "en-US";
+    rec.lang = this._localeTag || navigator.language || "en-US";
 
     rec.onstart = function () {
       self._micActive = true;
       self._micBtn.classList.add("recording");
       self._micBtn.innerHTML = I.micoff;
-      self._micBtn.setAttribute("aria-label", "Stop recording");
+      self._micBtn.setAttribute("aria-label", self._t("stop_recording"));
       self._startRecIndicator();
     };
 
@@ -2233,7 +2419,7 @@
     this._micActive = false;
     this._micBtn.classList.remove("recording");
     this._micBtn.innerHTML = I.mic;
-    this._micBtn.setAttribute("aria-label", "Voice input");
+    this._micBtn.setAttribute("aria-label", this._t("voice_input"));
     this._stopRecIndicator();
   };
 
@@ -2242,8 +2428,8 @@
     // Microphone → enable the browser) or browser-level (site settings).
     var isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
     var msg = isMac
-      ? "Allow mic: System Settings \u2192 Privacy \u2192 Microphone \u2192 enable your browser"
-      : "Microphone blocked \u2014 check browser or OS permissions";
+      ? this._t("mic_blocked_mac")
+      : this._t("mic_blocked");
     var orig = this._input.placeholder;
     this._input.placeholder = msg;
     var self = this;
@@ -2278,7 +2464,7 @@
       self._micActive = true;
       self._micBtn.classList.add("recording");
       self._micBtn.innerHTML = I.micoff;
-      self._micBtn.setAttribute("aria-label", "Stop recording");
+      self._micBtn.setAttribute("aria-label", self._t("stop_recording"));
       self._startRecIndicator();
     }).catch(function (err) {
       console.warn("[SynkoraWidget] getUserMedia error:", err && err.name, err && err.message);
@@ -2297,7 +2483,7 @@
     var bubble = this._row("user");
     var m = Math.floor(durationSecs / 60);
     var s = durationSecs % 60;
-    var label = "Voice note · " + m + ":" + (s < 10 ? "0" : "") + s;
+    var label = this._t("voice_note", { time: m + ":" + (s < 10 ? "0" : "") + s });
     var wrapper = document.createElement("div");
     wrapper.className = "snkr-audio-msg";
     var audio = document.createElement("audio");
@@ -2327,6 +2513,7 @@
       headers: { "Content-Type": "application/json", "X-Widget-API-Key": this.apiKey },
       body: JSON.stringify({
         message: "[" + label + "]",
+        language: this._localeTag,
         session_id: this.sessionId,
         conversation_id: this.conversationId || undefined,
         user: this._user || undefined,
@@ -2371,7 +2558,7 @@
         panel.className = "snkr-sherlock";
         var hdr = document.createElement("div");
         hdr.className = "snkr-sherlock-hdr";
-        hdr.textContent = "Investigating...";
+        hdr.textContent = this._t("investigating");
         panel.appendChild(hdr);
         // Insert before typing indicator row, or at end of messages
         // _typingEl is already the .snkr-row wrapper returned by _typing()
@@ -2388,7 +2575,7 @@
       var dot = document.createElement("span");
       dot.className = "snkr-sherlock-dot";
       var label = document.createElement("span");
-      label.textContent = description || ("Using " + toolName.replace(/_/g, " ") + "…");
+      label.textContent = description || this._t("using_tool", { tool: toolName.replace(/_/g, " ") });
       step.appendChild(dot);
       step.appendChild(label);
       this._sherlockEl.appendChild(step);
@@ -2426,7 +2613,7 @@
       setTimeout(function () {
         if (!self._isOpen && !self._ambientFired.time) {
           self._ambientFired.time = true;
-          self._probeUser("Need help with anything? I'm here to assist.");
+          self._probeUser(self._t("probe_time"));
         }
       }, 60000);
     }
@@ -2438,7 +2625,7 @@
         if (pct >= 0.75 && !self._isOpen && !self._ambientFired.scroll) {
           self._ambientFired.scroll = true;
           window.removeEventListener("scroll", onScroll);
-          self._probeUser("Looks like you've been exploring — can I answer any questions?");
+          self._probeUser(self._t("probe_scroll"));
         }
       };
       window.addEventListener("scroll", onScroll, { passive: true });
@@ -2458,7 +2645,7 @@
           setTimeout(function () {
             if (!self._isOpen && !self._ambientFired.form && focusedInput && focusedInput.value) {
               self._ambientFired.form = true;
-              self._probeUser("Stuck on the form? I can help you fill it out.");
+              self._probeUser(self._t("probe_form"));
               document.removeEventListener("focusin", onFocusIn);
               document.removeEventListener("focusout", onFocusOut);
             }
@@ -2499,11 +2686,10 @@
       banner.innerHTML =
         '<span class="snkr-pioneer-icon">🔭</span>' +
         '<div class="snkr-pioneer-body">' +
-          '<strong>You sparked an investigation!</strong>' +
-          'Your last question was complex enough that the AI used ' + data.toolsUsed + ' tool' + (data.toolsUsed !== 1 ? 's' : '') + ' to answer it. ' +
-          'It may already be helping others.' +
+          '<strong>' + esc(self._t("pioneer_title")) + '</strong>' +
+          esc(self._t(data.toolsUsed === 1 ? "pioneer_body_one" : "pioneer_body_many", { n: data.toolsUsed })) +
         '</div>' +
-        '<button class="snkr-pioneer-close" aria-label="Dismiss">&times;</button>';
+        '<button class="snkr-pioneer-close" aria-label="' + esc(self._t("dismiss")) + '">&times;</button>';
       banner.querySelector(".snkr-pioneer-close").addEventListener("click", function (e) {
         e.stopPropagation();
         banner.parentNode && banner.parentNode.removeChild(banner);
@@ -2519,9 +2705,38 @@
     } catch (_) {}
   };
 
+  // Text in the widget's language: Widget.prototype._t("send"), _t("minutes_ago", { n: 5 }).
+  Widget.prototype._t = function (key, vars) {
+    var text = this._strings[key];
+    return fmt(text === undefined ? key : text, vars);
+  };
+
+  // "5m ago" / "vor 5 Min." from a timestamp in ms.
+  Widget.prototype._ago = function (timestamp) {
+    var age = Date.now() - (timestamp || 0);
+    return age < 60000 ? this._t("just_now")
+      : age < 3600000 ? this._t("minutes_ago", { n: Math.floor(age / 60000) })
+      : age < 86400000 ? this._t("hours_ago", { n: Math.floor(age / 3600000) })
+      : this._t("days_ago", { n: Math.floor(age / 86400000) });
+  };
+
+  // "Powered by Acme" -> "Powered by <a>Acme</a>" in the widget's language (or English).
+  Widget.prototype._brandLink = function (text, url) {
+    if (!url) return esc(text);
+    var prefixes = [this._t("powered_by_prefix"), "Powered by "];
+    for (var i = 0; i < prefixes.length; i++) {
+      var prefix = prefixes[i];
+      if (prefix && text.indexOf(prefix) === 0 && text.length > prefix.length) {
+        return esc(prefix) + '<a href="' + esc(url) + '" target="_blank" rel="noopener">' +
+          esc(text.slice(prefix.length)) + '</a>';
+      }
+    }
+    return esc(text);
+  };
+
   Widget.prototype._loadConfig = function () {
     var self = this;
-    fetch(this.apiUrl + "/widgets/config", {
+    fetch(this.apiUrl + "/widgets/config?lang=" + encodeURIComponent(this._localeTag), {
       headers: this._authHeaders(),
     })
       .then(function (res) { return res.ok ? res.json() : null; })
@@ -2549,11 +2764,11 @@
   Widget.prototype._applyConfig = function (c) {
     var self = this;
     var cfg = this._cfg;
-    cfg.agentName         = c.agentName         || "AI Assistant";
+    cfg.agentName         = c.agentName         || self._t("default_agent_name");
     cfg.agentAvatar       = c.agentAvatar       || "";
     cfg.agentDescription  = c.agentDescription  || "";
-    cfg.welcomeMessage    = c.welcomeMessage    || ("Hi there 👋\nHow can we help?");
-    cfg.placeholder       = c.placeholder       || "Message…";
+    cfg.welcomeMessage    = c.welcomeMessage    || (self._t("greeting") + "\n" + self._t("greeting_sub"));
+    cfg.placeholder       = c.placeholder       || self._t("message_placeholder");
     cfg.primaryColor      = c.primaryColor      || "#79dfbc";
     cfg.suggestions       = Array.isArray(c.suggestions) ? c.suggestions : [];
     if (c.privacyPolicyUrl)  cfg.privacyPolicyUrl  = c.privacyPolicyUrl;
@@ -2569,11 +2784,8 @@
       if (cfg.brandingText === false) {
         el.innerHTML = "";
       } else {
-        var bText = cfg.brandingText || "Powered by AI";
-        var bUrl  = cfg.brandingUrl;
-        el.innerHTML = bUrl
-          ? bText.replace(/^(Powered by )(.+)$/, '$1<a href="' + esc(bUrl) + '" target="_blank" rel="noopener">$2</a>')
-          : esc(bText);
+        var bText = cfg.brandingText || self._t("powered_by_ai");
+        el.innerHTML = self._brandLink(bText, cfg.brandingUrl);
       }
     });
 
@@ -2677,7 +2889,7 @@
     this._toggle.innerHTML = I.x;
     // Re-append badge (innerHTML replaced above)
     this._toggle.appendChild(this._badge);
-    this._toggle.setAttribute("aria-label", "Close chat");
+    this._toggle.setAttribute("aria-label", this._t("close_chat"));
     this._panel.classList.add("open");
 
     // For identified users: load server history on first open.
@@ -2709,7 +2921,7 @@
     this._toggle.innerHTML = I.chat;
     // Re-append badge after innerHTML replacement
     this._toggle.appendChild(this._badge);
-    this._toggle.setAttribute("aria-label", "Open chat");
+    this._toggle.setAttribute("aria-label", this._t("open_chat"));
     this._panel.classList.remove("open");
     // Close dropdown if open
     var dd = this._shadow.getElementById("snkr-menu-dropdown");
@@ -2759,9 +2971,9 @@
       var ts = document.createElement("div");
       ts.className = "snkr-ts";
       if (type === "agent") {
-        ts.textContent = this._cfg.agentName + " · " + timeNow();
+        ts.textContent = this._cfg.agentName + " · " + timeNow(this._localeTag);
       } else {
-        ts.textContent = timeNow();
+        ts.textContent = timeNow(this._localeTag);
       }
       row.appendChild(ts);
     }
@@ -2867,6 +3079,7 @@
       },
       body: JSON.stringify({
         message: text,
+        language: this._localeTag,
         session_id: this.sessionId,
         conversation_id: this.conversationId || undefined,
         user: this._user || undefined,
@@ -2908,7 +3121,7 @@
         self._typingEl = null;
         self._remove(self._agentBubble);
         self._agentBubble = null;
-        self._addError("Sorry, something went wrong. Please try again.");
+        self._addError(self._t("error_generic"));
         console.error("[SynkoraWidget]", err.message);
         self._finish();
       });
@@ -2938,7 +3151,7 @@
         this._agentRenderTimer = setTimeout(() => {
           this._agentRenderTimer = null;
           if (this._agentBubble) {
-            this._agentBubble.innerHTML = mdParse(this._agentText, true);
+            this._agentBubble.innerHTML = mdParse(this._agentText, true, this._t("copy"));
             this._scroll();
           }
         }, 50);
@@ -2961,7 +3174,7 @@
       }
 
     } else if (evt.type === "error") {
-      var msg = evt.error || evt.content || "An error occurred.";
+      var msg = evt.error || evt.content || this._t("error_default");
       if (this._agentBubble) {
         this._agentBubble.closest(".snkr-row").className = "snkr-row error";
         this._agentBubble.textContent = msg;
@@ -2990,7 +3203,7 @@
       this._agentRenderTimer = null;
     }
     if (this._agentBubble) {
-      this._agentBubble.innerHTML = mdParse(this._agentText, false);
+      this._agentBubble.innerHTML = mdParse(this._agentText, false, this._t("copy"));
       this._agentBubble.classList.remove("streaming");
     }
     // Save text before nulling (needed for Feature 5 notification body)
@@ -3030,8 +3243,8 @@
       // Also try browser Notification if permission granted
       if (typeof Notification !== "undefined" && Notification.permission === "granted") {
         try {
-          new Notification(this._cfg.agentName + " replied", {
-            body: (_lastAgentText || "Your answer is ready.").replace(/<[^>]+>/g, "").slice(0, 100),
+          new Notification(this._t("notification_replied", { agent: this._cfg.agentName }), {
+            body: (_lastAgentText || this._t("answer_ready")).replace(/<[^>]+>/g, "").slice(0, 100),
             icon: this._cfg.agentAvatar || undefined,
           });
         } catch (_) {}
@@ -3058,11 +3271,11 @@
     card.className = "snkr-approval-card";
     card.setAttribute("data-approval-id", approvalId);
     card.innerHTML =
-      '<div class="snkr-approval-header">Approval required: <code>' + esc(toolName) + '</code></div>' +
+      '<div class="snkr-approval-header">' + esc(this._t("approval_required")) + '<code>' + esc(toolName) + '</code></div>' +
       '<pre class="snkr-approval-args">' + esc(argsText) + '</pre>' +
       '<div class="snkr-approval-actions">' +
-      '<button class="snkr-approval-btn snkr-approve">Approve</button>' +
-      '<button class="snkr-approval-btn snkr-reject">Reject</button>' +
+      '<button class="snkr-approval-btn snkr-approve">' + esc(this._t("approve")) + '</button>' +
+      '<button class="snkr-approval-btn snkr-reject">' + esc(this._t("reject")) + '</button>' +
       '</div>';
 
     this._messages.appendChild(card);
@@ -3089,10 +3302,10 @@
       body: JSON.stringify({ decision: decision }),
     }).then(function () {
       card.innerHTML = '<div class="snkr-approval-done">' +
-        (decision === "approved" ? "\u2713 Approved \u2014 action will proceed." : "\u2717 Rejected.") +
+        esc(self._t(decision === "approved" ? "approved" : "rejected")) +
         "</div>";
     }).catch(function () {
-      card.innerHTML = '<div class="snkr-approval-done">Request failed.</div>';
+      card.innerHTML = '<div class="snkr-approval-done">' + esc(self._t("request_failed")) + '</div>';
     });
   };
 
@@ -3103,7 +3316,7 @@
     banner.className = "snkr-handoff-banner";
     banner.innerHTML =
       '<span class="snkr-handoff-icon">\uD83D\uDC64</span> ' +
-      '<span>Connected to support. A human agent will respond shortly.</span>';
+      '<span>' + esc(this._t("handoff_connected")) + '</span>';
     this._messages.appendChild(banner);
     this._handoffBanner = banner;
     this._scroll();
@@ -3129,7 +3342,7 @@
     // Show "Support session ended" message
     var note = document.createElement("div");
     note.className = "snkr-system-note";
-    note.textContent = "Support session ended. You are now chatting with the AI assistant again.";
+    note.textContent = this._t("handoff_ended");
     if (this._messages) { this._messages.appendChild(note); this._scroll(); }
   };
 
@@ -3158,7 +3371,7 @@
             if (!msgId || self._seenHandoffMsgIds[msgId]) return;
             self._seenHandoffMsgIds[msgId] = true;
             var opBubble = self._row("agent");
-            opBubble.innerHTML = "<strong style=\"font-size:11px;color:#6b7280;display:block;margin-bottom:3px;\">Support</strong>" + esc(m.content || "");
+            opBubble.innerHTML = "<strong style=\"font-size:11px;color:#6b7280;display:block;margin-bottom:3px;\">" + esc(self._t("support")) + "</strong>" + esc(m.content || "");
           });
         })
         .catch(function () {});

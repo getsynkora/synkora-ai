@@ -108,4 +108,6 @@ export interface ChatOptions {
   conversationId?: string
   /** Arbitrary key-value metadata passed to the agent. */
   metadata?: Record<string, unknown>
+  /** Language the agent should reply in by default, as a BCP-47 code such as `de` or `pt-BR`. */
+  language?: string
 }

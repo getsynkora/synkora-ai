@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import { Attachment, FormDefinition, Message, SuggestionPrompt } from '../types'
 import { ChatMessage } from './ChatMessage'
 import { Sparkles, MessageSquare, Lightbulb } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 interface ChatConfig {
   chat_title?: string
@@ -218,6 +219,7 @@ interface EmptyStateProps {
 }
 
 function EmptyState({ suggestionPrompts = [], onSuggestionClick, chatConfig }: EmptyStateProps) {
+  const t = useTranslations('chat.empty')
   const primaryColor = chatConfig?.chat_primary_color || '#0d9488'
   const welcomeMessage = chatConfig?.chat_welcome_message || 'Ask me anything! I\'m here to help you with information, analysis, and creative tasks.'
   const hasConfiguredPrompts = suggestionPrompts.length > 0
@@ -260,7 +262,7 @@ function EmptyState({ suggestionPrompts = [], onSuggestionClick, chatConfig }: E
 
       {/* Bold Heading */}
       <h1 className="mb-1.5 text-[1.7rem] font-semibold tracking-[-0.05em] text-gray-900 md:text-[2.1rem]">
-        How can I help you today?
+        {t('title')}
       </h1>
       <p className="mb-4 max-w-[36rem] text-[0.92rem] leading-6 text-gray-500 md:text-[1rem] md:leading-7">
         {welcomeMessage}
@@ -302,26 +304,26 @@ function EmptyState({ suggestionPrompts = [], onSuggestionClick, chatConfig }: E
         <div className="grid w-full max-w-[42rem] grid-cols-1 gap-2.5 md:grid-cols-2">
           <SuggestionCard
             icon="💡"
-            title="Get Ideas"
-            description="Brainstorm creative solutions and explore possibilities"
+            title={t('ideasTitle')}
+            description={t('ideasBody')}
             onSuggestionClick={onSuggestionClick}
           />
           <SuggestionCard
             icon="📊"
-            title="Analyze Data"
-            description="Extract insights and patterns from your information"
+            title={t('analyzeTitle')}
+            description={t('analyzeBody')}
             onSuggestionClick={onSuggestionClick}
           />
           <SuggestionCard
             icon="✍️"
-            title="Write Content"
-            description="Create engaging copy, articles, and documentation"
+            title={t('writeTitle')}
+            description={t('writeBody')}
             onSuggestionClick={onSuggestionClick}
           />
           <SuggestionCard
             icon="🔍"
-            title="Research"
-            description="Deep dive into topics and gather information"
+            title={t('researchTitle')}
+            description={t('researchBody')}
             onSuggestionClick={onSuggestionClick}
           />
         </div>

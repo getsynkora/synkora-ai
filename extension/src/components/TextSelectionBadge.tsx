@@ -1,4 +1,5 @@
 import { X, Quote } from 'lucide-react';
+import { t } from '../lib/i18n';
 
 interface Props {
   text: string;
@@ -15,7 +16,7 @@ export function TextSelectionBadge({ text, onDismiss }: Props) {
       <button
         onClick={onDismiss}
         className="flex-shrink-0 text-brand-muted/70 hover:text-brand-ink transition-colors"
-        aria-label="Dismiss selection"
+        aria-label={t('dismissSelection')}
       >
         <X size={12} />
       </button>

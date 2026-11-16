@@ -9,6 +9,7 @@ import { useAgents } from '@/hooks/useAgents';
 import { AgentPicker, AgentAvatar } from '@/components/AgentPicker';
 import { ChatPanel } from '@/components/ChatPanel';
 import { ContextBadge } from '@/components/ContextBadge';
+import { t } from '../../lib/i18n';
 
 export default function App() {
   const [pageUrl, setPageUrl] = useState('');
@@ -68,7 +69,7 @@ export default function App() {
       const { url: authUrl, state } = await buildAuthUrl(url);
       chrome.identity.launchWebAuthFlow({ url: authUrl, interactive: true }, async (responseUrl) => {
         if (chrome.runtime.lastError || !responseUrl) {
-          setAuthError(chrome.runtime.lastError?.message ?? 'Authorization cancelled');
+          setAuthError(chrome.runtime.lastError?.message ?? t('authCancelled'));
           setConnecting(false);
           return;
         }
@@ -77,17 +78,17 @@ export default function App() {
           const code = params.get('code');
           const returnedState = params.get('state');
           const apiUrl = params.get('api_url');
-          if (!code || returnedState !== state) throw new Error('Invalid callback parameters');
+          if (!code || returnedState !== state) throw new Error(t('invalidCallback'));
           if (apiUrl) await storeApiUrl(apiUrl);
           await exchangeCodeForTokens(url, code, returnedState, apiUrl ?? undefined);
           setConnected(true, url);
         } catch (err) {
-          setAuthError(err instanceof Error ? err.message : 'Auth failed');
+          setAuthError(err instanceof Error ? err.message : t('authFailed'));
           setConnecting(false);
         }
       });
     } catch (err) {
-      setAuthError(err instanceof Error ? err.message : 'Failed to start auth');
+      setAuthError(err instanceof Error ? err.message : t('authStartFailed'));
       setConnecting(false);
     }
   };
@@ -210,10 +211,10 @@ export default function App() {
             disabled={connecting}
             className="w-full bg-synkora-400 hover:bg-synkora-300 disabled:opacity-60 text-brand-ink text-sm font-semibold py-2.5 rounded-2xl transition-colors shadow-soft"
           >
-            {connecting ? 'Waiting for authorization…' : 'Connect with Synkora'}
+            {connecting ? t('waitingAuth') : t('connect')}
           </button>
           <p className="text-[10px] text-brand-muted/80 text-center mt-2">
-            Opens your Synkora dashboard to authorize access
+            {t('connectHint')}
           </p>
         </div>
       </div>
@@ -283,7 +284,7 @@ export default function App() {
           </div>
           <button
             onClick={handleDisconnect}
-            title="Disconnect"
+            title={t('disconnect')}
             className="flex-shrink-0 p-2 rounded-xl text-brand-muted hover:text-[#8b3f1e] hover:bg-[#fff2ec] transition-colors mr-1"
           >
             <LogOut size={14} />

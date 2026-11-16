@@ -14,6 +14,7 @@ import { VoicePlayer } from './VoicePlayer'
 import { ToolStatusDisplay } from './ToolStatusDisplay'
 import { InteractiveFormCard } from './InteractiveFormCard'
 import toast from 'react-hot-toast'
+import { useLocale, useTranslations } from 'next-intl'
 
 const ChartRenderer = dynamic(
   () => import('@/components/charts/ChartRenderer').then((mod) => mod.ChartRenderer),
@@ -222,11 +223,12 @@ interface ChatMessageProps {
 }
 
 function UserInitialAvatar({ name }: { name?: string }) {
+  const t = useTranslations('chat.message')
   const seed = encodeURIComponent(name?.trim() || 'User')
   return (
     <img
       src={`https://api.dicebear.com/9.x/adventurer/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`}
-      alt={name || 'User'}
+      alt={name || t('user')}
       className="h-full w-full object-cover"
     />
   )
@@ -237,6 +239,7 @@ function UserInitialAvatar({ name }: { name?: string }) {
  * Uses a DOM ref to extract cell text, so it works with any react-markdown output.
  */
 function TableWithExport({ children, ...props }: any) {
+  const t = useTranslations('chat.message')
   const tableRef = useRef<HTMLTableElement>(null)
   const [exporting, setExporting] = useState<'csv' | 'pdf' | null>(null)
 
@@ -285,7 +288,7 @@ function TableWithExport({ children, ...props }: any) {
         </table>`
       const win = window.open('', '_blank')
       if (!win) return
-      win.document.write(`<!DOCTYPE html><html><head><title>Table Export</title>
+      win.document.write(`<!DOCTYPE html><html><head><title>${t('tableExport')}</title>
         <style>@media print{body{margin:16px}}</style>
         </head><body>${tableHtml}</body></html>`)
       win.document.close()
@@ -302,7 +305,7 @@ function TableWithExport({ children, ...props }: any) {
         <button
           onClick={exportCSV}
           disabled={exporting !== null}
-          title="Export as CSV"
+          title={t('exportCsv')}
           className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {exporting === 'csv' ? (
@@ -317,7 +320,7 @@ function TableWithExport({ children, ...props }: any) {
         <button
           onClick={exportPDF}
           disabled={exporting !== null}
-          title="Export as PDF"
+          title={t('exportPdf')}
           className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {exporting === 'pdf' ? (
@@ -365,6 +368,8 @@ export const ChatMessage = memo(function ChatMessage({
   onFormSubmit,
   formSubmissionDisabled = false,
 }: ChatMessageProps) {
+  const t = useTranslations('chat.message')
+  const locale = useLocale()
   const [copied, setCopied] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   // Use the real DB UUID as the stable key for feedback persistence. Falls back
@@ -452,18 +457,18 @@ export const ChatMessage = memo(function ChatMessage({
           <div className="flex items-center justify-end gap-1.5 mt-1 px-1">
             {onDelete && confirmingDelete ? (
               <>
-                <span className="text-[10px] text-gray-500">Delete this message?</span>
+                <span className="text-[10px] text-gray-500">{t('deleteThis')}</span>
                 <button
                   onClick={() => { onDelete(message.id); setConfirmingDelete(false) }}
                   className="text-[10px] font-medium text-red-500 hover:text-red-600 transition-colors"
                 >
-                  Delete
+                  {t('delete')}
                 </button>
                 <button
                   onClick={() => setConfirmingDelete(false)}
                   className="text-[10px] text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  Cancel
+                  {t('cancel')}
                 </button>
               </>
             ) : (
@@ -472,7 +477,7 @@ export const ChatMessage = memo(function ChatMessage({
                   <button
                     onClick={() => setConfirmingDelete(true)}
                     className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-all"
-                    title="Delete message"
+                    title={t('deleteMessage')}
                   >
                     <Trash2 size={11} />
                   </button>
@@ -480,13 +485,13 @@ export const ChatMessage = memo(function ChatMessage({
                 <button
                   onClick={handleCopy}
                   className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-gray-600 transition-all"
-                  title="Copy message"
+                  title={t('copyMessage')}
                 >
                   {copied ? <Check size={11} className="text-green-500" /> : <Copy size={11} />}
                 </button>
-                <span className="text-[10px] text-gray-400">You</span>
+                <span className="text-[10px] text-gray-400">{t('you')}</span>
                 <span className="text-[10px] text-gray-300">·</span>
-                <span className="text-[10px] text-gray-400">{formatTimestamp(message.timestamp)}</span>
+                <span className="text-[10px] text-gray-400">{formatTimestamp(message.timestamp, t, locale)}</span>
               </>
             )}
           </div>
@@ -511,14 +516,14 @@ export const ChatMessage = memo(function ChatMessage({
             {agentAvatar.startsWith('http://') || agentAvatar.startsWith('https://') ? (
               <Image
                 src={agentAvatar}
-                alt="Agent"
+                alt={t('agent')}
                 width={24}
                 height={24}
                 className="w-full h-full object-cover"
                 unoptimized
               />
             ) : (
-              <Image src={agentAvatar} alt="Agent" fill className="object-cover" />
+              <Image src={agentAvatar} alt={t('agent')} fill className="object-cover" />
             )}
           </div>
         ) : (
@@ -769,7 +774,7 @@ export const ChatMessage = memo(function ChatMessage({
                     <span className="block my-3">
                       <img
                         src={src}
-                        alt={alt || 'Image'}
+                        alt={alt || t('image')}
                         className="max-w-full h-auto rounded-lg border border-gray-200"
                         loading="lazy"
                         {...props}
@@ -798,7 +803,7 @@ export const ChatMessage = memo(function ChatMessage({
             <span
               className="inline-flex items-end gap-[3px] ml-1.5 align-middle"
               style={{ height: '18px' }}
-              aria-label="Generating"
+              aria-label={t('generating')}
             >
               {([0, 140, 280] as const).map((delay, i) => (
                 <span
@@ -871,14 +876,14 @@ export const ChatMessage = memo(function ChatMessage({
                 ) : infographic.png_url ? (
                   <img
                     src={infographic.png_url}
-                    alt={infographic.title || 'Infographic'}
+                    alt={infographic.title || t('infographic')}
                     className="block h-auto w-full mx-auto"
                     loading="lazy"
                   />
                 ) : infographic.svg_url ? (
                   <img
                     src={infographic.svg_url}
-                    alt={infographic.title || 'Infographic'}
+                    alt={infographic.title || t('infographic')}
                     className="block h-auto w-full mx-auto"
                     loading="lazy"
                   />
@@ -898,7 +903,7 @@ export const ChatMessage = memo(function ChatMessage({
                     {/* Image */}
                     <img
                       src={img.url}
-                      alt={img.revised_prompt || img.prompt || 'Generated image'}
+                      alt={img.revised_prompt || img.prompt || t('generatedImage')}
                       className="w-full h-auto block"
                       style={{ maxHeight: '640px', objectFit: 'contain', background: '#0a0a0a' }}
                     />
@@ -927,7 +932,7 @@ export const ChatMessage = memo(function ChatMessage({
                             onClick={e => e.stopPropagation()}
                           >
                             <Download className="w-3.5 h-3.5" />
-                            Download
+                            {t('download')}
                           </a>
                         </div>
                       </div>
@@ -958,7 +963,7 @@ export const ChatMessage = memo(function ChatMessage({
                       className="w-full h-auto block"
                       style={{ maxHeight: '640px', background: '#0a0a0a' }}
                     >
-                      Your browser does not support video playback.
+                      {t('videoUnsupported')}
                     </video>
                     <div className="flex items-center justify-between gap-3 px-3 py-2">
                       <p className="text-zinc-300 text-xs leading-relaxed line-clamp-2 flex-1 min-w-0">
@@ -978,7 +983,7 @@ export const ChatMessage = memo(function ChatMessage({
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-lg transition-colors border border-white/20"
                         >
                           <Download className="w-3.5 h-3.5" />
-                          Download
+                          {t('download')}
                         </a>
                       </div>
                     </div>
@@ -1022,7 +1027,7 @@ export const ChatMessage = memo(function ChatMessage({
                 )}
                 <img
                   src={map.map_url}
-                  alt="Map"
+                  alt={t('map')}
                   className="w-full h-auto"
                   style={{ maxHeight: '500px', objectFit: 'cover' }}
                 />
@@ -1425,7 +1430,7 @@ export const ChatMessage = memo(function ChatMessage({
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors"
             >
               {copied ? <Check size={12} /> : <Copy size={12} />}
-              {copied ? 'Copied' : 'Copy'}
+              {copied ? t('copied') : t('copy')}
             </button>
 
             <button
@@ -1441,7 +1446,7 @@ export const ChatMessage = memo(function ChatMessage({
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors"
             >
               <Download size={12} />
-              Export
+              {t('export')}
             </button>
 
             <VoicePlayer text={message.content} className="flex-shrink-0" compact />
@@ -1455,7 +1460,7 @@ export const ChatMessage = memo(function ChatMessage({
                     if (newRating !== null) {
                       localStorage.setItem(feedbackKey, '1')
                       onFeedback(message.dbId || message.id, 1)
-                      toast.success('Thanks for the feedback!')
+                      toast.success(t('thanksFeedback'))
                     } else {
                       localStorage.removeItem(feedbackKey)
                     }
@@ -1466,7 +1471,7 @@ export const ChatMessage = memo(function ChatMessage({
                       ? 'text-green-600 bg-green-50'
                       : 'text-gray-400 hover:text-green-600 hover:bg-green-50',
                   )}
-                  title="Helpful"
+                  title={t('helpful')}
                 >
                   <ThumbsUp size={12} />
                 </button>
@@ -1477,7 +1482,7 @@ export const ChatMessage = memo(function ChatMessage({
                     if (newRating !== null) {
                       localStorage.setItem(feedbackKey, '-1')
                       onFeedback(message.dbId || message.id, -1)
-                      toast.success('Thanks for the feedback!')
+                      toast.success(t('thanksFeedback'))
                     } else {
                       localStorage.removeItem(feedbackKey)
                     }
@@ -1488,7 +1493,7 @@ export const ChatMessage = memo(function ChatMessage({
                       ? 'text-red-600 bg-red-50'
                       : 'text-gray-400 hover:text-red-500 hover:bg-red-50',
                   )}
-                  title="Not helpful"
+                  title={t('notHelpful')}
                 >
                   <ThumbsDown size={12} />
                 </button>
@@ -1499,7 +1504,7 @@ export const ChatMessage = memo(function ChatMessage({
               <button
                 onClick={() => onRetry(message.id)}
                 className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                title="Regenerate"
+                title={t('regenerate')}
               >
                 <RefreshCw size={12} />
               </button>
@@ -1513,20 +1518,20 @@ export const ChatMessage = memo(function ChatMessage({
                     onClick={() => { onDelete(message.id); setConfirmingDelete(false) }}
                     className="text-[11px] font-medium text-red-500 hover:text-red-600 transition-colors"
                   >
-                    Delete
+                    {t('delete')}
                   </button>
                   <button
                     onClick={() => setConfirmingDelete(false)}
                     className="text-[11px] text-gray-400 hover:text-gray-600 transition-colors"
                   >
-                    Cancel
+                    {t('cancel')}
                   </button>
                 </div>
               ) : (
                 <button
                   onClick={() => setConfirmingDelete(true)}
                   className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                  title="Delete message"
+                  title={t('deleteMessage')}
                 >
                   <Trash2 size={12} />
                 </button>
@@ -1546,7 +1551,7 @@ export const ChatMessage = memo(function ChatMessage({
               {message.metadata?.usage?.total_tokens != null && (
                 <span>{message.metadata.usage.total_tokens.toLocaleString()} tokens</span>
               )}
-              <span>{formatTimestamp(message.timestamp)}</span>
+              <span>{formatTimestamp(message.timestamp, t, locale)}</span>
             </div>
           </div>
         )}
@@ -1560,6 +1565,7 @@ interface AttachmentPreviewProps {
 }
 
 function AttachmentPreview({ attachment }: AttachmentPreviewProps) {
+  const t = useTranslations('chat.message')
   const [imageError, setImageError] = useState(false)
   const [showLightbox, setShowLightbox] = useState(false)
 
@@ -1594,7 +1600,7 @@ function AttachmentPreview({ attachment }: AttachmentPreviewProps) {
           >
             <img
               src={attachment.thumbnail_url || attachment.file_url}
-              alt={attachment.file_name || 'Image'}
+              alt={attachment.file_name || t('image')}
               className="w-full h-auto"
               onError={() => setImageError(true)}
             />
@@ -1617,7 +1623,7 @@ function AttachmentPreview({ attachment }: AttachmentPreviewProps) {
                 </button>
                 <img
                   src={attachment.file_url}
-                  alt={attachment.file_name || 'Image'}
+                  alt={attachment.file_name || t('image')}
                   className="max-w-full max-h-[90vh] object-contain"
                   onClick={(e) => e.stopPropagation()}
                 />
@@ -1641,10 +1647,10 @@ function AttachmentPreview({ attachment }: AttachmentPreviewProps) {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-900 truncate">
-            {attachment.file_name || 'File'}
+            {attachment.file_name || t('file')}
           </p>
           <p className="text-xs text-gray-500">
-            {attachment.file_size ? formatFileSize(attachment.file_size) : 'Unknown size'}
+            {attachment.file_size ? formatFileSize(attachment.file_size) : t('unknownSize')}
           </p>
         </div>
         <Download size={16} className="text-gray-400 flex-shrink-0" />
@@ -1659,7 +1665,7 @@ function AttachmentPreview({ attachment }: AttachmentPreviewProps) {
         <div className="rounded-lg overflow-hidden border border-gray-200">
           <img
             src={attachment.url}
-            alt={attachment.name || 'Attachment'}
+            alt={attachment.name || t('attachment')}
             className="w-full h-auto"
           />
         </div>
@@ -1681,7 +1687,7 @@ function AttachmentPreview({ attachment }: AttachmentPreviewProps) {
           )}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">
-              {attachment.name || 'Link'}
+              {attachment.name || t('link')}
             </p>
             <p className="text-xs text-gray-500 truncate">{attachment.url}</p>
           </div>
@@ -1702,6 +1708,7 @@ interface EmbeddedImageProps {
 }
 
 function EmbeddedImage({ url, primaryColor = '#0d9488' }: EmbeddedImageProps) {
+  const t = useTranslations('chat.message')
   const [imageError, setImageError] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [showLightbox, setShowLightbox] = useState(false)
@@ -1711,7 +1718,7 @@ function EmbeddedImage({ url, primaryColor = '#0d9488' }: EmbeddedImageProps) {
       <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
         <div className="flex items-center gap-2">
           <ImageIcon size={16} />
-          <span>Failed to load image</span>
+          <span>{t('imageFailed')}</span>
         </div>
         <a
           href={url}
@@ -1720,7 +1727,7 @@ function EmbeddedImage({ url, primaryColor = '#0d9488' }: EmbeddedImageProps) {
           className="text-xs underline mt-1 inline-block"
           style={{ color: primaryColor }}
         >
-          Open URL directly
+          {t('openUrl')}
         </a>
       </div>
     )
@@ -1747,7 +1754,7 @@ function EmbeddedImage({ url, primaryColor = '#0d9488' }: EmbeddedImageProps) {
         { }
         <img
           src={url}
-          alt="Screenshot"
+          alt={t('screenshot')}
           loading="lazy"
           className={cn(
             "w-full h-auto transition-opacity",
@@ -1761,7 +1768,7 @@ function EmbeddedImage({ url, primaryColor = '#0d9488' }: EmbeddedImageProps) {
         />
         {!isLoading && (
           <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
-            Click to expand
+            {t('clickToExpand')}
           </div>
         )}
       </div>
@@ -1787,14 +1794,14 @@ function EmbeddedImage({ url, primaryColor = '#0d9488' }: EmbeddedImageProps) {
               rel="noopener noreferrer"
               className="absolute top-4 left-4 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2 z-10"
               onClick={(e) => e.stopPropagation()}
-              title="Open in new tab"
+              title={t('openNewTab')}
             >
               <Download size={20} />
             </a>
             { }
             <img
               src={url}
-              alt="Screenshot"
+              alt={t('screenshot')}
               className="max-w-full max-h-[90vh] object-contain"
               onClick={(e) => e.stopPropagation()}
             />
@@ -1805,20 +1812,23 @@ function EmbeddedImage({ url, primaryColor = '#0d9488' }: EmbeddedImageProps) {
   )
 }
 
-function formatTimestamp(date: Date): string {
+function formatTimestamp(
+  date: Date,
+  t: (key: 'justNow' | 'minutesAgo' | 'hoursAgo', values?: { count: number }) => string,
+  locale: string,
+): string {
   const now = new Date()
   const diff = now.getTime() - date.getTime()
   const seconds = Math.floor(diff / 1000)
   const minutes = Math.floor(seconds / 60)
   const hours = Math.floor(minutes / 60)
 
-  if (seconds < 60) return 'Just now'
-  if (minutes < 60) return `${minutes}m ago`
-  if (hours < 24) return `${hours}h ago`
+  if (seconds < 60) return t('justNow')
+  if (minutes < 60) return t('minutesAgo', { count: minutes })
+  if (hours < 24) return t('hoursAgo', { count: hours })
 
-  return date.toLocaleTimeString('en-US', {
+  return date.toLocaleTimeString(locale, {
     hour: 'numeric',
     minute: '2-digit',
-    hour12: true,
   })
 }

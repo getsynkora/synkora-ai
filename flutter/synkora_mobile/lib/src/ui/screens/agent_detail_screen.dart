@@ -6,6 +6,7 @@ import '../../theme/app_theme.dart';
 import '../voice/voice_entry_card.dart';
 import '../voice/voice_hub_scope.dart';
 import 'agent_chat_screen.dart';
+import '../../../l10n/app_localizations.dart';
 
 class AgentDetailScreen extends StatefulWidget {
   const AgentDetailScreen({
@@ -41,9 +42,10 @@ class _AgentDetailScreenState extends State<AgentDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Agent')),
+      appBar: AppBar(title: Text(l10n.agentTitle)),
       body: FutureBuilder<_AgentDetailState>(
         future: _future,
         builder: (context, snapshot) {
@@ -126,12 +128,14 @@ class _AgentDetailScreenState extends State<AgentDetailScreen> {
                         children: [
                           _ActionButton(
                             icon: Icons.chat_bubble_outline_rounded,
-                            label: 'Message',
+                            label: l10n.actionMessage,
+                            kind: _ActionKind.message,
                             onTap: () => _openChat(context, agent),
                           ),
                           _ActionButton(
                             icon: Icons.mic_none_rounded,
-                            label: 'Talk',
+                            label: l10n.actionTalk,
+                            kind: _ActionKind.talk,
                             onTap: () {
                               if (VoiceHubScope.maybeOf(context) != null) {
                                 openVoice(context, agent);
@@ -146,7 +150,8 @@ class _AgentDetailScreenState extends State<AgentDetailScreen> {
                           ),
                           _ActionButton(
                             icon: Icons.document_scanner_outlined,
-                            label: 'Scan',
+                            label: l10n.actionScan,
+                            kind: _ActionKind.scan,
                             onTap: () => _openChat(
                               context,
                               agent,
@@ -160,7 +165,7 @@ class _AgentDetailScreenState extends State<AgentDetailScreen> {
                 ),
               ),
               const SizedBox(height: 18),
-              Text('Capabilities', style: theme.textTheme.headlineMedium),
+              Text(l10n.capabilities, style: theme.textTheme.headlineMedium),
               const SizedBox(height: 12),
               Wrap(
                 spacing: 10,
@@ -169,28 +174,25 @@ class _AgentDetailScreenState extends State<AgentDetailScreen> {
                   _CapabilityChip(label: agent.agentType),
                   if (agent.category != null)
                     _CapabilityChip(label: agent.category!),
-                  _CapabilityChip(label: '${agent.executionCount} runs'),
+                  _CapabilityChip(label: l10n.runsCount(agent.executionCount)),
                   if (agent.successRate != null)
                     _CapabilityChip(
-                      label: '${(agent.successRate! * 100).round()}% success',
+                      label: l10n.successPercent(
+                        (agent.successRate! * 100).round(),
+                      ),
                     ),
                   for (final tag in agent.tags.take(4))
                     _CapabilityChip(label: tag),
                 ],
               ),
               const SizedBox(height: 22),
-              Text(
-                'Recent mobile sessions',
-                style: theme.textTheme.headlineMedium,
-              ),
+              Text(l10n.recentSessions, style: theme.textTheme.headlineMedium),
               const SizedBox(height: 12),
               if (state.conversations.isEmpty)
                 Card(
                   child: ListTile(
-                    title: const Text('No mobile sessions yet'),
-                    subtitle: const Text(
-                      'Start a fresh conversation from this agent.',
-                    ),
+                    title: Text(l10n.noSessions),
+                    subtitle: Text(l10n.noSessionsHint),
                     trailing: const Icon(Icons.arrow_forward_rounded),
                     onTap: () => _openChat(context, agent),
                   ),
@@ -203,7 +205,7 @@ class _AgentDetailScreenState extends State<AgentDetailScreen> {
                       child: ListTile(
                         title: Text(conversation.name),
                         subtitle: Text(
-                          formatRelativeTimestamp(conversation.updatedAt),
+                          formatRelativeTimestamp(conversation.updatedAt, l10n),
                         ),
                         trailing: const Icon(Icons.arrow_forward_rounded),
                         onTap: () => _openChat(
@@ -247,29 +249,33 @@ class _AgentDetailState {
   final List<ConversationSummary> conversations;
 }
 
+enum _ActionKind { message, talk, scan }
+
 class _ActionButton extends StatelessWidget {
   const _ActionButton({
     required this.icon,
     required this.label,
+    required this.kind,
     required this.onTap,
   });
 
   final IconData icon;
   final String label;
+  final _ActionKind kind;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = switch (label) {
-      'Talk' => (
+    final scheme = switch (kind) {
+      _ActionKind.talk => (
         background: [const Color(0xFFEFFCF6), SynkoraColors.primary],
         foreground: SynkoraColors.primaryDeep,
       ),
-      'Scan' => (
+      _ActionKind.scan => (
         background: [const Color(0xFFFFF4E7), SynkoraColors.accentWarm],
         foreground: const Color(0xFF8A4A12),
       ),
-      _ => (
+      _ActionKind.message => (
         background: [Colors.white, const Color(0xFFF4FBF8)],
         foreground: SynkoraColors.ink,
       ),

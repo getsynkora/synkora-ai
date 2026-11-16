@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ChevronDown, Pin, Check } from 'lucide-react';
 import type { Agent } from '@/types';
+import { t } from '../lib/i18n';
 
 interface Props {
   agents: Agent[];
@@ -34,7 +35,7 @@ export function AgentPicker({ agents, selectedAgentId, defaultAgentId, onSelect,
         <AgentAvatar agent={selected ?? null} size={30} />
         <div className="flex-1 min-w-0">
           <p className="text-[14px] font-semibold text-brand-ink truncate leading-tight">
-            {selected?.name ?? 'Select agent'}
+            {selected?.name ?? t('selectAgent')}
           </p>
           {selected?.description && (
             <p className="text-[11px] text-brand-muted/80 truncate leading-tight mt-0.5">
@@ -74,7 +75,7 @@ export function AgentPicker({ agents, selectedAgentId, defaultAgentId, onSelect,
                   <Check size={13} className="text-synkora-700 flex-shrink-0" />
                 )}
                 <button
-                  title={agent.id === defaultAgentId ? 'Default agent' : 'Set as default'}
+                  title={agent.id === defaultAgentId ? t('defaultAgent') : t('setAsDefault')}
                   onClick={(e) => { e.stopPropagation(); onSetDefault(agent.id); }}
                   className={`flex-shrink-0 p-1 rounded-lg transition-all ${
                     agent.id === defaultAgentId

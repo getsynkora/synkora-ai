@@ -55,6 +55,15 @@ const r2 = await client.chat('<agent-uuid>', 'What is my name?', {
 console.log(r2.message) // "Your name is Alice."
 ```
 
+## Reply language
+
+Pass `language` (a BCP-47 code such as `de` or `pt-BR`) and the agent replies in it by
+default. If the user writes in another language, the agent follows them.
+
+```ts
+const response = await client.chat(agentId, 'Hallo!', { language: 'de' })
+```
+
 ## Environment variables
 
 | Variable | Description |
@@ -80,6 +89,7 @@ Send a message and await the full response.
 const response: ChatResponse = await client.chat(agentId, message, {
   conversationId?: string   // continue an existing conversation
   metadata?: Record<string, unknown>
+  language?: string         // reply in this language by default, e.g. 'de' or 'pt-BR'
 })
 ```
 

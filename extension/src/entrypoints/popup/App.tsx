@@ -5,6 +5,7 @@ import {
   loadAccessToken, loadSynkoraUrl, storeSynkoraUrl, storeApiUrl,
 } from '@/lib/auth';
 import { useExtensionStore } from '@/store/extension';
+import { t } from '../../lib/i18n';
 
 type Screen = 'loading' | 'setup' | 'connecting' | 'connected' | 'error';
 
@@ -48,7 +49,7 @@ export default function App() {
       const { url: authUrl, state } = await buildAuthUrl(url);
       chrome.identity.launchWebAuthFlow({ url: authUrl, interactive: true }, async (responseUrl) => {
         if (chrome.runtime.lastError || !responseUrl) {
-          setErrorMsg(chrome.runtime.lastError?.message ?? 'Authorization cancelled');
+          setErrorMsg(chrome.runtime.lastError?.message ?? t('authCancelled'));
           setScreen('error');
           return;
         }
@@ -57,18 +58,18 @@ export default function App() {
           const code = params.get('code');
           const returnedState = params.get('state');
           const apiUrl = params.get('api_url');
-          if (!code || returnedState !== state) throw new Error('Invalid callback parameters');
+          if (!code || returnedState !== state) throw new Error(t('invalidCallback'));
           if (apiUrl) await storeApiUrl(apiUrl);
           await exchangeCodeForTokens(url, code, returnedState, apiUrl ?? undefined);
           setConnected(true, url);
           setScreen('connected');
         } catch (err) {
-          setErrorMsg(err instanceof Error ? err.message : 'Auth failed');
+          setErrorMsg(err instanceof Error ? err.message : t('authFailed'));
           setScreen('error');
         }
       });
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Failed to start auth');
+      setErrorMsg(err instanceof Error ? err.message : t('authStartFailed'));
       setScreen('error');
     }
   };
@@ -119,10 +120,10 @@ export default function App() {
           className="w-full bg-synkora-400 hover:bg-synkora-300 text-brand-ink text-sm font-semibold py-2.5 rounded-2xl transition-colors flex items-center justify-center gap-2 shadow-soft"
         >
           <ExternalLink size={13} />
-          Connect with Synkora
+          {t('connect')}
         </button>
         <p className="text-[10px] text-brand-muted/80 text-center mt-2">
-          Opens your Synkora dashboard to authorize access
+          {t('connectHint')}
         </p>
       </div>
     );
@@ -163,14 +164,14 @@ export default function App() {
           className="flex-1 flex items-center justify-center gap-1.5 border border-brand-line bg-brand-panel text-brand-ink text-xs py-2 rounded-2xl hover:bg-brand-surface transition-colors"
         >
           <Settings size={12} />
-          Settings
+          {t('settings')}
         </button>
         <button
           onClick={handleLogout}
           className="flex-1 flex items-center justify-center gap-1.5 border border-[#f2d1bd] text-[#8b3f1e] text-xs py-2 rounded-2xl hover:bg-[#fff2ec] transition-colors"
         >
           <LogOut size={12} />
-          Disconnect
+          {t('disconnect')}
         </button>
       </div>
     </div>

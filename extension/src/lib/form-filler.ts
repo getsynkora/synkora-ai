@@ -1,3 +1,5 @@
+import { t } from './i18n';
+
 export interface FillField {
   index: number;
   value: string;
@@ -15,7 +17,7 @@ export interface FillBlock {
 export async function fillFormOnPage(fields: FillField[]): Promise<{ filled: number; errors: string[] }> {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
   const tabId = tabs[0]?.id;
-  if (!tabId) throw new Error('No active tab found');
+  if (!tabId) throw new Error(t('noActiveTab'));
 
   const results = await chrome.scripting.executeScript({
     target: { tabId },
@@ -32,7 +34,7 @@ export async function fillFormOnPage(fields: FillField[]): Promise<{ filled: num
       for (const field of fillFields) {
         const el = inputs[field.index] as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | undefined;
         if (!el) {
-          errors.push(`No element at index ${field.index}`);
+          errors.push(t('noElementAt', { index: field.index }));
           continue;
         }
 
@@ -70,7 +72,7 @@ export async function fillFormOnPage(fields: FillField[]): Promise<{ filled: num
             filled++;
           }
         } catch (e) {
-          errors.push(`Field ${field.index}: ${e instanceof Error ? e.message : String(e)}`);
+          errors.push(t('fieldError', { index: field.index, message: e instanceof Error ? e.message : String(e) }));
         }
       }
 
@@ -79,7 +81,7 @@ export async function fillFormOnPage(fields: FillField[]): Promise<{ filled: num
     args: [fields],
   });
 
-  return (results[0]?.result as { filled: number; errors: string[] }) ?? { filled: 0, errors: ['Script returned no result'] };
+  return (results[0]?.result as { filled: number; errors: string[] }) ?? { filled: 0, errors: [t('scriptNoResult')] };
 }
 
 /**

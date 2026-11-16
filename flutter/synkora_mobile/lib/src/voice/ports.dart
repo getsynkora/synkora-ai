@@ -163,5 +163,6 @@ abstract class VoiceAgentGateway {
     required AgentSummary agent,
     required String message,
     required String conversationId,
+    String? language,
   });
 }

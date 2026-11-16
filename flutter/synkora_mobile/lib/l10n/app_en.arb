@@ -1,0 +1,320 @@
+{
+  "@@locale": "en",
+  "appTitle": "Synkora AI",
+  "signInTitle": "Synkora AI",
+  "signInSubtitle": "Use every agent in your workspace from a dedicated native app.",
+  "email": "Email",
+  "password": "Password",
+  "signIn": "Sign in",
+  "orContinueWith": "or continue with",
+  "continueWithGoogle": "Continue with Google",
+  "signInFootnote": "This app uses the same Synkora account and tenant access model as the web app.",
+  "chooseWorkspace": "Choose workspace",
+  "chooseWorkspaceBody": "Your account has access to multiple Synkora tenants. Pick the workspace you want to use on mobile.",
+  "bootBranding": "Branded by Synkora",
+  "bootLoading": "Loading your workspace, agents, and premium actions.",
+  "signInCancelled": "Sign-in was cancelled or could not be completed.",
+  "signInNotCompleted": "Sign-in was not completed.",
+  "authRequestFailed": "Authentication request failed.",
+  "workspaceNotFound": "Selected workspace was not found.",
+  "sessionIncomplete": "Your session is incomplete. Please sign in again.",
+  "streamFailed": "Failed to stream agent response: {error}",
+  "@streamFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "authRequired": "Authentication required.",
+  "networkError": "Unexpected network error",
+  "timeJustNow": "Just now",
+  "timeMinutesAgo": "{count}m ago",
+  "@timeMinutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeHoursAgo": "{count}h ago",
+  "@timeHoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "timeDaysAgo": "{count}d ago",
+  "@timeDaysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unknown": "Unknown",
+  "navAgents": "Agents",
+  "navInbox": "Inbox",
+  "navActivity": "Activity",
+  "navProfile": "Profile",
+  "inboxSubtitle": "Push replies, approvals, and completions will land here.",
+  "activitySubtitle": "Operational activity and agent work logs will appear here.",
+  "welcomeBack": "Welcome back, {name}",
+  "@welcomeBack": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeBackAnonymous": "Welcome back",
+  "workspaceName": "Workspace: {name}",
+  "@workspaceName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "searchAgents": "Search your agents",
+  "filtersSoon": "Filters land in the next mobile slice.",
+  "heroTitle": "All tenant agents, one app",
+  "heroBody": "Jump into any agent with full account auth and Flutter-native performance.",
+  "retry": "Retry",
+  "spotlight": "Spotlight",
+  "allAgents": "All agents",
+  "runsCount": "{count, plural, one{{count} run} other{{count} runs}}",
+  "@runsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "successPercent": "{percent}% success",
+  "@successPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "profileTitle": "Profile",
+  "synkoraUser": "Synkora User",
+  "workspace": "Workspace",
+  "role": "Role",
+  "switchWorkspace": "Switch workspace",
+  "switchWorkspaceHint": "Use a different tenant on this device",
+  "signOut": "Sign out",
+  "signOutHint": "Clear the device session and return to login",
+  "language": "Language",
+  "languageSystem": "System default",
+  "agentTitle": "Agent",
+  "actionMessage": "Message",
+  "actionTalk": "Talk",
+  "actionScan": "Scan",
+  "capabilities": "Capabilities",
+  "recentSessions": "Recent mobile sessions",
+  "noSessions": "No mobile sessions yet",
+  "noSessionsHint": "Start a fresh conversation from this agent.",
+  "imageSelectionFailed": "Image selection failed: {error}",
+  "@imageSelectionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "scanAttachedHint": "Scan attached. Add instructions and send it to the agent.",
+  "scanAttachedSnack": "Scan attached. Add instructions and send.",
+  "cameraScanFailed": "Camera scan failed: {error}",
+  "@cameraScanFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "voiceStarting": "Voice input is still starting. Wait a moment.",
+  "speechRateLimitedHint": "Speech recognition is temporarily rate-limited by Android. Try again in {seconds}s.",
+  "@speechRateLimitedHint": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "speechCoolingDown": "Speech recognition is cooling down. Try again in {seconds}s.",
+  "@speechCoolingDown": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "voiceListening": "Listening... speak now. If the meter stays flat, the emulator is not receiving mic audio.",
+  "voiceStartFailedHint": "Voice input failed to start. Wait a moment, then try again.",
+  "voiceStartFailedSnack": "Voice input failed to start: {error}",
+  "@voiceStartFailedSnack": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "speechUnavailable": "Speech recognition is not available on this device.",
+  "voiceDraftReady": "Voice draft ready. Review it, then send.",
+  "audioDetected": "Audio detected. Keep speaking.",
+  "androidRateLimitedHint": "Android speech recognition is rate-limited. Wait 15s, then try Talk again.",
+  "androidRateLimitedSnack": "Android speech recognition is rate-limited. Wait 15 seconds and try again.",
+  "voiceUnavailable": "Voice input unavailable right now. You can keep typing.",
+  "voiceFailed": "Voice input failed: {error}",
+  "@voiceFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "noTranscript": "Audio was detected, but Android returned no transcript. This emulator recognizer is unreliable.",
+  "noSpeech": "No speech detected. Tap Talk and start speaking right away.",
+  "tapTalkHint": "Tap Talk once to start voice input.",
+  "noSupportedFiles": "No supported files were selected.",
+  "fileSelectionFailed": "File selection failed: {error}",
+  "@fileSelectionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "addMessageFirst": "Add a message before sending attachments.",
+  "toolStatus": "{tool} • {status}",
+  "@toolStatus": {
+    "placeholders": {
+      "tool": {
+        "type": "String"
+      },
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "toolDefaultName": "Agent",
+  "toolDefaultStatus": "working",
+  "agentError": "The agent returned an error.",
+  "uploading": "Uploading {current}/{total} • {name}",
+  "@uploading": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "fileNotReadable": "Selected file \"{name}\" is not readable.",
+  "@fileNotReadable": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "freshConversation": "Fresh conversation",
+  "voiceConversation": "Voice conversation",
+  "newChat": "New chat",
+  "listening": "Listening",
+  "stopVoiceInput": "Stop voice input",
+  "attachImage": "Attach image",
+  "attachFile": "Attach file",
+  "messageHint": "Message this agent",
+  "attachmentsNeedMessage": "Add a message so the agent knows what to do with your attachments.",
+  "emptyPromptStrengths": "Summarize what this agent is best at.",
+  "emptyPromptPlan": "Help me turn a rough task into a concrete plan.",
+  "emptyPromptReview": "Review the latest context and tell me what needs attention.",
+  "emptyTitle": "Start a premium conversation with {agentName}",
+  "@emptyTitle": {
+    "placeholders": {
+      "agentName": {
+        "type": "String"
+      }
+    }
+  },
+  "emptyBody": "Ask for structured analysis, send files, or drop in screenshots and let the agent work from real context.",
+  "streaming": "Streaming",
+  "voiceSemanticSpeaking": "Assistant is speaking. Double tap to interrupt.",
+  "voiceSemanticThinking": "Assistant is thinking. Double tap to cancel.",
+  "voiceSemanticListening": "Listening. Double tap to send what you said now.",
+  "voiceSemanticError": "There was a problem. Double tap to retry.",
+  "voiceSemanticIdle": "Double tap to start talking.",
+  "close": "Close",
+  "transcript": "Transcript",
+  "voiceSettings": "Voice settings",
+  "voiceTitleWake": "Say “Hey Synkora”",
+  "voiceTitleTap": "Tap to talk",
+  "micMuted": "Mic is muted",
+  "listeningDots": "Listening…",
+  "imListening": "I’m listening",
+  "thinkingTitle": "Thinking…",
+  "speakingTitle": "Speaking",
+  "somethingWrong": "Something went wrong",
+  "turnOnVoice": "Turn on voice",
+  "usePhoneVoice": "Use my phone’s voice",
+  "tryAgain": "Try again",
+  "unmuteMic": "Unmute microphone",
+  "muteMic": "Mute microphone",
+  "endConversation": "End conversation",
+  "typeMessage": "Type a message",
+  "typeInstead": "Type instead…",
+  "send": "Send",
+  "talkTo": "Talk to",
+  "noOtherAgents": "No other agents yet.",
+  "transcriptEmpty": "Nothing yet. Start talking and your conversation will appear here.",
+  "interrupted": "Interrupted",
+  "wakeTitle": "Wake with “Hey Synkora”",
+  "wakeSubtitle": "Listens for the phrase while Synkora is open, so you can talk hands-free. Audio is checked on your phone and is only sent once you start speaking.",
+  "interruptTitle": "Interrupt by speaking",
+  "interruptSubtitle": "Talk over the assistant to cut it off.",
+  "soundsTitle": "Sounds",
+  "soundsSubtitle": "A soft chime when it wakes or finishes.",
+  "hapticsTitle": "Haptics",
+  "hapticsSubtitle": "Gentle taps at key moments.",
+  "speakingSpeed": "Speaking speed  ·  {speed}×",
+  "@speakingSpeed": {
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
+  "wakeLow": "Fewer wakes",
+  "wakeBalanced": "Balanced",
+  "wakeHigh": "Catch more",
+  "wakeSensitivity": "Wake sensitivity",
+  "wakeHelp": "If it wakes when you did not say it, choose “Fewer wakes”. If it misses you, choose “Catch more”.",
+  "wakeUnavailable": "“Hey Synkora” is unavailable on this device right now. You can still tap the orb to talk.\n{message}",
+  "@wakeUnavailable": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "talkToAgents": "Talk to your agents",
+  "talkToAgent": "Talk to {name}",
+  "@talkToAgent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "handsFreeOn": "Hands-free is on. Just say “Hey Synkora”.",
+  "startVoice": "Have a real voice conversation. Tap to start."
+}

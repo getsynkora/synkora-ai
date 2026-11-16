@@ -1,0 +1,8 @@
+# Generates lib/l10n/app_localizations*.dart from the ARB files (committed, so a
+# fresh checkout analyzes without a generation step). To add a language, add
+# lib/l10n/app_<code>.arb and register it in AppLocaleController.supported.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-dir: lib/l10n
+nullable-getter: false

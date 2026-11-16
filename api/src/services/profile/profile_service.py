@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...models import Account
 from ...services.agents.security import decrypt_value, encrypt_value
+from ...services.i18n import normalize_interface_language
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +50,7 @@ class ProfileService:
         job_title: str | None = None,
         location: str | None = None,
         website: str | None = None,
+        interface_language: str | None = None,
     ) -> Account | None:
         """Update user profile information.
 
@@ -61,6 +63,7 @@ class ProfileService:
             job_title: Job title
             location: Location
             website: Website URL
+            interface_language: Language of the platform's screens ("en", "de")
 
         Returns:
             Updated Account object or None if not found
@@ -91,6 +94,11 @@ class ProfileService:
             account.location = location or None
         if website is not None:
             account.website = website or None
+        if interface_language is not None:
+            normalized = normalize_interface_language(interface_language)
+            if normalized is None:
+                raise ValueError("Unsupported interface language")
+            account.interface_language = normalized
 
         await self.db.commit()
         await self.db.refresh(account)

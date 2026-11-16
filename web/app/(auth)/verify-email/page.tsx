@@ -7,8 +7,10 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 import axios from 'axios'
 import AuthPageFrame from '@/components/auth/AuthPageFrame'
+import { useTranslations } from 'next-intl'
 
 function VerifyEmailContent() {
+  const t = useTranslations('auth.verifyEmail')
   const [isVerifying, setIsVerifying] = useState(true)
   const [isSuccess, setIsSuccess] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
@@ -24,14 +26,14 @@ function VerifyEmailContent() {
         })
 
         setIsSuccess(true)
-        toast.success('Email verified successfully!')
+        toast.success(t('verifiedToast'))
 
         // Redirect to signin after 3 seconds
         setTimeout(() => {
           router.push('/signin')
         }, 3000)
       } catch (err: any) {
-        const errorMsg = extractErrorMessage(err, 'Failed to verify email')
+        const errorMsg = extractErrorMessage(err, t('failed'))
         setErrorMessage(errorMsg)
         toast.error(errorMsg)
       } finally {
@@ -61,8 +63,8 @@ function VerifyEmailContent() {
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
               </div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Verifying your email</h1>
-              <p className="text-gray-600">Please wait while we verify your email address...</p>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('verifying')}</h1>
+              <p className="text-gray-600">{t('pleaseWait')}</p>
             </>
           ) : isSuccess ? (
             <>
@@ -71,8 +73,8 @@ function VerifyEmailContent() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Email verified!</h1>
-              <p className="text-gray-600">Your email has been successfully verified. Redirecting to sign in...</p>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('verified')}</h1>
+              <p className="text-gray-600">{t('redirecting')}</p>
             </>
           ) : (
             <>
@@ -81,7 +83,7 @@ function VerifyEmailContent() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Verification failed</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('verificationFailed')}</h1>
               <p className="text-gray-600">{errorMessage}</p>
             </>
           )}
@@ -97,33 +99,33 @@ function VerifyEmailContent() {
             </div>
           ) : isSuccess ? (
             <div className="text-center py-4">
-              <p className="text-gray-600 mb-6">You can now sign in to your account.</p>
+              <p className="text-gray-600 mb-6">{t('canSignIn')}</p>
               <Link
                 href="/signin"
                 className="inline-flex w-full items-center justify-center rounded-[1.2rem] bg-red-500 px-4 py-3.5 font-bold text-white transition-all"
               >
-                Go to Sign In
+                {t('goToSignIn')}
               </Link>
             </div>
           ) : (
             <div className="text-center py-4">
               <p className="text-gray-600 mb-6">
                 {errorMessage.includes('expired') || errorMessage.includes('invalid')
-                  ? 'The verification link may have expired or is invalid.'
-                  : 'Please try again or contact support if the problem persists.'}
+                  ? t('linkExpired')
+                  : t('tryAgain')}
               </p>
               <div className="space-y-3">
                 <Link
                   href="/signup"
                   className="inline-flex w-full items-center justify-center rounded-[1.2rem] bg-red-500 px-4 py-3.5 font-bold text-white transition-all"
                 >
-                  Sign Up Again
+                  {t('signUpAgain')}
                 </Link>
                 <Link
                   href="/signin"
                   className="inline-flex items-center justify-center w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3.5 px-4 rounded-xl transition-colors"
                 >
-                  Back to Sign In
+                  {t('backToSignIn')}
                 </Link>
               </div>
             </div>
@@ -133,9 +135,9 @@ function VerifyEmailContent() {
         {!isVerifying && (
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              Need help?{' '}
+              {t('needHelp')}{' '}
               <a href={`mailto:${process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@localhost'}`} className="font-semibold text-red-600 hover:text-red-700">
-                Contact support
+                {t('contactSupport')}
               </a>
             </p>
           </div>

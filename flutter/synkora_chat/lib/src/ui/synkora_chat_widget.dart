@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show PlatformDispatcher;
 
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
@@ -6,6 +7,7 @@ import 'package:lottie/lottie.dart';
 import '../client/models.dart';
 import '../client/synkora_client.dart';
 import '../controller/synkora_chat_controller.dart';
+import '../l10n/synkora_chat_strings.dart';
 import '../theme/chat_text_styles.dart';
 import 'message_bubble.dart';
 // suggestion_chips.dart intentionally kept for custom emptyStateWidget use
@@ -47,6 +49,17 @@ class SynkoraChatWidget extends StatefulWidget {
   final Widget? emptyStateWidget;
   final void Function(String href)? onLinkTap;
 
+  /// Language of the chat. Fixed text switches to it (English and German are
+  /// built in), widget text such as the title and suggested prompts is loaded
+  /// in it, and the agent answers in it by default.
+  ///
+  /// Leave null to follow the host app's language.
+  final Locale? locale;
+
+  /// Your own text, for a language that is not built in or to reword a few
+  /// strings. See [SynkoraChatStrings.custom].
+  final SynkoraChatStrings? strings;
+
   const SynkoraChatWidget({
     super.key,
     required this.widgetKey,
@@ -61,6 +74,8 @@ class SynkoraChatWidget extends StatefulWidget {
     this.onClose,
     this.emptyStateWidget,
     this.onLinkTap,
+    this.locale,
+    this.strings,
   });
 
   @override
@@ -88,6 +103,8 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
   String? _lastAgentNameRaw;
   String _cachedAgentName = '';
 
+  SynkoraChatStrings get _s => _controller.strings;
+
   @override
   void initState() {
     super.initState();
@@ -107,14 +124,49 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
         identityToken: widget.identityToken,
       );
     }
+    // Before init(), so the first config request already asks for the right language.
+    _syncLanguage(useContext: false);
     _controller.init();
     _controller.addListener(_onControllerUpdate);
     _messageTriggerSub = _controller.messageTriggerStream.listen(_sendPrompt);
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncLanguage();
+  }
+
+  /// The language this widget last gave the controller.
+  String? _appliedLanguage;
+
+  /// Tells the controller which language to run in: the [SynkoraChatWidget.locale]
+  /// if one was given, otherwise the host app's language.
+  void _syncLanguage({bool useContext = true}) {
+    final explicit = widget.locale;
+    // A controller the host already put in a language keeps it, unless this
+    // widget was given a locale or strings of its own.
+    if (!_ownsController &&
+        explicit == null &&
+        widget.strings == null &&
+        _controller.language != null &&
+        _controller.language != _appliedLanguage) {
+      return;
+    }
+    final locale = explicit ??
+        (useContext ? Localizations.maybeLocaleOf(context) : null) ??
+        PlatformDispatcher.instance.locale;
+    _controller.setLocale(locale, strings: widget.strings);
+    _appliedLanguage = _controller.language;
+  }
+
+  @override
   void didUpdateWidget(covariant SynkoraChatWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.locale != oldWidget.locale ||
+        widget.strings != oldWidget.strings) {
+      _syncLanguage();
+    }
     // Only relevant when this widget owns the controller (built its own via
     // initState above) -- if the caller passed their own controller, they're
     // responsible for calling updateIdentity() themselves.
@@ -149,7 +201,9 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
     _lastHadPendingApproval = _controller.pendingApproval != null;
 
     if (!_scrollPending &&
-        (_controller.messages.isNotEmpty || handoffChanged || approvalChanged)) {
+        (_controller.messages.isNotEmpty ||
+            handoffChanged ||
+            approvalChanged)) {
       _scrollPending = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _scrollPending = false;
@@ -238,18 +292,18 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
         backgroundColor: _kPanel,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
-          'Clear current chat',
+          _s.clearChatTitle,
           style: ChatTextStyles.txtStyleSemiB16.copyWith(color: _kInk),
         ),
         content: Text(
-          'This starts a fresh local chat. Server-side history is kept.',
+          _s.clearChatBody,
           style: ChatTextStyles.txtStyleRegular14.copyWith(color: _kMuted),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: Text(
-              'Cancel',
+              _s.cancel,
               style: ChatTextStyles.txtStyleSemiB14.copyWith(color: _kMuted),
             ),
           ),
@@ -262,7 +316,7 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
                   borderRadius: BorderRadius.circular(10)),
             ),
             child: Text(
-              'Clear',
+              _s.clear,
               style:
                   ChatTextStyles.txtStyleSemiB14.copyWith(color: Colors.white),
             ),
@@ -312,47 +366,49 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
             _controller.pendingApproval == null;
         final showHandoff = inMessages && _controller.isHandoffActive;
 
-        return Scaffold(
-          backgroundColor: _kBg,
-          appBar: _buildAppBar(config),
-          bottomNavigationBar: isOverlay
-              ? null
-              : _BottomNav(
-                  currentIndex: _tabIndex,
-                  primaryColor: _primary,
-                  onTap: (i) {
-                    if (i == _kTabChat) _controller.loadSessions();
-                    setState(() => _tabIndex = i);
-                  },
-                ),
-          body: hasInitError
-              ? _ConnectionErrorState(
-                  message: _controller.error!,
-                  baseUrl: widget.baseUrl,
-                  onRetry: _controller.retry,
-                  primaryColor: _primary,
-                )
-              : Column(
-                  children: [
-                    Expanded(
-                      child: _controller.isLoading
-                          ? _LoadingIndicator(primaryColor: _primary)
-                          : _buildBody(config),
-                    ),
-                    if (showInputBar)
-                      _InputBar(
-                        controller: _inputController,
-                        focusNode: _focusNode,
-                        placeholder:
-                            config?.theme.placeholder ?? 'Type a message...',
-                        primaryColor: _primary,
-                        isStreaming: _controller.isStreaming,
-                        onSend: _send,
-                        agentName: _formatAgentName(config?.agentName ?? ''),
+        return SynkoraChatStringsScope(
+          strings: _controller.strings,
+          child: Scaffold(
+            backgroundColor: _kBg,
+            appBar: _buildAppBar(config),
+            bottomNavigationBar: isOverlay
+                ? null
+                : _BottomNav(
+                    currentIndex: _tabIndex,
+                    primaryColor: _primary,
+                    onTap: (i) {
+                      if (i == _kTabChat) _controller.loadSessions();
+                      setState(() => _tabIndex = i);
+                    },
+                  ),
+            body: hasInitError
+                ? _ConnectionErrorState(
+                    message: _controller.error!,
+                    baseUrl: widget.baseUrl,
+                    onRetry: _controller.retry,
+                    primaryColor: _primary,
+                  )
+                : Column(
+                    children: [
+                      Expanded(
+                        child: _controller.isLoading
+                            ? _LoadingIndicator(primaryColor: _primary)
+                            : _buildBody(config),
                       ),
-                    if (showHandoff) const _HandoffFooter(),
-                  ],
-                ),
+                      if (showInputBar)
+                        _InputBar(
+                          controller: _inputController,
+                          focusNode: _focusNode,
+                          placeholder: _placeholderFor(config),
+                          primaryColor: _primary,
+                          isStreaming: _controller.isStreaming,
+                          onSend: _send,
+                          agentName: _formatAgentName(config?.agentName ?? ''),
+                        ),
+                      if (showHandoff) const _HandoffFooter(),
+                    ],
+                  ),
+          ),
         );
       },
     );
@@ -410,7 +466,7 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
             _controller.hasConversationContent)
           IconButton(
             icon: Icon(Icons.add_comment_outlined, color: fg),
-            tooltip: 'New chat',
+            tooltip: _s.newChat,
             onPressed: _clearSession,
           ),
         if (widget.onClose != null)
@@ -422,16 +478,29 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
     );
   }
 
-  String get _appBarSubtitle {
-    if (_overlay == _OverlayView.preChatForm) return 'Before we start';
-    if (_overlay == _OverlayView.chatMessages) {
-      if (_controller.isHandoffActive) return 'Connected to support';
-      if (_controller.pendingApproval != null) return 'Waiting for approval';
-      if (_controller.hasConversationContent) return 'Online';
-      return 'Ready to chat';
+  /// The configured placeholder, or the translated default when none was set
+  /// (the server sends an empty one, older configs the English default).
+  String _placeholderFor(WidgetConfig? config) {
+    final configured = config?.theme.placeholder;
+    if (configured == null ||
+        configured.isEmpty ||
+        configured == WidgetTheme.defaults.placeholder) {
+      return _s.messagePlaceholder;
     }
-    if (_tabIndex == _kTabChat) return 'Your conversations';
-    return 'Welcome';
+    return configured;
+  }
+
+  String get _appBarSubtitle {
+    if (_overlay == _OverlayView.preChatForm) return _s.headerBeforeWeStart;
+    if (_overlay == _OverlayView.chatMessages) {
+      if (_controller.isHandoffActive) return _s.headerConnectedToSupport;
+      if (_controller.pendingApproval != null)
+        return _s.headerWaitingForApproval;
+      if (_controller.hasConversationContent) return _s.headerOnline;
+      return _s.headerReadyToChat;
+    }
+    if (_tabIndex == _kTabChat) return _s.headerYourConversations;
+    return _s.headerWelcome;
   }
 
   Widget _buildBody(WidgetConfig? config) {
@@ -494,7 +563,7 @@ class _SynkoraChatWidgetState extends State<SynkoraChatWidget> {
       sessions: _controller.sessions,
       isLoading: _controller.sessionsLoading,
       primaryColor: _primary,
-      agentName: _formatAgentName(config?.agentName ?? 'Assistant'),
+      agentName: _formatAgentName(config?.agentName ?? _s.defaultAgentName),
       agentAvatarUrl: config?.agentAvatarUrl,
       onSessionTap: _openSession,
       onNewSession: _newSession,
@@ -627,30 +696,31 @@ class _HomeScreen extends StatelessWidget {
     required this.onSuggestion,
   });
 
-  String _greeting() {
+  String _greeting(SynkoraChatStrings s) {
     final raw = config?.theme.welcomeMessage ?? '';
     if (raw.isNotEmpty) return raw.split('\n').first.trim();
-    return 'Hello there';
+    return s.greetingFallback;
   }
 
-  String _subGreeting() {
+  String _subGreeting(SynkoraChatStrings s) {
     final raw = config?.theme.welcomeMessage ?? '';
     final parts = raw.split('\n');
     if (parts.length > 1) return parts.skip(1).join('\n').trim();
-    return 'How can we help?';
+    return s.subGreetingFallback;
   }
 
-  String _relativeTime(DateTime dt) {
+  String _relativeTime(DateTime dt, SynkoraChatStrings s) {
     final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 1) return 'Now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}min';
-    if (diff.inHours < 24) return '${diff.inHours}hr';
-    if (diff.inDays == 1) return '1d';
-    return '${diff.inDays}d';
+    if (diff.inMinutes < 1) return s.now;
+    if (diff.inMinutes < 60) return s.minutesAgo(diff.inMinutes);
+    if (diff.inHours < 24) return s.hoursAgo(diff.inHours);
+    if (diff.inDays == 1) return s.daysAgo(1);
+    return s.daysAgo(diff.inDays);
   }
 
   @override
   Widget build(BuildContext context) {
+    final s = SynkoraChatStrings.of(context);
     final prompts = config?.suggestionPrompts ?? [];
 
     return SingleChildScrollView(
@@ -674,13 +744,13 @@ class _HomeScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _greeting(),
+                  _greeting(s),
                   style: ChatTextStyles.txtStyleBold34
                       .copyWith(color: Colors.white, height: 1.15),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _subGreeting(),
+                  _subGreeting(s),
                   style: ChatTextStyles.txtStyleBold34
                       .copyWith(color: Colors.white70, height: 1.15),
                 ),
@@ -707,13 +777,13 @@ class _HomeScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Start new conversation',
+                              s.startNewConversation,
                               style: ChatTextStyles.txtStyleSemiB16
                                   .copyWith(color: _kInk),
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'Typically reply within few moments',
+                              s.replyTime,
                               style: ChatTextStyles.txtStyleRegular13
                                   .copyWith(color: _kMuted),
                             ),
@@ -734,7 +804,7 @@ class _HomeScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Recent message',
+                          s.recentMessage,
                           style: ChatTextStyles.txtStyleSemiB14
                               .copyWith(color: _kInk),
                         ),
@@ -751,7 +821,7 @@ class _HomeScreen extends StatelessWidget {
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                recentSession!.firstMessage ?? 'Conversation',
+                                recentSession!.firstMessage ?? s.conversation,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: ChatTextStyles.txtStyleRegular13
@@ -760,7 +830,7 @@ class _HomeScreen extends StatelessWidget {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              _relativeTime(recentSession!.lastActivityAt),
+                              _relativeTime(recentSession!.lastActivityAt, s),
                               style: ChatTextStyles.txtStyleRegular12
                                   .copyWith(color: _kMuted),
                             ),
@@ -783,7 +853,7 @@ class _HomeScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'FAQs',
+                          s.faqs,
                           style: ChatTextStyles.txtStyleSemiB16
                               .copyWith(color: _kInk),
                         ),
@@ -905,19 +975,20 @@ class _SessionsScreen extends StatelessWidget {
     required this.onSessionClose,
   });
 
-  String _relativeTime(DateTime dt) {
+  String _relativeTime(DateTime dt, SynkoraChatStrings s) {
     final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 1) return 'Now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}min';
-    if (diff.inHours < 24) return '${diff.inHours}hr';
-    if (diff.inDays == 1) return '1d';
-    if (diff.inDays < 7) return '${diff.inDays}d';
+    if (diff.inMinutes < 1) return s.now;
+    if (diff.inMinutes < 60) return s.minutesAgo(diff.inMinutes);
+    if (diff.inHours < 24) return s.hoursAgo(diff.inHours);
+    if (diff.inDays == 1) return s.daysAgo(1);
+    if (diff.inDays < 7) return s.daysAgo(diff.inDays);
     final w = (diff.inDays / 7).floor();
-    return '${w}w';
+    return s.weeksAgo(w);
   }
 
   @override
   Widget build(BuildContext context) {
+    final s = SynkoraChatStrings.of(context);
     if (isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -930,12 +1001,12 @@ class _SessionsScreen extends StatelessWidget {
             Icon(Icons.chat_bubble_outline, size: 48, color: _kMuted),
             const SizedBox(height: 16),
             Text(
-              'No previous sessions',
+              s.noPreviousSessions,
               style: ChatTextStyles.txtStyleSemiB14.copyWith(color: _kMuted),
             ),
             const SizedBox(height: 8),
             Text(
-              'Start a new chat to begin',
+              s.startNewChatToBegin,
               style: ChatTextStyles.txtStyleRegular12.copyWith(color: _kMuted),
             ),
             const SizedBox(height: 24),
@@ -948,7 +1019,7 @@ class _SessionsScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(24)),
               ),
               icon: const Icon(Icons.add, size: 18),
-              label: Text('New chat',
+              label: Text(s.newChat,
                   style: ChatTextStyles.txtStyleSemiB14
                       .copyWith(color: Colors.white)),
             ),
@@ -969,7 +1040,7 @@ class _SessionsScreen extends StatelessWidget {
               primaryColor: primaryColor,
               agentName: agentName,
               agentAvatarUrl: agentAvatarUrl,
-              timeLabel: _relativeTime(session.lastActivityAt),
+              timeLabel: _relativeTime(session.lastActivityAt, s),
               onTap: () => onSessionTap(session),
               onClose: session.isActive ? () => onSessionClose(session) : null,
             );
@@ -983,7 +1054,7 @@ class _SessionsScreen extends StatelessWidget {
             backgroundColor: primaryColor,
             foregroundColor: Colors.white,
             icon: const Icon(Icons.add, size: 20),
-            label: Text('New chat',
+            label: Text(s.newChat,
                 style: ChatTextStyles.txtStyleSemiB13
                     .copyWith(color: Colors.white)),
           ),
@@ -1014,6 +1085,7 @@ class _SessionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = SynkoraChatStrings.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -1059,7 +1131,7 @@ class _SessionCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   // Last message preview
                   Text(
-                    session.firstMessage ?? 'Conversation',
+                    session.firstMessage ?? s.conversation,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: ChatTextStyles.txtStyleRegular12
@@ -1067,7 +1139,7 @@ class _SessionCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    session.isActive ? 'Active' : 'Closed',
+                    session.isActive ? s.sessionActive : s.sessionClosed,
                     style: ChatTextStyles.txtStyleRegular12.copyWith(
                       color:
                           session.isActive ? const Color(0xFF22C55E) : _kMuted,
@@ -1089,7 +1161,7 @@ class _SessionCard extends StatelessWidget {
                   GestureDetector(
                     onTap: onClose,
                     child: Text(
-                      'End',
+                      s.endSession,
                       style: ChatTextStyles.txtStyleSemiB12.copyWith(
                         color: const Color(0xFFE53935),
                       ),
@@ -1141,6 +1213,7 @@ class _PreChatFormScreenState extends State<_PreChatFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = SynkoraChatStrings.of(context);
     final cfg = widget.config;
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
@@ -1148,28 +1221,28 @@ class _PreChatFormScreenState extends State<_PreChatFormScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Before we start',
+            s.headerBeforeWeStart,
             style: ChatTextStyles.txtStyleBoldB16.copyWith(color: _kInk),
           ),
           const SizedBox(height: 6),
           Text(
-            'Share a bit about yourself so we can help you better. All fields are optional.',
+            s.preChatIntro,
             style: ChatTextStyles.txtStyleRegular13.copyWith(color: _kMuted),
           ),
           const SizedBox(height: 24),
           if (cfg.showName) ...[
             _FormField(
-                label: 'Name',
+                label: s.nameLabel,
                 controller: _nameCtrl,
-                hint: 'Your name',
+                hint: s.nameHint,
                 primaryColor: widget.primaryColor),
             const SizedBox(height: 14),
           ],
           if (cfg.showEmail) ...[
             _FormField(
-              label: 'Email',
+              label: s.emailLabel,
               controller: _emailCtrl,
-              hint: 'you@example.com',
+              hint: s.emailHint,
               keyboardType: TextInputType.emailAddress,
               primaryColor: widget.primaryColor,
             ),
@@ -1177,7 +1250,7 @@ class _PreChatFormScreenState extends State<_PreChatFormScreen> {
           ],
           if (cfg.showPhone) ...[
             _FormField(
-              label: 'Phone',
+              label: s.phoneLabel,
               controller: _phoneCtrl,
               hint: '+1 555 000 0000',
               keyboardType: TextInputType.phone,
@@ -1203,7 +1276,7 @@ class _PreChatFormScreenState extends State<_PreChatFormScreen> {
                 elevation: 0,
               ),
               child: Text(
-                'Start chatting',
+                s.startChatting,
                 style: ChatTextStyles.txtStyleSemiB14
                     .copyWith(color: Colors.white),
               ),
@@ -1215,7 +1288,7 @@ class _PreChatFormScreenState extends State<_PreChatFormScreen> {
               child: TextButton(
                 onPressed: widget.onSkip,
                 child: Text(
-                  'Skip',
+                  s.skip,
                   style:
                       ChatTextStyles.txtStyleRegular13.copyWith(color: _kMuted),
                 ),
@@ -1294,6 +1367,7 @@ class _ChatEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = SynkoraChatStrings.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -1310,12 +1384,12 @@ class _ChatEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              'Ask me anything',
+              s.askMeAnything,
               style: ChatTextStyles.txtStyleBold20.copyWith(color: _kInk),
             ),
             const SizedBox(height: 8),
             Text(
-              'Type a message below or go back to browse suggested prompts.',
+              s.askMeAnythingBody,
               textAlign: TextAlign.center,
               style: ChatTextStyles.txtStyleRegular14
                   .copyWith(color: _kMuted, height: 1.5),
@@ -1329,7 +1403,7 @@ class _ChatEmptyState extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
               ),
-              child: Text('Browse suggestions',
+              child: Text(s.browseSuggestions,
                   style: ChatTextStyles.txtStyleSemiB14),
             ),
           ],
@@ -1348,6 +1422,7 @@ class _ChatClosedBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = SynkoraChatStrings.of(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 20),
@@ -1358,12 +1433,12 @@ class _ChatClosedBanner extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            'Chat closed',
+            s.chatClosed,
             style: ChatTextStyles.txtStyleSemiB16.copyWith(color: _kInk),
           ),
           const SizedBox(height: 4),
           Text(
-            'The conversation is read only',
+            s.conversationReadOnly,
             style: ChatTextStyles.txtStyleRegular13.copyWith(color: _kMuted),
           ),
         ],
@@ -1441,6 +1516,7 @@ class _ApprovalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = SynkoraChatStrings.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Container(
@@ -1459,7 +1535,7 @@ class _ApprovalCard extends StatelessWidget {
                     size: 18, color: Color(0xFFB45309)),
                 const SizedBox(width: 8),
                 Text(
-                  'Approval required',
+                  s.approvalRequired,
                   style: ChatTextStyles.txtStyleSemiB14
                       .copyWith(color: const Color(0xFF78350F)),
                 ),
@@ -1469,7 +1545,7 @@ class _ApprovalCard extends StatelessWidget {
             Text(
               event.message.isNotEmpty
                   ? event.message
-                  : 'The agent wants to run "${event.toolName}" and needs your approval.',
+                  : s.approvalBody(event.toolName),
               style: ChatTextStyles.txtStyleRegular13.copyWith(
                 color: const Color(0xFF78350F),
                 height: 1.4,
@@ -1478,7 +1554,7 @@ class _ApprovalCard extends StatelessWidget {
             if (event.toolArgs.isNotEmpty) ...[
               const SizedBox(height: 6),
               Text(
-                'Tool: ${event.toolName}',
+                s.toolLabel(event.toolName),
                 style: ChatTextStyles.txtStyleSemiB12
                     .copyWith(color: const Color(0xFFB45309)),
               ),
@@ -1486,7 +1562,7 @@ class _ApprovalCard extends StatelessWidget {
             if (event.expiresAt != null) ...[
               const SizedBox(height: 4),
               Text(
-                'Expires: ${event.expiresAt}',
+                s.expiresLabel('${event.expiresAt}'),
                 style: ChatTextStyles.txtStyleRegular11
                     .copyWith(color: const Color(0xFFB45309)),
               ),
@@ -1503,7 +1579,7 @@ class _ApprovalCard extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: Text('Reject',
+                    child: Text(s.reject,
                         style: ChatTextStyles.txtStyleSemiB14
                             .copyWith(color: const Color(0xFF78350F))),
                   ),
@@ -1518,7 +1594,7 @@ class _ApprovalCard extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10)),
                     ),
-                    child: Text('Approve',
+                    child: Text(s.approve,
                         style: ChatTextStyles.txtStyleSemiB14
                             .copyWith(color: Colors.white)),
                   ),
@@ -1541,6 +1617,7 @@ class _HandoffFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = SynkoraChatStrings.of(context);
     return Container(
       color: const Color(0xFFFFFBEB),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1557,7 +1634,7 @@ class _HandoffFooter extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Connected to support — the agent is paused',
+              s.handoffBanner,
               style: ChatTextStyles.txtStyleSemiB13
                   .copyWith(color: const Color(0xFF78350F)),
             ),
@@ -1597,6 +1674,7 @@ class _InputBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = SynkoraChatStrings.of(context);
     return SafeArea(
       child: Container(
         color: _kPanel,
@@ -1678,7 +1756,7 @@ class _InputBar extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
-                'Powered by $agentName',
+                s.poweredBy(agentName),
                 style:
                     ChatTextStyles.txtStyleRegular11.copyWith(color: _kMuted),
               ),
@@ -1709,6 +1787,7 @@ class _ConnectionErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = SynkoraChatStrings.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -1744,7 +1823,7 @@ class _ConnectionErrorState extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Connection issue',
+                  s.connectionIssue,
                   style: ChatTextStyles.txtStyleBoldB16.copyWith(color: _kInk),
                 ),
                 const SizedBox(height: 8),
@@ -1763,7 +1842,7 @@ class _ConnectionErrorState extends StatelessWidget {
                     border: Border.all(color: _kBorder),
                   ),
                   child: Text(
-                    'Expected: $baseUrl',
+                    s.expectedUrl(baseUrl),
                     style:
                         ChatTextStyles.txtStyleSemiB13.copyWith(color: _kInk),
                   ),
@@ -1779,7 +1858,7 @@ class _ConnectionErrorState extends StatelessWidget {
                         borderRadius: BorderRadius.circular(14)),
                   ),
                   child: Text(
-                    'Retry connection',
+                    s.retryConnection,
                     style: ChatTextStyles.txtStyleSemiB14
                         .copyWith(color: Colors.white),
                   ),
@@ -1810,6 +1889,7 @@ class _BottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = SynkoraChatStrings.of(context);
     return Container(
       decoration: const BoxDecoration(
         color: _kPanel,
@@ -1823,14 +1903,14 @@ class _BottomNav extends StatelessWidget {
             children: [
               _NavItem(
                 icon: Icons.home_rounded,
-                label: 'Home',
+                label: s.navHome,
                 selected: currentIndex == _kTabHome,
                 primaryColor: primaryColor,
                 onTap: () => onTap(_kTabHome),
               ),
               _NavItem(
                 icon: Icons.chat_bubble_rounded,
-                label: 'Chat',
+                label: s.navChat,
                 selected: currentIndex == _kTabChat,
                 primaryColor: primaryColor,
                 onTap: () => onTap(_kTabChat),

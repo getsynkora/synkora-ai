@@ -1,8 +1,10 @@
+import 'dart:ui' show Locale;
 import 'package:dio/dio.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 
 import '../config/app_environment.dart';
 import '../models/synkora_models.dart';
+import '../../l10n/app_localizations.dart';
 
 /// Opens [url] in a system browser/webview and resolves with the final redirect
 /// URL once the browser navigates to [callbackUrlScheme]. Abstracted as a typedef
@@ -41,7 +43,9 @@ class SynkoraAuthService implements AuthService {
     String? baseUrl,
     Dio? dio,
     WebAuthenticator? webAuthenticate,
-  }) : _dio =
+    AppLocalizations Function()? strings,
+  }) : _strings = strings ?? _englishStrings,
+       _dio =
            dio ??
            Dio(
              BaseOptions(
@@ -55,6 +59,10 @@ class SynkoraAuthService implements AuthService {
 
   final Dio _dio;
   final WebAuthenticator _webAuthenticate;
+  final AppLocalizations Function() _strings;
+
+  static AppLocalizations _englishStrings() =>
+      lookupAppLocalizations(const Locale('en'));
 
   @override
   Future<SessionIdentity> getCurrentIdentity(String accessToken) async {
@@ -152,12 +160,12 @@ class SynkoraAuthService implements AuthService {
         callbackUrlScheme: AppEnvironment.mobileOAuthRedirectScheme,
       );
     } catch (_) {
-      throw Exception('Sign-in was cancelled or could not be completed.');
+      throw Exception(_strings().signInCancelled);
     }
 
     final callback = SocialAuthCallback.fromUri(Uri.parse(callbackUrl));
     if (!callback.isSuccess) {
-      throw Exception(callback.errorMessage ?? 'Sign-in was not completed.');
+      throw Exception(callback.errorMessage ?? _strings().signInNotCompleted);
     }
 
     try {
@@ -207,6 +215,6 @@ class SynkoraAuthService implements AuthService {
         return Exception(message);
       }
     }
-    return Exception(error.message ?? 'Authentication request failed.');
+    return Exception(error.message ?? _strings().authRequestFailed);
   }
 }
