@@ -185,15 +185,15 @@ export default function PublicDebatePage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-red-50/30 to-white flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="w-14 h-14 rounded-2xl bg-red-100 flex items-center justify-center mx-auto mb-4">
-            <svg className="w-7 h-7 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-14 h-14 rounded-2xl bg-sand-deep flex items-center justify-center mx-auto mb-4">
+            <svg aria-hidden="true" className="w-7 h-7 text-hotpink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Not Available</h2>
-          <p className="text-sm text-gray-500 max-w-xs mx-auto">{error}</p>
+          <h2 className="text-xl font-bold text-ink mb-2">Not Available</h2>
+          <p className="text-sm text-ink-mute max-w-xs mx-auto">{error}</p>
         </div>
       </div>
     )
@@ -201,8 +201,8 @@ export default function PublicDebatePage() {
 
   if (!debate) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-red-50/30 to-white flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-gray-200 border-t-red-500 rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-line border-t-brand rounded-full motion-safe:animate-spin" />
       </div>
     )
   }
@@ -210,23 +210,23 @@ export default function PublicDebatePage() {
   // ── Life Audit completed: show scorecard ──
   if (isLifeAudit && auditData && debate.status === 'completed') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-red-50/30 to-white">
+      <div className="min-h-screen">
         {/* Header */}
-        <div className="border-b border-gray-200 bg-white/80 backdrop-blur-sm">
+        <div className="border-b border-line bg-white/80">
           <div className="max-w-4xl mx-auto px-4 py-5">
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-100 text-red-600 text-xs font-bold">
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blush-wash text-leaf text-xs font-bold">
+                    <svg aria-hidden="true" className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                     AI Life Audit
                   </div>
-                  <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">Completed</span>
+                  <span className="text-xs font-medium text-azure bg-sky-wash px-2 py-0.5 rounded-full">Completed</span>
                 </div>
-                <h1 className="text-xl font-bold text-gray-900">Rate My Life</h1>
-                <p className="text-sm text-gray-500 mt-0.5">
+                <h1 className="text-xl font-bold text-ink">Rate My Life</h1>
+                <p className="text-sm text-ink-mute mt-0.5">
                   {debate.participants.length} specialist agents | {debate.rounds} debate rounds
                 </p>
               </div>
@@ -248,30 +248,30 @@ export default function PublicDebatePage() {
 
   // ── Regular debate or in-progress life audit ──
   return (
-    <div className="h-screen bg-gradient-to-br from-gray-50 to-white flex flex-col overflow-hidden">
+    <div className="h-screen bg-cream flex flex-col overflow-hidden">
       {/* Public header */}
-      <div className="border-b border-gray-200 bg-white/80 backdrop-blur-sm px-4 py-4">
+      <div className="border-b border-line bg-white/80 px-4 py-4">
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-bold text-gray-900">{debate.topic}</h1>
+              <h1 className="text-xl font-bold text-ink">{debate.topic}</h1>
               <div className="flex items-center gap-3 mt-1.5">
-                <span className="text-sm text-gray-500 font-medium">{debate.participants.length} agents</span>
-                <span className="text-sm text-gray-500 font-medium">Round {debate.current_round}/{debate.rounds}</span>
+                <span className="text-sm text-ink-mute font-medium">{debate.participants.length} agents</span>
+                <span className="text-sm text-ink-mute font-medium">Round {debate.current_round}/{debate.rounds}</span>
                 {(debate.status === 'active' || debate.status === 'synthesizing') && (
-                  <span className="flex items-center gap-1.5 text-sm text-green-600 font-semibold">
-                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span className="flex items-center gap-1.5 text-sm text-leaf font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-leaf motion-safe:animate-pulse" />
                     Live
                   </span>
                 )}
                 {debate.status === 'completed' && (
-                  <span className="text-sm text-blue-600 font-semibold">Completed</span>
+                  <span className="text-sm text-azure font-semibold">Completed</span>
                 )}
               </div>
             </div>
             {isLifeAudit && (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-100 text-red-600 text-xs font-bold">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blush-wash text-leaf text-xs font-bold">
+                <svg aria-hidden="true" className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
                 AI Life Audit
@@ -284,7 +284,7 @@ export default function PublicDebatePage() {
             {debate.participants.map((p) => (
               <span
                 key={p.id}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold text-gray-700 border flex-shrink-0"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold text-ink-soft border flex-shrink-0"
                 style={{ backgroundColor: `${p.color}12`, borderColor: `${p.color}30` }}
               >
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />

@@ -8,16 +8,16 @@ import { usePermissions } from '@/hooks/usePermissions'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import DashboardPageShell, { DashboardPagePanel } from '@/components/dashboard/DashboardPageShell'
 
-const labelClassName = 'mb-2 block text-sm font-semibold text-[#2b241d]'
-const helperClassName = 'mt-2 text-xs leading-5 text-[#75695f]'
+const labelClassName = 'mb-2 block text-sm font-semibold text-night'
+const helperClassName = 'mt-2 text-xs leading-5 text-ink-mute'
 const inputClassName =
-  'w-full rounded-[1.15rem] border border-[#ddd1bf] bg-white px-4 py-3 text-sm text-[#171717] placeholder:text-[#9a8f84] transition focus:border-[#2d8b69] focus:outline-none focus:ring-4 focus:ring-[#7de5c1]/20'
+  'w-full rounded-[1.15rem] border border-line bg-white px-4 py-3 text-sm text-ink placeholder:text-ash transition focus:border-leaf focus:outline-none focus:ring-4 focus:ring-mint/20'
 const secondaryButtonClassName =
-  'inline-flex items-center justify-center gap-2 rounded-[1rem] border border-[#d8cab8] bg-white px-4 py-3 text-sm font-semibold text-[#3c342d] transition hover:border-[#c6b39c] hover:bg-[#f7f1e7] disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center gap-2 rounded-[1rem] border border-paper-dim bg-white px-4 py-3 text-sm font-semibold text-night transition hover:border-tan hover:bg-paper disabled:cursor-not-allowed disabled:opacity-50'
 const primaryButtonClassName =
-  'inline-flex items-center justify-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center gap-2 rounded-[1rem] bg-ink px-4 py-3 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50'
 const dangerButtonClassName =
-  'inline-flex items-center justify-center gap-2 rounded-[1rem] border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center gap-2 rounded-[1rem] border border-blush bg-white px-4 py-3 text-sm font-semibold text-leaf transition hover:bg-blush-wash disabled:cursor-not-allowed disabled:opacity-50'
 
 export default function EditAIEvaluationIntegrationPage() {
   const router = useRouter()
@@ -123,20 +123,20 @@ export default function EditAIEvaluationIntegrationPage() {
       ]}
     >
       <DashboardPagePanel className="p-6 md:p-7">
-        <div className="mb-8 flex items-start gap-4 border-b border-[#ede5d8] pb-6">
-          <div className="rounded-[1.15rem] bg-[#f3ecde] p-3">
-            <BrainCircuit size={24} className="text-[#171717]" />
+        <div className="mb-8 flex items-start gap-4 border-b border-sand-deep pb-6">
+          <div className="rounded-[1.15rem] bg-sand p-3">
+            <BrainCircuit size={24} className="text-ink" />
           </div>
           <div className="flex-1">
-            <h2 className="text-lg font-semibold text-[#171717]">TypeSafe AI (Jev)</h2>
-            <p className="mt-1 text-sm text-[#75695f]">
+            <h2 className="text-lg font-semibold text-ink">TypeSafe AI (Jev)</h2>
+            <p className="mt-1 text-sm text-ink-mute">
               Update your API key or model preference. Leave the API key field blank to keep the existing key.
             </p>
             <a
               href="https://console.typesafe.ai/settings/keys"
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-2 inline-flex items-center gap-1 text-xs text-[#2d8b69] hover:underline"
+              className="mt-2 inline-flex items-center gap-1 text-xs text-leaf hover:underline"
             >
               TypeSafe Console
               <ExternalLink size={11} />
@@ -145,16 +145,16 @@ export default function EditAIEvaluationIntegrationPage() {
         </div>
 
         {success && (
-          <div className="mb-6 flex items-center gap-3 rounded-[1.15rem] border border-green-200 bg-green-50 px-4 py-3">
-            <CheckCircle2 size={18} className="text-green-600" />
-            <span className="text-sm font-medium text-green-700">Configuration saved. Redirecting…</span>
+          <div className="mb-6 flex items-center gap-3 rounded-[1.15rem] border border-mint bg-leaf-wash px-4 py-3">
+            <CheckCircle2 size={18} className="text-leaf" />
+            <span className="text-sm font-medium text-forest">Configuration saved. Redirecting…</span>
           </div>
         )}
 
         {error && (
-          <div className="mb-6 flex items-center gap-3 rounded-[1.15rem] border border-red-200 bg-red-50 px-4 py-3">
-            <CircleAlert size={18} className="text-red-500" />
-            <span className="text-sm text-red-700">{error}</span>
+          <div className="mb-6 flex items-center gap-3 rounded-[1.15rem] border border-blush bg-blush-wash px-4 py-3">
+            <CircleAlert size={18} className="text-leaf" />
+            <span className="text-sm text-danger">{error}</span>
           </div>
         )}
 
@@ -176,7 +176,7 @@ export default function EditAIEvaluationIntegrationPage() {
                 href="https://console.typesafe.ai/settings/keys"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#2d8b69] hover:underline"
+                className="text-leaf hover:underline"
               >
                 console.typesafe.ai/settings/keys
               </a>
@@ -210,24 +210,24 @@ export default function EditAIEvaluationIntegrationPage() {
           </div>
 
           {/* Options */}
-          <div className="space-y-3 rounded-[1.15rem] border border-[#ede5d8] bg-[#faf7f2] p-4">
+          <div className="space-y-3 rounded-[1.15rem] border border-sand-deep bg-cream p-4">
             <label className="flex cursor-pointer items-center gap-3">
               <input
                 type="checkbox"
                 checked={isActive}
                 onChange={(e) => setIsActive(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-[#cdbda7] accent-[#171717]"
+                className="mt-0.5 h-4 w-4 rounded border-tan accent-ink"
               />
-              <span className="text-sm text-[#2b241d]">Active</span>
+              <span className="text-sm text-night">Active</span>
             </label>
             <label className="flex cursor-pointer items-center gap-3">
               <input
                 type="checkbox"
                 checked={isDefault}
                 onChange={(e) => setIsDefault(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-[#cdbda7] accent-[#171717]"
+                className="mt-0.5 h-4 w-4 rounded border-tan accent-ink"
               />
-              <span className="text-sm text-[#2b241d]">Set as default AI evaluation provider</span>
+              <span className="text-sm text-night">Set as default AI evaluation provider</span>
             </label>
             {isPlatformOwner && (
               <label className="flex cursor-pointer items-center gap-3">
@@ -235,15 +235,15 @@ export default function EditAIEvaluationIntegrationPage() {
                   type="checkbox"
                   checked={isPlatformConfig}
                   onChange={(e) => setIsPlatformConfig(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-[#cdbda7] accent-[#171717]"
+                  className="mt-0.5 h-4 w-4 rounded border-tan accent-ink"
                 />
-                <span className="text-sm text-[#2b241d]">Platform-level config (fallback for all tenants)</span>
+                <span className="text-sm text-night">Platform-level config (fallback for all tenants)</span>
               </label>
             )}
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-between border-t border-[#ede5d8] pt-6">
+          <div className="flex items-center justify-between border-t border-sand-deep pt-6">
             <div>
               {canDelete && (
                 <button

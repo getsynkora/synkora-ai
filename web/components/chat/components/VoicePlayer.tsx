@@ -86,7 +86,7 @@ export function VoicePlayer({
           'p-1.5 rounded transition-colors',
           isSpeaking && !isPaused
             ? 'text-primary bg-primary/10'
-            : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100',
+            : 'text-ash hover:text-ink-soft hover:bg-sand',
           className
         )}
         title={isSpeaking ? (isPaused ? 'Resume' : 'Pause') : 'Listen'}
@@ -135,8 +135,8 @@ export function VoicePlayer({
       {/* Speaking indicator */}
       {isSpeaking && !isPaused && (
         <div className="flex items-center gap-1 text-sm text-muted-foreground">
-          <Volume2 className="h-4 w-4 animate-pulse" />
-          <span>Speaking...</span>
+          <Volume2 className="h-4 w-4 motion-safe:animate-pulse" />
+          <span>Speaking…</span>
         </div>
       )}
 

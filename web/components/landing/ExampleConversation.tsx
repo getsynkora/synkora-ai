@@ -42,19 +42,19 @@ export function ExampleConversation({
   return (
     <div className={`rounded-2xl overflow-hidden border shadow-sm ${
       isLight
-        ? 'bg-white border-gray-200'
-        : 'bg-white/5 border-white/10 backdrop-blur-sm'
+        ? 'bg-white border-line'
+        : 'bg-white/5 border-white/10'
     }`}>
       {/* Title bar */}
       <div className={`px-4 py-3 border-b flex items-center gap-3 ${
-        isLight ? 'bg-gray-50 border-gray-100' : 'bg-white/5 border-white/5'
+        isLight ? 'bg-cream border-sand' : 'bg-white/5 border-white/5'
       }`}>
         <div className="flex gap-1.5">
-          <div className={`w-3 h-3 rounded-full ${isLight ? 'bg-gray-300' : 'bg-white/10'}`} />
-          <div className={`w-3 h-3 rounded-full ${isLight ? 'bg-gray-300' : 'bg-white/10'}`} />
-          <div className={`w-3 h-3 rounded-full ${isLight ? 'bg-gray-300' : 'bg-white/10'}`} />
+          <div className={`w-3 h-3 rounded-full ${isLight ? 'bg-taupe' : 'bg-white/10'}`} />
+          <div className={`w-3 h-3 rounded-full ${isLight ? 'bg-taupe' : 'bg-white/10'}`} />
+          <div className={`w-3 h-3 rounded-full ${isLight ? 'bg-taupe' : 'bg-white/10'}`} />
         </div>
-        <span className={`text-xs font-medium ${isLight ? 'text-gray-500' : 'text-white/30'}`}>
+        <span className={`text-xs font-medium ${isLight ? 'text-ink-mute' : 'text-white/30'}`}>
           {title}
         </span>
       </div>
@@ -79,10 +79,10 @@ export function ExampleConversation({
               className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
                 msg.role === 'user'
                   ? isLight
-                    ? 'bg-gray-100 text-gray-800'
+                    ? 'bg-sand text-ink'
                     : 'bg-white/10 text-white/90'
                   : isLight
-                    ? 'bg-white border border-gray-200 text-gray-700 shadow-sm'
+                    ? 'bg-white border border-line text-ink-soft shadow-sm'
                     : 'bg-white/5 border border-white/5 text-white/70'
               }`}
             >
@@ -101,12 +101,12 @@ export function ExampleConversation({
               AI
             </div>
             <div className={`px-4 py-3 rounded-2xl flex gap-1.5 ${
-              isLight ? 'bg-white border border-gray-200 shadow-sm' : 'bg-white/5 border border-white/5'
+              isLight ? 'bg-white border border-line shadow-sm' : 'bg-white/5 border border-white/5'
             }`}>
               {[0, 1, 2].map(i => (
                 <div
                   key={i}
-                  className={`w-1.5 h-1.5 rounded-full ${isLight ? 'bg-gray-400' : 'bg-white/30'}`}
+                  className={`w-1.5 h-1.5 rounded-full ${isLight ? 'bg-ash' : 'bg-white/30'}`}
                   style={{ animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite` }}
                 />
               ))}

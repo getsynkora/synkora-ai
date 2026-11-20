@@ -64,8 +64,8 @@ function ExtensionAuthContent() {
   if (status === 'loading' || status === 'authorizing') {
     return (
       <div className="flex flex-col items-center gap-3">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-red-500 border-t-transparent" />
-        <p className="text-sm text-gray-500">
+        <div className="h-6 w-6 motion-safe:animate-spin rounded-full border-2 border-ink border-t-transparent" />
+        <p className="text-sm text-ink-mute">
           {status === 'authorizing' ? t('authorizing') : t('loading')}
         </p>
       </div>
@@ -75,25 +75,25 @@ function ExtensionAuthContent() {
   if (status === 'success') {
     return (
       <div className="flex flex-col items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#d9f3ea]">
-          <svg className="h-5 w-5 text-[#2d8b69]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-leaf-wash">
+          <svg aria-hidden="true" className="h-5 w-5 text-leaf" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <p className="text-sm font-medium text-gray-800">{t('authorized')}</p>
+        <p className="text-sm font-medium text-ink">{t('authorized')}</p>
       </div>
     )
   }
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-        <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div className="w-10 h-10 rounded-full bg-sand-deep flex items-center justify-center">
+        <svg aria-hidden="true" className="w-5 h-5 text-leaf" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
         </svg>
       </div>
-      <p className="text-sm font-medium text-gray-800">{t('failed')}</p>
-      <p className="text-xs text-gray-500 text-center">{error}</p>
+      <p className="text-sm font-medium text-ink">{t('failed')}</p>
+      <p className="text-xs text-ink-mute text-center">{error}</p>
     </div>
   )
 }
@@ -102,18 +102,18 @@ export default function ExtensionAuthPage() {
   return (
     <AuthPageFrame>
       <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center px-4 py-8">
-        <div className="flex w-80 flex-col items-center gap-6 rounded-[1.9rem] border border-black/10 bg-white p-8 shadow-[0_24px_60px_rgba(0,0,0,0.08)]">
+        <div className="flex w-80 flex-col items-center gap-6 rounded-[1.9rem] border border-black/10 bg-white p-8 shadow-soft">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink">
               <span className="text-sm font-bold text-white">S</span>
             </div>
-            <span className="text-sm font-semibold text-gray-800">Synkora</span>
+            <span className="text-sm font-semibold text-ink">Synkora</span>
           </div>
           <div className="text-center">
-            <p className="mb-1 text-sm font-medium text-gray-800">Connecting browser extension</p>
-            <p className="text-xs text-gray-400">You will be redirected back automatically</p>
+            <p className="mb-1 text-sm font-medium text-ink">Connecting browser extension</p>
+            <p className="text-xs text-ash">You will be redirected back automatically</p>
           </div>
-          <Suspense fallback={<div className="h-6 w-6 animate-spin rounded-full border-2 border-red-500 border-t-transparent" />}>
+          <Suspense fallback={<div className="h-6 w-6 motion-safe:animate-spin rounded-full border-2 border-ink border-t-transparent" />}>
             <ExtensionAuthContent />
           </Suspense>
         </div>

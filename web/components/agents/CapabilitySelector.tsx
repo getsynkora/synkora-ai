@@ -168,14 +168,14 @@ export default function CapabilitySelector({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+        <div className="motion-safe:animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
       </div>
     )
   }
 
   if (loadError) {
     return (
-      <div className="rounded-md bg-red-50 p-4 text-sm text-red-700">
+      <div className="rounded-md bg-blush-wash p-4 text-sm text-danger">
         {loadError}
       </div>
     )
@@ -186,18 +186,18 @@ export default function CapabilitySelector({
       {/* Presets Section */}
       {showPresets && (
         <div className="mb-6">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Quick Presets</h3>
+          <h3 className="text-sm font-medium text-ink-soft mb-3">Quick Presets</h3>
           <div className="flex flex-wrap gap-2">
             {AGENT_PRESETS.map((preset) => (
               <button
                 key={preset.id}
                 onClick={() => applyPreset(preset)}
-                className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg hover:border-primary-300 hover:bg-primary-50 transition-all text-sm"
+                className="inline-flex items-center gap-2 px-3 py-2 bg-white border border-line rounded-lg hover:border-primary-300 hover:bg-primary-50 transition-[color,background-color,border-color,box-shadow,opacity,transform] text-sm"
               >
                 <span className="text-lg">{preset.icon}</span>
                 <div className="text-left">
-                  <div className="font-medium text-gray-900">{preset.name}</div>
-                  <div className="text-xs text-gray-500">{preset.description}</div>
+                  <div className="font-medium text-ink">{preset.name}</div>
+                  <div className="text-xs text-ink-mute">{preset.description}</div>
                 </div>
               </button>
             ))}
@@ -207,7 +207,7 @@ export default function CapabilitySelector({
 
       {/* Header Actions */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-gray-700">
+        <h3 className="text-sm font-medium text-ink-soft">
           What can this agent do?
         </h3>
         <div className="flex items-center gap-2">
@@ -217,10 +217,10 @@ export default function CapabilitySelector({
           >
             Select All
           </button>
-          <span className="text-gray-300">|</span>
+          <span className="text-taupe">|</span>
           <button
             onClick={selectNone}
-            className="text-sm text-gray-500 hover:text-gray-700"
+            className="text-sm text-ink-mute hover:text-ink-soft"
           >
             Clear
           </button>
@@ -240,50 +240,50 @@ export default function CapabilitySelector({
             <div key={capability.id} className="relative">
               <button
                 onClick={() => toggleCapability(capability.id)}
-                className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
+                className={`w-full text-left p-4 rounded-xl border-2 transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
                   isSelected
                     ? 'border-primary-500 bg-primary-50 shadow-sm'
                     : isEnabled
-                      ? 'border-green-300 bg-green-50/50'
-                      : 'border-gray-200 hover:border-gray-300 bg-white'
+                      ? 'border-mint bg-leaf-wash/50'
+                      : 'border-line hover:border-taupe bg-white'
                 }`}
               >
                 {/* Icon and checkbox */}
                 <div className="flex items-start justify-between mb-2">
                   <span className="text-2xl">{capability.icon}</span>
-                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
                     isSelected
                       ? 'bg-primary-500 border-primary-500'
                       : isEnabled
-                        ? 'bg-green-500 border-green-500'
-                        : 'border-gray-300 bg-white'
+                        ? 'bg-leaf border-leaf'
+                        : 'border-taupe bg-white'
                   }`}>
                     {(isSelected || isEnabled) && <Check className="w-3 h-3 text-white" />}
                   </div>
                 </div>
 
                 {/* Name */}
-                <h4 className="font-medium text-gray-900 text-sm mb-1">
+                <h4 className="font-medium text-ink text-sm mb-1">
                   {capability.name}
                 </h4>
 
                 {/* Description */}
-                <p className="text-xs text-gray-500 line-clamp-2 mb-2">
+                <p className="text-xs text-ink-mute line-clamp-2 mb-2">
                   {capability.description}
                 </p>
 
                 {/* Tool count and OAuth indicator */}
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-400">
+                  <span className="text-ash">
                     {capability.tool_count || capability.toolCount || capability.tools?.length || 0} tools
                     {enabledCount > 0 && !isSelected && (
-                      <span className="text-green-600 ml-1">
+                      <span className="text-leaf ml-1">
                         ({enabledCount} enabled)
                       </span>
                     )}
                   </span>
                   {hasOAuth && (
-                    <span className="flex items-center gap-1 text-amber-600" title="Requires connection setup">
+                    <span className="flex items-center gap-1 text-warn" title="Requires connection setup">
                       <AlertCircle className="w-3 h-3" />
                     </span>
                   )}
@@ -297,7 +297,7 @@ export default function CapabilitySelector({
                     e.stopPropagation()
                     setExpandedCapability(expandedCapability === capability.id ? null : capability.id)
                   }}
-                  className="w-full mt-1 py-1 text-xs text-gray-500 hover:text-gray-700 flex items-center justify-center gap-1"
+                  className="w-full mt-1 py-1 text-xs text-ink-mute hover:text-ink-soft flex items-center justify-center gap-1"
                 >
                   {expandedCapability === capability.id ? (
                     <>Hide tools <ChevronUp className="w-3 h-3" /></>
@@ -309,15 +309,15 @@ export default function CapabilitySelector({
 
               {/* Expanded tools list */}
               {expandedCapability === capability.id && capability.tools && (
-                <div className="mt-2 p-3 bg-gray-50 rounded-lg border border-gray-200 max-h-48 overflow-y-auto">
+                <div className="mt-2 p-3 bg-cream rounded-lg border border-line max-h-48 overflow-y-auto">
                   <div className="space-y-1">
                     {capability.tools.map((tool: string) => (
                       <div
                         key={tool}
                         className={`text-xs px-2 py-1 rounded flex items-center gap-2 ${
                           enabledToolNames.includes(tool)
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-white text-gray-600'
+                            ? 'bg-leaf-wash text-forest'
+                            : 'bg-white text-ink-soft'
                         }`}
                       >
                         {enabledToolNames.includes(tool) && (
@@ -370,7 +370,7 @@ export default function CapabilitySelector({
 
                         return (
                           <div key={provider} className="flex items-center gap-3">
-                            <label className="text-xs font-medium text-gray-700 w-20 capitalize">
+                            <label className="text-xs font-medium text-ink-soft w-20 capitalize">
                               {providerLabel}:
                             </label>
                             {apps.length > 0 ? (
@@ -381,22 +381,22 @@ export default function CapabilitySelector({
                                   className="w-full text-sm rounded-lg px-3 py-2 pr-8 cursor-pointer focus:ring-2 focus:ring-primary-500 focus:outline-none"
                                   style={{
                                     backgroundColor: '#ffffff',
-                                    color: '#111827',
+                                    color: 'rgb(var(--ink))',
                                     border: '1px solid #d1d5db',
                                   }}
                                 >
-                                  <option value="" style={{ color: '#6b7280' }}>Select {providerLabel} app...</option>
+                                  <option value="" style={{ color: 'rgb(var(--steel))' }}>Select {providerLabel} app…</option>
                                   {apps.map(app => (
-                                    <option key={app.id} value={app.id} style={{ color: '#111827', backgroundColor: '#ffffff' }}>
+                                    <option key={app.id} value={app.id} style={{ color: 'rgb(var(--ink))', backgroundColor: 'rgb(var(--white))' }}>
                                       {app.app_name} {(app.has_access_token || app.has_api_token) ? '(Connected)' : ''}
                                     </option>
                                   ))}
                                 </select>
-                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: '#6b7280' }} />
+                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: 'rgb(var(--steel))' }} />
                               </div>
                             ) : (
                               <div className="flex-1 flex items-center gap-2">
-                                <span className="text-xs text-amber-600">No {providerLabel} apps configured</span>
+                                <span className="text-xs text-warn">No {providerLabel} apps configured</span>
                                 <a
                                   href="/settings/oauth-apps"
                                   target="_blank"
@@ -411,7 +411,7 @@ export default function CapabilitySelector({
                       })}
                     </div>
                     {requiredProviders.some(p => !selectedOAuthApps[p] && getOAuthAppsForProvider(p).length > 0) && (
-                      <p className="mt-2 text-xs text-amber-700">
+                      <p className="mt-2 text-xs text-gold">
                         Select OAuth apps above to enable full functionality, or configure them later on the Tools page.
                       </p>
                     )}
@@ -424,10 +424,10 @@ export default function CapabilitySelector({
       )}
 
       {/* Info box */}
-      <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+      <div className="mt-4 p-3 bg-cream rounded-lg border border-line">
         <div className="flex items-start gap-2">
-          <Info className="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5" />
-          <p className="text-xs text-gray-600">
+          <Info className="w-4 h-4 text-ink-mute flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-ink-soft">
             Capabilities group related tools together. You can fine-tune individual tools on the Tools page after creating the agent.
           </p>
         </div>
@@ -493,14 +493,14 @@ export function CapabilityToggles({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-4">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600" />
+        <div className="motion-safe:animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600" />
       </div>
     )
   }
 
   if (loadError) {
     return (
-      <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
+      <div className="rounded-md bg-blush-wash p-3 text-sm text-danger">
         {loadError}
       </div>
     )
@@ -514,15 +514,15 @@ export function CapabilityToggles({
   }, 0)
 
   return (
-    <div className="mb-6 overflow-hidden rounded-[1.8rem] border border-black/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(249,245,239,0.94))] shadow-[0_22px_55px_-42px_rgba(73,45,23,0.28)]">
-      <div className="border-b border-black/10 bg-[#fcfaf5]/90 px-5 py-5">
+    <div className="mb-6 overflow-hidden rounded-[1.8rem] border border-black/10 bg-white shadow-soft">
+      <div className="border-b border-black/10 bg-cream/90 px-5 py-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#dfd1be] bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#7c5d45]">
-              <Zap className="h-3.5 w-3.5 text-[#2d8b69]" />
+            <div className="inline-flex items-center gap-2 rounded-full border border-line bg-white/80 px-3 py-1 text-[11px] font-semibold text-bark">
+              <Zap className="h-3.5 w-3.5 text-leaf" />
               Quick Capability Toggles
             </div>
-            <p className="mt-3 text-sm leading-6 text-gray-600">
+            <p className="mt-3 text-sm leading-6 text-ink-soft">
               Turn related tool groups on or off without editing each integration individually.
             </p>
           </div>
@@ -530,23 +530,23 @@ export function CapabilityToggles({
           <div className="flex flex-col gap-3 sm:items-end">
             <div className="grid grid-cols-3 gap-2 sm:max-w-md">
               <div className="rounded-[1.1rem] border border-black/10 bg-white/85 px-3 py-2.5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7c5d45]">Enabled</p>
-                <p className="mt-1 text-lg font-semibold text-gray-950">{enabledCapabilityCount}</p>
+                <p className="text-[11px] font-semibold text-bark">Enabled</p>
+                <p className="mt-1 text-lg font-semibold text-ink">{enabledCapabilityCount}</p>
               </div>
-              <div className="rounded-[1.1rem] border border-[#ecd9af] bg-[#f8f0dd] px-3 py-2.5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#9a6700]">Partial</p>
-                <p className="mt-1 text-lg font-semibold text-[#6a4b12]">{partialCapabilityCount}</p>
+              <div className="rounded-[1.1rem] border border-line bg-sand px-3 py-2.5">
+                <p className="text-[11px] font-semibold text-gold">Partial</p>
+                <p className="mt-1 text-lg font-semibold text-gold">{partialCapabilityCount}</p>
               </div>
-              <div className="rounded-[1.1rem] border border-[#cfe6d9] bg-[#e8f4ee] px-3 py-2.5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#2d8b69]">Tools On</p>
-                <p className="mt-1 text-lg font-semibold text-[#215c46]">{totalEnabledTools}</p>
+              <div className="rounded-[1.1rem] border border-leaf-wash bg-leaf-wash px-3 py-2.5">
+                <p className="text-[11px] font-semibold text-leaf">Tools On</p>
+                <p className="mt-1 text-lg font-semibold text-forest">{totalEnabledTools}</p>
               </div>
             </div>
 
             <button
               type="button"
               onClick={() => setCollapsed((prev) => !prev)}
-              className="inline-flex items-center gap-2 self-start rounded-full border border-black/10 bg-white/85 px-3 py-2 text-sm font-medium text-[#5f5a54] transition hover:bg-white sm:self-end"
+              className="inline-flex items-center gap-2 self-start rounded-full border border-black/10 bg-white/85 px-3 py-2 text-sm font-medium text-ink-soft transition hover:bg-white sm:self-end"
             >
               {collapsed ? (
                 <>
@@ -579,11 +579,11 @@ export function CapabilityToggles({
                   key={capability.id}
                   onClick={() => handleToggle(capability)}
                   disabled={isToggling}
-                  className={`rounded-[1.35rem] border p-4 text-left transition-all ${
+                  className={`rounded-[1.35rem] border p-4 text-left transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
                     isEnabled
-                      ? 'border-[#cfe6d9] bg-[#e8f4ee]'
+                      ? 'border-leaf-wash bg-leaf-wash'
                       : isPartial
-                        ? 'border-[#ecd9af] bg-[#f8f0dd]'
+                        ? 'border-line bg-sand'
                         : 'border-black/10 bg-white/85 hover:border-black/20 hover:bg-white'
                   } ${isToggling ? 'cursor-wait opacity-50' : ''}`}
                   title={`${totalTools} tools`}
@@ -594,23 +594,23 @@ export function CapabilityToggles({
                         <div
                           className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[1rem] border text-lg ${
                             isEnabled
-                              ? 'border-[#b7dcc6] bg-white/70'
+                              ? 'border-leaf-wash bg-white/70'
                               : isPartial
-                                ? 'border-[#e5c983] bg-white/60'
-                                : 'border-black/10 bg-[#f3ecde]'
+                                ? 'border-honey bg-white/60'
+                                : 'border-black/10 bg-sand'
                           }`}
                         >
                           <span>{capability.icon}</span>
                         </div>
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-gray-950">{capability.name}</p>
+                          <p className="truncate text-sm font-semibold text-ink">{capability.name}</p>
                           <p
-                            className={`mt-0.5 text-xs font-semibold uppercase tracking-[0.16em] ${
+                            className={`mt-0.5 text-xs font-semibold ${
                               isEnabled
-                                ? 'text-[#2d8b69]'
+                                ? 'text-leaf'
                                 : isPartial
-                                  ? 'text-[#9a6700]'
-                                  : 'text-[#7c5d45]'
+                                  ? 'text-gold'
+                                  : 'text-bark'
                             }`}
                           >
                             {isEnabled ? 'Enabled' : isPartial ? 'Partially Enabled' : 'Disabled'}
@@ -618,21 +618,21 @@ export function CapabilityToggles({
                         </div>
                       </div>
 
-                      <p className="mt-3 line-clamp-2 text-sm leading-6 text-gray-600">
+                      <p className="mt-3 line-clamp-2 text-sm leading-6 text-ink-soft">
                         {capability.description}
                       </p>
 
                       <div className="mt-3 flex items-center justify-between gap-3 text-xs">
                         <div className="flex flex-wrap gap-2">
-                          <span className="rounded-full bg-white/80 px-2.5 py-1 font-semibold text-gray-700">
+                          <span className="rounded-full bg-white/80 px-2.5 py-1 font-semibold text-ink-soft">
                             {totalTools} tools
                           </span>
                           {enabledTools > 0 && (
                             <span
                               className={`rounded-full px-2.5 py-1 font-semibold ${
                                 isEnabled
-                                  ? 'bg-white/80 text-[#2d8b69]'
-                                  : 'bg-white/70 text-[#9a6700]'
+                                  ? 'bg-white/80 text-leaf'
+                                  : 'bg-white/70 text-gold'
                               }`}
                             >
                               {enabledTools} on
@@ -643,9 +643,9 @@ export function CapabilityToggles({
                         <div
                           className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border ${
                             isEnabled
-                              ? 'border-[#2d8b69] bg-[#2d8b69] text-white'
+                              ? 'border-leaf bg-leaf text-white'
                               : isPartial
-                                ? 'border-[#c69025] bg-[#f8f0dd] text-[#9a6700]'
+                                ? 'border-warn bg-sand text-gold'
                                 : 'border-black/15 bg-white text-transparent'
                           }`}
                         >

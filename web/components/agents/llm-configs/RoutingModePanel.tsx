@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { Brain, Crosshair, DollarSign, Lock, Scale, Zap, type LucideIcon } from 'lucide-react'
 import {
   AgentLLMConfig,
   JevRoutingConfig,
@@ -20,13 +21,13 @@ interface RoutingModePanelProps {
   onSave: (mode: RoutingMode, config: Record<string, any>) => Promise<void>
 }
 
-const MODE_ICONS: Record<RoutingMode, string> = {
-  fixed: '🔒',
-  round_robin: '⚖️',
-  cost_opt: '💰',
-  intent: '🎯',
-  latency_opt: '⚡',
-  jev: '🧠',
+const MODE_ICONS: Record<RoutingMode, LucideIcon> = {
+  fixed: Lock,
+  round_robin: Scale,
+  cost_opt: DollarSign,
+  intent: Crosshair,
+  latency_opt: Zap,
+  jev: Brain,
 }
 
 // Exported as default; import as: import RoutingModePanel from '@/components/agents/llm-configs/RoutingModePanel'
@@ -116,11 +117,11 @@ export default function RoutingModePanel({
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+    <div className="bg-white border border-line rounded-xl p-6 mb-6">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-base font-semibold text-gray-900">Model Routing</h2>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <h2 className="text-base font-semibold text-ink">Model Routing</h2>
+          <p className="text-sm text-ink-mute mt-0.5">
             Control how requests are distributed across your configured models to reduce cost
           </p>
         </div>
@@ -128,10 +129,10 @@ export default function RoutingModePanel({
           <button
             onClick={handleSave}
             disabled={isSaving || jevInvalid}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-danger rounded-lg hover:bg-danger disabled:opacity-50 transition-colors"
           >
             {isSaving ? (
-              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full motion-safe:animate-spin" />
             ) : saved ? (
               '✓ Saved'
             ) : (
@@ -140,7 +141,7 @@ export default function RoutingModePanel({
           </button>
         )}
         {!hasChanges && saved && (
-          <span className="text-sm text-green-600 font-medium">✓ Saved</span>
+          <span className="text-sm text-leaf font-medium">✓ Saved</span>
         )}
       </div>
 
@@ -151,26 +152,29 @@ export default function RoutingModePanel({
             <button
               key={mode}
               onClick={() => setSelectedMode(mode)}
-              className={`relative text-left p-4 rounded-lg border-2 transition-all ${
+              className={`relative text-left p-4 rounded-lg border-2 transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
                 isSelected
-                  ? 'border-red-500 bg-red-50'
-                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  ? 'border-ink bg-blush-wash'
+                  : 'border-line hover:border-taupe hover:bg-cream'
               }`}
             >
               {isSelected && (
-                <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-red-500 flex items-center justify-center">
-                  <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 12 12">
+                <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-ink flex items-center justify-center">
+                  <svg aria-hidden="true" className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 12 12">
                     <path d="M10 3L5 8.5 2 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                   </svg>
                 </span>
               )}
               <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-lg">{MODE_ICONS[mode]}</span>
-                <span className={`text-sm font-semibold ${isSelected ? 'text-red-700' : 'text-gray-800'}`}>
+                {(() => {
+                  const ModeIcon = MODE_ICONS[mode]
+                  return <ModeIcon className="h-5 w-5" aria-hidden="true" />
+                })()}
+                <span className={`text-sm font-semibold ${isSelected ? 'text-leaf' : 'text-ink'}`}>
                   {ROUTING_MODE_LABELS[mode]}
                 </span>
               </div>
-              <p className="text-xs text-gray-500 leading-relaxed">
+              <p className="text-xs text-ink-mute leading-relaxed">
                 {ROUTING_MODE_DESCRIPTIONS[mode]}
               </p>
             </button>
@@ -180,12 +184,12 @@ export default function RoutingModePanel({
 
       {/* Cost Opt extra settings */}
       {selectedMode === 'cost_opt' && (
-        <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-          <p className="text-sm font-medium text-amber-800 mb-3">Cost Optimization Settings</p>
+        <div className="mt-4 p-4 bg-sand-deep border border-honey rounded-lg">
+          <p className="text-sm font-medium text-gold mb-3">Cost Optimization Settings</p>
           <div>
-            <label className="flex items-center justify-between text-sm text-gray-700 mb-2">
+            <label className="flex items-center justify-between text-sm text-ink-soft mb-2">
               <span>Quality floor</span>
-              <span className="font-mono text-xs bg-white border border-gray-200 px-2 py-0.5 rounded">
+              <span className="font-mono text-xs bg-white border border-line px-2 py-0.5 rounded">
                 {qualityFloor.toFixed(1)}
               </span>
             </label>
@@ -196,13 +200,13 @@ export default function RoutingModePanel({
               step={0.1}
               value={qualityFloor}
               onChange={(e) => setQualityFloor(parseFloat(e.target.value))}
-              className="w-full accent-red-500"
+              className="w-full accent-brand"
             />
-            <div className="flex justify-between text-xs text-gray-400 mt-1">
-              <span>0.0 — cheapest</span>
-              <span>1.0 — safest</span>
+            <div className="flex justify-between text-xs text-ash mt-1">
+              <span>0.0, cheapest</span>
+              <span>1.0, safest</span>
             </div>
-            <p className="text-xs text-amber-700 mt-2">
+            <p className="text-xs text-gold mt-2">
               Prevents routing complex queries to cheap models. Set higher if accuracy is critical.
             </p>
           </div>
@@ -211,8 +215,8 @@ export default function RoutingModePanel({
 
       {/* Round robin note */}
       {selectedMode === 'round_robin' && (
-        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-xs text-blue-700">
+        <div className="mt-4 p-3 bg-sky-wash border border-sky-wash rounded-lg">
+          <p className="text-xs text-azure">
             Set the <span className="font-semibold">Weight</span> on each model config below to control
             how often it gets selected. Higher weight = more traffic.
           </p>
@@ -221,8 +225,8 @@ export default function RoutingModePanel({
 
       {/* Intent note */}
       {selectedMode === 'intent' && (
-        <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-          <p className="text-xs text-purple-700">
+        <div className="mt-4 p-3 bg-blush-wash border border-blush rounded-lg">
+          <p className="text-xs text-plum">
             Assign <span className="font-semibold">Intent Tags</span> on each model config below to
             control which query types it handles (e.g., code, math, simple_qa).
           </p>
@@ -231,34 +235,34 @@ export default function RoutingModePanel({
 
       {/* JEV settings */}
       {selectedMode === 'jev' && (
-        <div className="mt-4 p-4 bg-indigo-50 border border-indigo-200 rounded-lg space-y-4">
-          <p className="text-sm font-medium text-indigo-800">JEV Routing Settings</p>
+        <div className="mt-4 p-4 bg-sky-wash border border-sky-wash rounded-lg space-y-4">
+          <p className="text-sm font-medium text-azure">JEV Routing Settings</p>
 
           <div className="space-y-2">
-            <label className="flex items-start gap-2 text-sm text-gray-700">
+            <label className="flex items-start gap-2 text-sm text-ink-soft">
               <input
                 type="checkbox"
                 checked={jevModelRouting}
                 onChange={(e) => setJevModelRouting(e.target.checked)}
-                className="mt-0.5 accent-red-500"
+                className="mt-0.5 accent-brand"
               />
               <span>
                 <span className="font-medium">Model routing</span>
-                <span className="block text-xs text-gray-500">
+                <span className="block text-xs text-ink-mute">
                   Pick a model tier per turn from the mapping below.
                 </span>
               </span>
             </label>
-            <label className="flex items-start gap-2 text-sm text-gray-700">
+            <label className="flex items-start gap-2 text-sm text-ink-soft">
               <input
                 type="checkbox"
                 checked={jevToolFiltering}
                 onChange={(e) => setJevToolFiltering(e.target.checked)}
-                className="mt-0.5 accent-red-500"
+                className="mt-0.5 accent-brand"
               />
               <span>
                 <span className="font-medium">Tool filtering</span>
-                <span className="block text-xs text-gray-500">
+                <span className="block text-xs text-ink-mute">
                   Hide built-in tools the query doesn&apos;t need. MCP tools are not part of this step; agents with very large tool sets are still trimmed by keyword matching, and dropped tools can be found through tool discovery.
                 </span>
               </span>
@@ -267,22 +271,22 @@ export default function RoutingModePanel({
 
           {jevModelRouting && (
             <div>
-              <p className="text-sm text-gray-700 mb-2">Tier → model</p>
+              <p className="text-sm text-ink-soft mb-2">Tier → model</p>
               {enabledConfigs.length === 0 ? (
-                <p className="text-xs text-amber-700">
+                <p className="text-xs text-gold">
                   Add at least one enabled model config below to map tiers.
                 </p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {JEV_TIERS.map(({ value, label, hint }) => (
                     <div key={value}>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">{label}</label>
+                      <label className="block text-xs font-medium text-ink-soft mb-1">{label}</label>
                       <select
                         value={jevTierMap[value] ?? ''}
                         onChange={(e) =>
                           setJevTierMap((prev) => ({ ...prev, [value]: e.target.value || undefined }))
                         }
-                        className="w-full text-sm border border-gray-300 rounded-lg px-2 py-1.5 bg-white"
+                        className="w-full text-sm border border-taupe rounded-lg px-2 py-1.5 bg-white"
                       >
                         <option value="">Default model</option>
                         {enabledConfigs.map((c) => (
@@ -291,7 +295,7 @@ export default function RoutingModePanel({
                           </option>
                         ))}
                       </select>
-                      <p className="text-xs text-gray-500 mt-1">{hint}</p>
+                      <p className="text-xs text-ink-mute mt-1">{hint}</p>
                     </div>
                   ))}
                 </div>
@@ -301,23 +305,23 @@ export default function RoutingModePanel({
 
           {jevToolFiltering && (
             <div>
-              <label className="block text-sm text-gray-700 mb-1">Tool filtering strictness</label>
+              <label className="block text-sm text-ink-soft mb-1">Tool filtering strictness</label>
               <select
                 value={jevThreshold}
                 onChange={(e) => setJevThreshold(e.target.value as 'yes' | 'unclear')}
-                className="w-full sm:w-72 text-sm border border-gray-300 rounded-lg px-2 py-1.5 bg-white"
+                className="w-full sm:w-72 text-sm border border-taupe rounded-lg px-2 py-1.5 bg-white"
               >
-                <option value="yes">Strict — keep tools only when clearly needed</option>
-                <option value="unclear">Permissive — also keep tools when unsure</option>
+                <option value="yes">Strict, keep tools only when clearly needed</option>
+                <option value="unclear">Permissive, also keep tools when unsure</option>
               </select>
             </div>
           )}
 
           {jevInvalid && (
-            <p className="text-xs text-red-600">Enable at least one of model routing or tool filtering.</p>
+            <p className="text-xs text-danger">Enable at least one of model routing or tool filtering.</p>
           )}
 
-          <p className="text-xs text-indigo-700">
+          <p className="text-xs text-azure">
             Requires a TypeSafe API key under{' '}
             <Link href="/settings/integrations" className="underline font-medium">
               Settings → Integrations → AI Evaluation

@@ -153,19 +153,19 @@ export default function DatabaseConnectionsPage() {
 
   const getTypeColor = (type: string) => {
     switch (type?.toUpperCase()) {
-      case 'POSTGRESQL': return 'bg-[#e7f0ff] text-[#325b93]'
-      case 'ELASTICSEARCH': return 'bg-[#efe7f7] text-[#6b4d86]'
-      case 'MYSQL': return 'bg-[#f7eadb] text-[#9c6228]'
-      case 'MONGODB': return 'bg-[#e8f4ee] text-[#2d8b69]'
-      default: return 'bg-[#f3ecde] text-[#6e675d]'
+      case 'POSTGRESQL': return 'bg-sky-wash text-azure'
+      case 'ELASTICSEARCH': return 'bg-sand-deep text-ink-soft'
+      case 'MYSQL': return 'bg-sand-deep text-gold'
+      case 'MONGODB': return 'bg-leaf-wash text-leaf'
+      default: return 'bg-sand text-ink-mute'
     }
   }
 
   const getStatusColor = (status: string) => {
-    if (status === 'active') return 'bg-[#e8f4ee] text-[#2d8b69]'
-    if (status === 'inactive') return 'bg-[#f1eadc] text-[#6e675d]'
-    if (status === 'error') return 'bg-[#fbe9e7] text-[#b44736]'
-    return 'bg-[#f8eed9] text-[#ad7d25]' // pending
+    if (status === 'active') return 'bg-leaf-wash text-leaf'
+    if (status === 'inactive') return 'bg-sand-deep text-ink-mute'
+    if (status === 'error') return 'bg-blush-wash text-danger'
+    return 'bg-sand-deep text-gold' // pending
   }
 
   const getStatusIcon = (status: string) => {
@@ -204,8 +204,8 @@ export default function DatabaseConnectionsPage() {
     return (
       <div className="dashboard-resource-page flex h-screen items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-red-600"></div>
-          <p className="text-gray-600">Loading your database connections...</p>
+          <div className="mx-auto mb-4 h-12 w-12 motion-safe:animate-spin rounded-full border-b-2 border-danger"></div>
+          <p className="text-ink-soft">Loading your database connections…</p>
         </div>
       </div>
     )
@@ -215,25 +215,25 @@ export default function DatabaseConnectionsPage() {
     <div className="dashboard-resource-page min-h-screen p-4 md:p-6">
       <div className="mx-auto max-w-6xl">
         <div className="mb-4 flex items-center gap-1.5 text-sm">
-          <Link href="/" className="flex items-center gap-1 text-gray-500 transition-colors hover:text-[#171717]">
+          <Link href="/" className="flex items-center gap-1 text-ink-mute transition-colors hover:text-ink">
             <Home className="h-3.5 w-3.5" />
             Home
           </Link>
-          <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
-          <span className="font-medium text-gray-900">Database Connections</span>
+          <ChevronRight className="h-3.5 w-3.5 text-ash" />
+          <span className="font-medium text-ink">Database Connections</span>
         </div>
 
         <div className="mb-6">
           <div className="mb-5 flex items-center justify-between gap-3">
             <div>
-              <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 md:text-3xl">Database Connections</h1>
-              <p className="mt-1 hidden text-sm text-gray-600 sm:block">
+              <h1 className="text-2xl font-extrabold tracking-tight text-ink md:text-3xl">Database Connections</h1>
+              <p className="mt-1 hidden text-sm text-ink-soft sm:block">
                 Manage database connections for data analysis agents
               </p>
             </div>
             <Link
               href="/database-connections/create"
-              className="inline-flex flex-shrink-0 items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
+              className="inline-flex flex-shrink-0 items-center gap-2 rounded-[1rem] bg-ink px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
             >
               <Plus className="h-4 w-4 md:h-5 md:w-5" />
               <span className="hidden sm:inline">Add Connection</span>
@@ -242,54 +242,54 @@ export default function DatabaseConnectionsPage() {
           </div>
 
           <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-[1.4rem] border border-black/10 bg-white/80 p-4 shadow-[0_16px_35px_rgba(0,0,0,0.05)]">
+            <div className="rounded-[1.4rem] border border-black/10 bg-white/80 p-4 shadow-soft">
               <div className="flex items-center gap-3">
-                <div className="rounded-[1rem] bg-[#f3ecde] p-2.5">
-                  <Database className="h-[18px] w-[18px] text-[#171717]" />
+                <div className="rounded-[1rem] bg-sand p-2.5">
+                  <Database className="h-[18px] w-[18px] text-ink" />
                 </div>
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-500">Total</p>
-                  <p className="mt-1 text-2xl font-semibold text-gray-900">{connections.length}</p>
+                  <p className="text-xs font-medium text-ink-mute">Total</p>
+                  <p className="mt-1 text-2xl font-semibold text-ink">{connections.length}</p>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-[1.4rem] border border-black/10 bg-white/80 p-4 shadow-[0_16px_35px_rgba(0,0,0,0.05)]">
+            <div className="rounded-[1.4rem] border border-black/10 bg-white/80 p-4 shadow-soft">
               <div className="flex items-center gap-3">
-                <div className="rounded-[1rem] bg-[#e8f4ee] p-2.5">
-                  <CheckCircle className="h-[18px] w-[18px] text-[#2d8b69]" />
+                <div className="rounded-[1rem] bg-leaf-wash p-2.5">
+                  <CheckCircle className="h-[18px] w-[18px] text-leaf" />
                 </div>
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-500">Active</p>
-                  <p className="mt-1 text-2xl font-semibold text-gray-900">
+                  <p className="text-xs font-medium text-ink-mute">Active</p>
+                  <p className="mt-1 text-2xl font-semibold text-ink">
                     {connections.filter(c => c.status === 'active').length}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-[1.4rem] border border-black/10 bg-white/80 p-4 shadow-[0_16px_35px_rgba(0,0,0,0.05)]">
+            <div className="rounded-[1.4rem] border border-black/10 bg-white/80 p-4 shadow-soft">
               <div className="flex items-center gap-3">
-                <div className="rounded-[1rem] bg-[#f1eadc] p-2.5">
-                  <XCircle className="h-[18px] w-[18px] text-[#5b564e]" />
+                <div className="rounded-[1rem] bg-sand-deep p-2.5">
+                  <XCircle className="h-[18px] w-[18px] text-ink-soft" />
                 </div>
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-500">Inactive</p>
-                  <p className="mt-1 text-2xl font-semibold text-gray-900">
+                  <p className="text-xs font-medium text-ink-mute">Inactive</p>
+                  <p className="mt-1 text-2xl font-semibold text-ink">
                     {connections.filter(c => c.status === 'inactive').length}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-[1.4rem] border border-black/10 bg-white/80 p-4 shadow-[0_16px_35px_rgba(0,0,0,0.05)]">
+            <div className="rounded-[1.4rem] border border-black/10 bg-white/80 p-4 shadow-soft">
               <div className="flex items-center gap-3">
-                <div className="rounded-[1rem] bg-[#f8eed9] p-2.5">
-                  <Clock className="h-[18px] w-[18px] text-[#ad7d25]" />
+                <div className="rounded-[1rem] bg-sand-deep p-2.5">
+                  <Clock className="h-[18px] w-[18px] text-gold" />
                 </div>
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-gray-500">Pending</p>
-                  <p className="mt-1 text-2xl font-semibold text-gray-900">
+                  <p className="text-xs font-medium text-ink-mute">Pending</p>
+                  <p className="mt-1 text-2xl font-semibold text-ink">
                     {connections.filter(c => c.status === 'pending').length}
                   </p>
                 </div>
@@ -297,26 +297,26 @@ export default function DatabaseConnectionsPage() {
             </div>
           </div>
 
-          <div className="rounded-[1.3rem] border border-black/10 bg-white/80 p-3 shadow-[0_12px_28px_rgba(0,0,0,0.04)]">
+          <div className="rounded-[1.3rem] border border-black/10 bg-white/80 p-3 shadow-soft">
             <div className="flex flex-col gap-3 lg:flex-row">
               <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-400" />
+                <Search className="absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-ash" />
                 <input
                   type="text"
-                  placeholder="Search database connections..."
+                  placeholder="Search database connections…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-[1.1rem] border border-black/10 bg-[#fcfaf5] py-3 pl-11 pr-4 text-sm text-gray-900 focus:border-[#2d8b69] focus:outline-none focus:ring-2 focus:ring-[#2d8b69]/15"
+                  className="w-full rounded-[1.1rem] border border-black/10 bg-cream py-3 pl-11 pr-4 text-sm text-ink focus:border-leaf focus:outline-none focus:ring-2 focus:ring-leaf/15"
                 />
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row">
-                <div className="flex items-center gap-2 rounded-[1.1rem] border border-black/10 bg-[#fcfaf5] px-3">
-                  <Filter className="h-4 w-4 text-gray-400" />
+                <div className="flex items-center gap-2 rounded-[1.1rem] border border-black/10 bg-cream px-3">
+                  <Filter className="h-4 w-4 text-ash" />
                   <select
                     value={filterType}
                     onChange={(e) => setFilterType(e.target.value)}
-                    className="min-w-[140px] bg-transparent py-3 text-sm text-gray-700 focus:outline-none"
+                    className="min-w-[140px] bg-transparent py-3 text-sm text-ink-soft focus:outline-none"
                   >
                     <option value="all">All Types</option>
                     {uniqueTypes.map(type => (
@@ -325,12 +325,12 @@ export default function DatabaseConnectionsPage() {
                   </select>
                 </div>
 
-                <div className="flex items-center gap-2 rounded-[1.1rem] border border-black/10 bg-[#fcfaf5] px-3">
-                  <CheckCircle className="h-4 w-4 text-gray-400" />
+                <div className="flex items-center gap-2 rounded-[1.1rem] border border-black/10 bg-cream px-3">
+                  <CheckCircle className="h-4 w-4 text-ash" />
                   <select
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value)}
-                    className="min-w-[140px] bg-transparent py-3 text-sm text-gray-700 focus:outline-none"
+                    className="min-w-[140px] bg-transparent py-3 text-sm text-ink-soft focus:outline-none"
                   >
                     <option value="all">All Status</option>
                     <option value="active">Active</option>
@@ -345,27 +345,27 @@ export default function DatabaseConnectionsPage() {
         </div>
 
         {error && (
-          <div className="mb-6 rounded-[1.3rem] border border-red-200 bg-red-50/90 p-4">
+          <div className="mb-6 rounded-[1.3rem] border border-blush bg-blush-wash/90 p-4">
             <div className="flex items-center gap-3">
-              <AlertCircle className="h-5 w-5 text-red-600" />
-              <p className="text-red-700">{error}</p>
+              <AlertCircle className="h-5 w-5 text-danger" />
+              <p className="text-danger">{error}</p>
             </div>
           </div>
         )}
 
         {filteredConnections.length === 0 ? (
-          <div className="rounded-[2rem] border border-black/10 bg-white/80 p-10 text-center shadow-[0_22px_55px_rgba(0,0,0,0.06)]">
+          <div className="rounded-[2rem] border border-black/10 bg-white/80 p-10 text-center shadow-soft">
             <div className="relative mx-auto mb-6 h-28 w-28">
-              <div className="absolute inset-0 rotate-6 rounded-[1.75rem] bg-[#f3ecde]"></div>
-              <div className="absolute inset-0 flex items-center justify-center rounded-[1.75rem] border border-black/10 bg-white shadow-[0_18px_40px_rgba(0,0,0,0.05)]">
-                <FolderOpen className="h-10 w-10 text-[#2d8b69]" />
+              <div className="absolute inset-0 rotate-6 rounded-[1.75rem] bg-sand"></div>
+              <div className="absolute inset-0 flex items-center justify-center rounded-[1.75rem] border border-black/10 bg-white shadow-soft">
+                <FolderOpen className="h-10 w-10 text-leaf" />
               </div>
             </div>
 
-            <h3 className="mb-2 text-xl font-semibold text-gray-900">
+            <h3 className="mb-2 text-xl font-semibold text-ink">
               {connections.length === 0 ? 'No database connections yet' : 'No results found'}
             </h3>
-            <p className="mx-auto mb-6 max-w-md text-gray-600">
+            <p className="mx-auto mb-6 max-w-md text-ink-soft">
               {connections.length === 0
                 ? 'Add your first database connection to enable data analysis.'
                 : 'Try adjusting your search or filter criteria.'}
@@ -373,7 +373,7 @@ export default function DatabaseConnectionsPage() {
             {connections.length === 0 && (
               <Link
                 href="/database-connections/create"
-                className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+                className="inline-flex items-center gap-2 rounded-[1rem] bg-ink px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
               >
                 <Plus className="h-5 w-5" />
                 Add Connection
@@ -385,7 +385,7 @@ export default function DatabaseConnectionsPage() {
             {filteredConnections.map((connection) => (
               <div
                 key={connection.id}
-                className="group relative flex min-h-[300px] flex-col rounded-[1.7rem] border border-black/10 bg-white/80 shadow-[0_18px_40px_rgba(0,0,0,0.05)] transition-all hover:-translate-y-0.5 hover:border-black/15 hover:shadow-[0_22px_50px_rgba(0,0,0,0.08)]"
+                className="group relative flex min-h-[300px] flex-col rounded-[1.7rem] border border-black/10 bg-white/80 shadow-soft transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:-translate-y-0.5 hover:border-black/15 hover:shadow-soft"
               >
                 <div
                   className="absolute right-4 top-4 z-20"
@@ -398,18 +398,18 @@ export default function DatabaseConnectionsPage() {
                       event.stopPropagation()
                       setOpenMenuId(openMenuId === connection.id ? null : connection.id)
                     }}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-black/10 bg-white/90 text-[#5b564e] shadow-[0_8px_18px_rgba(0,0,0,0.08)] transition-colors hover:bg-white hover:text-[#171717]"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-black/10 bg-white/90 text-ink-soft shadow-soft transition-colors hover:bg-white hover:text-ink"
                     aria-label={`Open actions for ${connection.name}`}
                   >
                     <MoreHorizontal className="h-4 w-4" />
                   </button>
 
                   {openMenuId === connection.id && (
-                    <div className="absolute right-0 top-11 w-44 overflow-hidden rounded-[1.1rem] border border-black/10 bg-[#fcfaf5] py-1.5 shadow-[0_20px_45px_rgba(0,0,0,0.14)]">
+                    <div className="absolute right-0 top-11 w-44 overflow-hidden rounded-[1.1rem] border border-black/10 bg-cream py-1.5 shadow-soft">
                       <Link
                         href={`/database-connections/${connection.id}/edit`}
                         onClick={() => setOpenMenuId(null)}
-                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-[#171717] transition-colors hover:bg-[#f3ecde]"
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-sand"
                       >
                         <Edit className="h-4 w-4" />
                         Edit
@@ -420,7 +420,7 @@ export default function DatabaseConnectionsPage() {
                           setOpenMenuId(null)
                           openDeleteModal(connection)
                         }}
-                        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-danger transition-colors hover:bg-blush-wash"
                       >
                         <Trash2 className="h-4 w-4" />
                         Delete
@@ -439,45 +439,45 @@ export default function DatabaseConnectionsPage() {
                       {getTypeIcon(connection.type)}
                     </div>
                     <div className="min-w-0">
-                      <h3 className="truncate text-[1.05rem] font-semibold text-gray-900">
+                      <h3 className="truncate text-[1.05rem] font-semibold text-ink">
                         {connection.name}
                       </h3>
-                      <p className="mt-1 truncate text-sm text-gray-500">
+                      <p className="mt-1 truncate text-sm text-ink-mute">
                         {connection.host}:{connection.port}
                       </p>
                     </div>
                   </div>
 
                   <div className="mb-4 flex flex-wrap gap-2">
-                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${getStatusColor(connection.status)}`}>
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${getStatusColor(connection.status)}`}>
                       {getStatusIcon(connection.status)}
                       {getStatusText(connection.status)}
                     </span>
-                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] ${getTypeColor(connection.type)}`}>
+                    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ${getTypeColor(connection.type)}`}>
                       {connection.type}
                     </span>
                   </div>
 
-                  <p className="mb-4 line-clamp-2 text-sm text-gray-600">
+                  <p className="mb-4 line-clamp-2 text-sm text-ink-soft">
                     {connection.description || 'No description added'}
                   </p>
 
                   <div className="grid grid-cols-3 gap-2.5">
-                    <div className="min-w-0 rounded-[1.15rem] border border-black/10 bg-[#fcfaf5] px-3 py-3">
-                      <div className="break-words text-[10px] font-medium uppercase leading-snug tracking-[0.1em] text-gray-500">Database</div>
-                      <div className="mt-1 truncate text-sm font-semibold text-gray-900">
+                    <div className="min-w-0 rounded-[1.15rem] border border-black/10 bg-cream px-3 py-3">
+                      <div className="break-words text-[10px] font-medium leading-snug text-ink-mute">Database</div>
+                      <div className="mt-1 truncate text-sm font-semibold text-ink">
                         {connection.database || 'N/A'}
                       </div>
                     </div>
-                    <div className="min-w-0 rounded-[1.15rem] border border-black/10 bg-[#eef7f1] px-3 py-3">
-                      <div className="break-words text-[10px] font-medium uppercase leading-snug tracking-[0.1em] text-gray-500">User</div>
-                      <div className="mt-1 truncate text-sm font-semibold text-gray-900">
+                    <div className="min-w-0 rounded-[1.15rem] border border-black/10 bg-leaf-wash px-3 py-3">
+                      <div className="break-words text-[10px] font-medium leading-snug text-ink-mute">User</div>
+                      <div className="mt-1 truncate text-sm font-semibold text-ink">
                         {connection.username || 'N/A'}
                       </div>
                     </div>
-                    <div className="min-w-0 rounded-[1.15rem] border border-black/10 bg-[#f4efe4] px-3 py-3">
-                      <div className="break-words text-[10px] font-medium uppercase leading-snug tracking-[0.1em] text-gray-500">Tested</div>
-                      <div className="mt-1 text-sm font-semibold text-gray-900">
+                    <div className="min-w-0 rounded-[1.15rem] border border-black/10 bg-paper px-3 py-3">
+                      <div className="break-words text-[10px] font-medium leading-snug text-ink-mute">Tested</div>
+                      <div className="mt-1 text-sm font-semibold text-ink">
                         {formatDate(connection.last_tested_at)}
                       </div>
                     </div>
@@ -490,17 +490,17 @@ export default function DatabaseConnectionsPage() {
       </div>
 
       {deleteModal.show && deleteModal.connection && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-[1.8rem] border border-black/10 bg-[#fcfaf5] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.18)]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <div className="w-full max-w-md rounded-[1.8rem] border border-black/10 bg-cream p-6 shadow-soft">
             <div className="mb-4 flex items-center gap-3">
-              <div className="rounded-[1rem] bg-red-50 p-2.5">
-                <Trash2 className="h-6 w-6 text-red-600" />
+              <div className="rounded-[1rem] bg-sand-deep p-2.5">
+                <Trash2 className="h-6 w-6 text-danger" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">Delete Connection</h3>
+              <h3 className="text-lg font-semibold text-ink">Delete Connection</h3>
             </div>
 
-            <p className="mb-6 text-gray-600">
-              Are you sure you want to delete <span className="font-semibold text-gray-900">"{deleteModal.connection.name}"</span>?
+            <p className="mb-6 text-ink-soft">
+              Are you sure you want to delete <span className="font-semibold text-ink">"{deleteModal.connection.name}"</span>?
               This action cannot be undone and will permanently remove this database connection.
             </p>
 
@@ -508,18 +508,18 @@ export default function DatabaseConnectionsPage() {
               <button
                 onClick={closeDeleteModal}
                 disabled={deleting}
-                className="rounded-[1rem] border border-black/10 bg-[#f1eadc] px-4 py-2.5 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#e8ddc8] disabled:opacity-50"
+                className="rounded-[1rem] border border-black/10 bg-sand-deep px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-line disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
                 disabled={deleting}
-                className="flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex items-center gap-2 rounded-[1rem] bg-ink px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {deleting ? (
                   <>
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    <div className="h-4 w-4 motion-safe:animate-spin rounded-full border-2 border-white border-t-transparent" />
                     Deleting...
                   </>
                 ) : (

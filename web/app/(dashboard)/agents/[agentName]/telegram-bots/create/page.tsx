@@ -26,14 +26,14 @@ interface TokenValidation {
 }
 
 const fieldClass =
-  "w-full rounded-[1.15rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]";
+  "w-full rounded-[1.15rem] border border-black/10 bg-cream px-4 py-3 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-mint";
 const sectionTitleClass =
-  "mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[#7c5d45]";
-const helperTextClass = "mt-1 text-xs text-gray-500";
+  "mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-bark";
+const helperTextClass = "mt-1 text-xs text-ink-mute";
 const secondaryButtonClass =
-  "rounded-[1rem] border border-black/10 bg-white/85 px-4 py-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-white hover:text-[#171717]";
+  "rounded-[1rem] border border-black/10 bg-white/85 px-4 py-3 text-sm font-semibold text-ink-soft transition-colors hover:bg-white hover:text-ink";
 const primaryButtonClass =
-  "inline-flex items-center justify-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 rounded-[1rem] bg-ink px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50";
 
 export default function CreateTelegramBotPage() {
   const params = useParams();
@@ -136,7 +136,7 @@ export default function CreateTelegramBotPage() {
   if (pageLoading) {
     return (
       <div className="dashboard-resource-page flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[#171717]"></div>
+        <div className="h-8 w-8 motion-safe:animate-spin rounded-full border-b-2 border-ink"></div>
       </div>
     );
   }
@@ -147,7 +147,7 @@ export default function CreateTelegramBotPage() {
       title="Add Telegram Bot"
       description={
         <>
-          Connect your agent <span className="font-semibold text-gray-900">{agentName}</span> to Telegram with a BotFather token.
+          Connect your agent <span className="font-semibold text-ink">{agentName}</span> to Telegram with a BotFather token.
         </>
       }
       icon={Send}
@@ -156,14 +156,14 @@ export default function CreateTelegramBotPage() {
     >
       <AgentPagePanel className="mb-5 p-5">
         <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[1rem] border border-black/10 bg-[#f1eadc]">
-            <MessageCircle className="h-4 w-4 text-[#171717]" />
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[1rem] border border-black/10 bg-sand-deep">
+            <MessageCircle className="h-4 w-4 text-ink" />
           </div>
           <div className="flex-1">
-            <h3 className="mb-2 text-sm font-semibold text-gray-950">
+            <h3 className="mb-2 text-sm font-semibold text-ink">
               How to create a Telegram bot
             </h3>
-            <ol className="ml-2 list-inside list-decimal space-y-1 text-xs leading-6 text-gray-600">
+            <ol className="ml-2 list-inside list-decimal space-y-1 text-xs leading-6 text-ink-soft">
               <li>Open Telegram and search for @BotFather</li>
               <li>Send `/newbot` and follow the prompts</li>
               <li>Copy the bot token provided</li>
@@ -173,7 +173,7 @@ export default function CreateTelegramBotPage() {
               href="https://core.telegram.org/bots#botfather"
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#171717] transition-colors hover:text-black"
+              className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-ink transition-colors hover:text-black"
             >
               View BotFather documentation
               <ExternalLink className="h-3 w-3" />
@@ -183,11 +183,11 @@ export default function CreateTelegramBotPage() {
       </AgentPagePanel>
 
       {error && (
-        <div className="mb-5 flex items-start gap-3 rounded-[1.25rem] border border-[#ead8e1] bg-[#f8ecef] px-4 py-4">
-          <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#8b5a74]" />
+        <div className="mb-5 flex items-start gap-3 rounded-[1.25rem] border border-blush-wash bg-blush-wash px-4 py-4">
+          <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-plum" />
           <div>
-            <h3 className="text-sm font-semibold text-[#6f435b]">Error</h3>
-            <p className="mt-1 text-xs text-[#8b5a74]">{error}</p>
+            <h3 className="text-sm font-semibold text-plum">Error</h3>
+            <p className="mt-1 text-xs text-plum">{error}</p>
           </div>
         </div>
       )}
@@ -196,15 +196,15 @@ export default function CreateTelegramBotPage() {
         <form onSubmit={handleSubmit}>
           <div className="space-y-6 p-6 md:p-7">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">Bot Configuration</h2>
-              <p className="mt-1 text-sm text-gray-500">
+              <h2 className="text-lg font-semibold text-ink">Bot Configuration</h2>
+              <p className="mt-1 text-sm text-ink-mute">
                 Validate your Telegram token first, then finish the bot settings.
               </p>
             </div>
 
             <div>
               <label className={sectionTitleClass}>
-                Bot Token <span className="text-[#8b5a74]">*</span>
+                Bot Token <span className="text-plum">*</span>
               </label>
               <div className="flex flex-col gap-3 md:flex-row">
                 <input
@@ -222,9 +222,9 @@ export default function CreateTelegramBotPage() {
                   type="button"
                   onClick={handleValidateToken}
                   disabled={validating || !formData.bot_token.trim()}
-                  className="inline-flex min-w-[11rem] items-center justify-center rounded-[1rem] border border-[#cfe6d9] bg-[#e8f4ee] px-4 py-3 text-sm font-semibold text-[#2d8b69] transition-colors hover:bg-[#def1e7] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex min-w-[11rem] items-center justify-center rounded-[1rem] border border-leaf-wash bg-leaf-wash px-4 py-3 text-sm font-semibold text-leaf transition-colors hover:bg-leaf-wash disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {validating ? "Validating..." : "Validate Token"}
+                  {validating ? "Validating…" : "Validate Token"}
                 </button>
               </div>
               <p className={helperTextClass}>Get this from @BotFather on Telegram.</p>
@@ -234,26 +234,26 @@ export default function CreateTelegramBotPage() {
               <div
                 className={`rounded-[1.25rem] border px-4 py-4 ${
                   tokenValidation.valid
-                    ? "border-[#cfe6d9] bg-[#e8f4ee]"
-                    : "border-[#ead8e1] bg-[#f8ecef]"
+                    ? "border-leaf-wash bg-leaf-wash"
+                    : "border-blush-wash bg-blush-wash"
                 }`}
               >
                 <div className="flex items-start gap-3">
                   {tokenValidation.valid ? (
-                    <CheckCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#2d8b69]" />
+                    <CheckCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-leaf" />
                   ) : (
-                    <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#8b5a74]" />
+                    <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-plum" />
                   )}
                   <div>
                     <p
                       className={`text-sm font-semibold ${
-                        tokenValidation.valid ? "text-[#246f54]" : "text-[#6f435b]"
+                        tokenValidation.valid ? "text-leaf" : "text-plum"
                       }`}
                     >
                       {tokenValidation.message}
                     </p>
                     {tokenValidation.valid && tokenValidation.bot_info && (
-                      <div className="mt-2 space-y-1 text-xs text-gray-700">
+                      <div className="mt-2 space-y-1 text-xs text-ink-soft">
                         <p>Username: @{tokenValidation.bot_info.username}</p>
                         <p>Bot ID: {tokenValidation.bot_info.bot_id}</p>
                         <p>
@@ -269,7 +269,7 @@ export default function CreateTelegramBotPage() {
 
             <div>
               <label className={sectionTitleClass}>
-                Display Name <span className="text-[#8b5a74]">*</span>
+                Display Name <span className="text-plum">*</span>
               </label>
               <input
                 type="text"
@@ -283,22 +283,22 @@ export default function CreateTelegramBotPage() {
             </div>
 
             <div className="border-t border-black/10 pt-5">
-              <h3 className="mb-3 text-sm font-semibold text-gray-900">Advanced Settings</h3>
+              <h3 className="mb-3 text-sm font-semibold text-ink">Advanced Settings</h3>
 
-              <label className="flex items-start gap-3 rounded-[1.2rem] border border-black/10 bg-[#fcfaf5] px-4 py-4">
+              <label className="flex items-start gap-3 rounded-[1.2rem] border border-black/10 bg-cream px-4 py-4">
                 <input
                   type="checkbox"
                   checked={formData.use_webhook}
                   onChange={(e) =>
                     setFormData({ ...formData, use_webhook: e.target.checked })
                   }
-                  className="mt-0.5 h-4 w-4 rounded border-black/20 text-[#2d8b69] focus:ring-[#79dfbc]"
+                  className="mt-0.5 h-4 w-4 rounded border-black/20 text-leaf focus:ring-mint"
                 />
                 <div>
-                  <span className="block text-sm font-semibold text-gray-900">
+                  <span className="block text-sm font-semibold text-ink">
                     Use webhook instead of long polling
                   </span>
-                  <span className="mt-1 block text-xs text-gray-600">
+                  <span className="mt-1 block text-xs text-ink-soft">
                     Long polling is recommended for most use cases. Webhook requires a public HTTPS endpoint.
                   </span>
                 </div>
@@ -333,7 +333,7 @@ export default function CreateTelegramBotPage() {
                 disabled={loading || !tokenValidation?.valid}
                 className={primaryButtonClass}
               >
-                {loading ? "Creating..." : "Create Telegram Bot"}
+                {loading ? "Creating…" : "Create Telegram Bot"}
               </button>
             </div>
           </div>

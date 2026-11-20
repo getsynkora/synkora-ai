@@ -109,15 +109,15 @@ export default function LoadTestDetailPage({ params }: { params: Promise<{ id: s
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      draft: 'bg-gray-100 text-gray-700',
-      ready: 'bg-blue-100 text-blue-700',
-      running: 'bg-green-100 text-green-700',
-      paused: 'bg-yellow-100 text-yellow-700',
-      completed: 'bg-emerald-100 text-emerald-700',
-      failed: 'bg-red-100 text-red-700',
-      cancelled: 'bg-gray-100 text-gray-700',
-      pending: 'bg-blue-100 text-blue-700',
-      initializing: 'bg-yellow-100 text-yellow-700',
+      draft: 'bg-sand text-ink-soft',
+      ready: 'bg-sky-wash text-azure',
+      running: 'bg-leaf-wash text-forest',
+      paused: 'bg-sand-deep text-gold',
+      completed: 'bg-leaf-wash text-forest',
+      failed: 'bg-blush-wash text-danger',
+      cancelled: 'bg-sand text-ink-soft',
+      pending: 'bg-sky-wash text-azure',
+      initializing: 'bg-sand-deep text-gold',
     }
     return styles[status] || styles.draft
   }
@@ -125,16 +125,16 @@ export default function LoadTestDetailPage({ params }: { params: Promise<{ id: s
   const getRunIcon = (status: string) => {
     switch (status) {
       case 'completed':
-        return <CheckCircle className="w-4 h-4 text-emerald-600" />
+        return <CheckCircle className="w-4 h-4 text-leaf" />
       case 'failed':
-        return <XCircle className="w-4 h-4 text-red-600" />
+        return <XCircle className="w-4 h-4 text-danger" />
       case 'cancelled':
-        return <XCircle className="w-4 h-4 text-gray-600" />
+        return <XCircle className="w-4 h-4 text-ink-soft" />
       case 'running':
       case 'initializing':
-        return <Activity className="w-4 h-4 text-green-600 animate-pulse" />
+        return <Activity className="w-4 h-4 text-leaf motion-safe:animate-pulse" />
       default:
-        return <Clock className="w-4 h-4 text-blue-600" />
+        return <Clock className="w-4 h-4 text-azure" />
     }
   }
 
@@ -152,10 +152,10 @@ export default function LoadTestDetailPage({ params }: { params: Promise<{ id: s
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-50 via-white to-primary-50/30">
+      <div className="flex items-center justify-center h-screen bg-cream50/30">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading test details...</p>
+          <div className="motion-safe:animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-ink-soft">Loading test details…</p>
         </div>
       </div>
     )
@@ -163,10 +163,10 @@ export default function LoadTestDetailPage({ params }: { params: Promise<{ id: s
 
   if (!loadTest) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-primary-50/30 p-4 md:p-6">
+      <div className="min-h-screen bg-cream50/30 p-4 md:p-6">
         <div className="max-w-4xl mx-auto text-center py-12">
-          <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Test Not Found</h2>
+          <AlertCircle className="w-16 h-16 text-taupe mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-ink mb-2">Test Not Found</h2>
           <Link href="/load-testing" className="text-primary-600 hover:text-primary-700">
             Back to Load Tests
           </Link>
@@ -176,13 +176,13 @@ export default function LoadTestDetailPage({ params }: { params: Promise<{ id: s
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-primary-50/30 p-4 md:p-6">
+    <div className="min-h-screen bg-cream50/30 p-4 md:p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <Link
             href="/load-testing"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+            className="inline-flex items-center gap-2 text-ink-soft hover:text-ink mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Load Tests
@@ -191,19 +191,19 @@ export default function LoadTestDetailPage({ params }: { params: Promise<{ id: s
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">{loadTest.name}</h1>
+                <h1 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight">{loadTest.name}</h1>
                 <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getStatusBadge(loadTest.status)}`}>
                   {loadTest.status.charAt(0).toUpperCase() + loadTest.status.slice(1)}
                 </span>
               </div>
-              <p className="text-gray-600">{loadTest.description || 'No description'}</p>
+              <p className="text-ink-soft">{loadTest.description || 'No description'}</p>
             </div>
 
             <div className="flex gap-3 flex-wrap">
               {loadTest.status === 'draft' && (
                 <button
                   onClick={handleMarkReady}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 border border-blue-200 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 transition-colors font-medium"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 border border-sky-wash bg-sky-wash text-azure rounded-xl hover:bg-sky-wash transition-colors font-medium"
                 >
                   <CheckCircle className="w-4 h-4" />
                   Mark Ready
@@ -213,11 +213,11 @@ export default function LoadTestDetailPage({ params }: { params: Promise<{ id: s
                 <button
                   onClick={handleStartTest}
                   disabled={starting}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl transition-all shadow-sm hover:shadow-md font-medium disabled:opacity-50"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-leaf text-white rounded-xl transition-[color,background-color,border-color,box-shadow,opacity,transform] shadow-sm hover:shadow-md font-medium disabled:opacity-50"
                 >
                   {starting ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full motion-safe:animate-spin" />
                       Starting...
                     </>
                   ) : (
@@ -230,7 +230,7 @@ export default function LoadTestDetailPage({ params }: { params: Promise<{ id: s
               )}
               <Link
                 href={`/load-testing/${id}/runs`}
-                className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 bg-white text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
+                className="inline-flex items-center gap-2 px-4 py-2.5 border border-line bg-white text-ink-soft rounded-xl hover:bg-cream transition-colors font-medium"
               >
                 <BarChart3 className="w-4 h-4" />
                 All Runs
@@ -238,7 +238,7 @@ export default function LoadTestDetailPage({ params }: { params: Promise<{ id: s
               <button
                 onClick={() => setDeleteModal(true)}
                 disabled={loadTest.status === 'running'}
-                className="inline-flex items-center gap-2 px-4 py-2.5 border border-red-200 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 px-4 py-2.5 border border-blush bg-blush-wash text-danger rounded-xl hover:bg-blush-wash transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -250,35 +250,35 @@ export default function LoadTestDetailPage({ params }: { params: Promise<{ id: s
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Target Config */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <div className="bg-white rounded-xl shadow-sm border border-sand p-6">
+              <h2 className="text-lg font-semibold text-ink mb-4 flex items-center gap-2">
                 <Server className="w-5 h-5 text-primary-600" />
                 Target Configuration
               </h2>
 
               <div className="space-y-3">
-                <div className="flex justify-between py-2 border-b border-gray-100">
-                  <span className="text-gray-600">Target URL</span>
-                  <span className="text-gray-900 font-mono text-sm truncate max-w-xs">
+                <div className="flex justify-between py-2 border-b border-sand">
+                  <span className="text-ink-soft">Target URL</span>
+                  <span className="text-ink font-mono text-sm truncate max-w-xs">
                     {loadTest.target_url}
                   </span>
                 </div>
-                <div className="flex justify-between py-2 border-b border-gray-100">
-                  <span className="text-gray-600">API Type</span>
-                  <span className="text-gray-900">{loadTest.target_type}</span>
+                <div className="flex justify-between py-2 border-b border-sand">
+                  <span className="text-ink-soft">API Type</span>
+                  <span className="text-ink">{loadTest.target_type}</span>
                 </div>
                 {loadTest.proxy_config_id && (
-                  <div className="flex justify-between py-2 border-b border-gray-100">
-                    <span className="text-gray-600">Using Mock Proxy</span>
-                    <span className="text-green-600">Yes</span>
+                  <div className="flex justify-between py-2 border-b border-sand">
+                    <span className="text-ink-soft">Using Mock Proxy</span>
+                    <span className="text-leaf">Yes</span>
                   </div>
                 )}
               </div>
             </div>
 
             {/* Load Config */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <div className="bg-white rounded-xl shadow-sm border border-sand p-6">
+              <h2 className="text-lg font-semibold text-ink mb-4 flex items-center gap-2">
                 <Activity className="w-5 h-5 text-primary-600" />
                 Load Configuration
               </h2>
@@ -286,7 +286,7 @@ export default function LoadTestDetailPage({ params }: { params: Promise<{ id: s
               <div className="space-y-4">
                 {/* Stages */}
                 <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">Load Stages</h3>
+                  <h3 className="text-sm font-medium text-ink-soft mb-2">Load Stages</h3>
                   <div className="flex flex-wrap gap-2">
                     {(loadTest.load_config?.stages || []).map((stage: any, i: number) => (
                       <div
@@ -300,21 +300,21 @@ export default function LoadTestDetailPage({ params }: { params: Promise<{ id: s
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <div className="text-sm text-gray-500">Max VUs</div>
-                    <div className="text-lg font-semibold text-gray-900">
+                  <div className="p-3 bg-cream rounded-lg">
+                    <div className="text-sm text-ink-mute">Max VUs</div>
+                    <div className="text-lg font-semibold text-ink">
                       {loadTest.load_config?.max_vus || 100}
                     </div>
                   </div>
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <div className="text-sm text-gray-500">Think Time Min</div>
-                    <div className="text-lg font-semibold text-gray-900">
+                  <div className="p-3 bg-cream rounded-lg">
+                    <div className="text-sm text-ink-mute">Think Time Min</div>
+                    <div className="text-lg font-semibold text-ink">
                       {loadTest.load_config?.think_time_min_ms || 1000}ms
                     </div>
                   </div>
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <div className="text-sm text-gray-500">Think Time Max</div>
-                    <div className="text-lg font-semibold text-gray-900">
+                  <div className="p-3 bg-cream rounded-lg">
+                    <div className="text-sm text-ink-mute">Think Time Max</div>
+                    <div className="text-lg font-semibold text-ink">
                       {loadTest.load_config?.think_time_max_ms || 3000}ms
                     </div>
                   </div>
@@ -323,9 +323,9 @@ export default function LoadTestDetailPage({ params }: { params: Promise<{ id: s
             </div>
 
             {/* Scenarios */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white rounded-xl shadow-sm border border-sand p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <h2 className="text-lg font-semibold text-ink flex items-center gap-2">
                   <Code className="w-5 h-5 text-primary-600" />
                   Test Scenarios
                 </h2>
@@ -339,7 +339,7 @@ export default function LoadTestDetailPage({ params }: { params: Promise<{ id: s
               </div>
 
               {scenarios.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">
+                <p className="text-ink-mute text-center py-8">
                   No scenarios configured. Add scenarios to customize test prompts.
                 </p>
               ) : (
@@ -347,18 +347,18 @@ export default function LoadTestDetailPage({ params }: { params: Promise<{ id: s
                   {scenarios.map((scenario) => (
                     <div
                       key={scenario.id}
-                      className="p-4 border border-gray-100 rounded-lg hover:border-primary-200 transition-colors"
+                      className="p-4 border border-sand rounded-lg hover:border-primary-200 transition-colors"
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <h3 className="font-medium text-gray-900">{scenario.name}</h3>
-                          <p className="text-sm text-gray-500">{scenario.description || 'No description'}</p>
+                          <h3 className="font-medium text-ink">{scenario.name}</h3>
+                          <p className="text-sm text-ink-mute">{scenario.description || 'No description'}</p>
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="px-2 py-1 bg-primary-50 text-primary-700 rounded text-sm">
                             Weight: {scenario.weight}
                           </span>
-                          <span className="text-sm text-gray-500">
+                          <span className="text-sm text-ink-mute">
                             {scenario.prompts.length} prompt(s)
                           </span>
                         </div>
@@ -373,21 +373,21 @@ export default function LoadTestDetailPage({ params }: { params: Promise<{ id: s
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Recent Runs */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <div className="bg-white rounded-xl shadow-sm border border-sand p-6">
+              <h2 className="text-lg font-semibold text-ink mb-4 flex items-center gap-2">
                 <Clock className="w-5 h-5 text-primary-600" />
                 Recent Runs
               </h2>
 
               {testRuns.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">No test runs yet</p>
+                <p className="text-ink-mute text-center py-4">No test runs yet</p>
               ) : (
                 <div className="space-y-3">
                   {testRuns.map((run) => (
                     <Link
                       key={run.id}
                       href={`/load-testing/${id}/runs/${run.id}`}
-                      className="block p-3 border border-gray-100 rounded-lg hover:border-primary-200 transition-colors"
+                      className="block p-3 border border-sand rounded-lg hover:border-primary-200 transition-colors"
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
@@ -396,21 +396,21 @@ export default function LoadTestDetailPage({ params }: { params: Promise<{ id: s
                             {run.status.charAt(0).toUpperCase() + run.status.slice(1)}
                           </span>
                         </div>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-ink-mute">
                           {formatDuration(run.duration_seconds)}
                         </span>
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-ink-mute">
                         {run.started_at ? formatDate(run.started_at) : 'Pending'}
                       </div>
                       {run.summary_metrics && (
                         <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
                           <div>
-                            <span className="text-gray-500">Requests:</span>{' '}
+                            <span className="text-ink-mute">Requests:</span>{' '}
                             <span className="font-medium">{run.total_requests || 0}</span>
                           </div>
                           <div>
-                            <span className="text-gray-500">Peak VUs:</span>{' '}
+                            <span className="text-ink-mute">Peak VUs:</span>{' '}
                             <span className="font-medium">{run.peak_vus || 0}</span>
                           </div>
                         </div>
@@ -424,29 +424,29 @@ export default function LoadTestDetailPage({ params }: { params: Promise<{ id: s
                 href={`/load-testing/${id}/runs`}
                 className="block mt-4 text-center text-sm text-primary-600 hover:text-primary-700"
               >
-                View all runs →
+                View all runs
               </Link>
             </div>
 
             {/* Quick Stats */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Info</h2>
+            <div className="bg-white rounded-xl shadow-sm border border-sand p-6">
+              <h2 className="text-lg font-semibold text-ink mb-4">Quick Info</h2>
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Created</span>
-                  <span className="text-gray-900 text-sm">
+                  <span className="text-ink-mute">Created</span>
+                  <span className="text-ink text-sm">
                     {new Date(loadTest.created_at).toLocaleDateString()}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Updated</span>
-                  <span className="text-gray-900 text-sm">
+                  <span className="text-ink-mute">Updated</span>
+                  <span className="text-ink text-sm">
                     {new Date(loadTest.updated_at).toLocaleDateString()}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Total Runs</span>
-                  <span className="text-gray-900 font-medium">{testRuns.length}</span>
+                  <span className="text-ink-mute">Total Runs</span>
+                  <span className="text-ink font-medium">{testRuns.length}</span>
                 </div>
               </div>
             </div>
@@ -456,17 +456,17 @@ export default function LoadTestDetailPage({ params }: { params: Promise<{ id: s
 
       {/* Delete Modal */}
       {deleteModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2.5 bg-red-100 rounded-xl">
-                <Trash2 className="w-6 h-6 text-red-600" />
+              <div className="p-2.5 bg-sand-deep rounded-xl">
+                <Trash2 className="w-6 h-6 text-danger" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">Delete Load Test</h3>
+              <h3 className="text-lg font-semibold text-ink">Delete Load Test</h3>
             </div>
 
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to delete <span className="font-semibold text-gray-900">"{loadTest.name}"</span>?
+            <p className="text-ink-soft mb-6">
+              Are you sure you want to delete <span className="font-semibold text-ink">"{loadTest.name}"</span>?
               All test runs and results will be permanently removed.
             </p>
 
@@ -474,18 +474,18 @@ export default function LoadTestDetailPage({ params }: { params: Promise<{ id: s
               <button
                 onClick={() => setDeleteModal(false)}
                 disabled={deleting}
-                className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                className="px-4 py-2.5 text-sm font-medium text-ink-soft bg-sand rounded-lg hover:bg-line transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2.5 text-sm font-medium text-white bg-danger rounded-lg hover:bg-danger transition-colors disabled:opacity-50 flex items-center gap-2"
               >
                 {deleting ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full motion-safe:animate-spin" />
                     Deleting...
                   </>
                 ) : (

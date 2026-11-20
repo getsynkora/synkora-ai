@@ -24,20 +24,20 @@ const PAYMENT_PROVIDERS = [
   { value: 'square', label: 'Square', description: 'Accept payments with Square (Coming Soon)', disabled: true },
 ]
 
-const labelClassName = 'mb-2 block text-sm font-semibold text-[#2b241d]'
-const helperClassName = 'mt-2 text-xs leading-5 text-[#75695f]'
+const labelClassName = 'mb-2 block text-sm font-semibold text-night'
+const helperClassName = 'mt-2 text-xs leading-5 text-ink-mute'
 const inputClassName =
-  'w-full rounded-[1.15rem] border border-[#ddd1bf] bg-white px-4 py-3 text-sm text-[#171717] placeholder:text-[#9a8f84] transition focus:border-[#2d8b69] focus:outline-none focus:ring-4 focus:ring-[#7de5c1]/20'
+  'w-full rounded-[1.15rem] border border-line bg-white px-4 py-3 text-sm text-ink placeholder:text-ash transition focus:border-leaf focus:outline-none focus:ring-4 focus:ring-mint/20'
 const selectClassName =
-  'w-full rounded-[1.15rem] border border-[#ddd1bf] bg-white px-4 py-3 text-sm text-[#171717] transition focus:border-[#2d8b69] focus:outline-none focus:ring-4 focus:ring-[#7de5c1]/20'
+  'w-full rounded-[1.15rem] border border-line bg-white px-4 py-3 text-sm text-ink transition focus:border-leaf focus:outline-none focus:ring-4 focus:ring-mint/20'
 const textareaClassName =
-  'w-full rounded-[1.15rem] border border-[#ddd1bf] bg-white px-4 py-3 text-sm text-[#171717] placeholder:text-[#9a8f84] transition focus:border-[#2d8b69] focus:outline-none focus:ring-4 focus:ring-[#7de5c1]/20'
+  'w-full rounded-[1.15rem] border border-line bg-white px-4 py-3 text-sm text-ink placeholder:text-ash transition focus:border-leaf focus:outline-none focus:ring-4 focus:ring-mint/20'
 const checkboxClassName =
-  'mt-0.5 h-4 w-4 rounded border-[#cdbda7] text-[#171717] focus:ring-4 focus:ring-[#7de5c1]/20'
+  'mt-0.5 h-4 w-4 rounded border-tan text-ink focus:ring-4 focus:ring-mint/20'
 const secondaryButtonClassName =
-  'inline-flex items-center justify-center gap-2 rounded-[1rem] border border-[#d8cab8] bg-white px-4 py-3 text-sm font-semibold text-[#3c342d] transition hover:border-[#c6b39c] hover:bg-[#f7f1e7] disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center gap-2 rounded-[1rem] border border-paper-dim bg-white px-4 py-3 text-sm font-semibold text-night transition hover:border-tan hover:bg-paper disabled:cursor-not-allowed disabled:opacity-50'
 const primaryButtonClassName =
-  'inline-flex items-center justify-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center gap-2 rounded-[1rem] bg-ink px-4 py-3 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50'
 
 export default function CreatePaymentIntegrationPage() {
   const router = useRouter()
@@ -218,8 +218,8 @@ export default function CreatePaymentIntegrationPage() {
             <div
               className={`flex items-start gap-3 rounded-[1.25rem] border px-4 py-3 ${
                 testResult.success
-                  ? 'border-[#7de5c1]/45 bg-[#7de5c1]/14 text-[#1c5c45]'
-                  : 'border-[#efb7b1] bg-[#fff1ef] text-[#9f3d33]'
+                  ? 'border-mint/45 bg-mint/14 text-forest'
+                  : 'border-tan bg-cream text-leaf'
               }`}
             >
               {testResult.success ? (
@@ -235,14 +235,14 @@ export default function CreatePaymentIntegrationPage() {
         <DashboardPagePanel className="p-6 md:p-7">
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(260px,0.8fr)]">
             <div>
-              <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#9a7a5e]">
+              <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold text-clay">
                 <Sparkles className="h-3.5 w-3.5" />
                 Provider
               </div>
-              <h2 className="text-xl font-semibold tracking-[-0.03em] text-[#171717]">
+              <h2 className="text-xl font-semibold tracking-[-0.03em] text-ink">
                 Choose your payment provider
               </h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6f655c]">
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-mute">
                 Select the provider, then add the credentials and settings required for payment flows.
               </p>
 
@@ -263,18 +263,18 @@ export default function CreatePaymentIntegrationPage() {
               </div>
             </div>
 
-            <div className="rounded-[1.7rem] border border-[#e6d8c6] bg-[#f7f1e7] p-5">
+            <div className="rounded-[1.7rem] border border-line bg-paper p-5">
               <div className="flex items-center gap-3">
-                <div className="rounded-[1rem] bg-white p-3 shadow-[0_18px_38px_-30px_rgba(70,42,17,0.35)]">
-                  <CreditCard className="h-5 w-5 text-[#171717]" />
+                <div className="rounded-[1rem] bg-white p-3 shadow-soft">
+                  <CreditCard className="h-5 w-5 text-ink" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-[#171717]">{currentProvider?.label}</p>
-                  <p className="text-xs text-[#75695f]">{currentProvider?.description}</p>
+                  <p className="text-sm font-semibold text-ink">{currentProvider?.label}</p>
+                  <p className="text-xs text-ink-mute">{currentProvider?.description}</p>
                 </div>
               </div>
 
-              <div className="mt-5 space-y-3 text-sm text-[#51473e]">
+              <div className="mt-5 space-y-3 text-sm text-ink-soft">
                 <div className="rounded-[1.15rem] border border-white/80 bg-white/75 px-4 py-3">
                   Test the configuration before saving to confirm credentials and settings.
                 </div>
@@ -290,12 +290,12 @@ export default function CreatePaymentIntegrationPage() {
           <>
             <DashboardPagePanel className="p-6 md:p-7">
               <div className="mb-5 flex items-center gap-3">
-                <div className="rounded-[1rem] bg-[#eef8f3] p-3">
-                  <ShieldCheck className="h-5 w-5 text-[#2d8b69]" />
+                <div className="rounded-[1rem] bg-leaf-wash p-3">
+                  <ShieldCheck className="h-5 w-5 text-leaf" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[#171717]">Stripe credentials</h2>
-                  <p className="text-sm text-[#6f655c]">
+                  <h2 className="text-lg font-semibold text-ink">Stripe credentials</h2>
+                  <p className="text-sm text-ink-mute">
                     Add the keys required to connect Stripe and verify webhook requests.
                   </p>
                 </div>
@@ -344,12 +344,12 @@ export default function CreatePaymentIntegrationPage() {
 
             <DashboardPagePanel className="p-6 md:p-7">
               <div className="mb-5 flex items-center gap-3">
-                <div className="rounded-[1rem] bg-[#fff4e5] p-3">
-                  <Layers3 className="h-5 w-5 text-[#9b6333]" />
+                <div className="rounded-[1rem] bg-paper p-3">
+                  <Layers3 className="h-5 w-5 text-gold" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[#171717]">Payment settings</h2>
-                  <p className="text-sm text-[#6f655c]">
+                  <h2 className="text-lg font-semibold text-ink">Payment settings</h2>
+                  <p className="text-sm text-ink-mute">
                     Configure the default currency, capture behavior, and internal description.
                   </p>
                 </div>
@@ -401,18 +401,18 @@ export default function CreatePaymentIntegrationPage() {
         {provider === 'paddle' ? (
           <>
             <DashboardPagePanel className="p-6 md:p-7">
-              <div className="rounded-[1.35rem] border border-[#cfe2ff] bg-[#eef5ff] px-4 py-4 text-sm leading-6 text-[#32507a]">
-                <span className="font-semibold text-[#244264]">Paddle as Merchant of Record:</span>{' '}
+              <div className="rounded-[1.35rem] border border-sky-wash bg-sky-wash px-4 py-4 text-sm leading-6 text-azure">
+                <span className="font-semibold text-azure">Paddle as Merchant of Record:</span>{' '}
                 Paddle handles VAT and tax compliance, invoicing, and global payment processing for regulated markets.
               </div>
 
               <div className="mt-5 flex items-center gap-3">
-                <div className="rounded-[1rem] bg-[#eef8f3] p-3">
-                  <ShieldCheck className="h-5 w-5 text-[#2d8b69]" />
+                <div className="rounded-[1rem] bg-leaf-wash p-3">
+                  <ShieldCheck className="h-5 w-5 text-leaf" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[#171717]">Paddle credentials</h2>
-                  <p className="text-sm text-[#6f655c]">
+                  <h2 className="text-lg font-semibold text-ink">Paddle credentials</h2>
+                  <p className="text-sm text-ink-mute">
                     Add the API access and client token needed for Paddle checkout and webhooks.
                   </p>
                 </div>
@@ -463,12 +463,12 @@ export default function CreatePaymentIntegrationPage() {
 
             <DashboardPagePanel className="p-6 md:p-7">
               <div className="mb-5 flex items-center gap-3">
-                <div className="rounded-[1rem] bg-[#fff4e5] p-3">
-                  <Layers3 className="h-5 w-5 text-[#9b6333]" />
+                <div className="rounded-[1rem] bg-paper p-3">
+                  <Layers3 className="h-5 w-5 text-gold" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[#171717]">Paddle settings</h2>
-                  <p className="text-sm text-[#6f655c]">
+                  <h2 className="text-lg font-semibold text-ink">Paddle settings</h2>
+                  <p className="text-sm text-ink-mute">
                     Choose the environment and optionally link a product for credit top-ups.
                   </p>
                 </div>
@@ -512,9 +512,9 @@ export default function CreatePaymentIntegrationPage() {
                 />
               </div>
 
-              <div className="mt-4 rounded-[1.25rem] border border-[#e6d8c6] bg-[#f7f1e7] px-4 py-4">
-                <p className="text-sm font-semibold text-[#3b322a]">Webhook URL</p>
-                <code className="mt-2 block rounded-[0.95rem] bg-white px-3 py-2 text-xs text-[#5c5148]">
+              <div className="mt-4 rounded-[1.25rem] border border-line bg-paper px-4 py-4">
+                <p className="text-sm font-semibold text-night">Webhook URL</p>
+                <code className="mt-2 block rounded-[0.95rem] bg-white px-3 py-2 text-xs text-ink-soft">
                   https://your-domain.com/api/v1/billing/webhook/paddle
                 </code>
               </div>
@@ -532,8 +532,8 @@ export default function CreatePaymentIntegrationPage() {
                 className={checkboxClassName}
               />
               <div>
-                <div className="text-sm font-semibold text-[#171717]">Platform configuration</div>
-                <p className="mt-1 text-sm leading-6 text-[#6f655c]">
+                <div className="text-sm font-semibold text-ink">Platform configuration</div>
+                <p className="mt-1 text-sm leading-6 text-ink-mute">
                   Enable this to make the configuration available platform-wide. Only Platform Owners can create platform configurations.
                 </p>
               </div>
@@ -550,8 +550,8 @@ export default function CreatePaymentIntegrationPage() {
               className={checkboxClassName}
             />
             <div>
-              <div className="text-sm font-semibold text-[#171717]">Activate integration</div>
-              <p className="mt-1 text-sm leading-6 text-[#6f655c]">
+              <div className="text-sm font-semibold text-ink">Activate integration</div>
+              <p className="mt-1 text-sm leading-6 text-ink-mute">
                 Make this the active payment provider after it is saved.
               </p>
             </div>

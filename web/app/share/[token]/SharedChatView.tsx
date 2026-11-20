@@ -71,29 +71,27 @@ export function SharedChatView({ data }: Props) {
   }
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#060816] text-white">
+    <div className="min-h-screen overflow-x-hidden bg-ink text-white">
       <div className="relative isolate">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(124,58,237,0.35),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(6,182,212,0.22),_transparent_24%),linear-gradient(180deg,_#0a0d1f_0%,_#060816_100%)]" />
-        <div className="absolute left-[-8rem] top-20 h-72 w-72 rounded-full bg-[#7C3AED]/20 blur-3xl" />
-        <div className="absolute right-[-6rem] top-10 h-64 w-64 rounded-full bg-[#3B82F6]/15 blur-3xl" />
+        <div className="absolute inset-0" />
 
         <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
           {mindsetShare && (
-            <section className="overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.06] shadow-[0_32px_120px_rgba(5,8,22,0.65)] backdrop-blur-xl">
+            <section className="overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.06] shadow-soft">
               <div className="grid gap-6 px-5 py-6 sm:px-7 sm:py-7 lg:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.9fr)] lg:gap-8 lg:px-8 lg:py-8">
                 <div className="space-y-5">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-white/[0.72]">
+                    <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-semibold text-white/[0.72]">
                       {t('mindsetSnapshot')}
                     </span>
-                    <span className="rounded-full border border-[#7C3AED]/40 bg-[#7C3AED]/16 px-3 py-1 text-xs font-semibold text-[#d8c8ff]">
+                    <span className="rounded-full border border-azure/40 bg-azure/16 px-3 py-1 text-xs font-semibold text-blush-wash">
                       {mindsetShare.classification}
                     </span>
                     <span className="rounded-full border border-white/12 bg-black/20 px-3 py-1 text-xs font-medium text-white/[0.70]">
                       {mindsetShare.domain}
                     </span>
                     {mindsetShare.scoreLabel && (
-                      <span className="rounded-full border border-[#06B6D4]/35 bg-[#06B6D4]/12 px-3 py-1 text-xs font-medium text-[#abf1fb]">
+                      <span className="rounded-full border border-steel/35 bg-steel/12 px-3 py-1 text-xs font-medium text-sky-wash">
                         {mindsetShare.scoreLabel}
                       </span>
                     )}
@@ -110,7 +108,7 @@ export function SharedChatView({ data }: Props) {
 
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/[0.45]">
+                      <p className="text-[11px] font-semibold text-white/[0.45]">
                         {t('strongestSignal')}
                       </p>
                       <p className="mt-2 text-sm leading-6 text-white/[0.84]">
@@ -118,7 +116,7 @@ export function SharedChatView({ data }: Props) {
                       </p>
                     </div>
                     <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/[0.45]">
+                      <p className="text-[11px] font-semibold text-white/[0.45]">
                         {t('nextGrowthEdge')}
                       </p>
                       <p className="mt-2 text-sm leading-6 text-white/[0.84]">
@@ -128,10 +126,10 @@ export function SharedChatView({ data }: Props) {
                   </div>
                 </div>
 
-                <div className="flex flex-col justify-between rounded-[28px] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.04))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                <div className="bg-white/10 flex flex-col justify-between rounded-[28px] border border-white/12 p-5 shadow-soft">
                   <div>
                     <div className="flex items-center justify-between">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/[0.45]">
+                      <p className="text-[11px] font-semibold text-white/[0.45]">
                         {t('shareCaption')}
                       </p>
                       <span className="rounded-full border border-white/10 bg-black/[0.15] px-2.5 py-1 text-[11px] text-white/[0.52]">
@@ -146,7 +144,7 @@ export function SharedChatView({ data }: Props) {
                   <div className="mt-6 flex flex-wrap gap-2">
                     <button
                       onClick={() => handleCopy(shareCopyText, 'caption')}
-                      className="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-[#0b1020] transition hover:bg-white/90"
+                      className="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-white/90"
                     >
                       {copied === 'caption' ? t('copiedPost') : t('copyPost')}
                     </button>
@@ -178,8 +176,8 @@ export function SharedChatView({ data }: Props) {
             </section>
           )}
 
-          <section className="overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.94] shadow-[0_24px_80px_rgba(7,10,23,0.35)]">
-            <header className="flex flex-wrap items-center gap-3 border-b border-slate-200/80 px-4 py-4 sm:px-5">
+          <section className="overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.94] shadow-soft">
+            <header className="flex flex-wrap items-center gap-3 border-b border-line/80 px-4 py-4 sm:px-5">
               {agent?.avatar ? (
                 <img
                   src={agent.avatar}
@@ -187,7 +185,7 @@ export function SharedChatView({ data }: Props) {
                   className="h-10 w-10 rounded-2xl object-cover shadow-sm"
                 />
               ) : (
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#7C3AED_0%,#3B82F6_100%)] shadow-[0_12px_30px_rgba(124,58,237,0.35)]">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl shadow-soft">
                   <span className="text-sm font-bold text-white">
                     {agent?.name?.charAt(0)?.toUpperCase() || 'S'}
                   </span>
@@ -195,22 +193,22 @@ export function SharedChatView({ data }: Props) {
               )}
 
               <div className="min-w-0 flex-1">
-                <h2 className="truncate text-sm font-semibold text-slate-900">
+                <h2 className="truncate text-sm font-semibold text-ink">
                   {conversation?.name || t('sharedConversation')}
                 </h2>
-                <p className="text-xs text-slate-500">
-                  {agent?.name || t('defaultAgent')} · {t('readOnly')}
+                <p className="text-xs text-ink-mute">
+                  {agent?.name || t('defaultAgent')}, {t('readOnly')}
                 </p>
               </div>
 
-              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
+              <span className="rounded-full border border-line bg-cream px-3 py-1 text-xs font-medium text-ink-mute">
                 {t('expiresIn', { time: formatExpiry(expires_at, t('expired')) })}
               </span>
             </header>
 
-            <div className="w-full bg-[#f4f6fb] px-4 py-4 sm:px-5 sm:py-5">
+            <div className="w-full bg-white px-4 py-4 sm:px-5 sm:py-5">
               {messages.length === 0 ? (
-                <div className="flex h-64 flex-col items-center justify-center text-slate-400">
+                <div className="flex h-64 flex-col items-center justify-center text-ash">
                   <p className="text-sm">No messages in this conversation.</p>
                 </div>
               ) : (
@@ -223,8 +221,8 @@ export function SharedChatView({ data }: Props) {
               )}
             </div>
 
-            <div className="border-t border-slate-200/80 bg-white px-4 py-3 sm:px-5">
-              <p className="text-center text-xs text-slate-400">
+            <div className="border-t border-line/80 bg-white px-4 py-3 sm:px-5">
+              <p className="text-center text-xs text-ash">
                 {t('sharedVia')}
               </p>
             </div>

@@ -7,14 +7,14 @@ import { integrationsApi } from '@/lib/api/integrations'
 import { usePermissions } from '@/hooks/usePermissions'
 import DashboardPageShell, { DashboardPagePanel } from '@/components/dashboard/DashboardPageShell'
 
-const labelClassName = 'mb-2 block text-sm font-semibold text-[#2b241d]'
-const helperClassName = 'mt-2 text-xs leading-5 text-[#75695f]'
+const labelClassName = 'mb-2 block text-sm font-semibold text-night'
+const helperClassName = 'mt-2 text-xs leading-5 text-ink-mute'
 const inputClassName =
-  'w-full rounded-[1.15rem] border border-[#ddd1bf] bg-white px-4 py-3 text-sm text-[#171717] placeholder:text-[#9a8f84] transition focus:border-[#2d8b69] focus:outline-none focus:ring-4 focus:ring-[#7de5c1]/20'
+  'w-full rounded-[1.15rem] border border-line bg-white px-4 py-3 text-sm text-ink placeholder:text-ash transition focus:border-leaf focus:outline-none focus:ring-4 focus:ring-mint/20'
 const secondaryButtonClassName =
-  'inline-flex items-center justify-center gap-2 rounded-[1rem] border border-[#d8cab8] bg-white px-4 py-3 text-sm font-semibold text-[#3c342d] transition hover:border-[#c6b39c] hover:bg-[#f7f1e7] disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center gap-2 rounded-[1rem] border border-paper-dim bg-white px-4 py-3 text-sm font-semibold text-night transition hover:border-tan hover:bg-paper disabled:cursor-not-allowed disabled:opacity-50'
 const primaryButtonClassName =
-  'inline-flex items-center justify-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center gap-2 rounded-[1rem] bg-ink px-4 py-3 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50'
 
 export default function CreateAIEvaluationIntegrationPage() {
   const router = useRouter()
@@ -79,22 +79,22 @@ export default function CreateAIEvaluationIntegrationPage() {
     >
       <DashboardPagePanel className="p-6 md:p-7">
         {/* Header */}
-        <div className="mb-8 flex items-start gap-4 border-b border-[#ede5d8] pb-6">
-          <div className="rounded-[1.15rem] bg-[#f3ecde] p-3">
-            <BrainCircuit size={24} className="text-[#171717]" />
+        <div className="mb-8 flex items-start gap-4 border-b border-sand-deep pb-6">
+          <div className="rounded-[1.15rem] bg-sand p-3">
+            <BrainCircuit size={24} className="text-ink" />
           </div>
           <div className="flex-1">
-            <h2 className="text-lg font-semibold text-[#171717]">TypeSafe AI (Jev)</h2>
-            <p className="mt-1 text-sm text-[#75695f]">
+            <h2 className="text-lg font-semibold text-ink">TypeSafe AI (Jev)</h2>
+            <p className="mt-1 text-sm text-ink-mute">
               The first System One model for structured decisions. Evaluates choices, scores, and
-              yes/no questions in parallel — powering recruiting, lead scoring, content moderation,
+              yes/no questions in parallel, powering recruiting, lead scoring, content moderation,
               and support triage in your agents.
             </p>
             <a
               href="https://console.typesafe.ai/settings/keys"
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-2 inline-flex items-center gap-1 text-xs text-[#2d8b69] hover:underline"
+              className="mt-2 inline-flex items-center gap-1 text-xs text-leaf hover:underline"
             >
               Get your API key from TypeSafe Console
               <ExternalLink size={11} />
@@ -104,17 +104,17 @@ export default function CreateAIEvaluationIntegrationPage() {
 
         {/* Success state */}
         {success && (
-          <div className="mb-6 flex items-center gap-3 rounded-[1.15rem] border border-green-200 bg-green-50 px-4 py-3">
-            <CheckCircle2 size={18} className="text-green-600" />
-            <span className="text-sm font-medium text-green-700">Configuration saved. Redirecting…</span>
+          <div className="mb-6 flex items-center gap-3 rounded-[1.15rem] border border-mint bg-leaf-wash px-4 py-3">
+            <CheckCircle2 size={18} className="text-leaf" />
+            <span className="text-sm font-medium text-forest">Configuration saved. Redirecting…</span>
           </div>
         )}
 
         {/* Error state */}
         {error && (
-          <div className="mb-6 flex items-center gap-3 rounded-[1.15rem] border border-red-200 bg-red-50 px-4 py-3">
-            <CircleAlert size={18} className="text-red-500" />
-            <span className="text-sm text-red-700">{error}</span>
+          <div className="mb-6 flex items-center gap-3 rounded-[1.15rem] border border-blush bg-blush-wash px-4 py-3">
+            <CircleAlert size={18} className="text-leaf" />
+            <span className="text-sm text-danger">{error}</span>
           </div>
         )}
 
@@ -122,7 +122,7 @@ export default function CreateAIEvaluationIntegrationPage() {
           {/* API Key */}
           <div>
             <label className={labelClassName}>
-              API Key <span className="text-red-500">*</span>
+              API Key <span className="text-leaf">*</span>
             </label>
             <input
               type="password"
@@ -139,7 +139,7 @@ export default function CreateAIEvaluationIntegrationPage() {
                 href="https://console.typesafe.ai/settings/keys"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[#2d8b69] hover:underline"
+                className="text-leaf hover:underline"
               >
                 console.typesafe.ai/settings/keys
               </a>
@@ -178,15 +178,15 @@ export default function CreateAIEvaluationIntegrationPage() {
           </div>
 
           {/* Options */}
-          <div className="space-y-3 rounded-[1.15rem] border border-[#ede5d8] bg-[#faf7f2] p-4">
+          <div className="space-y-3 rounded-[1.15rem] border border-sand-deep bg-cream p-4">
             <label className="flex cursor-pointer items-center gap-3">
               <input
                 type="checkbox"
                 checked={isDefault}
                 onChange={(e) => setIsDefault(e.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-[#cdbda7] accent-[#171717]"
+                className="mt-0.5 h-4 w-4 rounded border-tan accent-ink"
               />
-              <span className="text-sm text-[#2b241d]">
+              <span className="text-sm text-night">
                 Set as default AI evaluation provider
               </span>
             </label>
@@ -197,9 +197,9 @@ export default function CreateAIEvaluationIntegrationPage() {
                   type="checkbox"
                   checked={isPlatformConfig}
                   onChange={(e) => setIsPlatformConfig(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-[#cdbda7] accent-[#171717]"
+                  className="mt-0.5 h-4 w-4 rounded border-tan accent-ink"
                 />
-                <span className="text-sm text-[#2b241d]">
+                <span className="text-sm text-night">
                   Platform-level config (available as fallback for all tenants)
                 </span>
               </label>
@@ -207,11 +207,11 @@ export default function CreateAIEvaluationIntegrationPage() {
           </div>
 
           {/* Capabilities summary */}
-          <div className="rounded-[1.15rem] border border-[#ddd1bf] bg-[#f9f6f0] p-4">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#75695f]">
+          <div className="rounded-[1.15rem] border border-line bg-cream p-4">
+            <p className="mb-3 text-xs font-semibold text-ink-mute">
               What this unlocks for your agents
             </p>
-            <ul className="space-y-1.5 text-sm text-[#3c342d]">
+            <ul className="space-y-1.5 text-sm text-night">
               {[
                 'Resume & application evaluation against job criteria',
                 'Lead scoring by ICP fit, intent, and urgency',
@@ -220,7 +220,7 @@ export default function CreateAIEvaluationIntegrationPage() {
                 'Custom structured evaluation with any questions you define',
               ].map((item) => (
                 <li key={item} className="flex items-start gap-2">
-                  <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-[#2d8b69]" />
+                  <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-leaf" />
                   {item}
                 </li>
               ))}
@@ -228,7 +228,7 @@ export default function CreateAIEvaluationIntegrationPage() {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end gap-3 border-t border-[#ede5d8] pt-6">
+          <div className="flex items-center justify-end gap-3 border-t border-sand-deep pt-6">
             <button
               type="button"
               onClick={() => router.push('/settings/integrations')}

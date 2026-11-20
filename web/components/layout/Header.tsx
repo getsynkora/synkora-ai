@@ -39,14 +39,14 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
   const loading = subscriptionLoading || balanceLoading
 
   return (
-    <header className="dashboard-app sticky top-0 z-30 flex h-16 items-center justify-between border-b border-black/10 bg-[rgba(247,242,231,0.82)] px-4 backdrop-blur-xl md:px-6">
+    <header className="dashboard-app sticky top-0 z-30 flex h-16 items-center justify-between border-b border-black/10 bg-paper/80 px-4 md:px-6">
       {/* Hamburger — mobile only */}
       <button
-        className="rounded-xl border border-black/10 bg-white/60 p-2 text-gray-600 transition-colors hover:bg-white md:hidden"
+        className="rounded-xl border border-black/10 bg-white/60 p-2 text-ink-soft transition-colors hover:bg-white md:hidden"
         onClick={onMobileMenuToggle}
         aria-label={t('openMenu')}
       >
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg aria-hidden="true" className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
@@ -56,12 +56,12 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
 
         {/* Credits Badge */}
         <div className="flex cursor-pointer items-center gap-1.5 rounded-full border border-black/10 bg-white/70 px-3 py-2 transition-colors hover:bg-white" onClick={() => router.push('/billing')}>
-          <div className={`h-2 w-2 flex-shrink-0 rounded-full ${hasSubscription ? 'bg-[#2d8b69]' : 'bg-gray-400'}`}></div>
-          <span className="hidden sm:inline text-sm text-gray-600">{subscriptionName}</span>
+          <div className={`h-2 w-2 flex-shrink-0 rounded-full ${hasSubscription ? 'bg-leaf' : 'bg-ash'}`}></div>
+          <span className="hidden sm:inline text-sm text-ink-soft">{subscriptionName}</span>
           {loading ? (
-            <span className="text-sm font-semibold text-gray-900 min-w-[50px] inline-block">&nbsp;</span>
+            <span className="text-sm font-semibold text-ink min-w-[50px] inline-block">&nbsp;</span>
           ) : (
-            <span className="text-sm font-semibold text-gray-900">
+            <span className="text-sm font-semibold text-ink">
               {usedCredits}/{totalCredits}
             </span>
           )}
@@ -71,7 +71,7 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
         {!hasSubscription && (
           <button
             onClick={handleUpgradeClick}
-            className="hidden rounded-full bg-[#181818] px-4 py-2 text-sm font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 sm:inline-flex"
+            className="hidden rounded-full bg-ink px-4 py-2 text-sm font-medium text-paper transition-transform motion-reduce:transition-none hover:-translate-y-0.5 sm:inline-flex"
           >
             {t('upgrade')}
           </button>
@@ -80,21 +80,21 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
         {/* User Menu */}
         <div className="relative group">
           <button className="flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3 py-2 transition-colors hover:bg-white">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#181818] text-sm font-semibold text-white">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ink text-sm font-semibold text-white">
               {user?.name?.charAt(0).toUpperCase() || 'U'}
             </div>
-            <span className="text-sm font-medium text-gray-700">{user?.name || t('defaultUser')}</span>
-            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <span className="text-sm font-medium text-ink-soft">{user?.name || t('defaultUser')}</span>
+            <svg aria-hidden="true" className="w-4 h-4 text-ash" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
 
           {/* Dropdown Menu */}
-          <div className="dashboard-surface absolute right-0 mt-2 invisible w-48 rounded-2xl opacity-0 transition-all group-hover:visible group-hover:opacity-100">
+          <div className="dashboard-surface absolute right-0 mt-2 invisible w-48 rounded-2xl opacity-0 transition-[color,background-color,border-color,box-shadow,opacity,transform] group-hover:visible group-hover:opacity-100">
             <div className="py-1">
               <button
                 onClick={handleSignOut}
-                className="w-full rounded-2xl px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-black/5"
+                className="w-full rounded-2xl px-4 py-2 text-left text-sm text-ink-soft transition-colors hover:bg-black/5"
               >
                 {t('signOut')}
               </button>

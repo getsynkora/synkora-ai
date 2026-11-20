@@ -62,15 +62,15 @@ export function DocumentViewer({
   const getIcon = () => {
     switch (documentType) {
       case 'pdf':
-        return <FileText className="w-5 h-5 text-red-500" />
+        return <FileText className="w-5 h-5 text-leaf" />
       case 'powerpoint':
-        return <FileText className="w-5 h-5 text-orange-500" />
+        return <FileText className="w-5 h-5 text-warn" />
       case 'google_doc':
-        return <FileText className="w-5 h-5 text-blue-500" />
+        return <FileText className="w-5 h-5 text-azure" />
       case 'google_sheet':
-        return <FileText className="w-5 h-5 text-green-500" />
+        return <FileText className="w-5 h-5 text-leaf" />
       default:
-        return <FileText className="w-5 h-5 text-gray-500" />
+        return <FileText className="w-5 h-5 text-ink-mute" />
     }
   }
 
@@ -106,15 +106,15 @@ export function DocumentViewer({
   // If type is unknown or error occurred, show download link
   if (documentType === 'unknown' || viewerError) {
     return (
-      <div className="my-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+      <div className="my-4 p-4 bg-cream border border-line rounded-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {getIcon()}
             <div>
-              <p className="text-sm font-medium text-gray-900">
+              <p className="text-sm font-medium text-ink">
                 {filename || 'Document'}
               </p>
-              <p className="text-xs text-gray-500">{getTypeName()}</p>
+              <p className="text-xs text-ink-mute">{getTypeName()}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -122,7 +122,7 @@ export function DocumentViewer({
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-white border border-taupe text-ink-soft rounded-lg hover:bg-cream transition-colors"
             >
               <ExternalLink className="w-4 h-4" />
               Open
@@ -146,16 +146,16 @@ export function DocumentViewer({
 
   return (
     <>
-      <div className="my-4 bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+      <div className="my-4 bg-white border border-line rounded-lg overflow-hidden shadow-sm">
         {/* Document Header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
+        <div className="flex items-center justify-between px-4 py-3 bg-cream border-b border-line">
           <div className="flex items-center gap-3">
             {getIcon()}
             <div>
-              <p className="text-sm font-medium text-gray-900">
+              <p className="text-sm font-medium text-ink">
                 {filename || getTypeName()}
               </p>
-              <p className="text-xs text-gray-500">{getTypeName()}</p>
+              <p className="text-xs text-ink-mute">{getTypeName()}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -163,7 +163,7 @@ export function DocumentViewer({
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded transition-colors"
+              className="p-1.5 text-ink-soft hover:text-ink hover:bg-line rounded transition-colors"
               title="Open in new tab"
             >
               <ExternalLink className="w-4 h-4" />
@@ -171,14 +171,14 @@ export function DocumentViewer({
             <a
               href={url}
               download={filename}
-              className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded transition-colors"
+              className="p-1.5 text-ink-soft hover:text-ink hover:bg-line rounded transition-colors"
               title="Download"
             >
               <Download className="w-4 h-4" />
             </a>
             <button
               onClick={() => setIsFullscreen(true)}
-              className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded transition-colors"
+              className="p-1.5 text-ink-soft hover:text-ink hover:bg-line rounded transition-colors"
               title="Fullscreen"
             >
               <Maximize2 className="w-4 h-4" />
@@ -187,7 +187,7 @@ export function DocumentViewer({
         </div>
 
         {/* Document Viewer */}
-        <div className="relative bg-gray-100">
+        <div className="relative bg-sand">
           <iframe
             src={embedUrl}
             className="w-full h-[600px] border-0"
@@ -202,12 +202,12 @@ export function DocumentViewer({
       {isFullscreen && (
         <div className="fixed inset-0 z-50 bg-black bg-opacity-95 flex flex-col">
           {/* Fullscreen Header */}
-          <div className="flex items-center justify-between px-6 py-4 bg-gray-900 border-b border-gray-700">
+          <div className="flex items-center justify-between px-6 py-4 bg-ink border-b border-ink-soft">
             <div className="flex items-center gap-3 text-white">
               {getIcon()}
               <div>
                 <p className="text-sm font-medium">{filename || getTypeName()}</p>
-                <p className="text-xs text-gray-400">{getTypeName()}</p>
+                <p className="text-xs text-ash">{getTypeName()}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -215,7 +215,7 @@ export function DocumentViewer({
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-2 text-white hover:bg-gray-800 rounded transition-colors"
+                className="p-2 text-white hover:bg-ink rounded transition-colors"
                 title="Open in new tab"
               >
                 <ExternalLink className="w-5 h-5" />
@@ -223,14 +223,14 @@ export function DocumentViewer({
               <a
                 href={url}
                 download={filename}
-                className="p-2 text-white hover:bg-gray-800 rounded transition-colors"
+                className="p-2 text-white hover:bg-ink rounded transition-colors"
                 title="Download"
               >
                 <Download className="w-5 h-5" />
               </a>
               <button
                 onClick={() => setIsFullscreen(false)}
-                className="p-2 text-white hover:bg-gray-800 rounded transition-colors"
+                className="p-2 text-white hover:bg-ink rounded transition-colors"
                 title="Exit fullscreen"
               >
                 <X className="w-5 h-5" />

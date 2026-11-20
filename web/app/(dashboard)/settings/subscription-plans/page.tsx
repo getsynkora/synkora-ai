@@ -45,7 +45,7 @@ export default function SubscriptionPlansPage() {
   if (loading || permissionsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <div className="motion-safe:animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
       </div>
     )
   }
@@ -67,9 +67,9 @@ export default function SubscriptionPlansPage() {
         ]}
       >
         <DashboardPagePanel className="p-10 text-center">
-          <Lock className="mx-auto mb-4 h-12 w-12 text-[#9a7a5e]" />
-          <h3 className="text-lg font-semibold text-gray-900">Access Denied</h3>
-          <p className="mt-2 text-sm text-gray-600">
+          <Lock className="mx-auto mb-4 h-12 w-12 text-clay" />
+          <h3 className="text-lg font-semibold text-ink">Access Denied</h3>
+          <p className="mt-2 text-sm text-ink-soft">
             You do not have permission to access subscription plan configuration. This feature is only available to platform owners.
           </p>
         </DashboardPagePanel>
@@ -101,10 +101,10 @@ export default function SubscriptionPlansPage() {
             <div className="mb-5">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="text-xl font-semibold tracking-[-0.03em] text-gray-950">{plan.name}</h3>
-                  <p className="mt-1.5 text-sm leading-6 text-gray-600">{plan.description}</p>
+                  <h3 className="text-xl font-semibold tracking-[-0.03em] text-ink">{plan.name}</h3>
+                  <p className="mt-1.5 text-sm leading-6 text-ink-soft">{plan.description}</p>
                 </div>
-                <span className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${plan.is_active ? 'bg-[#ebf5ee] text-[#24543b]' : 'bg-[#f3ede5] text-[#6b5a4a]'}`}>
+                <span className={`rounded-full px-3 py-1 text-[11px] font-semibold ${plan.is_active ? 'bg-leaf-wash text-forest' : 'bg-paper text-ink-soft'}`}>
                   {plan.is_active ? 'Active' : 'Inactive'}
                 </span>
               </div>
@@ -112,27 +112,27 @@ export default function SubscriptionPlansPage() {
 
             <div className="mb-5">
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-semibold tracking-[-0.05em] text-gray-950">${plan.price_monthly}</span>
-                <span className="text-sm text-gray-500">/month</span>
+                <span className="text-3xl font-semibold tracking-[-0.05em] text-ink">${plan.price_monthly}</span>
+                <span className="text-sm text-ink-mute">/month</span>
               </div>
               {plan.price_yearly > 0 ? (
-                <p className="mt-1.5 text-xs text-gray-500">
+                <p className="mt-1.5 text-xs text-ink-mute">
                   ${plan.price_yearly}/year, saving ${(plan.price_monthly * 12 - plan.price_yearly).toFixed(2)}
                 </p>
               ) : null}
             </div>
 
-            <div className="mb-5 inline-flex w-fit rounded-full border border-[#d8e5d9] bg-[#ebf5ee] px-3 py-1.5 text-xs font-semibold text-[#24543b]">
+            <div className="mb-5 inline-flex w-fit rounded-full border border-leaf-wash bg-leaf-wash px-3 py-1.5 text-xs font-semibold text-forest">
               {plan.credits_monthly.toLocaleString()} credits/month
             </div>
 
-            <div className="mt-auto space-y-2.5 border-t border-[#ece2d6] pt-5">
+            <div className="mt-auto space-y-2.5 border-t border-sand-deep pt-5">
               {plan.features.map((feature, index) => (
                 <div key={index} className="flex items-start gap-2.5">
-                  <div className="mt-0.5 rounded-full bg-[#f1eadc] p-1">
-                    <Check className="h-3 w-3 text-[#171717]" />
+                  <div className="mt-0.5 rounded-full bg-sand-deep p-1">
+                    <Check className="h-3 w-3 text-ink" />
                   </div>
-                  <span className="text-sm text-gray-600">{feature}</span>
+                  <span className="text-sm text-ink-soft">{feature}</span>
                 </div>
               ))}
             </div>
@@ -141,11 +141,11 @@ export default function SubscriptionPlansPage() {
       </div>
 
       <DashboardPagePanel className="mt-6 p-5 sm:p-6">
-        <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-[#7c5d45]">Seeding Instructions</h3>
-        <p className="mt-2 text-sm text-gray-600">
+        <h3 className="text-sm font-semibold text-bark">Seeding Instructions</h3>
+        <p className="mt-2 text-sm text-ink-soft">
           To seed the default subscription plans, run the following command in the API container.
         </p>
-        <code className="mt-4 block overflow-x-auto rounded-[1.2rem] bg-[#171717] p-4 font-mono text-xs text-[#f6f1e8]">
+        <code className="mt-4 block overflow-x-auto rounded-[1.2rem] bg-ink p-4 font-mono text-xs text-paper">
           docker-compose exec api python -c "from src.services.billing.seed_plans import seed_subscription_plans; import asyncio; asyncio.run(seed_subscription_plans())"
         </code>
       </DashboardPagePanel>

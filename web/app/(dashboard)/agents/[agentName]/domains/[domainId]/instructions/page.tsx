@@ -103,10 +103,10 @@ export default function DomainInstructionsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40">
+      <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading domain...</p>
+          <div className="motion-safe:animate-spin rounded-full h-12 w-12 border-b-2 border-warn mx-auto"></div>
+          <p className="mt-4 text-ink-soft">Loading domain…</p>
         </div>
       </div>
     );
@@ -114,20 +114,20 @@ export default function DomainInstructionsPage() {
 
   if (error || !domain) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-8">
+      <div className="min-h-screen p-4 md:p-8">
         <div className="max-w-3xl mx-auto">
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <div className="mb-6 p-4 bg-blush-wash border border-blush rounded-lg flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-medium text-red-900">Error</h3>
-              <p className="text-red-700 text-sm mt-1">
+              <h3 className="font-medium text-wine">Error</h3>
+              <p className="text-danger text-sm mt-1">
                 {error || "Domain not found"}
               </p>
             </div>
           </div>
           <button
             onClick={() => router.push(`/agents/${agentName}/domains`)}
-            className="flex items-center gap-2 text-amber-600 hover:text-amber-700 transition-colors text-sm font-medium"
+            className="flex items-center gap-2 text-warn hover:text-gold transition-colors text-sm font-medium"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Domains
@@ -149,13 +149,13 @@ export default function DomainInstructionsPage() {
   const fullDomain = displayDomain;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
+    <div className="min-h-screen p-4 md:p-6">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-6">
           <button
             onClick={() => router.push(`/agents/${agentName}/domains`)}
-            className="flex items-center gap-2 text-amber-600 hover:text-amber-700 mb-4 transition-colors text-sm font-medium"
+            className="flex items-center gap-2 text-warn hover:text-gold mb-4 transition-colors text-sm font-medium"
           >
             <ArrowLeft size={16} />
             Back to Domains
@@ -164,21 +164,21 @@ export default function DomainInstructionsPage() {
             <div
               className={`w-12 h-12 rounded-full flex items-center justify-center shadow-sm ${
                 domain.is_verified
-                  ? "bg-emerald-100"
-                  : "bg-amber-100"
+                  ? "bg-leaf-wash"
+                  : "bg-sand-deep"
               }`}
             >
               {domain.is_verified ? (
-                <CheckCircle className="w-6 h-6 text-emerald-600" />
+                <CheckCircle className="w-6 h-6 text-leaf" />
               ) : (
-                <AlertCircle className="w-6 h-6 text-amber-600" />
+                <AlertCircle className="w-6 h-6 text-warn" />
               )}
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
+              <h1 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight">
                 DNS Configuration
               </h1>
-              <p className="text-gray-600 mt-0.5 text-sm">
+              <p className="text-ink-soft mt-0.5 text-sm">
                 {domain.is_verified
                   ? "Your domain is verified and active"
                   : "Configure DNS to activate your custom domain"}
@@ -189,34 +189,34 @@ export default function DomainInstructionsPage() {
 
         {/* Domain Info */}
         <div className="space-y-5">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-            <h2 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
-              <Globe className="w-4 h-4 text-amber-600" />
+          <div className="bg-white rounded-xl shadow-sm border border-line p-5">
+            <h2 className="text-base font-semibold text-ink mb-3 flex items-center gap-2">
+              <Globe className="w-4 h-4 text-warn" />
               Your Domain
             </h2>
-            <div className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-center gap-3 p-3 bg-sand-deep border border-honey rounded-lg">
               <div className="flex-1">
-                <p className="text-xs text-amber-700 mb-1">Domain</p>
-                <p className="text-base font-mono font-semibold text-gray-900">
+                <p className="text-xs text-gold mb-1">Domain</p>
+                <p className="text-base font-mono font-semibold text-ink">
                   {fullDomain}
                 </p>
               </div>
               <button
                 onClick={() => copyToClipboard(fullDomain)}
-                className="p-2 hover:bg-amber-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-sand-deep rounded-lg transition-colors"
                 title="Copy domain"
               >
-                <Copy className="w-4 h-4 text-amber-600" />
+                <Copy className="w-4 h-4 text-warn" />
               </button>
               {domain.is_verified && (
                 <a
                   href={`https://${fullDomain}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="p-2 hover:bg-amber-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-sand-deep rounded-lg transition-colors"
                   title="Visit domain"
                 >
-                  <ExternalLink className="w-4 h-4 text-amber-600" />
+                  <ExternalLink className="w-4 h-4 text-warn" />
                 </a>
               )}
             </div>
@@ -224,15 +224,15 @@ export default function DomainInstructionsPage() {
 
           {/* Domain Mapping Info for Custom Domains */}
           {domain.is_custom_domain && platformSubdomain && (
-            <div className="bg-blue-50 border border-blue-200 rounded-xl shadow-sm p-4">
-              <h3 className="font-semibold text-blue-900 text-sm mb-2 flex items-center gap-2">
+            <div className="bg-sky-wash border border-sky-wash rounded-xl shadow-sm p-4">
+              <h3 className="font-semibold text-azure text-sm mb-2 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4" />
                 How It Works
               </h3>
-              <p className="text-xs text-blue-800 mb-2">
+              <p className="text-xs text-azure mb-2">
                 Your custom domain <span className="font-mono font-semibold">{domain.domain}</span> will point to your agent hosted at <span className="font-mono font-semibold">{platformSubdomain}.synkora.ai</span>.
               </p>
-              <p className="text-xs text-blue-800">
+              <p className="text-xs text-azure">
                 This means visitors can access your agent through your own domain while it's actually served from our platform infrastructure.
               </p>
             </div>
@@ -240,19 +240,19 @@ export default function DomainInstructionsPage() {
 
           {/* DNS Configuration Steps */}
           {!domain.is_verified && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-              <h2 className="text-base font-semibold text-gray-900 mb-5">Setup Instructions</h2>
+            <div className="bg-white rounded-xl shadow-sm border border-line p-5">
+              <h2 className="text-base font-semibold text-ink mb-5">Setup Instructions</h2>
 
               <div className="space-y-5">
                 <div className="flex gap-3">
-                  <div className="flex-shrink-0 w-8 h-8 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center font-semibold text-sm shadow-sm">
+                  <div className="flex-shrink-0 w-8 h-8 bg-sand-deep text-gold rounded-full flex items-center justify-center font-semibold text-sm shadow-sm">
                     1
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 mb-1.5 text-sm">
+                    <h3 className="font-semibold text-ink mb-1.5 text-sm">
                       Add DNS Records
                     </h3>
-                    <p className="text-xs text-gray-600 mb-2">
+                    <p className="text-xs text-ink-soft mb-2">
                       Log in to your domain provider (e.g., GoDaddy, Namecheap,
                       Cloudflare) and add the following TWO DNS records:
                     </p>
@@ -260,34 +260,34 @@ export default function DomainInstructionsPage() {
                     {dnsRecords.length > 0 ? (
                       <div className="space-y-3">
                         {dnsRecords.map((record, index) => (
-                          <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                          <div key={index} className="bg-cream border border-line rounded-lg p-3">
                             <div className="flex items-center gap-2 mb-2">
-                              <div className="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-semibold rounded">
+                              <div className="px-2 py-1 bg-sand-deep text-gold text-xs font-semibold rounded">
                                 Record {index + 1}
                               </div>
-                              <span className="text-xs text-gray-500">{record.purpose}</span>
+                              <span className="text-xs text-ink-mute">{record.purpose}</span>
                             </div>
                             <div className="grid grid-cols-3 gap-3 text-xs mb-2">
                               <div>
-                                <p className="text-gray-500 mb-1 text-xs">Type</p>
-                                <p className="font-mono font-semibold text-gray-900 text-sm">{record.type}</p>
+                                <p className="text-ink-mute mb-1 text-xs">Type</p>
+                                <p className="font-mono font-semibold text-ink text-sm">{record.type}</p>
                               </div>
                               <div>
-                                <p className="text-gray-500 mb-1 text-xs">Name</p>
-                                <p className="font-mono font-semibold text-gray-900 text-sm break-all">
+                                <p className="text-ink-mute mb-1 text-xs">Name</p>
+                                <p className="font-mono font-semibold text-ink text-sm break-all">
                                   {record.name}
                                 </p>
                               </div>
                               <div>
-                                <p className="text-gray-500 mb-1 text-xs">Value</p>
-                                <p className="font-mono font-semibold text-gray-900 text-sm break-all">
+                                <p className="text-ink-mute mb-1 text-xs">Value</p>
+                                <p className="font-mono font-semibold text-ink text-sm break-all">
                                   {record.value}
                                 </p>
                               </div>
                             </div>
                             <button
                               onClick={() => copyToClipboard(`${record.name} ${record.type} ${record.value}`)}
-                              className="text-xs text-amber-600 hover:text-amber-700 flex items-center gap-1.5 font-medium"
+                              className="text-xs text-warn hover:text-gold flex items-center gap-1.5 font-medium"
                             >
                               <Copy className="w-3.5 h-3.5" />
                               Copy record
@@ -296,22 +296,22 @@ export default function DomainInstructionsPage() {
                         ))}
                       </div>
                     ) : (
-                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                        <p className="text-sm text-gray-500">Loading DNS records...</p>
+                      <div className="bg-cream border border-line rounded-lg p-4">
+                        <p className="text-sm text-ink-mute">Loading DNS records…</p>
                       </div>
                     )}
                   </div>
                 </div>
 
                 <div className="flex gap-3">
-                  <div className="flex-shrink-0 w-8 h-8 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center font-semibold text-sm shadow-sm">
+                  <div className="flex-shrink-0 w-8 h-8 bg-sand-deep text-gold rounded-full flex items-center justify-center font-semibold text-sm shadow-sm">
                     2
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 mb-1.5 text-sm">
+                    <h3 className="font-semibold text-ink mb-1.5 text-sm">
                       Wait for DNS Propagation
                     </h3>
-                    <p className="text-xs text-gray-600">
+                    <p className="text-xs text-ink-soft">
                       DNS changes typically take 5-10 minutes to propagate, but
                       can take up to 48 hours in some cases.
                     </p>
@@ -319,37 +319,37 @@ export default function DomainInstructionsPage() {
                 </div>
 
                 <div className="flex gap-3">
-                  <div className="flex-shrink-0 w-8 h-8 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center font-semibold text-sm shadow-sm">
+                  <div className="flex-shrink-0 w-8 h-8 bg-sand-deep text-gold rounded-full flex items-center justify-center font-semibold text-sm shadow-sm">
                     3
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 mb-1.5 text-sm">
+                    <h3 className="font-semibold text-ink mb-1.5 text-sm">
                       Verify Domain
                     </h3>
-                    <p className="text-xs text-gray-600 mb-3">
+                    <p className="text-xs text-ink-soft mb-3">
                       Once DNS propagates, click the verify button below to
                       activate your domain.
                     </p>
                     <button
                       onClick={handleVerifyDomain}
                       disabled={verifying}
-                      className="flex items-center gap-2 px-5 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm font-medium"
+                      className="flex items-center gap-2 px-5 py-2 text-sm bg-leaf text-white rounded-lg hover:bg-forest transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm font-medium"
                     >
                       <Shield className="w-4 h-4" />
-                      {verifying ? "Verifying..." : "Verify Domain"}
+                      {verifying ? "Verifying…" : "Verify Domain"}
                     </button>
                   </div>
                 </div>
 
                 <div className="flex gap-3">
-                  <div className="flex-shrink-0 w-8 h-8 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center font-semibold text-sm shadow-sm">
+                  <div className="flex-shrink-0 w-8 h-8 bg-sand-deep text-gold rounded-full flex items-center justify-center font-semibold text-sm shadow-sm">
                     4
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 mb-1.5 text-sm">
+                    <h3 className="font-semibold text-ink mb-1.5 text-sm">
                       Customize Chat Interface
                     </h3>
-                    <p className="text-xs text-gray-600">
+                    <p className="text-xs text-ink-soft">
                       After verification, you can customize the chat interface
                       with your branding and colors.
                     </p>
@@ -361,14 +361,14 @@ export default function DomainInstructionsPage() {
 
           {/* Verified Status */}
           {domain.is_verified && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl shadow-sm p-5">
+            <div className="bg-leaf-wash border border-mint rounded-xl shadow-sm p-5">
               <div className="flex items-start gap-3">
-                <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                <CheckCircle className="w-5 h-5 text-leaf flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <h3 className="font-semibold text-emerald-900 mb-1.5 text-sm">
+                  <h3 className="font-semibold text-forest mb-1.5 text-sm">
                     Domain Verified Successfully!
                   </h3>
-                  <p className="text-emerald-800 text-xs mb-3">
+                  <p className="text-forest text-xs mb-3">
                     Your domain is now active and ready to use. You can customize
                     the chat interface or visit your domain.
                   </p>
@@ -377,7 +377,7 @@ export default function DomainInstructionsPage() {
                       onClick={() =>
                         router.push(`/agents/${agentName}/chat-customization`)
                       }
-                      className="px-5 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors shadow-sm font-medium"
+                      className="px-5 py-2 text-sm bg-leaf text-white rounded-lg hover:bg-forest transition-colors shadow-sm font-medium"
                     >
                       Customize Chat Interface
                     </button>
@@ -385,7 +385,7 @@ export default function DomainInstructionsPage() {
                       href={`https://${fullDomain}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-5 py-2 text-sm text-emerald-700 bg-white border border-emerald-300 rounded-lg hover:bg-emerald-50 transition-colors shadow-sm font-medium"
+                      className="flex items-center gap-2 px-5 py-2 text-sm text-forest bg-white border border-mint rounded-lg hover:bg-leaf-wash transition-colors shadow-sm font-medium"
                     >
                       <ExternalLink className="w-4 h-4" />
                       Visit Domain
@@ -398,53 +398,53 @@ export default function DomainInstructionsPage() {
 
           {/* DNS Configuration Info */}
           {domain.subdomain && (
-            <div className="bg-blue-50 border border-blue-200 rounded-xl shadow-sm p-4">
-              <h3 className="font-semibold text-blue-900 text-sm mb-2 flex items-center gap-2">
+            <div className="bg-sky-wash border border-sky-wash rounded-xl shadow-sm p-4">
+              <h3 className="font-semibold text-azure text-sm mb-2 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4" />
                 Domain Configuration
               </h3>
-              <p className="text-xs text-blue-800 mb-2">
+              <p className="text-xs text-azure mb-2">
                 Your agent is currently configured to be served from <span className="font-mono font-semibold">{fullDomain}</span>.
               </p>
-              <p className="text-xs text-blue-800">
+              <p className="text-xs text-azure">
                 If you want to serve your agent from the root domain (<span className="font-mono font-semibold">{domain.domain}</span>) instead, 
                 please <button 
                   onClick={() => router.push(`/agents/${agentName}/domains/${domainId}/edit`)}
-                  className="text-blue-600 hover:text-blue-700 underline font-medium"
+                  className="text-azure hover:text-azure underline font-medium"
                 >edit the domain settings</button> and leave the subdomain field empty.
               </p>
             </div>
           )}
 
           {/* Important Notes */}
-          <div className="bg-amber-50 border border-amber-200 rounded-xl shadow-sm p-4">
-            <h3 className="font-semibold text-amber-900 text-sm mb-2 flex items-center gap-2">
+          <div className="bg-sand-deep border border-honey rounded-xl shadow-sm p-4">
+            <h3 className="font-semibold text-gold text-sm mb-2 flex items-center gap-2">
               <AlertCircle className="w-4 h-4" />
               Important Notes
             </h3>
-            <ul className="space-y-1.5 text-xs text-amber-800">
+            <ul className="space-y-1.5 text-xs text-gold">
               <li className="flex items-start gap-2">
-                <span className="text-amber-600 mt-0.5">•</span>
+                <span className="text-warn mt-0.5">•</span>
                 <span>
                   SSL certificates will be automatically provisioned once the domain
                   is verified
                 </span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-amber-600 mt-0.5">•</span>
+                <span className="text-warn mt-0.5">•</span>
                 <span>
                   Make sure to use the exact DNS record values provided above
                 </span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-amber-600 mt-0.5">•</span>
+                <span className="text-warn mt-0.5">•</span>
                 <span>
                   If using Cloudflare, disable the proxy (orange cloud) for the DNS
                   record
                 </span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-amber-600 mt-0.5">•</span>
+                <span className="text-warn mt-0.5">•</span>
                 <span>
                   Contact support if you encounter any issues with DNS configuration
                 </span>
@@ -456,7 +456,7 @@ export default function DomainInstructionsPage() {
           <div className="flex items-center gap-3 pt-2">
             <button
               onClick={() => router.push(`/agents/${agentName}/domains`)}
-              className="px-5 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-white hover:border-amber-300 transition-colors shadow-sm font-medium"
+              className="px-5 py-2 text-sm text-ink-soft bg-white border border-taupe rounded-lg hover:bg-white hover:border-honey transition-colors shadow-sm font-medium"
             >
               Back to Domains
             </button>
@@ -465,7 +465,7 @@ export default function DomainInstructionsPage() {
                 onClick={() =>
                   router.push(`/agents/${agentName}/chat-customization`)
                 }
-                className="px-5 py-2 text-sm bg-gradient-to-r from-amber-500 to-yellow-500 text-white rounded-lg hover:from-amber-600 hover:to-yellow-600 transition-all shadow-sm font-medium"
+                className="px-5 py-2 text-sm bg-warn text-white rounded-lg hover:from-warn hover:to-warn transition-[color,background-color,border-color,box-shadow,opacity,transform] shadow-sm font-medium"
               >
                 Customize Chat Interface
               </button>

@@ -29,34 +29,34 @@ export default function SubscribePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-pink-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl border border-gray-100 w-full max-w-md p-8">
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl border border-sand w-full max-w-md p-8">
         {status === 'success' ? (
           <div className="text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-8 h-8 text-green-600" />
+            <div className="w-16 h-16 bg-leaf-wash rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-8 h-8 text-leaf" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">You&apos;re subscribed!</h2>
-            <p className="text-gray-600 text-sm">{message}</p>
-            <p className="text-gray-400 text-xs mt-3">
+            <h2 className="text-xl font-bold text-ink mb-2">You&apos;re subscribed!</h2>
+            <p className="text-ink-soft text-sm">{message}</p>
+            <p className="text-ash text-xs mt-3">
               You&apos;ll receive an email each time a new report is published. Check your inbox for a confirmation.
             </p>
           </div>
         ) : (
           <>
             <div className="text-center mb-6">
-              <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Bell className="w-7 h-7 text-red-600" />
+              <div className="w-14 h-14 bg-sand-deep rounded-full flex items-center justify-center mx-auto mb-4">
+                <Bell className="w-7 h-7 text-leaf" />
               </div>
-              <h1 className="text-2xl font-bold text-gray-900">Subscribe to reports</h1>
-              <p className="text-gray-500 text-sm mt-2">
+              <h1 className="text-2xl font-bold text-ink">Subscribe to reports</h1>
+              <p className="text-ink-mute text-sm mt-2">
                 Get this agent&apos;s scheduled reports delivered to your inbox automatically.
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label htmlFor="email" className="block text-sm font-medium text-ink-soft mb-1.5">
                   Email address
                 </label>
                 <input
@@ -66,22 +66,22 @@ export default function SubscribePage() {
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors"
+                  className="w-full px-4 py-2.5 border border-taupe rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ink focus:border-transparent transition-colors"
                 />
               </div>
 
               {status === 'error' && (
-                <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{message}</p>
+                <p className="text-sm text-danger bg-blush-wash px-3 py-2 rounded-lg">{message}</p>
               )}
 
               <button
                 type="submit"
                 disabled={status === 'loading'}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium rounded-lg transition-all shadow-sm hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-ink hover:bg-ink/85 text-white font-medium rounded-lg transition-[color,background-color,border-color,box-shadow,opacity,transform] shadow-sm hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {status === 'loading' ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="w-4 h-4 motion-safe:animate-spin" />
                     Subscribing...
                   </>
                 ) : (
@@ -92,7 +92,7 @@ export default function SubscribePage() {
                 )}
               </button>
 
-              <p className="text-center text-xs text-gray-400">
+              <p className="text-center text-xs text-ash">
                 You can unsubscribe at any time via the link in each email.
               </p>
             </form>

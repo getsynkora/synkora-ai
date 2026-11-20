@@ -16,24 +16,24 @@ interface ModelComparisonModalProps {
 }
 
 const PROVIDER_COLORS: Record<string, string> = {
-  openai: 'bg-green-100 text-green-800',
-  anthropic: 'bg-orange-100 text-orange-800',
-  gemini: 'bg-blue-100 text-blue-800',
-  google: 'bg-blue-100 text-blue-800',
-  deepseek: 'bg-cyan-100 text-cyan-800',
-  ollama: 'bg-purple-100 text-purple-800',
-  huggingface: 'bg-yellow-100 text-yellow-800',
-  together_ai: 'bg-indigo-100 text-indigo-800',
-  vllm: 'bg-purple-100 text-purple-800',
-  lm_studio: 'bg-purple-100 text-purple-800',
-  litellm: 'bg-teal-100 text-teal-800',
-  openrouter: 'bg-slate-100 text-slate-800',
+  openai: 'bg-leaf-wash text-forest',
+  anthropic: 'bg-sand-deep text-gold',
+  gemini: 'bg-sky-wash text-azure',
+  google: 'bg-sky-wash text-azure',
+  deepseek: 'bg-sky-wash text-azure',
+  ollama: 'bg-blush-wash text-wine',
+  huggingface: 'bg-sand-deep text-gold',
+  together_ai: 'bg-sky-wash text-azure',
+  vllm: 'bg-blush-wash text-wine',
+  lm_studio: 'bg-blush-wash text-wine',
+  litellm: 'bg-leaf-wash text-forest',
+  openrouter: 'bg-sand text-ink',
 }
 
 const SPEED_CONFIG = {
-  fast: { label: 'Fast', class: 'bg-green-100 text-green-700' },
-  medium: { label: 'Medium', class: 'bg-yellow-100 text-yellow-700' },
-  slow: { label: 'Slow', class: 'bg-red-100 text-red-700' },
+  fast: { label: 'Fast', class: 'bg-leaf-wash text-forest' },
+  medium: { label: 'Medium', class: 'bg-sand-deep text-gold' },
+  slow: { label: 'Slow', class: 'bg-blush-wash text-leaf' },
 }
 
 const FILTER_TABS: { key: ComparisonFilter; label: string; icon: React.ReactNode }[] = [
@@ -52,32 +52,32 @@ const SORT_OPTIONS: { key: ComparisonSortBy; label: string }[] = [
 
 function QualityBar({ score }: { score: number | null }) {
   if (score === null) {
-    return <span className="text-xs text-gray-400">N/A</span>
+    return <span className="text-xs text-ash">N/A</span>
   }
   const pct = (score / 10) * 100
-  const color = score >= 9 ? 'bg-green-500' : score >= 8 ? 'bg-yellow-500' : 'bg-gray-400'
+  const color = score >= 9 ? 'bg-leaf' : score >= 8 ? 'bg-warn' : 'bg-ash'
   return (
     <div className="flex items-center gap-2">
-      <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+      <div className="flex-1 h-1.5 bg-sand rounded-full overflow-hidden">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-xs font-medium text-gray-700 w-6 text-right">{score.toFixed(1)}</span>
+      <span className="text-xs font-medium text-ink-soft w-6 text-right">{score.toFixed(1)}</span>
     </div>
   )
 }
 
 function CostDisplay({ item }: { item: ComparisonModelItem }) {
   if (item.cost_input_per_1m === null) {
-    return <span className="text-xs text-gray-400">N/A</span>
+    return <span className="text-xs text-ash">N/A</span>
   }
   if (item.is_open_source && item.cost_input_per_1m === 0) {
-    return <span className="text-xs font-medium text-green-600">Free (local)</span>
+    return <span className="text-xs font-medium text-leaf">Free (local)</span>
   }
   return (
-    <span className="text-xs text-gray-700">
+    <span className="text-xs text-ink-soft">
       ${item.cost_input_per_1m}/
-      <span className="text-gray-500">${item.cost_output_per_1m}</span>
-      <span className="text-gray-400"> /1M</span>
+      <span className="text-ink-mute">${item.cost_output_per_1m}</span>
+      <span className="text-ash"> /1M</span>
     </span>
   )
 }
@@ -90,21 +90,21 @@ function ModelCard({
   onSelect: (item: ComparisonModelItem) => void
 }) {
   const providerColor =
-    PROVIDER_COLORS[item.provider_id] || 'bg-gray-100 text-gray-700'
+    PROVIDER_COLORS[item.provider_id] || 'bg-sand text-ink-soft'
   const speedCfg = item.speed_tier ? SPEED_CONFIG[item.speed_tier] : null
   const contextK = item.max_input_tokens
     ? `${Math.round(item.max_input_tokens / 1000)}k ctx`
     : null
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col gap-3 hover:border-gray-300 hover:shadow-sm transition-all">
+    <div className="bg-white border border-line rounded-xl p-4 flex flex-col gap-3 hover:border-taupe hover:shadow-sm transition-[color,background-color,border-color,box-shadow,opacity,transform]">
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-gray-900 text-sm leading-snug truncate">
+          <p className="font-semibold text-ink text-sm leading-snug truncate">
             {item.name}
           </p>
-          <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{item.description}</p>
+          <p className="text-xs text-ink-mute mt-0.5 line-clamp-2">{item.description}</p>
         </div>
         <span className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${providerColor}`}>
           {item.provider_name}
@@ -115,13 +115,13 @@ function ModelCard({
       <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
         {/* Quality */}
         <div>
-          <p className="text-gray-400 mb-1">Quality</p>
+          <p className="text-ash mb-1">Quality</p>
           <QualityBar score={item.quality_score} />
         </div>
 
         {/* Speed */}
         <div>
-          <p className="text-gray-400 mb-1">Speed</p>
+          <p className="text-ash mb-1">Speed</p>
           {speedCfg ? (
             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${speedCfg.class}`}>
               {item.speed_tier === 'fast' && <Zap className="w-3 h-3" />}
@@ -129,20 +129,20 @@ function ModelCard({
               {speedCfg.label}
             </span>
           ) : (
-            <span className="text-gray-400">N/A</span>
+            <span className="text-ash">N/A</span>
           )}
         </div>
 
         {/* Cost */}
         <div>
-          <p className="text-gray-400 mb-1">Cost (in/out)</p>
+          <p className="text-ash mb-1">Cost (in/out)</p>
           <CostDisplay item={item} />
         </div>
 
         {/* Context */}
         <div>
-          <p className="text-gray-400 mb-1">Context</p>
-          <span className="text-xs text-gray-700">{contextK || 'N/A'}</span>
+          <p className="text-ash mb-1">Context</p>
+          <span className="text-xs text-ink-soft">{contextK || 'N/A'}</span>
         </div>
       </div>
 
@@ -152,7 +152,7 @@ function ModelCard({
           {item.tags.slice(0, 4).map((tag) => (
             <span
               key={tag}
-              className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-xs rounded"
+              className="px-1.5 py-0.5 bg-sand text-ink-mute text-xs rounded"
             >
               {tag}
             </span>
@@ -163,7 +163,7 @@ function ModelCard({
       {/* Select button */}
       <button
         onClick={() => onSelect(item)}
-        className="mt-auto w-full py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
+        className="mt-auto w-full py-2 bg-danger hover:bg-danger text-white text-sm font-medium rounded-lg transition-colors"
       >
         Select
       </button>
@@ -230,25 +230,25 @@ export default function ModelComparisonModal({
       style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-gray-50 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-cream rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* Modal header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-200">
+        <div className="flex items-center justify-between px-6 py-4 bg-white border-b border-line">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Choose a Model</h2>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <h2 className="text-lg font-semibold text-ink">Choose a Model</h2>
+            <p className="text-xs text-ink-mute mt-0.5">
               Compare models by quality, speed, cost, and open-source availability
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 text-ash hover:text-ink-soft hover:bg-sand rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Controls */}
-        <div className="px-6 py-3 bg-white border-b border-gray-200 flex flex-wrap items-center gap-3">
+        <div className="px-6 py-3 bg-white border-b border-line flex flex-wrap items-center gap-3">
           {/* Filter tabs */}
           <div className="flex items-center gap-1 flex-wrap">
             {FILTER_TABS.map((tab) => (
@@ -257,8 +257,8 @@ export default function ModelComparisonModal({
                 onClick={() => setActiveFilter(tab.key)}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   activeFilter === tab.key
-                    ? 'bg-red-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-danger text-white'
+                    : 'bg-sand text-ink-soft hover:bg-line'
                 }`}
               >
                 {tab.icon}
@@ -272,13 +272,13 @@ export default function ModelComparisonModal({
 
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ash" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search models..."
-              className="pl-9 pr-4 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent w-48"
+              placeholder="Search models…"
+              className="pl-9 pr-4 py-1.5 border border-taupe rounded-lg text-sm focus:ring-2 focus:ring-ink focus:border-transparent w-48"
             />
           </div>
 
@@ -286,13 +286,13 @@ export default function ModelComparisonModal({
           <div className="relative">
             <button
               onClick={() => setSortOpen((v) => !v)}
-              className="inline-flex items-center gap-2 px-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              className="inline-flex items-center gap-2 px-3 py-1.5 border border-taupe rounded-lg text-sm text-ink-soft hover:bg-cream transition-colors"
             >
               {activeSortLabel}
-              <ChevronDown className="w-4 h-4 text-gray-400" />
+              <ChevronDown className="w-4 h-4 text-ash" />
             </button>
             {sortOpen && (
-              <div className="absolute right-0 top-full mt-1 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-10 overflow-hidden">
+              <div className="absolute right-0 top-full mt-1 w-44 bg-white border border-line rounded-lg shadow-lg z-10 overflow-hidden">
                 {SORT_OPTIONS.map((opt) => (
                   <button
                     key={opt.key}
@@ -302,8 +302,8 @@ export default function ModelComparisonModal({
                     }}
                     className={`w-full text-left px-4 py-2 text-sm transition-colors ${
                       sortBy === opt.key
-                        ? 'bg-red-50 text-red-700 font-medium'
-                        : 'text-gray-700 hover:bg-gray-50'
+                        ? 'bg-blush-wash text-leaf font-medium'
+                        : 'text-ink-soft hover:bg-cream'
                     }`}
                   >
                     {opt.label}
@@ -315,9 +315,9 @@ export default function ModelComparisonModal({
         </div>
 
         {/* Results count */}
-        <div className="px-6 py-2 bg-gray-50 border-b border-gray-100">
-          <p className="text-xs text-gray-500">
-            {loading ? 'Loading...' : `${filtered.length} model${filtered.length !== 1 ? 's' : ''} found`}
+        <div className="px-6 py-2 bg-cream border-b border-sand">
+          <p className="text-xs text-ink-mute">
+            {loading ? 'Loading…' : `${filtered.length} model${filtered.length !== 1 ? 's' : ''} found`}
           </p>
         </div>
 
@@ -326,15 +326,15 @@ export default function ModelComparisonModal({
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-3" />
-                <p className="text-sm text-gray-500">Loading models...</p>
+                <div className="motion-safe:animate-spin rounded-full h-8 w-8 border-b-2 border-danger mx-auto mb-3" />
+                <p className="text-sm text-ink-mute">Loading models…</p>
               </div>
             </div>
           ) : filtered.length === 0 ? (
             <div className="flex items-center justify-center py-20">
               <div className="text-center">
-                <p className="text-sm font-medium text-gray-600">No models found</p>
-                <p className="text-xs text-gray-400 mt-1">Try a different filter or search term</p>
+                <p className="text-sm font-medium text-ink-soft">No models found</p>
+                <p className="text-xs text-ash mt-1">Try a different filter or search term</p>
               </div>
             </div>
           ) : (

@@ -11,7 +11,7 @@ const SyntaxHighlighter = dynamic(
   {
     ssr: false,
     loading: () => (
-      <pre className="bg-gray-900 text-gray-100 p-4 text-[13px] font-mono overflow-x-auto whitespace-pre">{}</pre>
+      <pre className="bg-ink text-sand p-4 text-[13px] font-mono overflow-x-auto whitespace-pre">{}</pre>
     ),
   }
 )
@@ -24,11 +24,11 @@ interface CodeBlockProps {
 export function CodeBlock({ language, code }: CodeBlockProps) {
   return (
     <div className="not-prose relative group/code my-3 max-w-full overflow-hidden rounded-lg">
-      <div className="flex items-center justify-between px-3 py-1.5 bg-gray-800 rounded-t-lg border-b border-gray-700">
-        <span className="text-xs text-gray-400 font-mono">{language || 'code'}</span>
+      <div className="flex items-center justify-between px-3 py-1.5 bg-ink rounded-t-lg border-b border-ink-soft">
+        <span className="text-xs text-ash font-mono">{language || 'code'}</span>
         <button
           onClick={() => navigator.clipboard.writeText(code)}
-          className="text-xs text-gray-400 hover:text-white transition-colors flex items-center gap-1"
+          className="text-xs text-ash hover:text-white transition-colors flex items-center gap-1"
         >
           <Copy size={12} />
           Copy

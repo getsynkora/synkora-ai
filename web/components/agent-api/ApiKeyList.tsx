@@ -6,6 +6,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Copy } from 'lucide-react';
 import { AgentApiKey } from '@/types/agent-api';
 import { Button } from '@/components/ui/Button';
 
@@ -78,8 +79,8 @@ export function ApiKeyList({
   if (apiKeys.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-600">No API keys found</p>
-        <p className="text-sm text-gray-500 mt-2">
+        <p className="text-ink-soft">No API keys found</p>
+        <p className="text-sm text-ink-mute mt-2">
           Create your first API key to get started
         </p>
       </div>
@@ -89,48 +90,49 @@ export function ApiKeyList({
   return (
     <>
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-line">
+          <thead className="bg-cream">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-ink-mute">
                 Name
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-ink-mute">
                 Key
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-ink-mute">
                 Status
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-ink-mute">
                 Permissions
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-ink-mute">
                 Last Used
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-ink-mute">
                 Created
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-right text-xs font-medium text-ink-mute">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white divide-y divide-line">
             {apiKeys.map((apiKey) => (
               <tr key={apiKey.id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-ink">
                   {apiKey.key_name}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center gap-2">
-                    <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                    <code className="text-xs bg-sand px-2 py-1 rounded">
                       {maskApiKey(apiKey.key_prefix)}
                     </code>
                     <button
                       onClick={() => copyToClipboard(apiKey.key_prefix)}
-                      className="text-gray-600 hover:text-gray-900"
+                      className="text-ink-soft hover:text-ink"
+                      aria-label="Copy key prefix"
                     >
-                      📋
+                      <Copy className="h-4 w-4" aria-hidden="true" />
                     </button>
                   </div>
                 </td>
@@ -138,23 +140,23 @@ export function ApiKeyList({
                   <span
                     className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                       apiKey.is_active
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-800'
+                        ? 'bg-leaf-wash text-forest'
+                        : 'bg-sand text-ink'
                     }`}
                   >
                     {apiKey.is_active ? 'Active' : 'Inactive'}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-mute">
                   {apiKey.permissions.slice(0, 2).join(', ')}
                   {apiKey.permissions.length > 2 && ` +${apiKey.permissions.length - 2}`}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-mute">
                   {apiKey.last_used_at
                     ? formatTimeAgo(new Date(apiKey.last_used_at))
                     : 'Never'}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-mute">
                   {formatTimeAgo(new Date(apiKey.created_at))}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
@@ -191,7 +193,7 @@ export function ApiKeyList({
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full">
             <h3 className="text-lg font-semibold mb-2">Are you sure?</h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-ink-soft mb-4">
               This action cannot be undone. This will permanently delete the API key and
               revoke all access using this key.
             </p>
@@ -199,7 +201,7 @@ export function ApiKeyList({
               <Button variant="outline" onClick={() => setDeleteKeyId(null)}>
                 Cancel
               </Button>
-              <Button variant="primary" onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+              <Button variant="primary" onClick={handleDelete} className="bg-danger hover:bg-danger">
                 Delete
               </Button>
             </div>
@@ -212,7 +214,7 @@ export function ApiKeyList({
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full">
             <h3 className="text-lg font-semibold mb-2">Regenerate API Key?</h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-ink-soft mb-4">
               This will create a new API key and invalidate the old one. Any applications
               using the old key will stop working immediately.
             </p>

@@ -79,22 +79,22 @@ type PlatformProvider = typeof PLATFORM_PROVIDERS[number]
 const PLATFORM_PROVIDER_INFO: Record<PlatformProvider, {
   name: string; description: string; initials: string; bg: string; text: string; defaultScopes: string[]
 }> = {
-  gmail:           { name: 'Gmail',           description: 'Read and send emails via Gmail',                  initials: 'GM', bg: 'bg-red-100',    text: 'text-red-700',    defaultScopes: ['https://www.googleapis.com/auth/gmail.modify', 'https://www.googleapis.com/auth/gmail.send', 'https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/userinfo.email'] },
-  google_calendar: { name: 'Google Calendar', description: 'Manage calendar events and schedules',             initials: 'GC', bg: 'bg-blue-100',   text: 'text-blue-700',   defaultScopes: ['https://www.googleapis.com/auth/calendar', 'https://www.googleapis.com/auth/calendar.events', 'https://www.googleapis.com/auth/userinfo.email'] },
-  google_drive:    { name: 'Google Drive',    description: 'Access and manage Drive files',                    initials: 'GD', bg: 'bg-yellow-100', text: 'text-yellow-700', defaultScopes: ['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/documents', 'https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/userinfo.email'] },
-  slack:           { name: 'Slack',           description: 'Send messages and interact with Slack workspaces', initials: 'SL', bg: 'bg-purple-100', text: 'text-purple-700', defaultScopes: ['channels:history', 'channels:read', 'groups:history', 'groups:read', 'im:history', 'im:read', 'users:read', 'team:read'] },
-  github:          { name: 'GitHub',          description: 'Access repositories, issues, and pull requests',   initials: 'GH', bg: 'bg-gray-100',   text: 'text-gray-700',   defaultScopes: ['repo', 'user', 'read:org'] },
-  gitlab:          { name: 'GitLab',          description: 'Access GitLab projects and merge requests',        initials: 'GL', bg: 'bg-orange-100', text: 'text-orange-700', defaultScopes: ['api', 'read_user', 'read_repository', 'write_repository'] },
-  jira:            { name: 'Jira',            description: 'Manage Jira issues and projects',                  initials: 'JR', bg: 'bg-blue-100',   text: 'text-blue-700',   defaultScopes: ['read:me', 'read:jira-work', 'read:jira-user', 'write:jira-work', 'read:board-scope:jira-software', 'read:sprint:jira-software', 'write:sprint:jira-software', 'offline_access'] },
-  zoom:            { name: 'Zoom',            description: 'Create and manage Zoom meetings',                  initials: 'ZM', bg: 'bg-sky-100',    text: 'text-sky-700',    defaultScopes: ['meeting:write', 'meeting:read', 'recording:read', 'user:read'] },
-  clickup:         { name: 'ClickUp',         description: 'Manage tasks and workspaces in ClickUp',           initials: 'CU', bg: 'bg-pink-100',   text: 'text-pink-700',   defaultScopes: [] },
-  twitter:         { name: 'Twitter / X',     description: 'Post tweets and access Twitter data',              initials: 'TW', bg: 'bg-sky-100',    text: 'text-sky-700',    defaultScopes: ['tweet.read', 'tweet.write', 'users.read', 'offline.access'] },
-  linkedin:        { name: 'LinkedIn',        description: 'Post content and access LinkedIn data',            initials: 'LI', bg: 'bg-blue-100',   text: 'text-blue-700',   defaultScopes: ['openid', 'profile', 'email', 'w_member_social'] },
-  zendesk:         { name: 'Zendesk',         description: 'Manage support tickets in Zendesk',                initials: 'ZD', bg: 'bg-green-100',  text: 'text-green-700',  defaultScopes: ['read', 'write'] },
-  zoho_crm:        { name: 'Zoho CRM',        description: 'Access and update Zoho CRM records',               initials: 'ZC', bg: 'bg-red-100',    text: 'text-red-700',    defaultScopes: ['ZohoCRM.modules.ALL', 'ZohoCRM.settings.ALL', 'ZohoCRM.users.READ', 'ZohoCRM.org.READ', 'offline_access'] },
-  hubspot:         { name: 'HubSpot',         description: 'Manage HubSpot contacts and deals',                initials: 'HS', bg: 'bg-orange-100', text: 'text-orange-700', defaultScopes: ['crm.objects.contacts.read', 'crm.objects.contacts.write', 'crm.objects.deals.read'] },
-  intercom:        { name: 'Intercom',        description: 'Access Intercom conversations and contacts',       initials: 'IC', bg: 'bg-blue-100',   text: 'text-blue-700',   defaultScopes: [] },
-  salesforce:      { name: 'Salesforce',      description: 'Access Salesforce CRM data and records',           initials: 'SF', bg: 'bg-sky-100',    text: 'text-sky-700',    defaultScopes: ['api', 'refresh_token', 'offline_access'] },
+  gmail:           { name: 'Gmail',           description: 'Read and send emails via Gmail',                  initials: 'GM', bg: 'bg-blush-wash',    text: 'text-leaf',    defaultScopes: ['https://www.googleapis.com/auth/gmail.modify', 'https://www.googleapis.com/auth/gmail.send', 'https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/userinfo.email'] },
+  google_calendar: { name: 'Google Calendar', description: 'Manage calendar events and schedules',             initials: 'GC', bg: 'bg-sky-wash',   text: 'text-azure',   defaultScopes: ['https://www.googleapis.com/auth/calendar', 'https://www.googleapis.com/auth/calendar.events', 'https://www.googleapis.com/auth/userinfo.email'] },
+  google_drive:    { name: 'Google Drive',    description: 'Access and manage Drive files',                    initials: 'GD', bg: 'bg-sand-deep', text: 'text-gold', defaultScopes: ['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/documents', 'https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/userinfo.email'] },
+  slack:           { name: 'Slack',           description: 'Send messages and interact with Slack workspaces', initials: 'SL', bg: 'bg-blush-wash', text: 'text-plum', defaultScopes: ['channels:history', 'channels:read', 'groups:history', 'groups:read', 'im:history', 'im:read', 'users:read', 'team:read'] },
+  github:          { name: 'GitHub',          description: 'Access repositories, issues, and pull requests',   initials: 'GH', bg: 'bg-sand',   text: 'text-ink-soft',   defaultScopes: ['repo', 'user', 'read:org'] },
+  gitlab:          { name: 'GitLab',          description: 'Access GitLab projects and merge requests',        initials: 'GL', bg: 'bg-sand-deep', text: 'text-gold', defaultScopes: ['api', 'read_user', 'read_repository', 'write_repository'] },
+  jira:            { name: 'Jira',            description: 'Manage Jira issues and projects',                  initials: 'JR', bg: 'bg-sky-wash',   text: 'text-azure',   defaultScopes: ['read:me', 'read:jira-work', 'read:jira-user', 'write:jira-work', 'read:board-scope:jira-software', 'read:sprint:jira-software', 'write:sprint:jira-software', 'offline_access'] },
+  zoom:            { name: 'Zoom',            description: 'Create and manage Zoom meetings',                  initials: 'ZM', bg: 'bg-sky-wash',    text: 'text-azure',    defaultScopes: ['meeting:write', 'meeting:read', 'recording:read', 'user:read'] },
+  clickup:         { name: 'ClickUp',         description: 'Manage tasks and workspaces in ClickUp',           initials: 'CU', bg: 'bg-blush-wash',   text: 'text-plum',   defaultScopes: [] },
+  twitter:         { name: 'Twitter / X',     description: 'Post tweets and access Twitter data',              initials: 'TW', bg: 'bg-sky-wash',    text: 'text-azure',    defaultScopes: ['tweet.read', 'tweet.write', 'users.read', 'offline.access'] },
+  linkedin:        { name: 'LinkedIn',        description: 'Post content and access LinkedIn data',            initials: 'LI', bg: 'bg-sky-wash',   text: 'text-azure',   defaultScopes: ['openid', 'profile', 'email', 'w_member_social'] },
+  zendesk:         { name: 'Zendesk',         description: 'Manage support tickets in Zendesk',                initials: 'ZD', bg: 'bg-leaf-wash',  text: 'text-forest',  defaultScopes: ['read', 'write'] },
+  zoho_crm:        { name: 'Zoho CRM',        description: 'Access and update Zoho CRM records',               initials: 'ZC', bg: 'bg-blush-wash',    text: 'text-danger',    defaultScopes: ['ZohoCRM.modules.ALL', 'ZohoCRM.settings.ALL', 'ZohoCRM.users.READ', 'ZohoCRM.org.READ', 'offline_access'] },
+  hubspot:         { name: 'HubSpot',         description: 'Manage HubSpot contacts and deals',                initials: 'HS', bg: 'bg-sand-deep', text: 'text-gold', defaultScopes: ['crm.objects.contacts.read', 'crm.objects.contacts.write', 'crm.objects.deals.read'] },
+  intercom:        { name: 'Intercom',        description: 'Access Intercom conversations and contacts',       initials: 'IC', bg: 'bg-sky-wash',   text: 'text-azure',   defaultScopes: [] },
+  salesforce:      { name: 'Salesforce',      description: 'Access Salesforce CRM data and records',           initials: 'SF', bg: 'bg-sky-wash',    text: 'text-azure',    defaultScopes: ['api', 'refresh_token', 'offline_access'] },
 }
 
 const EMPTY_PLATFORM_FORM: PlatformOAuthAppFormData = {
@@ -102,15 +102,15 @@ const EMPTY_PLATFORM_FORM: PlatformOAuthAppFormData = {
 }
 
 // Input/label styles matching oauth-apps/create
-const inputCls = 'w-full rounded-[1rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]'
-const selectCls = 'w-full rounded-[1rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]'
-const labelCls = 'mb-1.5 block text-sm font-semibold text-gray-700'
-const sectionCls = 'rounded-[1.25rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,245,239,0.96))] p-5 shadow-[0_24px_60px_-46px_rgba(73,45,23,0.3)]'
+const inputCls = 'w-full rounded-[1rem] border border-black/10 bg-cream px-4 py-3 text-sm text-ink placeholder:text-ash focus:border-transparent focus:outline-none focus:ring-2 focus:ring-mint'
+const selectCls = 'w-full rounded-[1rem] border border-black/10 bg-cream px-4 py-3 text-sm text-ink focus:border-transparent focus:outline-none focus:ring-2 focus:ring-mint'
+const labelCls = 'mb-1.5 block text-sm font-semibold text-ink-soft'
+const sectionCls = 'rounded-[1.25rem] border border-line bg-white p-5 shadow-soft'
 
 function ProviderAvatar({ provider }: { provider: string }) {
   const info = PLATFORM_PROVIDER_INFO[provider as PlatformProvider]
   return (
-    <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-xs font-bold ${info?.bg ?? 'bg-gray-100'} ${info?.text ?? 'text-gray-700'}`}>
+    <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-xs font-bold ${info?.bg ?? 'bg-sand'} ${info?.text ?? 'text-ink-soft'}`}>
       {info?.initials ?? provider.slice(0, 2).toUpperCase()}
     </div>
   )
@@ -144,16 +144,16 @@ function ScopesField({
   return (
     <div className="space-y-2">
       {allScopes.length > 0 ? (
-        <div className="max-h-40 overflow-y-auto space-y-1.5 rounded-[1rem] border border-black/10 bg-[#fcfaf5] p-3">
+        <div className="max-h-40 overflow-y-auto space-y-1.5 rounded-[1rem] border border-black/10 bg-cream p-3">
           {allScopes.map(scope => (
             <label key={scope} className="flex items-center gap-2.5 cursor-pointer group">
               <input
                 type="checkbox"
                 checked={scopes.includes(scope)}
                 onChange={e => toggle(scope, e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-[#10717C] focus:ring-[#79dfbc]"
+                className="h-4 w-4 rounded border-taupe text-steel focus:ring-mint"
               />
-              <span className="text-xs font-mono text-gray-700 group-hover:text-gray-900 break-all">{scope}</span>
+              <span className="text-xs font-mono text-ink-soft group-hover:text-ink break-all">{scope}</span>
             </label>
           ))}
         </div>
@@ -170,7 +170,7 @@ function ScopesField({
         <button
           type="button"
           onClick={addCustom}
-          className="rounded-[1rem] border border-black/10 bg-[#fcfaf5] px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-[#f0ece3] transition-colors"
+          className="rounded-[1rem] border border-black/10 bg-cream px-4 py-2.5 text-sm font-semibold text-ink-soft hover:bg-sand transition-colors"
         >
           Add
         </button>
@@ -424,9 +424,9 @@ export default function SocialAuthConfigPage() {
     return (
       <DashboardPageShell title="Social Authentication" description="Configure OAuth providers." icon={ShieldCheck} badge="Settings" backHref="/settings/profile" backLabel="Back to Settings" breadcrumbs={[{ label: 'Home', href: '/' }, { label: 'Settings', href: '/settings/profile' }, { label: 'Social Auth' }]}>
         <DashboardPagePanel className="p-10 text-center">
-          <Lock className="mx-auto mb-4 h-12 w-12 text-[#9a7a5e]" />
-          <h3 className="text-lg font-semibold text-gray-900">Access Denied</h3>
-          <p className="mt-2 text-sm text-gray-600">This page is only accessible to platform owners.</p>
+          <Lock className="mx-auto mb-4 h-12 w-12 text-clay" />
+          <h3 className="text-lg font-semibold text-ink">Access Denied</h3>
+          <p className="mt-2 text-sm text-ink-soft">This page is only accessible to platform owners.</p>
         </DashboardPagePanel>
       </DashboardPageShell>
     )
@@ -448,7 +448,7 @@ export default function SocialAuthConfigPage() {
         ]}
         actions={
           activeTab === 'platform-oauth-apps' ? (
-            <button onClick={() => openPlatformCreate()} className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black">
+            <button onClick={() => openPlatformCreate()} className="inline-flex items-center gap-2 rounded-[1rem] bg-ink px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black">
               <Plus size={16} />Add OAuth App
             </button>
           ) : null
@@ -469,35 +469,35 @@ export default function SocialAuthConfigPage() {
             <div className="space-y-4">
               {providers.length > 0 && (
                 <div className="space-y-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7a5e]">Configured Providers</p>
+                  <p className="text-[11px] font-semibold text-clay">Configured Providers</p>
                   {providers.map(provider => {
                     const info = PROVIDER_INFO[provider.provider_name as SocialProvider]
                     return (
                       <DashboardPagePanel key={provider.id} className="overflow-hidden">
                         <div className="flex items-center gap-4 p-4">
-                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-gray-100 bg-white shadow-sm">
+                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-sand bg-white shadow-sm">
                             <ProviderIcon provider={provider.provider_name as SocialProvider} size="sm" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-semibold text-gray-900">{info?.name ?? provider.provider_name}</span>
-                              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${provider.enabled ? 'bg-[#ebf5ee] text-[#24543b]' : 'bg-gray-100 text-gray-500'}`}>
-                                <span className={`h-1.5 w-1.5 rounded-full ${provider.enabled ? 'bg-[#24543b]' : 'bg-gray-400'}`} />
+                              <span className="text-sm font-semibold text-ink">{info?.name ?? provider.provider_name}</span>
+                              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${provider.enabled ? 'bg-leaf-wash text-forest' : 'bg-sand text-ink-mute'}`}>
+                                <span className={`h-1.5 w-1.5 rounded-full ${provider.enabled ? 'bg-forest' : 'bg-ash'}`} />
                                 {provider.enabled ? 'Enabled' : 'Disabled'}
                               </span>
                             </div>
-                            <p className="mt-0.5 text-xs text-gray-500 truncate">Client ID: <code className="font-mono">{provider.client_id?.slice(0, 24)}…</code></p>
+                            <p className="mt-0.5 text-xs text-ink-mute truncate">Client ID: <code className="font-mono">{provider.client_id?.slice(0, 24)}…</code></p>
                           </div>
                           <div className="flex items-center gap-1">
-                            <button onClick={() => handleEdit(provider)} className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700" title="Edit"><Edit2 size={15} /></button>
-                            <button onClick={() => handleToggleEnabled(provider)} className={`rounded-lg p-2 transition-colors ${provider.enabled ? 'text-gray-400 hover:bg-gray-100 hover:text-gray-700' : 'text-emerald-600 hover:bg-emerald-50'}`} title={provider.enabled ? 'Disable' : 'Enable'}><Power size={15} /></button>
+                            <button onClick={() => handleEdit(provider)} className="rounded-lg p-2 text-ash transition-colors hover:bg-sand hover:text-ink-soft" title="Edit"><Edit2 size={15} /></button>
+                            <button onClick={() => handleToggleEnabled(provider)} className={`rounded-lg p-2 transition-colors ${provider.enabled ? 'text-ash hover:bg-sand hover:text-ink-soft' : 'text-leaf hover:bg-leaf-wash'}`} title={provider.enabled ? 'Disable' : 'Enable'}><Power size={15} /></button>
                             {deleteConfirm === provider.provider_name ? (
                               <div className="flex items-center gap-1.5 ml-1">
-                                <button onClick={() => handleDelete(provider.provider_name as SocialProvider)} className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 transition-colors">Confirm</button>
-                                <button onClick={() => setDeleteConfirm(null)} className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors">Cancel</button>
+                                <button onClick={() => handleDelete(provider.provider_name as SocialProvider)} className="rounded-lg bg-danger px-3 py-1.5 text-xs font-semibold text-white hover:bg-danger transition-colors">Confirm</button>
+                                <button onClick={() => setDeleteConfirm(null)} className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-ink-soft hover:bg-cream transition-colors">Cancel</button>
                               </div>
                             ) : (
-                              <button onClick={() => setDeleteConfirm(provider.provider_name as SocialProvider)} className="rounded-lg p-2 text-red-400 transition-colors hover:bg-red-50 hover:text-red-600" title="Delete"><Trash2 size={15} /></button>
+                              <button onClick={() => setDeleteConfirm(provider.provider_name as SocialProvider)} className="rounded-lg p-2 text-hotpink transition-colors hover:bg-blush-wash hover:text-danger" title="Delete"><Trash2 size={15} /></button>
                             )}
                           </div>
                         </div>
@@ -509,7 +509,7 @@ export default function SocialAuthConfigPage() {
 
               {availableLoginProviders.length > 0 && (
                 <div className="space-y-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7a5e]">Available Providers</p>
+                  <p className="text-[11px] font-semibold text-clay">Available Providers</p>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {availableLoginProviders.map(provider => {
                       const info = PROVIDER_INFO[provider]
@@ -517,12 +517,12 @@ export default function SocialAuthConfigPage() {
                         <button key={provider} onClick={() => { setCreatingProvider(provider); setCreateFormData({ client_id: '', client_secret: '', redirect_uri: redirectUriFor(provider, 'login') }) }} className="group text-left">
                           <DashboardPagePanel className="p-4 transition-shadow hover:shadow-md">
                             <div className="flex items-center gap-3 mb-2">
-                              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-gray-100 bg-white shadow-sm">
+                              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-sand bg-white shadow-sm">
                                 <ProviderIcon provider={provider} size="sm" />
                               </div>
-                              <span className="text-sm font-semibold text-gray-900">{info.name}</span>
+                              <span className="text-sm font-semibold text-ink">{info.name}</span>
                             </div>
-                            <p className="text-xs text-gray-500 leading-relaxed">{info.description}</p>
+                            <p className="text-xs text-ink-mute leading-relaxed">{info.description}</p>
                           </DashboardPagePanel>
                         </button>
                       )
@@ -532,15 +532,15 @@ export default function SocialAuthConfigPage() {
               )}
 
               {providers.length === 0 && availableLoginProviders.length === 0 && (
-                <DashboardPagePanel className="p-12 text-center"><p className="text-sm text-gray-500">All login providers are configured.</p></DashboardPagePanel>
+                <DashboardPagePanel className="p-12 text-center"><p className="text-sm text-ink-mute">All login providers are configured.</p></DashboardPagePanel>
               )}
 
               <DashboardPagePanel className="p-4">
                 <div className="flex items-start gap-3">
-                  <div className="rounded-full bg-[#f1eadc] p-2 flex-shrink-0"><ShieldCheck className="h-4 w-4 text-[#7c5d45]" /></div>
+                  <div className="rounded-full bg-sand-deep p-2 flex-shrink-0"><ShieldCheck className="h-4 w-4 text-bark" /></div>
                   <div>
-                    <p className="text-sm font-semibold text-gray-900">About Login Providers</p>
-                    <p className="mt-1 text-xs leading-relaxed text-gray-500">Configure OAuth providers to enable social login. Each provider requires credentials from its developer console. Disabled providers won't appear on the login page.</p>
+                    <p className="text-sm font-semibold text-ink">About Login Providers</p>
+                    <p className="mt-1 text-xs leading-relaxed text-ink-mute">Configure OAuth providers to enable social login. Each provider requires credentials from its developer console. Disabled providers won't appear on the login page.</p>
                   </div>
                 </div>
               </DashboardPagePanel>
@@ -556,7 +556,7 @@ export default function SocialAuthConfigPage() {
                 <>
                   {platformApps.length > 0 && (
                     <div className="space-y-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7a5e]">Configured Apps</p>
+                      <p className="text-[11px] font-semibold text-clay">Configured Apps</p>
                       {platformApps.map(app => {
                         const info = PLATFORM_PROVIDER_INFO[app.provider as PlatformProvider]
                         return (
@@ -565,14 +565,14 @@ export default function SocialAuthConfigPage() {
                               <ProviderAvatar provider={app.provider} />
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-sm font-semibold text-gray-900">{app.app_name}</span>
-                                  <span className="text-xs text-gray-400">{info?.name ?? app.provider}</span>
-                                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${app.is_active ? 'bg-[#ebf5ee] text-[#24543b]' : 'bg-gray-100 text-gray-500'}`}>
-                                    <span className={`h-1.5 w-1.5 rounded-full ${app.is_active ? 'bg-[#24543b]' : 'bg-gray-400'}`} />
+                                  <span className="text-sm font-semibold text-ink">{app.app_name}</span>
+                                  <span className="text-xs text-ash">{info?.name ?? app.provider}</span>
+                                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${app.is_active ? 'bg-leaf-wash text-forest' : 'bg-sand text-ink-mute'}`}>
+                                    <span className={`h-1.5 w-1.5 rounded-full ${app.is_active ? 'bg-forest' : 'bg-ash'}`} />
                                     {app.is_active ? 'Enabled' : 'Disabled'}
                                   </span>
                                 </div>
-                                <div className="mt-0.5 flex flex-wrap gap-x-4 text-xs text-gray-500">
+                                <div className="mt-0.5 flex flex-wrap gap-x-4 text-xs text-ink-mute">
                                   <span>Client ID: <code className="font-mono">{app.client_id?.slice(0, 24)}…</code></span>
                                   {app.scopes?.length > 0 && <span className="hidden sm:inline">Scopes: {app.scopes.slice(0, 2).join(', ')}{app.scopes.length > 2 ? ` +${app.scopes.length - 2}` : ''}</span>}
                                 </div>
@@ -592,18 +592,18 @@ export default function SocialAuthConfigPage() {
                                       description: app.description || '',
                                     })
                                   }}
-                                  className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700" title="Edit"
+                                  className="rounded-lg p-2 text-ash transition-colors hover:bg-sand hover:text-ink-soft" title="Edit"
                                 >
                                   <Edit2 size={15} />
                                 </button>
-                                <button onClick={() => handlePlatformToggle(app)} className={`rounded-lg p-2 transition-colors ${app.is_active ? 'text-gray-400 hover:bg-gray-100 hover:text-gray-700' : 'text-emerald-600 hover:bg-emerald-50'}`} title={app.is_active ? 'Disable' : 'Enable'}><Power size={15} /></button>
+                                <button onClick={() => handlePlatformToggle(app)} className={`rounded-lg p-2 transition-colors ${app.is_active ? 'text-ash hover:bg-sand hover:text-ink-soft' : 'text-leaf hover:bg-leaf-wash'}`} title={app.is_active ? 'Disable' : 'Enable'}><Power size={15} /></button>
                                 {platformDeleteConfirm === app.id ? (
                                   <div className="flex items-center gap-1.5 ml-1">
-                                    <button onClick={() => handlePlatformDelete(app.id)} className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 transition-colors">Confirm</button>
-                                    <button onClick={() => setPlatformDeleteConfirm(null)} className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors">Cancel</button>
+                                    <button onClick={() => handlePlatformDelete(app.id)} className="rounded-lg bg-danger px-3 py-1.5 text-xs font-semibold text-white hover:bg-danger transition-colors">Confirm</button>
+                                    <button onClick={() => setPlatformDeleteConfirm(null)} className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-ink-soft hover:bg-cream transition-colors">Cancel</button>
                                   </div>
                                 ) : (
-                                  <button onClick={() => setPlatformDeleteConfirm(app.id)} className="rounded-lg p-2 text-red-400 transition-colors hover:bg-red-50 hover:text-red-600" title="Delete"><Trash2 size={15} /></button>
+                                  <button onClick={() => setPlatformDeleteConfirm(app.id)} className="rounded-lg p-2 text-hotpink transition-colors hover:bg-blush-wash hover:text-danger" title="Delete"><Trash2 size={15} /></button>
                                 )}
                               </div>
                             </div>
@@ -615,7 +615,7 @@ export default function SocialAuthConfigPage() {
 
                   {availablePlatformProviders.length > 0 && (
                     <div className="space-y-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7a5e]">Available Providers</p>
+                      <p className="text-[11px] font-semibold text-clay">Available Providers</p>
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {availablePlatformProviders.map(provider => {
                           const info = PLATFORM_PROVIDER_INFO[provider]
@@ -624,9 +624,9 @@ export default function SocialAuthConfigPage() {
                               <DashboardPagePanel className="p-4 transition-shadow hover:shadow-md">
                                 <div className="flex items-center gap-3 mb-2">
                                   <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl text-xs font-bold ${info.bg} ${info.text}`}>{info.initials}</div>
-                                  <span className="text-sm font-semibold text-gray-900">{info.name}</span>
+                                  <span className="text-sm font-semibold text-ink">{info.name}</span>
                                 </div>
-                                <p className="text-xs text-gray-500 leading-relaxed">{info.description}</p>
+                                <p className="text-xs text-ink-mute leading-relaxed">{info.description}</p>
                               </DashboardPagePanel>
                             </button>
                           )
@@ -637,18 +637,18 @@ export default function SocialAuthConfigPage() {
 
                   {platformApps.length === 0 && (
                     <DashboardPagePanel className="p-12 text-center">
-                      <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-[#f3ecde]"><Plus size={28} className="text-[#171717]" /></div>
-                      <h3 className="text-base font-semibold text-gray-900">No platform OAuth apps</h3>
-                      <p className="mt-2 text-sm text-gray-600 max-w-sm mx-auto">Add OAuth credentials to let tenants use Synkora-managed integrations.</p>
+                      <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-sand"><Plus size={28} className="text-ink" /></div>
+                      <h3 className="text-base font-semibold text-ink">No platform OAuth apps</h3>
+                      <p className="mt-2 text-sm text-ink-soft max-w-sm mx-auto">Add OAuth credentials to let tenants use Synkora-managed integrations.</p>
                     </DashboardPagePanel>
                   )}
 
                   <DashboardPagePanel className="p-4">
                     <div className="flex items-start gap-3">
-                      <div className="rounded-full bg-[#f1eadc] p-2 flex-shrink-0"><ShieldCheck className="h-4 w-4 text-[#7c5d45]" /></div>
+                      <div className="rounded-full bg-sand-deep p-2 flex-shrink-0"><ShieldCheck className="h-4 w-4 text-bark" /></div>
                       <div>
-                        <p className="text-sm font-semibold text-gray-900">About Platform OAuth Apps</p>
-                        <p className="mt-1 text-xs leading-relaxed text-gray-500">Platform OAuth apps let tenants use Synkora-owned credentials. Client secrets are encrypted at rest and never exposed via API.</p>
+                        <p className="text-sm font-semibold text-ink">About Platform OAuth Apps</p>
+                        <p className="mt-1 text-xs leading-relaxed text-ink-mute">Platform OAuth apps let tenants use Synkora-owned credentials. Client secrets are encrypted at rest and never exposed via API.</p>
                       </div>
                     </div>
                   </DashboardPagePanel>
@@ -661,18 +661,18 @@ export default function SocialAuthConfigPage() {
 
       {/* ── MODAL: Create Login Provider ───────────────────────────────────── */}
       {creatingProvider && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-[940px] overflow-hidden rounded-2xl bg-white shadow-2xl">
-            <div className="sticky top-0 flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4">
+            <div className="sticky top-0 flex items-center justify-between border-b border-sand bg-white px-6 py-4">
               <div>
-                <h3 className="text-base font-semibold text-gray-900">Add {PROVIDER_INFO[creatingProvider].name}</h3>
-                <p className="text-xs text-gray-500 mt-0.5">Configure your {PROVIDER_INFO[creatingProvider].name} OAuth credentials</p>
+                <h3 className="text-base font-semibold text-ink">Add {PROVIDER_INFO[creatingProvider].name}</h3>
+                <p className="text-xs text-ink-mute mt-0.5">Configure your {PROVIDER_INFO[creatingProvider].name} OAuth credentials</p>
               </div>
-              <button onClick={() => setCreatingProvider(null)} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100"><X size={18} /></button>
+              <button onClick={() => setCreatingProvider(null)} className="rounded-lg p-2 text-ash hover:bg-sand"><X size={18} /></button>
             </div>
             <div className="p-6 space-y-4">
               <div className={sectionCls}>
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">OAuth Credentials</h4>
+                <h4 className="text-sm font-semibold text-ink mb-3">OAuth Credentials</h4>
                 <div className="space-y-4">
                   <div>
                     <label className={labelCls}>Client ID *</label>
@@ -685,17 +685,17 @@ export default function SocialAuthConfigPage() {
                   <div>
                     <div className="mb-1.5 flex items-center justify-between">
                       <label className={labelCls} style={{marginBottom:0}}>Redirect URI</label>
-                      <span className="rounded-full bg-[#ebf5ee] px-2 py-0.5 text-[10px] font-semibold text-[#24543b]">Auto-generated</span>
+                      <span className="rounded-full bg-leaf-wash px-2 py-0.5 text-[10px] font-semibold text-forest">Auto-generated</span>
                     </div>
                     <input readOnly value={createFormData.redirect_uri} className={`${inputCls} cursor-default opacity-70`} />
-                    <p className="mt-1.5 text-xs text-gray-500">Copy this URL into your {PROVIDER_INFO[creatingProvider].name} app settings</p>
+                    <p className="mt-1.5 text-xs text-ink-mute">Copy this URL into your {PROVIDER_INFO[creatingProvider].name} app settings</p>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="flex justify-end gap-2 border-t border-gray-100 px-6 py-4">
-              <button onClick={() => setCreatingProvider(null)} disabled={saving} className="rounded-[1rem] border border-black/10 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">Cancel</button>
-              <button onClick={handleCreate} disabled={saving || !createFormData.client_id || !createFormData.client_secret} className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed">
+            <div className="flex justify-end gap-2 border-t border-sand px-6 py-4">
+              <button onClick={() => setCreatingProvider(null)} disabled={saving} className="rounded-[1rem] border border-black/10 px-4 py-2.5 text-sm font-semibold text-ink-soft hover:bg-cream disabled:opacity-50">Cancel</button>
+              <button onClick={handleCreate} disabled={saving || !createFormData.client_id || !createFormData.client_secret} className="inline-flex items-center gap-2 rounded-[1rem] bg-ink px-4 py-2.5 text-sm font-semibold text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed">
                 {saving ? <><LoadingSpinner size="sm" />Creating…</> : 'Create Provider'}
               </button>
             </div>
@@ -705,18 +705,18 @@ export default function SocialAuthConfigPage() {
 
       {/* ── MODAL: Edit Login Provider ──────────────────────────────────────── */}
       {editingProvider && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-[940px] overflow-hidden rounded-2xl bg-white shadow-2xl">
-            <div className="sticky top-0 flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4">
+            <div className="sticky top-0 flex items-center justify-between border-b border-sand bg-white px-6 py-4">
               <div>
-                <h3 className="text-base font-semibold text-gray-900">Edit {PROVIDER_INFO[editingProvider].name}</h3>
-                <p className="text-xs text-gray-500 mt-0.5">Update your OAuth credentials</p>
+                <h3 className="text-base font-semibold text-ink">Edit {PROVIDER_INFO[editingProvider].name}</h3>
+                <p className="text-xs text-ink-mute mt-0.5">Update your OAuth credentials</p>
               </div>
-              <button onClick={() => setEditingProvider(null)} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100"><X size={18} /></button>
+              <button onClick={() => setEditingProvider(null)} className="rounded-lg p-2 text-ash hover:bg-sand"><X size={18} /></button>
             </div>
             <div className="p-6 space-y-4">
               <div className={sectionCls}>
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">OAuth Credentials</h4>
+                <h4 className="text-sm font-semibold text-ink mb-3">OAuth Credentials</h4>
                 <div className="space-y-4">
                   <div>
                     <label className={labelCls}>Client ID *</label>
@@ -729,16 +729,16 @@ export default function SocialAuthConfigPage() {
                   <div>
                     <div className="mb-1.5 flex items-center justify-between">
                       <label className={labelCls} style={{marginBottom:0}}>Redirect URI</label>
-                      <span className="rounded-full bg-[#ebf5ee] px-2 py-0.5 text-[10px] font-semibold text-[#24543b]">Auto-generated</span>
+                      <span className="rounded-full bg-leaf-wash px-2 py-0.5 text-[10px] font-semibold text-forest">Auto-generated</span>
                     </div>
                     <input readOnly value={editFormData.redirect_uri} className={`${inputCls} cursor-default opacity-70`} />
                   </div>
                 </div>
               </div>
             </div>
-            <div className="flex justify-end gap-2 border-t border-gray-100 px-6 py-4">
-              <button onClick={() => setEditingProvider(null)} disabled={saving} className="rounded-[1rem] border border-black/10 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">Cancel</button>
-              <button onClick={handleSaveEdit} disabled={saving || !editFormData.client_id} className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed">
+            <div className="flex justify-end gap-2 border-t border-sand px-6 py-4">
+              <button onClick={() => setEditingProvider(null)} disabled={saving} className="rounded-[1rem] border border-black/10 px-4 py-2.5 text-sm font-semibold text-ink-soft hover:bg-cream disabled:opacity-50">Cancel</button>
+              <button onClick={handleSaveEdit} disabled={saving || !editFormData.client_id} className="inline-flex items-center gap-2 rounded-[1rem] bg-ink px-4 py-2.5 text-sm font-semibold text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed">
                 {saving ? <><LoadingSpinner size="sm" />Saving…</> : 'Save Changes'}
               </button>
             </div>
@@ -748,19 +748,19 @@ export default function SocialAuthConfigPage() {
 
       {/* ── MODAL: Create Platform OAuth App ───────────────────────────────── */}
       {platformCreating && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-[940px] max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl">
-            <div className="sticky top-0 flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4">
+            <div className="sticky top-0 flex items-center justify-between border-b border-sand bg-white px-6 py-4">
               <div>
-                <h3 className="text-base font-semibold text-gray-900">Add Platform OAuth App</h3>
-                <p className="text-xs text-gray-500 mt-0.5">Register a Synkora-owned OAuth app for tenant use</p>
+                <h3 className="text-base font-semibold text-ink">Add Platform OAuth App</h3>
+                <p className="text-xs text-ink-mute mt-0.5">Register a Synkora-owned OAuth app for tenant use</p>
               </div>
-              <button onClick={() => setPlatformCreating(false)} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100"><X size={18} /></button>
+              <button onClick={() => setPlatformCreating(false)} className="rounded-lg p-2 text-ash hover:bg-sand"><X size={18} /></button>
             </div>
             <div className="p-6 space-y-4">
               {/* Provider selection */}
               <div className={sectionCls}>
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">Provider</h4>
+                <h4 className="text-sm font-semibold text-ink mb-3">Provider</h4>
                 <div>
                   <label className={labelCls}>Provider *</label>
                   <select value={platformCreateForm.provider} onChange={e => handlePlatformProviderChange(e.target.value)} className={selectCls}>
@@ -772,7 +772,7 @@ export default function SocialAuthConfigPage() {
 
               {/* Connection Details */}
               <div className={sectionCls}>
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">Connection Details</h4>
+                <h4 className="text-sm font-semibold text-ink mb-3">Connection Details</h4>
                 <div className="space-y-4">
                   <div>
                     <label className={labelCls}>App Name *</label>
@@ -788,26 +788,26 @@ export default function SocialAuthConfigPage() {
               {/* Auth Method — only show for github */}
               {platformCreateForm.provider === 'github' && (
                 <div className={sectionCls}>
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Authentication Method</h4>
+                  <h4 className="text-sm font-semibold text-ink mb-3">Authentication Method</h4>
                   <div className="space-y-2">
                     {(['oauth', 'api_token', 'github_app'] as const).map(method => (
-                      <label key={method} className="flex items-start gap-3 rounded-[1rem] border border-black/10 bg-white/80 px-4 py-3 cursor-pointer hover:border-[#d7c6b4]">
+                      <label key={method} className="flex items-start gap-3 rounded-[1rem] border border-black/10 bg-white/80 px-4 py-3 cursor-pointer hover:border-paper-dim">
                         <input
                           type="radio"
                           name="platform_auth_method_create"
                           value={method}
                           checked={platformCreateForm.auth_method === method}
                           onChange={() => setPlatformCreateForm(f => ({ ...f, auth_method: method }))}
-                          className="mt-0.5 h-4 w-4 border-gray-300 text-[#10717C] focus:ring-[#79dfbc]"
+                          className="mt-0.5 h-4 w-4 border-taupe text-steel focus:ring-mint"
                         />
                         <div>
-                          <div className="text-sm font-semibold text-gray-900">
+                          <div className="text-sm font-semibold text-ink">
                             {method === 'oauth' ? 'OAuth App' : method === 'api_token' ? 'Personal Access Token' : 'GitHub App'}
                           </div>
-                          <div className="text-xs text-gray-500">
-                            {method === 'oauth' && 'Standard OAuth 2.0 — users authorize via browser redirect'}
+                          <div className="text-xs text-ink-mute">
+                            {method === 'oauth' && 'Standard OAuth 2.0, users authorize via browser redirect'}
                             {method === 'api_token' && 'A GitHub PAT stored as the API token'}
-                            {method === 'github_app' && 'GitHub App with App ID + private key — installation looked up automatically from configured repos'}
+                            {method === 'github_app' && 'GitHub App with App ID + private key, installation looked up automatically from configured repos'}
                           </div>
                         </div>
                       </label>
@@ -818,7 +818,7 @@ export default function SocialAuthConfigPage() {
 
               {/* Credentials */}
               <div className={sectionCls}>
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                <h4 className="text-sm font-semibold text-ink mb-3">
                   {platformCreateForm.auth_method === 'github_app' ? 'GitHub App Credentials' : 'OAuth Credentials'}
                 </h4>
                 {platformCreateForm.auth_method === 'github_app' ? (
@@ -826,12 +826,12 @@ export default function SocialAuthConfigPage() {
                     <div>
                       <label className={labelCls}>App ID *</label>
                       <input type="text" value={platformCreateForm.client_id} onChange={e => setPlatformCreateForm(f => ({ ...f, client_id: e.target.value }))} className={inputCls} placeholder="123456" />
-                      <p className="mt-1.5 text-xs text-gray-500">The numeric App ID from GitHub App settings</p>
+                      <p className="mt-1.5 text-xs text-ink-mute">The numeric App ID from GitHub App settings</p>
                     </div>
                     <div>
                       <label className={labelCls}>Private Key (PEM) *</label>
                       <textarea rows={7} value={platformCreateForm.client_secret} onChange={e => setPlatformCreateForm(f => ({ ...f, client_secret: e.target.value }))} className={`${inputCls} font-mono text-xs`} placeholder={'-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----'} />
-                      <p className="mt-1.5 text-xs text-gray-500">Paste the full PEM private key — encrypted and never returned by the API. The installation ID is resolved automatically from the repository.</p>
+                      <p className="mt-1.5 text-xs text-ink-mute">Paste the full PEM private key, encrypted and never returned by the API. The installation ID is resolved automatically from the repository.</p>
                     </div>
                   </div>
                 ) : (
@@ -843,16 +843,16 @@ export default function SocialAuthConfigPage() {
                     <div>
                       <label className={labelCls}>Client Secret *</label>
                       <input type="password" value={platformCreateForm.client_secret} onChange={e => setPlatformCreateForm(f => ({ ...f, client_secret: e.target.value }))} className={inputCls} placeholder="Enter your OAuth client secret" />
-                      <p className="mt-1.5 text-xs text-gray-500">Encrypted and stored securely — never returned by the API</p>
+                      <p className="mt-1.5 text-xs text-ink-mute">Encrypted and stored securely, never returned by the API</p>
                     </div>
                     <div>
                       <div className="mb-1.5 flex items-center justify-between">
                         <label className={labelCls} style={{marginBottom:0}}>Redirect URI</label>
-                        <span className="rounded-full bg-[#ebf5ee] px-2 py-0.5 text-[10px] font-semibold text-[#24543b]">Auto-generated</span>
+                        <span className="rounded-full bg-leaf-wash px-2 py-0.5 text-[10px] font-semibold text-forest">Auto-generated</span>
                       </div>
                       <input readOnly value={platformCreateForm.redirect_uri} className={`${inputCls} cursor-default opacity-70`} placeholder="Select a provider first" />
                       {platformCreateForm.redirect_uri && (
-                        <p className="mt-1.5 text-xs text-gray-500">Copy this URL into your OAuth app's allowed redirect URIs</p>
+                        <p className="mt-1.5 text-xs text-ink-mute">Copy this URL into your OAuth app's allowed redirect URIs</p>
                       )}
                     </div>
                   </div>
@@ -862,8 +862,8 @@ export default function SocialAuthConfigPage() {
               {/* Scopes — only for non-github_app */}
               {platformCreateForm.auth_method !== 'github_app' && (
                 <div className={sectionCls}>
-                  <h4 className="text-sm font-semibold text-gray-900 mb-1">Scopes</h4>
-                  <p className="text-xs text-gray-500 mb-3">Select the permissions this app will request from users</p>
+                  <h4 className="text-sm font-semibold text-ink mb-1">Scopes</h4>
+                  <p className="text-xs text-ink-mute mb-3">Select the permissions this app will request from users</p>
                   <ScopesField
                     scopes={platformCreateForm.scopes}
                     defaultScopes={PLATFORM_PROVIDER_INFO[platformCreateForm.provider as PlatformProvider]?.defaultScopes ?? []}
@@ -873,12 +873,12 @@ export default function SocialAuthConfigPage() {
               )}
             </div>
 
-            <div className="flex justify-end gap-2 border-t border-gray-100 px-6 py-4">
-              <button onClick={() => setPlatformCreating(false)} disabled={platformSaving} className="rounded-[1rem] border border-black/10 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">Cancel</button>
+            <div className="flex justify-end gap-2 border-t border-sand px-6 py-4">
+              <button onClick={() => setPlatformCreating(false)} disabled={platformSaving} className="rounded-[1rem] border border-black/10 px-4 py-2.5 text-sm font-semibold text-ink-soft hover:bg-cream disabled:opacity-50">Cancel</button>
               <button
                 onClick={handlePlatformCreate}
                 disabled={platformSaving || !platformCreateForm.provider || !platformCreateForm.app_name || !platformCreateForm.client_id || !platformCreateForm.client_secret}
-                className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 rounded-[1rem] bg-ink px-4 py-2.5 text-sm font-semibold text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {platformSaving ? <><LoadingSpinner size="sm" />Creating…</> : 'Create App'}
               </button>
@@ -889,18 +889,18 @@ export default function SocialAuthConfigPage() {
 
       {/* ── MODAL: Edit Platform OAuth App ─────────────────────────────────── */}
       {platformEditingApp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-[940px] max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl">
-            <div className="sticky top-0 flex items-center justify-between border-b border-gray-100 bg-white px-6 py-4">
+            <div className="sticky top-0 flex items-center justify-between border-b border-sand bg-white px-6 py-4">
               <div>
-                <h3 className="text-base font-semibold text-gray-900">Edit {platformEditingApp.app_name}</h3>
-                <p className="text-xs text-gray-500 mt-0.5">Update OAuth app credentials and settings</p>
+                <h3 className="text-base font-semibold text-ink">Edit {platformEditingApp.app_name}</h3>
+                <p className="text-xs text-ink-mute mt-0.5">Update OAuth app credentials and settings</p>
               </div>
-              <button onClick={() => setPlatformEditingApp(null)} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100"><X size={18} /></button>
+              <button onClick={() => setPlatformEditingApp(null)} className="rounded-lg p-2 text-ash hover:bg-sand"><X size={18} /></button>
             </div>
             <div className="p-6 space-y-4">
               <div className={sectionCls}>
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">Connection Details</h4>
+                <h4 className="text-sm font-semibold text-ink mb-3">Connection Details</h4>
                 <div className="space-y-4">
                   <div>
                     <label className={labelCls}>App Name *</label>
@@ -914,7 +914,7 @@ export default function SocialAuthConfigPage() {
               </div>
 
               <div className={sectionCls}>
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                <h4 className="text-sm font-semibold text-ink mb-3">
                   {platformEditForm.auth_method === 'github_app' ? 'GitHub App Credentials' : 'OAuth Credentials'}
                 </h4>
                 {platformEditForm.auth_method === 'github_app' ? (
@@ -926,7 +926,7 @@ export default function SocialAuthConfigPage() {
                     <div>
                       <label className={labelCls}>Private Key (PEM)</label>
                       <textarea rows={7} value={platformEditForm.client_secret} onChange={e => setPlatformEditForm(f => ({ ...f, client_secret: e.target.value }))} className={`${inputCls} font-mono text-xs`} placeholder={'Leave blank to keep existing key\n-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----'} />
-                      <p className="mt-1.5 text-xs text-gray-500">Only enter a new key to replace the existing one. Installation ID is resolved automatically from configured repositories.</p>
+                      <p className="mt-1.5 text-xs text-ink-mute">Only enter a new key to replace the existing one. Installation ID is resolved automatically from configured repositories.</p>
                     </div>
                   </div>
                 ) : (
@@ -942,7 +942,7 @@ export default function SocialAuthConfigPage() {
                     <div>
                       <div className="mb-1.5 flex items-center justify-between">
                         <label className={labelCls} style={{marginBottom:0}}>Redirect URI</label>
-                        <span className="rounded-full bg-[#ebf5ee] px-2 py-0.5 text-[10px] font-semibold text-[#24543b]">Auto-generated</span>
+                        <span className="rounded-full bg-leaf-wash px-2 py-0.5 text-[10px] font-semibold text-forest">Auto-generated</span>
                       </div>
                       <input readOnly value={platformEditForm.redirect_uri} className={`${inputCls} cursor-default opacity-70`} />
                     </div>
@@ -951,8 +951,8 @@ export default function SocialAuthConfigPage() {
               </div>
 
               <div className={sectionCls}>
-                <h4 className="text-sm font-semibold text-gray-900 mb-1">Scopes</h4>
-                <p className="text-xs text-gray-500 mb-3">Select the permissions this app will request from users</p>
+                <h4 className="text-sm font-semibold text-ink mb-1">Scopes</h4>
+                <p className="text-xs text-ink-mute mb-3">Select the permissions this app will request from users</p>
                 <ScopesField
                   scopes={platformEditForm.scopes}
                   defaultScopes={PLATFORM_PROVIDER_INFO[platformEditingApp.provider as PlatformProvider]?.defaultScopes ?? []}
@@ -961,12 +961,12 @@ export default function SocialAuthConfigPage() {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 border-t border-gray-100 px-6 py-4">
-              <button onClick={() => setPlatformEditingApp(null)} disabled={platformSaving} className="rounded-[1rem] border border-black/10 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50">Cancel</button>
+            <div className="flex justify-end gap-2 border-t border-sand px-6 py-4">
+              <button onClick={() => setPlatformEditingApp(null)} disabled={platformSaving} className="rounded-[1rem] border border-black/10 px-4 py-2.5 text-sm font-semibold text-ink-soft hover:bg-cream disabled:opacity-50">Cancel</button>
               <button
                 onClick={handlePlatformSaveEdit}
                 disabled={platformSaving || !platformEditForm.app_name || !platformEditForm.client_id}
-                className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 rounded-[1rem] bg-ink px-4 py-2.5 text-sm font-semibold text-white hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {platformSaving ? <><LoadingSpinner size="sm" />Saving…</> : 'Save Changes'}
               </button>

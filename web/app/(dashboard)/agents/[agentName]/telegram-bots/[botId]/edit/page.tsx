@@ -101,17 +101,17 @@ export default function EditTelegramBotPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <div className="motion-safe:animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
       </div>
     );
   }
 
   if (!bot) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
+      <div className="min-h-screen p-4 md:p-6">
         <div className="max-w-2xl mx-auto">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-800">Bot not found</p>
+          <div className="bg-blush-wash border border-blush rounded-lg p-4">
+            <p className="text-wine">Bot not found</p>
           </div>
         </div>
       </div>
@@ -119,7 +119,7 @@ export default function EditTelegramBotPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
+    <div className="min-h-screen p-4 md:p-6">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="mb-6">
@@ -130,10 +130,10 @@ export default function EditTelegramBotPage() {
             <ArrowLeft className="h-4 w-4 mr-1" />
             Back to Telegram Bots
           </Link>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Edit Telegram Bot</h1>
-          <p className="text-gray-600 mt-1 text-sm">
+          <h1 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight">Edit Telegram Bot</h1>
+          <p className="text-ink-soft mt-1 text-sm">
             Update settings for <span className="font-semibold">{bot.bot_name}</span>
-            {bot.bot_username && <span className="text-gray-500"> (@{bot.bot_username})</span>}
+            {bot.bot_username && <span className="text-ink-mute"> (@{bot.bot_username})</span>}
           </p>
         </div>
 
@@ -144,7 +144,7 @@ export default function EditTelegramBotPage() {
             <div className="text-sm">
               <p className="text-primary-800">
                 <span className="font-medium">Status:</span>{" "}
-                <span className={bot.connection_status === "connected" ? "text-emerald-600" : "text-gray-600"}>
+                <span className={bot.connection_status === "connected" ? "text-leaf" : "text-ink-soft"}>
                   {bot.connection_status}
                 </span>
               </p>
@@ -152,7 +152,7 @@ export default function EditTelegramBotPage() {
                 <p className="text-primary-700 mt-1">Bot ID: {bot.telegram_bot_id}</p>
               )}
               {bot.last_error && (
-                <p className="text-red-600 mt-1">Last error: {bot.last_error}</p>
+                <p className="text-danger mt-1">Last error: {bot.last_error}</p>
               )}
             </div>
           </div>
@@ -160,33 +160,33 @@ export default function EditTelegramBotPage() {
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-6">
-            <p className="text-sm text-red-800">{error}</p>
+          <div className="bg-blush-wash border border-blush rounded-lg p-3 mb-6">
+            <p className="text-sm text-wine">{error}</p>
           </div>
         )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Bot Settings</h2>
+          <div className="bg-white rounded-xl shadow-sm border border-line p-6">
+            <h2 className="text-lg font-semibold text-ink mb-4">Bot Settings</h2>
 
             {/* Bot Name */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Display Name <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-ink-soft mb-1">
+                Display Name <span className="text-leaf">*</span>
               </label>
               <input
                 type="text"
                 value={formData.bot_name}
                 onChange={(e) => setFormData({ ...formData, bot_name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full px-3 py-2 border border-taupe rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 required
               />
             </div>
 
             {/* Bot Token (optional update) */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-ink-soft mb-1">
                 New Bot Token (optional)
               </label>
               <input
@@ -194,9 +194,9 @@ export default function EditTelegramBotPage() {
                 value={formData.bot_token}
                 onChange={(e) => setFormData({ ...formData, bot_token: e.target.value })}
                 placeholder="Leave empty to keep existing token"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full px-3 py-2 border border-taupe rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-ink-mute">
                 Only enter a new token if you want to change it
               </p>
             </div>
@@ -208,32 +208,32 @@ export default function EditTelegramBotPage() {
                   type="checkbox"
                   checked={formData.is_active}
                   onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                  className="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  className="h-4 w-4 text-primary-600 border-taupe rounded focus:ring-primary-500"
                 />
-                <span className="text-sm text-gray-700">Bot is active</span>
+                <span className="text-sm text-ink-soft">Bot is active</span>
               </label>
-              <p className="mt-1 text-xs text-gray-500 ml-6">
+              <p className="mt-1 text-xs text-ink-mute ml-6">
                 Inactive bots will not respond to messages
               </p>
             </div>
 
             {/* Webhook Mode */}
-            <div className="border-t border-gray-200 pt-4 mt-4">
-              <h3 className="text-sm font-medium text-gray-700 mb-2">Connection Mode</h3>
+            <div className="border-t border-line pt-4 mt-4">
+              <h3 className="text-sm font-medium text-ink-soft mb-2">Connection Mode</h3>
 
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   checked={formData.use_webhook}
                   onChange={(e) => setFormData({ ...formData, use_webhook: e.target.checked })}
-                  className="h-4 w-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  className="h-4 w-4 text-primary-600 border-taupe rounded focus:ring-primary-500"
                 />
-                <span className="text-sm text-gray-700">Use webhook instead of long polling</span>
+                <span className="text-sm text-ink-soft">Use webhook instead of long polling</span>
               </label>
 
               {formData.use_webhook && (
                 <div className="mt-3 ml-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-soft mb-1">
                     Webhook URL
                   </label>
                   <input
@@ -241,7 +241,7 @@ export default function EditTelegramBotPage() {
                     value={formData.webhook_url}
                     onChange={(e) => setFormData({ ...formData, webhook_url: e.target.value })}
                     placeholder="https://your-domain.com/webhook/telegram"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    className="w-full px-3 py-2 border border-taupe rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   />
                 </div>
               )}
@@ -253,13 +253,13 @@ export default function EditTelegramBotPage() {
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 px-4 py-2 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-lg text-sm font-medium hover:from-primary-600 hover:to-primary-700 transition-all disabled:opacity-50"
+              className="flex-1 px-4 py-2 bg-ink hover:bg-ink/85 text-white rounded-lg text-sm font-medium hover:from-primary-600 hover:to-primary-700 transition-[color,background-color,border-color,box-shadow,opacity,transform] disabled:opacity-50"
             >
-              {saving ? "Saving..." : "Save Changes"}
+              {saving ? "Saving…" : "Save Changes"}
             </button>
             <Link
               href={`/agents/${agentName}/telegram-bots`}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors text-center"
+              className="px-4 py-2 border border-taupe text-ink-soft rounded-lg text-sm font-medium hover:bg-cream transition-colors text-center"
             >
               Cancel
             </Link>

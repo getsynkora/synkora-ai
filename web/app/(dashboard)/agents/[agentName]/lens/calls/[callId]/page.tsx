@@ -8,11 +8,11 @@ import { getPhoneCall, type PhoneCall } from '@/lib/api/phone'
 import AgentPageShell, { AgentPagePanel } from '@/components/agents/AgentPageShell'
 
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
-  completed: { label: 'Completed', className: 'bg-green-100 text-green-700' },
-  active: { label: 'Active', className: 'bg-blue-100 text-blue-700' },
-  ringing: { label: 'Ringing', className: 'bg-yellow-100 text-yellow-700' },
-  failed: { label: 'Failed', className: 'bg-red-100 text-red-700' },
-  no_answer: { label: 'No Answer', className: 'bg-gray-100 text-gray-600' },
+  completed: { label: 'Completed', className: 'bg-leaf-wash text-forest' },
+  active: { label: 'Active', className: 'bg-sky-wash text-azure' },
+  ringing: { label: 'Ringing', className: 'bg-sand-deep text-gold' },
+  failed: { label: 'Failed', className: 'bg-blush-wash text-danger' },
+  no_answer: { label: 'No Answer', className: 'bg-sand text-ink-soft' },
 }
 
 function formatDuration(seconds: number | null): string {
@@ -50,23 +50,23 @@ export default function CallDetailPage() {
           {/* Back link */}
           <Link
             href={`/agents/${agentName}/lens/calls`}
-            className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+            className="inline-flex items-center gap-1 text-sm text-ink-mute hover:text-ink-soft"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to calls
           </Link>
 
           {loading ? (
-            <div className="flex items-center justify-center h-32 text-gray-400 text-sm">Loading…</div>
+            <div className="flex items-center justify-center h-32 text-ash text-sm">Loading…</div>
           ) : error || !call ? (
-            <div className="text-sm text-gray-500">{error || 'Call not found'}</div>
+            <div className="text-sm text-ink-mute">{error || 'Call not found'}</div>
           ) : (
             <>
               {/* Call metadata card */}
-              <div className="border border-gray-200 rounded-lg p-4 space-y-3">
+              <div className="border border-line rounded-lg p-4 space-y-3">
                 <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-gray-500" />
-                  <h2 className="text-base font-semibold text-gray-900">
+                  <Phone className="w-4 h-4 text-ink-mute" />
+                  <h2 className="text-base font-semibold text-ink">
                     {call.caller_number || 'Unknown caller'}
                   </h2>
                   {STATUS_BADGE[call.status] && (
@@ -77,28 +77,28 @@ export default function CallDetailPage() {
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
                   <div>
-                    <p className="text-xs text-gray-500">Started</p>
-                    <p className="text-gray-700 font-medium">{formatDate(call.started_at)}</p>
+                    <p className="text-xs text-ink-mute">Started</p>
+                    <p className="text-ink-soft font-medium">{formatDate(call.started_at)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Duration</p>
-                    <p className="text-gray-700 font-medium flex items-center gap-1">
+                    <p className="text-xs text-ink-mute">Duration</p>
+                    <p className="text-ink-soft font-medium flex items-center gap-1">
                       <Clock className="w-3 h-3" />
                       {formatDuration(call.duration_seconds)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Provider</p>
-                    <p className="text-gray-700 font-medium capitalize">{call.provider}</p>
+                    <p className="text-xs text-ink-mute">Provider</p>
+                    <p className="text-ink-soft font-medium capitalize">{call.provider}</p>
                   </div>
                   {call.recording_url && (
                     <div>
-                      <p className="text-xs text-gray-500">Recording</p>
+                      <p className="text-xs text-ink-mute">Recording</p>
                       <a
                         href={call.recording_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-rose-600 hover:underline flex items-center gap-1 font-medium"
+                        className="text-leaf hover:underline flex items-center gap-1 font-medium"
                       >
                         Listen <ExternalLink className="w-3 h-3" />
                       </a>
@@ -110,7 +110,7 @@ export default function CallDetailPage() {
               {/* Transcript */}
               {call.messages && call.messages.length > 0 ? (
                 <div className="space-y-3">
-                  <h3 className="text-sm font-semibold text-gray-700">Transcript</h3>
+                  <h3 className="text-sm font-semibold text-ink-soft">Transcript</h3>
                   <div className="space-y-2">
                     {call.messages.map((msg, i) => (
                       <div
@@ -118,17 +118,17 @@ export default function CallDetailPage() {
                         className={`flex gap-3 ${msg.role === 'user' ? '' : 'flex-row-reverse'}`}
                       >
                         <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${
-                          msg.role === 'user' ? 'bg-gray-100' : 'bg-rose-50'
+                          msg.role === 'user' ? 'bg-sand' : 'bg-blush-wash'
                         }`}>
                           {msg.role === 'user'
-                            ? <User className="w-3.5 h-3.5 text-gray-500" />
-                            : <Bot className="w-3.5 h-3.5 text-rose-500" />
+                            ? <User className="w-3.5 h-3.5 text-ink-mute" />
+                            : <Bot className="w-3.5 h-3.5 text-leaf" />
                           }
                         </div>
                         <div className={`max-w-[75%] px-3 py-2 rounded-xl text-sm ${
                           msg.role === 'user'
-                            ? 'bg-gray-100 text-gray-800'
-                            : 'bg-rose-50 text-gray-800'
+                            ? 'bg-sand text-ink'
+                            : 'bg-blush-wash text-ink'
                         }`}>
                           {msg.content}
                         </div>
@@ -137,7 +137,7 @@ export default function CallDetailPage() {
                   </div>
                 </div>
               ) : (
-                <div className="text-sm text-gray-400 italic">No transcript available for this call.</div>
+                <div className="text-sm text-ash italic">No transcript available for this call.</div>
               )}
             </>
           )}

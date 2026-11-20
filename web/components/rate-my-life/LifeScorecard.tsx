@@ -84,7 +84,7 @@ function RadarChart({ scores }: { scores: LifeAuditScores }) {
   const dataPath = dataPoints.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ') + 'Z'
 
   return (
-    <svg viewBox={`0 0 ${viewW} ${viewH}`} className="w-full max-w-[360px] mx-auto">
+    <svg aria-hidden="true" viewBox={`0 0 ${viewW} ${viewH}`} className="w-full max-w-[360px] mx-auto">
       <defs>
         <radialGradient id="radar-bg" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="#fef2f2" />
@@ -184,7 +184,7 @@ function RadarChart({ scores }: { scores: LifeAuditScores }) {
               y={labelPoint.y}
               textAnchor={textAnchor}
               dominantBaseline={isTop ? 'auto' : isBottom ? 'hanging' : 'middle'}
-              className="fill-gray-700"
+              className="fill-ink-soft"
               style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.01em' }}
             >
               {DIMENSIONS[i].shortLabel}
@@ -220,22 +220,22 @@ function ScoreBar({ dim, score }: { dim: (typeof DIMENSIONS)[number]; score: num
             className="w-8 h-8 rounded-lg flex items-center justify-center"
             style={{ backgroundColor: `${color}12` }}
           >
-            <svg className="w-4 h-4" style={{ color }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg aria-hidden="true" className="w-4 h-4" style={{ color }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={dim.icon} />
             </svg>
           </div>
-          <span className="text-[15px] font-semibold text-gray-800">{dim.label}</span>
+          <span className="text-[15px] font-semibold text-ink">{dim.label}</span>
         </div>
         <div className="flex items-center gap-2.5">
           <span className="text-xs font-semibold" style={{ color }}>
             {scoreLabel(score)}
           </span>
-          <span className="text-xl font-extrabold text-gray-900 tabular-nums w-8 text-right">{score}</span>
+          <span className="text-xl font-extrabold text-ink tabular-nums w-8 text-right">{score}</span>
         </div>
       </div>
-      <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+      <div className="h-2.5 bg-sand rounded-full overflow-hidden">
         <div
-          className="h-full rounded-full transition-all duration-1000 ease-out"
+          className="h-full rounded-full transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-1000 ease-out"
           style={{
             width: `${pct}%`,
             background: `linear-gradient(90deg, ${color}cc, ${color})`,
@@ -458,9 +458,9 @@ function ShareActions({ scores, shareToken }: { scores: LifeAuditScores; shareTo
     <div className="flex items-center gap-3">
       <button
         onClick={handleDownload}
-        className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-red-500 rounded-xl hover:bg-red-600 transition-all shadow-sm"
+        className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-ink rounded-xl hover:bg-danger transition-[color,background-color,border-color,box-shadow,opacity,transform] shadow-sm"
       >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
         Download Image
@@ -468,18 +468,18 @@ function ShareActions({ scores, shareToken }: { scores: LifeAuditScores; shareTo
       {shareToken && (
         <button
           onClick={handleCopyLink}
-          className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm"
+          className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-ink-soft bg-white border border-taupe rounded-xl hover:bg-cream hover:border-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] shadow-sm"
         >
           {copied ? (
             <>
-              <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg aria-hidden="true" className="w-4 h-4 text-leaf" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <span className="text-green-600">Link copied!</span>
+              <span className="text-leaf">Link copied!</span>
             </>
           ) : (
             <>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
               </svg>
               Copy Link
@@ -497,27 +497,27 @@ function VerdictContent({ text }: { text: string }) {
   const cleaned = useMemo(() => cleanVerdict(text), [text])
 
   return (
-    <div className="verdict-markdown text-[15px] leading-[1.85] text-gray-700">
+    <div className="verdict-markdown text-[15px] leading-[1.85] text-ink-soft">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
           h1: ({ children }) => (
-            <h2 className="text-xl font-extrabold text-gray-900 mt-7 mb-3 first:mt-0 pb-2 border-b border-gray-200">{children}</h2>
+            <h2 className="text-xl font-extrabold text-ink mt-7 mb-3 first:mt-0 pb-2 border-b border-line">{children}</h2>
           ),
           h2: ({ children }) => (
-            <h3 className="text-lg font-bold text-gray-900 mt-6 mb-2.5 first:mt-0">{children}</h3>
+            <h3 className="text-lg font-bold text-ink mt-6 mb-2.5 first:mt-0">{children}</h3>
           ),
           h3: ({ children }) => (
-            <h4 className="text-base font-bold text-gray-800 mt-5 mb-2 first:mt-0">{children}</h4>
+            <h4 className="text-base font-bold text-ink mt-5 mb-2 first:mt-0">{children}</h4>
           ),
           p: ({ children }) => (
             <p className="mb-3.5 last:mb-0">{children}</p>
           ),
           strong: ({ children }) => (
-            <strong className="font-bold text-gray-900">{children}</strong>
+            <strong className="font-bold text-ink">{children}</strong>
           ),
           em: ({ children }) => (
-            <em className="text-gray-600">{children}</em>
+            <em className="text-ink-soft">{children}</em>
           ),
           ul: ({ children }) => (
             <ul className="space-y-1.5 mb-3.5 last:mb-0 ml-1">{children}</ul>
@@ -527,28 +527,28 @@ function VerdictContent({ text }: { text: string }) {
           ),
           li: ({ children }) => (
             <li className="flex gap-2.5 text-[15px]">
-              <span className="text-amber-500 mt-1 select-none flex-shrink-0">&#x25CF;</span>
+              <span className="text-warn mt-1 select-none flex-shrink-0">&#x25CF;</span>
               <span className="flex-1">{children}</span>
             </li>
           ),
           blockquote: ({ children }) => (
-            <blockquote className="border-l-[3px] border-amber-300 pl-4 my-4 py-2 italic text-gray-600 bg-amber-50/30 rounded-r-lg">
+            <blockquote className="border-l-[3px] border-honey pl-4 my-4 py-2 italic text-ink-soft bg-sand-deep/30 rounded-r-lg">
               {children}
             </blockquote>
           ),
-          hr: () => <hr className="my-6 border-gray-200" />,
+          hr: () => <hr className="my-6 border-line" />,
           a: ({ href, children }) => (
             <a
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-amber-700 font-medium underline decoration-amber-300 underline-offset-2 hover:decoration-amber-500 transition-colors"
+              className="text-gold font-medium underline decoration-honey underline-offset-2 hover:decoration-warn transition-colors"
             >
               {children}
             </a>
           ),
           code: ({ children }: any) => (
-            <code className="px-1.5 py-0.5 rounded text-[13px] font-mono bg-gray-100 text-gray-800 font-medium">
+            <code className="px-1.5 py-0.5 rounded text-[13px] font-mono bg-sand text-ink font-medium">
               {children}
             </code>
           ),
@@ -574,12 +574,12 @@ export function LifeScorecard({ scores, highlights, verdict, shareToken }: LifeS
       </div>
 
       {/* Hero: Overall Score + Radar */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="bg-gradient-to-br from-gray-50 via-red-50/30 to-gray-50 px-6 md:px-10 py-10">
+      <div className="bg-white rounded-2xl border border-line shadow-sm overflow-hidden">
+        <div className="bg-cream px-6 md:px-10 py-10">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             {/* Overall Score */}
             <div className="text-center md:text-left">
-              <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">
+              <p className="text-sm font-bold text-ash mb-3">
                 Your Life Score
               </p>
               <div className="inline-flex items-baseline gap-1.5">
@@ -589,12 +589,12 @@ export function LifeScorecard({ scores, highlights, verdict, shareToken }: LifeS
                 >
                   {scores.overall}
                 </span>
-                <span className="text-3xl font-bold text-gray-300">/10</span>
+                <span className="text-3xl font-bold text-taupe">/10</span>
               </div>
               <p className="mt-3 text-base font-bold" style={{ color: overallColor }}>
                 {overallLabel}
               </p>
-              <p className="mt-3 text-sm text-gray-500 max-w-xs leading-relaxed">
+              <p className="mt-3 text-sm text-ink-mute max-w-xs leading-relaxed">
                 Scored by 5 AI specialists across 6 life dimensions after a multi-round debate.
               </p>
             </div>
@@ -608,8 +608,8 @@ export function LifeScorecard({ scores, highlights, verdict, shareToken }: LifeS
       </div>
 
       {/* Dimension Breakdown */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8">
-        <h3 className="text-base font-bold text-gray-900 mb-6 uppercase tracking-wider">
+      <div className="bg-white rounded-2xl border border-line shadow-sm p-6 md:p-8">
+        <h3 className="text-base font-bold text-ink mb-6">
           Dimension Breakdown
         </h3>
         <div className="space-y-6">
@@ -621,18 +621,18 @@ export function LifeScorecard({ scores, highlights, verdict, shareToken }: LifeS
 
       {/* Agent Highlights */}
       {highlights.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8">
-          <h3 className="text-base font-bold text-gray-900 mb-6 uppercase tracking-wider">
+        <div className="bg-white rounded-2xl border border-line shadow-sm p-6 md:p-8">
+          <h3 className="text-base font-bold text-ink mb-6">
             What the Specialists Said
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {highlights.map((h, i) => (
               <div
                 key={i}
-                className="relative p-5 rounded-xl bg-gray-50 border border-gray-100"
+                className="relative p-5 rounded-xl bg-cream border border-sand"
               >
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-bold text-gray-900">{h.agent_name}</span>
+                  <span className="text-sm font-bold text-ink">{h.agent_name}</span>
                   <span
                     className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
                     style={{
@@ -643,7 +643,7 @@ export function LifeScorecard({ scores, highlights, verdict, shareToken }: LifeS
                     {h.dimension}: {h.score}/10
                   </span>
                 </div>
-                <p className="text-sm text-gray-600 leading-relaxed line-clamp-3">
+                <p className="text-sm text-ink-soft leading-relaxed line-clamp-3">
                   &ldquo;{h.quote}&rdquo;
                 </p>
               </div>
@@ -654,10 +654,10 @@ export function LifeScorecard({ scores, highlights, verdict, shareToken }: LifeS
 
       {/* Verdict */}
       {verdict && (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-6 md:px-8 py-5 bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-100">
+        <div className="bg-white rounded-2xl border border-line shadow-sm overflow-hidden">
+          <div className="px-6 md:px-8 py-5 bg-sand-deep border-b border-sand-deep">
             <div className="flex items-center gap-2.5">
-              <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg aria-hidden="true" className="w-5 h-5 text-warn" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -665,7 +665,7 @@ export function LifeScorecard({ scores, highlights, verdict, shareToken }: LifeS
                   d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"
                 />
               </svg>
-              <h3 className="text-base font-bold text-amber-800">The Synthesizer&apos;s Verdict</h3>
+              <h3 className="text-base font-bold text-gold">The Synthesizer&apos;s Verdict</h3>
             </div>
           </div>
           <div className="px-6 md:px-8 py-6">

@@ -96,16 +96,16 @@ export function VoiceInputModal({
 
   if (!isSupported) {
     return createPortal(
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
           <div className="text-center">
-            <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-              <X className="h-8 w-8 text-red-600" />
+            <div className="mx-auto w-16 h-16 bg-sand-deep rounded-full flex items-center justify-center mb-4">
+              <X className="h-8 w-8 text-leaf" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <h3 className="text-lg font-semibold text-ink mb-2">
               Voice Input Not Supported
             </h3>
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-sm text-ink-soft mb-6">
               Your browser doesn't support voice input. Please try using Chrome, Edge, or Safari.
             </p>
             <Button onClick={onClose} className="w-full">
@@ -119,14 +119,14 @@ export function VoiceInputModal({
   }
 
   return createPortal(
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full mx-4 animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="text-center mb-8">
-          <h3 className="text-2xl font-semibold text-gray-900 mb-2">
-            {isRecording ? 'Listening...' : 'Voice Input Paused'}
+          <h3 className="text-2xl font-semibold text-ink mb-2">
+            {isRecording ? 'Listening…' : 'Voice Input Paused'}
           </h3>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-ink-mute">
             {isRecording 
               ? 'Speak now, I\'m listening' 
               : 'Click the microphone to resume'}
@@ -140,10 +140,10 @@ export function VoiceInputModal({
             <button
               onClick={handleToggleRecording}
               className={cn(
-                'relative w-24 h-24 rounded-full transition-all duration-300 shadow-lg',
+                'relative w-24 h-24 rounded-full transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 shadow-lg',
                 isRecording
-                  ? 'bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 animate-pulse'
-                  : 'bg-gradient-to-br from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700'
+                  ? 'bg-ink hover:bg-ink/85 motion-safe:animate-pulse'
+                  : 'bg-leaf'
               )}
             >
               {isRecording ? (
@@ -155,35 +155,35 @@ export function VoiceInputModal({
               {/* Pulsing rings when recording */}
               {isRecording && (
                 <>
-                  <span className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-75" />
-                  <span className="absolute inset-0 rounded-full bg-red-400 animate-pulse opacity-50" />
+                  <span className="absolute inset-0 rounded-full bg-hotpink motion-safe:animate-ping opacity-75" />
+                  <span className="absolute inset-0 rounded-full bg-hotpink motion-safe:animate-pulse opacity-50" />
                 </>
               )}
             </button>
           </div>
 
           {/* Transcript Display */}
-          <div className="min-h-[120px] max-h-[200px] overflow-y-auto bg-gray-50 rounded-xl p-4 border-2 border-gray-200">
+          <div className="min-h-[120px] max-h-[200px] overflow-y-auto bg-cream rounded-xl p-4 border-2 border-line">
             {localTranscript || interimTranscript ? (
               <div className="space-y-2">
                 {localTranscript && (
-                  <p className="text-gray-900 leading-relaxed">
+                  <p className="text-ink leading-relaxed">
                     {localTranscript}
                   </p>
                 )}
                 {interimTranscript && (
-                  <p className="text-gray-400 italic leading-relaxed">
+                  <p className="text-ash italic leading-relaxed">
                     {interimTranscript}
                   </p>
                 )}
               </div>
             ) : (
-              <div className="flex items-center justify-center h-full text-gray-400">
+              <div className="flex items-center justify-center h-full text-ash">
                 <div className="text-center">
                   {isRecording ? (
                     <>
-                      <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
-                      <p className="text-sm">Waiting for speech...</p>
+                      <Loader2 className="h-8 w-8 motion-safe:animate-spin mx-auto mb-2" />
+                      <p className="text-sm">Waiting for speech…</p>
                     </>
                   ) : (
                     <p className="text-sm">Click the microphone to start</p>
@@ -195,8 +195,8 @@ export function VoiceInputModal({
 
           {/* Error Message */}
           {error && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600">{error}</p>
+            <div className="mt-4 p-3 bg-blush-wash border border-blush rounded-lg">
+              <p className="text-sm text-danger">{error}</p>
             </div>
           )}
         </div>
@@ -217,8 +217,8 @@ export function VoiceInputModal({
             className={cn(
               'flex-1 h-12 text-base font-medium',
               localTranscript.trim()
-                ? 'bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800'
-                : 'bg-gray-300 cursor-not-allowed'
+                ? 'bg-leaf'
+                : 'bg-taupe cursor-not-allowed'
             )}
           >
             <Check className="h-5 w-5 mr-2" />
@@ -227,7 +227,7 @@ export function VoiceInputModal({
         </div>
 
         {/* Helper Text */}
-        <p className="text-xs text-gray-400 text-center mt-4">
+        <p className="text-xs text-ash text-center mt-4">
           {isRecording ? 'Recording will continue until you click Done or Cancel' : 'Paused - Click microphone to resume'}
         </p>
       </div>

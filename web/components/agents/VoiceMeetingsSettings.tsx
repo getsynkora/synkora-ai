@@ -27,17 +27,17 @@ interface SectionProps {
 function Section({ title, icon, children, defaultOpen = false }: SectionProps) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden">
+    <div className="border border-line rounded-lg overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 bg-cream hover:bg-sand transition-colors"
       >
-        <span className="flex items-center gap-2 font-medium text-gray-800">
+        <span className="flex items-center gap-2 font-medium text-ink">
           {icon}
           {title}
         </span>
-        {open ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronRight className="w-4 h-4 text-gray-500" />}
+        {open ? <ChevronDown className="w-4 h-4 text-ink-mute" /> : <ChevronRight className="w-4 h-4 text-ink-mute" />}
       </button>
       {open && <div className="px-4 py-4 space-y-4">{children}</div>}
     </div>
@@ -49,13 +49,13 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: 
     <label className="flex items-center gap-3 cursor-pointer">
       <div
         onClick={() => onChange(!checked)}
-        className={`relative w-10 h-6 rounded-full transition-colors ${checked ? 'bg-red-500' : 'bg-gray-300'}`}
+        className={`relative w-10 h-6 rounded-full transition-colors ${checked ? 'bg-ink' : 'bg-taupe'}`}
       >
         <span
-          className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${checked ? 'translate-x-4' : ''}`}
+          className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform motion-reduce:transition-none ${checked ? 'translate-x-4' : ''}`}
         />
       </div>
-      <span className="text-sm text-gray-700">{label}</span>
+      <span className="text-sm text-ink-soft">{label}</span>
     </label>
   )
 }
@@ -95,7 +95,7 @@ export default function VoiceMeetingsSettings({ agentSlug }: Props) {
   const setBot = (patch: Partial<typeof config.meeting_bot>) =>
     setConfig((c) => ({ ...c, meeting_bot: { ...c.meeting_bot, ...patch } }))
 
-  if (loading) return <div className="text-sm text-gray-500 py-4">Loading...</div>
+  if (loading) return <div className="text-sm text-ink-mute py-4">Loading…</div>
 
   return (
     <div className="space-y-4">
@@ -105,7 +105,7 @@ export default function VoiceMeetingsSettings({ agentSlug }: Props) {
         {config.phone.enabled && (
           <>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">STT Provider</label>
+              <label className="block text-xs font-medium text-ink-soft mb-1">STT Provider</label>
               <select
                 value={config.phone.stt_provider}
                 onChange={(e) => setPhone({ stt_provider: e.target.value })}
@@ -116,7 +116,7 @@ export default function VoiceMeetingsSettings({ agentSlug }: Props) {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">TTS Provider</label>
+              <label className="block text-xs font-medium text-ink-soft mb-1">TTS Provider</label>
               <select
                 value={config.phone.tts_provider}
                 onChange={(e) => setPhone({ tts_provider: e.target.value })}
@@ -128,7 +128,7 @@ export default function VoiceMeetingsSettings({ agentSlug }: Props) {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">TTS Voice ID</label>
+              <label className="block text-xs font-medium text-ink-soft mb-1">TTS Voice ID</label>
               <input
                 type="text"
                 value={config.phone.tts_voice_id ?? ''}
@@ -137,9 +137,9 @@ export default function VoiceMeetingsSettings({ agentSlug }: Props) {
                 className="w-full border rounded px-3 py-2 text-sm"
               />
             </div>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-ink-mute">
               Configure phone number and Vapi credentials in{' '}
-              <a href={`/agents/${agentSlug}/settings/phone`} className="text-red-500 underline">
+              <a href={`/agents/${agentSlug}/settings/phone`} className="text-leaf underline">
                 Phone Settings
               </a>
               .
@@ -159,7 +159,7 @@ export default function VoiceMeetingsSettings({ agentSlug }: Props) {
               label="Show 'Call Agent' button on public agent card"
             />
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Vapi Public Key</label>
+              <label className="block text-xs font-medium text-ink-soft mb-1">Vapi Public Key</label>
               <input
                 type="text"
                 value={config.web_call.vapi_public_key ?? ''}
@@ -167,9 +167,9 @@ export default function VoiceMeetingsSettings({ agentSlug }: Props) {
                 placeholder="Your Vapi public key (safe for browser)"
                 className="w-full border rounded px-3 py-2 text-sm font-mono"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-ink-mute mt-1">
                 Find this in your{' '}
-                <span className="text-gray-700 font-medium">Vapi Dashboard → Account → Public Key</span>.
+                <span className="text-ink-soft font-medium">Vapi Dashboard → Account → Public Key</span>.
                 This is not your API secret.
               </p>
             </div>
@@ -183,7 +183,7 @@ export default function VoiceMeetingsSettings({ agentSlug }: Props) {
         {config.meeting_bot.enabled && (
           <>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Bot Display Name</label>
+              <label className="block text-xs font-medium text-ink-soft mb-1">Bot Display Name</label>
               <input
                 type="text"
                 value={config.meeting_bot.bot_name}
@@ -192,7 +192,7 @@ export default function VoiceMeetingsSettings({ agentSlug }: Props) {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Bot Avatar URL (optional)</label>
+              <label className="block text-xs font-medium text-ink-soft mb-1">Bot Avatar URL (optional)</label>
               <input
                 type="text"
                 value={config.meeting_bot.bot_avatar_url ?? ''}
@@ -202,7 +202,7 @@ export default function VoiceMeetingsSettings({ agentSlug }: Props) {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-2">Supported Platforms</label>
+              <label className="block text-xs font-medium text-ink-soft mb-2">Supported Platforms</label>
               <div className="space-y-2">
                 {PLATFORMS.map((p) => (
                   <label key={p.value} className="flex items-center gap-2 cursor-pointer">
@@ -217,7 +217,7 @@ export default function VoiceMeetingsSettings({ agentSlug }: Props) {
                       }}
                       className="rounded"
                     />
-                    <span className="text-sm text-gray-700">{p.label}</span>
+                    <span className="text-sm text-ink-soft">{p.label}</span>
                   </label>
                 ))}
               </div>
@@ -227,9 +227,9 @@ export default function VoiceMeetingsSettings({ agentSlug }: Props) {
               onChange={(v) => setBot({ auto_record: v })}
               label="Auto-record meetings"
             />
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-ink-mute">
               Configure Recall.ai credentials in{' '}
-              <a href="/settings/oauth-apps" className="text-red-500 underline">
+              <a href="/settings/oauth-apps" className="text-leaf underline">
                 OAuth Apps
               </a>
               .
@@ -242,7 +242,7 @@ export default function VoiceMeetingsSettings({ agentSlug }: Props) {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-white bg-ink hover:bg-danger disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <Save className="w-4 h-4" />
           {saving ? 'Saving…' : 'Save Settings'}

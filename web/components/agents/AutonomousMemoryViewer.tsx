@@ -68,7 +68,7 @@ export function AutonomousMemoryViewer({ agentName, messages, onCleared }: Props
 
   if (messages.length === 0) {
     return (
-      <div className="py-10 text-center text-sm text-gray-500">
+      <div className="py-10 text-center text-sm text-ink-mute">
         No memory yet. Memory is written after the first autonomous run.
       </div>
     )
@@ -77,7 +77,7 @@ export function AutonomousMemoryViewer({ agentName, messages, onCleared }: Props
   return (
     <div className="space-y-6">
       {error && (
-        <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-md bg-blush-wash border border-blush px-4 py-3 text-sm text-danger">
           {error}
         </div>
       )}
@@ -85,15 +85,15 @@ export function AutonomousMemoryViewer({ agentName, messages, onCleared }: Props
       {/* Persistent key-value memory */}
       {memoryMessages.length > 0 && (
         <div>
-          <h3 className="text-sm font-medium text-gray-700 mb-2">Persistent facts</h3>
-          <div className="divide-y divide-gray-100 border border-gray-200 rounded-md overflow-hidden">
+          <h3 className="text-sm font-medium text-ink-soft mb-2">Persistent facts</h3>
+          <div className="divide-y divide-sand border border-line rounded-md overflow-hidden">
             {memoryMessages.map(m => (
               <div key={m.id} className="flex items-center gap-3 px-4 py-2.5 bg-white">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-800 font-mono truncate">
+                  <p className="text-sm text-ink font-mono truncate">
                     {parseMemoryKey(m.content)}
                   </p>
-                  <p className="text-xs text-gray-500 mt-0.5">{formatDate(m.created_at)}</p>
+                  <p className="text-xs text-ink-mute mt-0.5">{formatDate(m.created_at)}</p>
                 </div>
               </div>
             ))}
@@ -104,20 +104,20 @@ export function AutonomousMemoryViewer({ agentName, messages, onCleared }: Props
       {/* Recent conversation messages */}
       {conversationMessages.length > 0 && (
         <div>
-          <h3 className="text-sm font-medium text-gray-700 mb-2">Recent conversation</h3>
+          <h3 className="text-sm font-medium text-ink-soft mb-2">Recent conversation</h3>
           <div className="space-y-2">
             {conversationMessages.slice(-10).map(m => (
               <div
                 key={m.id}
                 className={`rounded-md px-3 py-2 text-sm ${
                   m.role === 'USER'
-                    ? 'bg-gray-100 text-gray-800'
+                    ? 'bg-sand text-ink'
                     : m.role === 'ASSISTANT'
-                    ? 'bg-red-50 text-gray-800'
-                    : 'bg-yellow-50 text-gray-700 text-xs font-mono'
+                    ? 'bg-blush-wash text-ink'
+                    : 'bg-sand-deep text-ink-soft text-xs font-mono'
                 }`}
               >
-                <span className="text-xs font-medium text-gray-500 uppercase mr-2">{m.role}</span>
+                <span className="text-xs font-medium text-ink-mute mr-2">{m.role}</span>
                 {m.content.slice(0, 300)}
                 {m.content.length > 300 && '…'}
               </div>
@@ -127,23 +127,23 @@ export function AutonomousMemoryViewer({ agentName, messages, onCleared }: Props
       )}
 
       {/* Clear all button */}
-      <div className="pt-2 border-t border-gray-200">
+      <div className="pt-2 border-t border-line">
         {confirming ? (
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-sm text-amber-700">
+            <div className="flex items-center gap-2 text-sm text-gold">
               <AlertTriangle className="w-4 h-4" />
               This will delete all memory. Are you sure?
             </div>
             <button
               onClick={handleClear}
               disabled={clearing}
-              className="px-3 py-1.5 rounded-md text-sm font-medium text-white bg-red-500 hover:bg-red-600 disabled:opacity-50"
+              className="px-3 py-1.5 rounded-md text-sm font-medium text-white bg-ink hover:bg-danger disabled:opacity-50"
             >
               {clearing ? 'Clearing…' : 'Yes, clear all'}
             </button>
             <button
               onClick={() => setConfirming(false)}
-              className="px-3 py-1.5 rounded-md text-sm font-medium text-gray-600 border border-gray-300 hover:bg-gray-50"
+              className="px-3 py-1.5 rounded-md text-sm font-medium text-ink-soft border border-taupe hover:bg-cream"
             >
               Cancel
             </button>
@@ -151,7 +151,7 @@ export function AutonomousMemoryViewer({ agentName, messages, onCleared }: Props
         ) : (
           <button
             onClick={() => setConfirming(true)}
-            className="inline-flex items-center gap-2 text-sm text-red-600 hover:text-red-700"
+            className="inline-flex items-center gap-2 text-sm text-leaf hover:text-leaf"
           >
             <Trash2 className="w-4 h-4" />
             Clear all memory

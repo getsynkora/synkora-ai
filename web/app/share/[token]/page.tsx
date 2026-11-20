@@ -74,15 +74,15 @@ export default async function SharePage({ params }: Props) {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-cream">
         <div className="text-center max-w-sm px-6">
-          <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-16 h-16 rounded-full bg-sand flex items-center justify-center mx-auto mb-4">
+            <svg aria-hidden="true" className="w-8 h-8 text-ash" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
           </div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">{t('title')}</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-xl font-bold text-ink mb-2">{t('title')}</h1>
+          <p className="text-sm text-ink-mute">
             {t('body')}
           </p>
         </div>

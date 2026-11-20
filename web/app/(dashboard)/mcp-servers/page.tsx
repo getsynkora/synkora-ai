@@ -82,21 +82,21 @@ export default function MCPServersPage() {
         <div className="mb-6">
           <button
             onClick={() => router.push('/agents')}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-3 text-sm"
+            className="flex items-center gap-2 text-ink-soft hover:text-ink mb-3 text-sm"
           >
             <ArrowLeft size={18} />
             Back to Agents
           </button>
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">MCP Servers</h1>
-              <p className="text-gray-600 mt-1 text-sm">
+              <h1 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight">MCP Servers</h1>
+              <p className="text-ink-soft mt-1 text-sm">
                 Manage Model Context Protocol servers to extend agent capabilities
               </p>
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-5 py-2.5 rounded-lg transition-all shadow-sm hover:shadow-md text-sm font-medium"
+              className="flex items-center gap-2 bg-ink hover:bg-ink/85 text-white px-5 py-2.5 rounded-lg transition-[color,background-color,border-color,box-shadow,opacity,transform] shadow-sm hover:shadow-md text-sm font-medium"
             >
               <Plus size={18} />
               Add MCP Server
@@ -106,70 +106,70 @@ export default function MCPServersPage() {
 
         {/* Stats - More Compact */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <div className="text-gray-600 text-xs font-medium">Total Servers</div>
-            <div className="text-2xl font-bold text-gray-900 mt-1">{servers.length}</div>
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-line">
+            <div className="text-ink-soft text-xs font-medium">Total Servers</div>
+            <div className="text-2xl font-bold text-ink mt-1">{servers.length}</div>
           </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <div className="text-gray-600 text-xs font-medium">Active Servers</div>
-            <div className="text-2xl font-bold text-emerald-600 mt-1">
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-line">
+            <div className="text-ink-soft text-xs font-medium">Active Servers</div>
+            <div className="text-2xl font-bold text-leaf mt-1">
               {servers.filter(s => s.status === 'active').length}
             </div>
           </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <div className="text-gray-600 text-xs font-medium">Server Types</div>
-            <div className="text-2xl font-bold text-red-600 mt-1">
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-line">
+            <div className="text-ink-soft text-xs font-medium">Server Types</div>
+            <div className="text-2xl font-bold text-leaf mt-1">
               {new Set(servers.map(s => s.server_type)).size}
             </div>
           </div>
         </div>
 
         {/* Servers List - More Compact */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="px-5 py-3 border-b border-gray-200">
-            <h2 className="text-base font-semibold text-gray-900">Configured Servers</h2>
+        <div className="bg-white rounded-lg shadow-sm border border-line overflow-hidden">
+          <div className="px-5 py-3 border-b border-line">
+            <h2 className="text-base font-semibold text-ink">Configured Servers</h2>
           </div>
 
           {loading ? (
-            <div className="p-12 text-center text-gray-500 text-sm">Loading servers...</div>
+            <div className="p-12 text-center text-ink-mute text-sm">Loading servers…</div>
           ) : servers.length === 0 ? (
             <div className="p-12 text-center">
-              <Server className="mx-auto text-gray-400 mb-3" size={40} />
-              <p className="text-gray-500 mb-3 text-sm">No MCP servers configured yet</p>
+              <Server className="mx-auto text-ash mb-3" size={40} />
+              <p className="text-ink-mute mb-3 text-sm">No MCP servers configured yet</p>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="text-red-600 hover:text-red-700 font-medium text-sm"
+                className="text-leaf hover:text-leaf font-medium text-sm"
               >
                 Add your first MCP server
               </button>
             </div>
           ) : (
-            <div className="divide-y divide-gray-200">
+            <div className="divide-y divide-line">
               {servers.map((server) => (
-                <div key={server.id} className="p-4 hover:bg-gray-50 transition-colors">
+                <div key={server.id} className="p-4 hover:bg-cream transition-colors">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1.5">
-                        <Server className="text-red-600" size={18} />
-                        <h3 className="text-base font-semibold text-gray-900">{server.name}</h3>
+                        <Server className="text-leaf" size={18} />
+                        <h3 className="text-base font-semibold text-ink">{server.name}</h3>
                         <span
                           className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                             server.status === 'active'
-                              ? 'bg-emerald-100 text-emerald-700'
-                              : 'bg-gray-100 text-gray-700'
+                              ? 'bg-leaf-wash text-forest'
+                              : 'bg-sand text-ink-soft'
                           }`}
                         >
                           {server.status}
                         </span>
-                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-sand-deep text-ink-soft">
                           {server.server_type}
                         </span>
-                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blush-wash text-leaf">
                           {server.auth_type}
                         </span>
                       </div>
-                      <p className="text-gray-600 mb-1.5 text-sm">{server.description}</p>
-                      <div className="flex items-center gap-3 text-xs text-gray-500">
+                      <p className="text-ink-soft mb-1.5 text-sm">{server.description}</p>
+                      <div className="flex items-center gap-3 text-xs text-ink-mute">
                         {server.transport_type === 'stdio' ? (
                           <span className="font-mono">{server.command} {server.args?.join(' ')}</span>
                         ) : (
@@ -183,21 +183,21 @@ export default function MCPServersPage() {
                     <div className="flex items-center gap-1.5 ml-4">
                       <button
                         onClick={() => handleTest(server.id)}
-                        className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                        className="p-2 text-leaf hover:bg-leaf-wash rounded-lg transition-colors"
                         title="Test Connection"
                       >
                         <TestTube size={18} />
                       </button>
                       <button
                         onClick={() => setEditingServer(server)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-2 text-leaf hover:bg-blush-wash rounded-lg transition-colors"
                         title="Edit Server"
                       >
                         <Edit size={18} />
                       </button>
                       <button
                         onClick={() => handleDelete(server.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-2 text-danger hover:bg-blush-wash rounded-lg transition-colors"
                         title="Delete Server"
                       >
                         <Trash2 size={18} />
@@ -275,11 +275,11 @@ function MCPServerModal({
     JSON.stringify(serverHeaders, null, 2)
   )
   const [saving, setSaving] = useState(false)
-  const fieldClass = 'w-full rounded-[1.15rem] border border-gray-200 bg-gray-50 px-4 py-4 text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500'
+  const fieldClass = 'w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink'
   const textareaClass = `${fieldClass} resize-y`
-  const codeClass = 'w-full rounded-[1.15rem] border border-gray-200 bg-gray-50 px-4 py-4 font-mono text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500'
-  const labelClass = 'mb-2 block text-sm font-semibold text-gray-700'
-  const helpClass = 'mt-2 text-xs leading-relaxed text-gray-500'
+  const codeClass = 'w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 font-mono text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink'
+  const labelClass = 'mb-2 block text-sm font-semibold text-ink-soft'
+  const helpClass = 'mt-2 text-xs leading-relaxed text-ink-mute'
 
   // Reset auth config template when auth type changes (only when creating, not editing)
   const handleAuthTypeChange = (newAuthType: string) => {
@@ -346,17 +346,13 @@ function MCPServerModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-2xl overflow-hidden rounded-[2rem] border border-black/10 bg-[#fcfaf5] shadow-[0_32px_90px_rgba(0,0,0,0.18)]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+      <div className="w-full max-w-2xl overflow-hidden rounded-[2rem] border border-black/10 bg-cream shadow-soft">
         <div className="border-b border-black/10 bg-white px-8 py-6">
-          <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/55 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#6e675d]">
-            <Server className="h-3.5 w-3.5 text-[#2d8b69]" />
-            MCP Server
-          </div>
-          <h2 className="mt-4 text-3xl font-semibold tracking-tight text-gray-900">
+          <h2 className="mt-4 text-3xl font-semibold tracking-tight text-ink">
             {server ? 'Edit MCP Server' : 'Add MCP Server'}
           </h2>
-          <p className="mt-2 text-base text-gray-600">
+          <p className="mt-2 text-base text-ink-soft">
             Configure your Model Context Protocol server
           </p>
         </div>
@@ -460,7 +456,7 @@ function MCPServerModal({
                           const newArgs = formData.args.filter((_: string, i: number) => i !== index)
                           setFormData({ ...formData, args: newArgs })
                         }}
-                        className="rounded-[1rem] px-4 py-3 text-sm font-medium text-[#5b564e] transition-colors hover:bg-white"
+                        className="rounded-[1rem] px-4 py-3 text-sm font-medium text-ink-soft transition-colors hover:bg-white"
                       >
                         Remove
                       </button>
@@ -469,7 +465,7 @@ function MCPServerModal({
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, args: [...formData.args, ''] })}
-                    className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-[#171717] transition-colors hover:bg-[#f7f2e7]"
+                    className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-paper"
                   >
                     + Add Argument
                   </button>
@@ -517,7 +513,7 @@ function MCPServerModal({
                           delete newEnvVars[key]
                           setFormData({ ...formData, env_vars: newEnvVars })
                         }}
-                        className="rounded-[1rem] px-4 py-3 text-sm font-medium text-[#5b564e] transition-colors hover:bg-white"
+                        className="rounded-[1rem] px-4 py-3 text-sm font-medium text-ink-soft transition-colors hover:bg-white"
                       >
                         Remove
                       </button>
@@ -530,7 +526,7 @@ function MCPServerModal({
                       newEnvVars[''] = ''
                       setFormData({ ...formData, env_vars: newEnvVars })
                     }}
-                    className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-[#171717] transition-colors hover:bg-[#f7f2e7]"
+                    className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-paper"
                   >
                     + Add Environment Variable
                   </button>
@@ -551,7 +547,7 @@ function MCPServerModal({
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               className={textareaClass}
               rows={3}
-              placeholder="Describe what this MCP server provides..."
+              placeholder="Describe what this MCP server provides…"
               required
             />
           </div>
@@ -605,27 +601,27 @@ function MCPServerModal({
                 rows={5}
               />
               {formData.auth_type === 'api_key' && (
-                <div className="mt-3 rounded-[1.15rem] border border-black/10 bg-[#eef6ff] p-4 text-xs text-[#294a7c] space-y-1.5">
+                <div className="mt-3 rounded-[1.15rem] border border-black/10 bg-sky-wash p-4 text-xs text-azure space-y-1.5">
                   <p className="font-semibold">API Key fields:</p>
-                  <p><span className="font-mono font-bold">api_key</span> — your actual API key value</p>
-                  <p><span className="font-mono font-bold">header_name</span> — the HTTP header to send it in</p>
+                  <p><span className="font-mono font-bold">api_key</span>, your actual API key value</p>
+                  <p><span className="font-mono font-bold">header_name</span>, the HTTP header to send it in</p>
                   <p className="mt-1.5 font-semibold">Common header names:</p>
-                  <p><span className="font-mono">Authorization</span> — use this when the server expects <span className="font-mono">Authorization: your_key</span></p>
-                  <p><span className="font-mono">X-API-Key</span> — used by many REST APIs</p>
+                  <p><span className="font-mono">Authorization</span>, use this when the server expects <span className="font-mono">Authorization: your_key</span></p>
+                  <p><span className="font-mono">X-API-Key</span>, used by many REST APIs</p>
                 </div>
               )}
               {formData.auth_type === 'bearer' && (
-                <div className="mt-3 rounded-[1.15rem] border border-black/10 bg-[#eef6ff] p-4 text-xs text-[#294a7c] space-y-1.5">
+                <div className="mt-3 rounded-[1.15rem] border border-black/10 bg-sky-wash p-4 text-xs text-azure space-y-1.5">
                   <p className="font-semibold">Bearer Token fields:</p>
-                  <p><span className="font-mono font-bold">token</span> — your bearer token (sent as <span className="font-mono">Authorization: Bearer &lt;token&gt;</span>)</p>
-                  <p className="mt-1 text-[#45638f]">Use this for GitHub, PostHog personal API keys, and most OAuth2 APIs.</p>
+                  <p><span className="font-mono font-bold">token</span>, your bearer token (sent as <span className="font-mono">Authorization: Bearer &lt;token&gt;</span>)</p>
+                  <p className="mt-1 text-azure">Use this for GitHub, PostHog personal API keys, and most OAuth2 APIs.</p>
                 </div>
               )}
               {formData.auth_type === 'oauth' && (
-                <div className="mt-3 rounded-[1.15rem] border border-black/10 bg-[#eef6ff] p-4 text-xs text-[#294a7c] space-y-1.5">
+                <div className="mt-3 rounded-[1.15rem] border border-black/10 bg-sky-wash p-4 text-xs text-azure space-y-1.5">
                   <p className="font-semibold">OAuth fields:</p>
-                  <p><span className="font-mono font-bold">client_id</span> — OAuth application client ID</p>
-                  <p><span className="font-mono font-bold">client_secret</span> — OAuth application client secret</p>
+                  <p><span className="font-mono font-bold">client_id</span>, OAuth application client ID</p>
+                  <p><span className="font-mono font-bold">client_secret</span>, OAuth application client secret</p>
                 </div>
               )}
             </div>
@@ -645,7 +641,7 @@ function MCPServerModal({
                 placeholder={`{\n  "X-Project-ID": "your_project_id"\n}`}
               />
               <p className={helpClass}>
-                Extra HTTP headers the server requires — for example a project ID or API version header.
+                Extra HTTP headers the server requires, for example a project ID or API version header.
                 Do not put your auth credentials here; use the Auth Config above instead.
               </p>
             </div>
@@ -653,12 +649,12 @@ function MCPServerModal({
 
           {/* Use SSE Toggle - Only for HTTP transport */}
           {formData.transport_type === 'http' && (
-            <div className="flex items-center justify-between rounded-[1.25rem] border border-black/10 bg-[#f7f2e7] p-4">
+            <div className="flex items-center justify-between rounded-[1.25rem] border border-black/10 bg-paper p-4">
               <div className="flex-1 pr-4">
-                <label className="mb-1 block text-sm font-semibold text-gray-700">
+                <label className="mb-1 block text-sm font-semibold text-ink-soft">
                   Use Server-Sent Events (SSE)
                 </label>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-ink-mute">
                   Enable SSE for streaming responses. Disable for servers that only support POST requests (e.g., GitHub MCP).
                 </p>
               </div>
@@ -669,14 +665,14 @@ function MCPServerModal({
                   onChange={(e) => setFormData({ ...formData, use_sse: e.target.checked })}
                   className="peer sr-only"
                 />
-                <div className="relative h-6 w-11 rounded-full bg-black/10 transition-colors peer-checked:bg-[#181818] after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-white after:bg-white after:transition-transform peer-checked:after:translate-x-full" />
+                <div className="relative h-6 w-11 rounded-full bg-black/10 transition-colors peer-checked:bg-ink after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-white after:bg-white after:transition-transform motion-reduce:transition-none peer-checked:after:translate-x-full" />
               </label>
             </div>
           )}
 
-          <div className="rounded-[1.25rem] border border-black/10 bg-[rgba(99,223,190,0.16)] p-4">
-            <h4 className="mb-1 text-sm font-semibold text-[#171717]">About MCP Servers</h4>
-            <p className="text-xs leading-relaxed text-[#4f645c]">
+          <div className="rounded-[1.25rem] border border-black/10 bg-mint/15 p-4">
+            <h4 className="mb-1 text-sm font-semibold text-ink">About MCP Servers</h4>
+            <p className="text-xs leading-relaxed text-steel">
               MCP (Model Context Protocol) servers provide additional tools and resources that your agents can use.
               They extend agent capabilities beyond built-in tools by connecting to external APIs, databases, or services.
             </p>
@@ -684,11 +680,11 @@ function MCPServerModal({
         </form>
 
         {/* Fixed Footer with Buttons */}
-        <div className="flex justify-end gap-3 border-t border-black/10 bg-[#f7f2e7] px-8 py-5">
+        <div className="flex justify-end gap-3 border-t border-black/10 bg-paper px-8 py-5">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-[1.15rem] border border-black/10 bg-white px-5 py-3 text-sm font-medium text-[#5b564e] transition-colors hover:bg-[#fffdf8]"
+            className="rounded-[1.15rem] border border-black/10 bg-white px-5 py-3 text-sm font-medium text-ink-soft transition-colors hover:bg-cream"
           >
             Cancel
           </button>
@@ -700,9 +696,9 @@ function MCPServerModal({
               const form = e.currentTarget.closest('div')?.previousElementSibling as HTMLFormElement
               form?.requestSubmit()
             }}
-            className="rounded-[1.15rem] bg-[#181818] px-6 py-3 text-sm font-semibold uppercase tracking-[0.12em] text-[#f7f2e7] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-[1.15rem] bg-ink px-6 py-3 text-sm font-semibold text-paper transition-transform motion-reduce:transition-none hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {saving ? 'Saving...' : server ? 'Update Server' : 'Create Server'}
+            {saving ? 'Saving…' : server ? 'Update Server' : 'Create Server'}
           </button>
         </div>
       </div>

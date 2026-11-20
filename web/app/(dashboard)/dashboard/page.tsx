@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { apiClient } from '@/lib/api/client'
 import Link from 'next/link'
-import { Bot, BookOpen, Database, Server, Plus, TrendingUp, Activity, Sparkles } from 'lucide-react'
+import { Bot, BookOpen, Database, Server, Plus, Activity } from 'lucide-react'
 
 interface DashboardStats {
   totalAgents: number
@@ -132,32 +132,32 @@ export default function DashboardPage() {
       name: 'Total Agents',
       value: loading ? '...' : stats.totalAgents.toString(),
       icon: <Bot className="w-5 h-5" />,
-      lightColor: 'bg-[#ffe1ea]',
-      textColor: 'text-[#171717]',
+      lightColor: 'bg-sand-deep',
+      textColor: 'text-ink',
       href: '/agents'
     },
     {
       name: 'Knowledge Bases',
       value: loading ? '...' : stats.knowledgeBases.toString(),
       icon: <BookOpen className="w-5 h-5" />,
-      lightColor: 'bg-[#fff0d9]',
-      textColor: 'text-[#171717]',
+      lightColor: 'bg-sand-deep',
+      textColor: 'text-ink',
       href: '/knowledge-bases'
     },
     {
       name: 'Data Sources',
       value: loading ? '...' : stats.dataSources.toString(),
       icon: <Database className="w-5 h-5" />,
-      lightColor: 'bg-[#def4eb]',
-      textColor: 'text-[#171717]',
+      lightColor: 'bg-leaf-wash',
+      textColor: 'text-ink',
       href: '/data-sources'
     },
     {
       name: 'MCP Servers',
       value: loading ? '...' : stats.mcpServers.toString(),
       icon: <Server className="w-5 h-5" />,
-      lightColor: 'bg-[#ebe5fb]',
-      textColor: 'text-[#171717]',
+      lightColor: 'bg-sand-deep',
+      textColor: 'text-ink',
       href: '/mcp-servers'
     }
   ]
@@ -195,10 +195,10 @@ export default function DashboardPage() {
 
   const getActivityColor = (color: string) => {
     const colors: Record<string, { bg: string; text: string }> = {
-      teal: { bg: 'bg-[#def4eb]', text: 'text-[#171717]' },
-      green: { bg: 'bg-[#fff0d9]', text: 'text-[#171717]' },
-      purple: { bg: 'bg-[#ebe5fb]', text: 'text-[#171717]' },
-      blue: { bg: 'bg-[#ffe1ea]', text: 'text-[#171717]' }
+      teal: { bg: 'bg-leaf-wash', text: 'text-ink' },
+      green: { bg: 'bg-sand-deep', text: 'text-ink' },
+      purple: { bg: 'bg-sand-deep', text: 'text-ink' },
+      blue: { bg: 'bg-sand-deep', text: 'text-ink' }
     }
     return colors[color] || colors.teal
   }
@@ -207,15 +207,11 @@ export default function DashboardPage() {
     <div className="min-h-full px-4 py-4 md:px-8 md:py-6 xl:px-10">
       <div className="mx-auto max-w-[90rem] py-1">
         <div className="dashboard-surface mb-6 p-5 md:p-6 xl:p-7">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/70 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6e675d]">
-            <Sparkles className="h-3 w-3 text-[#ff5f8f]" />
-            Workspace Overview
-          </div>
-          <h1 className="text-[1.8rem] font-semibold tracking-[-0.05em] text-[#171717] md:text-[2.65rem]">
+          <h1 className="text-[1.8rem] font-semibold tracking-[-0.05em] text-ink md:text-[2.65rem]">
             Welcome back,
-            <span className="editorial-highlight ml-3">{user?.name || 'User'}</span>
+            <span className="ml-3">{user?.name || 'User'}</span>
           </h1>
-          <p className="mt-3 max-w-3xl text-[13px] leading-relaxed text-[#5b564e] md:text-[15px]">
+          <p className="mt-3 max-w-3xl text-[13px] leading-relaxed text-ink-soft md:text-[15px]">
             Here&apos;s what&apos;s happening with your AI platform today.
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
@@ -237,7 +233,7 @@ export default function DashboardPage() {
             <Link
               key={stat.name}
               href={stat.href}
-              className="dashboard-panel relative p-5 transition-all duration-300 hover:-translate-y-1"
+              className="dashboard-panel relative p-5 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 hover:-translate-y-1"
             >
               <div className="mb-3 flex items-start justify-between">
                 <div className={`${stat.lightColor} rounded-[0.35rem] p-2.5`}>
@@ -245,35 +241,34 @@ export default function DashboardPage() {
                     {stat.icon}
                   </div>
                 </div>
-                <TrendingUp className="h-4.5 w-4.5 text-[#8a8378]" />
               </div>
-              <h3 className="mb-1 text-[1.65rem] font-semibold tracking-[-0.04em] text-[#171717]">{stat.value}</h3>
-              <p className="text-[13px] font-medium text-[#6c655c]">{stat.name}</p>
+              <h3 className="mb-1 text-[1.65rem] font-semibold tracking-[-0.04em] text-ink">{stat.value}</h3>
+              <p className="text-[13px] font-medium text-ink-mute">{stat.name}</p>
             </Link>
           ))}
         </div>
 
         {/* Quick Actions */}
         <div className="mb-6">
-          <h2 className="mb-4 text-[1.05rem] font-semibold text-[#171717] md:text-[1.45rem]">Quick Actions</h2>
+          <h2 className="mb-4 text-[1.05rem] font-semibold text-ink md:text-[1.45rem]">Quick Actions</h2>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 xl:gap-5">
             {quickActions.map((action) => (
               <Link
                 key={action.name}
                 href={action.href}
-                className={`rounded-[0.5rem] p-5 transition-all duration-300 hover:-translate-y-1 ${
+                className={`rounded-[0.5rem] p-5 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 hover:-translate-y-1 ${
                   action.featured
-                    ? 'bg-[#181818] text-[#f7f2e7] shadow-[0_24px_60px_rgba(0,0,0,0.16)]'
-                    : 'dashboard-panel text-[#171717]'
+                    ? 'bg-ink text-paper shadow-soft'
+                    : 'dashboard-panel text-ink'
                 }`}
               >
                 <div className="mb-3">
-                  <div className={`inline-flex rounded-[0.35rem] p-2.5 ${action.featured ? 'bg-white/10' : 'bg-[#ffe1ea]'}`}>
+                  <div className={`inline-flex rounded-[0.35rem] p-2.5 ${action.featured ? 'bg-white/10' : 'bg-sand-deep'}`}>
                     {action.icon}
                   </div>
                 </div>
                 <h3 className="mb-1 text-[15px] font-semibold md:text-[1rem]">{action.name}</h3>
-                <p className={`text-[13px] ${action.featured ? 'text-white/80' : 'text-[#6c655c]'}`}>{action.description}</p>
+                <p className={`text-[13px] ${action.featured ? 'text-white/80' : 'text-ink-mute'}`}>{action.description}</p>
               </Link>
             ))}
           </div>
@@ -282,13 +277,13 @@ export default function DashboardPage() {
         {/* Recent Activity */}
         <div className="dashboard-surface overflow-hidden">
           <div className="border-b border-black/[0.08] px-4 py-4 md:px-5">
-            <h2 className="text-[1.05rem] font-semibold text-[#171717] md:text-[1.45rem]">Recent Activity</h2>
+            <h2 className="text-[1.05rem] font-semibold text-ink md:text-[1.45rem]">Recent Activity</h2>
           </div>
           <div className="divide-y divide-black/[0.06]">
             {loading ? (
-              <div className="p-5 text-center text-sm text-[#6c655c]">Loading activity...</div>
+              <div className="p-5 text-center text-sm text-ink-mute">Loading activity…</div>
             ) : recentActivity.length === 0 ? (
-              <div className="p-5 text-center text-sm text-[#6c655c]">
+              <div className="p-5 text-center text-sm text-ink-mute">
                 No recent activity. Start by creating an agent or knowledge base!
               </div>
             ) : (
@@ -303,10 +298,10 @@ export default function DashboardPage() {
                         <Icon className={`h-4.5 w-4.5 ${colors.text}`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="truncate text-[14px] font-medium text-[#171717] md:text-[15px]">{activity.title}</p>
-                        <p className="truncate text-[13px] text-[#6c655c]">{activity.description}</p>
+                        <p className="truncate text-[14px] font-medium text-ink md:text-[15px]">{activity.title}</p>
+                        <p className="truncate text-[13px] text-ink-mute">{activity.description}</p>
                       </div>
-                      <span className="whitespace-nowrap text-[12px] text-[#8a8378] md:text-[13px]">{getTimeAgo(activity.time)}</span>
+                      <span className="whitespace-nowrap text-[12px] text-ash md:text-[13px]">{getTimeAgo(activity.time)}</span>
                     </div>
                   </div>
                 )

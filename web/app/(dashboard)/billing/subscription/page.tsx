@@ -65,7 +65,7 @@ export default function SubscriptionManagementPage() {
   if (subscriptionLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+        <Loader2 className="h-8 w-8 motion-safe:animate-spin text-leaf" />
       </div>
     )
   }
@@ -73,31 +73,31 @@ export default function SubscriptionManagementPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Subscription Management</h1>
-        <p className="mt-2 text-gray-600">
+        <h1 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight">Subscription Management</h1>
+        <p className="mt-2 text-ink-soft">
           Manage your subscription plan and billing settings
         </p>
       </div>
 
       {/* Current Subscription Details */}
       {subscription && (
-        <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6">
+        <div className="mb-8 rounded-lg border border-line bg-white p-6">
           <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">Current Plan</h2>
+            <h2 className="text-xl font-semibold text-ink">Current Plan</h2>
             {subscription.status === 'active' && !subscription.cancel_at_period_end && (
-              <span className="flex items-center rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800">
+              <span className="flex items-center rounded-full bg-leaf-wash px-3 py-1 text-sm font-medium text-forest">
                 <CheckCircle className="mr-1 h-4 w-4" />
                 Active
               </span>
             )}
             {subscription.cancel_at_period_end && (
-              <span className="flex items-center rounded-full bg-yellow-100 px-3 py-1 text-sm font-medium text-yellow-800">
+              <span className="flex items-center rounded-full bg-sand-deep px-3 py-1 text-sm font-medium text-gold">
                 <AlertCircle className="mr-1 h-4 w-4" />
                 Cancels at period end
               </span>
             )}
             {subscription.status === 'cancelled' && (
-              <span className="flex items-center rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-800">
+              <span className="flex items-center rounded-full bg-blush-wash px-3 py-1 text-sm font-medium text-wine">
                 <XCircle className="mr-1 h-4 w-4" />
                 Cancelled
               </span>
@@ -106,22 +106,22 @@ export default function SubscriptionManagementPage() {
 
           <div className="grid gap-6 md:grid-cols-2">
             <div>
-              <h3 className="mb-4 text-lg font-medium text-gray-900">Plan Details</h3>
+              <h3 className="mb-4 text-lg font-medium text-ink">Plan Details</h3>
               <dl className="space-y-3">
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">Plan Name</dt>
-                  <dd className="mt-1 text-sm text-gray-900">{subscription.plan_name}</dd>
+                  <dt className="text-sm font-medium text-ink-mute">Plan Name</dt>
+                  <dd className="mt-1 text-sm text-ink">{subscription.plan_name}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">Status</dt>
-                  <dd className="mt-1 text-sm capitalize text-gray-900">
+                  <dt className="text-sm font-medium text-ink-mute">Status</dt>
+                  <dd className="mt-1 text-sm capitalize text-ink">
                     {subscription.status}
                   </dd>
                 </div>
                 {subscription.stripe_subscription_id && (
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Subscription ID</dt>
-                    <dd className="mt-1 text-sm text-gray-900">
+                    <dt className="text-sm font-medium text-ink-mute">Subscription ID</dt>
+                    <dd className="mt-1 text-sm text-ink">
                       {subscription.stripe_subscription_id}
                     </dd>
                   </div>
@@ -130,32 +130,32 @@ export default function SubscriptionManagementPage() {
             </div>
 
             <div>
-              <h3 className="mb-4 text-lg font-medium text-gray-900">Billing Information</h3>
+              <h3 className="mb-4 text-lg font-medium text-ink">Billing Information</h3>
               <dl className="space-y-3">
                 {subscription.current_period_start && (
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Current Period Start</dt>
-                    <dd className="mt-1 flex items-center text-sm text-gray-900">
-                      <Calendar className="mr-2 h-4 w-4 text-gray-400" />
+                    <dt className="text-sm font-medium text-ink-mute">Current Period Start</dt>
+                    <dd className="mt-1 flex items-center text-sm text-ink">
+                      <Calendar className="mr-2 h-4 w-4 text-ash" />
                       {new Date(subscription.current_period_start).toLocaleDateString()}
                     </dd>
                   </div>
                 )}
                 {subscription.current_period_end && (
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">
+                    <dt className="text-sm font-medium text-ink-mute">
                       {subscription.cancel_at_period_end ? 'Cancels On' : 'Renews On'}
                     </dt>
-                    <dd className="mt-1 flex items-center text-sm text-gray-900">
-                      <Calendar className="mr-2 h-4 w-4 text-gray-400" />
+                    <dd className="mt-1 flex items-center text-sm text-ink">
+                      <Calendar className="mr-2 h-4 w-4 text-ash" />
                       {new Date(subscription.current_period_end).toLocaleDateString()}
                     </dd>
                   </div>
                 )}
                 {subscription.stripe_customer_id && (
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Customer ID</dt>
-                    <dd className="mt-1 text-sm text-gray-900">
+                    <dt className="text-sm font-medium text-ink-mute">Customer ID</dt>
+                    <dd className="mt-1 text-sm text-ink">
                       {subscription.stripe_customer_id}
                     </dd>
                   </div>
@@ -165,16 +165,16 @@ export default function SubscriptionManagementPage() {
           </div>
 
           {/* Action Buttons */}
-          <div className="mt-6 flex gap-4 border-t border-gray-200 pt-6">
+          <div className="mt-6 flex gap-4 border-t border-line pt-6">
             {subscription.cancel_at_period_end ? (
               <button
                 onClick={handleResume}
                 disabled={resuming}
-                className="flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                className="flex items-center rounded-lg bg-leaf px-4 py-2 text-sm font-medium text-white hover:bg-forest disabled:opacity-50"
               >
                 {resuming ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 motion-safe:animate-spin" />
                     Resuming...
                   </>
                 ) : (
@@ -188,11 +188,11 @@ export default function SubscriptionManagementPage() {
               <button
                 onClick={handleCancel}
                 disabled={cancelling}
-                className="flex items-center rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+                className="flex items-center rounded-lg border border-blush bg-white px-4 py-2 text-sm font-medium text-danger hover:bg-blush-wash disabled:opacity-50"
               >
                 {cancelling ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 motion-safe:animate-spin" />
                     Cancelling...
                   </>
                 ) : (
@@ -209,12 +209,12 @@ export default function SubscriptionManagementPage() {
 
       {/* Available Plans */}
       <div>
-        <h2 className="mb-4 text-xl font-semibold text-gray-900">
+        <h2 className="mb-4 text-xl font-semibold text-ink">
           {subscription ? 'Upgrade or Change Plan' : 'Choose a Plan'}
         </h2>
         {plansLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+            <Loader2 className="h-8 w-8 motion-safe:animate-spin text-leaf" />
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -232,15 +232,15 @@ export default function SubscriptionManagementPage() {
       </div>
 
       {/* Payment Method Section */}
-      <div className="mt-8 rounded-lg border border-gray-200 bg-white p-6">
+      <div className="mt-8 rounded-lg border border-line bg-white p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-medium text-gray-900">Payment Method</h3>
-            <p className="mt-1 text-sm text-gray-600">
+            <h3 className="text-lg font-medium text-ink">Payment Method</h3>
+            <p className="mt-1 text-sm text-ink-soft">
               Manage your payment methods and billing information
             </p>
           </div>
-          <button className="flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+          <button className="flex items-center rounded-lg border border-taupe bg-white px-4 py-2 text-sm font-medium text-ink-soft hover:bg-cream">
             <CreditCard className="mr-2 h-4 w-4" />
             Manage Payment Methods
           </button>
@@ -248,15 +248,15 @@ export default function SubscriptionManagementPage() {
       </div>
 
       {/* Billing History Section */}
-      <div className="mt-8 rounded-lg border border-gray-200 bg-white p-6">
+      <div className="mt-8 rounded-lg border border-line bg-white p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-medium text-gray-900">Billing History</h3>
-            <p className="mt-1 text-sm text-gray-600">
+            <h3 className="text-lg font-medium text-ink">Billing History</h3>
+            <p className="mt-1 text-sm text-ink-soft">
               View and download your past invoices
             </p>
           </div>
-          <button className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+          <button className="rounded-lg border border-taupe bg-white px-4 py-2 text-sm font-medium text-ink-soft hover:bg-cream">
             View Invoices
           </button>
         </div>

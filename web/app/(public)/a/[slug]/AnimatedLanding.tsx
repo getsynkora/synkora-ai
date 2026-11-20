@@ -133,174 +133,17 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
   const displayName = creator?.display_name || creator_display_name
   const displayBio = creator?.bio || creator_bio
 
-  useEffect(() => {
-    let ctx: { revert: () => void } | undefined
-    let rafId: number
-    let timerId: ReturnType<typeof setTimeout>
-    let loadHandler: (() => void) | undefined
-    let cancelled = false
-
-    Promise.all([import('gsap'), import('gsap/ScrollTrigger')]).then(
-      ([{ default: gsap }, { ScrollTrigger }]) => {
-        if (cancelled) return
-        gsap.registerPlugin(ScrollTrigger)
-
-        loadHandler = () => ScrollTrigger.refresh()
-        ctx = gsap.context(() => {
-      // ── Hero entrance sequence ──
-      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
-
-      tl.from(badgeRef.current, { y: -30, opacity: 0, duration: 0.6 })
-        .from('.hero-word', { y: 80, opacity: 0, duration: 0.7, stagger: 0.08 }, '-=0.2')
-        .from(taglineRef.current, { y: 30, opacity: 0, duration: 0.6 }, '-=0.3')
-        .from(subRef.current, { y: 20, opacity: 0, duration: 0.5 }, '-=0.4')
-        .from('.hero-cta-btn', { scale: 0.85, opacity: 0, duration: 0.5, stagger: 0.1, ease: 'back.out(1.7)' }, '-=0.3')
-        .from(heroImgRef.current, { y: 60, opacity: 0, duration: 0.9, ease: 'power2.out' }, '-=0.5')
-
-      // ── Nav links stagger entrance ──
-      gsap.from('.nav-link', { y: -10, opacity: 0, duration: 0.4, stagger: 0.08, ease: 'power2.out', delay: 0.8 })
-
-      // ── Nav shadow on scroll ──
-      ScrollTrigger.create({
-        start: 'top -60',
-        onEnter: () => gsap.to(navRef.current, { boxShadow: '0 1px 20px rgba(0,0,0,0.08)', duration: 0.3 }),
-        onLeaveBack: () => gsap.to(navRef.current, { boxShadow: 'none', duration: 0.3 }),
-      })
-
-      // ── Section reveals ──
-      gsap.utils.toArray<HTMLElement>('.reveal-section').forEach(el => {
-        gsap.fromTo(el,
-          { y: 50, opacity: 0 },
-          {
-            y: 0, opacity: 1, duration: 0.8, ease: 'power3.out',
-            scrollTrigger: {
-              trigger: el,
-              start: 'top bottom',   // fires as soon as any part enters viewport
-              toggleActions: 'play none none none',
-              invalidateOnRefresh: true,
-            },
-          }
-        )
-      })
-
-      // ── Section header badge + title stagger ──
-      gsap.utils.toArray<HTMLElement>('.section-header').forEach(el => {
-        const children = el.querySelectorAll('.section-badge, .section-title, .section-sub')
-        gsap.fromTo(children,
-          { y: 30, opacity: 0 },
-          {
-            y: 0, opacity: 1, duration: 0.6, stagger: 0.15, ease: 'power3.out',
-            scrollTrigger: { trigger: el, start: 'top bottom', toggleActions: 'play none none none', invalidateOnRefresh: true },
-          }
-        )
-      })
-
-      // ── Staggered card reveals ──
-      gsap.utils.toArray<HTMLElement>('.stagger-cards').forEach(container => {
-        const cards = container.querySelectorAll('.stagger-card')
-        gsap.fromTo(cards,
-          { y: 60, opacity: 0, scale: 0.95 },
-          {
-            y: 0, opacity: 1, scale: 1, duration: 0.6, stagger: 0.1, ease: 'back.out(1.4)',
-            scrollTrigger: { trigger: container, start: 'top bottom', toggleActions: 'play none none none', invalidateOnRefresh: true },
-          }
-        )
-      })
-
-      // ── Gallery clip-path reveal ──
-      gsap.utils.toArray<HTMLElement>('.gallery-img').forEach((el, i) => {
-        gsap.from(el, {
-          clipPath: 'inset(0 100% 0 0)',
-          opacity: 0,
-          duration: 0.7,
-          ease: 'power3.out',
-          delay: i * 0.07,
-          scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none none' },
-        })
-      })
-
-      // ── Example conversations slide in alternating ──
-      gsap.utils.toArray<HTMLElement>('.example-conv').forEach((el, i) => {
-        gsap.from(el, {
-          x: i % 2 === 0 ? -60 : 60,
-          opacity: 0,
-          duration: 0.7,
-          ease: 'power3.out',
-          scrollTrigger: { trigger: el, start: 'top 85%', toggleActions: 'play none none none' },
-        })
-      })
-
-      // ── Pricing highlight pulse ──
-      gsap.to('.pricing-popular', {
-        boxShadow: `0 20px 60px ${accent}35`,
-        repeat: -1,
-        yoyo: true,
-        duration: 2,
-        ease: 'sine.inOut',
-      })
-
-      // ── Creator card slide from right ──
-      const creatorCard = document.querySelector('.creator-card')
-      if (creatorCard) {
-        gsap.from(creatorCard, {
-          x: 80, opacity: 0, duration: 0.8, ease: 'power3.out',
-          scrollTrigger: { trigger: creatorCard, start: 'top 80%', toggleActions: 'play none none none' },
-        })
-      }
-
-      // ── Final CTA text burst ──
-      const ctaSection = document.querySelector('.final-cta-section')
-      if (ctaSection) {
-        gsap.from(ctaSection.querySelectorAll('.cta-line'), {
-          y: 40, opacity: 0, duration: 0.7, stagger: 0.15, ease: 'power3.out',
-          scrollTrigger: { trigger: ctaSection, start: 'top 75%', toggleActions: 'play none none none' },
-        })
-      }
-
-      // ── Parallax on hero background ──
-      gsap.to('.hero-bg-glow', {
-        y: -120,
-        ease: 'none',
-        scrollTrigger: { trigger: '.hero-section', start: 'top top', end: 'bottom top', scrub: true },
-      })
-
-      // ── Floating badge on hero ──
-      gsap.to(badgeRef.current, {
-        y: -8, duration: 2.5, repeat: -1, yoyo: true, ease: 'sine.inOut',
-      })
-
-        }, rootRef)
-
-        // Recalculate scroll trigger positions after layout settles.
-        if (document.readyState === 'complete') {
-          rafId = requestAnimationFrame(() => ScrollTrigger.refresh())
-          timerId = setTimeout(() => ScrollTrigger.refresh(), 300)
-        } else {
-          window.addEventListener('load', loadHandler)
-        }
-      }
-    )
-
-    return () => {
-      cancelled = true
-      ctx?.revert()
-      if (loadHandler) window.removeEventListener('load', loadHandler)
-      cancelAnimationFrame(rafId)
-      clearTimeout(timerId)
-    }
-  }, [accent])
-
   return (
     <div
       ref={rootRef}
-      className="min-h-screen overflow-x-hidden text-[#191919]"
+      className="min-h-screen overflow-x-hidden text-ink"
       style={{ background: brandBg, fontFamily: '"Avenir Next", "Helvetica Neue", "Segoe UI", sans-serif' }}
     >
 
       {/* ── Navigation ── */}
       <header
         ref={navRef}
-        className="sticky top-0 z-50 border-b border-black/10 bg-[#f7f2e7]/95 backdrop-blur-sm transition-shadow"
+        className="sticky top-0 z-50 border-b border-black/10 bg-paper/95 transition-shadow"
       >
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between gap-6">
           <Link href="/" className="flex items-center gap-2.5 flex-shrink-0 hover:opacity-80 transition-opacity">
@@ -308,41 +151,41 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
               <img src={agent_avatar} alt={agent_name} className="w-8 h-8 rounded-xl object-cover ring-1 ring-black/10" loading="lazy" />
             ) : (
               <div
-                className="w-8 h-8 rounded-xl flex items-center justify-center text-[#11231d] font-bold text-sm select-none"
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-ink font-bold text-sm select-none"
                 style={{ background: brandAccent }}
               >
                 {(agent_name || 'A')[0].toUpperCase()}
               </div>
             )}
-            <span className="font-semibold text-[#171717] text-sm tracking-[-0.02em]">{agent_name}</span>
+            <span className="font-semibold text-ink text-sm tracking-[-0.02em]">{agent_name}</span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-7 text-sm text-[#6d675f]">
+          <nav className="hidden md:flex items-center gap-7 text-sm text-ink-mute">
             {long_description && (
-              <button onClick={() => scrollTo('about')} className="nav-link hover:text-[#171717] transition-colors cursor-pointer">About</button>
+              <button onClick={() => scrollTo('about')} className="nav-link hover:text-ink transition-colors cursor-pointer">About</button>
             )}
             {hasExamples && (
-              <button onClick={() => scrollTo('examples')} className="nav-link hover:text-[#171717] transition-colors cursor-pointer">Examples</button>
+              <button onClick={() => scrollTo('examples')} className="nav-link hover:text-ink transition-colors cursor-pointer">Examples</button>
             )}
             {hasGallery && (
-              <button onClick={() => scrollTo('gallery')} className="nav-link hover:text-[#171717] transition-colors cursor-pointer">Gallery</button>
+              <button onClick={() => scrollTo('gallery')} className="nav-link hover:text-ink transition-colors cursor-pointer">Gallery</button>
             )}
-            <button onClick={() => scrollTo('pricing')} className="nav-link hover:text-[#171717] transition-colors cursor-pointer">Pricing</button>
+            <button onClick={() => scrollTo('pricing')} className="nav-link hover:text-ink transition-colors cursor-pointer">Pricing</button>
             {allow_subscriptions && (
-              <button onClick={() => scrollTo('subscribe')} className="nav-link hover:text-[#171717] transition-colors cursor-pointer">Subscribe</button>
+              <button onClick={() => scrollTo('subscribe')} className="nav-link hover:text-ink transition-colors cursor-pointer">Subscribe</button>
             )}
             {hasCreator && (
-              <button onClick={() => scrollTo('creator')} className="nav-link hover:text-[#171717] transition-colors cursor-pointer">Creator</button>
+              <button onClick={() => scrollTo('creator')} className="nav-link hover:text-ink transition-colors cursor-pointer">Creator</button>
             )}
           </nav>
 
           <div className="flex items-center gap-3 flex-shrink-0">
-            <Link href="/signin" className="hidden sm:block text-sm text-[#6d675f] hover:text-[#171717] transition-colors font-medium">
+            <Link href="/signin" className="hidden sm:block text-sm text-ink-mute hover:text-ink transition-colors font-medium">
               Log In
             </Link>
             <button
               onClick={() => scrollTo('pricing')}
-              className="rounded-full bg-[#191919] px-4 py-2 text-sm font-semibold text-[#f7f2e7] transition-all hover:-translate-y-0.5 hover:bg-black cursor-pointer"
+              className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-paper transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:-translate-y-0.5 hover:bg-black cursor-pointer"
             >
               {tt('getStarted')}
             </button>
@@ -352,7 +195,7 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
 
       {/* ── Hero ── */}
       <section className="hero-section relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(121,223,188,0.22),transparent_34%),radial-gradient(circle_at_top_right,rgba(240,197,109,0.16),transparent_28%)] pointer-events-none" />
+        <div className="absolute inset-0 pointer-events-none" />
         <div
           className="hero-bg-glow absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] pointer-events-none"
           style={{ background: `radial-gradient(ellipse at center, ${brandAccent}20 0%, transparent 65%)` }}
@@ -371,14 +214,14 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
           {/* Badge */}
           <div
             ref={badgeRef}
-            className="mb-8 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-4 py-2 shadow-[0_18px_40px_rgba(0,0,0,0.05)] backdrop-blur cursor-default"
+            className="mb-8 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-4 py-2 shadow-soft cursor-default"
           >
-            <span className="rounded-full px-2 py-0.5 text-xs font-bold text-[#11231d]" style={{ background: brandAccent }}>AI</span>
-            <span className="text-sm text-[#6d675f]">Intelligent Agent — Ready to use</span>
+            <span className="rounded-full px-2 py-0.5 text-xs font-bold text-ink" style={{ background: brandAccent }}>AI</span>
+            <span className="text-sm text-ink-mute">Intelligent Agent, Ready to use</span>
           </div>
 
           {/* Split-word headline */}
-          <h1 ref={headlineRef} className="mb-4 overflow-hidden text-5xl font-semibold leading-[1.04] tracking-[-0.06em] text-[#171717] md:text-7xl">
+          <h1 ref={headlineRef} className="mb-4 overflow-hidden text-5xl font-semibold leading-[1.04] tracking-[-0.06em] text-ink md:text-7xl">
             {agent_name.split(' ').map((word, i) => (
               <span key={i} className="inline-block overflow-hidden mr-[0.25em] last:mr-0">
                 <span className="hero-word inline-block">{word}</span>
@@ -393,7 +236,7 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
           )}
 
           {long_description && (
-            <p ref={subRef} className="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-[#565149] md:text-xl">
+            <p ref={subRef} className="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-ink-soft md:text-xl">
               {long_description.split('\n')[0].slice(0, 180)}
             </p>
           )}
@@ -401,14 +244,14 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
           <div ref={ctaRef} className="flex items-center justify-center gap-4 flex-wrap">
             <button
               onClick={() => scrollTo('pricing')}
-              className="hero-cta-btn rounded-full bg-[#191919] px-8 py-3.5 text-base font-semibold text-[#f7f2e7] shadow-[0_18px_40px_rgba(0,0,0,0.12)] transition-all hover:-translate-y-0.5 hover:bg-black cursor-pointer"
+              className="hero-cta-btn rounded-full bg-ink px-8 py-3.5 text-base font-semibold text-paper shadow-soft transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:-translate-y-0.5 hover:bg-black cursor-pointer"
             >
               {cta_label || tt('tryFree')}
             </button>
             {long_description && (
               <button
                 onClick={() => scrollTo('about')}
-                className="hero-cta-btn rounded-full border border-black/10 bg-white/70 px-8 py-3.5 text-base font-semibold text-[#171717] transition-all hover:-translate-y-0.5 hover:bg-white cursor-pointer"
+                className="hero-cta-btn rounded-full border border-black/10 bg-white/70 px-8 py-3.5 text-base font-semibold text-ink transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:-translate-y-0.5 hover:bg-white cursor-pointer"
               >
                 {tt('learnMore')}
               </button>
@@ -416,8 +259,8 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
           </div>
 
           {pricing?.trial_messages && pricing.trial_messages > 0 ? (
-            <p className="mt-4 text-sm text-[#7a7267]">
-              First {pricing.trial_messages} messages free — no credit card required
+            <p className="mt-4 text-sm text-ink-mute">
+              First {pricing.trial_messages} messages free, no credit card required
             </p>
           ) : null}
         </div>
@@ -425,15 +268,15 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
         {/* Hero product screenshot */}
         {hero_image_url && (
           <div ref={heroImgRef} className="max-w-5xl mx-auto px-6 pb-0">
-            <div className="overflow-hidden rounded-t-[2rem] border border-black/10 bg-white/75 shadow-[0_28px_70px_rgba(0,0,0,0.08)] backdrop-blur">
-              <div className="flex items-center gap-2 border-b border-black/10 bg-[#f4eee1] px-4 py-3">
+            <div className="overflow-hidden rounded-t-[2rem] border border-black/10 bg-white/75 shadow-soft">
+              <div className="flex items-center gap-2 border-b border-black/10 bg-sand px-4 py-3">
                 <div className="flex gap-1.5">
-                  <div className="h-3 w-3 rounded-full bg-[#ff5f57]" />
-                  <div className="h-3 w-3 rounded-full bg-[#febc2e]" />
-                  <div className="h-3 w-3 rounded-full bg-[#28c840]" />
+                  <div className="h-3 w-3 rounded-full bg-ink" />
+                  <div className="h-3 w-3 rounded-full bg-warn" />
+                  <div className="h-3 w-3 rounded-full bg-mint" />
                 </div>
                 <div className="flex-1 mx-4">
-                  <div className="mx-auto max-w-xs rounded-full border border-black/10 bg-white px-3 py-1 text-center text-xs text-[#746c61]">
+                  <div className="mx-auto max-w-xs rounded-full border border-black/10 bg-white px-3 py-1 text-center text-xs text-ink-mute">
                     {agent_name}
                   </div>
                 </div>
@@ -449,13 +292,10 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
         <section id="about" className="reveal-section px-6 py-24" style={{ background: brandPanel }}>
           <div className="max-w-4xl mx-auto">
             <div className="section-header text-center mb-12">
-              <span className="section-badge mb-4 inline-block rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#4b463e]">
-                About
-              </span>
-              <h2 className="section-title text-3xl font-medium tracking-[-0.05em] text-[#171717] md:text-4xl">What this agent does</h2>
+              <h2 className="section-title text-3xl font-medium tracking-[-0.05em] text-ink md:text-4xl">What this agent does</h2>
             </div>
-            <div className="rounded-[2rem] border border-black/10 bg-white/70 p-8 shadow-[0_18px_40px_rgba(0,0,0,0.05)] backdrop-blur md:p-10">
-              <p className="whitespace-pre-wrap text-lg leading-relaxed text-[#565149]">{long_description}</p>
+            <div className="rounded-[2rem] border border-black/10 bg-white/70 p-8 shadow-soft md:p-10">
+              <p className="whitespace-pre-wrap text-lg leading-relaxed text-ink-soft">{long_description}</p>
             </div>
           </div>
         </section>
@@ -466,17 +306,17 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
         <section id="gallery" className="reveal-section px-6 py-20">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
-              <span className="mb-4 inline-block rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#4b463e]">
+              <span className="mb-4 inline-block rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold text-ink-soft">
                 {tt('gallery')}
               </span>
-              <h2 className="text-3xl font-medium tracking-[-0.05em] text-[#171717] md:text-4xl">{tt('screenshotsMedia')}</h2>
+              <h2 className="text-3xl font-medium tracking-[-0.05em] text-ink md:text-4xl">{tt('screenshotsMedia')}</h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
               {validGallery.map((img, i) => (
-                <div key={i} className="gallery-img group relative aspect-video overflow-hidden rounded-[1.7rem] border border-black/10 bg-white/70 shadow-[0_18px_40px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_24px_60px_rgba(0,0,0,0.1)] cursor-pointer">
-                  <img src={img.url} alt={img.caption || ''} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                <div key={i} className="gallery-img group relative aspect-video overflow-hidden rounded-[1.7rem] border border-black/10 bg-white/70 shadow-soft transition-shadow hover:shadow-soft cursor-pointer">
+                  <img src={img.url} alt={img.caption || ''} className="w-full h-full object-cover group-hover:scale-105 transition-transform motion-reduce:transition-none duration-500" loading="lazy" />
                   {img.caption && (
-                    <div className="absolute bottom-0 left-0 right-0 translate-y-full bg-gradient-to-t from-black/65 to-transparent px-3 py-2 text-xs font-medium text-white transition-transform duration-300 group-hover:translate-y-0">
+                    <div className="absolute bottom-0 left-0 right-0 translate-y-full bg-gradient-to-t from-black/65 to-transparent px-3 py-2 text-xs font-medium text-white transition-transform motion-reduce:transition-none duration-300 group-hover:translate-y-0">
                       {img.caption}
                     </div>
                   )}
@@ -492,12 +332,9 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
         <section className="reveal-section px-6 py-20" style={{ background: brandPanel }}>
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-12">
-              <span className="mb-4 inline-block rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#4b463e]">
-                Demo
-              </span>
-              <h2 className="text-3xl font-medium tracking-[-0.05em] text-[#171717] md:text-4xl">See it in action</h2>
+              <h2 className="text-3xl font-medium tracking-[-0.05em] text-ink md:text-4xl">See it in action</h2>
             </div>
-            <div className="aspect-video overflow-hidden rounded-[2rem] border border-black/10 bg-white/75 shadow-[0_22px_60px_rgba(0,0,0,0.08)]">
+            <div className="aspect-video overflow-hidden rounded-[2rem] border border-black/10 bg-white/75 shadow-soft">
               <iframe
                 src={toEmbedUrl(preview_video_url)}
                 className="w-full h-full"
@@ -514,11 +351,11 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
         <section id="examples" className="reveal-section px-6 py-20">
           <div className="max-w-3xl mx-auto">
             <div className="text-center mb-12">
-              <span className="mb-4 inline-block rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#4b463e]">
+              <span className="mb-4 inline-block rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold text-ink-soft">
                 {tt('examples')}
               </span>
-              <h2 className="mb-3 text-3xl font-medium tracking-[-0.05em] text-[#171717] md:text-4xl">{tt('realConversations')}</h2>
-              <p className="text-lg text-[#565149]">See exactly what you can expect</p>
+              <h2 className="mb-3 text-3xl font-medium tracking-[-0.05em] text-ink md:text-4xl">{tt('realConversations')}</h2>
+              <p className="text-lg text-ink-soft">See exactly what you can expect</p>
             </div>
             <div className="space-y-5">
               {validExamples.map((conv, i) => (
@@ -535,11 +372,11 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
       <section id="pricing" className="reveal-section px-6 py-24" style={{ background: brandPanel }}>
         <div className="max-w-5xl mx-auto">
           <div className="section-header text-center mb-16">
-            <span className="section-badge mb-4 inline-block rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#4b463e]">
+            <span className="section-badge mb-4 inline-block rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold text-ink-soft">
               {tt('pricing')}
             </span>
-            <h2 className="section-title mb-4 text-3xl font-medium tracking-[-0.05em] text-[#171717] md:text-4xl">{tt('simplePricing')}</h2>
-            <p className="section-sub text-lg text-[#565149]">Pay only for what you use. No hidden fees.</p>
+            <h2 className="section-title mb-4 text-3xl font-medium tracking-[-0.05em] text-ink md:text-4xl">{tt('simplePricing')}</h2>
+            <p className="section-sub text-lg text-ink-soft">Pay only for what you use. No hidden fees.</p>
           </div>
 
           {!isFree && pricingTiers.length > 0 ? (
@@ -553,27 +390,27 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
                 {pricingTiers.map((t: any) => (
                   <div
                     key={t.tier}
-                    className={`stagger-card relative rounded-2xl p-7 border-2 transition-all hover:-translate-y-2 hover:shadow-xl cursor-default ${
-                      t.popular ? 'pricing-popular bg-white' : 'border-black/10 bg-white/70 shadow-[0_18px_40px_rgba(0,0,0,0.05)]'
+                    className={`stagger-card relative rounded-2xl p-7 border-2 transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:-translate-y-2 hover:shadow-xl cursor-default ${
+                      t.popular ? 'pricing-popular bg-white' : 'border-black/10 bg-white/70 shadow-soft'
                     }`}
                     style={t.popular ? { borderColor: brandAccent, background: brandSurface } : {}}
                   >
                     {t.popular && (
-                      <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#171717] px-4 py-1 text-xs font-bold text-[#f7f2e7]" >
+                      <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-ink px-4 py-1 text-xs font-bold text-paper" >
                         {tt('mostPopular')}
                       </div>
                     )}
-                    <div className="mb-4 text-xs font-bold uppercase tracking-[0.18em] text-[#7a7267]">{t.label}</div>
+                    <div className="mb-4 text-xs font-bold text-ink-mute">{t.label}</div>
                     <div className="flex items-baseline gap-1 mb-1">
-                      <span className="text-4xl font-semibold tracking-[-0.05em] text-[#171717]">{t.credits}</span>
-                      <span className="text-sm font-medium text-[#7a7267]">{tt('credits')}</span>
+                      <span className="text-4xl font-semibold tracking-[-0.05em] text-ink">{t.credits}</span>
+                      <span className="text-sm font-medium text-ink-mute">{tt('credits')}</span>
                     </div>
-                    <p className="mt-3 text-sm text-[#565149]">{t.desc}</p>
+                    <p className="mt-3 text-sm text-ink-soft">{t.desc}</p>
                     <div className="mt-6">
                       <a
                         href={`/agents/${slug}/chat`}
-                        className="block w-full py-2.5 text-center text-sm font-semibold rounded-xl transition-all hover:opacity-90"
-                        style={t.popular ? { background: '#171717', color: '#f7f2e7' } : { background: '#f4eee1', color: '#171717' }}
+                        className="block w-full py-2.5 text-center text-sm font-semibold rounded-xl transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:opacity-90"
+                        style={t.popular ? { background: 'rgb(var(--ink))', color: 'rgb(var(--paper))' } : { background: 'rgb(var(--sand))', color: 'rgb(var(--ink))' }}
                       >
                         {tt('getStartedLower')}
                       </a>
@@ -593,14 +430,14 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
             </>
           ) : (
             <div className="text-center">
-              <div className="inline-block rounded-[2rem] border border-black/10 bg-white/75 px-12 py-10 shadow-[0_18px_40px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_24px_60px_rgba(0,0,0,0.08)]">
+              <div className="inline-block rounded-[2rem] border border-black/10 bg-white/75 px-12 py-10 shadow-soft transition-shadow hover:shadow-soft">
                 <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full" style={{ background: `${brandAccent}22` }}>
-                  <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke={brandInk} strokeWidth={2}>
+                  <svg aria-hidden="true" className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke={brandInk} strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <div className="mb-2 text-3xl font-semibold tracking-[-0.05em] text-[#171717]">Free</div>
-                <div className="mb-6 text-[#565149]">No cost to use this agent</div>
+                <div className="mb-2 text-3xl font-semibold tracking-[-0.05em] text-ink">Free</div>
+                <div className="mb-6 text-ink-soft">No cost to use this agent</div>
                 <PricingCTA agentSlug={slug} agentName={agent_name} pricingId="" tiers={[]} trialMessages={0} accentColor={accent} isFree={true} />
               </div>
             </div>
@@ -613,28 +450,28 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
         <section id="creator" className="reveal-section px-6 py-20">
           <div className="max-w-2xl mx-auto">
             <div className="text-center mb-10">
-              <span className="mb-4 inline-block rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#4b463e]">
+              <span className="mb-4 inline-block rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold text-ink-soft">
                 {tt('creator')}
               </span>
-              <h2 className="text-3xl font-medium tracking-[-0.05em] text-[#171717]">{tt('meetCreator')}</h2>
+              <h2 className="text-3xl font-medium tracking-[-0.05em] text-ink">{tt('meetCreator')}</h2>
             </div>
-            <div className="creator-card flex flex-col items-center gap-6 rounded-[2rem] border border-black/10 bg-white/75 p-8 shadow-[0_18px_40px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_24px_60px_rgba(0,0,0,0.08)] sm:flex-row sm:items-start">
+            <div className="creator-card flex flex-col items-center gap-6 rounded-[2rem] border border-black/10 bg-white/75 p-8 shadow-soft transition-shadow hover:shadow-soft sm:flex-row sm:items-start">
               {creator?.avatar_url ? (
                 <img src={creator.avatar_url} alt={displayName || ''} className="h-20 w-20 flex-shrink-0 rounded-full border border-black/10 object-cover" loading="lazy" />
               ) : (
-                <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-full text-2xl font-bold text-[#11231d]" style={{ background: brandAccent }}>
+                <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-full text-2xl font-bold text-ink" style={{ background: brandAccent }}>
                   {(displayName || 'C')[0].toUpperCase()}
                 </div>
               )}
               <div className="flex-1 text-center sm:text-left">
-                <div className="mb-2 text-xl font-semibold tracking-[-0.03em] text-[#171717]">{displayName || 'Creator'}</div>
-                {displayBio && <p className="mb-4 text-sm leading-relaxed text-[#565149]">{displayBio}</p>}
+                <div className="mb-2 text-xl font-semibold tracking-[-0.03em] text-ink">{displayName || 'Creator'}</div>
+                {displayBio && <p className="mb-4 text-sm leading-relaxed text-ink-soft">{displayBio}</p>}
                 <div className="flex items-center justify-center sm:justify-start gap-4 flex-wrap">
-                  {creator?.website_url && <a href={creator.website_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-[#171717] hover:underline">Website ↗</a>}
-                  {creator?.twitter_url && <a href={creator.twitter_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-[#171717] hover:underline">Twitter ↗</a>}
-                  {creator?.github_url && <a href={creator.github_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-[#171717] hover:underline">GitHub ↗</a>}
-                  {creator?.linkedin_url && <a href={creator.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-[#171717] hover:underline">LinkedIn ↗</a>}
-                  {creator?.username && <Link href={`/creators/${creator.username}`} className="text-sm font-medium text-[#171717] hover:underline">View all agents ↗</Link>}
+                  {creator?.website_url && <a href={creator.website_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-ink hover:underline">Website ↗</a>}
+                  {creator?.twitter_url && <a href={creator.twitter_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-ink hover:underline">Twitter ↗</a>}
+                  {creator?.github_url && <a href={creator.github_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-ink hover:underline">GitHub ↗</a>}
+                  {creator?.linkedin_url && <a href={creator.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-ink hover:underline">LinkedIn ↗</a>}
+                  {creator?.username && <Link href={`/creators/${creator.username}`} className="text-sm font-medium text-ink hover:underline">View all agents ↗</Link>}
                 </div>
               </div>
             </div>
@@ -647,21 +484,21 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
         <section id="subscribe" className="reveal-section px-6 py-20" style={{ background: brandPanel }}>
           <div className="max-w-xl mx-auto text-center">
             <div className="section-header mb-8">
-              <span className="section-badge mb-4 inline-block rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#4b463e]">
+              <span className="section-badge mb-4 inline-block rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold text-ink-soft">
                 {tt('freeUpdates')}
               </span>
-              <h2 className="section-title mb-3 text-3xl font-medium tracking-[-0.05em] text-[#171717] md:text-4xl">
+              <h2 className="section-title mb-3 text-3xl font-medium tracking-[-0.05em] text-ink md:text-4xl">
                 {tt('stayInLoop')}
               </h2>
-              <p className="section-sub text-lg text-[#565149]">
+              <p className="section-sub text-lg text-ink-soft">
                 {tt('subscribeBlurb')}
               </p>
             </div>
 
             {emailDone ? (
-              <div className="flex items-center justify-center gap-3 rounded-[1.6rem] border border-black/10 bg-white/80 px-6 py-4 shadow-[0_18px_40px_rgba(0,0,0,0.05)]">
+              <div className="flex items-center justify-center gap-3 rounded-[1.6rem] border border-black/10 bg-white/80 px-6 py-4 shadow-soft">
                 <span className="text-2xl">✓</span>
-                <p className="font-semibold text-[#171717]">{tt('subscribed')}</p>
+                <p className="font-semibold text-ink">{tt('subscribed')}</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -672,19 +509,19 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
                     onChange={e => setEmailInput(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleEmailSubscribe()}
                     placeholder={tt('emailPlaceholder')}
-                    className="flex-1 rounded-[1.2rem] border border-black/10 bg-white/90 px-4 py-3.5 text-sm text-[#171717] shadow-sm focus:border-transparent focus:outline-none focus:ring-2"
+                    className="flex-1 rounded-[1.2rem] border border-black/10 bg-white/90 px-4 py-3.5 text-sm text-ink shadow-sm focus:border-transparent focus:outline-none focus:ring-2"
                     style={{ '--tw-ring-color': brandAccent } as React.CSSProperties}
                   />
                   <button
                     onClick={handleEmailSubscribe}
                     disabled={emailLoading || !emailInput.trim()}
-                    className="rounded-[1.2rem] bg-[#171717] px-6 py-3.5 text-sm font-semibold text-[#f7f2e7] shadow-sm transition-all hover:bg-black disabled:opacity-50"
+                    className="rounded-[1.2rem] bg-ink px-6 py-3.5 text-sm font-semibold text-paper shadow-sm transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:bg-black disabled:opacity-50"
                   >
                     {emailLoading ? '...' : tt('subscribeFree')}
                   </button>
                 </div>
-                {emailError && <p className="text-red-500 text-sm">{emailError}</p>}
-                <p className="text-xs text-[#7a7267]">No spam. Unsubscribe anytime.</p>
+                {emailError && <p className="text-leaf text-sm">{emailError}</p>}
+                <p className="text-xs text-ink-mute">No spam. Unsubscribe anytime.</p>
               </div>
             )}
           </div>
@@ -702,7 +539,7 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
           <div className="cta-line flex items-center justify-center gap-4 flex-wrap">
             <a
               href="#pricing"
-              className="rounded-full bg-[#f7f2e7] px-8 py-4 text-base font-semibold text-[#171717] transition-all hover:-translate-y-0.5 hover:bg-white"
+              className="rounded-full bg-paper px-8 py-4 text-base font-semibold text-ink transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:-translate-y-0.5 hover:bg-white"
             >
               {cta_label || tt('tryFree')}
             </a>
@@ -714,13 +551,13 @@ export function AnimatedLanding({ data, slug }: { data: LandingData; slug: strin
       </section>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-white/8 bg-[#171717] px-6 py-8">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 text-sm text-[#a79f92] sm:flex-row">
+      <footer className="border-t border-white/8 bg-ink px-6 py-8">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 text-sm text-taupe sm:flex-row">
           <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             {agent_avatar ? (
               <img src={agent_avatar} alt={agent_name} className="h-6 w-6 rounded-md object-cover ring-1 ring-white/10" loading="lazy" />
             ) : (
-              <div className="flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold text-[#11231d]" style={{ background: brandAccent }}>
+              <div className="flex h-6 w-6 items-center justify-center rounded-md text-xs font-bold text-ink" style={{ background: brandAccent }}>
                 {(agent_name || 'A')[0].toUpperCase()}
               </div>
             )}

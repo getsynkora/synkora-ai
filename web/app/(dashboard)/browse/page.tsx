@@ -320,11 +320,11 @@ function SortDropdown({ value, onChange }: { value: SortBy; onChange: (v: SortBy
         ref={btnRef}
         onClick={toggle}
         aria-label="Sort by"
-        className="flex w-full items-center justify-between rounded-[0.35rem] border border-black/10 bg-white/[0.78] px-4 py-3 text-[13px] text-[#171717] outline-none transition-all focus:border-[#ff5f8f] focus:ring-2 focus:ring-[#ff5f8f]/20 md:text-[14px]"
+        className="flex w-full items-center justify-between rounded-[0.35rem] border border-black/10 bg-white/[0.78] px-4 py-3 text-[13px] text-ink outline-none transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-hotpink focus:ring-2 focus:ring-hotpink/20 md:text-[14px]"
         style={{ borderColor: open ? '#ff5f8f' : undefined, boxShadow: open ? '0 0 0 2px rgba(255,95,143,0.2)' : undefined }}
       >
         <span>{selected.label}</span>
-        <ChevronDown className={`h-4 w-4 text-[#5b564e] transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`h-4 w-4 text-ink-soft transition-transform motion-reduce:transition-none ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && anchorRect && createPortal(
         <div
@@ -336,13 +336,13 @@ function SortDropdown({ value, onChange }: { value: SortBy; onChange: (v: SortBy
             width: anchorRect.width,
             zIndex: 9999,
           }}
-          className="rounded-[0.45rem] border border-black/[0.08] bg-[rgba(255,255,255,0.94)] py-1.5 shadow-[0_18px_40px_rgba(0,0,0,0.12)] backdrop-blur-xl"
+          className="rounded-[0.45rem] border border-black/[0.08] bg-white/95 py-1.5 shadow-soft"
         >
           {SORT_OPTIONS.map((opt) => (
             <button
               key={opt.value}
               onClick={() => { onChange(opt.value); setOpen(false) }}
-              className={`flex w-full items-center gap-2.5 px-4 py-2 text-[13px] text-left transition-colors hover:bg-black/5 ${value === opt.value ? 'font-semibold text-[#ff5f8f]' : 'text-gray-700'}`}
+              className={`flex w-full items-center gap-2.5 px-4 py-2 text-[13px] text-left transition-colors hover:bg-black/5 ${value === opt.value ? 'font-semibold text-hotpink' : 'text-ink-soft'}`}
             >
               {opt.label}
             </button>
@@ -568,18 +568,18 @@ export default function BrowsePage() {
     <div className="dashboard-app min-h-full px-4 py-4 md:px-8 md:py-6 xl:px-10">
       <div className="mx-auto max-w-[90rem]">
         <div className="dashboard-surface mb-4 px-5 py-3">
-          <nav className="flex items-center gap-2 text-sm text-[#7a736a]">
-            <button onClick={() => router.push('/')} className="transition-colors hover:text-[#171717]">
+          <nav className="flex items-center gap-2 text-sm text-ink-mute">
+            <button onClick={() => router.push('/')} className="transition-colors hover:text-ink">
               Home
             </button>
-            <ChevronRight size={14} className="text-[#9a9388]" />
-            <button onClick={() => router.push('/browse')} className="transition-colors hover:text-[#171717]">
+            <ChevronRight size={14} className="text-ash" />
+            <button onClick={() => router.push('/browse')} className="transition-colors hover:text-ink">
               Marketplace
             </button>
             {selectedCategory && (
               <>
-                <ChevronRight size={14} className="text-[#9a9388]" />
-                <span className="font-medium text-[#171717]">{selectedCategory}</span>
+                <ChevronRight size={14} className="text-ash" />
+                <span className="font-medium text-ink">{selectedCategory}</span>
               </>
             )}
           </nav>
@@ -588,11 +588,7 @@ export default function BrowsePage() {
         <div className="dashboard-surface mb-6 p-5 md:p-6 xl:p-7">
           <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
             <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/70 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6e675d]">
-                <Sparkles className="h-3 w-3 text-[#2d8b69]" />
-                Marketplace Access
-              </div>
-              <h1 className="text-[1.8rem] font-semibold tracking-[-0.05em] text-[#171717] md:text-[2.65rem]">
+              <h1 className="text-[1.8rem] font-semibold tracking-[-0.05em] text-ink md:text-[2.65rem]">
                 {selectedCategory ? (
                   <>
                     <span className="highlight-mint">{selectedCategory}</span> agents
@@ -603,14 +599,14 @@ export default function BrowsePage() {
                   </>
                 )}
               </h1>
-              <p className="mt-3 max-w-3xl text-[13px] leading-relaxed text-[#5b564e] md:text-[15px]">
+              <p className="mt-3 max-w-3xl text-[13px] leading-relaxed text-ink-soft md:text-[15px]">
                 Discover marketplace agents with clearer pricing, stronger trust signals, and cleaner category navigation. Deploy the right specialist without digging through clutter.
               </p>
             </div>
 
             <button
               onClick={clearAllFilters}
-              className="inline-flex flex-shrink-0 items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.78] px-5 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white md:text-[14px]"
+              className="inline-flex flex-shrink-0 items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.78] px-5 py-3 text-[13px] font-medium text-ink transition-colors hover:bg-white md:text-[14px]"
             >
               <SlidersHorizontal size={16} />
               Clear Filters
@@ -626,13 +622,13 @@ export default function BrowsePage() {
 
           <div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_auto]">
             <label className="relative block">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a8378]" />
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ash" />
               <input
                 type="text"
-                placeholder="Search agents, tools, or use cases..."
+                placeholder="Search agents, tools, or use cases…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-[0.35rem] border border-black/10 bg-white/[0.78] py-3 pl-11 pr-4 text-[13px] text-[#171717] outline-none transition-all focus:border-[#ff5f8f] focus:ring-2 focus:ring-[#ff5f8f]/20 md:text-[14px]"
+                className="w-full rounded-[0.35rem] border border-black/10 bg-white/[0.78] py-3 pl-11 pr-4 text-[13px] text-ink outline-none transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-hotpink focus:ring-2 focus:ring-hotpink/20 md:text-[14px]"
               />
             </label>
 
@@ -642,7 +638,7 @@ export default function BrowsePage() {
               <button
                 onClick={() => setViewMode('grid')}
                 className={`flex h-10 w-10 items-center justify-center rounded-[0.35rem] transition-colors ${
-                  viewMode === 'grid' ? 'bg-[#181818] text-[#f7f2e7]' : 'text-[#6f685e] hover:bg-black/5'
+                  viewMode === 'grid' ? 'bg-ink text-paper' : 'text-ink-mute hover:bg-black/5'
                 }`}
                 aria-label="Grid view"
               >
@@ -651,7 +647,7 @@ export default function BrowsePage() {
               <button
                 onClick={() => setViewMode('list')}
                 className={`flex h-10 w-10 items-center justify-center rounded-[0.35rem] transition-colors ${
-                  viewMode === 'list' ? 'bg-[#181818] text-[#f7f2e7]' : 'text-[#6f685e] hover:bg-black/5'
+                  viewMode === 'list' ? 'bg-ink text-paper' : 'text-ink-mute hover:bg-black/5'
                 }`}
                 aria-label="List view"
               >
@@ -664,7 +660,7 @@ export default function BrowsePage() {
         <div className="grid gap-6 xl:grid-cols-[248px_minmax(0,1fr)]">
           <aside className="dashboard-surface p-3 md:p-4 xl:sticky xl:top-24 xl:h-fit">
             <div className="mb-4">
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8a8378]">Categories</p>
+              <p className="mb-2 text-[11px] font-semibold text-ash">Categories</p>
               <div className="space-y-1">
                 {displayCategories.map((cat) => {
                   const isActive = selectedCategory === cat
@@ -672,20 +668,20 @@ export default function BrowsePage() {
                     <button
                       key={cat}
                       onClick={() => setSelectedCategory(isActive ? '' : cat)}
-                      className={`relative flex w-full items-center gap-2 overflow-hidden rounded-[0.35rem] px-2 py-2 text-left transition-all ${
+                      className={`relative flex w-full items-center gap-2 overflow-hidden rounded-[0.35rem] px-2 py-2 text-left transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
                         isActive
-                          ? 'border border-black/10 bg-white/[0.82] text-[#171717] shadow-sm'
-                          : 'text-[#5b564e] hover:bg-white/[0.62] hover:text-[#171717]'
+                          ? 'border border-black/10 bg-white/[0.82] text-ink shadow-sm'
+                          : 'text-ink-soft hover:bg-white/[0.62] hover:text-ink'
                       }`}
                     >
                       {isActive && (
-                        <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-[0.35rem] bg-[#63dfbe]" aria-hidden="true" />
+                        <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-[0.35rem] bg-mint" aria-hidden="true" />
                       )}
-                      <span className={`flex h-7 w-7 items-center justify-center rounded-[0.35rem] ${isActive ? 'bg-[#181818] text-[#f7f2e7]' : 'bg-white/80 text-[#8a8378]'}`}>
+                      <span className={`flex h-7 w-7 items-center justify-center rounded-[0.35rem] ${isActive ? 'bg-ink text-paper' : 'bg-white/80 text-ash'}`}>
                         {getCategoryIcon(cat, 14)}
                       </span>
                       <span className="flex-1 text-[13px] font-medium leading-none">{cat}</span>
-                      <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-[#8a8378]">
+                      <span className="text-[10px] font-semibold text-ash">
                         {categoryCountMap.get(cat) ?? 0}
                       </span>
                     </button>
@@ -698,7 +694,7 @@ export default function BrowsePage() {
               <>
                 <div className="mb-3 border-t border-black/[0.08]" />
                 <div>
-                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8a8378]">Tags</p>
+                  <p className="mb-2 text-[11px] font-semibold text-ash">Tags</p>
                   <div className="flex flex-wrap gap-1.5">
                     {availableTags.map((tag) => {
                       const isSelected = selectedTags.includes(tag)
@@ -708,8 +704,8 @@ export default function BrowsePage() {
                           onClick={() => toggleTag(tag)}
                           className={`rounded-[0.35rem] px-2.5 py-1.5 text-[11px] font-medium transition-colors ${
                             isSelected
-                              ? 'bg-[#181818] text-[#f7f2e7]'
-                              : 'border border-black/10 bg-white/70 text-[#5b564e] hover:bg-white'
+                              ? 'bg-ink text-paper'
+                              : 'border border-black/10 bg-white/70 text-ink-soft hover:bg-white'
                           }`}
                         >
                           {tag}
@@ -725,27 +721,27 @@ export default function BrowsePage() {
           <section className="min-w-0">
             <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
-                <p className="text-[13px] uppercase tracking-[0.18em] text-[#8a8378]">Results</p>
-                <p className="mt-1 text-[15px] text-[#5b564e]">
-                  Showing <span className="font-semibold text-[#171717]">{filteredAgents.length}</span> marketplace agents
-                  {selectedCategory && <> in <span className="font-semibold text-[#171717]">{selectedCategory}</span></>}
+                <p className="text-[13px] text-ash">Results</p>
+                <p className="mt-1 text-[15px] text-ink-soft">
+                  Showing <span className="font-semibold text-ink">{filteredAgents.length}</span> marketplace agents
+                  {selectedCategory && <> in <span className="font-semibold text-ink">{selectedCategory}</span></>}
                 </p>
               </div>
 
               {hasActiveFilters && (
                 <div className="flex flex-wrap gap-2">
                   {selectedCategory && (
-                    <span className="rounded-[0.35rem] border border-black/10 bg-white/70 px-3 py-2 text-xs font-medium text-[#171717]">
+                    <span className="rounded-[0.35rem] border border-black/10 bg-white/70 px-3 py-2 text-xs font-medium text-ink">
                       {selectedCategory}
                     </span>
                   )}
                   {selectedTags.map((tag) => (
-                    <span key={tag} className="rounded-[0.35rem] border border-black/10 bg-white/70 px-3 py-2 text-xs font-medium text-[#171717]">
+                    <span key={tag} className="rounded-[0.35rem] border border-black/10 bg-white/70 px-3 py-2 text-xs font-medium text-ink">
                       {tag}
                     </span>
                   ))}
                   {searchQuery && (
-                    <span className="rounded-[0.35rem] border border-black/10 bg-white/70 px-3 py-2 text-xs font-medium text-[#171717]">
+                    <span className="rounded-[0.35rem] border border-black/10 bg-white/70 px-3 py-2 text-xs font-medium text-ink">
                       {searchQuery}
                     </span>
                   )}
@@ -756,8 +752,8 @@ export default function BrowsePage() {
             {loading ? (
               <div className={viewMode === 'grid' ? 'grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3' : 'space-y-4'}>
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="dashboard-panel animate-pulse overflow-hidden">
-                    <div className="border-b border-black/10 bg-[#efe7d8] pt-10 pb-12">
+                  <div key={i} className="dashboard-panel motion-safe:animate-pulse overflow-hidden">
+                    <div className="border-b border-black/10 bg-sand-deep pt-10 pb-12">
                       <div className="mx-auto h-24 w-24 rounded-[0.45rem] bg-white shadow-lg" />
                     </div>
                     <div className="p-5">
@@ -778,16 +774,16 @@ export default function BrowsePage() {
               </div>
             ) : paginatedAgents.length === 0 ? (
               <div className="dashboard-surface py-20 text-center">
-                <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-[0.45rem] bg-[#f1eadc] text-[#171717]">
+                <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-[0.45rem] bg-sand-deep text-ink">
                   <Search className="h-8 w-8" />
                 </div>
-                <h3 className="mb-2 text-[1.05rem] font-semibold text-[#171717] md:text-[1.35rem]">No matching agents</h3>
-                <p className="mb-6 text-[13px] text-[#6c655c] md:text-[14px]">
+                <h3 className="mb-2 text-[1.05rem] font-semibold text-ink md:text-[1.35rem]">No matching agents</h3>
+                <p className="mb-6 text-[13px] text-ink-mute md:text-[14px]">
                   Try clearing filters or broadening your search terms.
                 </p>
                 <button
                   onClick={clearAllFilters}
-                  className="inline-flex items-center gap-2 rounded-[0.35rem] bg-[#181818] px-6 py-3 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 md:text-[14px]"
+                  className="inline-flex items-center gap-2 rounded-[0.35rem] bg-ink px-6 py-3 text-[13px] font-medium text-paper transition-transform motion-reduce:transition-none hover:-translate-y-0.5 md:text-[14px]"
                 >
                   Reset Filters
                 </button>
@@ -804,9 +800,9 @@ export default function BrowsePage() {
                       <div
                         key={agent.id}
                         onClick={() => router.push(`/browse/${agent.id}`)}
-                        className="dashboard-panel flex cursor-pointer flex-col gap-5 p-5 transition-all duration-300 hover:-translate-y-1 md:flex-row md:items-center"
+                        className="dashboard-panel flex cursor-pointer flex-col gap-5 p-5 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 hover:-translate-y-1 md:flex-row md:items-center"
                       >
-                        <div className="relative flex h-40 items-center justify-center overflow-hidden rounded-[0.45rem] border border-black/10 bg-[linear-gradient(180deg,#efe7d8_0%,#f3ecdf_100%)] md:h-48 md:w-56">
+                        <div className="relative flex h-40 items-center justify-center overflow-hidden rounded-[0.45rem] border border-black/10 md:h-48 md:w-56">
                           {agent.avatar ? (
                             <>
                               <img
@@ -814,8 +810,8 @@ export default function BrowsePage() {
                                 alt={agent.agent_name}
                                 className="absolute inset-0 h-full w-full object-cover object-center"
                               />
-                              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_24%,rgba(255,255,255,0.22),transparent_42%)]" />
-                              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(243,236,223,0.08),rgba(243,236,223,0.04)_45%,rgba(255,255,255,0.1))]" />
+                              <div className="pointer-events-none absolute inset-0" />
+                              <div className="pointer-events-none absolute inset-0" />
                             </>
                           ) : (
                           <AgentIllustration name={agent.agent_name} />
@@ -825,43 +821,43 @@ export default function BrowsePage() {
                         <div className="min-w-0 flex-1">
                           <div className="mb-2 flex flex-wrap items-center gap-2">
                             {badge && (
-                              <span className={`inline-flex items-center gap-1 rounded-[0.35rem] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${
+                              <span className={`inline-flex items-center gap-1 rounded-[0.35rem] px-3 py-1 text-[11px] font-semibold ${
                                 badge.type === 'top_rated'
-                                  ? 'bg-[#fff0d9] text-[#171717]'
-                                  : 'bg-[rgba(99,223,190,0.18)] text-[#171717]'
+                                  ? 'bg-sand-deep text-ink'
+                                  : 'bg-mint/20 text-ink'
                               }`}>
                                 {badge.type === 'verified' && <CheckCircle size={12} />}
                                 {badge.type === 'top_rated' && <Award size={12} />}
                                 {badge.label}
                               </span>
                             )}
-                            <span className="rounded-[0.35rem] border border-black/10 bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#5b564e]">
+                            <span className="rounded-[0.35rem] border border-black/10 bg-white/70 px-3 py-1 text-[11px] font-semibold text-ink-soft">
                               {agent.category || 'General'}
                             </span>
                           </div>
 
                           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                             <div className="min-w-0">
-                              <h3 className="line-clamp-1 text-[1.35rem] font-semibold tracking-[-0.04em] text-[#171717]">
+                              <h3 className="line-clamp-1 text-[1.35rem] font-semibold tracking-[-0.04em] text-ink">
                                 {agent.agent_name}
                               </h3>
-                              <p className="mt-2 line-clamp-2 text-[14px] leading-relaxed text-[#5b564e]">
+                              <p className="mt-2 line-clamp-2 text-[14px] leading-relaxed text-ink-soft">
                                 {agent.description || 'AI agent for your business needs.'}
                               </p>
                             </div>
 
                             <div className="flex items-center gap-5 lg:ml-6 lg:flex-col lg:items-end lg:text-right">
-                              <div className="flex items-center gap-1 text-[#b7832f]">
+                              <div className="flex items-center gap-1 text-warn">
                                 <Star size={16} fill="currentColor" />
-                                <span className="text-sm font-semibold text-[#171717]">{rating.toFixed(1)}</span>
+                                <span className="text-sm font-semibold text-ink">{rating.toFixed(1)}</span>
                               </div>
                               <div>
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8a8378]">
+                                <p className="text-[11px] font-semibold text-ash">
                                   {price.label === 'Free' ? 'Access' : 'Starting at'}
                                 </p>
-                                <p className="text-lg font-semibold text-[#171717]">
+                                <p className="text-lg font-semibold text-ink">
                                   {price.label}
-                                  {price.sub && <span className="ml-1 text-sm font-medium text-[#7a736a]">{price.sub}</span>}
+                                  {price.sub && <span className="ml-1 text-sm font-medium text-ink-mute">{price.sub}</span>}
                                 </p>
                               </div>
                             </div>
@@ -870,16 +866,16 @@ export default function BrowsePage() {
                           <div className="mt-5 flex items-center justify-between gap-4 border-t border-black/10 pt-4">
                             <div className="flex items-center gap-6">
                               <div>
-                                <p className="text-xs uppercase tracking-[0.16em] text-[#8a8378]">Uses</p>
-                                <p className="text-lg font-semibold text-[#171717]">{agent.usage_count}</p>
+                                <p className="text-xs text-ash">Uses</p>
+                                <p className="text-lg font-semibold text-ink">{agent.usage_count}</p>
                               </div>
                               <div>
-                                <p className="text-xs uppercase tracking-[0.16em] text-[#8a8378]">Likes</p>
-                                <p className="text-lg font-semibold text-[#171717]">{agent.likes_count}</p>
+                                <p className="text-xs text-ash">Likes</p>
+                                <p className="text-lg font-semibold text-ink">{agent.likes_count}</p>
                               </div>
                             </div>
 
-                            <button className="rounded-[0.35rem] bg-[#181818] px-5 py-2.5 text-sm font-semibold uppercase tracking-[0.14em] text-[#f7f2e7] transition-transform hover:-translate-y-0.5">
+                            <button className="rounded-[0.35rem] bg-ink px-5 py-2.5 text-sm font-semibold text-paper transition-transform motion-reduce:transition-none hover:-translate-y-0.5">
                               View Details
                             </button>
                           </div>
@@ -892,14 +888,14 @@ export default function BrowsePage() {
                     <div
                       key={agent.id}
                       onClick={() => router.push(`/browse/${agent.id}`)}
-                      className="dashboard-panel group flex cursor-pointer flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1"
+                      className="dashboard-panel group flex cursor-pointer flex-col overflow-hidden transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 hover:-translate-y-1"
                     >
-                      <div className="relative flex min-h-[16rem] items-center justify-center overflow-hidden border-b border-black/10 bg-[linear-gradient(180deg,#efe7d8_0%,#f3ecdf_100%)] md:min-h-[18.5rem]">
+                      <div className="relative flex min-h-[16rem] items-center justify-center overflow-hidden border-b border-black/10 md:min-h-[18.5rem]">
                         {badge && (
-                          <span className={`absolute left-4 top-4 inline-flex items-center gap-1 rounded-[0.35rem] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${
+                          <span className={`absolute left-4 top-4 inline-flex items-center gap-1 rounded-[0.35rem] px-3 py-1 text-[11px] font-semibold ${
                             badge.type === 'top_rated'
-                              ? 'bg-[#fff0d9] text-[#171717]'
-                              : 'bg-[rgba(99,223,190,0.18)] text-[#171717]'
+                              ? 'bg-sand-deep text-ink'
+                              : 'bg-mint/20 text-ink'
                           }`}>
                             {badge.type === 'verified' && <CheckCircle size={12} />}
                             {badge.type === 'top_rated' && <Award size={12} />}
@@ -907,9 +903,9 @@ export default function BrowsePage() {
                           </span>
                         )}
 
-                        <div className="absolute right-4 top-4 rounded-[0.35rem] border border-black/10 bg-white/78 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#171717]">
+                        <div className="absolute right-4 top-4 rounded-[0.35rem] border border-black/10 bg-white/78 px-3 py-1.5 text-[11px] font-semibold text-ink">
                           {price.label}
-                          {price.sub && <span className="ml-1 font-medium text-[#7a736a]">{price.sub}</span>}
+                          {price.sub && <span className="ml-1 font-medium text-ink-mute">{price.sub}</span>}
                         </div>
 
                         {agent.avatar ? (
@@ -919,8 +915,8 @@ export default function BrowsePage() {
                               alt={agent.agent_name}
                               className="absolute inset-0 h-full w-full object-cover object-center"
                             />
-                            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_24%,rgba(255,255,255,0.22),transparent_42%)]" />
-                            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(243,236,223,0.08),rgba(243,236,223,0.04)_45%,rgba(255,255,255,0.1))]" />
+                            <div className="pointer-events-none absolute inset-0" />
+                            <div className="pointer-events-none absolute inset-0" />
                           </>
                         ) : (
                           <AgentIllustration name={agent.agent_name} />
@@ -930,28 +926,28 @@ export default function BrowsePage() {
                       <div className="flex flex-1 flex-col p-5">
                         <div className="mb-2 flex items-start justify-between gap-3">
                           <div>
-                            <h3 className="line-clamp-2 text-[1.3rem] font-semibold leading-tight tracking-[-0.04em] text-[#171717]">
+                            <h3 className="line-clamp-2 text-[1.3rem] font-semibold leading-tight tracking-[-0.04em] text-ink">
                               {agent.agent_name}
                             </h3>
-                            <p className="mt-2 text-[12px] uppercase tracking-[0.16em] text-[#7a736a]">
+                            <p className="mt-2 text-[12px] text-ink-mute">
                               {agent.category || 'General'}
                             </p>
                           </div>
 
-                          <div className="flex items-center gap-1 text-[#b7832f]">
+                          <div className="flex items-center gap-1 text-warn">
                             <Star size={15} fill="currentColor" />
-                            <span className="text-sm font-semibold text-[#171717]">{rating.toFixed(1)}</span>
+                            <span className="text-sm font-semibold text-ink">{rating.toFixed(1)}</span>
                           </div>
                         </div>
 
-                        <p className="mb-4 line-clamp-2 text-[14px] leading-relaxed text-[#5b564e]">
+                        <p className="mb-4 line-clamp-2 text-[14px] leading-relaxed text-ink-soft">
                           {agent.description || 'AI agent for your business needs.'}
                         </p>
 
                         {agent.tags?.length > 0 && (
                           <div className="mb-4 flex flex-wrap gap-2">
                             {agent.tags.slice(0, 2).map((tag) => (
-                              <span key={tag} className="rounded-[0.35rem] border border-black/10 bg-white/70 px-3 py-1 text-[11px] font-medium text-[#5b564e]">
+                              <span key={tag} className="rounded-[0.35rem] border border-black/10 bg-white/70 px-3 py-1 text-[11px] font-medium text-ink-soft">
                                 {tag}
                               </span>
                             ))}
@@ -961,17 +957,17 @@ export default function BrowsePage() {
                         <div className="mb-5 border-t border-black/10 pt-4">
                           <div className="flex items-center gap-6">
                             <div>
-                              <p className="mb-0.5 text-xs uppercase tracking-[0.16em] text-[#8a8378]">Uses</p>
-                              <p className="text-xl font-semibold text-[#171717]">{agent.usage_count}</p>
+                              <p className="mb-0.5 text-xs text-ash">Uses</p>
+                              <p className="text-xl font-semibold text-ink">{agent.usage_count}</p>
                             </div>
                             <div>
-                              <p className="mb-0.5 text-xs uppercase tracking-[0.16em] text-[#8a8378]">Likes</p>
-                              <p className="text-xl font-semibold text-[#171717]">{agent.likes_count}</p>
+                              <p className="mb-0.5 text-xs text-ash">Likes</p>
+                              <p className="text-xl font-semibold text-ink">{agent.likes_count}</p>
                             </div>
                           </div>
                         </div>
 
-                        <button className="mt-auto rounded-[0.35rem] border border-black/15 bg-white/70 px-5 py-2.5 text-center text-sm font-semibold uppercase tracking-[0.14em] text-[#171717] transition-colors hover:bg-white">
+                        <button className="mt-auto rounded-[0.35rem] border border-black/15 bg-white/70 px-5 py-2.5 text-center text-sm font-semibold text-ink transition-colors hover:bg-white">
                           View Details
                         </button>
                       </div>
@@ -986,7 +982,7 @@ export default function BrowsePage() {
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="flex h-10 w-10 items-center justify-center rounded-[0.35rem] text-[#5b564e] transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-10 w-10 items-center justify-center rounded-[0.35rem] text-ink-soft transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
                   aria-label="Previous page"
                 >
                   <ChevronLeft size={18} />
@@ -1010,8 +1006,8 @@ export default function BrowsePage() {
                       onClick={() => setCurrentPage(pageNum)}
                       className={`flex h-10 w-10 items-center justify-center rounded-[0.35rem] text-sm font-semibold transition-colors ${
                         currentPage === pageNum
-                          ? 'bg-[#181818] text-[#f7f2e7]'
-                          : 'text-[#5b564e] hover:bg-black/5'
+                          ? 'bg-ink text-paper'
+                          : 'text-ink-soft hover:bg-black/5'
                       }`}
                     >
                       {pageNum}
@@ -1021,10 +1017,10 @@ export default function BrowsePage() {
 
                 {totalPages > 5 && currentPage < totalPages - 2 && (
                   <>
-                    <span className="text-[#8a8378]">...</span>
+                    <span className="text-ash">...</span>
                     <button
                       onClick={() => setCurrentPage(totalPages)}
-                      className="flex h-10 w-10 items-center justify-center rounded-[0.35rem] text-sm font-semibold text-[#5b564e] transition-colors hover:bg-black/5"
+                      className="flex h-10 w-10 items-center justify-center rounded-[0.35rem] text-sm font-semibold text-ink-soft transition-colors hover:bg-black/5"
                     >
                       {totalPages}
                     </button>
@@ -1034,7 +1030,7 @@ export default function BrowsePage() {
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="flex h-10 w-10 items-center justify-center rounded-[0.35rem] text-[#5b564e] transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-10 w-10 items-center justify-center rounded-[0.35rem] text-ink-soft transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
                   aria-label="Next page"
                 >
                   <ChevronRight size={18} />

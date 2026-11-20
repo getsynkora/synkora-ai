@@ -132,38 +132,38 @@ function SystemPromptModal({
     >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-black/40"
         onClick={onClose}
       />
 
       {/* Sheet */}
-      <div className="relative flex w-full max-w-2xl flex-col overflow-hidden rounded-[1.75rem] bg-white shadow-[0_32px_64px_-12px_rgba(0,0,0,0.25)] ring-1 ring-black/[0.06]"
+      <div className="relative flex w-full max-w-2xl flex-col overflow-hidden rounded-[1.75rem] bg-white shadow-soft ring-1 ring-black/[0.06]"
            style={{ maxHeight: 'min(82vh, 700px)' }}>
 
         {/* Top accent bar */}
-        <div className="h-1 w-full bg-gradient-to-r from-[#ffb347] via-[#ff5f8f] to-[#c471f5]" />
+        <div className="h-1 w-full bg-warn" />
 
         {/* Header */}
         <div className="flex items-center gap-3 px-6 py-4">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#fff0d9] to-[#ffe1cc]">
-            <MessageSquare className="h-4 w-4 text-[#c47a35]" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sand-deep">
+            <MessageSquare className="h-4 w-4 text-warn" />
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="text-[0.95rem] font-semibold text-[#171717]">System Prompt</h3>
-            <p className="text-[11px] text-[#9c9086]">{wordCount.toLocaleString()} words</p>
+            <h3 className="text-[0.95rem] font-semibold text-ink">System Prompt</h3>
+            <p className="text-[11px] text-ash">{wordCount.toLocaleString()} words</p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handleCopy}
-              className="flex items-center gap-1.5 rounded-[0.8rem] bg-[#f6f0e8] px-3.5 py-2 text-[12px] font-medium text-[#464038] transition-all hover:bg-[#ede4d8] active:scale-95"
+              className="flex items-center gap-1.5 rounded-[0.8rem] bg-paper px-3.5 py-2 text-[12px] font-medium text-ink-soft transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:bg-sand-deep active:scale-95"
             >
               {copied
-                ? <><Check className="h-3.5 w-3.5 text-emerald-600" /><span className="text-emerald-700">Copied</span></>
+                ? <><Check className="h-3.5 w-3.5 text-leaf" /><span className="text-forest">Copied</span></>
                 : <><Copy className="h-3.5 w-3.5" /><span>Copy</span></>}
             </button>
             <button
               onClick={onClose}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-[#9c9086] transition-all hover:bg-[#f1eadc] hover:text-[#464038] active:scale-95"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:bg-sand-deep hover:text-ink-soft active:scale-95"
               aria-label="Close"
             >
               <X className="h-4 w-4" />
@@ -176,38 +176,38 @@ function SystemPromptModal({
 
         {/* Body */}
         <div ref={scrollRef} className="overflow-y-auto px-6 py-5 overscroll-contain">
-          <div className="text-[13.5px] leading-[1.75] text-[#3d3830]">
+          <div className="text-[13.5px] leading-[1.75] text-night">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
-                h1: ({ children }) => <h1 className="mb-3 mt-6 text-[1.15rem] font-bold tracking-tight text-[#171717] first:mt-0">{children}</h1>,
-                h2: ({ children }) => <h2 className="mb-2 mt-5 text-[1rem] font-semibold text-[#171717] first:mt-0">{children}</h2>,
-                h3: ({ children }) => <h3 className="mb-2 mt-4 text-[0.9rem] font-semibold text-[#464038] first:mt-0">{children}</h3>,
+                h1: ({ children }) => <h1 className="mb-3 mt-6 text-[1.15rem] font-bold tracking-tight text-ink first:mt-0">{children}</h1>,
+                h2: ({ children }) => <h2 className="mb-2 mt-5 text-[1rem] font-semibold text-ink first:mt-0">{children}</h2>,
+                h3: ({ children }) => <h3 className="mb-2 mt-4 text-[0.9rem] font-semibold text-ink-soft first:mt-0">{children}</h3>,
                 p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
                 ul: ({ children }) => <ul className="mb-3 ml-5 list-disc space-y-1">{children}</ul>,
                 ol: ({ children }) => <ol className="mb-3 ml-5 list-decimal space-y-1">{children}</ol>,
                 li: ({ children }) => <li className="leading-relaxed">{children}</li>,
                 code: ({ inline, children }: { inline?: boolean; children?: React.ReactNode }) =>
                   inline ? (
-                    <code className="rounded-md bg-[#f3ede4] px-1.5 py-0.5 font-mono text-[12px] text-[#a0522d]">{children}</code>
+                    <code className="rounded-md bg-paper px-1.5 py-0.5 font-mono text-[12px] text-leaf">{children}</code>
                   ) : (
                     <code className="text-[12px]">{children}</code>
                   ),
                 pre: ({ children }) => (
-                  <pre className="mb-3 overflow-x-auto rounded-[1rem] border border-black/[0.06] bg-[#faf6f0] p-4 font-mono text-[12px] leading-relaxed">
+                  <pre className="mb-3 overflow-x-auto rounded-[1rem] border border-black/[0.06] bg-cream p-4 font-mono text-[12px] leading-relaxed">
                     {children}
                   </pre>
                 ),
                 blockquote: ({ children }) => (
-                  <blockquote className="mb-3 rounded-r-lg border-l-[3px] border-[#ffb347] bg-[#fff8ee] px-4 py-2 text-[#6c5c40] italic">
+                  <blockquote className="mb-3 rounded-r-lg border-l-[3px] border-warn bg-paper px-4 py-2 text-bark italic">
                     {children}
                   </blockquote>
                 ),
-                strong: ({ children }) => <strong className="font-semibold text-[#171717]">{children}</strong>,
-                em: ({ children }) => <em className="text-[#5a5248]">{children}</em>,
+                strong: ({ children }) => <strong className="font-semibold text-ink">{children}</strong>,
+                em: ({ children }) => <em className="text-ink-soft">{children}</em>,
                 hr: () => <hr className="my-5 border-black/[0.07]" />,
                 a: ({ href, children }) => (
-                  <a href={href} className="text-[#c47a35] underline decoration-[#ffb347]/60 underline-offset-2 hover:decoration-[#c47a35]" target="_blank" rel="noreferrer">
+                  <a href={href} className="text-warn underline decoration-warn/60 underline-offset-2 hover:decoration-warn" target="_blank" rel="noreferrer">
                     {children}
                   </a>
                 ),
@@ -219,11 +219,11 @@ function SystemPromptModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-black/[0.06] bg-[#fdfaf7] px-6 py-3">
-          <p className="text-[11px] text-[#b0a898]">{prompt.length.toLocaleString()} characters</p>
+        <div className="flex items-center justify-between border-t border-black/[0.06] bg-cream px-6 py-3">
+          <p className="text-[11px] text-taupe">{prompt.length.toLocaleString()} characters</p>
           <button
             onClick={() => window.location.assign(`/agents/${agentName}/edit`)}
-            className="flex items-center gap-1.5 rounded-[0.8rem] bg-[#171717] px-4 py-2 text-[12px] font-medium text-white transition-all hover:bg-[#2a2a2a] active:scale-95"
+            className="flex items-center gap-1.5 rounded-[0.8rem] bg-ink px-4 py-2 text-[12px] font-medium text-white transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:bg-night active:scale-95"
           >
             <Edit className="h-3.5 w-3.5" />
             Edit Prompt
@@ -324,10 +324,10 @@ export default function AgentViewPage() {
         <div className="mx-auto flex min-h-[70vh] max-w-[90rem] items-center justify-center">
           <div className="dashboard-surface px-10 py-12 text-center">
           <div className="relative">
-              <div className="mx-auto h-14 w-14 animate-spin rounded-full border-[3px] border-black/10 border-t-[#181818]"></div>
-              <Sparkles className="absolute left-1/2 top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 text-[#ff5f8f]" />
+              <div className="mx-auto h-14 w-14 motion-safe:animate-spin rounded-full border-[3px] border-black/10 border-t-ink"></div>
+              <Sparkles className="absolute left-1/2 top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 text-hotpink" />
           </div>
-            <p className="mt-5 text-[14px] font-medium text-[#5b564e]">Loading agent details...</p>
+            <p className="mt-5 text-[14px] font-medium text-ink-soft">Loading agent details…</p>
           </div>
         </div>
       </div>
@@ -339,14 +339,14 @@ export default function AgentViewPage() {
       <div className="min-h-full px-4 py-4 md:px-8 md:py-6 xl:px-10">
         <div className="mx-auto flex min-h-[70vh] max-w-[90rem] items-center justify-center">
           <div className="dashboard-surface w-full max-w-md p-8 text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-[0.35rem] bg-[#ffe1ea]">
-              <XCircle className="h-7 w-7 text-red-600" />
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-[0.35rem] bg-sand-deep">
+              <XCircle className="h-7 w-7 text-danger" />
           </div>
-            <h3 className="mb-2 text-[1.15rem] font-semibold text-[#171717]">Error Loading Agent</h3>
-            <p className="mb-6 text-[14px] text-[#5b564e]">{error || 'Agent not found'}</p>
+            <h3 className="mb-2 text-[1.15rem] font-semibold text-ink">Error Loading Agent</h3>
+            <p className="mb-6 text-[14px] text-ink-soft">{error || 'Agent not found'}</p>
             <button
               onClick={() => router.push('/agents')}
-              className="rounded-[0.35rem] bg-[#181818] px-6 py-3 text-[14px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5"
+              className="rounded-[0.35rem] bg-ink px-6 py-3 text-[14px] font-medium text-paper transition-transform motion-reduce:transition-none hover:-translate-y-0.5"
             >
               Back to Agents
             </button>
@@ -367,12 +367,8 @@ export default function AgentViewPage() {
         <div className="dashboard-surface mb-6 p-5 md:p-6 xl:p-7">
           <div className="mb-6 flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0 flex-1">
-              <div className="mb-3 inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/70 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6e675d]">
-                <Sparkles className="h-3 w-3 text-[#ff5f8f]" />
-                Agent Detail
-              </div>
               <div className="flex items-start gap-4">
-                <div className="relative flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-[0.45rem] border border-white/80 bg-[#faf7f0] shadow-[0_18px_40px_rgba(0,0,0,0.06)]">
+                <div className="relative flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-[0.45rem] border border-white/80 bg-cream shadow-soft">
                   {agent.avatar ? (
                     agent.avatar.startsWith('http://') || agent.avatar.startsWith('https://') ? (
                       <img
@@ -389,28 +385,28 @@ export default function AgentViewPage() {
                       />
                     )
                   ) : (
-                    <Bot className="h-7 w-7 text-[#181818]" />
+                    <Bot className="h-7 w-7 text-ink" />
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h1 className="text-[1.8rem] font-semibold tracking-[-0.05em] text-[#171717] md:text-[2.65rem]">
+                  <h1 className="text-[1.8rem] font-semibold tracking-[-0.05em] text-ink md:text-[2.65rem]">
                     {agent.agent_name}
                   </h1>
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <span className={`inline-flex items-center rounded-[0.35rem] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${
+                    <span className={`inline-flex items-center rounded-[0.35rem] px-3 py-1 text-[11px] font-semibold ${
                       agent.status === 'active'
-                        ? 'bg-[#def4eb] text-[#171717]'
-                        : 'bg-white/70 text-[#5b564e] border border-black/[0.08]'
+                        ? 'bg-leaf-wash text-ink'
+                        : 'bg-white/70 text-ink-soft border border-black/[0.08]'
                     }`}>
                       <span className={`mr-1.5 h-1.5 w-1.5 rounded-full ${
-                        agent.status === 'active' ? 'bg-[#2d8b69]' : 'bg-[#8a8378]'
+                        agent.status === 'active' ? 'bg-leaf' : 'bg-ash'
                       }`}></span>
                       {agent.status}
                     </span>
-                    <span className="dashboard-chip px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]">
+                    <span className="dashboard-chip px-3 py-1 text-[11px] font-semibold">
                       {agent.agent_type}
                     </span>
-                    <span className="dashboard-chip px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]">
+                    <span className="dashboard-chip px-3 py-1 text-[11px] font-semibold">
                       Updated {new Date(agent.updated_at).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
@@ -418,7 +414,7 @@ export default function AgentViewPage() {
                       })}
                     </span>
                   </div>
-                  <p className="mt-3 max-w-4xl text-[13px] leading-relaxed text-[#5b564e] md:text-[15px]">
+                  <p className="mt-3 max-w-4xl text-[13px] leading-relaxed text-ink-soft md:text-[15px]">
                     {agent.description}
                   </p>
                 </div>
@@ -428,7 +424,7 @@ export default function AgentViewPage() {
             <div className="flex flex-wrap gap-2 xl:justify-end">
               <button
                 onClick={() => router.push(`/agents/${agentName}/edit`)}
-                className="inline-flex items-center gap-2 rounded-[0.35rem] bg-[#181818] px-5 py-3 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 md:text-[14px]"
+                className="inline-flex items-center gap-2 rounded-[0.35rem] bg-ink px-5 py-3 text-[13px] font-medium text-paper transition-transform motion-reduce:transition-none hover:-translate-y-0.5 md:text-[14px]"
               >
                 <Edit className="h-4 w-4" />
                 Edit
@@ -436,10 +432,10 @@ export default function AgentViewPage() {
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="inline-flex items-center gap-2 rounded-[0.35rem] bg-[#ffe1ea] px-5 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-[#ffd5e2] disabled:opacity-50 md:text-[14px]"
+                className="inline-flex items-center gap-2 rounded-[0.35rem] bg-blush-wash px-5 py-3 text-[13px] font-medium text-ink transition-colors hover:bg-blush-wash disabled:opacity-50 md:text-[14px]"
               >
                 <Trash2 className="h-4 w-4" />
-                {deleting ? 'Deleting...' : 'Delete'}
+                {deleting ? 'Deleting…' : 'Delete'}
               </button>
             </div>
           </div>
@@ -447,7 +443,7 @@ export default function AgentViewPage() {
           <div className="flex flex-wrap items-center gap-2.5">
             <button
               onClick={() => router.push(`/agents/${agentName}/chat`)}
-              className="inline-flex items-center gap-2 rounded-[0.35rem] bg-[#181818] px-5 py-3 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 md:text-[14px]"
+              className="inline-flex items-center gap-2 rounded-[0.35rem] bg-ink px-5 py-3 text-[13px] font-medium text-paper transition-transform motion-reduce:transition-none hover:-translate-y-0.5 md:text-[14px]"
             >
               <MessageSquare className="h-4 w-4" />
               Chat
@@ -456,7 +452,7 @@ export default function AgentViewPage() {
             {webCallEnabled && (
               <button
                 onClick={() => setShowCallModal(true)}
-                className="inline-flex items-center gap-2 rounded-[0.35rem] bg-green-600 px-5 py-3 text-[13px] font-medium text-white transition-transform hover:-translate-y-0.5 md:text-[14px]"
+                className="inline-flex items-center gap-2 rounded-[0.35rem] bg-leaf px-5 py-3 text-[13px] font-medium text-white transition-transform motion-reduce:transition-none hover:-translate-y-0.5 md:text-[14px]"
               >
                 <Phone className="h-4 w-4" />
                 Call Agent
@@ -465,9 +461,9 @@ export default function AgentViewPage() {
 
             <button
               onClick={() => router.push(`/agents/${agentName}/landing-page`)}
-              className="inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white md:text-[14px]"
+              className="inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-ink transition-colors hover:bg-white md:text-[14px]"
             >
-              <Globe className="h-4 w-4 text-[#ff5f8f]" />
+              <Globe className="h-4 w-4 text-hotpink" />
               Landing Page
             </button>
 
@@ -476,51 +472,51 @@ export default function AgentViewPage() {
                 href={`/a/${publicSlug}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white md:text-[14px]"
+                className="inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-ink transition-colors hover:bg-white md:text-[14px]"
               >
-                <DollarSign className="h-4 w-4 text-[#d9a441]" />
+                <DollarSign className="h-4 w-4 text-warn" />
                 View Public Page
               </a>
             )}
 
             <button
               onClick={() => router.push(`/agents/${agentName}/knowledge-bases`)}
-              className="inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white md:text-[14px]"
+              className="inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-ink transition-colors hover:bg-white md:text-[14px]"
             >
-              <Database className="h-4 w-4 text-[#7d68c9]" />
+              <Database className="h-4 w-4 text-azure" />
               Knowledge
             </button>
 
             <button
               onClick={() => router.push(`/agents/${agentName}/tools`)}
-              className="inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white md:text-[14px]"
+              className="inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-ink transition-colors hover:bg-white md:text-[14px]"
             >
-              <Settings className="h-4 w-4 text-[#2d8b69]" />
+              <Settings className="h-4 w-4 text-leaf" />
               Tools
             </button>
 
             <button
               onClick={() => router.push(`/agents/${agentName}/llm-configs`)}
-              className="inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white md:text-[14px]"
+              className="inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-ink transition-colors hover:bg-white md:text-[14px]"
             >
-              <Cpu className="h-4 w-4 text-[#4a67cc]" />
+              <Cpu className="h-4 w-4 text-azure" />
               AI Model
             </button>
 
             <button
               onClick={() => router.push(`/agents/${agentName}/autonomous`)}
-              className="inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white md:text-[14px]"
+              className="inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-ink transition-colors hover:bg-white md:text-[14px]"
             >
-              <Bot className="h-4 w-4 text-[#ff5f8f]" />
+              <Bot className="h-4 w-4 text-hotpink" />
               Autonomous
             </button>
 
             <button
               onClick={() => setShowMoreActions(!showMoreActions)}
-              className="inline-flex items-center gap-1.5 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-[#5b564e] transition-colors hover:bg-white hover:text-[#171717] md:text-[14px]"
+              className="inline-flex items-center gap-1.5 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] font-medium text-ink-soft transition-colors hover:bg-white hover:text-ink md:text-[14px]"
             >
               More
-              <ChevronDown className={`h-4 w-4 transition-transform ${showMoreActions ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`h-4 w-4 transition-transform motion-reduce:transition-none ${showMoreActions ? 'rotate-180' : ''}`} />
             </button>
           </div>
 
@@ -529,66 +525,66 @@ export default function AgentViewPage() {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 {/* Integrations */}
                 <div>
-                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8a8378]">Integrations</p>
+                  <p className="mb-2 text-[11px] font-semibold text-ash">Integrations</p>
                   <div className="space-y-1">
                     <button
                       onClick={() => router.push(`/agents/${agentName}/slack-bots`)}
-                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-ink transition-colors hover:bg-white/60"
                     >
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                      <svg aria-hidden="true" className="w-4 h-4" viewBox="0 0 24 24" fill="none">
                         <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" fill="#E01E5A"/>
                       </svg>
                       Slack
                     </button>
                     <button
                       onClick={() => router.push(`/agents/${agentName}/messaging-bots`)}
-                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-ink transition-colors hover:bg-white/60"
                     >
-                      <MessageCircle className="w-4 h-4 text-green-600" />
+                      <MessageCircle className="w-4 h-4 text-leaf" />
                       Messaging Bots
                     </button>
                     <button
                       onClick={() => router.push(`/agents/${agentName}/telegram-bots`)}
-                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-ink transition-colors hover:bg-white/60"
                     >
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="#0088cc">
+                      <svg aria-hidden="true" className="w-4 h-4" viewBox="0 0 24 24" fill="#0088cc">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
                       </svg>
                       Telegram
                     </button>
                     <button
                       onClick={() => router.push(`/agents/${agentName}/webhooks`)}
-                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-ink transition-colors hover:bg-white/60"
                     >
-                      <Webhook className="w-4 h-4 text-teal-600" />
+                      <Webhook className="w-4 h-4 text-leaf" />
                       Webhooks
                     </button>
                     <button
                       onClick={() => router.push(`/agents/${agentName}/database-connections`)}
-                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-ink transition-colors hover:bg-white/60"
                     >
-                      <Database className="w-4 h-4 text-blue-600" />
+                      <Database className="w-4 h-4 text-azure" />
                       Database Connections
                     </button>
                     <button
                       onClick={() => router.push(`/agents/${agentName}/compute`)}
-                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-ink transition-colors hover:bg-white/60"
                     >
-                      <Server className="w-4 h-4 text-violet-600" />
+                      <Server className="w-4 h-4 text-plum" />
                       Compute
                     </button>
                     <button
                       onClick={() => router.push(`/agents/${agentName}/voice-meetings`)}
-                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-ink transition-colors hover:bg-white/60"
                     >
-                      <Mic className="w-4 h-4 text-cyan-600" />
+                      <Mic className="w-4 h-4 text-azure" />
                       Voice & Meetings
                     </button>
                     <button
                       onClick={() => router.push(`/agents/${agentName}/meetings`)}
-                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-ink transition-colors hover:bg-white/60"
                     >
-                      <Video className="w-4 h-4 text-cyan-600" />
+                      <Video className="w-4 h-4 text-azure" />
                       Meetings
                     </button>
                   </div>
@@ -596,34 +592,34 @@ export default function AgentViewPage() {
 
                 {/* Deployment */}
                 <div>
-                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8a8378]">Deployment</p>
+                  <p className="mb-2 text-[11px] font-semibold text-ash">Deployment</p>
                   <div className="space-y-1">
                     <button
                       onClick={() => router.push(`/agents/${agentName}/widgets`)}
-                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-ink transition-colors hover:bg-white/60"
                     >
-                      <Code className="w-4 h-4 text-orange-600" />
+                      <Code className="w-4 h-4 text-warn" />
                       Widgets
                     </button>
                     <button
                       onClick={() => router.push(`/agents/${agentName}/domains`)}
-                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-ink transition-colors hover:bg-white/60"
                     >
-                      <Globe className="w-4 h-4 text-blue-600" />
+                      <Globe className="w-4 h-4 text-azure" />
                       Domains
                     </button>
                     <button
                       onClick={() => router.push(`/agents/${agentName}/api-keys`)}
-                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-ink transition-colors hover:bg-white/60"
                     >
-                      <Key className="w-4 h-4 text-amber-600" />
+                      <Key className="w-4 h-4 text-warn" />
                       API Keys
                     </button>
                     <button
                       onClick={() => router.push(`/agents/${agentName}/subscriptions`)}
-                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[0.35rem] px-3 py-2 text-[13px] text-ink transition-colors hover:bg-white/60"
                     >
-                      <Bell className="w-4 h-4 text-red-500" />
+                      <Bell className="w-4 h-4 text-leaf" />
                       Subscriptions
                     </button>
                   </div>
@@ -631,55 +627,55 @@ export default function AgentViewPage() {
 
                 {/* Advanced */}
                 <div>
-                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8a8378]">Advanced</p>
+                  <p className="mb-2 text-[11px] font-semibold text-ash">Advanced</p>
                   <div className="space-y-1">
                     <button
                       onClick={() => router.push(`/agents/${agentName}/autonomous`)}
-                      className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-[13px] text-ink transition-colors hover:bg-white/60"
                     >
-                      <Bot className="w-4 h-4 text-red-600" />
+                      <Bot className="w-4 h-4 text-leaf" />
                       Autonomous Mode
                     </button>
                     <button
                       onClick={() => router.push(`/agents/${agentName}/sub-agents`)}
-                      className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-[13px] text-ink transition-colors hover:bg-white/60"
                     >
-                      <Users className="w-4 h-4 text-rose-600" />
+                      <Users className="w-4 h-4 text-leaf" />
                       Sub-Agents
                     </button>
                     <button
                       onClick={() => router.push(`/agents/${agentName}/mcp-servers`)}
-                      className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-[13px] text-ink transition-colors hover:bg-white/60"
                     >
-                      <Zap className="w-4 h-4 text-indigo-600" />
+                      <Zap className="w-4 h-4 text-azure" />
                       MCP Servers
                     </button>
                     <button
                       onClick={() => router.push(`/agents/${agentName}/outputs`)}
-                      className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-[13px] text-ink transition-colors hover:bg-white/60"
                     >
-                      <Activity className="w-4 h-4 text-sky-600" />
+                      <Activity className="w-4 h-4 text-azure" />
                       Outputs
                     </button>
                     <button
                       onClick={() => router.push(`/agents/${agentName}/chat-customization`)}
-                      className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-[13px] text-ink transition-colors hover:bg-white/60"
                     >
-                      <Sparkles className="w-4 h-4 text-violet-600" />
+                      <Sparkles className="w-4 h-4 text-plum" />
                       Customize Chat
                     </button>
                     <button
                       onClick={() => router.push(`/agents/${agentName}/lens`)}
-                      className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-[13px] text-ink transition-colors hover:bg-white/60"
                     >
-                      <BarChart2 className="w-4 h-4 text-indigo-600" />
+                      <BarChart2 className="w-4 h-4 text-azure" />
                       Lens
                     </button>
                     <button
                       onClick={() => router.push(`/agents/${agentName}/handoffs`)}
-                      className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-[13px] text-[#171717] transition-colors hover:bg-white/60"
+                      className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-[13px] text-ink transition-colors hover:bg-white/60"
                     >
-                      <MessageCircle className="w-4 h-4 text-amber-600" />
+                      <MessageCircle className="w-4 h-4 text-warn" />
                       Handoffs
                     </button>
                   </div>
@@ -691,46 +687,46 @@ export default function AgentViewPage() {
 
         {/* Stats Cards — sourced from Elasticsearch via Lens API (last 30 days) */}
         <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="dashboard-panel p-5 transition-all duration-300 hover:-translate-y-1">
+          <div className="dashboard-panel p-5 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 hover:-translate-y-1">
             <div className="mb-3 flex items-center justify-between">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#ffe1ea]">
-                <Activity className="h-4 w-4 text-[#171717]" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blush-wash">
+                <Activity className="h-4 w-4 text-ink" />
               </div>
-              <TrendingUp className="h-4 w-4 text-[#8a8378]" />
+              <TrendingUp className="h-4 w-4 text-ash" />
             </div>
-            <p className="mb-1 text-[13px] font-medium text-[#6c655c]">Sessions (30d)</p>
-            <p className="text-[1.65rem] font-semibold tracking-[-0.04em] text-[#171717]">
+            <p className="mb-1 text-[13px] font-medium text-ink-mute">Sessions (30d)</p>
+            <p className="text-[1.65rem] font-semibold tracking-[-0.04em] text-ink">
               {lensStats ? lensStats.stats.total_sessions.toLocaleString() : '—'}
             </p>
           </div>
 
-          <div className="dashboard-panel p-5 transition-all duration-300 hover:-translate-y-1">
+          <div className="dashboard-panel p-5 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 hover:-translate-y-1">
             <div className="mb-3 flex items-center justify-between">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#def4eb]">
-                <CheckCircle className="h-4 w-4 text-[#171717]" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-leaf-wash">
+                <CheckCircle className="h-4 w-4 text-ink" />
               </div>
               {lensStats && (
                 <span className={`rounded-[0.35rem] px-2.5 py-1 text-[11px] font-semibold ${
-                  successRate >= 90 ? 'bg-[#def4eb] text-[#171717]' : successRate >= 70 ? 'bg-[#fff0d9] text-[#171717]' : 'bg-[#ffe1ea] text-[#171717]'
+                  successRate >= 90 ? 'bg-leaf-wash text-ink' : successRate >= 70 ? 'bg-sand-deep text-ink' : 'bg-blush-wash text-ink'
                 }`}>
                   {successRate}%
                 </span>
               )}
             </div>
-            <p className="mb-1 text-[13px] font-medium text-[#6c655c]">Success Rate</p>
-            <p className="text-[1.65rem] font-semibold tracking-[-0.04em] text-[#171717]">
+            <p className="mb-1 text-[13px] font-medium text-ink-mute">Success Rate</p>
+            <p className="text-[1.65rem] font-semibold tracking-[-0.04em] text-ink">
               {lensStats ? `${successRate}%` : '—'}
             </p>
           </div>
 
-          <div className="dashboard-panel p-5 transition-all duration-300 hover:-translate-y-1">
+          <div className="dashboard-panel p-5 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 hover:-translate-y-1">
             <div className="mb-3 flex items-center justify-between">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#fff0d9]">
-                <Clock className="h-4 w-4 text-[#171717]" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sand-deep">
+                <Clock className="h-4 w-4 text-ink" />
               </div>
             </div>
-            <p className="mb-1 text-[13px] font-medium text-[#6c655c]">Avg. Latency</p>
-            <p className="text-[1.65rem] font-semibold tracking-[-0.04em] text-[#171717]">
+            <p className="mb-1 text-[13px] font-medium text-ink-mute">Avg. Latency</p>
+            <p className="text-[1.65rem] font-semibold tracking-[-0.04em] text-ink">
               {lensStats
                 ? lensStats.stats.avg_latency_ms >= 1000
                   ? `${(lensStats.stats.avg_latency_ms / 1000).toFixed(1)}s`
@@ -739,14 +735,14 @@ export default function AgentViewPage() {
             </p>
           </div>
 
-          <div className="dashboard-panel p-5 transition-all duration-300 hover:-translate-y-1">
+          <div className="dashboard-panel p-5 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 hover:-translate-y-1">
             <div className="mb-3 flex items-center justify-between">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f0f9ff]">
-                <DollarSign className="h-4 w-4 text-[#171717]" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white">
+                <DollarSign className="h-4 w-4 text-ink" />
               </div>
             </div>
-            <p className="mb-1 text-[13px] font-medium text-[#6c655c]">Total Cost (30d)</p>
-            <p className="text-[1.65rem] font-semibold tracking-[-0.04em] text-[#171717]">
+            <p className="mb-1 text-[13px] font-medium text-ink-mute">Total Cost (30d)</p>
+            <p className="text-[1.65rem] font-semibold tracking-[-0.04em] text-ink">
               {lensStats
                 ? lensStats.stats.total_cost_usd === 0
                   ? '$0.00'
@@ -763,29 +759,29 @@ export default function AgentViewPage() {
           <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="dashboard-panel p-5">
               <div className="mb-2 flex items-center gap-2">
-                <BarChart2 className="h-4 w-4 text-[#4a67cc]" />
-                <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#8a8378]">Tokens Used</p>
+                <BarChart2 className="h-4 w-4 text-azure" />
+                <p className="text-[12px] font-semibold text-ash">Tokens Used</p>
               </div>
-              <p className="text-[1.4rem] font-semibold tracking-[-0.03em] text-[#171717]">
+              <p className="text-[1.4rem] font-semibold tracking-[-0.03em] text-ink">
                 {lensStats.stats.total_tokens >= 1_000_000
                   ? `${(lensStats.stats.total_tokens / 1_000_000).toFixed(1)}M`
                   : lensStats.stats.total_tokens >= 1_000
                     ? `${(lensStats.stats.total_tokens / 1_000).toFixed(1)}K`
                     : lensStats.stats.total_tokens.toLocaleString()}
               </p>
-              <p className="mt-1 text-[11px] text-[#8a8378]">
-                {lensStats.stats.input_tokens.toLocaleString()} in · {lensStats.stats.output_tokens.toLocaleString()} out
+              <p className="mt-1 text-[11px] text-ash">
+                {lensStats.stats.input_tokens.toLocaleString()} in, {lensStats.stats.output_tokens.toLocaleString()} out
               </p>
             </div>
             <div className="dashboard-panel p-5">
               <div className="mb-2 flex items-center gap-2">
-                <Zap className="h-4 w-4 text-[#d9a441]" />
-                <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#8a8378]">Tool Calls</p>
+                <Zap className="h-4 w-4 text-warn" />
+                <p className="text-[12px] font-semibold text-ash">Tool Calls</p>
               </div>
-              <p className="text-[1.4rem] font-semibold tracking-[-0.03em] text-[#171717]">
+              <p className="text-[1.4rem] font-semibold tracking-[-0.03em] text-ink">
                 {lensStats.stats.total_tool_calls.toLocaleString()}
               </p>
-              <p className="mt-1 text-[11px] text-[#8a8378]">
+              <p className="mt-1 text-[11px] text-ash">
                 {lensStats.stats.failed_tool_calls > 0
                   ? `${lensStats.stats.failed_tool_calls} failed`
                   : 'all successful'}
@@ -793,17 +789,17 @@ export default function AgentViewPage() {
             </div>
             <div className="dashboard-panel p-5">
               <div className="mb-2 flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-[#2d8b69]" />
-                <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-[#8a8378]">Cost per Session</p>
+                <DollarSign className="h-4 w-4 text-leaf" />
+                <p className="text-[12px] font-semibold text-ash">Cost per Session</p>
               </div>
-              <p className="text-[1.4rem] font-semibold tracking-[-0.03em] text-[#171717]">
+              <p className="text-[1.4rem] font-semibold tracking-[-0.03em] text-ink">
                 {lensStats.stats.avg_cost_per_session === 0
                   ? '$0.00'
                   : lensStats.stats.avg_cost_per_session < 0.001
                     ? `$${lensStats.stats.avg_cost_per_session.toFixed(5)}`
                     : `$${lensStats.stats.avg_cost_per_session.toFixed(4)}`}
               </p>
-              <p className="mt-1 text-[11px] text-[#8a8378]">
+              <p className="mt-1 text-[11px] text-ash">
                 avg across {lensStats.stats.total_sessions} sessions
               </p>
             </div>
@@ -816,46 +812,46 @@ export default function AgentViewPage() {
           <div className="dashboard-panel p-5">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#ffe1ea]">
-                  <Sparkles className="h-4 w-4 text-[#171717]" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blush-wash">
+                  <Sparkles className="h-4 w-4 text-ink" />
                 </div>
-                <h2 className="text-[1rem] font-semibold text-[#171717] md:text-[1.1rem]">Default AI Model</h2>
+                <h2 className="text-[1rem] font-semibold text-ink md:text-[1.1rem]">Default AI Model</h2>
               </div>
-              <span className="rounded-[0.35rem] bg-[#ffe1ea] px-2.5 py-1 text-[11px] font-medium text-[#171717]">
+              <span className="rounded-[0.35rem] bg-blush-wash px-2.5 py-1 text-[11px] font-medium text-ink">
                 Default Model
               </span>
             </div>
             {defaultLLMConfig ? (
               <div className="space-y-2.5">
                 <div className="flex items-center justify-between border-b border-black/[0.08] py-1.5">
-                  <span className="text-[13px] font-medium text-[#6c655c]">Config Name</span>
-                  <span className="text-[13px] font-semibold text-[#171717]">{defaultLLMConfig.name}</span>
+                  <span className="text-[13px] font-medium text-ink-mute">Config Name</span>
+                  <span className="text-[13px] font-semibold text-ink">{defaultLLMConfig.name}</span>
                 </div>
                 <div className="flex items-center justify-between border-b border-black/[0.08] py-2">
-                  <span className="text-[13px] font-medium text-[#6c655c]">Provider</span>
-                  <span className="text-[13px] font-semibold capitalize text-[#171717]">{defaultLLMConfig.provider}</span>
+                  <span className="text-[13px] font-medium text-ink-mute">Provider</span>
+                  <span className="text-[13px] font-semibold capitalize text-ink">{defaultLLMConfig.provider}</span>
                 </div>
                 <div className="flex items-center justify-between border-b border-black/[0.08] py-2">
-                  <span className="text-[13px] font-medium text-[#6c655c]">Model</span>
-                  <span className="text-[13px] font-semibold text-[#171717]">{defaultLLMConfig.model_name}</span>
+                  <span className="text-[13px] font-medium text-ink-mute">Model</span>
+                  <span className="text-[13px] font-semibold text-ink">{defaultLLMConfig.model_name}</span>
                 </div>
                 <div className="flex items-center justify-between border-b border-black/[0.08] py-2">
-                  <span className="text-[13px] font-medium text-[#6c655c]">Temperature</span>
-                  <span className="text-[13px] font-semibold text-[#171717]">{defaultLLMConfig.temperature ?? 'N/A'}</span>
+                  <span className="text-[13px] font-medium text-ink-mute">Temperature</span>
+                  <span className="text-[13px] font-semibold text-ink">{defaultLLMConfig.temperature ?? 'N/A'}</span>
                 </div>
                 <div className="flex items-center justify-between py-2">
-                  <span className="text-[13px] font-medium text-[#6c655c]">Max Tokens</span>
-                  <span className="text-[13px] font-semibold text-[#171717]">{defaultLLMConfig.max_tokens?.toLocaleString() ?? 'N/A'}</span>
+                  <span className="text-[13px] font-medium text-ink-mute">Max Tokens</span>
+                  <span className="text-[13px] font-semibold text-ink">{defaultLLMConfig.max_tokens?.toLocaleString() ?? 'N/A'}</span>
                 </div>
               </div>
             ) : (
               <div className="text-center py-8">
-                <p className="text-[13px] text-[#6c655c]">No default AI model configured</p>
+                <p className="text-[13px] text-ink-mute">No default AI model configured</p>
                 <button
                   onClick={() => router.push(`/agents/${agentName}/edit?tab=llm-models`)}
-                  className="mt-3 text-[13px] font-medium text-[#171717] underline decoration-[#ff5f8f] decoration-2 underline-offset-4"
+                  className="mt-3 text-[13px] font-medium text-ink underline decoration-hotpink decoration-2 underline-offset-4"
                 >
-                  Configure AI Model →
+                  Configure AI Model
                 </button>
               </div>
             )}
@@ -864,10 +860,10 @@ export default function AgentViewPage() {
           {/* System Prompt */}
           <div className="dashboard-panel p-5">
             <div className="mb-4 flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#fff0d9]">
-                  <MessageSquare className="h-4.5 w-4.5 text-[#171717]" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sand-deep">
+                  <MessageSquare className="h-4.5 w-4.5 text-ink" />
               </div>
-              <h2 className="text-[1rem] font-semibold text-[#171717] md:text-[1.1rem]">System Prompt</h2>
+              <h2 className="text-[1rem] font-semibold text-ink md:text-[1.1rem]">System Prompt</h2>
               <div className="ml-auto flex items-center gap-2">
                 <button
                   onClick={() => {
@@ -876,23 +872,23 @@ export default function AgentViewPage() {
                     setTimeout(() => setPromptCopied(false), 2000)
                   }}
                   title="Copy system prompt"
-                  className="flex items-center gap-1.5 rounded-[0.75rem] bg-[#f1eadc] px-3 py-1.5 text-[12px] font-medium text-[#464038] transition-colors hover:bg-[#e8dece]"
+                  className="flex items-center gap-1.5 rounded-[0.75rem] bg-sand-deep px-3 py-1.5 text-[12px] font-medium text-ink-soft transition-colors hover:bg-line"
                 >
-                  {promptCopied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+                  {promptCopied ? <Check className="h-3.5 w-3.5 text-leaf" /> : <Copy className="h-3.5 w-3.5" />}
                   {promptCopied ? 'Copied!' : 'Copy'}
                 </button>
                 <button
                   onClick={() => setShowPromptModal(true)}
                   title="View as markdown"
-                  className="flex items-center gap-1.5 rounded-[0.75rem] bg-[#f1eadc] px-3 py-1.5 text-[12px] font-medium text-[#464038] transition-colors hover:bg-[#e8dece]"
+                  className="flex items-center gap-1.5 rounded-[0.75rem] bg-sand-deep px-3 py-1.5 text-[12px] font-medium text-ink-soft transition-colors hover:bg-line"
                 >
                   <Maximize2 className="h-3.5 w-3.5" />
                   View
                 </button>
               </div>
             </div>
-            <div className="max-h-56 overflow-y-auto rounded-[1.35rem] bg-[#f1eadc] p-4">
-              <p className="whitespace-pre-wrap font-mono text-[12px] leading-relaxed text-[#464038] md:text-[13px]">
+            <div className="max-h-56 overflow-y-auto rounded-[1.35rem] bg-sand-deep p-4">
+              <p className="whitespace-pre-wrap font-mono text-[12px] leading-relaxed text-ink-soft md:text-[13px]">
                 {agent.system_prompt}
               </p>
             </div>
@@ -910,34 +906,34 @@ export default function AgentViewPage() {
         {agent.tools_config && agent.tools_config.tools && agent.tools_config.tools.length > 0 && (
           <div className="dashboard-panel mb-4 p-5">
             <div className="mb-3 flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#ffe1ea]">
-                  <Settings className="h-4 w-4 text-[#171717]" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blush-wash">
+                  <Settings className="h-4 w-4 text-ink" />
               </div>
-              <h2 className="text-[1rem] font-semibold text-[#171717] md:text-[1.1rem]">Configured Tools</h2>
+              <h2 className="text-[1rem] font-semibold text-ink md:text-[1.1rem]">Configured Tools</h2>
             </div>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
               {agent.tools_config.tools.map((tool, index) => (
                 <div
                   key={index}
-                  className={`rounded-[1.35rem] border p-4 transition-all ${
+                  className={`rounded-[1.35rem] border p-4 transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
                     tool.enabled
                       ? 'border-black/[0.08] bg-white/72'
-                      : 'border-black/[0.08] bg-[#f1eadc]'
+                      : 'border-black/[0.08] bg-sand-deep'
                   }`}
                 >
                   <div className="mb-2 flex items-start justify-between gap-3">
-                    <h3 className="text-[13px] font-semibold text-[#171717] md:text-[14px]">{tool.name}</h3>
+                    <h3 className="text-[13px] font-semibold text-ink md:text-[14px]">{tool.name}</h3>
                     <span
                   className={`rounded-[0.35rem] px-2.5 py-1 text-[11px] font-semibold ${
                         tool.enabled
-                          ? 'bg-[#def4eb] text-[#171717]'
-                          : 'bg-white/70 text-[#6c655c]'
+                          ? 'bg-leaf-wash text-ink'
+                          : 'bg-white/70 text-ink-mute'
                       }`}
                     >
                       {tool.enabled ? 'Enabled' : 'Disabled'}
                     </span>
                   </div>
-                  <p className="text-[12px] leading-relaxed text-[#5b564e] md:text-[13px]">{tool.description}</p>
+                  <p className="text-[12px] leading-relaxed text-ink-soft md:text-[13px]">{tool.description}</p>
                 </div>
               ))}
             </div>
@@ -947,24 +943,24 @@ export default function AgentViewPage() {
         {/* Metadata */}
         <div className="dashboard-panel p-5">
           <div className="mb-3 flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f1eadc]">
-              <Calendar className="h-4 w-4 text-[#5b564e]" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sand-deep">
+              <Calendar className="h-4 w-4 text-ink-soft" />
             </div>
-            <h2 className="text-[1rem] font-semibold text-[#171717] md:text-[1.1rem]">Metadata</h2>
+            <h2 className="text-[1rem] font-semibold text-ink md:text-[1.1rem]">Metadata</h2>
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            <div className="flex items-center gap-2 rounded-[1.25rem] bg-[#f1eadc] p-3">
-              <Box className="h-4 w-4 text-[#5b564e]" />
+            <div className="flex items-center gap-2 rounded-[1.25rem] bg-sand-deep p-3">
+              <Box className="h-4 w-4 text-ink-soft" />
               <div>
-                <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#8a8378]">Agent ID</p>
-                <p className="truncate font-mono text-[12px] text-[#171717]">{agent.id}</p>
+                <p className="text-[11px] font-medium text-ash">Agent ID</p>
+                <p className="truncate font-mono text-[12px] text-ink">{agent.id}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 rounded-[1.25rem] bg-[#f1eadc] p-3">
-              <Calendar className="h-4 w-4 text-[#5b564e]" />
+            <div className="flex items-center gap-2 rounded-[1.25rem] bg-sand-deep p-3">
+              <Calendar className="h-4 w-4 text-ink-soft" />
               <div>
-                <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#8a8378]">Created</p>
-                <p className="text-[12px] text-[#171717]">
+                <p className="text-[11px] font-medium text-ash">Created</p>
+                <p className="text-[12px] text-ink">
                   {new Date(agent.created_at).toLocaleDateString('en-US', {
                     year: 'numeric',
                     month: 'short',
@@ -973,11 +969,11 @@ export default function AgentViewPage() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 rounded-[1.25rem] bg-[#f1eadc] p-3">
-              <Clock className="h-4 w-4 text-[#5b564e]" />
+            <div className="flex items-center gap-2 rounded-[1.25rem] bg-sand-deep p-3">
+              <Clock className="h-4 w-4 text-ink-soft" />
               <div>
-                <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#8a8378]">Last Updated</p>
-                <p className="text-[12px] text-[#171717]">
+                <p className="text-[11px] font-medium text-ash">Last Updated</p>
+                <p className="text-[12px] text-ink">
                   {new Date(agent.updated_at).toLocaleDateString('en-US', {
                     year: 'numeric',
                     month: 'short',
@@ -997,14 +993,14 @@ export default function AgentViewPage() {
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-semibold text-gray-900">Call {agent?.agent_name}</h2>
+            <h2 className="text-base font-semibold text-ink">Call {agent?.agent_name}</h2>
             <button
               onClick={() => {
                 if (vapiInstance) { vapiInstance.stop(); setVapiInstance(null) }
                 setCallActive(false)
                 setShowCallModal(false)
               }}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-ash hover:text-ink-soft"
             >
               <X className="w-5 h-5" />
             </button>
@@ -1012,10 +1008,10 @@ export default function AgentViewPage() {
 
           {!callActive ? (
             <div className="text-center py-6">
-              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                <Phone className="w-7 h-7 text-green-600" />
+              <div className="w-16 h-16 rounded-full bg-leaf-wash flex items-center justify-center mx-auto mb-4">
+                <Phone className="w-7 h-7 text-leaf" />
               </div>
-              <p className="text-sm text-gray-500 mb-6">Start a voice conversation with this agent.</p>
+              <p className="text-sm text-ink-mute mb-6">Start a voice conversation with this agent.</p>
               <button
                 onClick={async () => {
                   if (!vapiPublicKey) {
@@ -1040,24 +1036,24 @@ export default function AgentViewPage() {
                     toast.error('Failed to start call. Check Vapi configuration.')
                   }
                 }}
-                className="px-6 py-3 bg-green-600 text-white rounded-full font-medium hover:bg-green-700 text-sm"
+                className="px-6 py-3 bg-leaf text-white rounded-full font-medium hover:bg-forest text-sm"
               >
                 Start Call
               </button>
             </div>
           ) : (
             <div className="text-center py-6">
-              <div className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center mx-auto mb-4 animate-pulse">
+              <div className="w-16 h-16 rounded-full bg-leaf flex items-center justify-center mx-auto mb-4 motion-safe:animate-pulse">
                 <Mic className="w-7 h-7 text-white" />
               </div>
-              <p className="text-sm text-gray-700 font-medium mb-1">Call in progress</p>
-              <p className="text-xs text-gray-400 mb-6">Speak to {agent?.agent_name}</p>
+              <p className="text-sm text-ink-soft font-medium mb-1">Call in progress</p>
+              <p className="text-xs text-ash mb-6">Speak to {agent?.agent_name}</p>
               <button
                 onClick={() => {
                   if (vapiInstance) { vapiInstance.stop(); setVapiInstance(null) }
                   setCallActive(false)
                 }}
-                className="flex items-center gap-2 px-6 py-3 bg-red-500 text-white rounded-full font-medium hover:bg-red-600 text-sm mx-auto"
+                className="flex items-center gap-2 px-6 py-3 bg-ink text-white rounded-full font-medium hover:bg-danger text-sm mx-auto"
               >
                 <PhoneOff className="w-4 h-4" />
                 End Call

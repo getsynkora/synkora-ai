@@ -65,7 +65,7 @@ export default function AgentDatabaseConnectionsPage() {
     <AgentPageShell
       agentName={agentName}
       title="Database Connections"
-      description={<>Select which databases <span className="font-semibold text-gray-900">{agentName}</span> can access.</>}
+      description={<>Select which databases <span className="font-semibold text-ink">{agentName}</span> can access.</>}
       icon={Database}
       backHref={`/agents/${encodeURIComponent(agentName)}/view`}
       backLabel="Back to Agent"
@@ -79,9 +79,9 @@ export default function AgentDatabaseConnectionsPage() {
         <button
           onClick={save}
           disabled={saving || loading}
-          className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-[1rem] bg-ink px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
         >
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {saving ? <Loader2 className="w-4 h-4 motion-safe:animate-spin" /> : <Save className="w-4 h-4" />}
           Save
         </button>
       }
@@ -89,56 +89,56 @@ export default function AgentDatabaseConnectionsPage() {
       <AgentPagePanel className="overflow-hidden">
           {loading ? (
             <div className="flex items-center justify-center py-16">
-              <Loader2 className="w-8 h-8 text-red-500 animate-spin" />
+              <Loader2 className="w-8 h-8 text-leaf motion-safe:animate-spin" />
             </div>
           ) : connections.length === 0 ? (
             <div className="text-center py-16 px-6">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
-                <Database className="w-8 h-8 text-gray-400" />
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-sand rounded-full mb-4">
+                <Database className="w-8 h-8 text-ash" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Database Connections</h3>
-              <p className="text-gray-500 text-sm mb-4">
+              <h3 className="text-lg font-semibold text-ink mb-2">No Database Connections</h3>
+              <p className="text-ink-mute text-sm mb-4">
                 Create database connections first to attach them to this agent.
               </p>
               <button
                 onClick={() => router.push('/database-connections')}
-                className="inline-flex items-center gap-2 rounded-[1rem] border border-black/10 bg-[#f1eadc] px-4 py-2.5 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#e8ddc8]"
+                className="inline-flex items-center gap-2 rounded-[1rem] border border-black/10 bg-sand-deep px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-line"
               >
                 Go to Database Connections
               </button>
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-between border-b border-black/10 bg-[#fcfaf5] px-5 py-3.5">
-                <span className="text-sm text-gray-600">
+              <div className="flex items-center justify-between border-b border-black/10 bg-cream px-5 py-3.5">
+                <span className="text-sm text-ink-soft">
                   {attachedCount} of {connections.length} attached
                 </span>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-ash">
                   Only attached connections are accessible to the agent
                 </span>
               </div>
               <div className="divide-y divide-black/5">
                 {connections.map(conn => (
-                  <div key={conn.id} className="flex items-center justify-between px-5 py-4 transition-colors hover:bg-[#fcfaf5]">
+                  <div key={conn.id} className="flex items-center justify-between px-5 py-4 transition-colors hover:bg-cream">
                     <div className="flex items-center gap-3">
-                      <div className="rounded-[0.95rem] bg-[#f3ecde] p-2.5">
-                        <Database className="w-4 h-4 text-[#171717]" />
+                      <div className="rounded-[0.95rem] bg-sand p-2.5">
+                        <Database className="w-4 h-4 text-ink" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{conn.name}</p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-sm font-medium text-ink">{conn.name}</p>
+                        <p className="text-xs text-ink-mute">
                           {conn.type}
-                          {conn.host ? ` · ${conn.host}:${conn.port}/${conn.database}` : ''}
+                          {conn.host ? `, ${conn.host}:${conn.port}/${conn.database}` : ''}
                         </p>
                       </div>
                     </div>
                     <button
                       onClick={() => toggle(conn.id)}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        conn.attached ? 'bg-[#171717]' : 'bg-gray-200'
+                        conn.attached ? 'bg-ink' : 'bg-line'
                       }`}
                     >
-                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform motion-reduce:transition-none ${
                         conn.attached ? 'translate-x-6' : 'translate-x-1'
                       }`} />
                     </button>

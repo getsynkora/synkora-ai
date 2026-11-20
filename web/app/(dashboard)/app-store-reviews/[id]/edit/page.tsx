@@ -4,20 +4,20 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
-import { Smartphone, ArrowLeft, Info, Settings, Globe, Save } from 'lucide-react'
+import { Apple, ArrowLeft, Bot, Globe, Info, Save, Settings, Smartphone } from 'lucide-react'
 import { apiClient } from '@/lib/api/client'
 
 const STORE_TYPES = [
   {
     value: 'google_play',
     label: 'Google Play Store',
-    icon: '🤖',
+    icon: Bot,
     description: 'Android app reviews',
   },
   {
     value: 'apple_app_store',
     label: 'Apple App Store',
-    icon: '🍎',
+    icon: Apple,
     description: 'iOS app reviews',
   },
 ]
@@ -160,10 +160,10 @@ export default function EditAppStoreSourcePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading app source...</p>
+          <div className="w-16 h-16 border-4 border-azure border-t-transparent rounded-full motion-safe:animate-spin mx-auto mb-4" />
+          <p className="text-ink-soft">Loading app source…</p>
         </div>
       </div>
     )
@@ -171,12 +171,12 @@ export default function EditAppStoreSourcePage() {
 
   if (!source) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600 mb-4">App source not found</p>
+          <p className="text-ink-soft mb-4">App source not found</p>
           <Link
             href="/app-store-reviews"
-            className="text-blue-600 hover:text-blue-700"
+            className="text-azure hover:text-azure"
           >
             Back to list
           </Link>
@@ -186,38 +186,38 @@ export default function EditAppStoreSourcePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-8">
+    <div className="min-h-screen p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <Link
             href={`/app-store-reviews/${sourceId}`}
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium mb-6 transition-colors"
+            className="inline-flex items-center gap-2 text-ink-soft hover:text-ink font-medium mb-6 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Details
           </Link>
           
           <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-blue-600 rounded-lg shadow-sm">
+            <div className="p-3 bg-azure rounded-lg shadow-sm">
               <Smartphone className="w-8 h-8 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
+              <h1 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight">
                 Edit App Source
               </h1>
-              <p className="text-gray-600 mt-1">
+              <p className="text-ink-soft mt-1">
                 Update configuration for {source.app_name}
               </p>
             </div>
           </div>
 
           {/* App Info Badge */}
-          <div className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200">
-            <span className="text-2xl">{selectedStore?.icon}</span>
+          <div className="flex items-center gap-3 p-4 bg-white rounded-lg border border-line">
+            {selectedStore?.icon && <selectedStore.icon className="h-6 w-6" aria-hidden="true" />}
             <div>
-              <div className="font-semibold text-gray-900">{source.app_name}</div>
-              <div className="text-sm text-gray-500">
+              <div className="font-semibold text-ink">{source.app_name}</div>
+              <div className="text-sm text-ink-mute">
                 {selectedStore?.label} • {source.app_id}
               </div>
             </div>
@@ -226,47 +226,47 @@ export default function EditAppStoreSourcePage() {
 
         {/* Error Message */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
-            <p className="text-red-700 font-medium">{error}</p>
+          <div className="mb-6 p-4 bg-sand-deep border-l-4 border-ink rounded-lg">
+            <p className="text-danger font-medium">{error}</p>
           </div>
         )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* App Name */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-lg shadow-sm border border-line p-6">
             <div className="flex items-center gap-3 mb-4">
-              <Info className="w-5 h-5 text-blue-600" />
-              <h2 className="text-lg font-semibold text-gray-900">App Information</h2>
+              <Info className="w-5 h-5 text-azure" />
+              <h2 className="text-lg font-semibold text-ink">App Information</h2>
             </div>
             
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                App Name <span className="text-red-500">*</span>
+              <label className="block text-sm font-semibold text-ink-soft mb-2">
+                App Name <span className="text-leaf">*</span>
               </label>
               <input
                 type="text"
                 required
                 value={formData.app_name}
                 onChange={(e) => setFormData(prev => ({ ...prev, app_name: e.target.value }))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-azure focus:border-transparent"
                 placeholder="e.g., WhatsApp Messenger"
               />
             </div>
           </div>
 
           {/* Sync Settings */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-lg shadow-sm border border-line p-6">
             <div className="flex items-center gap-3 mb-4">
-              <Settings className="w-5 h-5 text-blue-600" />
-              <h2 className="text-lg font-semibold text-gray-900">Sync Settings</h2>
+              <Settings className="w-5 h-5 text-azure" />
+              <h2 className="text-lg font-semibold text-ink">Sync Settings</h2>
             </div>
 
             <div className="space-y-6">
               {/* Status */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Status <span className="text-red-500">*</span>
+                <label className="block text-sm font-semibold text-ink-soft mb-3">
+                  Status <span className="text-leaf">*</span>
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   {STATUS_OPTIONS.map((status) => (
@@ -274,14 +274,14 @@ export default function EditAppStoreSourcePage() {
                       key={status.value}
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, status: status.value }))}
-                      className={`p-4 rounded-lg border-2 transition-all text-left ${
+                      className={`p-4 rounded-lg border-2 transition-[color,background-color,border-color,box-shadow,opacity,transform] text-left ${
                         formData.status === status.value
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-azure bg-sky-wash'
+                          : 'border-line hover:border-taupe'
                       }`}
                     >
-                      <div className="font-semibold text-gray-900">{status.label}</div>
-                      <div className="text-xs text-gray-500 mt-1">{status.description}</div>
+                      <div className="font-semibold text-ink">{status.label}</div>
+                      <div className="text-xs text-ink-mute mt-1">{status.description}</div>
                     </button>
                   ))}
                 </div>
@@ -289,8 +289,8 @@ export default function EditAppStoreSourcePage() {
 
               {/* Sync Frequency */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Sync Frequency <span className="text-red-500">*</span>
+                <label className="block text-sm font-semibold text-ink-soft mb-3">
+                  Sync Frequency <span className="text-leaf">*</span>
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   {SYNC_FREQUENCIES.map((freq) => (
@@ -298,14 +298,14 @@ export default function EditAppStoreSourcePage() {
                       key={freq.value}
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, sync_frequency: freq.value }))}
-                      className={`p-4 rounded-lg border-2 transition-all text-left ${
+                      className={`p-4 rounded-lg border-2 transition-[color,background-color,border-color,box-shadow,opacity,transform] text-left ${
                         formData.sync_frequency === freq.value
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-azure bg-sky-wash'
+                          : 'border-line hover:border-taupe'
                       }`}
                     >
-                      <div className="font-semibold text-gray-900">{freq.label}</div>
-                      <div className="text-xs text-gray-500 mt-1">{freq.description}</div>
+                      <div className="font-semibold text-ink">{freq.label}</div>
+                      <div className="text-xs text-ink-mute mt-1">{freq.description}</div>
                     </button>
                   ))}
                 </div>
@@ -313,13 +313,13 @@ export default function EditAppStoreSourcePage() {
 
               {/* Minimum Rating Filter */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm font-semibold text-ink-soft mb-2">
                   Minimum Rating Filter
                 </label>
                 <select
                   value={formData.min_rating}
                   onChange={(e) => setFormData(prev => ({ ...prev, min_rating: parseInt(e.target.value) }))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-azure focus:border-transparent"
                 >
                   <option value={1}>1 Star and above (All reviews)</option>
                   <option value={2}>2 Stars and above</option>
@@ -327,7 +327,7 @@ export default function EditAppStoreSourcePage() {
                   <option value={4}>4 Stars and above</option>
                   <option value={5}>5 Stars only</option>
                 </select>
-                <p className="text-sm text-gray-500 mt-2">
+                <p className="text-sm text-ink-mute mt-2">
                   Only collect reviews with this rating or higher
                 </p>
               </div>
@@ -335,19 +335,19 @@ export default function EditAppStoreSourcePage() {
           </div>
 
           {/* Language & Country Filters */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-lg shadow-sm border border-line p-6">
             <div className="flex items-center gap-3 mb-4">
-              <Globe className="w-5 h-5 text-blue-600" />
-              <h2 className="text-lg font-semibold text-gray-900">Language & Country Filters</h2>
+              <Globe className="w-5 h-5 text-azure" />
+              <h2 className="text-lg font-semibold text-ink">Language & Country Filters</h2>
             </div>
 
             <div className="space-y-6">
               {/* Languages */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Languages <span className="text-red-500">*</span>
+                <label className="block text-sm font-semibold text-ink-soft mb-3">
+                  Languages <span className="text-leaf">*</span>
                 </label>
-                <p className="text-sm text-gray-600 mb-3">
+                <p className="text-sm text-ink-soft mb-3">
                   Select languages to collect reviews in (at least one required)
                 </p>
                 <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
@@ -356,10 +356,10 @@ export default function EditAppStoreSourcePage() {
                       key={lang.value}
                       type="button"
                       onClick={() => toggleLanguage(lang.value)}
-                      className={`px-3 py-2 rounded-lg border-2 transition-all text-sm ${
+                      className={`px-3 py-2 rounded-lg border-2 transition-[color,background-color,border-color,box-shadow,opacity,transform] text-sm ${
                         formData.languages.includes(lang.value)
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                          ? 'border-azure bg-sky-wash text-azure'
+                          : 'border-line hover:border-taupe text-ink-soft'
                       }`}
                     >
                       {lang.label}
@@ -370,10 +370,10 @@ export default function EditAppStoreSourcePage() {
 
               {/* Countries */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Countries <span className="text-red-500">*</span>
+                <label className="block text-sm font-semibold text-ink-soft mb-3">
+                  Countries <span className="text-leaf">*</span>
                 </label>
-                <p className="text-sm text-gray-600 mb-3">
+                <p className="text-sm text-ink-soft mb-3">
                   Select countries to collect reviews from (at least one required)
                 </p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -382,10 +382,10 @@ export default function EditAppStoreSourcePage() {
                       key={country.value}
                       type="button"
                       onClick={() => toggleCountry(country.value)}
-                      className={`px-3 py-2 rounded-lg border-2 transition-all text-sm ${
+                      className={`px-3 py-2 rounded-lg border-2 transition-[color,background-color,border-color,box-shadow,opacity,transform] text-sm ${
                         formData.countries.includes(country.value)
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                          ? 'border-azure bg-sky-wash text-azure'
+                          : 'border-line hover:border-taupe text-ink-soft'
                       }`}
                     >
                       {country.label}
@@ -397,21 +397,21 @@ export default function EditAppStoreSourcePage() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-between items-center bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex justify-between items-center bg-white rounded-lg shadow-sm border border-line p-6">
             <Link
               href={`/app-store-reviews/${sourceId}`}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+              className="px-6 py-2 border border-taupe text-ink-soft rounded-lg hover:bg-sand transition-colors"
             >
               Cancel
             </Link>
             <button
               type="submit"
               disabled={saving || formData.languages.length === 0 || formData.countries.length === 0 || !formData.app_name}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-6 py-2 bg-azure text-white rounded-lg hover:bg-azure transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {saving ? (
                 <>
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full motion-safe:animate-spin" />
                   Saving...
                 </>
               ) : (

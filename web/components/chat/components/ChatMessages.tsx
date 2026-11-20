@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Attachment, FormDefinition, Message, SuggestionPrompt } from '../types'
 import { ChatMessage } from './ChatMessage'
-import { Sparkles, MessageSquare, Lightbulb } from 'lucide-react'
+import { BarChart3, Lightbulb, LucideIcon, MessageSquare, PenLine, Search, Sparkles } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
 interface ChatConfig {
@@ -249,7 +249,7 @@ function EmptyState({ suggestionPrompts = [], onSuggestionClick, chatConfig }: E
     <div className="flex h-full flex-col items-center justify-center px-3 py-4 text-center sm:px-4 sm:py-6">
       {/* Hero Icon */}
       <div
-        className="mb-3 flex h-12 w-12 items-center justify-center rounded-[1.1rem] border border-white/60 shadow-[0_16px_30px_-24px_rgba(31,22,15,0.2)]"
+        className="mb-3 flex h-12 w-12 items-center justify-center rounded-[1.1rem] border border-white/60 shadow-soft"
         style={{
           background: `linear-gradient(180deg, ${primaryColor}18, rgba(255,255,255,0.78))`
         }}
@@ -261,10 +261,10 @@ function EmptyState({ suggestionPrompts = [], onSuggestionClick, chatConfig }: E
       </div>
 
       {/* Bold Heading */}
-      <h1 className="mb-1.5 text-[1.7rem] font-semibold tracking-[-0.05em] text-gray-900 md:text-[2.1rem]">
+      <h1 className="mb-1.5 text-[1.7rem] font-semibold tracking-[-0.05em] text-ink md:text-[2.1rem]">
         {t('title')}
       </h1>
-      <p className="mb-4 max-w-[36rem] text-[0.92rem] leading-6 text-gray-500 md:text-[1rem] md:leading-7">
+      <p className="mb-4 max-w-[36rem] text-[0.92rem] leading-6 text-ink-mute md:text-[1rem] md:leading-7">
         {welcomeMessage}
       </p>
 
@@ -275,7 +275,7 @@ function EmptyState({ suggestionPrompts = [], onSuggestionClick, chatConfig }: E
             <button
               key={index}
               onClick={() => onSuggestionClick?.(prompt.prompt)}
-              className="group flex items-start gap-2.5 rounded-[1.1rem] border border-black/10 bg-[linear-gradient(180deg,_rgba(255,255,255,0.78),_rgba(250,245,238,0.96))] p-3 text-left shadow-[0_18px_34px_-32px_rgba(31,22,15,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:border-black/15 hover:shadow-[0_22px_40px_-28px_rgba(31,22,15,0.26)]"
+              className="group flex items-start gap-2.5 rounded-[1.1rem] border border-black/10 bg-white p-3 text-left shadow-soft transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-200 hover:-translate-y-0.5 hover:border-black/15 hover:shadow-soft"
             >
               <div
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[0.85rem] border border-white/70"
@@ -288,11 +288,11 @@ function EmptyState({ suggestionPrompts = [], onSuggestionClick, chatConfig }: E
                 </div>
               </div>
               <div className="min-w-0 flex-1 pt-0.5">
-                <div className="mb-0.5 text-[0.98rem] font-semibold tracking-[-0.03em] text-gray-900 sm:text-[1.02rem]">
+                <div className="mb-0.5 text-[0.98rem] font-semibold tracking-[-0.03em] text-ink sm:text-[1.02rem]">
                   {prompt.title}
                 </div>
                 {prompt.description && (
-                  <div className="text-[0.86rem] leading-5 text-gray-500">
+                  <div className="text-[0.86rem] leading-5 text-ink-mute">
                     {prompt.description}
                   </div>
                 )}
@@ -303,25 +303,25 @@ function EmptyState({ suggestionPrompts = [], onSuggestionClick, chatConfig }: E
       ) : (
         <div className="grid w-full max-w-[42rem] grid-cols-1 gap-2.5 md:grid-cols-2">
           <SuggestionCard
-            icon="💡"
+            icon={Lightbulb}
             title={t('ideasTitle')}
             description={t('ideasBody')}
             onSuggestionClick={onSuggestionClick}
           />
           <SuggestionCard
-            icon="📊"
+            icon={BarChart3}
             title={t('analyzeTitle')}
             description={t('analyzeBody')}
             onSuggestionClick={onSuggestionClick}
           />
           <SuggestionCard
-            icon="✍️"
+            icon={PenLine}
             title={t('writeTitle')}
             description={t('writeBody')}
             onSuggestionClick={onSuggestionClick}
           />
           <SuggestionCard
-            icon="🔍"
+            icon={Search}
             title={t('researchTitle')}
             description={t('researchBody')}
             onSuggestionClick={onSuggestionClick}
@@ -333,25 +333,25 @@ function EmptyState({ suggestionPrompts = [], onSuggestionClick, chatConfig }: E
 }
 
 interface SuggestionCardProps {
-  icon: string
+  icon: LucideIcon
   title: string
   description?: string
   onSuggestionClick?: (prompt: string) => void
 }
 
-function SuggestionCard({ icon, title, description, onSuggestionClick }: SuggestionCardProps) {
+function SuggestionCard({ icon: Icon, title, description, onSuggestionClick }: SuggestionCardProps) {
   return (
     <button
       onClick={() => onSuggestionClick?.(title)}
-      className="group flex items-start gap-2.5 rounded-[1.1rem] border border-black/10 bg-[linear-gradient(180deg,_rgba(255,255,255,0.78),_rgba(250,245,238,0.96))] p-3 text-left shadow-[0_18px_34px_-32px_rgba(31,22,15,0.22)] transition-all duration-200 hover:-translate-y-0.5 hover:border-black/15 hover:shadow-[0_22px_40px_-28px_rgba(31,22,15,0.26)]"
+      className="group flex items-start gap-2.5 rounded-[1.1rem] border border-black/10 bg-white p-3 text-left shadow-soft transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-200 hover:-translate-y-0.5 hover:border-black/15 hover:shadow-soft"
     >
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[0.85rem] border border-white/70 bg-[linear-gradient(180deg,_rgba(255,255,255,0.78),_rgba(246,239,230,0.92))] text-[1.2rem]">
-        <span>{icon}</span>
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[0.85rem] border border-white/70 bg-white text-[1.2rem]">
+        <Icon className="h-5 w-5" aria-hidden="true" />
       </div>
       <div className="min-w-0 flex-1 pt-0.5">
-        <div className="mb-0.5 text-[0.98rem] font-semibold tracking-[-0.03em] text-gray-900">{title}</div>
+        <div className="mb-0.5 text-[0.98rem] font-semibold tracking-[-0.03em] text-ink">{title}</div>
         {description && (
-          <div className="text-[0.86rem] leading-5 text-gray-500">{description}</div>
+          <div className="text-[0.86rem] leading-5 text-ink-mute">{description}</div>
         )}
       </div>
     </button>

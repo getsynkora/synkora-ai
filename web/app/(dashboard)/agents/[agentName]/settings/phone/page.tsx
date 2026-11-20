@@ -150,7 +150,7 @@ export default function AgentPhoneSettingsPage() {
     return (
       <AgentPageShell agentName={agentName} title="Phone Settings" description="Configure inbound phone calls via Vapi.ai." icon={Phone} badge="Phone">
         <AgentPagePanel>
-          <div className="flex items-center justify-center h-40 text-gray-400 text-sm">Loading…</div>
+          <div className="flex items-center justify-center h-40 text-ash text-sm">Loading…</div>
         </AgentPagePanel>
       </AgentPageShell>
     )
@@ -170,17 +170,17 @@ export default function AgentPhoneSettingsPage() {
           {/* Enable toggle */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-700">Enable inbound calls</p>
-              <p className="text-xs text-gray-500 mt-0.5">Allow this agent to answer phone calls</p>
+              <p className="text-sm font-medium text-ink-soft">Enable inbound calls</p>
+              <p className="text-xs text-ink-mute mt-0.5">Allow this agent to answer phone calls</p>
             </div>
             <button
               onClick={() => setConfig((c) => ({ ...c, enabled: !c.enabled }))}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                config.enabled ? 'bg-rose-600' : 'bg-gray-200'
+                config.enabled ? 'bg-danger' : 'bg-line'
               }`}
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform motion-reduce:transition-none ${
                   config.enabled ? 'translate-x-6' : 'translate-x-1'
                 }`}
               />
@@ -190,10 +190,10 @@ export default function AgentPhoneSettingsPage() {
           {/* Vapi API Key */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Key className="w-4 h-4 text-gray-400" />
-              <label className="text-sm font-medium text-gray-700">Vapi API Key</label>
+              <Key className="w-4 h-4 text-ash" />
+              <label className="text-sm font-medium text-ink-soft">Vapi API Key</label>
               {credConfigured && (
-                <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded-full">Configured</span>
+                <span className="text-xs text-leaf font-medium bg-leaf-wash px-2 py-0.5 rounded-full">Configured</span>
               )}
             </div>
             <div className="flex gap-2">
@@ -202,12 +202,12 @@ export default function AgentPhoneSettingsPage() {
                 value={vapiApiKey}
                 onChange={(e) => setVapiApiKey(e.target.value)}
                 placeholder={credConfigured ? 'Enter new key to replace' : 'sk-...'}
-                className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
+                className="flex-1 px-3 py-2 text-sm border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-ink/20 focus:border-ink"
               />
               <button
                 onClick={handleSaveApiKey}
                 disabled={!vapiApiKey.trim() || savingKey}
-                className="px-4 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg disabled:opacity-50 hover:bg-gray-700 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-white bg-ink rounded-lg disabled:opacity-50 hover:bg-ink-soft transition-colors"
               >
                 {savingKey ? 'Saving…' : 'Save Key'}
               </button>
@@ -216,24 +216,24 @@ export default function AgentPhoneSettingsPage() {
 
           {/* Webhook URL */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">Webhook URL</label>
-            <p className="text-xs text-gray-500">Configure this URL in your Vapi phone number settings</p>
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-              <span className="flex-1 text-sm font-mono text-gray-600 truncate">{webhookUrl}</span>
-              <button onClick={copyWebhook} className="text-gray-400 hover:text-gray-600 flex-shrink-0">
-                {copiedWebhook ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+            <label className="text-sm font-medium text-ink-soft">Webhook URL</label>
+            <p className="text-xs text-ink-mute">Configure this URL in your Vapi phone number settings</p>
+            <div className="flex items-center gap-2 bg-cream border border-line rounded-lg px-3 py-2">
+              <span className="flex-1 text-sm font-mono text-ink-soft truncate">{webhookUrl}</span>
+              <button onClick={copyWebhook} className="text-ash hover:text-ink-soft flex-shrink-0">
+                {copiedWebhook ? <Check className="w-4 h-4 text-leaf" /> : <Copy className="w-4 h-4" />}
               </button>
             </div>
           </div>
 
           {/* Phone numbers */}
           <div className="space-y-3">
-            <label className="text-sm font-medium text-gray-700">Phone Numbers (BYOP)</label>
-            <p className="text-xs text-gray-500">Add numbers you own in Vapi and want to route to this agent</p>
+            <label className="text-sm font-medium text-ink-soft">Phone Numbers (BYOP)</label>
+            <p className="text-xs text-ink-mute">Add numbers you own in Vapi and want to route to this agent</p>
             {phoneNumbers.map((pn) => (
-              <div key={pn.id} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-                <span className="text-sm font-mono text-gray-700">{pn.phone_number}</span>
-                <button onClick={() => handleRemoveNumber(pn.id)} className="text-gray-400 hover:text-red-500">
+              <div key={pn.id} className="flex items-center justify-between bg-cream border border-line rounded-lg px-3 py-2">
+                <span className="text-sm font-mono text-ink-soft">{pn.phone_number}</span>
+                <button onClick={() => handleRemoveNumber(pn.id)} className="text-ash hover:text-leaf">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
@@ -244,12 +244,12 @@ export default function AgentPhoneSettingsPage() {
                 value={newNumber}
                 onChange={(e) => setNewNumber(e.target.value)}
                 placeholder="+14155551234"
-                className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
+                className="flex-1 px-3 py-2 text-sm border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-ink/20 focus:border-ink"
               />
               <button
                 onClick={handleAddNumber}
                 disabled={!newNumber.trim() || addingNumber}
-                className="px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg disabled:opacity-50 hover:bg-gray-700 transition-colors flex items-center gap-1"
+                className="px-3 py-2 text-sm font-medium text-white bg-ink rounded-lg disabled:opacity-50 hover:bg-ink-soft transition-colors flex items-center gap-1"
               >
                 <Plus className="w-4 h-4" />
                 Add
@@ -259,46 +259,46 @@ export default function AgentPhoneSettingsPage() {
 
           {/* Greeting */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">Greeting</label>
+            <label className="text-sm font-medium text-ink-soft">Greeting</label>
             <textarea
               rows={2}
               value={config.greeting}
               onChange={(e) => setConfig((c) => ({ ...c, greeting: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 resize-none"
+              className="w-full px-3 py-2 text-sm border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-ink/20 focus:border-ink resize-none"
             />
           </div>
 
           {/* End call message */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">End Call Message</label>
+            <label className="text-sm font-medium text-ink-soft">End Call Message</label>
             <textarea
               rows={2}
               value={config.end_call_message}
               onChange={(e) => setConfig((c) => ({ ...c, end_call_message: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 resize-none"
+              className="w-full px-3 py-2 text-sm border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-ink/20 focus:border-ink resize-none"
             />
           </div>
 
           {/* Voice ID */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">Voice ID</label>
-            <p className="text-xs text-gray-500">ElevenLabs or other TTS voice ID (optional)</p>
+            <label className="text-sm font-medium text-ink-soft">Voice ID</label>
+            <p className="text-xs text-ink-mute">ElevenLabs or other TTS voice ID (optional)</p>
             <input
               type="text"
               value={config.voice_id ?? ''}
               onChange={(e) => setConfig((c) => ({ ...c, voice_id: e.target.value || null }))}
               placeholder="EXAVITQu4vr4xnSDxMaL"
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
+              className="w-full px-3 py-2 text-sm border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-ink/20 focus:border-ink"
             />
           </div>
 
           {/* Language */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">Language</label>
+            <label className="text-sm font-medium text-ink-soft">Language</label>
             <select
               value={config.language}
               onChange={(e) => setConfig((c) => ({ ...c, language: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 bg-white"
+              className="w-full px-3 py-2 text-sm border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-ink/20 focus:border-ink bg-white"
             >
               {LANGUAGES.map((l) => (
                 <option key={l.value} value={l.value}>{l.label}</option>
@@ -308,31 +308,31 @@ export default function AgentPhoneSettingsPage() {
 
           {/* Max duration */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">Max Call Duration (seconds)</label>
+            <label className="text-sm font-medium text-ink-soft">Max Call Duration (seconds)</label>
             <input
               type="number"
               min={30}
               max={3600}
               value={config.max_duration_seconds}
               onChange={(e) => setConfig((c) => ({ ...c, max_duration_seconds: parseInt(e.target.value) || 300 }))}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
+              className="w-full px-3 py-2 text-sm border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-ink/20 focus:border-ink"
             />
           </div>
 
           {/* Record calls */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-700">Record calls</p>
-              <p className="text-xs text-gray-500 mt-0.5">Recording URLs will appear in call details</p>
+              <p className="text-sm font-medium text-ink-soft">Record calls</p>
+              <p className="text-xs text-ink-mute mt-0.5">Recording URLs will appear in call details</p>
             </div>
             <button
               onClick={() => setConfig((c) => ({ ...c, record_calls: !c.record_calls }))}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                config.record_calls ? 'bg-rose-600' : 'bg-gray-200'
+                config.record_calls ? 'bg-danger' : 'bg-line'
               }`}
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform motion-reduce:transition-none ${
                   config.record_calls ? 'translate-x-6' : 'translate-x-1'
                 }`}
               />
@@ -340,11 +340,11 @@ export default function AgentPhoneSettingsPage() {
           </div>
 
           {/* Save */}
-          <div className="flex justify-end pt-2 border-t border-gray-100">
+          <div className="flex justify-end pt-2 border-t border-sand">
             <button
               onClick={handleSaveConfig}
               disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-rose-600 rounded-lg disabled:opacity-50 hover:bg-rose-700 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-danger rounded-lg disabled:opacity-50 hover:bg-danger transition-colors"
             >
               <Save className="w-4 h-4" />
               {saving ? 'Saving…' : 'Save Settings'}

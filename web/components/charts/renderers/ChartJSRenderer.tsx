@@ -41,7 +41,7 @@ export function ChartJSRenderer({ chart }: { chart: ChartData }) {
   const chartData = chart.data
   if (!chartData || !Array.isArray((chartData as { datasets?: unknown[] }).datasets)) {
     return (
-      <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+      <div className="flex items-center justify-center h-full text-ash text-sm">
         Chart data unavailable
       </div>
     )
@@ -59,7 +59,7 @@ export function ChartJSRenderer({ chart }: { chart: ChartData }) {
       return <Scatter data={chartData as any} options={options as ChartOptions<'scatter'>} />
     default:
       return (
-        <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+        <div className="flex items-center justify-center h-full text-ash text-sm">
           Unsupported type: {chart.chart_type}
         </div>
       )

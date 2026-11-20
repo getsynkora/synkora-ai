@@ -19,18 +19,18 @@ const EMAIL_PROVIDERS = [
   { value: 'brevo', label: 'Brevo', description: 'Brevo transactional email API (recommended)' },
 ]
 
-const labelClassName = 'mb-2 block text-sm font-semibold text-[#2b241d]'
-const helperClassName = 'mt-2 text-xs leading-5 text-[#75695f]'
+const labelClassName = 'mb-2 block text-sm font-semibold text-night'
+const helperClassName = 'mt-2 text-xs leading-5 text-ink-mute'
 const inputClassName =
-  'w-full rounded-[1.15rem] border border-[#ddd1bf] bg-white px-4 py-3 text-sm text-[#171717] placeholder:text-[#9a8f84] transition focus:border-[#2d8b69] focus:outline-none focus:ring-4 focus:ring-[#7de5c1]/20'
+  'w-full rounded-[1.15rem] border border-line bg-white px-4 py-3 text-sm text-ink placeholder:text-ash transition focus:border-leaf focus:outline-none focus:ring-4 focus:ring-mint/20'
 const selectClassName =
-  'w-full rounded-[1.15rem] border border-[#ddd1bf] bg-white px-4 py-3 text-sm text-[#171717] transition focus:border-[#2d8b69] focus:outline-none focus:ring-4 focus:ring-[#7de5c1]/20'
+  'w-full rounded-[1.15rem] border border-line bg-white px-4 py-3 text-sm text-ink transition focus:border-leaf focus:outline-none focus:ring-4 focus:ring-mint/20'
 const checkboxClassName =
-  'mt-0.5 h-4 w-4 rounded border-[#cdbda7] text-[#171717] focus:ring-4 focus:ring-[#7de5c1]/20'
+  'mt-0.5 h-4 w-4 rounded border-tan text-ink focus:ring-4 focus:ring-mint/20'
 const secondaryButtonClassName =
-  'inline-flex items-center justify-center gap-2 rounded-[1rem] border border-[#d8cab8] bg-white px-4 py-3 text-sm font-semibold text-[#3c342d] transition hover:border-[#c6b39c] hover:bg-[#f7f1e7] disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center gap-2 rounded-[1rem] border border-paper-dim bg-white px-4 py-3 text-sm font-semibold text-night transition hover:border-tan hover:bg-paper disabled:cursor-not-allowed disabled:opacity-50'
 const primaryButtonClassName =
-  'inline-flex items-center justify-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50'
+  'inline-flex items-center justify-center gap-2 rounded-[1rem] bg-ink px-4 py-3 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-50'
 
 export default function CreateIntegrationPage() {
   const router = useRouter()
@@ -156,14 +156,14 @@ export default function CreateIntegrationPage() {
         <DashboardPagePanel className="p-6 md:p-7">
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(260px,0.8fr)]">
             <div>
-              <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#9a7a5e]">
+              <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold text-clay">
                 <Sparkles className="h-3.5 w-3.5" />
                 Setup
               </div>
-              <h2 className="text-xl font-semibold tracking-[-0.03em] text-[#171717]">
+              <h2 className="text-xl font-semibold tracking-[-0.03em] text-ink">
                 Choose the email provider
               </h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6f655c]">
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-mute">
                 Select the provider and add the credentials needed for sending transactional email across the platform.
               </p>
 
@@ -202,18 +202,18 @@ export default function CreateIntegrationPage() {
               </div>
             </div>
 
-            <div className="rounded-[1.7rem] border border-[#e6d8c6] bg-[#f7f1e7] p-5">
+            <div className="rounded-[1.7rem] border border-line bg-paper p-5">
               <div className="flex items-center gap-3">
-                <div className="rounded-[1rem] bg-white p-3 shadow-[0_18px_38px_-30px_rgba(70,42,17,0.35)]">
-                  <Mail className="h-5 w-5 text-[#171717]" />
+                <div className="rounded-[1rem] bg-white p-3 shadow-soft">
+                  <Mail className="h-5 w-5 text-ink" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-[#171717]">{currentProvider?.label}</p>
-                  <p className="text-xs text-[#75695f]">{currentProvider?.description}</p>
+                  <p className="text-sm font-semibold text-ink">{currentProvider?.label}</p>
+                  <p className="text-xs text-ink-mute">{currentProvider?.description}</p>
                 </div>
               </div>
 
-              <div className="mt-5 space-y-3 text-sm text-[#51473e]">
+              <div className="mt-5 space-y-3 text-sm text-ink-soft">
                 <div className="rounded-[1.15rem] border border-white/80 bg-white/75 px-4 py-3">
                   Keep sending identity details consistent so templates and notifications stay readable.
                 </div>
@@ -228,12 +228,12 @@ export default function CreateIntegrationPage() {
         {provider === 'smtp' ? (
           <DashboardPagePanel className="p-6 md:p-7">
             <div className="mb-5 flex items-center gap-3">
-              <div className="rounded-[1rem] bg-[#eef8f3] p-3">
-                <ShieldCheck className="h-5 w-5 text-[#2d8b69]" />
+              <div className="rounded-[1rem] bg-leaf-wash p-3">
+                <ShieldCheck className="h-5 w-5 text-leaf" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-[#171717]">SMTP configuration</h2>
-                <p className="text-sm text-[#6f655c]">
+                <h2 className="text-lg font-semibold text-ink">SMTP configuration</h2>
+                <p className="text-sm text-ink-mute">
                   Add the mail server address, credentials, and transport settings.
                 </p>
               </div>
@@ -300,8 +300,8 @@ export default function CreateIntegrationPage() {
                   className={checkboxClassName}
                 />
                 <div>
-                  <div className="text-sm font-semibold text-[#171717]">Use TLS</div>
-                  <p className="mt-1 text-xs leading-5 text-[#75695f]">Recommended for modern SMTP providers.</p>
+                  <div className="text-sm font-semibold text-ink">Use TLS</div>
+                  <p className="mt-1 text-xs leading-5 text-ink-mute">Recommended for modern SMTP providers.</p>
                 </div>
               </label>
 
@@ -313,8 +313,8 @@ export default function CreateIntegrationPage() {
                   className={checkboxClassName}
                 />
                 <div>
-                  <div className="text-sm font-semibold text-[#171717]">Use SSL</div>
-                  <p className="mt-1 text-xs leading-5 text-[#75695f]">Enable only if your provider expects SSL transport.</p>
+                  <div className="text-sm font-semibold text-ink">Use SSL</div>
+                  <p className="mt-1 text-xs leading-5 text-ink-mute">Enable only if your provider expects SSL transport.</p>
                 </div>
               </label>
             </div>
@@ -324,12 +324,12 @@ export default function CreateIntegrationPage() {
         {provider === 'sendgrid' ? (
           <DashboardPagePanel className="p-6 md:p-7">
             <div className="mb-5 flex items-center gap-3">
-              <div className="rounded-[1rem] bg-[#eef8f3] p-3">
-                <ShieldCheck className="h-5 w-5 text-[#2d8b69]" />
+              <div className="rounded-[1rem] bg-leaf-wash p-3">
+                <ShieldCheck className="h-5 w-5 text-leaf" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-[#171717]">SendGrid configuration</h2>
-                <p className="text-sm text-[#6f655c]">
+                <h2 className="text-lg font-semibold text-ink">SendGrid configuration</h2>
+                <p className="text-sm text-ink-mute">
                   Connect SendGrid with an API key and optional reply-to address.
                 </p>
               </div>
@@ -363,12 +363,12 @@ export default function CreateIntegrationPage() {
         {provider === 'mailgun' ? (
           <DashboardPagePanel className="p-6 md:p-7">
             <div className="mb-5 flex items-center gap-3">
-              <div className="rounded-[1rem] bg-[#eef8f3] p-3">
-                <ShieldCheck className="h-5 w-5 text-[#2d8b69]" />
+              <div className="rounded-[1rem] bg-leaf-wash p-3">
+                <ShieldCheck className="h-5 w-5 text-leaf" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-[#171717]">Mailgun configuration</h2>
-                <p className="text-sm text-[#6f655c]">
+                <h2 className="text-lg font-semibold text-ink">Mailgun configuration</h2>
+                <p className="text-sm text-ink-mute">
                   Add the Mailgun API key, sending domain, and optional reply-to address.
                 </p>
               </div>
@@ -415,12 +415,12 @@ export default function CreateIntegrationPage() {
         {provider === 'brevo' ? (
           <DashboardPagePanel className="p-6 md:p-7">
             <div className="mb-5 flex items-center gap-3">
-              <div className="rounded-[1rem] bg-[#eef8f3] p-3">
-                <ShieldCheck className="h-5 w-5 text-[#2d8b69]" />
+              <div className="rounded-[1rem] bg-leaf-wash p-3">
+                <ShieldCheck className="h-5 w-5 text-leaf" />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-[#171717]">Brevo configuration</h2>
-                <p className="text-sm text-[#6f655c]">
+                <h2 className="text-lg font-semibold text-ink">Brevo configuration</h2>
+                <p className="text-sm text-ink-mute">
                   Add the API key used for transactional email delivery.
                 </p>
               </div>
@@ -461,8 +461,8 @@ export default function CreateIntegrationPage() {
               className={checkboxClassName}
             />
             <div>
-              <div className="text-sm font-semibold text-[#171717]">Platform configuration</div>
-              <p className="mt-1 text-sm leading-6 text-[#6f655c]">
+              <div className="text-sm font-semibold text-ink">Platform configuration</div>
+              <p className="mt-1 text-sm leading-6 text-ink-mute">
                 Enable this to make the configuration available to all tenants as a fallback when they do not have their own email provider configured.
               </p>
             </div>
@@ -471,12 +471,12 @@ export default function CreateIntegrationPage() {
 
         <DashboardPagePanel className="p-6 md:p-7">
           <div className="mb-5 flex items-center gap-3">
-            <div className="rounded-[1rem] bg-[#fff4e5] p-3">
-              <Layers3 className="h-5 w-5 text-[#9b6333]" />
+            <div className="rounded-[1rem] bg-paper p-3">
+              <Layers3 className="h-5 w-5 text-gold" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-[#171717]">Email settings</h2>
-              <p className="text-sm text-[#6f655c]">
+              <h2 className="text-lg font-semibold text-ink">Email settings</h2>
+              <p className="text-sm text-ink-mute">
                 Define the sending identity that recipients will see in outgoing emails.
               </p>
             </div>

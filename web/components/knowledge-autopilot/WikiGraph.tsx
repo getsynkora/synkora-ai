@@ -486,10 +486,10 @@ export function WikiGraph({ kbId }: WikiGraphProps) {
 
   if (loading) {
     return (
-      <div className="flex h-full min-h-[32rem] items-center justify-center bg-gray-900">
+      <div className="flex h-full min-h-[32rem] items-center justify-center bg-ink">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-[3px] border-gray-700 border-b-primary-500 rounded-full animate-spin" />
-          <span className="text-xs font-bold text-gray-500">Loading graph...</span>
+          <div className="w-8 h-8 border-[3px] border-ink-soft border-b-primary-500 rounded-full motion-safe:animate-spin" />
+          <span className="text-xs font-bold text-ink-mute">Loading graph…</span>
         </div>
       </div>
     )
@@ -497,14 +497,14 @@ export function WikiGraph({ kbId }: WikiGraphProps) {
 
   if (!graphData || graphData.nodes.length === 0) {
     return (
-      <div className="flex h-full min-h-[32rem] flex-col items-center justify-center gap-3 bg-gray-900">
-        <div className="w-16 h-16 rounded-2xl bg-gray-800 flex items-center justify-center border border-gray-700">
-          <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="flex h-full min-h-[32rem] flex-col items-center justify-center gap-3 bg-ink">
+        <div className="w-16 h-16 rounded-2xl bg-ink flex items-center justify-center border border-ink-soft">
+          <svg aria-hidden="true" className="w-8 h-8 text-ink-soft" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
           </svg>
         </div>
-        <p className="text-sm font-bold text-gray-500">No articles to visualize yet</p>
-        <p className="text-xs text-gray-600">Compile your knowledge base first</p>
+        <p className="text-sm font-bold text-ink-mute">No articles to visualize yet</p>
+        <p className="text-xs text-ink-soft">Compile your knowledge base first</p>
       </div>
     )
   }
@@ -523,26 +523,26 @@ export function WikiGraph({ kbId }: WikiGraphProps) {
       />
 
       {/* Zoom/pan hint — fades out after a moment */}
-      <div className="absolute top-4 left-4 text-[10px] font-semibold text-gray-600 bg-gray-900/80 px-3 py-1.5 rounded-lg border border-gray-800 pointer-events-none">
-        Scroll to zoom · Drag to pan
+      <div className="absolute top-4 left-4 text-[10px] font-semibold text-ink-soft bg-ink/80 px-3 py-1.5 rounded-lg border border-ink pointer-events-none">
+        Scroll to zoom, Drag to pan
       </div>
 
       {/* Category legend */}
-      <div className="absolute bottom-4 left-4 flex flex-wrap gap-3 bg-gray-900/90 backdrop-blur-md rounded-xl px-5 py-3 border border-gray-700/50">
+      <div className="absolute bottom-4 left-4 flex flex-wrap gap-3 bg-ink/90 rounded-xl px-5 py-3 border border-ink-soft/50">
         {Object.entries(CATEGORY_COLORS).map(([cat, colors]) => (
           <div key={cat} className="flex items-center gap-1.5">
             <div
               className="w-2.5 h-2.5 rounded-full"
               style={{ backgroundColor: colors.fill, boxShadow: `0 0 6px ${colors.glow}` }}
             />
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{cat}</span>
+            <span className="text-[10px] font-bold text-ash">{cat}</span>
           </div>
         ))}
       </div>
 
       {/* Stats */}
-      <div className="absolute top-4 right-4 bg-gray-900/90 backdrop-blur-md rounded-xl px-5 py-3 border border-gray-700/50">
-        <div className="flex items-center gap-5 text-xs text-gray-400">
+      <div className="absolute top-4 right-4 bg-ink/90 rounded-xl px-5 py-3 border border-ink-soft/50">
+        <div className="flex items-center gap-5 text-xs text-ash">
           <span><span className="text-white font-extrabold">{graphData.nodes.length}</span> <span className="font-semibold">articles</span></span>
           <span><span className="text-white font-extrabold">{graphData.links.length}</span> <span className="font-semibold">connections</span></span>
         </div>

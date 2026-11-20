@@ -77,7 +77,7 @@ export function AgentProfile({
   }
 
   return (
-    <div className={cn('p-4 bg-white border-b border-gray-200', className)}>
+    <div className={cn('p-4 bg-white border-b border-line', className)}>
       {/* Agent Avatar and Info */}
       <div className="flex items-start gap-3 mb-4">
         {/* Avatar */}
@@ -85,7 +85,7 @@ export function AgentProfile({
           <img
             src={avatar}
             alt={agentName}
-            className="w-16 h-16 rounded-full object-cover ring-2 ring-gray-100 flex-shrink-0"
+            className="w-16 h-16 rounded-full object-cover ring-2 ring-sand flex-shrink-0"
           />
         ) : (
           <div
@@ -102,13 +102,13 @@ export function AgentProfile({
 
         {/* Info */}
         <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-gray-900 text-base truncate">
+          <h3 className="font-bold text-ink text-base truncate">
             {agentName}
           </h3>
-          <p className="text-xs text-gray-600 mt-0.5">
+          <p className="text-xs text-ink-soft mt-0.5">
             By @{creator}
           </p>
-          <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+          <p className="text-xs text-ink-mute mt-1 flex items-center gap-1">
             <MessageSquare size={12} />
             {interactions} interactions
           </p>
@@ -119,20 +119,20 @@ export function AgentProfile({
       <div className="flex items-center gap-2">
         {/* Download Button */}
         <button
-          className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          className="p-2 rounded-lg hover:bg-sand transition-colors"
           title="Download"
         >
-          <Download size={16} className="text-gray-600" />
+          <Download size={16} className="text-ink-soft" />
         </button>
 
         {/* Like Button with Count */}
         <button
           onClick={handleLike}
           className={cn(
-            'flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all',
+            'flex items-center gap-1.5 px-3 py-2 rounded-lg transition-[color,background-color,border-color,box-shadow,opacity,transform]',
             isLiked
               ? 'text-white shadow-md'
-              : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+              : 'bg-sand hover:bg-line text-ink-soft'
           )}
           style={
             isLiked
@@ -145,7 +145,7 @@ export function AgentProfile({
         >
           <Heart
             size={16}
-            className={cn('transition-transform', isLiked && 'fill-current scale-110')}
+            className={cn('transition-transform motion-reduce:transition-none', isLiked && 'fill-current scale-110')}
           />
           <span className="text-sm font-semibold">
             {formatCount(likeCount)}
@@ -154,20 +154,20 @@ export function AgentProfile({
 
         {/* Dislike Button */}
         <button
-          className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          className="p-2 rounded-lg hover:bg-sand transition-colors"
           title="Dislike"
         >
-          <Heart size={16} className="text-gray-600 rotate-180" />
+          <Heart size={16} className="text-ink-soft rotate-180" />
         </button>
 
         {/* Share Button */}
         <div className="relative ml-auto">
           <button
             onClick={handleShare}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-2 rounded-lg hover:bg-sand transition-colors"
             title="Share"
           >
-            <Share2 size={16} className="text-gray-600" />
+            <Share2 size={16} className="text-ink-soft" />
           </button>
 
           {/* Share Menu */}
@@ -180,12 +180,12 @@ export function AgentProfile({
               />
               
               {/* Menu */}
-              <div className="absolute right-0 top-full mt-2 bg-white rounded-lg shadow-xl border border-gray-200 py-2 min-w-[200px] z-[9999]">
+              <div className="absolute right-0 top-full mt-2 bg-white rounded-lg shadow-xl border border-line py-2 min-w-[200px] z-[9999]">
                 <button
                   onClick={copyShareLink}
-                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3"
+                  className="w-full px-4 py-2 text-left text-sm text-ink-soft hover:bg-sand flex items-center gap-3"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -203,9 +203,9 @@ export function AgentProfile({
                     )
                     setShowShareMenu(false)
                   }}
-                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3"
+                  className="w-full px-4 py-2 text-left text-sm text-ink-soft hover:bg-sand flex items-center gap-3"
                 >
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <svg aria-hidden="true" className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z" />
                   </svg>
                   Share on Twitter
@@ -218,9 +218,9 @@ export function AgentProfile({
                     )
                     setShowShareMenu(false)
                   }}
-                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-3"
+                  className="w-full px-4 py-2 text-left text-sm text-ink-soft hover:bg-sand flex items-center gap-3"
                 >
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <svg aria-hidden="true" className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                   </svg>
                   Share on Facebook

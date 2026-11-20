@@ -15,18 +15,18 @@ import {
 import AgentPageShell, { AgentPagePanel } from '@/components/agents/AgentPageShell'
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  ready: { label: 'Ready', color: 'text-gray-500' },
-  joining_call: { label: 'Joining…', color: 'text-blue-500' },
-  in_waiting_room: { label: 'Waiting Room', color: 'text-yellow-500' },
-  in_call_not_recording: { label: 'In Call', color: 'text-blue-600' },
-  in_call_recording: { label: 'Recording', color: 'text-green-600' },
-  call_ended: { label: 'Call Ended', color: 'text-gray-400' },
-  done: { label: 'Done', color: 'text-gray-500' },
-  fatal: { label: 'Error', color: 'text-red-500' },
+  ready: { label: 'Ready', color: 'text-ink-mute' },
+  joining_call: { label: 'Joining…', color: 'text-azure' },
+  in_waiting_room: { label: 'Waiting Room', color: 'text-warn' },
+  in_call_not_recording: { label: 'In Call', color: 'text-azure' },
+  in_call_recording: { label: 'Recording', color: 'text-leaf' },
+  call_ended: { label: 'Call Ended', color: 'text-ash' },
+  done: { label: 'Done', color: 'text-ink-mute' },
+  fatal: { label: 'Error', color: 'text-leaf' },
 }
 
 function BotStatusBadge({ code }: { code: string }) {
-  const info = STATUS_LABELS[code] ?? { label: code, color: 'text-gray-500' }
+  const info = STATUS_LABELS[code] ?? { label: code, color: 'text-ink-mute' }
   return <span className={`text-xs font-medium ${info.color}`}>{info.label}</span>
 }
 
@@ -54,17 +54,17 @@ function TranscriptViewer({ agentSlug, botId }: { agentSlug: string; botId: stri
 
   return (
     <div className="mt-2">
-      <button onClick={toggle} className="flex items-center gap-1 text-xs text-red-500 hover:underline">
+      <button onClick={toggle} className="flex items-center gap-1 text-xs text-leaf hover:underline">
         {open ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
         {open ? 'Hide transcript' : 'View transcript'}
       </button>
       {open && (
-        <div className="mt-2 p-3 bg-gray-50 rounded text-xs text-gray-700 max-h-64 overflow-y-auto space-y-2">
-          {loading && <p className="text-gray-400">Loading transcript…</p>}
-          {!loading && !transcript && <p className="text-gray-400">No transcript available yet.</p>}
+        <div className="mt-2 p-3 bg-cream rounded text-xs text-ink-soft max-h-64 overflow-y-auto space-y-2">
+          {loading && <p className="text-ash">Loading transcript…</p>}
+          {!loading && !transcript && <p className="text-ash">No transcript available yet.</p>}
           {transcript?.segments.map((seg, i) => (
             <div key={i}>
-              <span className="font-semibold text-gray-900">{seg.speaker}: </span>
+              <span className="font-semibold text-ink">{seg.speaker}: </span>
               {seg.text}
             </div>
           ))}
@@ -148,13 +148,13 @@ export default function AgentMeetingsPage() {
         <div className="space-y-8 p-6 md:p-8">
           {/* Dispatch */}
           <section>
-            <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <h2 className="text-base font-semibold text-ink mb-4 flex items-center gap-2">
               <Send className="w-4 h-4" />
               Send Agent to Meeting
             </h2>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Meeting URL</label>
+                <label className="block text-xs font-medium text-ink-soft mb-1">Meeting URL</label>
                 <input
                   type="url"
                   value={meetingUrl}
@@ -164,8 +164,8 @@ export default function AgentMeetingsPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Scheduled Time <span className="text-gray-400">(leave blank to join immediately)</span>
+                <label className="block text-xs font-medium text-ink-soft mb-1">
+                  Scheduled Time <span className="text-ash">(leave blank to join immediately)</span>
                 </label>
                 <input
                   type="datetime-local"
@@ -178,7 +178,7 @@ export default function AgentMeetingsPage() {
                 <button
                   onClick={handleDispatch}
                   disabled={dispatching}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-white bg-ink hover:bg-danger disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <Video className="w-4 h-4" />
                   {dispatching ? 'Dispatching…' : 'Dispatch Bot'}
@@ -189,34 +189,34 @@ export default function AgentMeetingsPage() {
 
           {/* Active Bots */}
           <section>
-            <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2 justify-between">
+            <h2 className="text-base font-semibold text-ink mb-4 flex items-center gap-2 justify-between">
               <span className="flex items-center gap-2">
                 <Video className="w-4 h-4" />
                 Active Bots
               </span>
-              <button onClick={fetchBots} className="text-gray-400 hover:text-gray-600">
+              <button onClick={fetchBots} className="text-ash hover:text-ink-soft">
                 <RefreshCw className="w-4 h-4" />
               </button>
             </h2>
             {loadingBots ? (
-              <p className="text-sm text-gray-400">Loading…</p>
+              <p className="text-sm text-ash">Loading…</p>
             ) : activeBots.length === 0 ? (
-              <p className="text-sm text-gray-400">No active bots.</p>
+              <p className="text-sm text-ash">No active bots.</p>
             ) : (
               <div className="space-y-2">
                 {activeBots.map((bot) => (
                   <div key={bot.bot_id} className="flex items-start justify-between p-3 border rounded-lg">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-800">{bot.bot_name}</span>
+                        <span className="text-sm font-medium text-ink">{bot.bot_name}</span>
                         <BotStatusBadge code={bot.status_code} />
                       </div>
-                      <p className="text-xs text-gray-500 truncate mt-0.5">{bot.meeting_url}</p>
+                      <p className="text-xs text-ink-mute truncate mt-0.5">{bot.meeting_url}</p>
                     </div>
                     <button
                       onClick={() => handleRemove(bot.bot_id)}
                       disabled={removingId === bot.bot_id}
-                      className="ml-3 text-red-400 hover:text-red-600 disabled:opacity-40"
+                      className="ml-3 text-hotpink hover:text-danger disabled:opacity-40"
                       title="Remove bot"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -229,14 +229,14 @@ export default function AgentMeetingsPage() {
 
           {/* Past Meetings */}
           <section>
-            <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <h2 className="text-base font-semibold text-ink mb-4 flex items-center gap-2">
               <Clock className="w-4 h-4" />
               Meeting History
             </h2>
             {loadingBots ? (
-              <p className="text-sm text-gray-400">Loading…</p>
+              <p className="text-sm text-ash">Loading…</p>
             ) : pastBots.length === 0 ? (
-              <p className="text-sm text-gray-400">No past meetings yet.</p>
+              <p className="text-sm text-ash">No past meetings yet.</p>
             ) : (
               <div className="space-y-2">
                 {pastBots.map((bot) => (
@@ -244,11 +244,11 @@ export default function AgentMeetingsPage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-gray-800">{bot.bot_name}</span>
+                          <span className="text-sm font-medium text-ink">{bot.bot_name}</span>
                           <BotStatusBadge code={bot.status_code} />
                         </div>
-                        <p className="text-xs text-gray-500 truncate mt-0.5">{bot.meeting_url}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">
+                        <p className="text-xs text-ink-mute truncate mt-0.5">{bot.meeting_url}</p>
+                        <p className="text-xs text-ash mt-0.5">
                           {new Date(bot.created_at).toLocaleString()}
                         </p>
                       </div>

@@ -141,7 +141,7 @@ export default function PlatformEngineerPage() {
     setMessages((prev) => [...prev, userMsg, assistantMsg])
     setInput('')
     setIsStreaming(true)
-    setThinkingStatus('Thinking...')
+    setThinkingStatus('Thinking…')
 
     try {
       let fullResponse = ''
@@ -184,7 +184,7 @@ export default function PlatformEngineerPage() {
           })
         } else if (event.type === 'status') {
           if (!event.content?.includes('completed')) {
-            setThinkingStatus(event.content || 'Thinking...')
+            setThinkingStatus(event.content || 'Thinking…')
           }
         } else if (event.type === 'tool_status') {
           const newToolStatus: ToolStatus = {
@@ -369,7 +369,7 @@ export default function PlatformEngineerPage() {
   if (screen === 'loading') {
     return (
       <div className="dashboard-resource-page flex min-h-screen items-center justify-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-[#171717]" />
+        <div className="h-10 w-10 motion-safe:animate-spin rounded-full border-b-2 border-ink" />
       </div>
     )
   }
@@ -378,29 +378,27 @@ export default function PlatformEngineerPage() {
   if (screen === 'gate') {
     return (
       <div className="dashboard-resource-page relative flex min-h-screen items-center justify-center overflow-hidden p-4">
-        <div className="pointer-events-none absolute inset-0 opacity-[0.2] [background-image:repeating-linear-gradient(90deg,transparent_0,transparent_12%,rgba(72,51,34,0.08)_12.2%,transparent_12.5%)]" />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_50%_0%,rgba(30,24,20,0.18),transparent_68%)] opacity-70" />
-        <div className="pointer-events-none absolute left-[-4rem] top-12 h-40 w-40 rounded-full bg-white/70 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-10 right-[-3rem] h-44 w-44 rounded-full bg-[#ff5f8f]/15 blur-3xl" />
+        <div className="pointer-events-none absolute inset-0 opacity-[0.2]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-24 opacity-70" />
 
-        <div className="relative w-full max-w-3xl overflow-hidden rounded-[2.4rem] border border-[#e1d4c3] bg-[linear-gradient(180deg,_rgba(251,246,238,0.98),_rgba(244,237,227,0.96))] p-10 text-center shadow-[0_28px_90px_-46px_rgba(88,63,39,0.34)] md:p-12">
-          <div className="pointer-events-none absolute inset-0 opacity-[0.14] [background-image:repeating-linear-gradient(90deg,transparent_0,transparent_11%,rgba(72,51,34,0.08)_11.2%,transparent_11.5%)]" />
+        <div className="relative w-full max-w-3xl overflow-hidden rounded-[2.4rem] border border-line bg-paper p-10 text-center shadow-soft md:p-12">
+          <div className="pointer-events-none absolute inset-0 opacity-[0.14]" />
           <div className="relative">
-            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-black/10 bg-[#171717] text-white shadow-[0_20px_44px_-24px_rgba(0,0,0,0.5)]">
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-[1.25rem] border border-black/10 bg-ink text-white shadow-soft">
               <Lock className="h-7 w-7" />
             </div>
             <div className="space-y-3">
-              <span className="inline-block rounded-full border border-[#dfd1be] bg-white/75 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#7c5d45]">
+              <span className="inline-block rounded-full border border-line bg-white/75 px-3 py-1 text-[11px] font-semibold text-bark">
               {status?.plan_tier ? `${status.plan_tier} plan` : 'Free plan'}
               </span>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.34em] text-[#8b8174]">
+              <p className="text-[11px] font-semibold text-ash">
                 Platform Engineer
               </p>
-              <h3 className="mx-auto max-w-2xl text-[clamp(2.5rem,5vw,4.6rem)] font-light leading-[0.92] tracking-[-0.07em] text-gray-950">
+              <h3 className="mx-auto max-w-2xl text-[clamp(2.5rem,5vw,4.6rem)] font-light leading-[0.92] tracking-[-0.07em] text-ink">
                 <span className="block">Platform Engineer</span>
                 <span className="editorial-highlight mt-3 inline-block">Agent</span>
               </h3>
-              <p className="mx-auto max-w-xl text-sm leading-6 text-gray-600 md:text-base">
+              <p className="mx-auto max-w-xl text-sm leading-6 text-ink-soft md:text-base">
                 Available on Hobby and above. Create and manage AI agents through natural conversation.
               </p>
             </div>
@@ -408,14 +406,14 @@ export default function PlatformEngineerPage() {
               {['Create agents through conversation', 'Check integration status', 'Manage agent configurations', 'Get tool recommendations'].map((f) => (
                 <li
                   key={f}
-                  className="rounded-[1.2rem] border border-black/10 bg-white/70 px-4 py-3 text-sm text-gray-700 shadow-[0_16px_34px_-28px_rgba(28,20,12,0.5)]"
+                  className="rounded-[1.2rem] border border-black/10 bg-white/70 px-4 py-3 text-sm text-ink-soft shadow-soft"
                 >
-                  <div className="mb-1 h-1.5 w-10 rounded-full bg-[#171717]" />
+                  <div className="mb-1 h-1.5 w-10 rounded-full bg-ink" />
                   {f}
                 </li>
               ))}
             </ul>
-            <Link href="/billing/subscription" className="mt-8 inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black">
+            <Link href="/billing/subscription" className="mt-8 inline-flex items-center gap-2 rounded-[1rem] bg-ink px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black">
               Upgrade Plan <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -428,13 +426,13 @@ export default function PlatformEngineerPage() {
   if (screen === 'setup') {
     return (
       <div className="dashboard-resource-page flex h-[calc(100vh-4rem)] flex-col">
-        <div className="relative flex flex-shrink-0 items-center justify-between overflow-hidden border-b border-[#e7dac8] bg-[linear-gradient(180deg,_rgba(251,246,238,0.96),_rgba(247,239,229,0.92))] px-4 py-3 backdrop-blur-sm md:px-8">
-          <div className="pointer-events-none absolute inset-0 opacity-[0.16] [background-image:repeating-linear-gradient(90deg,transparent_0,transparent_13%,rgba(72,51,34,0.08)_13.2%,transparent_13.5%)]" />
+        <div className="relative flex flex-shrink-0 items-center justify-between overflow-hidden border-b border-line bg-paper px-4 py-3 md:px-8">
+          <div className="pointer-events-none absolute inset-0 opacity-[0.16]" />
           <div className="flex items-center gap-2.5">
-            <PlatformEngineerMark className="h-9 w-9 rounded-[1rem] bg-[#171717] text-white shadow-[0_20px_38px_-24px_rgba(0,0,0,0.5)]" />
+            <PlatformEngineerMark className="h-9 w-9 rounded-[1rem] bg-ink text-white shadow-soft" />
             <div>
-              <p className="text-[11px] font-semibold uppercase leading-tight tracking-[0.28em] text-[#8b8174]">Platform Engineer</p>
-              <p className="text-sm font-semibold leading-tight text-gray-900">LLM Configuration</p>
+              <p className="text-[11px] font-semibold leading-tight text-ash">Platform Engineer</p>
+              <p className="text-sm font-semibold leading-tight text-ink">LLM Configuration</p>
             </div>
           </div>
         </div>
@@ -471,15 +469,15 @@ export default function PlatformEngineerPage() {
   return (
     <div className="dashboard-resource-page flex h-[calc(100vh-4rem)] flex-col">
       {/* Sub-header */}
-      <div className="relative flex flex-shrink-0 items-center justify-between overflow-hidden border-b border-[#e7dac8] bg-[linear-gradient(180deg,_rgba(251,246,238,0.96),_rgba(247,239,229,0.92))] px-4 py-3 backdrop-blur-sm md:px-8">
-        <div className="pointer-events-none absolute inset-0 opacity-[0.16] [background-image:repeating-linear-gradient(90deg,transparent_0,transparent_13%,rgba(72,51,34,0.08)_13.2%,transparent_13.5%)]" />
+      <div className="relative flex flex-shrink-0 items-center justify-between overflow-hidden border-b border-line bg-paper px-4 py-3 md:px-8">
+        <div className="pointer-events-none absolute inset-0 opacity-[0.16]" />
         <div className="flex items-center gap-2.5">
-          <PlatformEngineerMark className="h-9 w-9 rounded-[1rem] bg-[#171717] text-white shadow-[0_20px_38px_-24px_rgba(0,0,0,0.5)]" />
+          <PlatformEngineerMark className="h-9 w-9 rounded-[1rem] bg-ink text-white shadow-soft" />
           <div>
-            <p className="text-[11px] font-semibold uppercase leading-tight tracking-[0.28em] text-[#8b8174]">Platform Engineer</p>
-            <p className="text-sm font-semibold text-gray-900 leading-tight">Platform Engineer</p>
+            <p className="text-[11px] font-semibold leading-tight text-ash">Platform Engineer</p>
+            <p className="text-sm font-semibold text-ink leading-tight">Platform Engineer</p>
             {status?.is_configured && (
-              <p className="text-xs text-gray-500 leading-tight">{status.provider} / {status.model_name}</p>
+              <p className="text-xs text-ink-mute leading-tight">{status.provider} / {status.model_name}</p>
             )}
           </div>
         </div>
@@ -488,7 +486,7 @@ export default function PlatformEngineerPage() {
             <button
               onClick={clearConversation}
               title="Clear conversation"
-              className="flex h-9 w-9 items-center justify-center rounded-[0.9rem] text-gray-500 transition-colors hover:bg-white/80 hover:text-[#171717]"
+              className="flex h-9 w-9 items-center justify-center rounded-[0.9rem] text-ink-mute transition-colors hover:bg-white/80 hover:text-ink"
             >
               <Trash2 className="h-4 w-4" />
             </button>
@@ -496,7 +494,7 @@ export default function PlatformEngineerPage() {
           <button
             onClick={() => setScreen('setup')}
             title="Configure LLM"
-              className="flex h-9 w-9 items-center justify-center rounded-[0.9rem] text-gray-500 transition-colors hover:bg-white/80 hover:text-[#171717]"
+              className="flex h-9 w-9 items-center justify-center rounded-[0.9rem] text-ink-mute transition-colors hover:bg-white/80 hover:text-ink"
             >
               <Settings className="h-4 w-4" />
             </button>
@@ -578,7 +576,7 @@ export default function PlatformEngineerPage() {
 
       {/* Input bar */}
       {!isEmpty && (
-        <div className="border-t border-gray-100 bg-white/80 backdrop-blur-sm px-4 md:px-8 py-3 flex-shrink-0">
+        <div className="border-t border-sand bg-white/80 px-4 md:px-8 py-3 flex-shrink-0">
           <div className="max-w-4xl mx-auto">
             <ChatInputBar
               value={input}
@@ -616,38 +614,37 @@ function HeroSection({
 
   return (
     <div className="relative flex min-h-full items-center justify-center overflow-hidden px-4 py-12 text-center md:px-8 md:py-16">
-      <div className="pointer-events-none absolute inset-0 opacity-[0.12] [background-image:repeating-linear-gradient(90deg,transparent_0,transparent_12%,rgba(72,51,34,0.08)_12.2%,transparent_12.5%)]" />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(circle_at_50%_0%,rgba(30,24,20,0.12),transparent_72%)] opacity-70" />
-      <div className="pointer-events-none absolute bottom-16 right-8 h-48 w-48 rounded-full bg-[#ff5f8f]/10 blur-3xl" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.12]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-32 opacity-70" />
 
       <div className="relative w-full max-w-4xl">
         <div className="mx-auto max-w-3xl space-y-5">
-          <PlatformEngineerMark className="mx-auto h-16 w-16 rounded-[1.45rem] bg-[#171717] text-white shadow-[0_24px_50px_-26px_rgba(0,0,0,0.48)]" iconClassName="h-7 w-7" />
+          <PlatformEngineerMark className="mx-auto h-16 w-16 rounded-[1.45rem] bg-ink text-white shadow-soft" iconClassName="h-7 w-7" />
           <div className="space-y-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.36em] text-[#8b8174]">
+            <p className="text-[11px] font-semibold text-ash">
               Platform Engineer
             </p>
-            <h1 className="text-[clamp(3rem,8vw,6rem)] font-light leading-[0.9] tracking-[-0.075em] text-gray-900 sm:whitespace-nowrap">
+            <h1 className="text-[clamp(3rem,8vw,6rem)] font-light leading-[0.9] tracking-[-0.075em] text-ink sm:whitespace-nowrap">
               What will <span className="editorial-highlight inline-block">you build?</span>
             </h1>
-            <p className="mx-auto max-w-2xl text-sm font-medium uppercase tracking-[0.28em] text-[#403a33] sm:text-[0.95rem]">
+            <p className="mx-auto max-w-2xl text-sm font-medium text-night sm:text-[0.95rem]">
               Create and manage AI agents through conversation
             </p>
-            <p className="mx-auto max-w-xl text-sm leading-6 text-gray-600 md:text-base">
+            <p className="mx-auto max-w-xl text-sm leading-6 text-ink-soft md:text-base">
               No code needed.
             </p>
           </div>
         </div>
 
         <div className="mx-auto mt-10 max-w-3xl text-left">
-          <div className="rounded-[2rem] border border-black/10 bg-[linear-gradient(180deg,_rgba(255,255,255,0.84),_rgba(250,246,239,0.92))] px-5 py-4 shadow-[0_24px_48px_-36px_rgba(30,22,14,0.3)] backdrop-blur-sm">
+          <div className="rounded-[2rem] border border-black/10 bg-white px-5 py-4 shadow-soft">
             <textarea
               ref={textareaRef}
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              placeholder="Describe the agent you want to build..."
+              placeholder="Describe the agent you want to build…"
               rows={3}
-              className="w-full resize-none !bg-transparent text-base leading-relaxed text-gray-900 placeholder:text-gray-400 outline-none min-h-[80px] max-h-[320px] overflow-y-auto"
+              className="w-full resize-none !bg-transparent text-base leading-relaxed text-ink placeholder:text-ash outline-none min-h-[80px] max-h-[320px] overflow-y-auto"
               style={{ backgroundColor: 'transparent' }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -660,13 +657,13 @@ function HeroSection({
               <button
                 onClick={() => { if (value.trim()) onSend(value) }}
                 disabled={!value.trim() || isStreaming}
-                className="flex h-11 w-11 items-center justify-center rounded-[1rem] bg-[#171717] text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex h-11 w-11 items-center justify-center rounded-[1rem] bg-ink text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-40"
               >
-                {isStreaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {isStreaming ? <Loader2 className="h-4 w-4 motion-safe:animate-spin" /> : <Send className="h-4 w-4" />}
               </button>
             </div>
           </div>
-          <p className="mt-3 text-center text-[11px] font-semibold uppercase tracking-[0.26em] text-[#8b8174]">
+          <p className="mt-3 text-center text-[11px] font-semibold text-ash">
             Describe the workflow, tools, or integrations you need
           </p>
         </div>
@@ -677,9 +674,9 @@ function HeroSection({
               key={label}
               disabled={isStreaming}
               onClick={() => onSend(prompt)}
-              className="flex items-center gap-2 rounded-full border border-black/10 bg-transparent px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:border-[#ff5f8f]/45 hover:bg-white/50 hover:text-[#171717] disabled:opacity-50"
+              className="flex items-center gap-2 rounded-full border border-black/10 bg-transparent px-4 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:border-hotpink/45 hover:bg-white/50 hover:text-ink disabled:opacity-50"
             >
-              <Icon className="h-3.5 w-3.5 text-gray-500" />
+              <Icon className="h-3.5 w-3.5 text-ink-mute" />
               {label}
             </button>
           ))}
@@ -703,14 +700,14 @@ function ChatInputBar({
   textareaRef: React.RefObject<HTMLTextAreaElement | null>
 }) {
   return (
-    <div className="rounded-[1.7rem] border border-[#ded1bf] bg-[linear-gradient(180deg,_rgba(255,255,255,0.82),_rgba(250,245,238,0.92))] px-4 pt-3 pb-2 shadow-[0_18px_40px_-34px_rgba(30,22,14,0.5)] backdrop-blur-sm transition-shadow hover:shadow-[0_24px_48px_-34px_rgba(30,22,14,0.56)]">
+    <div className="rounded-[1.7rem] border border-line bg-white px-4 pt-3 pb-2 shadow-soft transition-shadow hover:shadow-soft">
       <textarea
         ref={textareaRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Ask the Platform Engineer anything..."
+        placeholder="Ask the Platform Engineer anything…"
         rows={1}
-        className="w-full text-sm text-gray-900 placeholder:text-gray-400 resize-none outline-none bg-transparent min-h-[36px] max-h-[120px] overflow-y-auto leading-relaxed"
+        className="w-full text-sm text-ink placeholder:text-ash resize-none outline-none bg-transparent min-h-[36px] max-h-[120px] overflow-y-auto leading-relaxed"
         onKeyDown={(e) => {
           if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault()
@@ -722,9 +719,9 @@ function ChatInputBar({
         <button
           onClick={onSend}
           disabled={!value.trim() || isStreaming}
-          className="flex h-10 w-10 items-center justify-center rounded-[1rem] bg-[#171717] text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex h-10 w-10 items-center justify-center rounded-[1rem] bg-ink text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {isStreaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          {isStreaming ? <Loader2 className="h-4 w-4 motion-safe:animate-spin" /> : <Send className="h-4 w-4" />}
         </button>
       </div>
     </div>
@@ -740,7 +737,7 @@ function PlatformEngineerMark({
 }) {
   return (
     <div className={`flex items-center justify-center ${className}`}>
-      <svg className={iconClassName} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <svg aria-hidden="true" className={iconClassName} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z" />
       </svg>
     </div>

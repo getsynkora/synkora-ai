@@ -69,7 +69,7 @@ export function AvatarUpload({ currentAvatar, onUpload}: AvatarUploadProps) {
     <div className="relative inline-block">
       {/* Avatar Preview */}
       <div className="relative group">
-        <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center ring-4 ring-white shadow-lg">
+        <div className="w-24 h-24 rounded-full overflow-hidden bg-line flex items-center justify-center ring-4 ring-white shadow-lg">
           {preview ? (
             isExternalUrl(preview) ? (
               // Use regular img tag for external URLs (presigned URLs with query parameters)
@@ -91,8 +91,8 @@ export function AvatarUpload({ currentAvatar, onUpload}: AvatarUploadProps) {
               />
             )
           ) : (
-            <svg
-              className="w-12 h-12 text-gray-400"
+            <svg aria-hidden="true"
+              className="w-12 h-12 text-ash"
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -110,7 +110,7 @@ export function AvatarUpload({ currentAvatar, onUpload}: AvatarUploadProps) {
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
-          className="absolute bottom-0 right-0 p-2 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 disabled:opacity-50 shadow-lg transition-all duration-200 hover:scale-110"
+          className="absolute bottom-0 right-0 p-2 bg-leaf text-white rounded-full hover:bg-forest disabled:opacity-50 shadow-lg transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-200 hover:scale-110"
           title="Change avatar"
         >
           <Camera className="w-4 h-4" />
@@ -118,7 +118,7 @@ export function AvatarUpload({ currentAvatar, onUpload}: AvatarUploadProps) {
 
         {isUploading && (
           <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+            <div className="motion-safe:animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
           </div>
         )}
       </div>
@@ -135,7 +135,7 @@ export function AvatarUpload({ currentAvatar, onUpload}: AvatarUploadProps) {
 
       {/* Error Message */}
       {error && (
-        <p className="mt-2 text-xs text-red-600 text-center">{error}</p>
+        <p className="mt-2 text-xs text-danger text-center">{error}</p>
       )}
     </div>
   );

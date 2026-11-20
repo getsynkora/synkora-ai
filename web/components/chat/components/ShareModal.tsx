@@ -112,14 +112,14 @@ export function ShareModal({ conversationId, messages = [], conversationName, ag
   )
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md" onClick={handleClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={handleClose}>
       <div
-        className="mx-4 w-full max-w-5xl overflow-hidden rounded-[30px] border border-white/15 bg-[#09101f] text-white shadow-[0_36px_120px_rgba(3,7,18,0.65)]"
+        className="mx-4 w-full max-w-5xl overflow-hidden rounded-[30px] border border-white/15 bg-ink text-white shadow-soft"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-white/10 px-6 py-5">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-white/40">
+            <p className="text-[11px] font-semibold text-white/40">
               Social Export
             </p>
             <h2 className="mt-1 text-lg font-semibold text-white">Download Share Image</h2>
@@ -134,12 +134,12 @@ export function ShareModal({ conversationId, messages = [], conversationName, ag
 
         <div className="grid gap-6 px-6 py-6 lg:grid-cols-[minmax(0,1.2fr)_340px]">
           <div className="space-y-4">
-            <div className="overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(124,58,237,0.38),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(6,182,212,0.2),_transparent_26%),linear-gradient(145deg,_#0a1124_0%,_#10152d_52%,_#16173b_100%)] p-4">
+            <div className="bg-azure/40 overflow-hidden rounded-[28px] border border-white/10 p-4">
               {generatedImageUrl ? (
                 <img
                   src={generatedImageUrl}
                   alt="Generated Synkora share card"
-                  className="w-full rounded-[22px] border border-white/10 bg-black/20 shadow-[0_24px_80px_rgba(4,8,20,0.45)]"
+                  className="w-full rounded-[22px] border border-white/10 bg-black/20 shadow-soft"
                 />
               ) : (
                 <div className="flex aspect-[1.91/1] items-center justify-center rounded-[22px] border border-dashed border-white/15 bg-black/[0.15] px-8 text-center">
@@ -159,7 +159,7 @@ export function ShareModal({ conversationId, messages = [], conversationName, ag
             </div>
 
             {error && (
-              <p className="rounded-2xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+              <p className="rounded-2xl border border-ink/25 bg-brand/10 px-4 py-3 text-sm text-blush-wash">
                 {error}
               </p>
             )}
@@ -167,7 +167,7 @@ export function ShareModal({ conversationId, messages = [], conversationName, ag
 
           <div className="space-y-4">
             <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-white/40">
+              <p className="text-[11px] font-semibold text-white/40">
                 What You Export
               </p>
               <h3 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-white">
@@ -181,11 +181,11 @@ export function ShareModal({ conversationId, messages = [], conversationName, ag
             {sharePreview && (
               <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-5">
                 <div className="flex flex-wrap gap-2">
-                  <span className="rounded-full border border-[#7C3AED]/35 bg-[#7C3AED]/18 px-3 py-1 text-xs font-semibold text-[#e2d7ff]">
+                  <span className="rounded-full border border-azure/35 bg-azure/18 px-3 py-1 text-xs font-semibold text-blush-wash">
                     {sharePreview.classification}
                   </span>
                   {sharePreview.scoreLabel && (
-                    <span className="rounded-full border border-[#06B6D4]/30 bg-[#06B6D4]/14 px-3 py-1 text-xs font-medium text-[#b8f5ff]">
+                    <span className="rounded-full border border-steel/30 bg-steel/14 px-3 py-1 text-xs font-medium text-sky-wash">
                       {sharePreview.scoreLabel}
                     </span>
                   )}
@@ -202,7 +202,7 @@ export function ShareModal({ conversationId, messages = [], conversationName, ag
                   <div className="mt-4 space-y-3">
                     {sharePreview.strengths[0] && (
                       <div className="rounded-2xl border border-white/10 bg-black/[0.15] p-4">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/40">
+                        <p className="text-[11px] font-semibold text-white/40">
                           Strongest Signal
                         </p>
                         <p className="mt-2 text-sm leading-6 text-white/[0.82]">
@@ -212,7 +212,7 @@ export function ShareModal({ conversationId, messages = [], conversationName, ag
                     )}
                     {sharePreview.growthEdges[0] && (
                       <div className="rounded-2xl border border-white/10 bg-black/[0.15] p-4">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/40">
+                        <p className="text-[11px] font-semibold text-white/40">
                           Next Growth Edge
                         </p>
                         <p className="mt-2 text-sm leading-6 text-white/[0.82]">
@@ -225,11 +225,11 @@ export function ShareModal({ conversationId, messages = [], conversationName, ag
               </div>
             )}
 
-            <div className="space-y-3 rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] p-5">
+            <div className="bg-white/10 space-y-3 rounded-[28px] border border-white/10 p-5">
               <button
                 onClick={handleGenerate}
                 disabled={isCreating}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#08101f] transition hover:bg-white/92 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-ink transition hover:bg-white/92 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Sparkles size={16} />
                 {isCreating ? 'Generating image…' : generatedImageUrl ? 'Regenerate image' : 'Generate share image'}

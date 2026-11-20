@@ -85,13 +85,13 @@ export default function AgentOutputsPage() {
     <AgentPageShell
       agentName={agentName}
       title="Output Configurations"
-      description={<>Route agent responses to Slack, email, or webhooks for <span className="font-semibold text-gray-900">{agentName}</span>.</>}
+      description={<>Route agent responses to Slack, email, or webhooks for <span className="font-semibold text-ink">{agentName}</span>.</>}
       icon={Send}
       badge="Response Routing"
       actions={activeTab === 'list' ? (
         <button
           onClick={handleCreateClick}
-          className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+          className="inline-flex items-center gap-2 rounded-[1rem] bg-ink px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
         >
           <Plus className="w-4 h-4" />
           Add Output
@@ -112,7 +112,7 @@ export default function AgentOutputsPage() {
 
       <AgentPagePanel className="overflow-hidden">
           {loading ? (
-            <div className="p-8 text-center text-gray-500">Loading agent...</div>
+            <div className="p-8 text-center text-ink-mute">Loading agent…</div>
           ) : agentId ? (
             <>
               {activeTab === 'list' && (
@@ -132,7 +132,7 @@ export default function AgentOutputsPage() {
               )}
             </>
           ) : (
-            <div className="p-8 text-center text-red-500">Failed to load agent</div>
+            <div className="p-8 text-center text-leaf">Failed to load agent</div>
           )}
       </AgentPagePanel>
     </AgentPageShell>

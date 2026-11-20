@@ -91,53 +91,53 @@ export function DiagramToolbar({
     <div className="flex items-center gap-1">
       <button
         onClick={onZoomOut}
-        className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
+        className="p-1 text-ash hover:text-ink-soft rounded transition-colors"
         title="Zoom out"
       >
         <ZoomOut size={14} />
       </button>
-      <span className="text-[10px] text-gray-400 min-w-[32px] text-center">
+      <span className="text-[10px] text-ash min-w-[32px] text-center">
         {Math.round(zoom * 100)}%
       </span>
       <button
         onClick={onZoomIn}
-        className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
+        className="p-1 text-ash hover:text-ink-soft rounded transition-colors"
         title="Zoom in"
       >
         <ZoomIn size={14} />
       </button>
       <button
         onClick={onZoomReset}
-        className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
+        className="p-1 text-ash hover:text-ink-soft rounded transition-colors"
         title="Reset zoom"
       >
         <RotateCcw size={14} />
       </button>
-      <div className="w-px h-4 bg-gray-200 mx-1" />
+      <div className="w-px h-4 bg-line mx-1" />
       <button
         onClick={handleCopySvg}
-        className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
+        className="p-1 text-ash hover:text-ink-soft rounded transition-colors"
         title="Copy SVG"
       >
         {copied ? <Check size={14} /> : <Copy size={14} />}
       </button>
       <button
         onClick={handleDownloadSvg}
-        className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
+        className="p-1 text-ash hover:text-ink-soft rounded transition-colors"
         title="Download SVG"
       >
         <Download size={14} />
       </button>
       <button
         onClick={handleDownloadPng}
-        className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
+        className="p-1 text-ash hover:text-ink-soft rounded transition-colors"
         title="Download PNG"
       >
         <span className="text-[10px] font-medium">PNG</span>
       </button>
       <button
         onClick={onToggleFullscreen}
-        className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
+        className="p-1 text-ash hover:text-ink-soft rounded transition-colors"
         title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
       >
         {isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}

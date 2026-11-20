@@ -33,25 +33,25 @@ const PROVIDERS: Record<ProviderType, ProviderConfig> = {
     icon: <BarChart className="w-6 h-6" />,
     name: 'DataDog',
     description: 'Export metrics to DataDog APM',
-    color: 'bg-purple-100 text-purple-600 border-purple-200',
+    color: 'bg-blush-wash text-plum border-blush',
   },
   otlp: {
     icon: <Activity className="w-6 h-6" />,
     name: 'OpenTelemetry',
     description: 'Export via OTLP protocol',
-    color: 'bg-blue-100 text-blue-600 border-blue-200',
+    color: 'bg-sky-wash text-azure border-sky-wash',
   },
   grafana_cloud: {
     icon: <Cloud className="w-6 h-6" />,
     name: 'Grafana Cloud',
     description: 'Push to Prometheus remote write',
-    color: 'bg-orange-100 text-orange-600 border-orange-200',
+    color: 'bg-sand-deep text-warn border-honey',
   },
   webhook: {
     icon: <Webhook className="w-6 h-6" />,
     name: 'Webhook',
     description: 'Send to custom HTTP endpoint',
-    color: 'bg-green-100 text-green-600 border-green-200',
+    color: 'bg-leaf-wash text-leaf border-mint',
   },
 }
 
@@ -195,31 +195,31 @@ export default function CreateMonitoringIntegrationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-primary-50/30 p-4 md:p-6">
+    <div className="min-h-screen bg-cream50/30 p-4 md:p-6">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <Link
             href="/load-testing/monitoring"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+            className="inline-flex items-center gap-2 text-ink-soft hover:text-ink mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Monitoring
           </Link>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Add Monitoring Integration</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight">Add Monitoring Integration</h1>
+          <p className="text-ink-soft mt-1">
             Connect your monitoring platform to export test results
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Info */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h2>
+          <div className="bg-white rounded-xl shadow-sm border border-sand p-6">
+            <h2 className="text-lg font-semibold text-ink mb-4">Basic Information</h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-ink-soft mb-1">
                   Integration Name *
                 </label>
                 <input
@@ -227,13 +227,13 @@ export default function CreateMonitoringIntegrationPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g., Production DataDog"
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
+                <label className="block text-sm font-medium text-ink-soft mb-3">
                   Provider
                 </label>
                 <div className="grid grid-cols-2 gap-3">
@@ -242,21 +242,21 @@ export default function CreateMonitoringIntegrationPage() {
                       key={key}
                       type="button"
                       onClick={() => setProvider(key)}
-                      className={`p-4 rounded-xl border-2 transition-all text-left ${
+                      className={`p-4 rounded-xl border-2 transition-[color,background-color,border-color,box-shadow,opacity,transform] text-left ${
                         provider === key
                           ? `${config.color} border-current`
-                          : 'bg-white border-gray-200 hover:border-gray-300'
+                          : 'bg-white border-line hover:border-taupe'
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={provider === key ? '' : 'text-gray-400'}>
+                        <div className={provider === key ? '' : 'text-ash'}>
                           {config.icon}
                         </div>
                         <div>
-                          <div className={`font-medium ${provider === key ? '' : 'text-gray-900'}`}>
+                          <div className={`font-medium ${provider === key ? '' : 'text-ink'}`}>
                             {config.name}
                           </div>
-                          <div className={`text-xs ${provider === key ? 'opacity-80' : 'text-gray-500'}`}>
+                          <div className={`text-xs ${provider === key ? 'opacity-80' : 'text-ink-mute'}`}>
                             {config.description}
                           </div>
                         </div>
@@ -272,8 +272,8 @@ export default function CreateMonitoringIntegrationPage() {
           </div>
 
           {/* Provider-specific Config */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <div className="bg-white rounded-xl shadow-sm border border-sand p-6">
+            <h2 className="text-lg font-semibold text-ink mb-4 flex items-center gap-2">
               {PROVIDERS[provider].icon}
               {PROVIDERS[provider].name} Configuration
             </h2>
@@ -282,7 +282,7 @@ export default function CreateMonitoringIntegrationPage() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-ink-soft mb-1">
                       API Key *
                     </label>
                     <input
@@ -290,11 +290,11 @@ export default function CreateMonitoringIntegrationPage() {
                       value={datadogConfig.api_key}
                       onChange={(e) => setDatadogConfig({ ...datadogConfig, api_key: e.target.value })}
                       placeholder="Your DataDog API key"
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-ink-soft mb-1">
                       App Key *
                     </label>
                     <input
@@ -302,19 +302,19 @@ export default function CreateMonitoringIntegrationPage() {
                       value={datadogConfig.app_key}
                       onChange={(e) => setDatadogConfig({ ...datadogConfig, app_key: e.target.value })}
                       placeholder="Your DataDog App key"
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-ink-soft mb-1">
                       Site
                     </label>
                     <select
                       value={datadogConfig.site}
                       onChange={(e) => setDatadogConfig({ ...datadogConfig, site: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     >
                       <option value="datadoghq.com">US1 (datadoghq.com)</option>
                       <option value="us3.datadoghq.com">US3 (us3.datadoghq.com)</option>
@@ -323,7 +323,7 @@ export default function CreateMonitoringIntegrationPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-ink-soft mb-1">
                       Metric Prefix
                     </label>
                     <input
@@ -331,12 +331,12 @@ export default function CreateMonitoringIntegrationPage() {
                       value={datadogConfig.metric_prefix}
                       onChange={(e) => setDatadogConfig({ ...datadogConfig, metric_prefix: e.target.value })}
                       placeholder="loadtest."
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-soft mb-1">
                     Tags (comma-separated)
                   </label>
                   <input
@@ -344,7 +344,7 @@ export default function CreateMonitoringIntegrationPage() {
                     value={datadogConfig.tags}
                     onChange={(e) => setDatadogConfig({ ...datadogConfig, tags: e.target.value })}
                     placeholder="env:production, team:platform"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -353,7 +353,7 @@ export default function CreateMonitoringIntegrationPage() {
             {provider === 'otlp' && (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-soft mb-1">
                     OTLP Endpoint *
                   </label>
                   <input
@@ -361,24 +361,24 @@ export default function CreateMonitoringIntegrationPage() {
                     value={otlpConfig.endpoint}
                     onChange={(e) => setOtlpConfig({ ...otlpConfig, endpoint: e.target.value })}
                     placeholder="https://otel-collector:4317"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-soft mb-1">
                     Protocol
                   </label>
                   <select
                     value={otlpConfig.protocol}
                     onChange={(e) => setOtlpConfig({ ...otlpConfig, protocol: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
                     <option value="grpc">gRPC</option>
                     <option value="http">HTTP/Protobuf</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-soft mb-1">
                     Headers (comma-separated key:value)
                   </label>
                   <input
@@ -386,7 +386,7 @@ export default function CreateMonitoringIntegrationPage() {
                     value={otlpConfig.headers}
                     onChange={(e) => setOtlpConfig({ ...otlpConfig, headers: e.target.value })}
                     placeholder="Authorization:Bearer token, X-Custom:value"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -395,7 +395,7 @@ export default function CreateMonitoringIntegrationPage() {
             {provider === 'grafana_cloud' && (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-soft mb-1">
                     Prometheus Remote Write URL *
                   </label>
                   <input
@@ -403,12 +403,12 @@ export default function CreateMonitoringIntegrationPage() {
                     value={grafanaConfig.prometheus_url}
                     onChange={(e) => setGrafanaConfig({ ...grafanaConfig, prometheus_url: e.target.value })}
                     placeholder="https://prometheus-us-central1.grafana.net/api/prom/push"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-ink-soft mb-1">
                       Username
                     </label>
                     <input
@@ -416,11 +416,11 @@ export default function CreateMonitoringIntegrationPage() {
                       value={grafanaConfig.username}
                       onChange={(e) => setGrafanaConfig({ ...grafanaConfig, username: e.target.value })}
                       placeholder="Instance ID or username"
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-ink-soft mb-1">
                       API Key *
                     </label>
                     <input
@@ -428,7 +428,7 @@ export default function CreateMonitoringIntegrationPage() {
                       value={grafanaConfig.api_key}
                       onChange={(e) => setGrafanaConfig({ ...grafanaConfig, api_key: e.target.value })}
                       placeholder="Grafana Cloud API key"
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -438,7 +438,7 @@ export default function CreateMonitoringIntegrationPage() {
             {provider === 'webhook' && (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-soft mb-1">
                     Webhook URL *
                   </label>
                   <input
@@ -446,25 +446,25 @@ export default function CreateMonitoringIntegrationPage() {
                     value={webhookConfig.url}
                     onChange={(e) => setWebhookConfig({ ...webhookConfig, url: e.target.value })}
                     placeholder="https://your-server.com/webhook"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-ink-soft mb-1">
                       HTTP Method
                     </label>
                     <select
                       value={webhookConfig.method}
                       onChange={(e) => setWebhookConfig({ ...webhookConfig, method: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     >
                       <option value="POST">POST</option>
                       <option value="PUT">PUT</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-ink-soft mb-1">
                       Batch Size
                     </label>
                     <input
@@ -473,12 +473,12 @@ export default function CreateMonitoringIntegrationPage() {
                       onChange={(e) => setWebhookConfig({ ...webhookConfig, batch_size: parseInt(e.target.value) })}
                       min="1"
                       max="1000"
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-soft mb-1">
                     Headers (comma-separated key:value)
                   </label>
                   <input
@@ -486,7 +486,7 @@ export default function CreateMonitoringIntegrationPage() {
                     value={webhookConfig.headers}
                     onChange={(e) => setWebhookConfig({ ...webhookConfig, headers: e.target.value })}
                     placeholder="Authorization:Bearer token, Content-Type:application/json"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -494,19 +494,19 @@ export default function CreateMonitoringIntegrationPage() {
           </div>
 
           {/* Export Settings */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Export Settings</h2>
+          <div className="bg-white rounded-xl shadow-sm border border-sand p-6">
+            <h2 className="text-lg font-semibold text-ink mb-4">Export Settings</h2>
 
             <label className="flex items-center gap-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={autoExport}
                 onChange={(e) => setAutoExport(e.target.checked)}
-                className="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                className="w-5 h-5 rounded border-taupe text-primary-600 focus:ring-primary-500"
               />
               <div>
-                <span className="font-medium text-gray-900">Auto-export after test completion</span>
-                <p className="text-sm text-gray-500">
+                <span className="font-medium text-ink">Auto-export after test completion</span>
+                <p className="text-sm text-ink-mute">
                   Automatically export results when a test run completes
                 </p>
               </div>
@@ -517,7 +517,7 @@ export default function CreateMonitoringIntegrationPage() {
           <div className="flex justify-end gap-4">
             <Link
               href="/load-testing/monitoring"
-              className="px-6 py-2.5 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+              className="px-6 py-2.5 text-ink-soft bg-sand rounded-lg hover:bg-line transition-colors font-medium"
             >
               Cancel
             </Link>
@@ -528,7 +528,7 @@ export default function CreateMonitoringIntegrationPage() {
             >
               {saving ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full motion-safe:animate-spin" />
                   Creating...
                 </>
               ) : (

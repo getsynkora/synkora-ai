@@ -33,24 +33,24 @@ const providerMetadata: Record<
 > = {
   openai: {
     label: 'OpenAI Compatible',
-    badgeClassName: 'bg-[#e8f5ef] text-[#2d8b69]',
+    badgeClassName: 'bg-leaf-wash text-leaf',
     endpoint: '/proxy/v1/chat/completions',
   },
   anthropic: {
     label: 'Anthropic',
-    badgeClassName: 'bg-[#f5ebdf] text-[#8b5e34]',
+    badgeClassName: 'bg-sand text-bark',
     endpoint: '/proxy/v1/messages',
   },
   google: {
     label: 'Google',
-    badgeClassName: 'bg-[#eef4fb] text-[#345c8a]',
+    badgeClassName: 'bg-sky-wash text-azure',
     endpoint: '/proxy/v1/models/gemini-pro:generateContent',
   },
 }
 
 const fallbackProvider = {
   label: 'Custom Provider',
-  badgeClassName: 'bg-[#f1ede5] text-[#5b564e]',
+  badgeClassName: 'bg-paper text-ink-soft',
   endpoint: '/proxy/v1',
 }
 
@@ -162,8 +162,8 @@ export default function ProxyConfigsPage() {
     return (
       <div className="dashboard-resource-page flex min-h-screen items-center justify-center p-6">
         <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-[#171717]" />
-          <p className="text-gray-600">Loading proxy configurations...</p>
+          <div className="mx-auto mb-4 h-12 w-12 motion-safe:animate-spin rounded-full border-b-2 border-ink" />
+          <p className="text-ink-soft">Loading proxy configurations…</p>
         </div>
       </div>
     )
@@ -188,7 +188,7 @@ export default function ProxyConfigsPage() {
           <div className="flex flex-wrap gap-3">
             <Link
               href="/load-testing/proxy/create"
-              className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+              className="inline-flex items-center gap-2 rounded-[1rem] bg-ink px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
             >
               <Server className="h-4 w-4" />
               Create Proxy
@@ -204,12 +204,12 @@ export default function ProxyConfigsPage() {
         <div className="mb-6 grid gap-4 lg:grid-cols-[1.35fr_0.95fr]">
           <DashboardPagePanel className="overflow-hidden p-6">
             <div className="flex items-start gap-4">
-              <div className="rounded-[1.25rem] bg-[#f3ecde] p-3 shadow-[0_16px_30px_-24px_rgba(74,49,22,0.3)]">
-                <Server className="h-6 w-6 text-[#171717]" />
+              <div className="rounded-[1.25rem] bg-sand p-3 shadow-soft">
+                <Server className="h-6 w-6 text-ink" />
               </div>
               <div className="flex-1">
-                <h2 className="text-lg font-semibold text-gray-950">Synkora proxy endpoints</h2>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
+                <h2 className="text-lg font-semibold text-ink">Synkora proxy endpoints</h2>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-soft">
                   Swap your live provider URL for a mock Synkora endpoint during load testing. Each config
                   can model realistic latency, token volumes, and injected failures.
                 </p>
@@ -217,15 +217,15 @@ export default function ProxyConfigsPage() {
                   {Object.entries(providerMetadata).map(([provider, meta]) => (
                     <div
                       key={provider}
-                      className="flex flex-col gap-2 rounded-[1.2rem] border border-[#eadfce] bg-[#fcfaf5] p-4 md:flex-row md:items-center md:justify-between"
+                      className="flex flex-col gap-2 rounded-[1.2rem] border border-sand-deep bg-cream p-4 md:flex-row md:items-center md:justify-between"
                     >
                       <div>
-                        <p className="text-sm font-semibold text-gray-900">{meta.label}</p>
-                        <p className="text-xs uppercase tracking-[0.18em] text-[#9a7a5e]">
+                        <p className="text-sm font-semibold text-ink">{meta.label}</p>
+                        <p className="text-xs text-clay">
                           Mock endpoint
                         </p>
                       </div>
-                      <code className="overflow-x-auto rounded-xl bg-white px-3 py-2 text-xs text-gray-700 shadow-inner">
+                      <code className="overflow-x-auto rounded-xl bg-white px-3 py-2 text-xs text-ink-soft shadow-inner">
                         {apiBaseUrl}
                         {meta.endpoint}
                       </code>
@@ -237,25 +237,25 @@ export default function ProxyConfigsPage() {
           </DashboardPagePanel>
 
           <DashboardPagePanel className="p-6">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#9a7a5e]">
+            <p className="text-[11px] font-semibold text-clay">
               System Snapshot
             </p>
             <div className="mt-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-              <div className="rounded-[1.25rem] bg-[#eef4fb] p-4">
-                <p className="text-sm text-[#345c8a]">Requests proxied</p>
-                <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[#1e3d5c]">
+              <div className="rounded-[1.25rem] bg-sky-wash p-4">
+                <p className="text-sm text-azure">Requests proxied</p>
+                <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-azure">
                   {totalRequests.toLocaleString()}
                 </p>
               </div>
-              <div className="rounded-[1.25rem] bg-[#ebf5ee] p-4">
-                <p className="text-sm text-[#24543b]">Tokens generated</p>
-                <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[#173827]">
+              <div className="rounded-[1.25rem] bg-leaf-wash p-4">
+                <p className="text-sm text-forest">Tokens generated</p>
+                <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-forest">
                   {(totalTokens / 1000).toFixed(1)}K
                 </p>
               </div>
-              <div className="rounded-[1.25rem] bg-[#f3ecde] p-4">
-                <p className="text-sm text-[#7c5d45]">Ready for</p>
-                <p className="mt-2 text-base font-semibold text-[#171717]">
+              <div className="rounded-[1.25rem] bg-sand p-4">
+                <p className="text-sm text-bark">Ready for</p>
+                <p className="mt-2 text-base font-semibold text-ink">
                   Load-safe testing across OpenAI, Anthropic, and Google style endpoints
                 </p>
               </div>
@@ -266,19 +266,19 @@ export default function ProxyConfigsPage() {
         {proxyConfigs.length === 0 ? (
           <DashboardPagePanel className="p-12 text-center">
             <div className="relative mx-auto mb-6 h-32 w-32">
-              <div className="absolute inset-0 rotate-6 rounded-2xl bg-gradient-to-br from-[#f3ecde] to-[#fbf7ef]" />
-              <div className="absolute inset-0 flex items-center justify-center rounded-2xl border border-gray-100 bg-white shadow-sm">
-                <Server className="h-12 w-12 text-[#171717]" />
+              <div className="absolute inset-0 rotate-6 rounded-2xl bg-sand" />
+              <div className="absolute inset-0 flex items-center justify-center rounded-2xl border border-sand bg-white shadow-sm">
+                <Server className="h-12 w-12 text-ink" />
               </div>
             </div>
 
-            <h3 className="mb-2 text-xl font-semibold text-gray-900">Create your first proxy configuration</h3>
-            <p className="mx-auto mb-6 max-w-md text-gray-600">
+            <h3 className="mb-2 text-xl font-semibold text-ink">Create your first proxy configuration</h3>
+            <p className="mx-auto mb-6 max-w-md text-ink-soft">
               Build a branded load-testing setup that mirrors provider behavior without touching your paid API quota.
             </p>
             <Link
               href="/load-testing/proxy/create"
-              className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-6 py-3 font-semibold text-white transition-colors hover:bg-black"
+              className="inline-flex items-center gap-2 rounded-[1rem] bg-ink px-6 py-3 font-semibold text-white transition-colors hover:bg-black"
             >
               <Server className="h-5 w-5" />
               Create Proxy Config
@@ -292,14 +292,14 @@ export default function ProxyConfigsPage() {
 
               return (
                 <DashboardPagePanel key={config.id} className="overflow-hidden">
-                  <div className="border-b border-[#eadfce] bg-[linear-gradient(180deg,_rgba(255,255,255,0.72),_rgba(248,243,236,0.72))] px-6 py-5">
+                  <div className="border-b border-sand-deep bg-white px-6 py-5">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-center gap-3">
-                        <div className="rounded-[1rem] bg-[#f3ecde] p-2.5">
-                          <Server className="h-5 w-5 text-[#171717]" />
+                        <div className="rounded-[1rem] bg-sand p-2.5">
+                          <Server className="h-5 w-5 text-ink" />
                         </div>
                         <div>
-                          <h3 className="text-lg font-semibold text-gray-950">{config.name}</h3>
+                          <h3 className="text-lg font-semibold text-ink">{config.name}</h3>
                           <div className="mt-2 flex flex-wrap items-center gap-2">
                             <span
                               className={`rounded-full px-2.5 py-1 text-xs font-semibold ${providerMeta.badgeClassName}`}
@@ -309,8 +309,8 @@ export default function ProxyConfigsPage() {
                             <span
                               className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
                                 config.is_active
-                                  ? 'bg-[#ebf5ee] text-[#24543b]'
-                                  : 'bg-[#f1ede5] text-[#6b665f]'
+                                  ? 'bg-leaf-wash text-forest'
+                                  : 'bg-paper text-ink-mute'
                               }`}
                             >
                               {config.is_active ? (
@@ -325,7 +325,7 @@ export default function ProxyConfigsPage() {
                       </div>
                       <button
                         onClick={() => setDeleteModal({ show: true, config })}
-                        className="inline-flex items-center gap-1 rounded-[0.9rem] px-3 py-2 text-sm font-medium text-[#8a445c] transition-colors hover:bg-[#f9edf1]"
+                        className="inline-flex items-center gap-1 rounded-[0.9rem] px-3 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush-wash"
                       >
                         <Trash2 className="h-4 w-4" />
                         Delete
@@ -334,16 +334,16 @@ export default function ProxyConfigsPage() {
                   </div>
 
                   <div className="space-y-5 p-6">
-                    <div className="rounded-[1.2rem] border border-[#eadfce] bg-[#fcfaf5] p-4">
+                    <div className="rounded-[1.2rem] border border-sand-deep bg-cream p-4">
                       <div className="mb-3 flex items-center justify-between gap-4">
-                        <span className="flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#9a7a5e]">
+                        <span className="flex items-center gap-1 text-xs font-semibold text-clay">
                           <Key className="h-3.5 w-3.5" />
                           API Key
                         </span>
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => toggleKeyVisibility(config.id)}
-                            className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-white hover:text-gray-700"
+                            className="rounded-lg p-2 text-ash transition-colors hover:bg-white hover:text-ink-soft"
                             aria-label={visibleKeys.has(config.id) ? 'Hide API key' : 'Show API key'}
                           >
                             {visibleKeys.has(config.id) ? (
@@ -354,7 +354,7 @@ export default function ProxyConfigsPage() {
                           </button>
                           <button
                             onClick={() => copyToClipboard(getCopyableKey(config))}
-                            className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-white hover:text-gray-700"
+                            className="rounded-lg p-2 text-ash transition-colors hover:bg-white hover:text-ink-soft"
                             aria-label="Copy API key"
                           >
                             <Copy className="h-4 w-4" />
@@ -362,51 +362,51 @@ export default function ProxyConfigsPage() {
                           <button
                             onClick={() => handleRegenerateKey(config.id)}
                             disabled={regenerating === config.id}
-                            className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-white hover:text-gray-700 disabled:opacity-50"
+                            className="rounded-lg p-2 text-ash transition-colors hover:bg-white hover:text-ink-soft disabled:opacity-50"
                             aria-label="Regenerate API key"
                           >
                             <RefreshCw
-                              className={`h-4 w-4 ${regenerating === config.id ? 'animate-spin' : ''}`}
+                              className={`h-4 w-4 ${regenerating === config.id ? 'motion-safe:animate-spin' : ''}`}
                             />
                           </button>
                         </div>
                       </div>
-                      <code className="block overflow-x-auto rounded-xl bg-white px-3 py-3 font-mono text-sm text-gray-700 shadow-inner">
+                      <code className="block overflow-x-auto rounded-xl bg-white px-3 py-3 font-mono text-sm text-ink-soft shadow-inner">
                         {getVisibleKey(config)}
                       </code>
                       {showingNewKey ? (
-                        <p className="mt-2 text-xs font-medium text-[#8a5b12]">
+                        <p className="mt-2 text-xs font-medium text-gold">
                           Save this regenerated key now. It will not be shown again.
                         </p>
                       ) : null}
                     </div>
 
                     <div className="grid grid-cols-3 gap-3">
-                      <div className="rounded-[1.1rem] bg-[#eef4fb] p-3 text-center">
-                        <div className="text-lg font-semibold text-[#1e3d5c]">
+                      <div className="rounded-[1.1rem] bg-sky-wash p-3 text-center">
+                        <div className="text-lg font-semibold text-azure">
                           {config.usage_count.toLocaleString()}
                         </div>
-                        <div className="text-xs text-[#345c8a]">Requests</div>
+                        <div className="text-xs text-azure">Requests</div>
                       </div>
-                      <div className="rounded-[1.1rem] bg-[#ebf5ee] p-3 text-center">
-                        <div className="text-lg font-semibold text-[#173827]">
+                      <div className="rounded-[1.1rem] bg-leaf-wash p-3 text-center">
+                        <div className="text-lg font-semibold text-forest">
                           {(config.total_tokens_generated / 1000).toFixed(1)}K
                         </div>
-                        <div className="text-xs text-[#24543b]">Tokens</div>
+                        <div className="text-xs text-forest">Tokens</div>
                       </div>
-                      <div className="rounded-[1.1rem] bg-[#f3ecde] p-3 text-center">
-                        <div className="text-lg font-semibold text-[#5f472f]">{config.rate_limit}</div>
-                        <div className="text-xs text-[#7c5d45]">RPS Limit</div>
+                      <div className="rounded-[1.1rem] bg-sand p-3 text-center">
+                        <div className="text-lg font-semibold text-bark">{config.rate_limit}</div>
+                        <div className="text-xs text-bark">RPS Limit</div>
                       </div>
                     </div>
 
                     <div className="grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
-                      <div className="rounded-[1.2rem] border border-[#eadfce] bg-white/80 p-4">
+                      <div className="rounded-[1.2rem] border border-sand-deep bg-white/80 p-4">
                         <div className="mb-2 flex items-center gap-2">
-                          <Settings className="h-4 w-4 text-[#7c5d45]" />
-                          <span className="text-sm font-semibold text-gray-900">Mock behavior</span>
+                          <Settings className="h-4 w-4 text-bark" />
+                          <span className="text-sm font-semibold text-ink">Mock behavior</span>
                         </div>
-                        <div className="space-y-2 text-sm text-gray-600">
+                        <div className="space-y-2 text-sm text-ink-soft">
                           <p>
                             Latency: {config.mock_config?.latency?.ttft_min_ms || 100} to{' '}
                             {config.mock_config?.latency?.ttft_max_ms || 500} ms TTFT
@@ -421,20 +421,20 @@ export default function ProxyConfigsPage() {
                         </div>
                       </div>
 
-                      <div className="rounded-[1.2rem] border border-[#eadfce] bg-white/80 p-4">
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9a7a5e]">
+                      <div className="rounded-[1.2rem] border border-sand-deep bg-white/80 p-4">
+                        <p className="text-xs font-semibold text-clay">
                           Endpoint
                         </p>
-                        <code className="mt-3 block break-all rounded-xl bg-[#fcfaf5] px-3 py-3 text-xs text-gray-700">
+                        <code className="mt-3 block break-all rounded-xl bg-cream px-3 py-3 text-xs text-ink-soft">
                           {apiBaseUrl}
                           {providerMeta.endpoint}
                         </code>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between border-t border-[#eadfce] pt-4">
-                      <span className="text-xs text-gray-500">Created {formatDate(config.created_at)}</span>
-                      <span className="text-xs font-medium text-[#7c5d45]">
+                    <div className="flex items-center justify-between border-t border-sand-deep pt-4">
+                      <span className="text-xs text-ink-mute">Created {formatDate(config.created_at)}</span>
+                      <span className="text-xs font-medium text-bark">
                         Synkora proxy profile
                       </span>
                     </div>
@@ -447,18 +447,18 @@ export default function ProxyConfigsPage() {
       </DashboardPageShell>
 
       {deleteModal.show && deleteModal.config ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(23,23,23,0.42)] p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-[1.8rem] border border-[#eadfce] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,245,239,0.98))] p-6 shadow-[0_28px_80px_-42px_rgba(88,63,39,0.32)]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4">
+          <div className="w-full max-w-md rounded-[1.8rem] border border-sand-deep bg-white p-6 shadow-soft">
             <div className="mb-4 flex items-center gap-3">
-              <div className="rounded-[1rem] bg-[#f7e9ee] p-2.5">
-                <Trash2 className="h-6 w-6 text-[#8a445c]" />
+              <div className="rounded-[1rem] bg-sand-deep p-2.5">
+                <Trash2 className="h-6 w-6 text-wine" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-950">Delete Proxy Config</h3>
+              <h3 className="text-lg font-semibold text-ink">Delete Proxy Config</h3>
             </div>
 
-            <p className="mb-6 text-sm leading-6 text-gray-600">
+            <p className="mb-6 text-sm leading-6 text-ink-soft">
               Are you sure you want to delete{' '}
-              <span className="font-semibold text-gray-900">"{deleteModal.config.name}"</span>? Any load
+              <span className="font-semibold text-ink">"{deleteModal.config.name}"</span>? Any load
               tests using this proxy will need to be reconfigured.
             </p>
 
@@ -466,18 +466,18 @@ export default function ProxyConfigsPage() {
               <button
                 onClick={() => setDeleteModal({ show: false, config: null })}
                 disabled={deleting !== null}
-                className="rounded-[0.95rem] border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-[#f7f2e7] disabled:opacity-50"
+                className="rounded-[0.95rem] border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-ink-soft transition-colors hover:bg-paper disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDelete}
                 disabled={deleting !== null}
-                className="inline-flex items-center gap-2 rounded-[0.95rem] bg-[#8a445c] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#73364b] disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-[0.95rem] bg-wine px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-wine disabled:opacity-50"
               >
                 {deleting === deleteModal.config.id ? (
                   <>
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    <div className="h-4 w-4 motion-safe:animate-spin rounded-full border-2 border-white border-t-transparent" />
                     Deleting...
                   </>
                 ) : (

@@ -94,24 +94,24 @@ export default function CreateProxyConfigPage() {
 
   if (showApiKey && createdApiKey) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-primary-50/30 p-4 md:p-6">
+      <div className="min-h-screen bg-cream50/30 p-4 md:p-6">
         <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle className="w-8 h-8 text-green-600" />
+          <div className="bg-white rounded-2xl shadow-sm border border-sand p-8 text-center">
+            <div className="w-16 h-16 bg-leaf-wash rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckCircle className="w-8 h-8 text-leaf" />
             </div>
 
-            <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight mb-2">Proxy Configuration Created!</h1>
-            <p className="text-gray-600 mb-8">
+            <h1 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight mb-2">Proxy Configuration Created!</h1>
+            <p className="text-ink-soft mb-8">
               Save your API key now - it won't be shown again.
             </p>
 
-            <div className="bg-gray-50 rounded-xl p-6 mb-8">
-              <label className="block text-sm font-medium text-gray-700 mb-2 text-left">
+            <div className="bg-cream rounded-xl p-6 mb-8">
+              <label className="block text-sm font-medium text-ink-soft mb-2 text-left">
                 Your API Key
               </label>
               <div className="flex items-center gap-2">
-                <code className="flex-1 px-4 py-3 bg-white border border-gray-200 rounded-lg font-mono text-sm break-all">
+                <code className="flex-1 px-4 py-3 bg-white border border-line rounded-lg font-mono text-sm break-all">
                   {createdApiKey}
                 </code>
                 <button
@@ -123,12 +123,12 @@ export default function CreateProxyConfigPage() {
               </div>
             </div>
 
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-8">
+            <div className="bg-sand-deep border border-honey rounded-xl p-4 mb-8">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
+                <AlertTriangle className="w-5 h-5 text-warn mt-0.5" />
                 <div className="text-left">
-                  <h3 className="font-medium text-amber-900">Important</h3>
-                  <p className="text-sm text-amber-700 mt-1">
+                  <h3 className="font-medium text-gold">Important</h3>
+                  <p className="text-sm text-gold mt-1">
                     Use this API key in your AI agent configuration during load testing.
                     Replace your real LLM API endpoint with the proxy endpoint.
                   </p>
@@ -136,12 +136,12 @@ export default function CreateProxyConfigPage() {
               </div>
             </div>
 
-            <div className="bg-gray-50 rounded-xl p-4 mb-8 text-left">
-              <h4 className="font-medium text-gray-900 mb-3">Proxy Endpoints</h4>
+            <div className="bg-cream rounded-xl p-4 mb-8 text-left">
+              <h4 className="font-medium text-ink mb-3">Proxy Endpoints</h4>
               <div className="space-y-2 text-sm">
                 {provider === 'openai' && (
                   <div>
-                    <span className="text-gray-600">OpenAI:</span>{' '}
+                    <span className="text-ink-soft">OpenAI:</span>{' '}
                     <code className="bg-white px-2 py-1 rounded border text-xs">
                       {process.env.NEXT_PUBLIC_API_URL}/proxy/v1/chat/completions
                     </code>
@@ -149,7 +149,7 @@ export default function CreateProxyConfigPage() {
                 )}
                 {provider === 'anthropic' && (
                   <div>
-                    <span className="text-gray-600">Anthropic:</span>{' '}
+                    <span className="text-ink-soft">Anthropic:</span>{' '}
                     <code className="bg-white px-2 py-1 rounded border text-xs">
                       {process.env.NEXT_PUBLIC_API_URL}/proxy/v1/messages
                     </code>
@@ -157,7 +157,7 @@ export default function CreateProxyConfigPage() {
                 )}
                 {provider === 'google' && (
                   <div>
-                    <span className="text-gray-600">Google:</span>{' '}
+                    <span className="text-ink-soft">Google:</span>{' '}
                     <code className="bg-white px-2 py-1 rounded border text-xs">
                       {process.env.NEXT_PUBLIC_API_URL}/proxy/v1/models/gemini-pro:generateContent
                     </code>
@@ -169,7 +169,7 @@ export default function CreateProxyConfigPage() {
             <div className="flex gap-4 justify-center">
               <button
                 onClick={() => router.push('/load-testing/proxy')}
-                className="px-6 py-2.5 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                className="px-6 py-2.5 text-ink-soft bg-sand rounded-lg hover:bg-line transition-colors font-medium"
               >
                 View All Proxies
               </button>
@@ -191,34 +191,34 @@ export default function CreateProxyConfigPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-primary-50/30 p-4 md:p-6">
+    <div className="min-h-screen bg-cream50/30 p-4 md:p-6">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <Link
             href="/load-testing/proxy"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+            className="inline-flex items-center gap-2 text-ink-soft hover:text-ink mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Proxy Configs
           </Link>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Create Proxy Configuration</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight">Create Proxy Configuration</h1>
+          <p className="text-ink-soft mt-1">
             Configure a mock LLM endpoint for load testing
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Info */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <div className="bg-white rounded-xl shadow-sm border border-sand p-6">
+            <h2 className="text-lg font-semibold text-ink mb-4 flex items-center gap-2">
               <Server className="w-5 h-5 text-primary-600" />
               Basic Configuration
             </h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-ink-soft mb-1">
                   Configuration Name *
                 </label>
                 <input
@@ -226,20 +226,20 @@ export default function CreateProxyConfigPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g., Production Load Test Proxy"
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-soft mb-1">
                     LLM Provider
                   </label>
                   <select
                     value={provider}
                     onChange={(e) => setProvider(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
                     <option value="openai">OpenAI Compatible</option>
                     <option value="anthropic">Anthropic</option>
@@ -248,7 +248,7 @@ export default function CreateProxyConfigPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-soft mb-1">
                     Rate Limit (RPS)
                   </label>
                   <input
@@ -257,7 +257,7 @@ export default function CreateProxyConfigPage() {
                     onChange={(e) => setRateLimit(parseInt(e.target.value))}
                     min="1"
                     max="10000"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -265,8 +265,8 @@ export default function CreateProxyConfigPage() {
           </div>
 
           {/* Latency Config */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <div className="bg-white rounded-xl shadow-sm border border-sand p-6">
+            <h2 className="text-lg font-semibold text-ink mb-4 flex items-center gap-2">
               <Zap className="w-5 h-5 text-primary-600" />
               Latency Simulation
             </h2>
@@ -274,7 +274,7 @@ export default function CreateProxyConfigPage() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-soft mb-1">
                     TTFT Min (ms)
                   </label>
                   <input
@@ -282,13 +282,13 @@ export default function CreateProxyConfigPage() {
                     value={ttftMin}
                     onChange={(e) => setTtftMin(parseInt(e.target.value))}
                     min="0"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Time to First Token minimum</p>
+                  <p className="text-xs text-ink-mute mt-1">Time to First Token minimum</p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-soft mb-1">
                     TTFT Max (ms)
                   </label>
                   <input
@@ -296,15 +296,15 @@ export default function CreateProxyConfigPage() {
                     value={ttftMax}
                     onChange={(e) => setTtftMax(parseInt(e.target.value))}
                     min="0"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Time to First Token maximum</p>
+                  <p className="text-xs text-ink-mute mt-1">Time to First Token maximum</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-soft mb-1">
                     Inter-Token Delay Min (ms)
                   </label>
                   <input
@@ -312,12 +312,12 @@ export default function CreateProxyConfigPage() {
                     value={interTokenMin}
                     onChange={(e) => setInterTokenMin(parseInt(e.target.value))}
                     min="0"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-soft mb-1">
                     Inter-Token Delay Max (ms)
                   </label>
                   <input
@@ -325,7 +325,7 @@ export default function CreateProxyConfigPage() {
                     value={interTokenMax}
                     onChange={(e) => setInterTokenMax(parseInt(e.target.value))}
                     min="0"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -333,15 +333,15 @@ export default function CreateProxyConfigPage() {
           </div>
 
           {/* Response Config */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <div className="bg-white rounded-xl shadow-sm border border-sand p-6">
+            <h2 className="text-lg font-semibold text-ink mb-4 flex items-center gap-2">
               <Settings className="w-5 h-5 text-primary-600" />
               Response Configuration
             </h2>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-ink-soft mb-1">
                   Min Response Tokens
                 </label>
                 <input
@@ -349,12 +349,12 @@ export default function CreateProxyConfigPage() {
                   value={minTokens}
                   onChange={(e) => setMinTokens(parseInt(e.target.value))}
                   min="1"
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-ink-soft mb-1">
                   Max Response Tokens
                 </label>
                 <input
@@ -362,22 +362,22 @@ export default function CreateProxyConfigPage() {
                   value={maxTokens}
                   onChange={(e) => setMaxTokens(parseInt(e.target.value))}
                   min="1"
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
             </div>
           </div>
 
           {/* Error Injection */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <div className="bg-white rounded-xl shadow-sm border border-sand p-6">
+            <h2 className="text-lg font-semibold text-ink mb-4 flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-primary-600" />
               Error Injection
             </h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-ink-soft mb-1">
                   Error Rate
                 </label>
                 <div className="flex items-center gap-3">
@@ -390,14 +390,14 @@ export default function CreateProxyConfigPage() {
                     step="0.5"
                     className="flex-1"
                   />
-                  <span className="text-sm font-medium text-gray-900 w-16">
+                  <span className="text-sm font-medium text-ink w-16">
                     {(errorRate * 100).toFixed(1)}%
                   </span>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-soft mb-2">
                   Error Types to Simulate
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -409,7 +409,7 @@ export default function CreateProxyConfigPage() {
                       className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                         errorTypes.includes(type)
                           ? 'bg-primary-100 text-primary-700'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          : 'bg-sand text-ink-soft hover:bg-line'
                       }`}
                     >
                       {type.replace('_', ' ')}
@@ -424,7 +424,7 @@ export default function CreateProxyConfigPage() {
           <div className="flex justify-end gap-4">
             <Link
               href="/load-testing/proxy"
-              className="px-6 py-2.5 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+              className="px-6 py-2.5 text-ink-soft bg-sand rounded-lg hover:bg-line transition-colors font-medium"
             >
               Cancel
             </Link>
@@ -435,7 +435,7 @@ export default function CreateProxyConfigPage() {
             >
               {saving ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full motion-safe:animate-spin" />
                   Creating...
                 </>
               ) : (

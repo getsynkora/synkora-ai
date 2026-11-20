@@ -109,28 +109,28 @@ function formatCost(usd: number | null | undefined): string {
 function JsonNode({ value, depth }: { value: unknown; depth: number }): React.ReactElement {
   const [collapsed, setCollapsed] = useState(depth > 2)
 
-  if (value === null) return <span className="text-slate-400">null</span>
-  if (typeof value === 'boolean') return <span className="text-amber-700">{String(value)}</span>
-  if (typeof value === 'number') return <span className="text-rose-700">{String(value)}</span>
+  if (value === null) return <span className="text-ash">null</span>
+  if (typeof value === 'boolean') return <span className="text-gold">{String(value)}</span>
+  if (typeof value === 'number') return <span className="text-leaf">{String(value)}</span>
 
   if (typeof value === 'string') {
     // Render the string with actual newlines — don't re-encode via JSON.stringify
     return value.includes('\n') ? (
-      <span className="text-emerald-700">
+      <span className="text-forest">
         {'"'}
         <span className="whitespace-pre-wrap break-words">{value}</span>
         {'"'}
       </span>
     ) : (
-      <span className="text-emerald-700">"{value}"</span>
+      <span className="text-forest">"{value}"</span>
     )
   }
 
   if (Array.isArray(value)) {
-    if (value.length === 0) return <span className="text-slate-400">[]</span>
+    if (value.length === 0) return <span className="text-ash">[]</span>
     return (
       <span>
-        <button onClick={() => setCollapsed(c => !c)} className="text-slate-500 transition-colors hover:text-slate-800">
+        <button onClick={() => setCollapsed(c => !c)} className="text-ink-mute transition-colors hover:text-ink">
           {collapsed ? `[…${value.length}]` : '['}
         </button>
         {!collapsed && (
@@ -138,7 +138,7 @@ function JsonNode({ value, depth }: { value: unknown; depth: number }): React.Re
             {value.map((item, i) => (
               <div key={i} className="pl-4">
                 <JsonNode value={item} depth={depth + 1} />
-                {i < value.length - 1 && <span className="text-slate-400">,</span>}
+                {i < value.length - 1 && <span className="text-ash">,</span>}
               </div>
             ))}
             <span>]</span>
@@ -150,20 +150,20 @@ function JsonNode({ value, depth }: { value: unknown; depth: number }): React.Re
 
   if (typeof value === 'object') {
     const entries = Object.entries(value as Record<string, unknown>)
-    if (entries.length === 0) return <span className="text-slate-400">{'{}'}</span>
+    if (entries.length === 0) return <span className="text-ash">{'{}'}</span>
     return (
       <span>
-        <button onClick={() => setCollapsed(c => !c)} className="text-slate-500 transition-colors hover:text-slate-800">
+        <button onClick={() => setCollapsed(c => !c)} className="text-ink-mute transition-colors hover:text-ink">
           {collapsed ? `{…${entries.length}}` : '{'}
         </button>
         {!collapsed && (
           <>
             {entries.map(([k, v], i) => (
               <div key={k} className="pl-4">
-                <span className="text-sky-700">"{k}"</span>
-                <span className="text-slate-400">: </span>
+                <span className="text-azure">"{k}"</span>
+                <span className="text-ash">: </span>
                 <JsonNode value={v} depth={depth + 1} />
-                {i < entries.length - 1 && <span className="text-slate-400">,</span>}
+                {i < entries.length - 1 && <span className="text-ash">,</span>}
               </div>
             ))}
             <span>{'}'}</span>
@@ -173,7 +173,7 @@ function JsonNode({ value, depth }: { value: unknown; depth: number }): React.Re
     )
   }
 
-  return <span className="text-slate-600">{String(value)}</span>
+  return <span className="text-ink-soft">{String(value)}</span>
 }
 
 function JsonDisplay({ jsonStr, maxHeightClass = 'max-h-64' }: { jsonStr: string; maxHeightClass?: string }) {
@@ -185,7 +185,7 @@ function JsonDisplay({ jsonStr, maxHeightClass = 'max-h-64' }: { jsonStr: string
   if (!parsed.ok) {
     // Not valid JSON — show as plain text (shouldn't happen with fixed backend, but safe fallback)
     return (
-      <pre className={`text-[12px] leading-6 text-slate-700 whitespace-pre-wrap break-all overflow-auto ${maxHeightClass}`}>
+      <pre className={`text-[12px] leading-6 text-ink-soft whitespace-pre-wrap break-all overflow-auto ${maxHeightClass}`}>
         {jsonStr}
       </pre>
     )
@@ -208,11 +208,11 @@ function JsonDisplay({ jsonStr, maxHeightClass = 'max-h-64' }: { jsonStr: string
         <div className="text-[12px] font-mono leading-6">
           {previewParsed.ok
             ? <JsonNode value={previewParsed.val} depth={0} />
-            : <pre className="text-[12px] leading-6 text-slate-700 whitespace-pre-wrap break-all">{preview}</pre>
+            : <pre className="text-[12px] leading-6 text-ink-soft whitespace-pre-wrap break-all">{preview}</pre>
           }
         </div>
-        <div className="mt-2 text-[11px] font-medium text-amber-700">
-          [truncated — showing first {preview.length} of {totalChars ?? '?'} chars]
+        <div className="mt-2 text-[11px] font-medium text-gold">
+          [truncated, showing first {preview.length} of {totalChars ?? '?'} chars]
         </div>
       </div>
     )
@@ -238,13 +238,13 @@ function MarkdownBody({ content }: { content: string }) {
         code({ className, children, ...props }) {
           const isBlock = className?.startsWith('language-')
           return isBlock ? (
-            <pre className="my-3 overflow-auto rounded-2xl bg-slate-950 px-4 py-3.5 text-[12px] text-slate-100 shadow-inner">
+            <pre className="my-3 overflow-auto rounded-2xl bg-ink px-4 py-3.5 text-[12px] text-sand shadow-inner">
               <code className={`${className} whitespace-pre`} {...props}>
                 {children}
               </code>
             </pre>
           ) : (
-            <code className="rounded-md border border-rose-200/70 bg-rose-50 px-1.5 py-0.5 text-[12px] font-medium text-rose-700" {...props}>
+            <code className="rounded-md border border-blush/70 bg-blush-wash px-1.5 py-0.5 text-[12px] font-medium text-leaf" {...props}>
               {children}
             </code>
           )
@@ -252,28 +252,28 @@ function MarkdownBody({ content }: { content: string }) {
         // Tables
         table({ children }) {
           return (
-            <div className="my-3 overflow-auto rounded-2xl border border-stone-200 bg-white">
+            <div className="my-3 overflow-auto rounded-2xl border border-line bg-white">
               <table className="w-full border-collapse text-sm">{children}</table>
             </div>
           )
         },
-        th({ children }) { return <th className="border border-stone-200 bg-stone-50 px-3 py-2 text-left font-semibold text-slate-700">{children}</th> },
-        td({ children }) { return <td className="border border-stone-200 px-3 py-2 text-slate-700">{children}</td> },
+        th({ children }) { return <th className="border border-line bg-cream px-3 py-2 text-left font-semibold text-ink-soft">{children}</th> },
+        td({ children }) { return <td className="border border-line px-3 py-2 text-ink-soft">{children}</td> },
         // Lists
         ul({ children }) { return <ul className="my-2 list-disc space-y-1 pl-5 text-[15px] leading-7">{children}</ul> },
         ol({ children }) { return <ol className="my-2 list-decimal space-y-1 pl-5 text-[15px] leading-7">{children}</ol> },
         // Headings (smaller scale inside message bubbles)
-        h1({ children }) { return <p className="mb-2 mt-4 text-lg font-semibold tracking-[-0.02em] text-slate-900 first:mt-0">{children}</p> },
-        h2({ children }) { return <p className="mb-2 mt-4 text-base font-semibold tracking-[-0.01em] text-slate-900 first:mt-0">{children}</p> },
-        h3({ children }) { return <p className="mb-1 mt-3 text-sm font-semibold text-slate-800 first:mt-0">{children}</p> },
+        h1({ children }) { return <p className="mb-2 mt-4 text-lg font-semibold tracking-[-0.02em] text-ink first:mt-0">{children}</p> },
+        h2({ children }) { return <p className="mb-2 mt-4 text-base font-semibold tracking-[-0.01em] text-ink first:mt-0">{children}</p> },
+        h3({ children }) { return <p className="mb-1 mt-3 text-sm font-semibold text-ink first:mt-0">{children}</p> },
         // Paragraph — avoid double margin on simple messages
-        p({ children }) { return <p className="my-2 text-[15px] leading-7 text-slate-700">{children}</p> },
+        p({ children }) { return <p className="my-2 text-[15px] leading-7 text-ink-soft">{children}</p> },
         // Bold / italic
-        strong({ children }) { return <strong className="font-semibold text-slate-900">{children}</strong> },
+        strong({ children }) { return <strong className="font-semibold text-ink">{children}</strong> },
         // Blockquote
         blockquote({ children }) {
           return (
-            <blockquote className="my-3 rounded-r-2xl border-l-2 border-stone-300 bg-stone-50/80 py-2 pl-4 text-[15px] italic leading-7 text-slate-600">
+            <blockquote className="my-3 rounded-r-2xl border-l-2 border-taupe bg-cream/80 py-2 pl-4 text-[15px] italic leading-7 text-ink-soft">
               {children}
             </blockquote>
           )
@@ -302,20 +302,20 @@ function CopyButton({ text }: { text: string }) {
     <button
       onClick={copy}
       title="Copy"
-      className="rounded-lg border border-transparent p-1.5 text-slate-400 transition-colors hover:border-stone-200 hover:bg-white hover:text-slate-700"
+      className="rounded-lg border border-transparent p-1.5 text-ash transition-colors hover:border-line hover:bg-white hover:text-ink-soft"
     >
-      {copied ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
+      {copied ? <Check size={13} className="text-leaf" /> : <Copy size={13} />}
     </button>
   )
 }
 
 function Badge({ children, variant = 'gray' }: { children: React.ReactNode; variant?: 'gray' | 'purple' | 'green' | 'red' | 'amber' }) {
   const cls = {
-    gray: 'border border-stone-200 bg-stone-100/90 text-slate-600',
-    purple: 'border border-rose-200 bg-rose-50 text-rose-700',
-    green: 'border border-emerald-200 bg-emerald-50 text-emerald-700',
-    red: 'border border-red-200 bg-red-50 text-red-700',
-    amber: 'border border-amber-200 bg-amber-50 text-amber-700',
+    gray: 'border border-line bg-sand/90 text-ink-soft',
+    purple: 'border border-blush bg-blush-wash text-leaf',
+    green: 'border border-mint bg-leaf-wash text-forest',
+    red: 'border border-blush bg-blush-wash text-leaf',
+    amber: 'border border-honey bg-sand-deep text-gold',
   }[variant]
   return <span className={`inline-flex items-center rounded-full px-2 py-1 text-[11px] font-semibold ${cls}`}>{children}</span>
 }
@@ -335,14 +335,14 @@ function MessageContent({ content, bgClass, borderClass }: {
   const [expanded, setExpanded] = useState(!isLong)
 
   return (
-    <div className={`group relative rounded-xl border ${borderClass} ${bgClass} p-4 text-slate-800 shadow-sm`}>
+    <div className={`group relative rounded-xl border ${borderClass} ${bgClass} p-4 text-ink shadow-sm`}>
       <div className={`max-w-none break-words ${!expanded ? 'line-clamp-6' : ''}`}>
-        {content ? <MarkdownBody content={content} /> : <span className="text-sm italic text-slate-400">(empty)</span>}
+        {content ? <MarkdownBody content={content} /> : <span className="text-sm italic text-ash">(empty)</span>}
       </div>
       {isLong && (
         <button
           onClick={() => setExpanded(e => !e)}
-          className="mt-3 text-[13px] font-semibold text-rose-700 transition-colors hover:text-rose-800"
+          className="mt-3 text-[13px] font-semibold text-leaf transition-colors hover:text-wine"
         >
           {expanded ? '↑ Show less' : `↓ Show more (${content.length} chars)`}
         </button>
@@ -362,21 +362,21 @@ function UserMessageRow({ event }: { event: LensTimelineEvent }) {
   const content = event.content ?? event.content_preview ?? ''
   return (
     <div className="mb-4 flex gap-3">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-rose-200 bg-rose-100/90 shadow-sm">
-        <User size={16} className="text-rose-700" />
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-blush bg-blush-wash/90 shadow-sm">
+        <User size={16} className="text-leaf" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="mb-3 flex flex-wrap items-center gap-2.5">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-rose-700">User</span>
-          <span className="text-[12px] font-mono text-slate-500">{formatTime(event.timestamp)}</span>
+          <span className="text-[11px] font-semibold text-leaf">User</span>
+          <span className="text-[12px] font-mono text-ink-mute">{formatTime(event.timestamp)}</span>
           {event.token_count != null && event.token_count > 0 && (
             <Badge>{formatTokens(event.token_count)} tokens</Badge>
           )}
         </div>
         <MessageContent
           content={content}
-          bgClass="bg-rose-50/70"
-          borderClass="border-rose-100/90"
+          bgClass="bg-blush-wash/70"
+          borderClass="border-blush-wash/90"
         />
       </div>
     </div>
@@ -394,25 +394,25 @@ function AssistantMessageRow({ event }: { event: LensTimelineEvent }) {
   const totalTokens = (event.input_tokens ?? 0) + (event.output_tokens ?? 0)
   return (
     <div className="mt-4 flex gap-3">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-300 bg-slate-900 shadow-sm">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-taupe bg-ink shadow-sm">
         <Bot size={16} className="text-white" />
       </div>
       <div className="flex-1 min-w-0">
         <div className="mb-3 flex flex-wrap items-center gap-2.5">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-700">Assistant</span>
-          <span className="text-[12px] font-mono text-slate-500">{formatTime(event.timestamp)}</span>
+          <span className="text-[11px] font-semibold text-ink-soft">Assistant</span>
+          <span className="text-[12px] font-mono text-ink-mute">{formatTime(event.timestamp)}</span>
           {totalTokens > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-stone-200 bg-stone-100/90 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
+            <span className="inline-flex items-center gap-1 rounded-full border border-line bg-sand/90 px-2.5 py-1 text-[11px] font-semibold text-ink-soft">
               {formatTokens(totalTokens)} tokens
             </span>
           )}
           {latency != null && (
-            <span className="rounded-full border border-stone-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+            <span className="rounded-full border border-line bg-white px-2.5 py-1 text-[11px] font-semibold text-ink-soft">
               {formatLatency(latency)}
             </span>
           )}
           {cost != null && cost > 0 && (
-            <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+            <span className="inline-flex items-center rounded-full border border-mint bg-leaf-wash px-2.5 py-1 text-[11px] font-semibold text-forest">
               <DollarSign size={10} className="-mt-0.5 mr-0.5" />
               {formatCost(cost)}
             </span>
@@ -421,7 +421,7 @@ function AssistantMessageRow({ event }: { event: LensTimelineEvent }) {
         <MessageContent
           content={content}
           bgClass="bg-white"
-          borderClass="border-stone-200/90"
+          borderClass="border-line/90"
         />
       </div>
     </div>
@@ -458,22 +458,22 @@ function LLMInputsPanel({ event }: { event: LensTimelineEvent }) {
   }
 
   return (
-    <div className="mt-3 overflow-hidden rounded-lg border border-stone-200 bg-stone-50/80">
+    <div className="mt-3 overflow-hidden rounded-lg border border-line bg-cream/80">
       {/* Tab bar */}
-      <div className="flex border-b border-stone-200 bg-white/90">
+      <div className="flex border-b border-line bg-white/90">
         {tabs.map(t => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
             className={`flex items-center gap-1 border-b-2 px-4 py-2 text-[11px] font-semibold transition-colors ${
               tab === t.id
-                ? 'border-rose-500 text-slate-900'
-                : 'border-transparent text-slate-500 hover:text-slate-700'
+                ? 'border-ink text-ink'
+                : 'border-transparent text-ink-mute hover:text-ink-soft'
             }`}
           >
             {t.label}
             {t.count && (
-              <span className="rounded-full bg-stone-100 px-1.5 py-0.5 text-[10px] text-slate-500">{t.count}</span>
+              <span className="rounded-full bg-sand px-1.5 py-0.5 text-[10px] text-ink-mute">{t.count}</span>
             )}
           </button>
         ))}
@@ -485,7 +485,7 @@ function LLMInputsPanel({ event }: { event: LensTimelineEvent }) {
           <MessagesView jsonStr={event.messages_json} />
         )}
         {tab === 'system' && event.system_prompt_preview && (
-          <div className="max-h-80 overflow-auto rounded-lg border border-stone-200 bg-white p-4">
+          <div className="max-h-80 overflow-auto rounded-lg border border-line bg-white p-4">
             <MarkdownBody content={event.system_prompt_preview} />
           </div>
         )}
@@ -506,15 +506,15 @@ function ToolsView({ jsonStr }: { jsonStr: string }) {
 
   if (!parsed.ok) {
     return (
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-3 text-[12px] text-red-700">
+      <div className="rounded-2xl border border-blush bg-blush-wash p-3 text-[12px] text-danger">
         Failed to parse tools JSON: {parsed.error}
-        <pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-all rounded-xl bg-white/70 p-3 text-[11px] text-slate-600">{jsonStr.slice(0, 500)}</pre>
+        <pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap break-all rounded-xl bg-white/70 p-3 text-[11px] text-ink-soft">{jsonStr.slice(0, 500)}</pre>
       </div>
     )
   }
 
   const tools = parsed.tools
-  if (!Array.isArray(tools) || tools.length === 0) return <span className="text-[12px] text-slate-400">No tools</span>
+  if (!Array.isArray(tools) || tools.length === 0) return <span className="text-[12px] text-ash">No tools</span>
 
   return (
     <div className="max-h-80 space-y-2 overflow-auto">
@@ -530,22 +530,22 @@ function ToolCard({ tool }: { tool: { name: string; description?: string; parame
   const hasParams = tool.parameters != null
 
   return (
-    <div className="overflow-hidden rounded-lg border border-stone-200 bg-white">
+    <div className="overflow-hidden rounded-lg border border-line bg-white">
       {/* Header */}
       <div className="flex items-start gap-3 px-3.5 py-3">
-        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-rose-200 bg-rose-50">
-          <Wrench size={12} className="text-rose-700" />
+        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-blush bg-blush-wash">
+          <Wrench size={12} className="text-leaf" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="font-mono text-[12px] font-semibold text-slate-900">{tool.name}</div>
+          <div className="font-mono text-[12px] font-semibold text-ink">{tool.name}</div>
           {tool.description && (
-            <div className="mt-1 text-[12px] leading-5 text-slate-500">{tool.description}</div>
+            <div className="mt-1 text-[12px] leading-5 text-ink-mute">{tool.description}</div>
           )}
         </div>
         {hasParams && (
           <button
             onClick={() => setParamsOpen(o => !o)}
-            className="shrink-0 flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium text-slate-500 transition-colors hover:bg-stone-100 hover:text-slate-700"
+            className="shrink-0 flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium text-ink-mute transition-colors hover:bg-sand hover:text-ink-soft"
           >
             params
             {paramsOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
@@ -554,7 +554,7 @@ function ToolCard({ tool }: { tool: { name: string; description?: string; parame
       </div>
       {/* Parameters */}
       {paramsOpen && hasParams && (
-        <div className="border-t border-stone-200 bg-stone-50/80 px-3.5 py-3">
+        <div className="border-t border-line bg-cream/80 px-3.5 py-3">
           <div className="text-[12px] font-mono">
             <JsonNode value={tool.parameters} depth={0} />
           </div>
@@ -570,7 +570,7 @@ function MessagesView({ jsonStr }: { jsonStr: string }) {
     try { return JSON.parse(jsonStr) } catch { return [] }
   }, [jsonStr])
 
-  if (messages.length === 0) return <span className="text-[12px] text-slate-400">No messages</span>
+  if (messages.length === 0) return <span className="text-[12px] text-ash">No messages</span>
 
   return (
     <div className="max-h-80 space-y-2 overflow-auto">
@@ -584,17 +584,17 @@ function MessagesView({ jsonStr }: { jsonStr: string }) {
           : JSON.stringify(msg.content, null, 2)
 
         const roleCls = isUser
-          ? 'border-rose-200 bg-rose-50/85 text-rose-700'
+          ? 'border-blush bg-blush-wash/85 text-leaf'
           : isAssistant
-            ? 'border-stone-200 bg-white text-slate-700'
+            ? 'border-line bg-white text-ink-soft'
             : isTool
-              ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-              : 'border-stone-200 bg-stone-50 text-slate-600'
+              ? 'border-mint bg-leaf-wash text-forest'
+              : 'border-line bg-cream text-ink-soft'
 
         return (
           <div key={i} className={`rounded-2xl border px-3 py-2.5 ${roleCls}`}>
-            <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em]">{role}</div>
-            <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-words font-mono text-[12px] leading-6 text-slate-700">
+            <div className="mb-1 text-[11px] font-semibold">{role}</div>
+            <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-words font-mono text-[12px] leading-6 text-ink-soft">
               {contentStr}
             </pre>
           </div>
@@ -616,43 +616,43 @@ function LLMCallStep({ event }: { event: LensTimelineEvent }) {
 
   return (
     <div className={`rounded-lg border px-4 py-3.5 text-sm ${
-      isError ? 'border-red-200 bg-red-50/60' : 'border-stone-200 bg-white/90'
+      isError ? 'border-blush bg-blush-wash/60' : 'border-line bg-white/90'
     }`}>
       <div className="flex flex-wrap items-center gap-2.5">
         <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${
-          isError ? 'border-red-200 bg-red-100/90' : 'border-rose-200 bg-rose-50'
+          isError ? 'border-blush bg-blush-wash/90' : 'border-blush bg-blush-wash'
         }`}>
-          <Brain size={14} className={isError ? 'text-red-700' : 'text-rose-700'} />
+          <Brain size={14} className={isError ? 'text-danger' : 'text-danger'} />
         </div>
-        <span className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${isError ? 'text-red-700' : 'text-slate-700'}`}>LLM call</span>
-        {event.call_index != null && <span className="font-mono text-[12px] text-slate-500">#{event.call_index}</span>}
+        <span className={`text-[11px] font-semibold ${isError ? 'text-danger' : 'text-ink-soft'}`}>LLM call</span>
+        {event.call_index != null && <span className="font-mono text-[12px] text-ink-mute">#{event.call_index}</span>}
         {event.model && (
-          <span className="rounded-full border border-stone-200 bg-stone-100/80 px-2.5 py-1 font-mono text-[11px] font-semibold text-slate-700">
+          <span className="rounded-full border border-line bg-sand/80 px-2.5 py-1 font-mono text-[11px] font-semibold text-ink-soft">
             {event.model}
           </span>
         )}
         {/* Token counts — show dashes when 0 so the field is always visible */}
-        <span className="text-[12px] text-slate-500">
-          <span className="font-semibold text-slate-800">{event.input_tokens != null ? formatTokens(event.input_tokens) : '—'}</span>
+        <span className="text-[12px] text-ink-mute">
+          <span className="font-semibold text-ink">{event.input_tokens != null ? formatTokens(event.input_tokens) : '—'}</span>
           {' '}in
         </span>
-        <span className="text-[12px] text-slate-500">
-          <span className="font-semibold text-slate-800">{event.output_tokens != null ? formatTokens(event.output_tokens) : '—'}</span>
+        <span className="text-[12px] text-ink-mute">
+          <span className="font-semibold text-ink">{event.output_tokens != null ? formatTokens(event.output_tokens) : '—'}</span>
           {' '}out
         </span>
         {event.latency_ms != null && (
-          <span className="rounded-full border border-stone-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+          <span className="rounded-full border border-line bg-white px-2.5 py-1 text-[11px] font-semibold text-ink-soft">
             {formatLatency(event.latency_ms)}
           </span>
         )}
         {event.cost_usd != null && event.cost_usd > 0 && (
-          <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+          <span className="inline-flex items-center rounded-full border border-mint bg-leaf-wash px-2.5 py-1 text-[11px] font-semibold text-forest">
             <DollarSign size={10} className="mr-0.5" />
             {formatCost(event.cost_usd)}
           </span>
         )}
         {(event.cache_read_tokens != null && event.cache_read_tokens > 0) && (
-          <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-semibold text-sky-700"
+          <span className="inline-flex items-center gap-1 rounded-full border border-sky-wash bg-sky-wash px-2.5 py-1 text-[11px] font-semibold text-azure"
             title="Prompt cache read tokens (cheaper)">
             cached {formatTokens(event.cache_read_tokens)}
           </span>
@@ -660,16 +660,16 @@ function LLMCallStep({ event }: { event: LensTimelineEvent }) {
         {event.context_utilization_pct != null && (
           <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
             event.context_utilization_pct >= 80
-              ? 'border-red-200 bg-red-50 text-red-700'
+              ? 'border-blush bg-blush-wash text-leaf'
               : event.context_utilization_pct >= 60
-              ? 'border-amber-200 bg-amber-50 text-amber-700'
-              : 'border-stone-200 bg-stone-50 text-slate-600'
+              ? 'border-honey bg-sand-deep text-gold'
+              : 'border-line bg-cream text-ink-soft'
           }`} title="Context window utilization">
             ctx {event.context_utilization_pct.toFixed(0)}%
           </span>
         )}
         {isError && (
-          <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-700">
+          <span className="inline-flex items-center gap-1 rounded-full border border-blush bg-blush-wash px-2.5 py-1 text-[11px] font-semibold text-danger">
             <XCircle size={10} />error
           </span>
         )}
@@ -677,7 +677,7 @@ function LLMCallStep({ event }: { event: LensTimelineEvent }) {
           {hasInputs && (
             <button
               onClick={() => setInputsExpanded(e => !e)}
-              className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium text-slate-500 transition-colors hover:bg-stone-100 hover:text-slate-700"
+              className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium text-ink-mute transition-colors hover:bg-sand hover:text-ink-soft"
               title="Show LLM inputs"
             >
               <Settings2 size={12} />
@@ -688,7 +688,7 @@ function LLMCallStep({ event }: { event: LensTimelineEvent }) {
           {event.response_preview && (
             <button
               onClick={() => setResponseExpanded(e => !e)}
-              className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium text-slate-500 transition-colors hover:bg-stone-100 hover:text-slate-700"
+              className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium text-ink-mute transition-colors hover:bg-sand hover:text-ink-soft"
             >
               <MessageSquare size={12} />
               <span>response</span>
@@ -698,13 +698,13 @@ function LLMCallStep({ event }: { event: LensTimelineEvent }) {
         </div>
       </div>
       {isError && event.error && (
-        <div className="mt-3 break-words rounded-lg border border-red-200 bg-red-100/80 px-3.5 py-3 text-[13px] text-red-700">
+        <div className="mt-3 break-words rounded-lg border border-blush bg-blush-wash/80 px-3.5 py-3 text-[13px] text-danger">
           <span className="font-semibold">Error: </span>{event.error}
         </div>
       )}
       {inputsExpanded && <LLMInputsPanel event={event} />}
       {responseExpanded && event.response_preview && (
-        <div className="mt-3 max-h-56 overflow-auto rounded-lg border border-stone-200 bg-stone-50/70 p-4">
+        <div className="mt-3 max-h-56 overflow-auto rounded-lg border border-line bg-cream/70 p-4">
           <MarkdownBody content={event.response_preview} />
         </div>
       )}
@@ -726,24 +726,24 @@ function ToolCallStep({ event }: { event: LensTimelineEvent }) {
 
   return (
     <div className={`rounded-lg border px-4 py-3.5 text-sm ${
-      isFailed ? 'border-red-200 bg-red-50/60' : 'border-stone-200 bg-white/90'
+      isFailed ? 'border-blush bg-blush-wash/60' : 'border-line bg-white/90'
     }`}>
       <div className="flex flex-wrap items-center gap-2.5">
         <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${
-          isFailed ? 'border-red-200 bg-red-100/90' : 'border-emerald-200 bg-emerald-50'
+          isFailed ? 'border-blush bg-blush-wash/90' : 'border-mint bg-leaf-wash'
         }`}>
-          <Wrench size={14} className={isFailed ? 'text-red-700' : 'text-emerald-700'} />
+          <Wrench size={14} className={isFailed ? 'text-danger' : 'text-forest'} />
         </div>
-        <span className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${isFailed ? 'text-red-700' : 'text-slate-700'}`}>Tool call</span>
-        <span className="font-mono text-[12px] font-semibold text-slate-900">{event.tool_name}</span>
+        <span className={`text-[11px] font-semibold ${isFailed ? 'text-danger' : 'text-ink-soft'}`}>Tool call</span>
+        <span className="font-mono text-[12px] font-semibold text-ink">{event.tool_name}</span>
         <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
-          isFailed ? 'border-red-200 bg-red-100 text-red-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+          isFailed ? 'border-blush bg-blush-wash text-danger' : 'border-mint bg-leaf-wash text-forest'
         }`}>
           {isFailed ? <XCircle size={10} /> : <CheckCircle size={10} />}
           {isFailed ? 'failed' : 'ok'}
         </span>
         {event.duration_ms != null && (
-          <span className="rounded-full border border-stone-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+          <span className="rounded-full border border-line bg-white px-2.5 py-1 text-[11px] font-semibold text-ink-soft">
             {formatLatency(event.duration_ms)}
           </span>
         )}
@@ -753,7 +753,7 @@ function ToolCallStep({ event }: { event: LensTimelineEvent }) {
         {(argsStr || resultStr) && (
           <button
             onClick={() => setExpanded(e => !e)}
-            className="ml-auto flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium text-slate-500 transition-colors hover:bg-stone-100 hover:text-slate-700"
+            className="ml-auto flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium text-ink-mute transition-colors hover:bg-sand hover:text-ink-soft"
           >
             {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
             args / result
@@ -761,7 +761,7 @@ function ToolCallStep({ event }: { event: LensTimelineEvent }) {
         )}
       </div>
       {isFailed && event.error_message && (
-        <div className="mt-3 break-words rounded-lg border border-red-200 bg-red-100/80 px-3.5 py-3 text-[13px] text-red-700">
+        <div className="mt-3 break-words rounded-lg border border-blush bg-blush-wash/80 px-3.5 py-3 text-[13px] text-danger">
           <span className="font-semibold">Error: </span>{event.error_message}
         </div>
       )}
@@ -770,10 +770,10 @@ function ToolCallStep({ event }: { event: LensTimelineEvent }) {
           {argsStr && (
             <div>
               <div className="mb-1 flex items-center gap-1.5">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Args</span>
+                <span className="text-[11px] font-semibold text-ink-mute">Args</span>
                 <CopyButton text={argsStr} />
               </div>
-              <div className="rounded-lg border border-stone-200 bg-white p-3">
+              <div className="rounded-lg border border-line bg-white p-3">
                 <JsonDisplay jsonStr={argsStr} maxHeightClass="max-h-48" />
               </div>
             </div>
@@ -781,10 +781,10 @@ function ToolCallStep({ event }: { event: LensTimelineEvent }) {
           {resultStr && (
             <div>
               <div className="mb-1 flex items-center gap-1.5">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Result</span>
+                <span className="text-[11px] font-semibold text-ink-mute">Result</span>
                 <CopyButton text={resultStr} />
               </div>
-              <div className={`rounded-lg border p-3 ${isFailed ? 'border-red-200 bg-red-50/70' : 'border-stone-200 bg-white'}`}>
+              <div className={`rounded-lg border p-3 ${isFailed ? 'border-blush bg-blush-wash/70' : 'border-line bg-white'}`}>
                 <JsonDisplay jsonStr={resultStr} maxHeightClass="max-h-48" />
               </div>
             </div>
@@ -808,50 +808,50 @@ function ToolPruningStep({ event }: { event: LensTimelineEvent }) {
 
   return (
     <div className={`rounded-lg border px-4 py-3 text-sm ${
-      hasDataWarning ? 'border-amber-300 bg-amber-50/70' : 'border-dashed border-stone-300 bg-stone-50/60'
+      hasDataWarning ? 'border-honey bg-sand-deep/70' : 'border-dashed border-taupe bg-cream/60'
     }`}>
       <div className="flex flex-wrap items-center gap-2.5">
         <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${
-          hasDataWarning ? 'border-amber-300 bg-amber-100' : 'border-stone-300 bg-stone-100'
+          hasDataWarning ? 'border-honey bg-sand-deep' : 'border-taupe bg-sand'
         }`}>
-          <Scissors size={13} className={hasDataWarning ? 'text-amber-700' : 'text-slate-500'} />
+          <Scissors size={13} className={hasDataWarning ? 'text-gold' : 'text-ink-mute'} />
         </div>
-        <span className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${
-          hasDataWarning ? 'text-amber-700' : 'text-slate-500'
+        <span className={`text-[11px] font-semibold ${
+          hasDataWarning ? 'text-gold' : 'text-ink-mute'
         }`}>Context compacted</span>
 
         {total > 0 && (
-          <span className="rounded-full border border-stone-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+          <span className="rounded-full border border-line bg-white px-2.5 py-1 text-[11px] font-semibold text-ink-soft">
             {pruned}/{total} results pruned
           </span>
         )}
 
         {tokensSaved > 0 && (
-          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+          <span className="rounded-full border border-mint bg-leaf-wash px-2.5 py-1 text-[11px] font-semibold text-forest">
             ~{formatTokens(tokensSaved)} tokens saved
           </span>
         )}
 
         {charsSaved > 0 && (
-          <span className="text-[12px] text-slate-500">
+          <span className="text-[12px] text-ink-mute">
             ({charsSaved.toLocaleString()} chars)
           </span>
         )}
 
         {hasDataWarning && (
-          <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-800">
+          <span className="inline-flex items-center gap-1 rounded-full border border-honey bg-sand-deep px-2.5 py-1 text-[11px] font-semibold text-gold">
             <AlertTriangle size={10} />
             {event.data_bearing_pruned} data result{(event.data_bearing_pruned ?? 0) > 1 ? 's' : ''} trimmed
           </span>
         )}
 
         {event.turn_index != null && (
-          <span className="ml-auto text-[11px] text-slate-400 font-mono">turn {event.turn_index}</span>
+          <span className="ml-auto text-[11px] text-ash font-mono">turn {event.turn_index}</span>
         )}
       </div>
 
       {hasDataWarning && (
-        <p className="mt-2 text-[12px] text-amber-700 leading-5">
+        <p className="mt-2 text-[12px] text-gold leading-5">
           Data-bearing tool results (SQL rows, file contents) were trimmed to fit context window.
           The LLM may need to re-query to access the full data.
         </p>
@@ -885,42 +885,42 @@ function ReasoningPanel({ steps }: { steps: LensTimelineEvent[] }) {
   if (pruningCount > 0) summaryParts.push(`${pruningCount} compaction${pruningCount !== 1 ? 's' : ''}`)
 
   const borderCls = hasDataWarning
-    ? 'border-amber-200 bg-amber-50/60 hover:bg-amber-100/60'
+    ? 'border-honey bg-sand-deep/60 hover:bg-sand-deep/60'
     : hasFailures
-    ? 'border-red-200 bg-red-50/70 hover:bg-red-100/80'
-    : 'border-stone-200 bg-stone-50/80 hover:bg-white'
+    ? 'border-blush bg-blush-wash/70 hover:bg-blush-wash/80'
+    : 'border-line bg-cream/80 hover:bg-white'
 
   return (
     <div className="my-4 sm:ml-14">
       <button
         onClick={() => setOpen(o => !o)}
-        className={`flex w-full flex-wrap items-center gap-2.5 rounded-lg border px-4 py-3 text-left transition-all ${borderCls}`}
+        className={`flex w-full flex-wrap items-center gap-2.5 rounded-lg border px-4 py-3 text-left transition-[color,background-color,border-color,box-shadow,opacity,transform] ${borderCls}`}
       >
         <ChevronRight
           size={15}
-          className={`shrink-0 text-slate-400 transition-transform duration-200 ${open ? 'rotate-90' : ''}`}
+          className={`shrink-0 text-ash transition-transform motion-reduce:transition-none duration-200 ${open ? 'rotate-90' : ''}`}
         />
-        <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Reasoning</span>
-        <span className="text-[13px] font-semibold text-slate-800">{summaryParts.join(' · ') || 'Agent reasoning steps'}</span>
+        <span className="text-[11px] font-semibold text-ink-mute">Reasoning</span>
+        <span className="text-[13px] font-semibold text-ink">{summaryParts.join(', ') || 'Agent reasoning steps'}</span>
         {stepLatency > 0 && (
-          <span className="font-mono text-[12px] text-slate-500">{formatLatency(stepLatency)}</span>
+          <span className="font-mono text-[12px] text-ink-mute">{formatLatency(stepLatency)}</span>
         )}
         {stepCost > 0 && (
-          <span className={`inline-flex items-center text-[12px] font-semibold ${hasFailures ? 'text-red-600' : 'text-emerald-700'}`}>
+          <span className={`inline-flex items-center text-[12px] font-semibold ${hasFailures ? 'text-danger' : 'text-forest'}`}>
             <DollarSign size={10} className="-mt-0.5" />
             {formatCost(stepCost)}
           </span>
         )}
         {hasFailures && (
-          <span className="ml-1 inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-700">
+          <span className="ml-1 inline-flex items-center gap-1 rounded-full border border-blush bg-blush-wash px-2.5 py-1 text-[11px] font-semibold text-danger">
             <XCircle size={10} /> failures
           </span>
         )}
         {hasPruning && (
           <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
             hasDataWarning
-              ? 'border-amber-300 bg-amber-100 text-amber-800'
-              : 'border-stone-200 bg-stone-100 text-slate-600'
+              ? 'border-honey bg-sand-deep text-gold'
+              : 'border-line bg-sand text-ink-soft'
           }`}>
             <Scissors size={10} />
             {hasDataWarning ? 'data trimmed' : 'compacted'}
@@ -952,22 +952,22 @@ function TurnCard({ turn }: { turn: Turn }) {
   const [vizOpen, setVizOpen] = useState(false)
 
   return (
-    <div className="mb-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+    <div className="mb-6 overflow-hidden rounded-xl border border-line bg-white shadow-sm">
       {/* Turn header strip */}
       <button
         onClick={() => setOpen(v => !v)}
-        className={`flex w-full items-center gap-3 bg-gray-50 px-5 py-3 text-left transition-colors hover:bg-gray-100 ${
-          open ? 'border-b border-gray-200' : ''
+        className={`flex w-full items-center gap-3 bg-cream px-5 py-3 text-left transition-colors hover:bg-sand ${
+          open ? 'border-b border-line' : ''
         }`}
       >
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-900">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-ink">
           <span className="text-[11px] font-bold text-white">{turn.index}</span>
         </div>
-        <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+        <span className="text-[11px] font-semibold text-ink-mute">
           Interaction {turn.index}
         </span>
         {turn.userMessage && (
-          <span className="text-[12px] font-mono text-slate-500">{formatTime(turn.userMessage.timestamp)}</span>
+          <span className="text-[12px] font-mono text-ink-mute">{formatTime(turn.userMessage.timestamp)}</span>
         )}
         <span className="ml-auto flex items-center gap-1.5">
           <span
@@ -975,12 +975,12 @@ function TurnCard({ turn }: { turn: Turn }) {
             tabIndex={0}
             onClick={e => { e.stopPropagation(); setVizOpen(true) }}
             onKeyDown={e => e.key === 'Enter' && (e.stopPropagation(), setVizOpen(true))}
-            className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:text-slate-900 transition-colors"
+            className="inline-flex items-center gap-1 rounded-md border border-line bg-white px-2.5 py-1 text-xs font-medium text-ink-soft hover:border-taupe hover:bg-cream hover:text-ink transition-colors"
           >
             <GitBranch size={11} />
             Visualize
           </span>
-          <span className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600">
+          <span className="inline-flex items-center gap-1 rounded-md border border-line bg-white px-2.5 py-1 text-xs font-medium text-ink-soft">
             {open ? 'Collapse' : 'Expand'}
             {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </span>
@@ -1135,12 +1135,12 @@ function nodeLabel(e: LensTimelineEvent): string {
       return trunc(e.content ?? e.content_preview ?? e.response_preview ?? 'Assistant response')
     case 'llm_call':
       return e.model
-        ? `LLM · ${e.model.replace(/^(anthropic|openai|google)\//i, '')}`
+        ? `LLM, ${e.model.replace(/^(anthropic|openai|google)\//i, '')}`
         : `LLM call${e.call_index != null ? ` #${e.call_index}` : ''}`
     case 'tool_call':
       return e.tool_name ? e.tool_name.replace(/^internal_/, '') : 'Tool call'
     case 'tool_pruning':
-      return `Compaction · ${e.tool_results_pruned ?? '?'}/${e.tool_results_count ?? '?'} trimmed`
+      return `Compaction, ${e.tool_results_pruned ?? '?'}/${e.tool_results_count ?? '?'} trimmed`
     default:
       return (e.event_type as string).replace(/_/g, ' ')
   }
@@ -1154,19 +1154,19 @@ function nodeSub(e: LensTimelineEvent): string {
         e.output_tokens != null ? `${formatTokens(e.output_tokens)} out` : '',
         e.latency_ms != null ? formatLatency(e.latency_ms) : '',
         e.cost_usd != null && e.cost_usd > 0 ? formatCost(e.cost_usd) : '',
-      ].filter(Boolean).join(' · ')
+      ].filter(Boolean).join(', ')
     case 'tool_call':
       return [
         e.success === false ? '✗ failed' : '✓ ok',
         e.duration_ms != null ? formatLatency(e.duration_ms) : '',
-      ].filter(Boolean).join(' · ')
+      ].filter(Boolean).join(', ')
     case 'user_message':
       return e.token_count != null ? `${e.token_count} tokens` : ''
     case 'assistant_message':
       return e.total_cost_usd != null && e.total_cost_usd > 0 ? formatCost(e.total_cost_usd) : ''
     case 'tool_pruning':
       return e.estimated_tokens_saved != null
-        ? `~${formatTokens(e.estimated_tokens_saved)} tokens saved${(e.data_bearing_pruned ?? 0) > 0 ? ' · data trimmed ⚠' : ''}`
+        ? `~${formatTokens(e.estimated_tokens_saved)} tokens saved${(e.data_bearing_pruned ?? 0) > 0 ? ', data trimmed ⚠' : ''}`
         : ''
     default:
       return ''
@@ -1232,13 +1232,13 @@ function NodeDetailPanel({
     add('Cost', event.cost_usd != null && event.cost_usd > 0 ? formatCost(event.cost_usd) : null)
     add('Context use', event.context_utilization_pct != null ? `${event.context_utilization_pct.toFixed(1)}%` : null)
     add('Status', event.status)
-    if (event.error) rows.push({ label: 'Error', value: <span className="text-red-400 break-words">{event.error}</span> })
+    if (event.error) rows.push({ label: 'Error', value: <span className="text-hotpink break-words">{event.error}</span> })
   } else if (event.event_type === 'tool_call') {
     add('Tool', event.tool_name)
-    rows.push({ label: 'Result', value: event.success === false ? <span className="text-red-400">Failed</span> : <span className="text-emerald-400">OK</span> })
+    rows.push({ label: 'Result', value: event.success === false ? <span className="text-hotpink">Failed</span> : <span className="text-mint">OK</span> })
     add('Duration', event.duration_ms != null ? formatLatency(event.duration_ms) : null)
     add('Retries', event.retry_count)
-    if (event.error_message) rows.push({ label: 'Error', value: <span className="text-red-400 break-words">{event.error_message}</span> })
+    if (event.error_message) rows.push({ label: 'Error', value: <span className="text-hotpink break-words">{event.error_message}</span> })
   } else if (event.event_type === 'user_message') {
     add('Tokens', event.token_count)
   } else if (event.event_type === 'assistant_message') {
@@ -1258,25 +1258,25 @@ function NodeDetailPanel({
   const response = event.response_preview
 
   return (
-    <div className="flex h-full min-h-[28rem] flex-col overflow-hidden rounded-[1.7rem] border border-[#e4d7c7] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,243,236,0.96))] shadow-[0_28px_80px_-48px_rgba(73,45,23,0.32)]">
-      <div className="border-b border-[#eadfce] px-5 py-4">
+    <div className="flex h-full min-h-[28rem] flex-col overflow-hidden rounded-[1.7rem] border border-line bg-white shadow-soft">
+      <div className="border-b border-sand-deep px-5 py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <div
-              className="flex h-11 w-11 items-center justify-center rounded-[1rem] border bg-white shadow-[0_18px_34px_-26px_rgba(73,45,23,0.35)]"
+              className="flex h-11 w-11 items-center justify-center rounded-[1rem] border bg-white shadow-soft"
               style={{ borderColor: isError ? '#fca5a5' : cfg.border }}
             >
               <Icon size={18} style={{ color: isError ? '#dc2626' : cfg.dot }} />
             </div>
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#e7dccb] bg-white/75 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#7c5d45]">
+              <div className="inline-flex items-center gap-2 rounded-full border border-line bg-white/75 px-3 py-1 text-[10px] font-semibold text-bark">
                 <Sparkles className="h-3 w-3" />
                 {(event.event_type as string).replace(/_/g, ' ')}
               </div>
-              <h3 className="mt-3 text-lg font-semibold tracking-[-0.03em] text-[#171717]">
+              <h3 className="mt-3 text-lg font-semibold tracking-[-0.03em] text-ink">
                 {nodeLabel(event)}
               </h3>
-              <p className="mt-1 text-sm text-[#6c6258]">
+              <p className="mt-1 text-sm text-ink-mute">
                 Step {currentIndex + 1} of {total}
               </p>
             </div>
@@ -1284,7 +1284,7 @@ function NodeDetailPanel({
 
           <button
             onClick={onClose}
-            className="rounded-full border border-[#e1d4c1] bg-white/80 p-2 text-[#7f7266] transition-colors hover:border-[#cdb79d] hover:text-[#171717]"
+            className="rounded-full border border-line bg-white/80 p-2 text-ink-mute transition-colors hover:border-tan hover:text-ink"
           >
             <XCircle size={16} />
           </button>
@@ -1295,7 +1295,7 @@ function NodeDetailPanel({
             type="button"
             onClick={onSelectPrev}
             disabled={currentIndex <= 0}
-            className="inline-flex items-center gap-1 rounded-full border border-[#dfd1be] bg-white/75 px-3 py-1.5 text-xs font-semibold text-[#554a42] transition-colors hover:border-[#cdb79d] hover:text-[#171717] disabled:cursor-not-allowed disabled:opacity-45"
+            className="inline-flex items-center gap-1 rounded-full border border-line bg-white/75 px-3 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:border-tan hover:text-ink disabled:cursor-not-allowed disabled:opacity-45"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             Previous
@@ -1304,7 +1304,7 @@ function NodeDetailPanel({
             type="button"
             onClick={onSelectNext}
             disabled={currentIndex >= total - 1}
-            className="inline-flex items-center gap-1 rounded-full border border-[#dfd1be] bg-white/75 px-3 py-1.5 text-xs font-semibold text-[#554a42] transition-colors hover:border-[#cdb79d] hover:text-[#171717] disabled:cursor-not-allowed disabled:opacity-45"
+            className="inline-flex items-center gap-1 rounded-full border border-line bg-white/75 px-3 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:border-tan hover:text-ink disabled:cursor-not-allowed disabled:opacity-45"
           >
             Next
             <ArrowRight className="h-3.5 w-3.5" />
@@ -1318,10 +1318,10 @@ function NodeDetailPanel({
             {rows.map(({ label, value }, i) => (
               <div
                 key={i}
-                className="rounded-[1.2rem] border border-[#e7dccb] bg-white/82 px-4 py-3 shadow-[0_18px_34px_-30px_rgba(73,45,23,0.18)]"
+                className="rounded-[1.2rem] border border-line bg-white/82 px-4 py-3 shadow-soft"
               >
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#90745a]">{label}</p>
-                <div className="mt-2 text-sm font-medium break-words text-[#1d1b18]">{value}</div>
+                <p className="text-[11px] font-semibold text-clay">{label}</p>
+                <div className="mt-2 text-sm font-medium break-words text-ink">{value}</div>
               </div>
             ))}
           </div>
@@ -1329,10 +1329,10 @@ function NodeDetailPanel({
 
         {(content || response) && (
           <div className="mt-4">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#90745a]">
+            <p className="mb-2 text-[11px] font-semibold text-clay">
               {content ? 'Content' : 'Response preview'}
             </p>
-            <div className="max-h-72 overflow-auto rounded-[1.25rem] border border-[#e7dccb] bg-[#fcfaf5] p-4 text-[12px] leading-6 text-[#50483f] whitespace-pre-wrap break-words">
+            <div className="max-h-72 overflow-auto rounded-[1.25rem] border border-line bg-cream p-4 text-[12px] leading-6 text-ink-soft whitespace-pre-wrap break-words">
               {content ?? response}
             </div>
           </div>
@@ -1449,43 +1449,39 @@ function TurnFlowModal({ turn, onClose }: { turn: Turn; onClose: () => void }) {
       className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-6"
       onMouseDown={onClose}
     >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,248,240,0.78),rgba(248,239,229,0.55)_34%,rgba(66,52,43,0.28)_100%)] backdrop-blur-[3px]" />
+      <div className="absolute inset-0" />
       <div
-        className="relative z-10 flex h-[min(94vh,980px)] w-full max-w-[min(98vw,1720px)] flex-col overflow-hidden rounded-[2rem] border border-[#ddd2c4] bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.98),_rgba(247,240,231,0.97)_55%,_rgba(237,230,220,0.96)_100%)] shadow-[0_48px_140px_-54px_rgba(17,14,10,0.58)]"
+        className="bg-cream relative z-10 flex h-[min(94vh,980px)] w-full max-w-[min(98vw,1720px)] flex-col overflow-hidden rounded-[2rem] border border-line shadow-soft"
         onMouseDown={e => e.stopPropagation()}
       >
-        <div className="shrink-0 border-b border-[#e7dccb] px-5 py-4 md:px-6">
+        <div className="shrink-0 border-b border-line px-5 py-4 md:px-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-[1.1rem] bg-[#f3ecde] shadow-[0_18px_34px_-24px_rgba(73,45,23,0.28)]">
-                <GitBranch className="h-5 w-5 text-[#171717]" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-[1.1rem] bg-sand shadow-soft">
+                <GitBranch className="h-5 w-5 text-ink" />
               </div>
               <div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-[#dfd1be] bg-white/75 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#7c5d45]">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Interaction Flow
-                </div>
-                <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-[#171717] md:text-[2rem]">
+                <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-ink md:text-[2rem]">
                   Interaction {turn.index} orchestration map
                 </h2>
-                <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-[#6f655c]">
-                  <span className="inline-flex items-center gap-1 rounded-full border border-[#e4d7c7] bg-white/70 px-3 py-1.5">
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-ink-mute">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-line bg-white/70 px-3 py-1.5">
                     <Clock3 className="h-3.5 w-3.5" />
                     {turn.userMessage?.timestamp ? formatTime(turn.userMessage.timestamp) : 'Time unavailable'}
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-[#e4d7c7] bg-white/70 px-3 py-1.5">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-line bg-white/70 px-3 py-1.5">
                     {nodes.length} event{nodes.length !== 1 ? 's' : ''}
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-[#e4d7c7] bg-white/70 px-3 py-1.5">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-line bg-white/70 px-3 py-1.5">
                     {counts.llm} LLM
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-[#e4d7c7] bg-white/70 px-3 py-1.5">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-line bg-white/70 px-3 py-1.5">
                     {counts.tool} tool
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-[#e4d7c7] bg-white/70 px-3 py-1.5">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-line bg-white/70 px-3 py-1.5">
                     {counts.response} response
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-[#e4d7c7] bg-white/70 px-3 py-1.5">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-line bg-white/70 px-3 py-1.5">
                     {Math.max(counts.llm, 1)} reasoning loop{Math.max(counts.llm, 1) !== 1 ? 's' : ''}
                   </span>
                 </div>
@@ -1493,12 +1489,12 @@ function TurnFlowModal({ turn, onClose }: { turn: Turn; onClose: () => void }) {
             </div>
 
             <div className="flex items-center gap-2 self-start">
-              <span className="hidden rounded-full border border-[#dfd1be] bg-white/75 px-3 py-1.5 text-xs font-semibold text-[#5d534b] sm:inline-flex">
+              <span className="hidden rounded-full border border-line bg-white/75 px-3 py-1.5 text-xs font-semibold text-ink-soft sm:inline-flex">
                 Select nodes to inspect details
               </span>
               <button
                 onClick={onClose}
-                className="rounded-full border border-[#dfd1be] bg-white/80 p-2 text-[#7f7266] transition-colors hover:border-[#cdb79d] hover:text-[#171717]"
+                className="rounded-full border border-line bg-white/80 p-2 text-ink-mute transition-colors hover:border-tan hover:text-ink"
               >
                 <XCircle size={18} />
               </button>
@@ -1507,8 +1503,8 @@ function TurnFlowModal({ turn, onClose }: { turn: Turn; onClose: () => void }) {
         </div>
 
         <div className="grid min-h-0 flex-1 gap-4 p-4 md:p-5 lg:grid-cols-[minmax(0,1.65fr)_360px]">
-          <div className="flex min-h-[34rem] min-w-0 flex-col overflow-hidden rounded-[1.8rem] border border-[#e3d6c4] bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.98),rgba(248,243,235,0.98)_55%,rgba(240,234,224,0.98)_100%)] shadow-[0_34px_90px_-52px_rgba(92,63,40,0.28)]">
-            <div className="border-b border-[#e7dccb] px-5 py-4">
+          <div className="bg-cream flex min-h-[34rem] min-w-0 flex-col overflow-hidden rounded-[1.8rem] border border-line shadow-soft">
+            <div className="border-b border-line px-5 py-4">
               <div className="flex flex-wrap items-center gap-2">
                 {Object.entries(NODE_CFG).map(([type, c]) => {
                   const Icon = c.Icon
@@ -1517,17 +1513,17 @@ function TurnFlowModal({ turn, onClose }: { turn: Turn; onClose: () => void }) {
                   return (
                     <span
                       key={type}
-                      className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]"
+                      className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-semibold"
                       style={{ borderColor: `${c.dot}33`, backgroundColor: c.soft, color: c.dot }}
                     >
                       <Icon size={11} />
                       {c.badge}
-                      <span className="rounded-full bg-white/70 px-1.5 py-0.5 text-[9px] text-[#171717]">{count}</span>
+                      <span className="rounded-full bg-white/70 px-1.5 py-0.5 text-[9px] text-ink">{count}</span>
                     </span>
                   )
                 })}
-                <span className="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-[#857669]">
-                  <Sparkles className="h-3.5 w-3.5 text-[#d36c93]" />
+                <span className="ml-auto inline-flex items-center gap-1 text-[11px] font-medium text-ink-mute">
+                  <Sparkles className="h-3.5 w-3.5 text-blush" />
                   Interactive flow map
                 </span>
               </div>
@@ -1542,10 +1538,10 @@ function TurnFlowModal({ turn, onClose }: { turn: Turn; onClose: () => void }) {
                     key={tab.id}
                     type="button"
                     onClick={() => setViewMode(tab.id)}
-                    className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.18em] transition-colors ${
+                    className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-semibold transition-colors ${
                       viewMode === tab.id
-                        ? 'border-[#dcc7af] bg-white text-[#171717] shadow-[0_14px_30px_-24px_rgba(73,45,23,0.24)]'
-                        : 'border-[#e6d9c8] bg-[#f8f1e7] text-[#8d7f73] hover:bg-white'
+                        ? 'border-tan bg-white text-ink shadow-soft'
+                        : 'border-line bg-paper text-ash hover:bg-white'
                     }`}
                   >
                     {tab.label}
@@ -1565,11 +1561,11 @@ function TurnFlowModal({ turn, onClose }: { turn: Turn; onClose: () => void }) {
                         onClick={() => setSelectedId(event.id)}
                         className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-colors ${
                           isActive
-                            ? 'border-[#dcc7af] bg-white text-[#171717] shadow-[0_14px_30px_-24px_rgba(73,45,23,0.22)]'
-                            : 'border-[#e4d8c8] bg-[#f7efe5] text-[#7d7268] hover:bg-white'
+                            ? 'border-tan bg-white text-ink shadow-soft'
+                            : 'border-line bg-paper text-ink-mute hover:bg-white'
                         }`}
                       >
-                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#efe5d8] text-[10px] text-[#171717]">
+                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-sand-deep text-[10px] text-ink">
                           {index + 1}
                         </span>
                         <span style={{ color: isActive ? '#171717' : cfg.dot }}>{cfg.badge}</span>
@@ -1587,13 +1583,13 @@ function TurnFlowModal({ turn, onClose }: { turn: Turn; onClose: () => void }) {
                     className="relative"
                     style={{ width: graphLayout.width, height: graphLayout.height }}
                   >
-                    <div className="absolute inset-x-14 top-16 h-[300px] rounded-[2rem] border border-[#eadfce] bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.94),rgba(247,240,229,0.78)_58%,rgba(241,232,221,0.54)_100%)]" />
+                    <div className="absolute inset-x-14 top-16 h-[300px] rounded-[2rem] border border-sand-deep" />
                     <div
-                      className="absolute left-14 right-14 h-px bg-gradient-to-r from-transparent via-[#d8c6b2] to-transparent"
+                      className="absolute left-14 right-14 h-px bg-gradient-to-r from-transparent via-paper-dim to-transparent"
                       style={{ top: graphLayout.baseY }}
                     />
 
-                    <svg
+                    <svg aria-hidden="true"
                       className="absolute inset-0"
                       width={graphLayout.width}
                       height={graphLayout.height}
@@ -1638,7 +1634,7 @@ function TurnFlowModal({ turn, onClose }: { turn: Turn; onClose: () => void }) {
                           key={`${event.id}-graph-node`}
                           type="button"
                           onClick={() => setSelectedId(event.id)}
-                          className="absolute -translate-x-1/2 -translate-y-1/2 text-left transition-transform duration-150"
+                          className="absolute -translate-x-1/2 -translate-y-1/2 text-left transition-transform motion-reduce:transition-none duration-150"
                           style={{ left: point.x, top: point.y }}
                         >
                           <div className="relative">
@@ -1673,15 +1669,15 @@ function TurnFlowModal({ turn, onClose }: { turn: Turn; onClose: () => void }) {
                                 >
                                   {index + 1}
                                 </span>
-                                <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8a7c6f]">
+                                <span className="text-[10px] font-semibold text-ash">
                                   {meta.actorLabel}
                                 </span>
                               </div>
-                              <p className="mt-2 text-[13px] font-semibold leading-5 text-[#171717] line-clamp-2">
+                              <p className="mt-2 text-[13px] font-semibold leading-5 text-ink line-clamp-2">
                                 {nodeLabel(event)}
                               </p>
                               {nodePreview(event) ? (
-                                <p className="mt-1.5 text-[11px] leading-5 text-[#74695f] line-clamp-2">
+                                <p className="mt-1.5 text-[11px] leading-5 text-ink-mute line-clamp-2">
                                   {nodePreview(event)}
                                 </p>
                               ) : null}
@@ -1691,13 +1687,13 @@ function TurnFlowModal({ turn, onClose }: { turn: Turn; onClose: () => void }) {
                       )
                     })}
 
-                    <div className="absolute bottom-4 left-14 right-14 flex flex-wrap gap-2 text-[11px] text-[#7f7468]">
-                      <span className="inline-flex items-center gap-2 rounded-full border border-[#e4d8c8] bg-white/80 px-3 py-1.5">
-                        <span className="h-2.5 w-2.5 rounded-full bg-[#d36c93]" />
+                    <div className="absolute bottom-4 left-14 right-14 flex flex-wrap gap-2 text-[11px] text-ink-mute">
+                      <span className="inline-flex items-center gap-2 rounded-full border border-line bg-white/80 px-3 py-1.5">
+                        <span className="h-2.5 w-2.5 rounded-full bg-blush" />
                         Same-lane continuation
                       </span>
-                      <span className="inline-flex items-center gap-2 rounded-full border border-[#e4d8c8] bg-white/80 px-3 py-1.5">
-                        <span className="h-px w-5 border-t-2 border-dashed border-[#d36c93]" />
+                      <span className="inline-flex items-center gap-2 rounded-full border border-line bg-white/80 px-3 py-1.5">
+                        <span className="h-px w-5 border-t-2 border-dashed border-blush" />
                         Cross-lane handoff
                       </span>
                     </div>
@@ -1711,9 +1707,9 @@ function TurnFlowModal({ turn, onClose }: { turn: Turn; onClose: () => void }) {
                     className="relative"
                     style={{ width: swimlaneLayout.width, height: swimlaneLayout.height + 52 }}
                   >
-                    <div className="absolute inset-0 rounded-[2rem] border border-[#e7dccb] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(248,241,231,0.84))]" />
+                    <div className="absolute inset-0 rounded-[2rem] border border-line bg-white" />
 
-                    <svg
+                    <svg aria-hidden="true"
                       className="absolute inset-0"
                       width={swimlaneLayout.width}
                       height={swimlaneLayout.height + 52}
@@ -1775,7 +1771,7 @@ function TurnFlowModal({ turn, onClose }: { turn: Turn; onClose: () => void }) {
                       >
                         <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: lane.accent }} />
                         <div>
-                          <div className="text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: lane.accent }}>
+                          <div className="text-[11px] font-semibold" style={{ color: lane.accent }}>
                             {lane.label}
                           </div>
                         </div>
@@ -1798,7 +1794,7 @@ function TurnFlowModal({ turn, onClose }: { turn: Turn; onClose: () => void }) {
                           key={`${event.id}-swimlane-node`}
                           type="button"
                           onClick={() => setSelectedId(event.id)}
-                          className="absolute -translate-x-1/2 -translate-y-1/2 text-left transition-transform duration-150"
+                          className="absolute -translate-x-1/2 -translate-y-1/2 text-left transition-transform motion-reduce:transition-none duration-150"
                           style={{ left: point.x, top: point.y }}
                         >
                           <div className="relative">
@@ -1833,19 +1829,19 @@ function TurnFlowModal({ turn, onClose }: { turn: Turn; onClose: () => void }) {
                                 >
                                   {index + 1}
                                 </span>
-                                <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8a7b6f]">
+                                <span className="text-[10px] font-semibold text-ash">
                                   {meta.transitionLabel}
                                 </span>
                               </div>
-                              <p className="mt-2 text-[13px] font-semibold leading-5 text-[#171717] line-clamp-2">
+                              <p className="mt-2 text-[13px] font-semibold leading-5 text-ink line-clamp-2">
                                 {nodeLabel(event)}
                               </p>
-                              <div className="mt-1.5 flex items-center gap-2 text-[11px] text-[#74695f]">
+                              <div className="mt-1.5 flex items-center gap-2 text-[11px] text-ink-mute">
                                 <span>{meta.actorLabel}</span>
                                 {meta.cycle > 0 ? <span>Loop {meta.cycle}</span> : null}
                               </div>
                               {nodePreview(event) ? (
-                                <p className="mt-1.5 text-[11px] leading-5 text-[#74695f] line-clamp-2">
+                                <p className="mt-1.5 text-[11px] leading-5 text-ink-mute line-clamp-2">
                                   {nodePreview(event)}
                                 </p>
                               ) : null}
@@ -1855,13 +1851,13 @@ function TurnFlowModal({ turn, onClose }: { turn: Turn; onClose: () => void }) {
                       )
                     })}
 
-                    <div className="absolute bottom-4 right-5 flex flex-wrap justify-end gap-2 text-[11px] text-[#7f7468]">
-                      <span className="inline-flex items-center gap-2 rounded-full border border-[#e4d8c8] bg-white/80 px-3 py-1.5">
-                        <span className="h-2.5 w-2.5 rounded-full bg-[#d36c93]" />
+                    <div className="absolute bottom-4 right-5 flex flex-wrap justify-end gap-2 text-[11px] text-ink-mute">
+                      <span className="inline-flex items-center gap-2 rounded-full border border-line bg-white/80 px-3 py-1.5">
+                        <span className="h-2.5 w-2.5 rounded-full bg-blush" />
                         Event node
                       </span>
-                      <span className="inline-flex items-center gap-2 rounded-full border border-[#e4d8c8] bg-white/80 px-3 py-1.5">
-                        <span className="h-px w-5 border-t-2 border-dashed border-[#d36c93]" />
+                      <span className="inline-flex items-center gap-2 rounded-full border border-line bg-white/80 px-3 py-1.5">
+                        <span className="h-px w-5 border-t-2 border-dashed border-blush" />
                         Handoff between lanes
                       </span>
                     </div>
@@ -1885,31 +1881,31 @@ function TurnFlowModal({ turn, onClose }: { turn: Turn; onClose: () => void }) {
                         type="button"
                         onClick={() => setSelectedId(event.id)}
                         className={`flex w-full items-start gap-4 rounded-[1.35rem] border px-4 py-4 text-left transition-colors ${
-                          isSelected ? 'border-[#dcc7af] bg-white shadow-[0_18px_40px_-30px_rgba(92,63,40,0.18)]' : 'border-[#e7dccb] bg-[#fcfaf6] hover:bg-white'
+                          isSelected ? 'border-tan bg-white shadow-soft' : 'border-line bg-cream hover:bg-white'
                         }`}
                       >
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[#e1d3c0] bg-[#f2e9dd] text-[11px] font-semibold text-[#171717]">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line bg-sand-deep text-[11px] font-semibold text-ink">
                           {index + 1}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <span
-                              className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
+                              className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold"
                               style={{ borderColor: `${cfg.dot}33`, backgroundColor: cfg.soft, color: cfg.dot }}
                             >
                               {cfg.badge}
                             </span>
-                            <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8a7c6f]">{meta.laneLabel}</span>
-                            <span className="text-xs text-[#74695f]">{meta.transitionLabel}</span>
-                            <span className="ml-auto text-xs text-[#8a7c6f]">{event.timestamp ? formatTime(event.timestamp) : 'No time'}</span>
+                            <span className="text-xs font-semibold text-ash">{meta.laneLabel}</span>
+                            <span className="text-xs text-ink-mute">{meta.transitionLabel}</span>
+                            <span className="ml-auto text-xs text-ash">{event.timestamp ? formatTime(event.timestamp) : 'No time'}</span>
                           </div>
-                          <p className="mt-3 text-sm font-semibold text-[#171717]">{nodeLabel(event)}</p>
-                          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-[#74695f]">
+                          <p className="mt-3 text-sm font-semibold text-ink">{nodeLabel(event)}</p>
+                          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-ink-mute">
                             <span>{meta.actorLabel}</span>
                             {meta.cycle > 0 ? <span>Loop {meta.cycle}</span> : null}
                             {nodeSub(event) ? <span>{nodeSub(event)}</span> : null}
-                            {isError ? <span className="text-red-300">Failed</span> : null}
-                            {isWarn ? <span className="text-amber-200">Trimmed</span> : null}
+                            {isError ? <span className="text-blush">Failed</span> : null}
+                            {isWarn ? <span className="text-honey">Trimmed</span> : null}
                           </div>
                         </div>
                       </button>
@@ -1931,13 +1927,13 @@ function TurnFlowModal({ turn, onClose }: { turn: Turn; onClose: () => void }) {
               meta={flowMeta[selected.id]}
             />
           ) : (
-            <div className="flex min-h-[34rem] items-center justify-center rounded-[1.8rem] border border-[#e4d7c7] bg-white/78 p-6 text-center shadow-[0_24px_60px_-46px_rgba(73,45,23,0.3)]">
+            <div className="flex min-h-[34rem] items-center justify-center rounded-[1.8rem] border border-line bg-white/78 p-6 text-center shadow-soft">
               <div>
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[1.2rem] bg-[#f3ecde]">
-                  <GitBranch className="h-6 w-6 text-[#171717]" />
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[1.2rem] bg-sand">
+                  <GitBranch className="h-6 w-6 text-ink" />
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-[#171717]">Select a node</h3>
-                <p className="mt-2 text-sm leading-6 text-[#6f655c]">
+                <h3 className="mt-4 text-lg font-semibold text-ink">Select a node</h3>
+                <p className="mt-2 text-sm leading-6 text-ink-mute">
                   Click any event card in the flow to inspect timing, model, tool result, content preview, and orchestration metadata.
                 </p>
               </div>
@@ -1961,28 +1957,28 @@ function SummaryBar({ detail, llmCallCount, toolCallCount, failureCount }: {
   failureCount: number
 }) {
   const stats = [
-    { label: 'Total tokens', value: formatTokens(detail.total_tokens), sub: `${formatTokens(detail.input_tokens)} in / ${formatTokens(detail.output_tokens)} out`, accent: 'bg-rose-500' },
-    { label: 'Total cost', value: formatCost(detail.total_cost_usd), sub: detail.total_cost_usd > 0 ? `$${(detail.total_cost_usd / Math.max(detail.message_count, 1)).toFixed(4)}/turn` : 'no cost', accent: 'bg-emerald-500', highlight: detail.total_cost_usd > 0 },
-    { label: 'Interactions', value: String(detail.message_count), sub: 'user turns', accent: 'bg-slate-600' },
-    { label: 'LLM calls', value: String(llmCallCount), sub: 'total completions', accent: 'bg-sky-500' },
-    { label: 'Tool calls', value: String(toolCallCount), sub: failureCount > 0 ? `${failureCount} failed` : 'all succeeded', accent: failureCount > 0 ? 'bg-red-500' : 'bg-teal-500', error: failureCount > 0 },
-    { label: 'Avg per turn', value: llmCallCount > 0 ? `${(llmCallCount / Math.max(detail.message_count, 1)).toFixed(1)}` : '—', sub: 'LLM calls/turn', accent: 'bg-amber-500' },
+    { label: 'Total tokens', value: formatTokens(detail.total_tokens), sub: `${formatTokens(detail.input_tokens)} in / ${formatTokens(detail.output_tokens)} out`, accent: 'bg-ink' },
+    { label: 'Total cost', value: formatCost(detail.total_cost_usd), sub: detail.total_cost_usd > 0 ? `$${(detail.total_cost_usd / Math.max(detail.message_count, 1)).toFixed(4)}/turn` : 'no cost', accent: 'bg-leaf', highlight: detail.total_cost_usd > 0 },
+    { label: 'Interactions', value: String(detail.message_count), sub: 'user turns', accent: 'bg-ink-soft' },
+    { label: 'LLM calls', value: String(llmCallCount), sub: 'total completions', accent: 'bg-azure' },
+    { label: 'Tool calls', value: String(toolCallCount), sub: failureCount > 0 ? `${failureCount} failed` : 'all succeeded', accent: failureCount > 0 ? 'bg-ink' : 'bg-leaf', error: failureCount > 0 },
+    { label: 'Avg per turn', value: llmCallCount > 0 ? `${(llmCallCount / Math.max(detail.message_count, 1)).toFixed(1)}` : '—', sub: 'LLM calls/turn', accent: 'bg-warn' },
   ]
   return (
     <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
       {stats.map((s, i) => (
         <div
           key={i}
-          className="relative overflow-hidden rounded-lg border border-gray-200 bg-white px-4 py-4"
+          className="relative overflow-hidden rounded-lg border border-line bg-white px-4 py-4"
         >
           <div className={`absolute inset-x-0 top-0 h-1 ${s.accent}`} />
           <div className="relative">
             <div className="mb-3 flex items-center gap-2">
               <span className={`h-2 w-2 rounded-full ${s.accent}`} />
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{s.label}</p>
+              <p className="text-[11px] font-semibold text-ink-mute">{s.label}</p>
             </div>
-            <p className={`mb-2 text-[28px] font-bold leading-none tracking-[-0.04em] ${s.error ? 'text-red-700' : s.highlight ? 'text-emerald-700' : 'text-slate-900'}`}>{s.value}</p>
-            <p className="text-[12px] leading-5 text-slate-500">{s.sub}</p>
+            <p className={`mb-2 text-[28px] font-bold leading-none tracking-[-0.04em] ${s.error ? 'text-danger' : s.highlight ? 'text-forest' : 'text-ink'}`}>{s.value}</p>
+            <p className="text-[12px] leading-5 text-ink-mute">{s.sub}</p>
           </div>
         </div>
       ))}
@@ -2045,23 +2041,23 @@ export default function SessionDetailPage() {
       actions={
         <button
           onClick={() => setNewestFirst(v => !v)}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-[1rem] border border-black/10 bg-white/80 px-4 py-3 text-sm font-semibold text-gray-600 transition-colors hover:bg-white hover:text-gray-900"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-[1rem] border border-black/10 bg-white/80 px-4 py-3 text-sm font-semibold text-ink-soft transition-colors hover:bg-white hover:text-ink"
         >
           {newestFirst ? '↓ Newest first' : '↑ Oldest first'}
         </button>
       }
     >
       {error ? (
-        <AgentPagePanel className="mb-6 border-[#eed6dd] bg-[linear-gradient(180deg,_rgba(252,245,247,0.98),_rgba(249,236,240,0.96))] p-4">
-          <p className="text-sm font-medium text-[#8a445c]">{error}</p>
+        <AgentPagePanel className="mb-6 border-blush-wash bg-white p-4">
+          <p className="text-sm font-medium text-wine">{error}</p>
         </AgentPagePanel>
       ) : null}
 
       {loading ? (
         <div className="flex items-center justify-center py-24">
           <div className="text-center">
-            <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-slate-900 border-t-transparent" />
-            <p className="text-sm font-medium text-slate-500">Loading session...</p>
+            <div className="mx-auto mb-4 h-10 w-10 motion-safe:animate-spin rounded-full border-2 border-ink border-t-transparent" />
+            <p className="text-sm font-medium text-ink-mute">Loading session…</p>
           </div>
         </div>
       ) : detail ? (
@@ -2075,7 +2071,7 @@ export default function SessionDetailPage() {
 
           {turns.length === 0 ? (
             <AgentPagePanel className="py-24 text-center">
-              <p className="text-sm font-medium text-slate-400">No events recorded in this session</p>
+              <p className="text-sm font-medium text-ash">No events recorded in this session</p>
             </AgentPagePanel>
           ) : (
             <div className="space-y-0">

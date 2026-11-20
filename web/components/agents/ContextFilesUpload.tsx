@@ -295,9 +295,9 @@ export default function ContextFilesUpload({ agentName, onUploadComplete }: Cont
 
   const getFileIcon = (filename: string) => {
     if (filename.startsWith('skill-')) {
-      return <Sparkles className="w-5 h-5 text-red-500" />
+      return <Sparkles className="w-5 h-5 text-leaf" />
     }
-    return <FileText className="w-5 h-5 text-blue-600" />
+    return <FileText className="w-5 h-5 text-azure" />
   }
 
   // Check if file is editable (text formats: .md, .txt, .csv, .docx)
@@ -309,11 +309,11 @@ export default function ContextFilesUpload({ agentName, onUploadComplete }: Cont
   const getStatusIcon = (status: FileWithProgress['status']) => {
     switch (status) {
       case 'uploading':
-        return <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+        return <Loader2 className="w-5 h-5 text-azure motion-safe:animate-spin" />
       case 'success':
-        return <CheckCircle className="w-5 h-5 text-green-600" />
+        return <CheckCircle className="w-5 h-5 text-leaf" />
       case 'error':
-        return <AlertCircle className="w-5 h-5 text-red-600" />
+        return <AlertCircle className="w-5 h-5 text-danger" />
       default:
         return null
     }
@@ -323,21 +323,21 @@ export default function ContextFilesUpload({ agentName, onUploadComplete }: Cont
     switch (status) {
       case 'PENDING':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-yellow-700 bg-yellow-100 rounded-full">
-            <Loader2 className="w-3 h-3 animate-spin" />
+          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-gold bg-sand-deep rounded-full">
+            <Loader2 className="w-3 h-3 motion-safe:animate-spin" />
             Extracting...
           </span>
         )
       case 'COMPLETED':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-full">
+          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-forest bg-leaf-wash rounded-full">
             <CheckCircle className="w-3 h-3" />
             Ready
           </span>
         )
       case 'FAILED':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-red-700 bg-red-100 rounded-full">
+          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-danger bg-blush-wash rounded-full">
             <AlertCircle className="w-3 h-3" />
             Failed
           </span>
@@ -351,8 +351,8 @@ export default function ContextFilesUpload({ agentName, onUploadComplete }: Cont
       {!loading && existingFiles.length < MAX_FILES && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-900">Add Skills</h3>
-            <span className="text-xs text-gray-500">{existingFiles.length}/{MAX_FILES} skills</span>
+            <h3 className="text-sm font-medium text-ink">Add Skills</h3>
+            <span className="text-xs text-ink-mute">{existingFiles.length}/{MAX_FILES} skills</span>
           </div>
 
           {/* Two options: Select from library or Upload custom */}
@@ -360,24 +360,24 @@ export default function ContextFilesUpload({ agentName, onUploadComplete }: Cont
             {/* Select from Library */}
             <button
               onClick={() => setShowSkillSelector(!showSkillSelector)}
-              className={`flex items-center justify-center gap-2 p-4 border-2 rounded-xl transition-all ${
+              className={`flex items-center justify-center gap-2 p-4 border-2 rounded-xl transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
                 showSkillSelector
-                  ? 'border-red-500 bg-red-50 text-red-700'
-                  : 'border-gray-200 hover:border-red-300 hover:bg-red-50 text-gray-700'
+                  ? 'border-ink bg-blush-wash text-leaf'
+                  : 'border-line hover:border-blush hover:bg-blush-wash text-ink-soft'
               }`}
             >
               <Sparkles className="w-5 h-5" />
               <span className="font-medium">Select from Library</span>
-              <ChevronDown className={`w-4 h-4 transition-transform ${showSkillSelector ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-4 h-4 transition-transform motion-reduce:transition-none ${showSkillSelector ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Upload Custom Skill - using dropzone */}
             <div
               {...getRootProps()}
-              className={`flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-xl cursor-pointer transition-all ${
+              className={`flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-xl cursor-pointer transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
                 isDragActive
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50 text-gray-700'
+                  ? 'border-azure bg-sky-wash text-azure'
+                  : 'border-line hover:border-steel hover:bg-sky-wash text-ink-soft'
               } ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <input {...getInputProps()} />
@@ -388,13 +388,13 @@ export default function ContextFilesUpload({ agentName, onUploadComplete }: Cont
 
           {/* Skill Selector Dropdown */}
           {showSkillSelector && (
-            <div className="bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+            <div className="bg-white border border-line rounded-xl shadow-lg overflow-hidden">
               {/* Search and Filters */}
-              <div className="p-4 border-b border-gray-100 bg-gray-50">
+              <div className="p-4 border-b border-sand bg-cream">
                 <div className="flex items-center gap-3">
                   {/* Search */}
                   <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ash" />
                     <input
                       type="text"
                       value={skillSearchQuery}
@@ -402,8 +402,8 @@ export default function ContextFilesUpload({ agentName, onUploadComplete }: Cont
                         setSkillSearchQuery(e.target.value)
                         setSelectedCategory(null)
                       }}
-                      placeholder="Search skills..."
-                      className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+                      placeholder="Search skills…"
+                      className="w-full pl-10 pr-4 py-2 border border-line rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent text-sm"
                     />
                   </div>
 
@@ -416,8 +416,8 @@ export default function ContextFilesUpload({ agentName, onUploadComplete }: Cont
                       }}
                       className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap ${
                         !selectedCategory && !skillSearchQuery
-                          ? 'bg-red-100 text-red-700'
-                          : 'text-gray-600 hover:bg-gray-100'
+                          ? 'bg-blush-wash text-leaf'
+                          : 'text-ink-soft hover:bg-sand'
                       }`}
                     >
                       All
@@ -431,8 +431,8 @@ export default function ContextFilesUpload({ agentName, onUploadComplete }: Cont
                         }}
                         className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors flex items-center gap-1 whitespace-nowrap ${
                           selectedCategory === cat.id
-                            ? 'bg-red-100 text-red-700'
-                            : 'text-gray-600 hover:bg-gray-100'
+                            ? 'bg-blush-wash text-leaf'
+                            : 'text-ink-soft hover:bg-sand'
                         }`}
                       >
                         <span>{cat.icon}</span>
@@ -446,7 +446,7 @@ export default function ContextFilesUpload({ agentName, onUploadComplete }: Cont
               {/* Skills List */}
               <div className="max-h-80 overflow-y-auto p-2">
                 {filteredSkills.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-ink-mute">
                     <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">No skills found</p>
                   </div>
@@ -461,32 +461,32 @@ export default function ContextFilesUpload({ agentName, onUploadComplete }: Cont
                           key={skill.id}
                           onClick={() => !isAdded && !isAdding && handleAddSkill(skill)}
                           disabled={isAdded || isAdding}
-                          className={`flex items-start gap-3 p-3 rounded-lg text-left transition-all ${
+                          className={`flex items-start gap-3 p-3 rounded-lg text-left transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
                             isAdded
-                              ? 'bg-green-50 border border-green-200 cursor-default'
+                              ? 'bg-leaf-wash border border-mint cursor-default'
                               : isAdding
-                                ? 'bg-gray-50 border border-gray-200 cursor-wait'
-                                : 'hover:bg-red-50 border border-transparent hover:border-red-200'
+                                ? 'bg-cream border border-line cursor-wait'
+                                : 'hover:bg-blush-wash border border-transparent hover:border-blush'
                           }`}
                         >
-                          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center text-white text-sm flex-shrink-0">
+                          <div className="w-8 h-8 rounded-lg bg-ink flex items-center justify-center text-white text-sm flex-shrink-0">
                             {skill.icon}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="font-medium text-gray-900 text-sm">{skill.name}</span>
+                              <span className="font-medium text-ink text-sm">{skill.name}</span>
                               {isAdded && (
-                                <span className="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">Added</span>
+                                <span className="text-xs text-leaf bg-leaf-wash px-2 py-0.5 rounded-full">Added</span>
                               )}
                             </div>
-                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{skill.description}</p>
+                            <p className="text-xs text-ink-mute mt-0.5 line-clamp-2">{skill.description}</p>
                           </div>
                           {!isAdded && (
                             <div className="flex-shrink-0">
                               {isAdding ? (
-                                <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+                                <Loader2 className="w-5 h-5 text-ash motion-safe:animate-spin" />
                               ) : (
-                                <Plus className="w-5 h-5 text-gray-400" />
+                                <Plus className="w-5 h-5 text-ash" />
                               )}
                             </div>
                           )}
@@ -498,8 +498,8 @@ export default function ContextFilesUpload({ agentName, onUploadComplete }: Cont
               </div>
 
               {/* Footer */}
-              <div className="p-3 border-t border-gray-100 bg-gray-50 text-center">
-                <p className="text-xs text-gray-500">
+              <div className="p-3 border-t border-sand bg-cream text-center">
+                <p className="text-xs text-ink-mute">
                   {PREDEFINED_SKILLS.length} skills available
                 </p>
               </div>
@@ -511,12 +511,12 @@ export default function ContextFilesUpload({ agentName, onUploadComplete }: Cont
       {/* Existing Files Section */}
       {loading ? (
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-8 h-8 text-red-500 animate-spin" />
+          <Loader2 className="w-8 h-8 text-leaf motion-safe:animate-spin" />
         </div>
       ) : existingFiles.length > 0 ? (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-900">
+            <h3 className="text-sm font-medium text-ink">
               Active Skills ({existingFiles.length}/{MAX_FILES})
             </h3>
           </div>
@@ -525,7 +525,7 @@ export default function ContextFilesUpload({ agentName, onUploadComplete }: Cont
             {existingFiles.map((file) => (
               <div
                 key={file.id}
-                className="bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors"
+                className="bg-white border border-line rounded-lg p-4 hover:border-taupe transition-colors"
               >
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 mt-0.5">
@@ -535,32 +535,32 @@ export default function ContextFilesUpload({ agentName, onUploadComplete }: Cont
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
+                        <p className="text-sm font-medium text-ink truncate">
                           {file.filename.startsWith('skill-')
                             ? file.filename.replace('skill-', '').replace('.md', '').split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
                             : file.filename
                           }
                         </p>
                         <div className="flex items-center gap-2 mt-1">
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-ink-mute">
                             {formatFileSize(file.file_size)}
                           </p>
-                          <span className="text-gray-300">•</span>
+                          <span className="text-taupe">•</span>
                           {getExtractionStatusBadge(file.extraction_status)}
                           {file.filename.startsWith('skill-') && (
                             <>
-                              <span className="text-gray-300">•</span>
-                              <span className="text-xs text-red-600 bg-red-50 px-2 py-0.5 rounded-full">Pre-defined</span>
+                              <span className="text-taupe">•</span>
+                              <span className="text-xs text-leaf bg-blush-wash px-2 py-0.5 rounded-full">Pre-defined</span>
                             </>
                           )}
                         </div>
                         {file.extraction_status === 'FAILED' && file.extraction_error && (
-                          <p className="text-xs text-red-600 mt-1">
+                          <p className="text-xs text-danger mt-1">
                             {file.extraction_error}
                           </p>
                         )}
                         {file.description && (
-                          <p className="text-xs text-gray-400 mt-1 line-clamp-1" title={file.description}>
+                          <p className="text-xs text-ash mt-1 line-clamp-1" title={file.description}>
                             {file.description}
                           </p>
                         )}
@@ -570,11 +570,11 @@ export default function ContextFilesUpload({ agentName, onUploadComplete }: Cont
                         {/* Load mode toggle */}
                         <button
                           onClick={() => handleUpdateFile(file.id, { load_mode: file.load_mode === 'always' ? 'on_demand' : 'always' })}
-                          title={file.load_mode === 'always' ? 'Always injected — click to make on-demand' : 'On-demand — click to always inject'}
+                          title={file.load_mode === 'always' ? 'Always injected, click to make on-demand' : 'On-demand, click to always inject'}
                           className={`flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full transition-colors ${
                             file.load_mode === 'always'
-                              ? 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                              ? 'bg-sky-wash text-azure hover:bg-sky-wash'
+                              : 'bg-sand text-ink-mute hover:bg-line'
                           }`}
                         >
                           {file.load_mode === 'always' ? (
@@ -586,7 +586,7 @@ export default function ContextFilesUpload({ agentName, onUploadComplete }: Cont
                         {isFileEditable(file.filename) && (
                           <button
                             onClick={() => setEditingFile(file)}
-                            className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                            className="p-1.5 text-ash hover:text-leaf hover:bg-leaf-wash rounded transition-colors"
                             title="Edit"
                           >
                             <Pencil className="w-4 h-4" />
@@ -594,14 +594,14 @@ export default function ContextFilesUpload({ agentName, onUploadComplete }: Cont
                         )}
                         <button
                           onClick={() => handleDownload(file.id)}
-                          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                          className="p-1.5 text-ash hover:text-azure hover:bg-sky-wash rounded transition-colors"
                           title="Download"
                         >
                           <Download className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(file.id)}
-                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                          className="p-1.5 text-ash hover:text-danger hover:bg-blush-wash rounded transition-colors"
                           title="Delete"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -615,7 +615,7 @@ export default function ContextFilesUpload({ agentName, onUploadComplete }: Cont
           </div>
         </div>
       ) : (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8 text-ink-mute">
           <Sparkles className="w-12 h-12 mx-auto mb-3 opacity-30" />
           <p className="text-sm font-medium">No skills added yet</p>
           <p className="text-xs mt-1">Select from the library or upload your own skill files</p>
@@ -624,15 +624,15 @@ export default function ContextFilesUpload({ agentName, onUploadComplete }: Cont
 
       {/* New Files List (for manual uploads) */}
       {files.length > 0 && (
-        <div className="space-y-2 border-t border-gray-200 pt-6">
+        <div className="space-y-2 border-t border-line pt-6">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-900">
+            <h3 className="text-sm font-medium text-ink">
               Files to Upload ({files.length})
             </h3>
             {!uploading && (
               <button
                 onClick={() => setFiles([])}
-                className="text-sm text-gray-500 hover:text-gray-700"
+                className="text-sm text-ink-mute hover:text-ink-soft"
               >
                 Clear all
               </button>
@@ -643,20 +643,20 @@ export default function ContextFilesUpload({ agentName, onUploadComplete }: Cont
             {files.map((fileWithProgress, index) => (
               <div
                 key={index}
-                className="bg-white border border-gray-200 rounded-lg p-4"
+                className="bg-white border border-line rounded-lg p-4"
               >
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 mt-0.5">
-                    <FileText className="w-5 h-5 text-blue-600" />
+                    <FileText className="w-5 h-5 text-azure" />
                   </div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
+                        <p className="text-sm font-medium text-ink truncate">
                           {fileWithProgress.file.name}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-ink-mute">
                           {formatFileSize(fileWithProgress.file.size)}
                         </p>
                       </div>
@@ -666,7 +666,7 @@ export default function ContextFilesUpload({ agentName, onUploadComplete }: Cont
                         {!uploading && fileWithProgress.status === 'pending' && (
                           <button
                             onClick={() => removeFile(index)}
-                            className="text-gray-400 hover:text-gray-600"
+                            className="text-ash hover:text-ink-soft"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -677,13 +677,13 @@ export default function ContextFilesUpload({ agentName, onUploadComplete }: Cont
                     {/* Progress Bar */}
                     {fileWithProgress.status === 'uploading' && (
                       <div className="mt-2">
-                        <div className="w-full bg-gray-200 rounded-full h-1.5">
+                        <div className="w-full bg-line rounded-full h-1.5">
                           <div
-                            className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+                            className="bg-azure h-1.5 rounded-full transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300"
                             style={{ width: `${fileWithProgress.progress}%` }}
                           />
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-ink-mute mt-1">
                           {fileWithProgress.progress}%
                         </p>
                       </div>
@@ -691,14 +691,14 @@ export default function ContextFilesUpload({ agentName, onUploadComplete }: Cont
 
                     {/* Error Message */}
                     {fileWithProgress.status === 'error' && fileWithProgress.error && (
-                      <p className="text-xs text-red-600 mt-1">
+                      <p className="text-xs text-danger mt-1">
                         {fileWithProgress.error}
                       </p>
                     )}
 
                     {/* Success Message */}
                     {fileWithProgress.status === 'success' && (
-                      <p className="text-xs text-green-600 mt-1">
+                      <p className="text-xs text-leaf mt-1">
                         Uploaded successfully
                       </p>
                     )}
@@ -712,11 +712,11 @@ export default function ContextFilesUpload({ agentName, onUploadComplete }: Cont
           <button
             onClick={handleUpload}
             disabled={uploading || files.length === 0 || files.some(f => f.status === 'success')}
-            className="w-full px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium shadow-lg shadow-red-500/30"
+            className="w-full px-4 py-3 bg-ink text-white rounded-lg hover:from-danger hover:to-danger transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium shadow-lg shadow-red-500/30"
           >
             {uploading ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-5 h-5 motion-safe:animate-spin" />
                 Uploading...
               </>
             ) : (

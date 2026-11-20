@@ -8,7 +8,7 @@ import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
 const SyntaxHighlighter = dynamic(
   () => import('react-syntax-highlighter').then((m) => ({ default: m.Prism })),
-  { ssr: false, loading: () => <pre className="bg-gray-900 text-gray-100 p-3 text-[12px] font-mono overflow-x-auto" /> }
+  { ssr: false, loading: () => <pre className="bg-ink text-sand p-3 text-[12px] font-mono overflow-x-auto" /> }
 )
 import { FileText, Loader2, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react'
 import DOMPurify from 'dompurify'
@@ -104,21 +104,21 @@ export function MarkdownViewer({ url, primaryColor = '#0d9488', onError }: Markd
 
   if (loading) {
     return (
-      <div className="flex items-center gap-3 p-6 bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl">
-        <Loader2 className="animate-spin" size={20} style={{ color: primaryColor }} />
-        <span className="text-sm text-gray-600">Loading tutorial...</span>
+      <div className="flex items-center gap-3 p-6 bg-cream border border-line rounded-xl">
+        <Loader2 className="motion-safe:animate-spin" size={20} style={{ color: primaryColor }} />
+        <span className="text-sm text-ink-soft">Loading tutorial…</span>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="p-6 bg-red-50 border border-red-200 rounded-xl">
+      <div className="p-6 bg-blush-wash border border-blush rounded-xl">
         <div className="flex items-start gap-3">
-          <FileText className="text-red-500 mt-0.5" size={20} />
+          <FileText className="text-leaf mt-0.5" size={20} />
           <div>
-            <p className="text-sm font-medium text-red-800">Failed to load markdown</p>
-            <p className="text-xs text-red-600 mt-1">{error}</p>
+            <p className="text-sm font-medium text-wine">Failed to load markdown</p>
+            <p className="text-xs text-danger mt-1">{error}</p>
           </div>
         </div>
       </div>
@@ -126,16 +126,16 @@ export function MarkdownViewer({ url, primaryColor = '#0d9488', onError }: Markd
   }
 
   return (
-    <div className="my-4 border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+    <div className="my-4 border border-line rounded-xl overflow-hidden bg-white shadow-sm">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-200">
+      <div className="flex items-center justify-between p-4 bg-cream border-b border-line">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg" style={{ background: `${primaryColor}15` }}>
             <FileText size={18} style={{ color: primaryColor }} />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-gray-900">Tutorial Document</h3>
-            <p className="text-xs text-gray-500">Generated markdown content</p>
+            <h3 className="text-sm font-semibold text-ink">Tutorial Document</h3>
+            <p className="text-xs text-ink-mute">Generated markdown content</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -143,17 +143,17 @@ export function MarkdownViewer({ url, primaryColor = '#0d9488', onError }: Markd
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-sand rounded-lg transition-colors"
             title="Open in new tab"
           >
-            <ExternalLink size={16} className="text-gray-600" />
+            <ExternalLink size={16} className="text-ink-soft" />
           </a>
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-sand rounded-lg transition-colors"
             title={isCollapsed ? 'Expand' : 'Collapse'}
           >
-            {isCollapsed ? <ChevronDown size={16} className="text-gray-600" /> : <ChevronUp size={16} className="text-gray-600" />}
+            {isCollapsed ? <ChevronDown size={16} className="text-ink-soft" /> : <ChevronUp size={16} className="text-ink-soft" />}
           </button>
         </div>
       </div>
@@ -175,7 +175,7 @@ export function MarkdownViewer({ url, primaryColor = '#0d9488', onError }: Markd
                 if (language === 'mermaid') {
                   return (
                     <div className="my-6 flex justify-center">
-                      <div className="mermaid-diagram bg-white p-4 rounded-lg border border-gray-200 inline-block">
+                      <div className="mermaid-diagram bg-white p-4 rounded-lg border border-line inline-block">
                         {codeString}
                       </div>
                     </div>
@@ -199,7 +199,7 @@ export function MarkdownViewer({ url, primaryColor = '#0d9488', onError }: Markd
                     <div className="absolute right-2 top-2 opacity-0 group-hover/code:opacity-100 transition-opacity z-10">
                       <button
                         onClick={() => navigator.clipboard.writeText(codeString)}
-                        className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-white rounded"
+                        className="px-2 py-1 text-xs bg-ink-soft hover:bg-ink-soft text-white rounded"
                       >
                         Copy
                       </button>

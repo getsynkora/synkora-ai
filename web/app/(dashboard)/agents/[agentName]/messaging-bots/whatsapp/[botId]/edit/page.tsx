@@ -117,7 +117,7 @@ export default function EditWhatsAppBotPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+        <div className="motion-safe:animate-spin rounded-full h-8 w-8 border-b-2 border-azure" />
       </div>
     );
   }
@@ -126,11 +126,11 @@ export default function EditWhatsAppBotPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900">Bot not found</h3>
+          <AlertCircle className="mx-auto h-12 w-12 text-leaf mb-4" />
+          <h3 className="text-lg font-medium text-ink">Bot not found</h3>
           <button
             onClick={() => router.push(`/agents/${agentName}/messaging-bots`)}
-            className="mt-4 text-blue-600 hover:text-blue-500"
+            className="mt-4 text-azure hover:text-azure"
           >
             Back to Messaging Bots
           </button>
@@ -142,23 +142,23 @@ export default function EditWhatsAppBotPage() {
   const isDeviceLink = bot.connection_type === "device_link";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-8">
+    <div className="min-h-screen p-4 md:p-8">
       <div className="max-w-3xl mx-auto">
         <div className="mb-8">
           <button
             onClick={() => router.push(`/agents/${agentName}/messaging-bots`)}
-            className="flex items-center text-gray-600 hover:text-gray-900 mb-4"
+            className="flex items-center text-ink-soft hover:text-ink mb-4"
           >
             <ArrowLeft size={20} className="mr-2" />
             Back to Messaging Bots
           </button>
           <div className="flex items-center gap-3">
-            <div className="bg-green-100 p-3 rounded-lg">
-              <MessageCircle className="text-green-600" size={24} />
+            <div className="bg-leaf-wash p-3 rounded-lg">
+              <MessageCircle className="text-leaf" size={24} />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Edit WhatsApp Bot</h1>
-              <p className="text-gray-600 mt-1">
+              <h1 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight">Edit WhatsApp Bot</h1>
+              <p className="text-ink-soft mt-1">
                 {isDeviceLink ? "Device Link (QR)" : "Cloud API"} connection
               </p>
             </div>
@@ -166,11 +166,11 @@ export default function EditWhatsAppBotPage() {
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-start">
-            <AlertCircle className="text-red-600 mr-3 flex-shrink-0 mt-0.5" size={20} />
+          <div className="bg-blush-wash border border-blush rounded-lg p-4 mb-6 flex items-start">
+            <AlertCircle className="text-danger mr-3 flex-shrink-0 mt-0.5" size={20} />
             <div>
-              <h3 className="text-sm font-medium text-red-800">Error</h3>
-              <p className="text-sm text-red-700 mt-1">{error}</p>
+              <h3 className="text-sm font-medium text-wine">Error</h3>
+              <p className="text-sm text-danger mt-1">{error}</p>
             </div>
           </div>
         )}
@@ -179,36 +179,36 @@ export default function EditWhatsAppBotPage() {
         {isDeviceLink ? (
           <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
             {/* Connected device info */}
-            <div className="flex items-center gap-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="bg-green-100 p-3 rounded-full">
-                <Smartphone className="text-green-600" size={24} />
+            <div className="flex items-center gap-4 p-4 bg-leaf-wash border border-mint rounded-lg">
+              <div className="bg-leaf-wash p-3 rounded-full">
+                <Smartphone className="text-leaf" size={24} />
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="text-green-600" size={16} />
-                  <span className="font-medium text-green-800">Device linked</span>
+                  <CheckCircle className="text-leaf" size={16} />
+                  <span className="font-medium text-forest">Device linked</span>
                 </div>
                 {bot.linked_phone_number && (
-                  <p className="text-sm text-green-700 mt-0.5">{bot.linked_phone_number}</p>
+                  <p className="text-sm text-forest mt-0.5">{bot.linked_phone_number}</p>
                 )}
               </div>
             </div>
 
             {/* Bot name */}
             <div>
-              <label htmlFor="bot_name" className="block text-sm font-medium text-gray-700 mb-2">
-                Bot Name <span className="text-red-500">*</span>
+              <label htmlFor="bot_name" className="block text-sm font-medium text-ink-soft mb-2">
+                Bot Name <span className="text-leaf">*</span>
               </label>
               <input
                 type="text"
                 id="bot_name"
                 value={botName}
                 onChange={(e) => { setBotName(e.target.value); setNameError(""); }}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  nameError ? "border-red-500" : "border-gray-300"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-azure focus:border-transparent ${
+                  nameError ? "border-ink" : "border-taupe"
                 }`}
               />
-              {nameError && <p className="mt-1 text-sm text-red-600">{nameError}</p>}
+              {nameError && <p className="mt-1 text-sm text-danger">{nameError}</p>}
             </div>
 
             <div className="flex justify-between items-center pt-4 border-t">
@@ -216,10 +216,10 @@ export default function EditWhatsAppBotPage() {
                 type="button"
                 onClick={handleUnlink}
                 disabled={unlinking || submitting}
-                className="flex items-center gap-2 px-4 py-2 text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-4 py-2 text-leaf border border-blush rounded-lg hover:bg-blush-wash transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {unlinking ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600" />
+                  <div className="motion-safe:animate-spin rounded-full h-4 w-4 border-b-2 border-danger" />
                 ) : (
                   <Unlink size={16} />
                 )}
@@ -229,7 +229,7 @@ export default function EditWhatsAppBotPage() {
                 <button
                   type="button"
                   onClick={() => router.push(`/agents/${agentName}/messaging-bots`)}
-                  className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="px-6 py-2 border border-taupe rounded-lg text-ink-soft hover:bg-cream transition-colors"
                   disabled={submitting || unlinking}
                 >
                   Cancel
@@ -237,11 +237,11 @@ export default function EditWhatsAppBotPage() {
                 <button
                   onClick={handleDeviceLinkSave}
                   disabled={submitting || unlinking}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-6 py-2 bg-leaf text-white rounded-lg hover:bg-forest transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {submitting ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                      <div className="motion-safe:animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
                       Saving...
                     </>
                   ) : (
@@ -255,23 +255,23 @@ export default function EditWhatsAppBotPage() {
           /* ── Cloud API edit form ── */
           <form onSubmit={handleCloudApiSubmit} className="bg-white rounded-lg shadow-sm p-6 space-y-6">
             <div>
-              <label htmlFor="bot_name" className="block text-sm font-medium text-gray-700 mb-2">
-                Bot Name <span className="text-red-500">*</span>
+              <label htmlFor="bot_name" className="block text-sm font-medium text-ink-soft mb-2">
+                Bot Name <span className="text-leaf">*</span>
               </label>
               <input
                 type="text"
                 id="bot_name"
                 value={formData.bot_name}
                 onChange={(e) => handleChange("bot_name", e.target.value)}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                  errors.bot_name ? "border-red-500" : "border-gray-300"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-azure focus:border-transparent ${
+                  errors.bot_name ? "border-ink" : "border-taupe"
                 }`}
               />
-              {errors.bot_name && <p className="mt-1 text-sm text-red-600">{errors.bot_name}</p>}
+              {errors.bot_name && <p className="mt-1 text-sm text-danger">{errors.bot_name}</p>}
             </div>
 
             <div>
-              <label htmlFor="access_token" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="access_token" className="block text-sm font-medium text-ink-soft mb-2">
                 Access Token
               </label>
               <input
@@ -279,16 +279,16 @@ export default function EditWhatsAppBotPage() {
                 id="access_token"
                 value={formData.access_token}
                 onChange={(e) => handleChange("access_token", e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-azure focus:border-transparent"
                 placeholder="Leave empty to keep current token"
               />
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-ink-mute">
                 Leave empty to keep the existing token, or enter a new one to update
               </p>
             </div>
 
             <div>
-              <label htmlFor="verify_token" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="verify_token" className="block text-sm font-medium text-ink-soft mb-2">
                 Verify Token
               </label>
               <input
@@ -296,12 +296,12 @@ export default function EditWhatsAppBotPage() {
                 id="verify_token"
                 value={formData.verify_token}
                 onChange={(e) => handleChange("verify_token", e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-azure focus:border-transparent"
               />
             </div>
 
             <div>
-              <label htmlFor="webhook_url" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="webhook_url" className="block text-sm font-medium text-ink-soft mb-2">
                 Webhook URL
               </label>
               <input
@@ -309,7 +309,7 @@ export default function EditWhatsAppBotPage() {
                 id="webhook_url"
                 value={formData.webhook_url}
                 onChange={(e) => handleChange("webhook_url", e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-azure focus:border-transparent"
               />
             </div>
 
@@ -317,7 +317,7 @@ export default function EditWhatsAppBotPage() {
               <button
                 type="button"
                 onClick={() => router.push(`/agents/${agentName}/messaging-bots`)}
-                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                className="px-6 py-2 border border-taupe rounded-lg text-ink-soft hover:bg-cream transition-colors"
                 disabled={submitting}
               >
                 Cancel
@@ -325,11 +325,11 @@ export default function EditWhatsAppBotPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-6 py-2 bg-leaf text-white rounded-lg hover:bg-forest transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {submitting ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                    <div className="motion-safe:animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
                     Updating...
                   </>
                 ) : (

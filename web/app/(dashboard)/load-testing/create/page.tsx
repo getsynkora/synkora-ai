@@ -218,18 +218,18 @@ export default function CreateLoadTestPage() {
         { label: 'Create Load Test' },
       ]}
     >
-      <div className="[&_input]:rounded-[1rem] [&_input]:border [&_input]:border-black/10 [&_input]:bg-[#fcfaf5] [&_input]:px-4 [&_input]:py-3 [&_input]:text-sm [&_input]:text-gray-900 [&_input]:placeholder-gray-400 [&_input]:focus:border-transparent [&_input]:focus:outline-none [&_input]:focus:ring-2 [&_input]:focus:ring-[#79dfbc] [&_select]:rounded-[1rem] [&_select]:border [&_select]:border-black/10 [&_select]:bg-[#fcfaf5] [&_select]:px-4 [&_select]:py-3 [&_select]:text-sm [&_select]:text-gray-900 [&_select]:focus:border-transparent [&_select]:focus:outline-none [&_select]:focus:ring-2 [&_select]:focus:ring-[#79dfbc] [&_textarea]:rounded-[1rem] [&_textarea]:border [&_textarea]:border-black/10 [&_textarea]:bg-[#fcfaf5] [&_textarea]:px-4 [&_textarea]:py-3 [&_textarea]:text-sm [&_textarea]:text-gray-900 [&_textarea]:placeholder-gray-400 [&_textarea]:focus:border-transparent [&_textarea]:focus:outline-none [&_textarea]:focus:ring-2 [&_textarea]:focus:ring-[#79dfbc] [&_label]:font-semibold [&_label]:text-gray-700 [&_.bg-white.rounded-xl.shadow-sm.border.border-gray-100.p-6]:rounded-[1.9rem] [&_.bg-white.rounded-xl.shadow-sm.border.border-gray-100.p-6]:border-[#e5d9ca] [&_.bg-white.rounded-xl.shadow-sm.border.border-gray-100.p-6]:bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,245,239,0.96))] [&_.bg-white.rounded-xl.shadow-sm.border.border-gray-100.p-6]:shadow-[0_24px_60px_-46px_rgba(73,45,23,0.3)]">
+      <div className="[&_input]:rounded-[1rem] [&_input]:border [&_input]:border-black/10 [&_input]:bg-cream [&_input]:px-4 [&_input]:py-3 [&_input]:text-sm [&_input]:text-ink [&_input]:placeholder-ash [&_input]:focus:border-transparent [&_input]:focus:outline-none [&_input]:focus:ring-2 [&_input]:focus:ring-mint [&_select]:rounded-[1rem] [&_select]:border [&_select]:border-black/10 [&_select]:bg-cream [&_select]:px-4 [&_select]:py-3 [&_select]:text-sm [&_select]:text-ink [&_select]:focus:border-transparent [&_select]:focus:outline-none [&_select]:focus:ring-2 [&_select]:focus:ring-mint [&_textarea]:rounded-[1rem] [&_textarea]:border [&_textarea]:border-black/10 [&_textarea]:bg-cream [&_textarea]:px-4 [&_textarea]:py-3 [&_textarea]:text-sm [&_textarea]:text-ink [&_textarea]:placeholder-ash [&_textarea]:focus:border-transparent [&_textarea]:focus:outline-none [&_textarea]:focus:ring-2 [&_textarea]:focus:ring-mint [&_label]:font-semibold [&_label]:text-ink-soft [&_.bg-white.rounded-xl.shadow-sm.border.border-sand.p-6]:rounded-[1.9rem] [&_.bg-white.rounded-xl.shadow-sm.border.border-sand.p-6]:border-line [&_.bg-white.rounded-xl.shadow-sm.border.border-sand.p-6]: bg-white [&_.bg-white.rounded-xl.shadow-sm.border.border-sand.p-6]:shadow-soft">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Info */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <div className="bg-white rounded-xl shadow-sm border border-sand p-6">
+            <h2 className="text-lg font-semibold text-ink mb-4 flex items-center gap-2">
               <Settings className="w-5 h-5 text-primary-600" />
               Basic Information
             </h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-ink-soft mb-1">
                   Test Name *
                 </label>
                 <input
@@ -237,29 +237,29 @@ export default function CreateLoadTestPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g., Production Load Test"
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-ink-soft mb-1">
                   Description
                 </label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe the purpose of this load test..."
+                  placeholder="Describe the purpose of this load test…"
                   rows={3}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
             </div>
           </div>
 
           {/* Target Configuration */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <div className="bg-white rounded-xl shadow-sm border border-sand p-6">
+            <h2 className="text-lg font-semibold text-ink mb-4 flex items-center gap-2">
               <Server className="w-5 h-5 text-primary-600" />
               Target Configuration
             </h2>
@@ -267,7 +267,7 @@ export default function CreateLoadTestPage() {
             <div className="space-y-4">
               {/* Endpoint Type Selector */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-soft mb-2">
                   Endpoint Type
                 </label>
                 <div className="grid grid-cols-3 gap-3">
@@ -280,28 +280,28 @@ export default function CreateLoadTestPage() {
                       key={option.value}
                       type="button"
                       onClick={() => setTargetType(option.value as typeof targetType)}
-                      className={`flex flex-col items-center p-4 rounded-lg border-2 transition-all ${
+                      className={`flex flex-col items-center p-4 rounded-lg border-2 transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
                         targetType === option.value
                           ? 'border-primary-500 bg-primary-50'
-                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                          : 'border-line hover:border-taupe hover:bg-cream'
                       }`}
                     >
                       <option.icon className={`w-6 h-6 mb-2 ${
-                        targetType === option.value ? 'text-primary-600' : 'text-gray-400'
+                        targetType === option.value ? 'text-primary-600' : 'text-ash'
                       }`} />
                       <span className={`text-sm font-medium ${
-                        targetType === option.value ? 'text-primary-700' : 'text-gray-700'
+                        targetType === option.value ? 'text-primary-700' : 'text-ink-soft'
                       }`}>
                         {option.label}
                       </span>
-                      <span className="text-xs text-gray-500 mt-1">{option.description}</span>
+                      <span className="text-xs text-ink-mute mt-1">{option.description}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-ink-soft mb-1">
                   Target URL *
                 </label>
                 <input
@@ -309,10 +309,10 @@ export default function CreateLoadTestPage() {
                   value={targetUrl}
                   onChange={(e) => setTargetUrl(e.target.value)}
                   placeholder={getPlaceholderUrl()}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-ink-mute mt-1">
                   {targetType === 'websocket'
                     ? 'Use ws:// or wss:// protocol'
                     : 'Use http:// or https:// protocol'}
@@ -320,13 +320,13 @@ export default function CreateLoadTestPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-ink-soft mb-1">
                   Use Mock Proxy (for LLM calls)
                 </label>
                 <select
                   value={proxyConfigId}
                   onChange={(e) => setProxyConfigId(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
                   <option value="">No proxy (real API)</option>
                   {proxyConfigs.map((proxy) => (
@@ -335,14 +335,14 @@ export default function CreateLoadTestPage() {
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-ink-mute mt-1">
                   Configure your app to use the mock proxy URL to avoid LLM API costs during testing.
                 </p>
               </div>
 
               {/* Authentication Section */}
-              <div className="border-t border-gray-100 pt-4 mt-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="border-t border-sand pt-4 mt-2">
+                <label className="block text-sm font-medium text-ink-soft mb-2">
                   Authentication
                 </label>
                 <div className="grid grid-cols-4 gap-2 mb-4">
@@ -359,7 +359,7 @@ export default function CreateLoadTestPage() {
                       className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
                         authType === option.value
                           ? 'bg-primary-50 border-primary-500 text-primary-700'
-                          : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                          : 'bg-white border-line text-ink-soft hover:bg-cream'
                       }`}
                     >
                       {option.label}
@@ -369,7 +369,7 @@ export default function CreateLoadTestPage() {
 
                 {authType === 'bearer' && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-ink-soft mb-1">
                       API Key / Bearer Token
                     </label>
                     <input
@@ -377,9 +377,9 @@ export default function CreateLoadTestPage() {
                       value={apiKey}
                       onChange={(e) => setApiKey(e.target.value)}
                       placeholder="sk-... or Bearer token"
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-ink-mute mt-1">
                       Will be sent as: Authorization: Bearer &lt;token&gt;
                     </p>
                   </div>
@@ -388,7 +388,7 @@ export default function CreateLoadTestPage() {
                 {authType === 'basic' && (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-ink-soft mb-1">
                         Username
                       </label>
                       <input
@@ -396,11 +396,11 @@ export default function CreateLoadTestPage() {
                         value={basicUsername}
                         onChange={(e) => setBasicUsername(e.target.value)}
                         placeholder="username"
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-ink-soft mb-1">
                         Password
                       </label>
                       <input
@@ -408,7 +408,7 @@ export default function CreateLoadTestPage() {
                         value={basicPassword}
                         onChange={(e) => setBasicPassword(e.target.value)}
                         placeholder="password"
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       />
                     </div>
                   </div>
@@ -417,7 +417,7 @@ export default function CreateLoadTestPage() {
                 {authType === 'custom' && (
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label className="block text-sm font-medium text-gray-700">
+                      <label className="block text-sm font-medium text-ink-soft">
                         Custom Headers
                       </label>
                       <button
@@ -441,7 +441,7 @@ export default function CreateLoadTestPage() {
                               setCustomHeaders(newHeaders)
                             }}
                             placeholder="Header name (e.g., X-API-Key)"
-                            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            className="flex-1 px-3 py-2 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                           />
                           <input
                             type="text"
@@ -452,19 +452,19 @@ export default function CreateLoadTestPage() {
                               setCustomHeaders(newHeaders)
                             }}
                             placeholder="Header value"
-                            className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            className="flex-1 px-3 py-2 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                           />
                           <button
                             type="button"
                             onClick={() => setCustomHeaders(customHeaders.filter((_, i) => i !== index))}
-                            className="p-2 text-gray-400 hover:text-red-600"
+                            className="p-2 text-ash hover:text-leaf"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       ))}
                       {customHeaders.length === 0 && (
-                        <p className="text-sm text-gray-500 py-2">
+                        <p className="text-sm text-ink-mute py-2">
                           Click &quot;Add Header&quot; to add custom authentication headers.
                         </p>
                       )}
@@ -476,8 +476,8 @@ export default function CreateLoadTestPage() {
           </div>
 
           {/* Request Configuration */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <div className="bg-white rounded-xl shadow-sm border border-sand p-6">
+            <h2 className="text-lg font-semibold text-ink mb-4 flex items-center gap-2">
               <Settings className="w-5 h-5 text-primary-600" />
               Request Configuration
             </h2>
@@ -487,13 +487,13 @@ export default function CreateLoadTestPage() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-ink-soft mb-1">
                       HTTP Method
                     </label>
                     <select
                       value={httpMethod}
                       onChange={(e) => setHttpMethod(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     >
                       <option value="GET">GET</option>
                       <option value="POST">POST</option>
@@ -504,13 +504,13 @@ export default function CreateLoadTestPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-ink-soft mb-1">
                       Content-Type
                     </label>
                     <select
                       value={contentType}
                       onChange={(e) => setContentType(e.target.value)}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     >
                       <option value="application/json">application/json</option>
                       <option value="application/x-www-form-urlencoded">application/x-www-form-urlencoded</option>
@@ -521,7 +521,7 @@ export default function CreateLoadTestPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-soft mb-1">
                     Request Body
                   </label>
                   <textarea
@@ -529,17 +529,17 @@ export default function CreateLoadTestPage() {
                     onChange={(e) => setRequestBody(e.target.value)}
                     placeholder='{"message": "Hello"}'
                     rows={6}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono text-sm"
+                    className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono text-sm"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-ink-mute mt-1">
                     Use {"{{variable}}"} for dynamic values in test scenarios.
                   </p>
                 </div>
 
                 {targetType === 'sse' && (
-                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-sand">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-ink-soft mb-1">
                         Connection Timeout (ms)
                       </label>
                       <input
@@ -547,11 +547,11 @@ export default function CreateLoadTestPage() {
                         value={sseConnectionTimeout}
                         onChange={(e) => setSseConnectionTimeout(parseInt(e.target.value))}
                         min="1000"
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-ink-soft mb-1">
                         Read Timeout (ms)
                       </label>
                       <input
@@ -559,9 +559,9 @@ export default function CreateLoadTestPage() {
                         value={sseReadTimeout}
                         onChange={(e) => setSseReadTimeout(parseInt(e.target.value))}
                         min="1000"
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       />
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-ink-mute mt-1">
                         Maximum time to wait for the complete SSE stream.
                       </p>
                     </div>
@@ -569,9 +569,9 @@ export default function CreateLoadTestPage() {
                 )}
 
                 {/* Additional Headers */}
-                <div className="pt-4 border-t border-gray-100">
+                <div className="pt-4 border-t border-sand">
                   <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm font-medium text-ink-soft">
                       Additional Headers
                     </label>
                     <button
@@ -595,7 +595,7 @@ export default function CreateLoadTestPage() {
                             setAdditionalHeaders(newHeaders)
                           }}
                           placeholder="Header name"
-                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                          className="flex-1 px-3 py-2 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                         />
                         <input
                           type="text"
@@ -606,19 +606,19 @@ export default function CreateLoadTestPage() {
                             setAdditionalHeaders(newHeaders)
                           }}
                           placeholder="Header value"
-                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                          className="flex-1 px-3 py-2 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                         />
                         <button
                           type="button"
                           onClick={() => setAdditionalHeaders(additionalHeaders.filter((_, i) => i !== index))}
-                          className="p-2 text-gray-400 hover:text-red-600"
+                          className="p-2 text-ash hover:text-leaf"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     ))}
                     {additionalHeaders.length === 0 && (
-                      <p className="text-sm text-gray-500 py-1">
+                      <p className="text-sm text-ink-mute py-1">
                         Optional headers (Content-Type and auth headers are set automatically).
                       </p>
                     )}
@@ -631,7 +631,7 @@ export default function CreateLoadTestPage() {
             {targetType === 'websocket' && (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-soft mb-1">
                     Initial Connection Message (optional)
                   </label>
                   <textarea
@@ -639,15 +639,15 @@ export default function CreateLoadTestPage() {
                     onChange={(e) => setWsInitialMessage(e.target.value)}
                     placeholder='{"type": "auth", "token": "..."}'
                     rows={3}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono text-sm"
+                    className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono text-sm"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-ink-mute mt-1">
                     Sent immediately after connection (e.g., for authentication).
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-soft mb-1">
                     Message Template
                   </label>
                   <textarea
@@ -655,16 +655,16 @@ export default function CreateLoadTestPage() {
                     onChange={(e) => setWsMessageTemplate(e.target.value)}
                     placeholder='{"type": "chat", "message": "{{message}}"}'
                     rows={4}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono text-sm"
+                    className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono text-sm"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-ink-mute mt-1">
                     Template for chat messages. Use {"{{variable}}"} for dynamic values.
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-sand">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-ink-soft mb-1">
                       Connection Timeout (ms)
                     </label>
                     <input
@@ -672,11 +672,11 @@ export default function CreateLoadTestPage() {
                       value={wsConnectionTimeout}
                       onChange={(e) => setWsConnectionTimeout(parseInt(e.target.value))}
                       min="1000"
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-ink-soft mb-1">
                       Response Timeout (ms)
                     </label>
                     <input
@@ -684,18 +684,18 @@ export default function CreateLoadTestPage() {
                       value={wsResponseTimeout}
                       onChange={(e) => setWsResponseTimeout(parseInt(e.target.value))}
                       min="1000"
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-ink-mute mt-1">
                       Maximum time to wait for a response after sending a message.
                     </p>
                   </div>
                 </div>
 
                 {/* WebSocket Headers */}
-                <div className="pt-4 border-t border-gray-100">
+                <div className="pt-4 border-t border-sand">
                   <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm font-medium text-ink-soft">
                       Connection Headers
                     </label>
                     <button
@@ -719,7 +719,7 @@ export default function CreateLoadTestPage() {
                             setAdditionalHeaders(newHeaders)
                           }}
                           placeholder="Header name"
-                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                          className="flex-1 px-3 py-2 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                         />
                         <input
                           type="text"
@@ -730,19 +730,19 @@ export default function CreateLoadTestPage() {
                             setAdditionalHeaders(newHeaders)
                           }}
                           placeholder="Header value"
-                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                          className="flex-1 px-3 py-2 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                         />
                         <button
                           type="button"
                           onClick={() => setAdditionalHeaders(additionalHeaders.filter((_, i) => i !== index))}
-                          className="p-2 text-gray-400 hover:text-red-600"
+                          className="p-2 text-ash hover:text-leaf"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     ))}
                     {additionalHeaders.length === 0 && (
-                      <p className="text-sm text-gray-500 py-1">
+                      <p className="text-sm text-ink-mute py-1">
                         Headers sent during the WebSocket handshake.
                       </p>
                     )}
@@ -753,8 +753,8 @@ export default function CreateLoadTestPage() {
           </div>
 
           {/* Load Configuration */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <div className="bg-white rounded-xl shadow-sm border border-sand p-6">
+            <h2 className="text-lg font-semibold text-ink mb-4 flex items-center gap-2">
               <Users className="w-5 h-5 text-primary-600" />
               Load Configuration
             </h2>
@@ -763,7 +763,7 @@ export default function CreateLoadTestPage() {
               {/* Stages */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-gray-700">
+                  <label className="block text-sm font-medium text-ink-soft">
                     Load Stages
                   </label>
                   <button
@@ -785,7 +785,7 @@ export default function CreateLoadTestPage() {
                           value={stage.duration}
                           onChange={(e) => updateStage(index, 'duration', e.target.value)}
                           placeholder="30s"
-                          className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                          className="px-4 py-2 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                         />
                         <input
                           type="number"
@@ -793,28 +793,28 @@ export default function CreateLoadTestPage() {
                           onChange={(e) => updateStage(index, 'target', parseInt(e.target.value))}
                           placeholder="VUs"
                           min="0"
-                          className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                          className="px-4 py-2 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                         />
                       </div>
                       <button
                         type="button"
                         onClick={() => removeStage(index)}
                         disabled={stages.length <= 1}
-                        className="p-2 text-gray-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="p-2 text-ash hover:text-danger disabled:opacity-30 disabled:cursor-not-allowed"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs text-ink-mute mt-2">
                   Duration: 30s, 1m, 5m, etc. Target: Number of virtual users.
                 </p>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-soft mb-1">
                     Max VUs
                   </label>
                   <input
@@ -822,12 +822,12 @@ export default function CreateLoadTestPage() {
                     value={maxVUs}
                     onChange={(e) => setMaxVUs(parseInt(e.target.value))}
                     min="1"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-soft mb-1">
                     Think Time Min (ms)
                   </label>
                   <input
@@ -835,12 +835,12 @@ export default function CreateLoadTestPage() {
                     value={thinkTimeMin}
                     onChange={(e) => setThinkTimeMin(parseInt(e.target.value))}
                     min="0"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-ink-soft mb-1">
                     Think Time Max (ms)
                   </label>
                   <input
@@ -848,7 +848,7 @@ export default function CreateLoadTestPage() {
                     value={thinkTimeMax}
                     onChange={(e) => setThinkTimeMax(parseInt(e.target.value))}
                     min="0"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -859,7 +859,7 @@ export default function CreateLoadTestPage() {
           <div className="flex justify-end gap-4">
             <Link
               href="/load-testing"
-              className="px-6 py-2.5 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+              className="px-6 py-2.5 text-ink-soft bg-sand rounded-lg hover:bg-line transition-colors font-medium"
             >
               Cancel
             </Link>
@@ -870,7 +870,7 @@ export default function CreateLoadTestPage() {
             >
               {saving ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full motion-safe:animate-spin" />
                   Creating...
                 </>
               ) : (
