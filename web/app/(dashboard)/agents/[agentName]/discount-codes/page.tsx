@@ -112,14 +112,14 @@ export default function DiscountCodesPage() {
       <div className="mb-8">
         <Link
           href={`/agents/${agentName}/edit`}
-          className="mb-2 inline-flex items-center text-sm text-gray-500 hover:text-gray-700"
+          className="mb-2 inline-flex items-center text-sm text-ink-mute hover:text-ink-soft"
         >
           <ArrowLeft className="mr-1 h-4 w-4" /> Back
         </Link>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Discount Codes</h1>
-            <p className="text-sm text-gray-500 mt-1">Create codes to give users discounted access to this agent</p>
+            <h1 className="text-2xl font-bold text-ink">Discount Codes</h1>
+            <p className="text-sm text-ink-mute mt-1">Create codes to give users discounted access to this agent</p>
           </div>
           <button
             onClick={() => setShowForm(v => !v)}
@@ -134,24 +134,24 @@ export default function DiscountCodesPage() {
       {/* Create form */}
       {showForm && (
         <form onSubmit={handleCreate} className="rounded-lg border border-primary-200 bg-primary-50 p-6 mb-6 space-y-4">
-          <h2 className="font-semibold text-gray-900">Create discount code</h2>
+          <h2 className="font-semibold text-ink">Create discount code</h2>
 
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Code</label>
+              <label className="block text-sm font-medium text-ink-soft mb-1">Code</label>
               <input
                 type="text"
                 value={form.code}
                 onChange={e => setForm(f => ({ ...f, code: e.target.value.toUpperCase() }))}
                 placeholder="SUMMER20"
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm font-mono focus:border-primary-500 focus:outline-none uppercase"
+                className="w-full border border-taupe rounded-md px-3 py-2 text-sm font-mono focus:border-primary-500 focus:outline-none"
               />
             </div>
             <div className="flex items-end">
               <button
                 type="button"
                 onClick={generateCode}
-                className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-sm text-gray-600 transition-colors"
+                className="px-3 py-2 bg-sand hover:bg-line rounded-md text-sm text-ink-soft transition-colors"
               >
                 Generate
               </button>
@@ -160,18 +160,18 @@ export default function DiscountCodesPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Discount type</label>
+              <label className="block text-sm font-medium text-ink-soft mb-1">Discount type</label>
               <select
                 value={form.discount_type}
                 onChange={e => setForm(f => ({ ...f, discount_type: e.target.value as any }))}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
+                className="w-full border border-taupe rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
               >
                 <option value="PERCENTAGE">Percentage (%)</option>
                 <option value="FLAT_CREDITS">Flat credits off</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-ink-soft mb-1">
                 {form.discount_type === 'PERCENTAGE' ? 'Discount (%)' : 'Credits off'}
               </label>
               <input
@@ -181,38 +181,38 @@ export default function DiscountCodesPage() {
                 value={form.discount_value}
                 onChange={e => setForm(f => ({ ...f, discount_value: e.target.value }))}
                 placeholder={form.discount_type === 'PERCENTAGE' ? '20' : '50'}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
+                className="w-full border border-taupe rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Max uses</label>
+              <label className="block text-sm font-medium text-ink-soft mb-1">Max uses</label>
               <input
                 type="number" min="1"
                 value={form.max_uses}
                 onChange={e => setForm(f => ({ ...f, max_uses: e.target.value }))}
                 placeholder="Unlimited"
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
+                className="w-full border border-taupe rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Valid from</label>
+              <label className="block text-sm font-medium text-ink-soft mb-1">Valid from</label>
               <input
                 type="datetime-local"
                 value={form.valid_from}
                 onChange={e => setForm(f => ({ ...f, valid_from: e.target.value }))}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
+                className="w-full border border-taupe rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Expires</label>
+              <label className="block text-sm font-medium text-ink-soft mb-1">Expires</label>
               <input
                 type="datetime-local"
                 value={form.valid_until}
                 onChange={e => setForm(f => ({ ...f, valid_until: e.target.value }))}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
+                className="w-full border border-taupe rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none"
               />
             </div>
           </div>
@@ -221,7 +221,7 @@ export default function DiscountCodesPage() {
             <button
               type="button"
               onClick={() => { setShowForm(false); setForm(EMPTY_FORM) }}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+              className="px-4 py-2 text-sm text-ink-soft hover:text-ink"
             >
               Cancel
             </button>
@@ -230,7 +230,7 @@ export default function DiscountCodesPage() {
               disabled={saving}
               className="inline-flex items-center gap-2 px-5 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
             >
-              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+              {saving && <Loader2 className="h-4 w-4 motion-safe:animate-spin" />}
               Create code
             </button>
           </div>
@@ -240,10 +240,10 @@ export default function DiscountCodesPage() {
       {/* Codes list */}
       {loading ? (
         <div className="flex justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+          <Loader2 className="h-8 w-8 motion-safe:animate-spin text-primary-500" />
         </div>
       ) : codes.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-ash">
           <Tag className="h-12 w-12 mx-auto mb-4 opacity-20" />
           <p className="font-medium">No discount codes yet</p>
           <p className="text-sm mt-1">Create codes to offer discounts on agent subscriptions</p>
@@ -251,18 +251,18 @@ export default function DiscountCodesPage() {
       ) : (
         <div className="space-y-3">
           {codes.map(c => (
-            <div key={c.id} className="rounded-lg border border-gray-200 bg-white p-4 flex items-center gap-4">
+            <div key={c.id} className="rounded-lg border border-line bg-white p-4 flex items-center gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-mono font-semibold text-gray-900 text-sm tracking-wide">{c.code}</span>
-                  <button onClick={() => copyCode(c.code)} className="text-gray-400 hover:text-gray-600">
+                  <span className="font-mono font-semibold text-ink text-sm tracking-wide">{c.code}</span>
+                  <button onClick={() => copyCode(c.code)} className="text-ash hover:text-ink-soft">
                     <Copy className="h-3.5 w-3.5" />
                   </button>
                   {!c.is_active && (
-                    <span className="px-1.5 py-0.5 bg-red-100 text-red-600 rounded text-xs">Inactive</span>
+                    <span className="px-1.5 py-0.5 bg-blush-wash text-leaf rounded text-xs">Inactive</span>
                   )}
                 </div>
-                <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+                <div className="flex flex-wrap gap-3 text-xs text-ink-mute">
                   <span>
                     {c.discount_type === 'PERCENTAGE' ? `${c.discount_value}% off` : `${c.discount_value} credits off`}
                   </span>
@@ -277,20 +277,20 @@ export default function DiscountCodesPage() {
               <div className="flex items-center gap-1">
                 {c.max_uses && (
                   <div className="w-20 text-right">
-                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-sand rounded-full overflow-hidden">
                       <div
                         className="h-full bg-primary-400 rounded-full"
                         style={{ width: `${Math.min(100, (c.used_count / c.max_uses) * 100)}%` }}
                       />
                     </div>
-                    <span className="text-xs text-gray-400 mt-0.5 block">
+                    <span className="text-xs text-ash mt-0.5 block">
                       {Math.round((c.used_count / c.max_uses) * 100)}%
                     </span>
                   </div>
                 )}
                 <button
                   onClick={() => handleDelete(c.id, c.code)}
-                  className="ml-2 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                  className="ml-2 p-2 text-ash hover:text-leaf hover:bg-blush-wash rounded-lg transition-colors"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>

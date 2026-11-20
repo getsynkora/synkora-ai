@@ -8,7 +8,7 @@ import { useAuth } from '@/lib/hooks/useAuth'
 import { secureStorage } from '@/lib/auth/secure-storage'
 import { SocialLoginButton } from '@/components/social-auth'
 import AuthPageFrame from '@/components/auth/AuthPageFrame'
-import { Bot, KeyRound, Layers3, Shield, Sparkles, Workflow } from 'lucide-react'
+import { Bot, Layers3, Shield, Workflow } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
 function SignInContent() {
@@ -66,7 +66,7 @@ function SignInContent() {
     return (
       <AuthPageFrame>
         <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-          <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-red-500"></div>
+          <div className="h-12 w-12 motion-safe:animate-spin rounded-full border-b-2 border-ink"></div>
         </div>
       </AuthPageFrame>
     )
@@ -106,62 +106,51 @@ function SignInContent() {
       icon: Bot,
       title: t('agentsTitle'),
       description: t('agentsDescription'),
-      className: 'border-[#7de5c1]/20 bg-[#7de5c1]/12',
-      iconClassName: 'bg-[#7de5c1] text-[#101915]',
+      className: 'border-ink/10 bg-white',
+      iconClassName: 'bg-sand-deep text-ink',
     },
     {
       icon: Workflow,
       title: t('workflowsTitle'),
       description: t('workflowsDescription'),
-      className: 'border-white/10 bg-white/[0.08]',
-      iconClassName: 'bg-white/12 text-[#f7f2e7]',
+      className: 'border-ink/10 bg-white',
+      iconClassName: 'bg-sand-deep text-ink',
     },
     {
       icon: Layers3,
       title: t('knowledgeTitle'),
       description: t('knowledgeDescription'),
-      className: 'border-[#f6c794]/18 bg-[#f6c794]/10',
-      iconClassName: 'bg-[#f6c794] text-[#2f2414]',
+      className: 'border-ink/10 bg-white',
+      iconClassName: 'bg-sand-deep text-ink',
     },
   ]
 
   return (
     <AuthPageFrame>
       <div className="grid gap-6 lg:min-h-[calc(100vh-10rem)] lg:grid-cols-[1.08fr_0.92fr]">
-        <div className="relative hidden overflow-hidden rounded-[2.25rem] border border-black/10 bg-[#151515] p-10 text-[#f7f2e7] shadow-[0_32px_80px_rgba(0,0,0,0.22)] lg:flex lg:flex-col lg:justify-between">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(125,229,193,0.24),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.12),transparent_28%)]" />
-          <div className="absolute -right-12 top-12 h-40 w-40 rounded-full border border-white/10 bg-white/5 blur-2xl" />
-          <div className="absolute -left-12 top-12 h-32 w-32 rounded-[2.25rem] border border-white/10 bg-white/[0.03]" />
-          <div className="absolute bottom-8 right-8 h-28 w-28 rounded-full border border-white/8 bg-[radial-gradient(circle,rgba(255,255,255,0.08),transparent_70%)] blur-md" />
+        <div className="relative hidden overflow-hidden rounded-[2.25rem] border border-black/10 bg-sand p-10 text-ink lg:flex lg:flex-col lg:justify-between">
 
           <div className="relative z-10">
-            <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-[#d8d0c3]">
-              <Sparkles className="h-4 w-4 text-[#7de5c1]" />
-              {t('workspaceAccess')}
-            </div>
 
-            <h2 className="max-w-xl text-4xl font-semibold leading-tight text-white">
+            <h2 className="max-w-xl text-4xl font-semibold leading-tight text-ink">
               {t('heroLine1')}
-              <span className="block text-[#7de5c1]">{t('heroLine2')}</span>
+              <span className="block text-leaf">{t('heroLine2')}</span>
             </h2>
-            <p className="mt-5 max-w-xl text-lg leading-relaxed text-[#c8c0b5]">
+            <p className="mt-5 max-w-xl text-lg leading-relaxed text-ink-soft">
               {t('heroBody')}
             </p>
           </div>
 
           <div className="relative z-10 my-10 space-y-4">
-            <div className="rounded-[1.85rem] border border-white/10 bg-white/[0.08] p-6 backdrop-blur-sm">
+            <div className="rounded-[1.85rem] border border-ink/10 bg-white p-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <div className="text-sm font-semibold uppercase tracking-[0.18em] text-[#d8d0c3]">
+                  <div className="text-sm font-semibold text-ink-mute">
                     {t('sessionReadyTitle')}
                   </div>
-                  <p className="mt-3 max-w-lg text-base leading-relaxed text-[#c8c0b5]">
+                  <p className="mt-3 max-w-lg text-base leading-relaxed text-ink-soft">
                     {t('sessionReadyBody')}
                   </p>
-                </div>
-                <div className="rounded-full border border-white/10 bg-white/[0.08] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-[#f7f2e7]">
-                  {t('live')}
                 </div>
               </div>
             </div>
@@ -173,13 +162,13 @@ function SignInContent() {
                 return (
                   <div
                     key={signal.title}
-                    className={`rounded-[1.65rem] border p-5 backdrop-blur-sm ${signal.className}`}
+                    className={`rounded-[1.65rem] border p-5 ${signal.className}`}
                   >
                     <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${signal.iconClassName}`}>
                       <Icon className="h-5 w-5" />
                     </div>
-                    <div className="mt-4 text-base font-semibold text-white">{signal.title}</div>
-                    <div className="mt-2 text-sm leading-relaxed text-[#c8c0b5]">{signal.description}</div>
+                    <div className="mt-4 text-base font-semibold text-ink">{signal.title}</div>
+                    <div className="mt-2 text-sm leading-relaxed text-ink-soft">{signal.description}</div>
                   </div>
                 )
               })}
@@ -187,13 +176,13 @@ function SignInContent() {
           </div>
 
           <div className="relative z-10 flex flex-wrap gap-3 pt-2">
-            <div className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-medium text-[#f7f2e7] backdrop-blur-sm">
+            <div className="rounded-full border border-ink/10 bg-white px-4 py-2 text-sm font-medium text-ink">
               {t('bringKeys')}
             </div>
-            <div className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-medium text-[#f7f2e7] backdrop-blur-sm">
+            <div className="rounded-full border border-ink/10 bg-white px-4 py-2 text-sm font-medium text-ink">
               {t('openSource')}
             </div>
-            <div className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-medium text-[#f7f2e7] backdrop-blur-sm">
+            <div className="rounded-full border border-ink/10 bg-white px-4 py-2 text-sm font-medium text-ink">
               {t('selfHost')}
             </div>
           </div>
@@ -202,17 +191,13 @@ function SignInContent() {
         <div className="flex items-center justify-center py-2 lg:py-8">
           <div className="w-full max-w-xl">
             <div className="mb-8">
-              <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/55 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#6e675d]">
-                <KeyRound className="h-3.5 w-3.5 text-[#2d8b69]" />
-                {t('badge')}
-              </div>
-              <h1 className="mt-5 text-3xl font-semibold tracking-tight text-gray-900 sm:text-5xl">{t('title')}</h1>
-              <p className="mt-3 text-base text-gray-600 sm:text-lg">
+              <h1 className="mt-5 text-3xl font-semibold tracking-tight text-ink sm:text-5xl">{t('title')}</h1>
+              <p className="mt-3 text-base text-ink-soft sm:text-lg">
                 {t('subtitle')}
               </p>
             </div>
 
-            <div className="rounded-[2rem] border border-black/10 bg-white p-6 shadow-[0_28px_70px_rgba(0,0,0,0.08)] sm:p-8">
+            <div className="rounded-[2rem] border border-black/10 bg-white p-6 shadow-soft sm:p-8">
               <div className="mb-8">
                 <SocialLoginButton
                   provider="google"
@@ -223,17 +208,17 @@ function SignInContent() {
 
               <div className="relative my-8">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200"></div>
+                  <div className="w-full border-t border-line"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="bg-white px-4 font-medium text-gray-500">{t('orContinue')}</span>
+                  <span className="bg-white px-4 font-medium text-ink-mute">{t('orContinue')}</span>
                 </div>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 {error && (
-                  <div className="flex items-center gap-2 rounded-[1.25rem] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                    <svg className="h-5 w-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="flex items-center gap-2 rounded-[1.25rem] border border-blush bg-blush-wash px-4 py-3 text-sm text-danger">
+                    <svg aria-hidden="true" className="h-5 w-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                     </svg>
                     {error}
@@ -241,7 +226,7 @@ function SignInContent() {
                 )}
 
                 <div>
-                  <label htmlFor="email" className="mb-2 block text-sm font-semibold text-gray-700">
+                  <label htmlFor="email" className="mb-2 block text-sm font-semibold text-ink-soft">
                     {t('email')}
                   </label>
                   <input
@@ -250,13 +235,13 @@ function SignInContent() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full rounded-[1.15rem] border border-gray-200 bg-gray-50 px-4 py-4 text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                    className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
                     placeholder={t('emailPlaceholder')}
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="password" className="mb-2 block text-sm font-semibold text-gray-700">
+                  <label htmlFor="password" className="mb-2 block text-sm font-semibold text-ink-soft">
                     {t('password')}
                   </label>
                   <input
@@ -265,20 +250,20 @@ function SignInContent() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="w-full rounded-[1.15rem] border border-gray-200 bg-gray-50 px-4 py-4 text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                    className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
                     placeholder={t('passwordPlaceholder')}
                   />
                 </div>
 
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <label className="flex items-center text-sm text-gray-600">
+                  <label className="flex items-center text-sm text-ink-soft">
                     <input
                       type="checkbox"
-                      className="h-5 w-5 cursor-pointer rounded border-gray-300 text-red-500 focus:ring-red-500"
+                      className="h-5 w-5 cursor-pointer rounded border-taupe text-ink focus:ring-ink"
                     />
                     <span className="ml-2">{t('remember')}</span>
                   </label>
-                  <Link href="/forgot-password" className="text-sm font-semibold text-red-500 transition-colors hover:text-red-600">
+                  <Link href="/forgot-password" className="text-sm font-semibold text-leaf transition-colors hover:text-forest">
                     {t('forgot')}
                   </Link>
                 </div>
@@ -286,11 +271,11 @@ function SignInContent() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full rounded-[1.35rem] bg-red-500 px-6 py-4 text-lg font-bold text-white transition-all disabled:cursor-not-allowed disabled:opacity-50"
+                  className="w-full rounded-[1.35rem] bg-ink px-6 py-4 text-lg font-bold text-white transition-[color,background-color,border-color,box-shadow,opacity,transform] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isSubmitting ? (
                     <span className="flex items-center justify-center">
-                      <svg className="-ml-1 mr-3 h-5 w-5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+                      <svg aria-hidden="true" className="-ml-1 mr-3 h-5 w-5 motion-safe:animate-spin text-white" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
@@ -303,39 +288,39 @@ function SignInContent() {
               </form>
 
               <div className="mt-8 text-center">
-                <p className="text-gray-600">
+                <p className="text-ink-soft">
                   {t('noAccount')}{' '}
-                  <Link href="/signup" className="font-bold text-red-500 transition-colors hover:text-red-600">
+                  <Link href="/signup" className="font-bold text-leaf transition-colors hover:text-forest">
                     {t('signUpFree')}
                   </Link>
                 </p>
               </div>
             </div>
 
-            <p className="mt-8 text-center text-sm text-gray-500">
+            <p className="mt-8 text-center text-sm text-ink-mute">
               {t.rich('agree', {
                 terms: (chunks) => (
-                  <Link href="/terms" className="font-medium text-red-500 hover:text-red-600">{chunks}</Link>
+                  <Link href="/terms" className="font-medium text-leaf hover:text-forest">{chunks}</Link>
                 ),
                 privacy: (chunks) => (
-                  <Link href="/privacy" className="font-medium text-red-500 hover:text-red-600">{chunks}</Link>
+                  <Link href="/privacy" className="font-medium text-leaf hover:text-forest">{chunks}</Link>
                 ),
               })}
             </p>
 
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-sm text-gray-500">
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-sm text-ink-mute">
               <div className="flex items-center gap-2 rounded-full border border-black/10 bg-white/55 px-4 py-2">
                 <Shield className="h-4 w-4" />
                 <span>{t('ssl')}</span>
               </div>
               <div className="flex items-center gap-2 rounded-full border border-black/10 bg-white/55 px-4 py-2">
-                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                <svg aria-hidden="true" className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
                 <span>{t('encrypted')}</span>
               </div>
               <div className="flex items-center gap-2 rounded-full border border-black/10 bg-white/55 px-4 py-2">
-                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                <svg aria-hidden="true" className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
                 <span>{t('private')}</span>
@@ -353,7 +338,7 @@ export default function SignInPage() {
     <Suspense fallback={
       <AuthPageFrame>
         <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-          <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-red-500"></div>
+          <div className="h-12 w-12 motion-safe:animate-spin rounded-full border-b-2 border-ink"></div>
         </div>
       </AuthPageFrame>
     }>

@@ -101,7 +101,7 @@ export default function EditTeamsBotPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="motion-safe:animate-spin rounded-full h-8 w-8 border-b-2 border-azure"></div>
       </div>
     );
   }
@@ -110,11 +110,11 @@ export default function EditTeamsBotPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900">Bot not found</h3>
+          <AlertCircle className="mx-auto h-12 w-12 text-leaf mb-4" />
+          <h3 className="text-lg font-medium text-ink">Bot not found</h3>
           <button
             onClick={() => router.push(`/agents/${agentName}/messaging-bots`)}
-            className="mt-4 text-blue-600 hover:text-blue-500"
+            className="mt-4 text-azure hover:text-azure"
           >
             Back to Messaging Bots
           </button>
@@ -124,72 +124,72 @@ export default function EditTeamsBotPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-8">
+    <div className="min-h-screen p-4 md:p-8">
       <div className="max-w-3xl mx-auto">
         <div className="mb-8">
           <button
             onClick={() => router.push(`/agents/${agentName}/messaging-bots`)}
-            className="flex items-center text-gray-600 hover:text-gray-900 mb-4"
+            className="flex items-center text-ink-soft hover:text-ink mb-4"
           >
             <ArrowLeft size={20} className="mr-2" />
             Back to Messaging Bots
           </button>
           <div className="flex items-center gap-3">
-            <div className="bg-purple-100 p-3 rounded-lg">
-              <Users className="text-purple-600" size={24} />
+            <div className="bg-sand-deep p-3 rounded-lg">
+              <Users className="text-plum" size={24} />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Edit Teams Bot</h1>
-              <p className="text-gray-600 mt-1">Update your Teams bot configuration</p>
+              <h1 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight">Edit Teams Bot</h1>
+              <p className="text-ink-soft mt-1">Update your Teams bot configuration</p>
             </div>
           </div>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-start">
-            <AlertCircle className="text-red-600 mr-3 flex-shrink-0 mt-0.5" size={20} />
+          <div className="bg-blush-wash border border-blush rounded-lg p-4 mb-6 flex items-start">
+            <AlertCircle className="text-danger mr-3 flex-shrink-0 mt-0.5" size={20} />
             <div>
-              <h3 className="text-sm font-medium text-red-800">Error</h3>
-              <p className="text-sm text-red-700 mt-1">{error}</p>
+              <h3 className="text-sm font-medium text-wine">Error</h3>
+              <p className="text-sm text-danger mt-1">{error}</p>
             </div>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm p-6 space-y-6">
           <div>
-            <label htmlFor="bot_name" className="block text-sm font-medium text-gray-700 mb-2">
-              Bot Name <span className="text-red-500">*</span>
+            <label htmlFor="bot_name" className="block text-sm font-medium text-ink-soft mb-2">
+              Bot Name <span className="text-leaf">*</span>
             </label>
             <input
               type="text"
               id="bot_name"
               value={formData.bot_name}
               onChange={(e) => handleChange("bot_name", e.target.value)}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.bot_name ? "border-red-500" : "border-gray-300"
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-azure focus:border-transparent ${
+                errors.bot_name ? "border-ink" : "border-taupe"
               }`}
             />
-            {errors.bot_name && <p className="mt-1 text-sm text-red-600">{errors.bot_name}</p>}
+            {errors.bot_name && <p className="mt-1 text-sm text-danger">{errors.bot_name}</p>}
           </div>
 
           <div>
-            <label htmlFor="app_id" className="block text-sm font-medium text-gray-700 mb-2">
-              App ID <span className="text-red-500">*</span>
+            <label htmlFor="app_id" className="block text-sm font-medium text-ink-soft mb-2">
+              App ID <span className="text-leaf">*</span>
             </label>
             <input
               type="text"
               id="app_id"
               value={formData.app_id}
               onChange={(e) => handleChange("app_id", e.target.value)}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.app_id ? "border-red-500" : "border-gray-300"
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-azure focus:border-transparent ${
+                errors.app_id ? "border-ink" : "border-taupe"
               }`}
             />
-            {errors.app_id && <p className="mt-1 text-sm text-red-600">{errors.app_id}</p>}
+            {errors.app_id && <p className="mt-1 text-sm text-danger">{errors.app_id}</p>}
           </div>
 
           <div>
-            <label htmlFor="app_password" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="app_password" className="block text-sm font-medium text-ink-soft mb-2">
               App Password
             </label>
             <input
@@ -197,16 +197,16 @@ export default function EditTeamsBotPage() {
               id="app_password"
               value={formData.app_password}
               onChange={(e) => handleChange("app_password", e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-azure focus:border-transparent"
               placeholder="Leave empty to keep current password"
             />
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-ink-mute">
               Leave empty to keep the existing password, or enter a new one to update
             </p>
           </div>
 
           <div>
-            <label htmlFor="tenant_id" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="tenant_id" className="block text-sm font-medium text-ink-soft mb-2">
               Tenant ID
             </label>
             <input
@@ -214,12 +214,12 @@ export default function EditTeamsBotPage() {
               id="tenant_id"
               value={formData.tenant_id}
               onChange={(e) => handleChange("tenant_id", e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-azure focus:border-transparent"
             />
           </div>
 
           <div>
-            <label htmlFor="bot_endpoint" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="bot_endpoint" className="block text-sm font-medium text-ink-soft mb-2">
               Bot Endpoint URL
             </label>
             <input
@@ -227,7 +227,7 @@ export default function EditTeamsBotPage() {
               id="bot_endpoint"
               value={formData.bot_endpoint}
               onChange={(e) => handleChange("bot_endpoint", e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-azure focus:border-transparent"
             />
           </div>
 
@@ -235,7 +235,7 @@ export default function EditTeamsBotPage() {
             <button
               type="button"
               onClick={() => router.push(`/agents/${agentName}/messaging-bots`)}
-              className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              className="px-6 py-2 border border-taupe rounded-lg text-ink-soft hover:bg-cream transition-colors"
               disabled={submitting}
             >
               Cancel
@@ -243,11 +243,11 @@ export default function EditTeamsBotPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-6 py-2 bg-plum text-white rounded-lg hover:bg-plum transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {submitting ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <div className="motion-safe:animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                   Updating...
                 </>
               ) : (

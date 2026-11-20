@@ -44,9 +44,9 @@ interface ComputeConfig {
 }
 
 const STATUS_STYLES: Record<ComputeStatus, { dot: string; badge: string; label: string }> = {
-  active: { dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200', label: 'Active' },
-  inactive: { dot: 'bg-gray-400', badge: 'bg-gray-50 text-gray-600 ring-1 ring-gray-200', label: 'Inactive' },
-  error: { dot: 'bg-red-500', badge: 'bg-red-50 text-red-700 ring-1 ring-red-200', label: 'Error' },
+  active: { dot: 'bg-leaf', badge: 'bg-leaf-wash text-forest ring-1 ring-mint', label: 'Active' },
+  inactive: { dot: 'bg-ash', badge: 'bg-cream text-ink-soft ring-1 ring-line', label: 'Inactive' },
+  error: { dot: 'bg-ink', badge: 'bg-blush-wash text-danger ring-1 ring-blush', label: 'Error' },
 }
 
 export default function AgentComputePage() {
@@ -175,43 +175,43 @@ export default function AgentComputePage() {
   const statusInfo = config?.status ? STATUS_STYLES[config.status] : null
 
   const inputClass =
-    'w-full rounded-[1.15rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]'
+    'w-full rounded-[1.15rem] border border-black/10 bg-cream px-4 py-3 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-mint'
   const maskedCredentialsStyle = !showCredentials && credentials ? ({ WebkitTextSecurity: 'disc' } as CSSProperties) : undefined
 
   return (
     <div className="dashboard-resource-page min-h-screen p-4 md:p-6">
       <div className="mx-auto max-w-[90rem]">
         <div className="mb-4 flex flex-wrap items-center gap-1.5 text-sm">
-          <Link href="/" className="flex items-center gap-1 text-gray-500 transition-colors hover:text-[#171717]">
+          <Link href="/" className="flex items-center gap-1 text-ink-mute transition-colors hover:text-ink">
             <Home className="h-3.5 w-3.5" />
             Home
           </Link>
-          <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
-          <Link href="/agents" className="text-gray-500 transition-colors hover:text-[#171717]">
+          <ChevronRight className="h-3.5 w-3.5 text-ash" />
+          <Link href="/agents" className="text-ink-mute transition-colors hover:text-ink">
             Agents
           </Link>
-          <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
+          <ChevronRight className="h-3.5 w-3.5 text-ash" />
           <Link
             href={`/agents/${encodeURIComponent(agentName)}/view`}
-            className="text-gray-500 transition-colors hover:text-[#171717]"
+            className="text-ink-mute transition-colors hover:text-ink"
           >
             {agentName}
           </Link>
-          <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
-          <span className="font-medium text-gray-900">Compute</span>
+          <ChevronRight className="h-3.5 w-3.5 text-ash" />
+          <span className="font-medium text-ink">Compute</span>
         </div>
 
-        <div className="mb-6 overflow-hidden rounded-[2rem] border border-[#eadfce] bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.96),_rgba(247,240,231,0.94)_50%,_rgba(237,230,220,0.92)_100%)] shadow-[0_28px_80px_-42px_rgba(88,63,39,0.32)]">
+        <div className="bg-cream mb-6 overflow-hidden rounded-[2rem] border border-sand-deep shadow-soft">
           <div className="flex flex-col gap-5 p-6 md:p-8">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-start gap-4">
-                <div className="rounded-[1.2rem] bg-[#f3ecde] p-3.5 shadow-[0_16px_30px_-24px_rgba(74,49,22,0.3)]">
-                  <Server className="h-6 w-6 text-[#171717]" />
+                <div className="rounded-[1.2rem] bg-sand p-3.5 shadow-soft">
+                  <Server className="h-6 w-6 text-ink" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-semibold tracking-[-0.04em] text-gray-950 md:text-[2.4rem]">Compute</h1>
-                  <p className="mt-2 text-sm leading-6 text-gray-600">
-                    Execution environment for <span className="font-semibold text-gray-900">{agentName}</span>.
+                  <h1 className="text-3xl font-semibold tracking-[-0.04em] text-ink md:text-[2.4rem]">Compute</h1>
+                  <p className="mt-2 text-sm leading-6 text-ink-soft">
+                    Execution environment for <span className="font-semibold text-ink">{agentName}</span>.
                   </p>
                 </div>
               </div>
@@ -227,14 +227,14 @@ export default function AgentComputePage() {
 
         {loading ? (
         <div className="flex items-center justify-center py-24">
-          <Loader2 className="h-6 w-6 animate-spin text-[#171717]" />
+          <Loader2 className="h-6 w-6 motion-safe:animate-spin text-ink" />
         </div>
       ) : (
         <div className="space-y-4">
 
             <AgentPagePanel className="p-5">
-              <h2 className="mb-1 text-sm font-semibold text-gray-900">Compute Target</h2>
-              <p className="mb-4 text-xs text-gray-500">Where this agent runs commands and file operations</p>
+              <h2 className="mb-1 text-sm font-semibold text-ink">Compute Target</h2>
+              <p className="mb-4 text-xs text-ink-mute">Where this agent runs commands and file operations</p>
 
               <div className="space-y-2">
                 {([
@@ -256,32 +256,32 @@ export default function AgentComputePage() {
                   <button
                     key={value}
                     onClick={() => setComputeType(value)}
-                    className={`flex w-full items-start gap-3 rounded-[1.25rem] border p-4 text-left transition-all ${
+                    className={`flex w-full items-start gap-3 rounded-[1.25rem] border p-4 text-left transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
                       computeType === value
-                        ? 'border-[#171717] bg-white shadow-[0_18px_40px_rgba(0,0,0,0.08)]'
-                        : 'border-black/10 bg-[#fcfaf5] hover:border-black/20 hover:bg-white'
+                        ? 'border-ink bg-white shadow-soft'
+                        : 'border-black/10 bg-cream hover:border-black/20 hover:bg-white'
                     }`}
                   >
                     <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[0.95rem] ${
-                      computeType === value ? 'bg-[#f1eadc]' : 'bg-white'
+                      computeType === value ? 'bg-sand-deep' : 'bg-white'
                     }`}>
-                      <Icon className={`h-4 w-4 ${computeType === value ? 'text-[#171717]' : 'text-gray-500'}`} />
+                      <Icon className={`h-4 w-4 ${computeType === value ? 'text-ink' : 'text-ink-mute'}`} />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className={`text-sm font-semibold ${computeType === value ? 'text-gray-950' : 'text-gray-800'}`}>
+                        <span className={`text-sm font-semibold ${computeType === value ? 'text-ink' : 'text-ink'}`}>
                           {title}
                         </span>
                         {badge && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700">
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-leaf-wash text-forest">
                             {badge}
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-gray-500 mt-0.5">{desc}</p>
+                      <p className="text-xs text-ink-mute mt-0.5">{desc}</p>
                     </div>
                     {computeType === value && (
-                      <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                      <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-leaf" />
                     )}
                   </button>
                 ))}
@@ -292,18 +292,18 @@ export default function AgentComputePage() {
             {computeType === 'platform_managed' && (
               <AgentPagePanel className="p-5">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[0.95rem] bg-[#edf4f6]">
-                    <Settings className="h-4 w-4 text-[#486c77]" />
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[0.95rem] bg-leaf-wash">
+                    <Settings className="h-4 w-4 text-steel" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-gray-900">Managed container</p>
-                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                    <p className="text-sm font-semibold text-ink">Managed container</p>
+                    <p className="text-xs text-ink-mute mt-1 leading-relaxed">
                       The platform provisions an ephemeral container for each conversation. The container image and
                       backend (Docker, Lambda, Fargate) are configured in your tenant settings.
                     </p>
                     <button
                       onClick={() => router.push('/settings/compute')}
-                      className="mt-2.5 inline-flex items-center gap-1.5 text-xs font-semibold text-[#171717] transition-colors hover:text-black"
+                      className="mt-2.5 inline-flex items-center gap-1.5 text-xs font-semibold text-ink transition-colors hover:text-black"
                     >
                       <ExternalLink className="w-3 h-3" />
                       Configure tenant compute backend
@@ -316,12 +316,12 @@ export default function AgentComputePage() {
             {/* SSH Configuration */}
             {computeType === 'remote_server' && (
               <AgentPagePanel className="space-y-4 p-5">
-                <h2 className="text-sm font-semibold text-gray-900">SSH Configuration</h2>
+                <h2 className="text-sm font-semibold text-ink">SSH Configuration</h2>
 
                 <div className="grid grid-cols-3 gap-3">
                   <div className="col-span-2">
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[#7c5d45]">
-                      Host <span className="text-[#8b5a74]">*</span>
+                    <label className="mb-1.5 block text-xs font-semibold text-bark">
+                      Host <span className="text-plum">*</span>
                     </label>
                     <input
                       type="text"
@@ -332,7 +332,7 @@ export default function AgentComputePage() {
                     />
                   </div>
                   <div>
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[#7c5d45]">Port</label>
+                    <label className="mb-1.5 block text-xs font-semibold text-bark">Port</label>
                     <input
                       type="number"
                       value={remotePort}
@@ -345,7 +345,7 @@ export default function AgentComputePage() {
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[#7c5d45]">Username</label>
+                  <label className="mb-1.5 block text-xs font-semibold text-bark">Username</label>
                   <input
                     type="text"
                     value={remoteUser}
@@ -356,16 +356,16 @@ export default function AgentComputePage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-[#7c5d45]">Authentication</label>
+                  <label className="mb-2 block text-xs font-semibold text-bark">Authentication</label>
                   <div className="mb-3 flex gap-2">
                     {(['password', 'key'] as const).map(type => (
                       <button
                         key={type}
                         onClick={() => setAuthType(type)}
-                        className={`rounded-[1rem] border px-3.5 py-2 text-xs font-semibold transition-all ${
+                        className={`rounded-[1rem] border px-3.5 py-2 text-xs font-semibold transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
                           authType === type
-                            ? 'border-[#171717] bg-[#171717] text-white'
-                            : 'border-black/10 bg-[#fcfaf5] text-gray-600 hover:border-black/20 hover:bg-white'
+                            ? 'border-ink bg-ink text-white'
+                            : 'border-black/10 bg-cream text-ink-soft hover:border-black/20 hover:bg-white'
                         }`}
                       >
                         {type === 'password' ? 'Password' : 'SSH Key'}
@@ -389,19 +389,19 @@ export default function AgentComputePage() {
                       <button
                         type="button"
                         onClick={() => setShowCredentials(v => !v)}
-                        className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 transition-colors"
+                        className="absolute top-2 right-2 text-ash hover:text-ink-soft transition-colors"
                       >
                         {showCredentials ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     )}
                   </div>
                   {config?.configured && (
-                    <p className="mt-1 text-xs text-gray-400">Leave blank to keep the existing credential.</p>
+                    <p className="mt-1 text-xs text-ash">Leave blank to keep the existing credential.</p>
                   )}
                 </div>
 
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[#7c5d45]">Working Directory</label>
+                  <label className="mb-1.5 block text-xs font-semibold text-bark">Working Directory</label>
                   <input
                     type="text"
                     value={basePath}
@@ -413,7 +413,7 @@ export default function AgentComputePage() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[#7c5d45]">Timeout (seconds)</label>
+                    <label className="mb-1.5 block text-xs font-semibold text-bark">Timeout (seconds)</label>
                     <input
                       type="number"
                       value={timeoutSecs}
@@ -424,7 +424,7 @@ export default function AgentComputePage() {
                     />
                   </div>
                   <div>
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[#7c5d45]">Max Output (chars)</label>
+                    <label className="mb-1.5 block text-xs font-semibold text-bark">Max Output (chars)</label>
                     <input
                       type="number"
                       value={maxOutput}
@@ -437,14 +437,14 @@ export default function AgentComputePage() {
                 </div>
 
                 {config?.error_message && (
-                  <div className="flex items-start gap-2.5 rounded-[1.15rem] border border-[#ead8e1] bg-[#f8ecef] p-3">
-                    <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#8b5a74]" />
-                    <p className="text-xs text-[#8b5a74]">{config.error_message}</p>
+                  <div className="flex items-start gap-2.5 rounded-[1.15rem] border border-blush-wash bg-blush-wash p-3">
+                    <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-plum" />
+                    <p className="text-xs text-plum">{config.error_message}</p>
                   </div>
                 )}
 
                 {config?.last_connected_at && (
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-ash">
                     Last connected: {new Date(config.last_connected_at).toLocaleString()}
                   </p>
                 )}
@@ -458,14 +458,14 @@ export default function AgentComputePage() {
                   <button
                     onClick={handleTest}
                     disabled={testing || saving}
-                    className="inline-flex items-center gap-2 rounded-[1rem] border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-all hover:bg-[#fcfaf5] disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-[1rem] border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-ink-soft transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:bg-cream disabled:opacity-50"
                   >
                     {testing ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="w-4 h-4 motion-safe:animate-spin" />
                     ) : config.status === 'active' ? (
-                      <Wifi className="w-4 h-4 text-emerald-500" />
+                      <Wifi className="w-4 h-4 text-leaf" />
                     ) : (
-                      <WifiOff className="w-4 h-4 text-gray-400" />
+                      <WifiOff className="w-4 h-4 text-ash" />
                     )}
                     Test Connection
                   </button>
@@ -474,9 +474,9 @@ export default function AgentComputePage() {
                   <button
                     onClick={handleRemove}
                     disabled={removing || saving}
-                    className="inline-flex items-center gap-2 rounded-[1rem] border border-[#ead8e1] bg-white px-4 py-2.5 text-sm font-semibold text-[#8b5a74] transition-all hover:bg-[#f8ecef] disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-[1rem] border border-blush-wash bg-white px-4 py-2.5 text-sm font-semibold text-plum transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:bg-blush-wash disabled:opacity-50"
                   >
-                    {removing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    {removing ? <Loader2 className="w-4 h-4 motion-safe:animate-spin" /> : <Trash2 className="w-4 h-4" />}
                     Remove
                   </button>
                 )}
@@ -484,9 +484,9 @@ export default function AgentComputePage() {
               <button
                 onClick={handleSave}
                 disabled={saving || testing}
-                className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-[1rem] bg-ink px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
               >
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {saving ? <Loader2 className="w-4 h-4 motion-safe:animate-spin" /> : <Save className="w-4 h-4" />}
                 Save
               </button>
             </div>

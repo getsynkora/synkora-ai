@@ -416,7 +416,7 @@ export function ChatScreen({ agentName = 'platform_engineer_agent' }: Props) {
       <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={scrollRef}>
         {isEmpty ? (
           <div className="flex flex-col items-center justify-center h-full text-center space-y-3 py-8">
-            <p className="text-sm text-gray-500 max-w-xs">
+            <p className="text-sm text-ink-mute max-w-xs">
               I can actually create and manage agents for you. Try a quick action or describe what you need.
             </p>
           </div>
@@ -432,12 +432,12 @@ export function ChatScreen({ agentName = 'platform_engineer_agent' }: Props) {
         )}
         {isStreaming && messages[messages.length - 1]?.role === 'assistant' && !messages[messages.length - 1]?.content && (
           <div className="flex justify-start">
-            <div className="bg-gray-100 rounded-xl px-3 py-2.5">
+            <div className="bg-sand rounded-xl px-3 py-2.5">
               <div className="flex gap-1">
                 {[0, 0.15, 0.3].map((delay, i) => (
                   <div
                     key={i}
-                    className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"
+                    className="w-2 h-2 rounded-full bg-ash motion-safe:animate-bounce"
                     style={{ animationDelay: `${delay}s` }}
                   />
                 ))}
@@ -463,9 +463,9 @@ export function ChatScreen({ agentName = 'platform_engineer_agent' }: Props) {
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Describe what you need..."
+            placeholder="Describe what you need…"
             rows={1}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none min-h-[40px] max-h-[120px] overflow-y-auto"
+            className="flex-1 px-3 py-2 border border-taupe rounded-xl text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none min-h-[40px] max-h-[120px] overflow-y-auto"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()
@@ -478,7 +478,7 @@ export function ChatScreen({ agentName = 'platform_engineer_agent' }: Props) {
             disabled={!input.trim() || isStreaming}
             className="h-10 w-10 flex items-center justify-center bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
           >
-            {isStreaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {isStreaming ? <Loader2 className="h-4 w-4 motion-safe:animate-spin" /> : <Send className="h-4 w-4" />}
           </button>
         </form>
       </div>

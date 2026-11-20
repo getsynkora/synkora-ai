@@ -36,23 +36,23 @@ const DEFAULT_SCOPES: Record<string, string[]> = {
 }
 
 const sectionClassName =
-  'rounded-[1.9rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,245,239,0.96))] p-6 shadow-[0_24px_60px_-46px_rgba(73,45,23,0.3)]'
+  'rounded-[1.9rem] border border-line bg-white p-6 shadow-soft'
 
-const labelClassName = 'mb-1.5 block text-sm font-semibold text-gray-700'
+const labelClassName = 'mb-1.5 block text-sm font-semibold text-ink-soft'
 const inputClassName =
-  'w-full rounded-[1rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]'
+  'w-full rounded-[1rem] border border-black/10 bg-cream px-4 py-3 text-sm text-ink placeholder:text-ash focus:border-transparent focus:outline-none focus:ring-2 focus:ring-mint'
 const monoInputClassName = `${inputClassName} font-mono`
-const helperClassName = 'mt-1.5 text-xs leading-5 text-gray-500'
+const helperClassName = 'mt-1.5 text-xs leading-5 text-ink-mute'
 const checkboxClassName =
-  'h-4 w-4 rounded border-gray-300 text-[#ff5c8a] focus:ring-2 focus:ring-[#79dfbc]'
+  'h-4 w-4 rounded border-taupe text-hotpink focus:ring-2 focus:ring-mint'
 const primaryButtonClassName =
-  'inline-flex items-center justify-center gap-2 rounded-[1rem] bg-[#171717] px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_36px_-24px_rgba(0,0,0,0.45)] transition-colors hover:bg-[#2a2a2a] disabled:cursor-not-allowed disabled:opacity-60'
+  'inline-flex items-center justify-center gap-2 rounded-[1rem] bg-ink px-5 py-3 text-sm font-semibold text-white shadow-soft transition-colors hover:bg-night disabled:cursor-not-allowed disabled:opacity-60'
 const secondaryButtonClassName =
-  'inline-flex items-center justify-center rounded-[1rem] border border-black/10 bg-white/85 px-5 py-3 text-sm font-semibold text-gray-700 transition-colors hover:border-[#cdb79d] hover:bg-[#f7f2e7] hover:text-gray-900'
+  'inline-flex items-center justify-center rounded-[1rem] border border-black/10 bg-white/85 px-5 py-3 text-sm font-semibold text-ink-soft transition-colors hover:border-tan hover:bg-paper hover:text-ink'
 const scopePillClassName =
-  'inline-flex rounded-full border border-[#e5d9ca] bg-[#f7f2e7] px-2.5 py-1 font-mono text-[11px] text-[#6f5a46]'
+  'inline-flex rounded-full border border-line bg-paper px-2.5 py-1 font-mono text-[11px] text-bark'
 const selectionCardClassName =
-  'flex items-start gap-3 rounded-[1.2rem] border border-black/10 bg-white/80 px-4 py-3 transition-colors hover:border-[#d7c6b4] hover:bg-[#f9f5ee]'
+  'flex items-start gap-3 rounded-[1.2rem] border border-black/10 bg-white/80 px-4 py-3 transition-colors hover:border-paper-dim hover:bg-cream'
 
 export default function EditOAuthAppPage() {
   const router = useRouter()
@@ -202,11 +202,11 @@ export default function EditOAuthAppPage() {
           <div className={sectionClassName}>
             <div className="mb-4 flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-base font-semibold text-gray-900">Basic Information</h2>
-                <p className="mt-1 text-sm text-gray-500">Name, description, and connection status.</p>
+                <h2 className="text-base font-semibold text-ink">Basic Information</h2>
+                <p className="mt-1 text-sm text-ink-mute">Name, description, and connection status.</p>
               </div>
-              <div className="rounded-full border border-[#e2d7c8] bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8f6f53]">
-                {app.provider} · {app.auth_method?.replace('_', ' ')}
+              <div className="rounded-full border border-line bg-white/80 px-3 py-1 text-[11px] font-semibold text-clay">
+                {app.provider}, {app.auth_method?.replace('_', ' ')}
               </div>
             </div>
             <div className="space-y-4">
@@ -238,8 +238,8 @@ export default function EditOAuthAppPage() {
                     className={checkboxClassName}
                   />
                   <div>
-                    <div className="text-sm font-semibold text-gray-900">Active</div>
-                    <p className="text-xs text-gray-500">Allow this connection to be used immediately.</p>
+                    <div className="text-sm font-semibold text-ink">Active</div>
+                    <p className="text-xs text-ink-mute">Allow this connection to be used immediately.</p>
                   </div>
                 </label>
                 <label className={selectionCardClassName}>
@@ -250,8 +250,8 @@ export default function EditOAuthAppPage() {
                     className={checkboxClassName}
                   />
                   <div>
-                    <div className="text-sm font-semibold text-gray-900">Default for this provider</div>
-                    <p className="text-xs text-gray-500">Use this account as the primary connection by default.</p>
+                    <div className="text-sm font-semibold text-ink">Default for this provider</div>
+                    <p className="text-xs text-ink-mute">Use this account as the primary connection by default.</p>
                   </div>
                 </label>
               </div>
@@ -262,8 +262,8 @@ export default function EditOAuthAppPage() {
           {formData.auth_method === 'oauth' && (
             <div className={sectionClassName}>
               <div className="mb-4">
-                <h2 className="text-base font-semibold text-gray-900">OAuth Credentials</h2>
-                <p className="mt-1 text-sm text-gray-500">Rotate the secret only when you need to replace it.</p>
+                <h2 className="text-base font-semibold text-ink">OAuth Credentials</h2>
+                <p className="mt-1 text-sm text-ink-mute">Rotate the secret only when you need to replace it.</p>
               </div>
               <div className="space-y-4">
                 <div>
@@ -305,8 +305,8 @@ export default function EditOAuthAppPage() {
           {formData.auth_method === 'basic_auth' && (
             <div className={sectionClassName}>
               <div className="mb-4">
-                <h2 className="text-base font-semibold text-gray-900">Login Credentials</h2>
-                <p className="mt-1 text-sm text-gray-500">These settings are used to fetch and refresh access tokens.</p>
+                <h2 className="text-base font-semibold text-ink">Login Credentials</h2>
+                <p className="mt-1 text-sm text-ink-mute">These settings are used to fetch and refresh access tokens.</p>
               </div>
               <div className="space-y-4">
                 <div>
@@ -330,8 +330,8 @@ export default function EditOAuthAppPage() {
           {formData.auth_method === 'api_token' && (
             <div className={sectionClassName}>
               <div className="mb-4">
-                <h2 className="text-base font-semibold text-gray-900">API Token</h2>
-                <p className="mt-1 text-sm text-gray-500">Token-based authentication with optional custom headers.</p>
+                <h2 className="text-base font-semibold text-ink">API Token</h2>
+                <p className="mt-1 text-sm text-ink-mute">Token-based authentication with optional custom headers.</p>
               </div>
               <div className="space-y-4">
                 {isMailisk && (
@@ -347,7 +347,7 @@ export default function EditOAuthAppPage() {
                         placeholder="your-team"
                       />
                       <p className={helperClassName}>
-                        Used to generate inboxes like <code className="bg-gray-100 px-1 rounded">run-123@your-team.mailisk.net</code>.
+                        Used to generate inboxes like <code className="bg-sand px-1 rounded">run-123@your-team.mailisk.net</code>.
                       </p>
                     </div>
                     <div>
@@ -382,8 +382,8 @@ export default function EditOAuthAppPage() {
           {formData.auth_method === 'github_app' && (
             <div className={sectionClassName}>
               <div className="mb-4">
-                <h2 className="text-base font-semibold text-gray-900">GitHub App Credentials</h2>
-                <p className="mt-1 text-sm text-gray-500">Update App ID or private key. Installation is resolved automatically from the configured repositories.</p>
+                <h2 className="text-base font-semibold text-ink">GitHub App Credentials</h2>
+                <p className="mt-1 text-sm text-ink-mute">Update App ID or private key. Installation is resolved automatically from the configured repositories.</p>
               </div>
               <div className="space-y-4">
                 <div>
@@ -417,8 +417,8 @@ export default function EditOAuthAppPage() {
           {formData.auth_method === 'oauth' && availableScopes.length > 0 && (
             <div className={sectionClassName}>
               <div className="mb-4">
-                <h2 className="text-base font-semibold text-gray-900">OAuth Scopes</h2>
-                <p className="mt-1 text-sm text-gray-500">Choose which permissions this connection should request.</p>
+                <h2 className="text-base font-semibold text-ink">OAuth Scopes</h2>
+                <p className="mt-1 text-sm text-ink-mute">Choose which permissions this connection should request.</p>
               </div>
               <div className="grid gap-2">
                 {availableScopes.map((scope) => (

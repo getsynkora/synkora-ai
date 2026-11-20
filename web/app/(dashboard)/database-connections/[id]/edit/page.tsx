@@ -261,8 +261,8 @@ export default function EditDatabaseConnectionPage() {
     return (
       <div className="dashboard-resource-page flex h-screen items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-red-600"></div>
-          <p className="text-gray-600">Loading connection settings...</p>
+          <div className="mx-auto mb-4 h-12 w-12 motion-safe:animate-spin rounded-full border-b-2 border-danger"></div>
+          <p className="text-ink-soft">Loading connection settings…</p>
         </div>
       </div>
     )
@@ -271,11 +271,11 @@ export default function EditDatabaseConnectionPage() {
   return (
     <div className="dashboard-resource-page min-h-screen p-4 md:p-6">
       <div className="mx-auto max-w-5xl">
-        <div className="mb-6 overflow-hidden rounded-[2rem] border border-[#eadfce] bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.96),_rgba(247,240,231,0.94)_50%,_rgba(237,230,220,0.92)_100%)] shadow-[0_28px_80px_-42px_rgba(88,63,39,0.32)]">
+        <div className="bg-cream mb-6 overflow-hidden rounded-[2rem] border border-sand-deep shadow-soft">
           <div className="flex flex-col gap-6 p-6 md:p-8">
             <Link
               href={`/database-connections/${params.id}`}
-              className="inline-flex w-fit items-center gap-2 rounded-full border border-[#dbcdb9] bg-white/80 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-[#cdb79d] hover:text-gray-900"
+              className="inline-flex w-fit items-center gap-2 rounded-full border border-line bg-white/80 px-4 py-2 text-sm font-semibold text-ink-soft transition-colors hover:border-tan hover:text-ink"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Connection
@@ -283,20 +283,16 @@ export default function EditDatabaseConnectionPage() {
 
             <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
               <div className="max-w-3xl space-y-3">
-                <div className="inline-flex items-center gap-2 rounded-full border border-[#dfd1be] bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#7c5d45]">
-                  <Database className="h-3.5 w-3.5" />
-                  Edit Connection
-                </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="rounded-[1.2rem] bg-[#f3ecde] p-3.5 shadow-[0_16px_30px_-24px_rgba(74,49,22,0.3)]">
-                    <Database className="h-6 w-6 text-[#171717]" />
+                  <div className="rounded-[1.2rem] bg-sand p-3.5 shadow-soft">
+                    <Database className="h-6 w-6 text-ink" />
                   </div>
                   <div>
-                    <h1 className="text-3xl font-semibold tracking-[-0.04em] text-gray-950 md:text-[2.6rem]">
+                    <h1 className="text-3xl font-semibold tracking-[-0.04em] text-ink md:text-[2.6rem]">
                       Edit Database Connection
                     </h1>
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-soft">
                       Update connection settings.
                     </p>
                   </div>
@@ -304,13 +300,13 @@ export default function EditDatabaseConnectionPage() {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-[1.5rem] border border-white/70 bg-white/75 px-4 py-3 shadow-[0_20px_45px_-38px_rgba(77,51,28,0.4)] backdrop-blur">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7a5e]">Database Type</p>
-                  <p className="mt-2 text-lg font-semibold text-gray-900">{formData.type}</p>
+                <div className="rounded-[1.5rem] border border-white/70 bg-white/75 px-4 py-3 shadow-soft">
+                  <p className="text-[11px] font-semibold text-clay">Database Type</p>
+                  <p className="mt-2 text-lg font-semibold text-ink">{formData.type}</p>
                 </div>
-                <div className="rounded-[1.5rem] border border-white/70 bg-white/75 px-4 py-3 shadow-[0_20px_45px_-38px_rgba(77,51,28,0.4)] backdrop-blur">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7a5e]">Status</p>
-                  <p className="mt-2 text-lg font-semibold text-gray-900">
+                <div className="rounded-[1.5rem] border border-white/70 bg-white/75 px-4 py-3 shadow-soft">
+                  <p className="text-[11px] font-semibold text-clay">Status</p>
+                  <p className="mt-2 text-lg font-semibold text-ink">
                     {formData.status.charAt(0).toUpperCase() + formData.status.slice(1)}
                   </p>
                 </div>
@@ -321,33 +317,33 @@ export default function EditDatabaseConnectionPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="rounded-[2rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,245,239,0.96))] p-6 shadow-[0_28px_70px_-48px_rgba(73,45,23,0.32)] md:p-8"
+          className="rounded-[2rem] border border-line bg-white p-6 shadow-soft md:p-8"
         >
           <div className="space-y-5">
             {/* Basic Information */}
             <div>
               <div className="mb-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7a5e]">Section 1</p>
-                <h2 className="mt-2 text-lg font-semibold text-gray-950">Basic Information</h2>
-                <p className="mt-1 text-sm text-gray-500">Update the connection name, type, and current status.</p>
+                <p className="text-[11px] font-semibold text-clay">Section 1</p>
+                <h2 className="mt-2 text-lg font-semibold text-ink">Basic Information</h2>
+                <p className="mt-1 text-sm text-ink-mute">Update the connection name, type, and current status.</p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Connection Name <span className="text-red-500">*</span>
+                  <label className="block text-sm font-medium text-ink-soft mb-2">
+                    Connection Name <span className="text-leaf">*</span>
                   </label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
                     placeholder="My PostgreSQL Database"
-                    className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                    className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
                     required
                   />
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-ink-soft mb-2">
                     Description
                   </label>
                   <textarea
@@ -355,18 +351,18 @@ export default function EditDatabaseConnectionPage() {
                     onChange={(e) => handleInputChange('description', e.target.value)}
                     placeholder="Production database for analytics"
                     rows={3}
-                    className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                    className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Database Type <span className="text-red-500">*</span>
+                  <label className="block text-sm font-medium text-ink-soft mb-2">
+                    Database Type <span className="text-leaf">*</span>
                   </label>
                   <select
                     value={formData.type}
                     onChange={(e) => handleTypeChange(e.target.value)}
-                    className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                    className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
                     required
                   >
                     <optgroup label="SQL Databases">
@@ -395,20 +391,20 @@ export default function EditDatabaseConnectionPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-ink-soft mb-2">
                     Status
                   </label>
                   <select
                     value={formData.status}
                     onChange={(e) => handleInputChange('status', e.target.value)}
-                    className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                    className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
                   >
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
                     <option value="pending">Pending</option>
                     <option value="error">Error</option>
                   </select>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-ink-mute mt-1">
                     Set to "Active" to enable this connection for use
                   </p>
                 </div>
@@ -418,27 +414,27 @@ export default function EditDatabaseConnectionPage() {
             {/* Connection Details */}
             <div>
               <div className="mb-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7a5e]">Section 2</p>
-                <h2 className="mt-2 text-lg font-semibold text-gray-950">Connection Details</h2>
-                <p className="mt-1 text-sm text-gray-500">Update the host, credentials, and provider-specific settings.</p>
+                <p className="text-[11px] font-semibold text-clay">Section 2</p>
+                <h2 className="mt-2 text-lg font-semibold text-ink">Connection Details</h2>
+                <p className="mt-1 text-sm text-ink-mute">Update the host, credentials, and provider-specific settings.</p>
               </div>
               
               {isPathBased ? (
                 /* SQLite / DuckDB — file path */
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Database Filename <span className="text-red-500">*</span>
+                    <label className="block text-sm font-medium text-ink-soft mb-2">
+                      Database Filename <span className="text-leaf">*</span>
                     </label>
                     <input
                       type="text"
                       value={formData.database_path}
                       onChange={(e) => handleInputChange('database_path', e.target.value)}
                       placeholder={isDuckDB ? 'data.duckdb or :memory:' : 'database.db'}
-                      className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                      className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
                       required
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-ink-mute mt-1">
                       {isDuckDB ? 'Use a provisioned database filename or :memory:. File, network, and extension queries are disabled.' : 'Use the filename of a read-only database provisioned for your workspace.'}
                     </p>
                   </div>
@@ -447,20 +443,20 @@ export default function EditDatabaseConnectionPage() {
                 /* BigQuery-specific fields */
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      GCP Project ID <span className="text-red-500">*</span>
+                    <label className="block text-sm font-medium text-ink-soft mb-2">
+                      GCP Project ID <span className="text-leaf">*</span>
                     </label>
                     <input
                       type="text"
                       value={formData.database}
                       onChange={(e) => handleInputChange('database', e.target.value)}
                       placeholder="my-gcp-project"
-                      className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                      className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
                       required
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-ink-soft mb-2">
                       Service Account JSON
                     </label>
                     <textarea
@@ -468,18 +464,18 @@ export default function EditDatabaseConnectionPage() {
                       onChange={(e) => handleInputChange('password', e.target.value)}
                       placeholder={'Leave blank to keep current credentials\n{\n  "type": "service_account",\n  ...\n}'}
                       rows={5}
-                      className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500 font-mono"
+                      className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink font-mono"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Leave blank to keep existing credentials. Stored encrypted.</p>
+                    <p className="text-xs text-ink-mute mt-1">Leave blank to keep existing credentials. Stored encrypted.</p>
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Default Dataset (Optional)</label>
+                    <label className="block text-sm font-medium text-ink-soft mb-2">Default Dataset (Optional)</label>
                     <input
                       type="text"
                       value={formData.username}
                       onChange={(e) => handleInputChange('username', e.target.value)}
                       placeholder="my_dataset"
-                      className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                      className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
                     />
                   </div>
                 </div>
@@ -487,75 +483,75 @@ export default function EditDatabaseConnectionPage() {
                 /* Snowflake-specific fields */
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Account Identifier <span className="text-red-500">*</span>
+                    <label className="block text-sm font-medium text-ink-soft mb-2">
+                      Account Identifier <span className="text-leaf">*</span>
                     </label>
                     <input
                       type="text"
                       value={formData.host}
                       onChange={(e) => handleInputChange('host', e.target.value)}
                       placeholder="xyz12345.us-east-1"
-                      className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                      className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Username <span className="text-red-500">*</span></label>
-                    <input type="text" value={formData.username} onChange={(e) => handleInputChange('username', e.target.value)} placeholder="MYUSER" className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500" required />
+                    <label className="block text-sm font-medium text-ink-soft mb-2">Username <span className="text-leaf">*</span></label>
+                    <input type="text" value={formData.username} onChange={(e) => handleInputChange('username', e.target.value)} placeholder="MYUSER" className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink" required />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                    <input type="password" value={formData.password} onChange={(e) => handleInputChange('password', e.target.value)} placeholder="Leave blank to keep current" className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500" />
+                    <label className="block text-sm font-medium text-ink-soft mb-2">Password</label>
+                    <input type="password" value={formData.password} onChange={(e) => handleInputChange('password', e.target.value)} placeholder="Leave blank to keep current" className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Database</label>
-                    <input type="text" value={formData.database} onChange={(e) => handleInputChange('database', e.target.value)} placeholder="MY_DATABASE" className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500" />
+                    <label className="block text-sm font-medium text-ink-soft mb-2">Database</label>
+                    <input type="text" value={formData.database} onChange={(e) => handleInputChange('database', e.target.value)} placeholder="MY_DATABASE" className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Warehouse</label>
-                    <input type="text" value={formData.connection_params?.warehouse || ''} onChange={(e) => handleConnectionParamChange('warehouse', e.target.value)} placeholder="COMPUTE_WH" className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500" />
+                    <label className="block text-sm font-medium text-ink-soft mb-2">Warehouse</label>
+                    <input type="text" value={formData.connection_params?.warehouse || ''} onChange={(e) => handleConnectionParamChange('warehouse', e.target.value)} placeholder="COMPUTE_WH" className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Schema</label>
-                    <input type="text" value={formData.connection_params?.schema || ''} onChange={(e) => handleConnectionParamChange('schema', e.target.value)} placeholder="PUBLIC" className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500" />
+                    <label className="block text-sm font-medium text-ink-soft mb-2">Schema</label>
+                    <input type="text" value={formData.connection_params?.schema || ''} onChange={(e) => handleConnectionParamChange('schema', e.target.value)} placeholder="PUBLIC" className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Role (Optional)</label>
-                    <input type="text" value={formData.connection_params?.role || ''} onChange={(e) => handleConnectionParamChange('role', e.target.value)} placeholder="SYSADMIN" className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500" />
+                    <label className="block text-sm font-medium text-ink-soft mb-2">Role (Optional)</label>
+                    <input type="text" value={formData.connection_params?.role || ''} onChange={(e) => handleConnectionParamChange('role', e.target.value)} placeholder="SYSADMIN" className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink" />
                   </div>
                 </div>
               ) : formData.type === 'ELASTICSEARCH' ? (
                 /* Elasticsearch-specific fields */
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Host <span className="text-red-500">*</span>
+                    <label className="block text-sm font-medium text-ink-soft mb-2">
+                      Host <span className="text-leaf">*</span>
                     </label>
                     <input
                       type="text"
                       value={formData.host}
                       onChange={(e) => handleInputChange('host', e.target.value)}
                       placeholder="localhost or elasticsearch.example.com"
-                      className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                      className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Port <span className="text-red-500">*</span>
+                    <label className="block text-sm font-medium text-ink-soft mb-2">
+                      Port <span className="text-leaf">*</span>
                     </label>
                     <input
                       type="number"
                       value={formData.port}
                       onChange={(e) => handleInputChange('port', parseInt(e.target.value))}
-                      className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                      className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
                       required
                     />
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-ink-soft mb-2">
                       Index Name (Optional)
                     </label>
                     <input
@@ -563,15 +559,15 @@ export default function EditDatabaseConnectionPage() {
                       value={formData.database}
                       onChange={(e) => handleInputChange('database', e.target.value)}
                       placeholder="my-index (leave blank to access all indices)"
-                      className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                      className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-ink-mute mt-1">
                       Optional: Specify a default index name. Leave blank to access all indices.
                     </p>
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-ink-soft mb-2">
                       Username (Optional)
                     </label>
                     <input
@@ -579,15 +575,15 @@ export default function EditDatabaseConnectionPage() {
                       value={formData.username}
                       onChange={(e) => handleInputChange('username', e.target.value)}
                       placeholder="elastic"
-                      className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                      className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-ink-mute mt-1">
                       Only required if Elasticsearch security is enabled
                     </p>
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-ink-soft mb-2">
                       Password (Optional)
                     </label>
                     <input
@@ -595,9 +591,9 @@ export default function EditDatabaseConnectionPage() {
                       value={formData.password}
                       onChange={(e) => handleInputChange('password', e.target.value)}
                       placeholder="Leave blank to keep current password"
-                      className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                      className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-ink-mute mt-1">
                       Only required if Elasticsearch security is enabled. Leave blank to keep current password.
                     </p>
                   </div>
@@ -606,40 +602,40 @@ export default function EditDatabaseConnectionPage() {
                 /* Supabase — API key auth via PostgREST */
                 <div className="grid grid-cols-1 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Project URL <span className="text-red-500">*</span>
+                    <label className="block text-sm font-medium text-ink-soft mb-2">
+                      Project URL <span className="text-leaf">*</span>
                     </label>
                     <input
                       type="text"
                       value={formData.host}
                       onChange={(e) => handleInputChange('host', e.target.value)}
                       placeholder="https://abcdefghij.supabase.co"
-                      className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                      className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
                       required
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-ink-mute mt-1">
                       Found in Supabase Dashboard → Settings → API → Project URL
                     </p>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Anon / Publishable Key <span className="text-red-500">*</span>
+                    <label className="block text-sm font-medium text-ink-soft mb-2">
+                      Anon / Publishable Key <span className="text-leaf">*</span>
                     </label>
                     <input
                       type="password"
                       value={formData.username}
                       onChange={(e) => handleInputChange('username', e.target.value)}
                       placeholder="Leave blank to keep existing key"
-                      className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                      className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-ink-mute mt-1">
                       Supabase Dashboard → Settings → API → Project API Keys → <code>anon</code> public key
                     </p>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-ink-soft mb-2">
                       Service Role / Secret Key
                     </label>
                     <input
@@ -647,9 +643,9 @@ export default function EditDatabaseConnectionPage() {
                       value={formData.password}
                       onChange={(e) => handleInputChange('password', e.target.value)}
                       placeholder="Leave blank to keep existing key"
-                      className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                      className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-ink-mute mt-1">
                       Supabase Dashboard → Settings → API → Project API Keys → <code>service_role</code> secret key. Stored encrypted.
                     </p>
                   </div>
@@ -660,17 +656,17 @@ export default function EditDatabaseConnectionPage() {
                       id="use_service_role"
                       checked={formData.connection_params?.use_service_role !== false}
                       onChange={(e) => handleConnectionParamChange('use_service_role', e.target.checked ? 'true' : 'false')}
-                      className="h-4 w-4 rounded border-gray-300 text-red-500 focus:ring-red-500"
+                      className="h-4 w-4 rounded border-taupe text-leaf focus:ring-ink"
                     />
-                    <label htmlFor="use_service_role" className="text-sm text-gray-700">
-                      Use service role key (bypasses Row Level Security — recommended for agents)
+                    <label htmlFor="use_service_role" className="text-sm text-ink-soft">
+                      Use service role key (bypasses Row Level Security, recommended for agents)
                     </label>
                   </div>
 
-                  <div className="rounded-[1.2rem] border border-[#d8e5d9] bg-[#eef7f1] p-4">
+                  <div className="rounded-[1.2rem] border border-leaf-wash bg-leaf-wash p-4">
                     <div className="flex items-start gap-2">
-                      <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-[#2d8b69]" />
-                      <div className="text-xs text-[#2d6f58]">
+                      <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-leaf" />
+                      <div className="text-xs text-forest">
                         <p className="font-medium mb-1">No database password needed</p>
                         <p>This connection uses Supabase's REST API (PostgREST) instead of a direct PostgreSQL connection. Only API keys are required.</p>
                       </div>
@@ -681,34 +677,34 @@ export default function EditDatabaseConnectionPage() {
                 /* Standard database fields (PostgreSQL, MySQL, MongoDB) */
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Host <span className="text-red-500">*</span>
+                    <label className="block text-sm font-medium text-ink-soft mb-2">
+                      Host <span className="text-leaf">*</span>
                     </label>
                     <input
                       type="text"
                       value={formData.host}
                       onChange={(e) => handleInputChange('host', e.target.value)}
                       placeholder="localhost or db.example.com"
-                      className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                      className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Port <span className="text-red-500">*</span>
+                    <label className="block text-sm font-medium text-ink-soft mb-2">
+                      Port <span className="text-leaf">*</span>
                     </label>
                     <input
                       type="number"
                       value={formData.port}
                       onChange={(e) => handleInputChange('port', parseInt(e.target.value))}
-                      className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                      className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-ink-soft mb-2">
                       Database Name
                     </label>
                     <input
@@ -716,12 +712,12 @@ export default function EditDatabaseConnectionPage() {
                       value={formData.database}
                       onChange={(e) => handleInputChange('database', e.target.value)}
                       placeholder="mydb"
-                      className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                      className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-ink-soft mb-2">
                       Username
                     </label>
                     <input
@@ -729,12 +725,12 @@ export default function EditDatabaseConnectionPage() {
                       value={formData.username}
                       onChange={(e) => handleInputChange('username', e.target.value)}
                       placeholder="dbuser"
-                      className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                      className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
                     />
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-ink-soft mb-2">
                       Password
                     </label>
                     <input
@@ -742,9 +738,9 @@ export default function EditDatabaseConnectionPage() {
                       value={formData.password}
                       onChange={(e) => handleInputChange('password', e.target.value)}
                       placeholder="Leave blank to keep current password"
-                      className="w-full rounded-[1.15rem] border border-[#e2d6c6] bg-gray-50 px-4 py-4 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                      className="w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-ink-mute mt-1">
                       Leave blank to keep the current password. Enter a new password to update it.
                     </p>
                   </div>
@@ -756,23 +752,23 @@ export default function EditDatabaseConnectionPage() {
             {testResult && (
               <div className={`rounded-[1.4rem] border p-4 ${
                 testResult.success 
-                  ? 'border-[#d8e5d9] bg-[linear-gradient(180deg,_rgba(244,249,245,0.98),_rgba(235,245,238,0.95))]'
-                  : 'border-[#e6c0b8] bg-[#fbefec]'
+                  ? 'border-leaf-wash bg-cream'
+                  : 'border-paper-dim bg-paper'
               }`}>
                 <div className="flex items-center gap-3">
                   {testResult.success ? (
-                    <CheckCircle className="h-5 w-5 text-[#2d8b69]" />
+                    <CheckCircle className="h-5 w-5 text-leaf" />
                   ) : (
-                    <AlertCircle className="h-5 w-5 text-[#b44736]" />
+                    <AlertCircle className="h-5 w-5 text-danger" />
                   )}
                   <div>
                     <p className={`font-medium ${
-                      testResult.success ? 'text-gray-900' : 'text-[#7f301f]'
+                      testResult.success ? 'text-ink' : 'text-danger'
                     }`}>
                       {testResult.success ? 'Connection Successful' : 'Connection Failed'}
                     </p>
                     <p className={`text-sm ${
-                      testResult.success ? 'text-gray-600' : 'text-[#8f3f2c]'
+                      testResult.success ? 'text-ink-soft' : 'text-leaf'
                     }`}>
                       {testResult.message}
                     </p>
@@ -782,16 +778,16 @@ export default function EditDatabaseConnectionPage() {
             )}
 
             {/* Actions */}
-            <div className="flex flex-col gap-4 border-t border-[#e6ddd1] pt-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-4 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
               <button
                 type="button"
                 onClick={testConnection}
                 disabled={testing || (isPathBased && !formData.database_path) || (isBigQuery && !formData.database) || (isSnowflake && (!formData.host || !formData.username)) || (isSupabase && !formData.host) || (!isPathBased && !isCloudOnly && (!formData.host || !formData.port))}
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-[#d7c4aa] bg-white/80 px-5 py-3 text-sm font-semibold text-gray-700 transition-colors hover:border-[#c8b090] hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-tan bg-white/80 px-5 py-3 text-sm font-semibold text-ink-soft transition-colors hover:border-tan hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {testing ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 motion-safe:animate-spin" />
                     Testing...
                   </>
                 ) : (
@@ -805,18 +801,18 @@ export default function EditDatabaseConnectionPage() {
               <div className="flex flex-col-reverse gap-3 sm:flex-row">
                 <Link
                   href={`/database-connections/${params.id}`}
-                  className="inline-flex items-center justify-center rounded-full border border-[#ddd2c2] bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition-colors hover:border-[#ccb59a] hover:text-gray-900"
+                  className="inline-flex items-center justify-center rounded-full border border-line bg-white px-5 py-3 text-sm font-semibold text-ink-soft transition-colors hover:border-tan hover:text-ink"
                 >
                   Cancel
                 </Link>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-[#171717] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-ink px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {saving ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Loader2 className="h-4 w-4 motion-safe:animate-spin" />
                       Saving...
                     </>
                   ) : (

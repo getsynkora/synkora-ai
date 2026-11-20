@@ -125,17 +125,17 @@ export default function AgentLLMConfigsPage() {
     <div className="dashboard-resource-page min-h-screen">
       {/* Delete Confirmation Modal */}
       {deletingConfigId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-[1.8rem] border border-black/10 bg-[#fcfaf5] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.18)]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <div className="w-full max-w-md rounded-[1.8rem] border border-black/10 bg-cream p-6 shadow-soft">
             <div className="flex items-center gap-3 mb-4">
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[1rem] bg-red-50">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[1rem] bg-sand-deep">
+                <AlertTriangle className="w-5 h-5 text-danger" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">Delete Configuration</h3>
+              <h3 className="text-lg font-semibold text-ink">Delete Configuration</h3>
             </div>
-            <p className="text-gray-600 mb-6">
+            <p className="text-ink-soft mb-6">
               Are you sure you want to delete{' '}
-              <span className="font-medium text-gray-900">
+              <span className="font-medium text-ink">
                 {deletingConfig?.name || 'this configuration'}
               </span>
               ? This action cannot be undone.
@@ -144,16 +144,16 @@ export default function AgentLLMConfigsPage() {
               <button
                 onClick={() => setDeletingConfigId(null)}
                 disabled={isDeleting}
-                className="rounded-[1rem] border border-black/10 bg-[#f1eadc] px-4 py-2.5 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#e8ddc8] disabled:opacity-50"
+                className="rounded-[1rem] border border-black/10 bg-sand-deep px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-line disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
                 disabled={isDeleting}
-                className="flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
+                className="flex items-center gap-2 rounded-[1rem] bg-ink px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
               >
-                {isDeleting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                {isDeleting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full motion-safe:animate-spin" />}
                 Delete
               </button>
             </div>
@@ -164,7 +164,7 @@ export default function AgentLLMConfigsPage() {
       <AgentPageShell
         agentName={agentName}
         title="AI Model Config"
-        description={<>Manage AI models for <span className="font-semibold text-gray-900">{agentName}</span>.</>}
+        description={<>Manage AI models for <span className="font-semibold text-ink">{agentName}</span>.</>}
         icon={Brain}
         backHref={`/agents/${agentName}/view`}
         backLabel="Back to Agent"
@@ -173,14 +173,14 @@ export default function AgentLLMConfigsPage() {
         {showForm ? (
           <AgentPagePanel className="p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-lg font-semibold text-ink">
                 {editingConfig ? 'Edit Configuration' : 'Add Configuration'}
               </h2>
               <button
                 onClick={handleCancel}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-sand rounded-lg transition-colors"
               >
-                <X className="w-5 h-5 text-gray-600" />
+                <X className="w-5 h-5 text-ink-soft" />
               </button>
             </div>
             <LLMConfigForm
@@ -203,10 +203,10 @@ export default function AgentLLMConfigsPage() {
 
             <AgentPagePanel className="p-6">
               <div className="mb-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                <h2 className="text-lg font-semibold text-ink mb-2">
                   Model Configurations
                 </h2>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-ink-soft">
                   Add multiple models and configure routing rules on each to control which queries
                   each model handles. The routing mode above determines how the agent picks between them.
                 </p>

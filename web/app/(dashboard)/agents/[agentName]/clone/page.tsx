@@ -39,12 +39,12 @@ function CloneOptionToggle({
   onChange: (checked: boolean) => void
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 rounded-lg border border-gray-200 p-3.5">
+    <div className="flex items-start justify-between gap-4 rounded-lg border border-line p-3.5">
       <div className="flex-grow">
-        <label htmlFor={id} className="block text-sm font-medium text-gray-900">
+        <label htmlFor={id} className="block text-sm font-medium text-ink">
           {label}
         </label>
-        <p className="mt-0.5 text-sm text-gray-500">{description}</p>
+        <p className="mt-0.5 text-sm text-ink-mute">{description}</p>
       </div>
       <button
         type="button"
@@ -53,11 +53,11 @@ function CloneOptionToggle({
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
-          checked ? 'bg-red-500' : 'bg-gray-200'
+          checked ? 'bg-ink' : 'bg-line'
         }`}
       >
         <span
-          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform motion-reduce:transition-none ${
             checked ? 'translate-x-4.5' : 'translate-x-0.5'
           }`}
         />
@@ -170,18 +170,18 @@ export default function CloneAgentPage() {
           <button
             onClick={() => router.back()}
             disabled={cloning || success}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 border border-taupe rounded-lg text-sm font-medium text-ink-soft hover:bg-sand transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={cloning || success || !formData.new_name}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg text-sm font-medium hover:from-red-600 hover:to-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-ink text-white rounded-lg text-sm font-medium hover:from-danger hover:to-danger transition-[color,background-color,border-color,box-shadow,opacity,transform] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
           >
             {cloning ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <div className="motion-safe:animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                 Cloning...
               </>
             ) : (
@@ -198,55 +198,55 @@ export default function CloneAgentPage() {
         <AgentPagePanel className="p-5 md:p-6 space-y-6">
           {/* Agent Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">
+            <label className="block text-sm font-medium text-ink mb-2">
               New Agent Name *
             </label>
             <input
               type="text"
               value={formData.new_name}
               onChange={(e) => setFormData({ ...formData, new_name: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
+              className="w-full px-4 py-2 border border-line rounded-xl focus:ring-2 focus:ring-ink focus:border-transparent transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-200"
               placeholder="Enter new agent name"
               required
             />
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-ink-mute">
               A unique name for your cloned agent
             </p>
           </div>
 
           {/* API Key */}
           <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2">
+            <label className="block text-sm font-medium text-ink mb-2">
               New API Key (Optional)
             </label>
 
             {/* Show LLM Config Info */}
             {loadingConfigs ? (
-              <div className="mb-3 p-3 bg-[#f7f2e7] rounded-lg border border-[#eadfce]">
-                <div className="animate-pulse flex items-center gap-2">
-                  <div className="h-4 w-4 bg-[#e5d9ca] rounded"></div>
-                  <div className="h-4 w-32 bg-[#e5d9ca] rounded"></div>
+              <div className="mb-3 p-3 bg-paper rounded-lg border border-sand-deep">
+                <div className="motion-safe:animate-pulse flex items-center gap-2">
+                  <div className="h-4 w-4 bg-line rounded"></div>
+                  <div className="h-4 w-32 bg-line rounded"></div>
                 </div>
               </div>
             ) : defaultConfig ? (
-              <div className="mb-3 p-3 bg-[#f7f2e7] rounded-lg border border-[#eadfce]">
+              <div className="mb-3 p-3 bg-paper rounded-lg border border-sand-deep">
                 <div className="flex items-center gap-2">
-                  <Cpu className="h-4 w-4 text-[#7c5d45]" />
-                  <span className="text-sm text-gray-700">
-                    This agent uses <span className="font-semibold text-gray-900">{defaultConfig.provider}</span> provider with model <span className="font-semibold text-gray-900">{defaultConfig.model_name}</span>
+                  <Cpu className="h-4 w-4 text-bark" />
+                  <span className="text-sm text-ink-soft">
+                    This agent uses <span className="font-semibold text-ink">{defaultConfig.provider}</span> provider with model <span className="font-semibold text-ink">{defaultConfig.model_name}</span>
                   </span>
                 </div>
                 {llmConfigs.length > 1 && (
-                  <p className="text-xs text-[#7c5d45] mt-1 ml-6">
+                  <p className="text-xs text-bark mt-1 ml-6">
                     + {llmConfigs.length - 1} more LLM config(s) that will need API keys configured separately
                   </p>
                 )}
               </div>
             ) : (
-              <div className="mb-3 p-3 bg-amber-50 rounded-lg border border-amber-200">
+              <div className="mb-3 p-3 bg-sand-deep rounded-lg border border-honey">
                 <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-amber-600" />
-                  <span className="text-sm text-amber-900">
+                  <AlertTriangle className="h-4 w-4 text-warn" />
+                  <span className="text-sm text-gold">
                     No LLM configuration found for this agent
                   </span>
                 </div>
@@ -257,10 +257,10 @@ export default function CloneAgentPage() {
               type="password"
               value={formData.new_api_key}
               onChange={(e) => setFormData({ ...formData, new_api_key: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200"
+              className="w-full px-4 py-2 border border-line rounded-xl focus:ring-2 focus:ring-ink focus:border-transparent transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-200"
               placeholder={defaultConfig ? `Enter your ${defaultConfig.provider} API key` : "Leave empty to configure later"}
             />
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-ink-mute">
               {defaultConfig
                 ? `Provide your ${defaultConfig.provider} API key to enable the cloned agent immediately`
                 : "Configure LLM settings after cloning"
@@ -271,7 +271,7 @@ export default function CloneAgentPage() {
 
         {/* Clone Options */}
         <AgentPagePanel className="p-5 md:p-6">
-          <h3 className="text-sm font-semibold text-gray-900 mb-4">Clone Options</h3>
+          <h3 className="text-sm font-semibold text-ink mb-4">Clone Options</h3>
           <div className="space-y-3">
             <CloneOptionToggle
               id="clone_tools"
@@ -305,12 +305,12 @@ export default function CloneAgentPage() {
         </AgentPagePanel>
 
         {/* Important Notes */}
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+        <div className="bg-sand-deep border border-honey rounded-lg p-4">
           <div className="flex">
-            <AlertTriangle className="h-5 w-5 text-amber-600 mr-3 flex-shrink-0 mt-0.5" />
+            <AlertTriangle className="h-5 w-5 text-warn mr-3 flex-shrink-0 mt-0.5" />
             <div>
-              <h4 className="text-sm font-medium text-amber-900 mb-2">Important Notes</h4>
-              <ul className="list-disc list-inside space-y-1 text-sm text-amber-800">
+              <h4 className="text-sm font-medium text-gold mb-2">Important Notes</h4>
+              <ul className="list-disc list-inside space-y-1 text-sm text-gold">
                 <li>If you provide an API key above, the default LLM config will be enabled immediately</li>
                 <li>Additional LLM configs (if any) will need API keys configured separately in LLM Configs page</li>
                 <li>OAuth-based integrations (Google Drive, Gmail, etc.) will require re-authorization</li>
@@ -323,14 +323,14 @@ export default function CloneAgentPage() {
 
         {/* Success Message */}
         {success && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="bg-blush-wash border border-blush rounded-lg p-4">
             <div className="flex">
-              <CheckCircle2 className="h-5 w-5 text-red-600 mr-3 flex-shrink-0 mt-0.5" />
+              <CheckCircle2 className="h-5 w-5 text-leaf mr-3 flex-shrink-0 mt-0.5" />
               <div>
-                <h4 className="text-sm font-medium text-red-900 mb-1">Agent cloned successfully!</h4>
-                <p className="text-sm text-red-800">Redirecting to configuration page...</p>
+                <h4 className="text-sm font-medium text-wine mb-1">Agent cloned successfully!</h4>
+                <p className="text-sm text-wine">Redirecting to configuration page…</p>
                 {warnings.length > 0 && (
-                  <ul className="list-disc list-inside mt-2 space-y-1 text-sm text-red-800">
+                  <ul className="list-disc list-inside mt-2 space-y-1 text-sm text-wine">
                     {warnings.map((warning, idx) => (
                       <li key={idx}>{warning}</li>
                     ))}

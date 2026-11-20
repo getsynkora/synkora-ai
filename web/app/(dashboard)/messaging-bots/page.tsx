@@ -55,29 +55,29 @@ export default function MessagingBotsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-8">
+    <div className="min-h-screen p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Messaging Bots</h1>
-            <p className="text-gray-600 mt-2">
+            <h1 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight">Messaging Bots</h1>
+            <p className="text-ink-soft mt-2">
               Connect your agents to WhatsApp and Microsoft Teams
             </p>
           </div>
           <div className="flex gap-3">
             <Link
               href="/messaging-bots/whatsapp/create"
-              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
+              className="px-6 py-3 bg-leaf text-white rounded-lg hover:bg-forest transition-colors font-medium flex items-center gap-2"
             >
-              <span className="text-xl">💬</span>
+              
               Add WhatsApp Bot
             </Link>
             <Link
               href="/messaging-bots/teams/create"
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
+              className="px-6 py-3 bg-azure text-white rounded-lg hover:bg-azure transition-colors font-medium flex items-center gap-2"
             >
-              <span className="text-xl">👥</span>
+              
               Add Teams Bot
             </Link>
           </div>
@@ -95,20 +95,20 @@ export default function MessagingBotsPage() {
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="text-gray-600 text-sm">Total Bots</div>
-            <div className="text-xl sm:text-3xl font-bold text-gray-900 mt-2">{totalBots}</div>
+            <div className="text-ink-soft text-sm">Total Bots</div>
+            <div className="text-xl sm:text-3xl font-bold text-ink mt-2">{totalBots}</div>
           </div>
           <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="text-gray-600 text-sm">Active Bots</div>
-            <div className="text-xl sm:text-3xl font-bold text-green-600 mt-2">{activeBots}</div>
+            <div className="text-ink-soft text-sm">Active Bots</div>
+            <div className="text-xl sm:text-3xl font-bold text-leaf mt-2">{activeBots}</div>
           </div>
           <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="text-gray-600 text-sm">WhatsApp Bots</div>
-            <div className="text-xl sm:text-3xl font-bold text-green-600 mt-2">{whatsappBots.length}</div>
+            <div className="text-ink-soft text-sm">WhatsApp Bots</div>
+            <div className="text-xl sm:text-3xl font-bold text-leaf mt-2">{whatsappBots.length}</div>
           </div>
           <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="text-gray-600 text-sm">Teams Bots</div>
-            <div className="text-xl sm:text-3xl font-bold text-blue-600 mt-2">{teamsBots.length}</div>
+            <div className="text-ink-soft text-sm">Teams Bots</div>
+            <div className="text-xl sm:text-3xl font-bold text-azure mt-2">{teamsBots.length}</div>
           </div>
         </div>
 
@@ -124,30 +124,30 @@ export default function MessagingBotsPage() {
           <div className="space-y-6">
             {/* WhatsApp Bots Section */}
             {whatsappBots.length > 0 && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-200">
+              <div className="bg-white rounded-lg shadow-sm border border-line overflow-hidden">
+                <div className="px-6 py-4 border-b border-line">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">💬</span>
-                    <h2 className="text-xl font-semibold text-gray-900">WhatsApp Bots</h2>
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    
+                    <h2 className="text-xl font-semibold text-ink">WhatsApp Bots</h2>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-leaf-wash text-forest">
                       {whatsappBots.length} {whatsappBots.length === 1 ? 'bot' : 'bots'}
                     </span>
                   </div>
                 </div>
 
-                <div className="divide-y divide-gray-200">
+                <div className="divide-y divide-line">
                   {whatsappBots.map((bot) => (
-                    <div key={bot.bot_id} className="p-6 hover:bg-gray-50 transition-colors">
+                    <div key={bot.bot_id} className="p-6 hover:bg-cream transition-colors">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-lg font-semibold text-gray-900">{bot.bot_name}</h3>
+                            <h3 className="text-lg font-semibold text-ink">{bot.bot_name}</h3>
                             {bot.is_active ? (
-                              <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              <span className="px-3 py-1 rounded-full text-xs font-medium bg-leaf-wash text-forest">
                                 Active
                               </span>
                             ) : (
-                              <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                              <span className="px-3 py-1 rounded-full text-xs font-medium bg-sand text-ink">
                                 Inactive
                               </span>
                             )}
@@ -155,12 +155,12 @@ export default function MessagingBotsPage() {
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mt-3">
                             <div>
-                              <span className="text-gray-500">Agent:</span>
-                              <span className="ml-2 font-medium text-gray-900">{bot.agent_name}</span>
+                              <span className="text-ink-mute">Agent:</span>
+                              <span className="ml-2 font-medium text-ink">{bot.agent_name}</span>
                             </div>
                             <div>
-                              <span className="text-gray-500">Phone Number ID:</span>
-                              <code className="ml-2 px-2 py-1 bg-gray-100 rounded text-xs font-mono">
+                              <span className="text-ink-mute">Phone Number ID:</span>
+                              <code className="ml-2 px-2 py-1 bg-sand rounded text-xs font-mono">
                                 {bot.phone_number_id}
                               </code>
                             </div>
@@ -168,14 +168,14 @@ export default function MessagingBotsPage() {
 
                           {bot.webhook_url && (
                             <div className="mt-3 text-sm">
-                              <span className="text-gray-500">Webhook URL:</span>
-                              <code className="ml-2 px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-mono">
+                              <span className="text-ink-mute">Webhook URL:</span>
+                              <code className="ml-2 px-2 py-1 bg-sky-wash text-azure rounded text-xs font-mono">
                                 {bot.webhook_url}
                               </code>
                             </div>
                           )}
 
-                          <div className="mt-3 text-xs text-gray-500">
+                          <div className="mt-3 text-xs text-ink-mute">
                             Created: {new Date(bot.created_at).toLocaleDateString()}
                             {bot.last_message_at && ` • Last message: ${new Date(bot.last_message_at).toLocaleDateString()}`}
                           </div>
@@ -186,12 +186,12 @@ export default function MessagingBotsPage() {
                             onClick={() => handleToggleActive('whatsapp', bot)}
                             className={`p-2 rounded-lg transition-colors ${
                               bot.is_active
-                                ? 'text-gray-600 hover:bg-gray-100'
-                                : 'text-green-600 hover:bg-green-50'
+                                ? 'text-ink-soft hover:bg-sand'
+                                : 'text-leaf hover:bg-leaf-wash'
                             }`}
                             title={bot.is_active ? 'Deactivate' : 'Activate'}
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               {bot.is_active ? (
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                               ) : (
@@ -202,10 +202,10 @@ export default function MessagingBotsPage() {
 
                           <Link
                             href={`/messaging-bots/whatsapp/${bot.bot_id}/edit`}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="p-2 text-azure hover:bg-sky-wash rounded-lg transition-colors"
                             title="Edit"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                           </Link>
@@ -214,13 +214,13 @@ export default function MessagingBotsPage() {
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={handleDelete}
-                                className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+                                className="px-3 py-1.5 bg-danger text-white rounded-lg text-sm font-medium hover:bg-danger transition-colors"
                               >
                                 Confirm
                               </button>
                               <button
                                 onClick={() => setDeleteConfirm(null)}
-                                className="px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+                                className="px-3 py-1.5 border border-taupe text-ink-soft rounded-lg text-sm font-medium hover:bg-cream transition-colors"
                               >
                                 Cancel
                               </button>
@@ -228,10 +228,10 @@ export default function MessagingBotsPage() {
                           ) : (
                             <button
                               onClick={() => setDeleteConfirm({ type: 'whatsapp', id: bot.bot_id })}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              className="p-2 text-danger hover:bg-blush-wash rounded-lg transition-colors"
                               title="Delete"
                             >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                               </svg>
                             </button>
@@ -246,30 +246,30 @@ export default function MessagingBotsPage() {
 
             {/* Teams Bots Section */}
             {teamsBots.length > 0 && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-200">
+              <div className="bg-white rounded-lg shadow-sm border border-line overflow-hidden">
+                <div className="px-6 py-4 border-b border-line">
                   <div className="flex items-center gap-3">
-                    <span className="text-2xl">👥</span>
-                    <h2 className="text-xl font-semibold text-gray-900">Microsoft Teams Bots</h2>
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    
+                    <h2 className="text-xl font-semibold text-ink">Microsoft Teams Bots</h2>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-wash text-azure">
                       {teamsBots.length} {teamsBots.length === 1 ? 'bot' : 'bots'}
                     </span>
                   </div>
                 </div>
 
-                <div className="divide-y divide-gray-200">
+                <div className="divide-y divide-line">
                   {teamsBots.map((bot) => (
-                    <div key={bot.bot_id} className="p-6 hover:bg-gray-50 transition-colors">
+                    <div key={bot.bot_id} className="p-6 hover:bg-cream transition-colors">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-lg font-semibold text-gray-900">{bot.bot_name}</h3>
+                            <h3 className="text-lg font-semibold text-ink">{bot.bot_name}</h3>
                             {bot.is_active ? (
-                              <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              <span className="px-3 py-1 rounded-full text-xs font-medium bg-leaf-wash text-forest">
                                 Active
                               </span>
                             ) : (
-                              <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                              <span className="px-3 py-1 rounded-full text-xs font-medium bg-sand text-ink">
                                 Inactive
                               </span>
                             )}
@@ -277,12 +277,12 @@ export default function MessagingBotsPage() {
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mt-3">
                             <div>
-                              <span className="text-gray-500">Agent:</span>
-                              <span className="ml-2 font-medium text-gray-900">{bot.agent_name}</span>
+                              <span className="text-ink-mute">Agent:</span>
+                              <span className="ml-2 font-medium text-ink">{bot.agent_name}</span>
                             </div>
                             <div>
-                              <span className="text-gray-500">App ID:</span>
-                              <code className="ml-2 px-2 py-1 bg-gray-100 rounded text-xs font-mono">
+                              <span className="text-ink-mute">App ID:</span>
+                              <code className="ml-2 px-2 py-1 bg-sand rounded text-xs font-mono">
                                 {bot.app_id.substring(0, 20)}...
                               </code>
                             </div>
@@ -290,21 +290,21 @@ export default function MessagingBotsPage() {
 
                           {bot.welcome_message && (
                             <div className="mt-3 text-sm">
-                              <span className="text-gray-500">Welcome Message:</span>
-                              <p className="ml-2 text-gray-700 italic">{bot.welcome_message}</p>
+                              <span className="text-ink-mute">Welcome Message:</span>
+                              <p className="ml-2 text-ink-soft italic">{bot.welcome_message}</p>
                             </div>
                           )}
 
                           {bot.webhook_url && (
                             <div className="mt-3 text-sm">
-                              <span className="text-gray-500">Webhook URL:</span>
-                              <code className="ml-2 px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-mono">
+                              <span className="text-ink-mute">Webhook URL:</span>
+                              <code className="ml-2 px-2 py-1 bg-sky-wash text-azure rounded text-xs font-mono">
                                 {bot.webhook_url}
                               </code>
                             </div>
                           )}
 
-                          <div className="mt-3 text-xs text-gray-500">
+                          <div className="mt-3 text-xs text-ink-mute">
                             Created: {new Date(bot.created_at).toLocaleDateString()}
                             {bot.last_message_at && ` • Last message: ${new Date(bot.last_message_at).toLocaleDateString()}`}
                           </div>
@@ -315,12 +315,12 @@ export default function MessagingBotsPage() {
                             onClick={() => handleToggleActive('teams', bot)}
                             className={`p-2 rounded-lg transition-colors ${
                               bot.is_active
-                                ? 'text-gray-600 hover:bg-gray-100'
-                                : 'text-green-600 hover:bg-green-50'
+                                ? 'text-ink-soft hover:bg-sand'
+                                : 'text-leaf hover:bg-leaf-wash'
                             }`}
                             title={bot.is_active ? 'Deactivate' : 'Activate'}
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               {bot.is_active ? (
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                               ) : (
@@ -331,10 +331,10 @@ export default function MessagingBotsPage() {
 
                           <Link
                             href={`/messaging-bots/teams/${bot.bot_id}/edit`}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="p-2 text-azure hover:bg-sky-wash rounded-lg transition-colors"
                             title="Edit"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                           </Link>
@@ -343,13 +343,13 @@ export default function MessagingBotsPage() {
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={handleDelete}
-                                className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+                                className="px-3 py-1.5 bg-danger text-white rounded-lg text-sm font-medium hover:bg-danger transition-colors"
                               >
                                 Confirm
                               </button>
                               <button
                                 onClick={() => setDeleteConfirm(null)}
-                                className="px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+                                className="px-3 py-1.5 border border-taupe text-ink-soft rounded-lg text-sm font-medium hover:bg-cream transition-colors"
                               >
                                 Cancel
                               </button>
@@ -357,10 +357,10 @@ export default function MessagingBotsPage() {
                           ) : (
                             <button
                               onClick={() => setDeleteConfirm({ type: 'teams', id: bot.bot_id })}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              className="p-2 text-danger hover:bg-blush-wash rounded-lg transition-colors"
                               title="Delete"
                             >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                               </svg>
                             </button>
@@ -376,17 +376,17 @@ export default function MessagingBotsPage() {
         )}
 
         {/* Info Box */}
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+        <div className="mt-8 bg-sky-wash border border-sky-wash rounded-lg p-6">
           <div className="flex items-start gap-3">
-            <svg className="w-6 h-6 text-blue-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+            <svg aria-hidden="true" className="w-6 h-6 text-azure mt-0.5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
             </svg>
             <div>
-              <h3 className="text-sm font-medium text-blue-900 mb-2">About Messaging Bots</h3>
-              <p className="text-sm text-blue-800 mb-3">
+              <h3 className="text-sm font-medium text-azure mb-2">About Messaging Bots</h3>
+              <p className="text-sm text-azure mb-3">
                 Connect your agents to popular messaging platforms to enable conversations through WhatsApp and Microsoft Teams.
               </p>
-              <div className="space-y-2 text-sm text-blue-800">
+              <div className="space-y-2 text-sm text-azure">
                 <div>
                   <strong>WhatsApp:</strong> Requires WhatsApp Business API access and configuration
                 </div>
@@ -397,9 +397,9 @@ export default function MessagingBotsPage() {
               <div className="mt-4">
                 <Link
                   href="/messaging-bots/setup-guide"
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium underline"
+                  className="text-sm text-azure hover:text-azure font-medium underline"
                 >
-                  View Setup Guide →
+                  View Setup Guide
                 </Link>
               </div>
             </div>

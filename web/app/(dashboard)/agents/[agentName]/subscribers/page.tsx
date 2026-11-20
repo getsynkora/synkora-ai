@@ -29,8 +29,8 @@ const TIER_LABELS: Record<string, string> = {
 
 const STATUS_STYLES: Record<string, string> = {
   ACTIVE: 'bg-primary-100 text-primary-700',
-  CANCELLED: 'bg-gray-100 text-gray-600',
-  EXPIRED: 'bg-red-100 text-red-600',
+  CANCELLED: 'bg-sand text-ink-soft',
+  EXPIRED: 'bg-blush-wash text-danger',
 }
 
 export default function SubscribersPage() {
@@ -65,28 +65,28 @@ export default function SubscribersPage() {
       <div className="mb-8">
         <Link
           href={`/agents/${agentName}/edit`}
-          className="mb-2 inline-flex items-center text-sm text-gray-500 hover:text-gray-700"
+          className="mb-2 inline-flex items-center text-sm text-ink-mute hover:text-ink-soft"
         >
           <ArrowLeft className="mr-1 h-4 w-4" /> Back
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">Subscribers</h1>
-        <p className="text-sm text-gray-500 mt-1">Users who have paid for access to this agent</p>
+        <h1 className="text-2xl font-bold text-ink">Subscribers</h1>
+        <p className="text-sm text-ink-mute mt-1">Users who have paid for access to this agent</p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-8">
         {[
           { label: 'Active', value: stats.active, icon: CheckCircle, color: 'text-primary-600' },
-          { label: 'Total', value: stats.total, icon: Users, color: 'text-blue-600' },
-          { label: 'Revenue', value: `$${(stats.revenue / 100).toFixed(2)}`, icon: Clock, color: 'text-purple-600' },
+          { label: 'Total', value: stats.total, icon: Users, color: 'text-azure' },
+          { label: 'Revenue', value: `$${(stats.revenue / 100).toFixed(2)}`, icon: Clock, color: 'text-plum' },
         ].map(stat => {
           const Icon = stat.icon
           return (
-            <div key={stat.label} className="rounded-lg border border-gray-200 bg-white p-4 flex items-center gap-3">
+            <div key={stat.label} className="rounded-lg border border-line bg-white p-4 flex items-center gap-3">
               <Icon className={`h-8 w-8 ${stat.color} opacity-70`} />
               <div>
-                <div className="text-xl font-bold text-gray-900">{stat.value}</div>
-                <div className="text-xs text-gray-500">{stat.label}</div>
+                <div className="text-xl font-bold text-ink">{stat.value}</div>
+                <div className="text-xs text-ink-mute">{stat.label}</div>
               </div>
             </div>
           )
@@ -100,7 +100,7 @@ export default function SubscribersPage() {
             key={f}
             onClick={() => setFilter(f)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              filter === f ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              filter === f ? 'bg-ink text-white' : 'bg-sand text-ink-soft hover:bg-line'
             }`}
           >
             {f === 'ALL' ? `All (${subscribers.length})` : `${f.charAt(0) + f.slice(1).toLowerCase()} (${subscribers.filter(s => s.status === f).length})`}
@@ -111,10 +111,10 @@ export default function SubscribersPage() {
       {/* List */}
       {loading ? (
         <div className="flex justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+          <Loader2 className="h-8 w-8 motion-safe:animate-spin text-primary-500" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
+        <div className="text-center py-16 text-ash">
           <Users className="h-12 w-12 mx-auto mb-4 opacity-20" />
           <p className="font-medium">No subscribers yet</p>
           <p className="text-sm mt-1">Publish your landing page and set pricing to start earning</p>
@@ -122,42 +122,42 @@ export default function SubscribersPage() {
             href={`/agents/${agentName}/landing-page`}
             className="inline-flex items-center gap-1 mt-4 text-sm text-primary-600 hover:underline"
           >
-            Go to landing page editor →
+            Go to landing page editor
           </Link>
         </div>
       ) : (
-        <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="rounded-lg border border-line bg-white overflow-hidden">
+          <table className="min-w-full divide-y divide-line">
+            <thead className="bg-cream">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subscriber</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tier</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Started</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expires</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-mute">Subscriber</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-mute">Tier</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-mute">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-mute">Started</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-ink-mute">Expires</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-sand">
               {filtered.map(sub => (
-                <tr key={sub.id} className="hover:bg-gray-50">
+                <tr key={sub.id} className="hover:bg-cream">
                   <td className="px-4 py-3">
-                    <div className="text-sm text-gray-900">
+                    <div className="text-sm text-ink">
                       {sub.guest_email || (sub.subscriber_tenant_id ? `Account ${sub.subscriber_tenant_id.slice(0, 8)}…` : 'Unknown')}
                     </div>
-                    <div className="text-xs text-gray-400">{sub.guest_email ? 'Guest' : 'Account user'}</div>
+                    <div className="text-xs text-ash">{sub.guest_email ? 'Guest' : 'Account user'}</div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-sm text-gray-700">{TIER_LABELS[sub.pricing_tier] || sub.pricing_tier}</span>
+                    <span className="text-sm text-ink-soft">{TIER_LABELS[sub.pricing_tier] || sub.pricing_tier}</span>
                   </td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${STATUS_STYLES[sub.status]}`}>
                       {sub.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                  <td className="px-4 py-3 text-sm text-ink-soft whitespace-nowrap">
                     {new Date(sub.started_at).toLocaleDateString()}
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
+                  <td className="px-4 py-3 text-sm text-ink-soft whitespace-nowrap">
                     {sub.expires_at ? new Date(sub.expires_at).toLocaleDateString() : '—'}
                   </td>
                 </tr>

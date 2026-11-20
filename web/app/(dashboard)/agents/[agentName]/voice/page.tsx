@@ -141,8 +141,8 @@ export default function AgentVoicePage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 text-sm">Loading voice settings...</p>
+          <div className="motion-safe:animate-spin rounded-full h-12 w-12 border-b-2 border-danger mx-auto"></div>
+          <p className="mt-4 text-ink-soft text-sm">Loading voice settings…</p>
         </div>
       </div>
     )
@@ -152,7 +152,7 @@ export default function AgentVoicePage() {
     <AgentPageShell
       agentName={agentName}
       title="Voice Settings"
-      description={<>Configure voice input and output for <span className="font-semibold text-gray-900">{agentData?.agent_name}</span>.</>}
+      description={<>Configure voice input and output for <span className="font-semibold text-ink">{agentData?.agent_name}</span>.</>}
       icon={Mic}
       badge="Voice Experience"
       maxWidthClassName="max-w-[90rem]"
@@ -162,11 +162,11 @@ export default function AgentVoicePage() {
         <AgentPagePanel className="p-5 mb-5">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
-                <Mic size={20} className="text-red-600" />
+              <h2 className="text-base font-semibold text-ink flex items-center gap-2">
+                <Mic size={20} className="text-leaf" />
                 Enable Voice Chat
               </h2>
-              <p className="text-xs text-gray-600 mt-1">
+              <p className="text-xs text-ink-soft mt-1">
                 Allow users to interact with this agent using voice
               </p>
             </div>
@@ -177,7 +177,7 @@ export default function AgentVoicePage() {
                 onChange={(e) => setVoiceEnabled(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-12 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+              <div className="w-12 h-6 bg-line peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blush rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-taupe after:border after:rounded-full after:h-5 after:w-5 after:transition-[color,background-color,border-color,box-shadow,opacity,transform] peer-checked:bg-danger"></div>
             </label>
           </div>
         </AgentPagePanel>
@@ -186,25 +186,25 @@ export default function AgentVoicePage() {
           <>
             {/* Speech-to-Text Configuration */}
             <AgentPagePanel className="p-5 mb-5">
-              <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Mic size={20} className="text-red-600" />
+              <h2 className="text-base font-semibold text-ink mb-4 flex items-center gap-2">
+                <Mic size={20} className="text-leaf" />
                 Speech-to-Text (STT)
               </h2>
 
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-2">
+                  <label className="block text-xs font-medium text-ink-soft mb-2">
                     STT Provider
                   </label>
                   <select
                     value={voiceConfig.stt_provider}
                     onChange={(e) => setVoiceConfig({ ...voiceConfig, stt_provider: e.target.value as any })}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className="w-full px-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
                   >
                     <option value="web_speech">Web Speech API (Free, Browser-based)</option>
                     <option value="openai_whisper">OpenAI Whisper (Paid, High Accuracy)</option>
                   </select>
-                  <p className="mt-2 text-xs text-gray-600">
+                  <p className="mt-2 text-xs text-ink-soft">
                     {voiceConfig.stt_provider === 'web_speech' 
                       ? '✅ Free browser-based speech recognition. Works offline in supported browsers.'
                       : '💰 Requires OpenAI API key. Provides superior accuracy and supports 50+ languages.'}
@@ -212,9 +212,9 @@ export default function AgentVoicePage() {
                 </div>
 
                 {voiceConfig.stt_provider === 'openai_whisper' && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                    <p className="text-xs text-red-800">
-                      ⚠️ OpenAI Whisper requires an API key. Add your OpenAI API key in the API Keys section below.
+                  <div className="bg-blush-wash border border-blush rounded-lg p-3">
+                    <p className="text-xs text-wine">
+                      OpenAI Whisper requires an API key. Add your OpenAI API key in the API Keys section below.
                     </p>
                   </div>
                 )}
@@ -223,26 +223,26 @@ export default function AgentVoicePage() {
 
             {/* Text-to-Speech Configuration */}
             <AgentPagePanel className="p-5 mb-5">
-              <h2 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Volume2 size={20} className="text-red-600" />
+              <h2 className="text-base font-semibold text-ink mb-4 flex items-center gap-2">
+                <Volume2 size={20} className="text-leaf" />
                 Text-to-Speech (TTS)
               </h2>
 
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-2">
+                  <label className="block text-xs font-medium text-ink-soft mb-2">
                     TTS Provider
                   </label>
                   <select
                     value={voiceConfig.tts_provider}
                     onChange={(e) => setVoiceConfig({ ...voiceConfig, tts_provider: e.target.value as any })}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className="w-full px-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
                   >
                     <option value="web_speech">Web Speech API (Free, Basic)</option>
                     <option value="openai_tts">OpenAI TTS (Paid, Natural)</option>
                     <option value="elevenlabs">ElevenLabs (Paid, Premium)</option>
                   </select>
-                  <p className="mt-2 text-xs text-gray-600">
+                  <p className="mt-2 text-xs text-ink-soft">
                     {voiceConfig.tts_provider === 'web_speech' && '✅ Free browser-based text-to-speech. Basic quality.'}
                     {voiceConfig.tts_provider === 'openai_tts' && '💰 Natural-sounding voices from OpenAI. Requires API key.'}
                     {voiceConfig.tts_provider === 'elevenlabs' && '💎 Premium quality voices with emotion. Requires API key.'}
@@ -251,13 +251,13 @@ export default function AgentVoicePage() {
 
                 {voiceConfig.tts_provider === 'openai_tts' && (
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-2">
+                    <label className="block text-xs font-medium text-ink-soft mb-2">
                       Voice
                     </label>
                     <select
                       value={voiceConfig.tts_voice || 'alloy'}
                       onChange={(e) => setVoiceConfig({ ...voiceConfig, tts_voice: e.target.value })}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                      className="w-full px-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
                     >
                       <option value="alloy">Alloy (Neutral)</option>
                       <option value="echo">Echo (Male)</option>
@@ -270,17 +270,17 @@ export default function AgentVoicePage() {
                 )}
 
                 {voiceConfig.tts_provider === 'elevenlabs' && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                    <p className="text-xs text-red-800">
-                      💡 ElevenLabs voices can be configured after adding your API key. You'll be able to select from your available voices.
+                  <div className="bg-blush-wash border border-blush rounded-lg p-3">
+                    <p className="text-xs text-wine">
+                      ElevenLabs voices can be configured after adding your API key. You'll be able to select from your available voices.
                     </p>
                   </div>
                 )}
 
                 {(voiceConfig.tts_provider === 'openai_tts' || voiceConfig.tts_provider === 'elevenlabs') && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                    <p className="text-xs text-red-800">
-                      ⚠️ {voiceConfig.tts_provider === 'openai_tts' ? 'OpenAI' : 'ElevenLabs'} TTS requires an API key. Add your API key in the section below.
+                  <div className="bg-blush-wash border border-blush rounded-lg p-3">
+                    <p className="text-xs text-wine">
+                      {voiceConfig.tts_provider === 'openai_tts' ? 'OpenAI' : 'ElevenLabs'} TTS requires an API key. Add your API key in the section below.
                     </p>
                   </div>
                 )}
@@ -289,16 +289,16 @@ export default function AgentVoicePage() {
 
             {/* Language Configuration */}
             <AgentPagePanel className="p-5 mb-5">
-              <h2 className="text-base font-semibold text-gray-900 mb-4">Language Settings</h2>
+              <h2 className="text-base font-semibold text-ink mb-4">Language Settings</h2>
               
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-2">
+                <label className="block text-xs font-medium text-ink-soft mb-2">
                   Primary Language
                 </label>
                 <select
                   value={voiceConfig.language || 'en-US'}
                   onChange={(e) => setVoiceConfig({ ...voiceConfig, language: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
                 >
                   <option value="en-US">English (US)</option>
                   <option value="en-GB">English (UK)</option>
@@ -319,30 +319,30 @@ export default function AgentVoicePage() {
             {/* API Keys Management */}
             <AgentPagePanel className="p-5 mb-5">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
-                  <Key size={20} className="text-red-600" />
+                <h2 className="text-base font-semibold text-ink flex items-center gap-2">
+                  <Key size={20} className="text-leaf" />
                   Voice API Keys
                 </h2>
                 <button
                   onClick={() => setShowAddKey(!showAddKey)}
-                  className="px-3 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all text-xs font-medium shadow-sm"
+                  className="px-3 py-2 bg-ink text-white rounded-lg hover:from-danger hover:to-danger transition-[color,background-color,border-color,box-shadow,opacity,transform] text-xs font-medium shadow-sm"
                 >
                   {showAddKey ? 'Cancel' : 'Add API Key'}
                 </button>
               </div>
 
               {showAddKey && (
-                <div className="mb-5 p-4 bg-red-50 rounded-lg border border-red-200">
-                  <h3 className="font-medium text-gray-900 mb-3 text-sm">Add New API Key</h3>
+                <div className="mb-5 p-4 bg-blush-wash rounded-lg border border-blush">
+                  <h3 className="font-medium text-ink mb-3 text-sm">Add New API Key</h3>
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-2">
+                      <label className="block text-xs font-medium text-ink-soft mb-2">
                         Provider
                       </label>
                       <select
                         value={newKey.provider}
                         onChange={(e) => setNewKey({ ...newKey, provider: e.target.value })}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        className="w-full px-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
                       >
                         <option value="openai_whisper">OpenAI Whisper (STT)</option>
                         <option value="openai_tts">OpenAI TTS</option>
@@ -350,7 +350,7 @@ export default function AgentVoicePage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-2">
+                      <label className="block text-xs font-medium text-ink-soft mb-2">
                         API Key
                       </label>
                       <input
@@ -358,12 +358,12 @@ export default function AgentVoicePage() {
                         value={newKey.api_key}
                         onChange={(e) => setNewKey({ ...newKey, api_key: e.target.value })}
                         placeholder="sk-..."
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        className="w-full px-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
                       />
                     </div>
                     <button
                       onClick={handleAddApiKey}
-                      className="w-full px-4 py-2 text-sm bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all font-medium shadow-sm"
+                      className="w-full px-4 py-2 text-sm bg-ink text-white rounded-lg hover:from-danger hover:to-danger transition-[color,background-color,border-color,box-shadow,opacity,transform] font-medium shadow-sm"
                     >
                       Save API Key
                     </button>
@@ -376,17 +376,17 @@ export default function AgentVoicePage() {
                   {apiKeys.map((key) => (
                     <div
                       key={key.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                      className="flex items-center justify-between p-3 bg-cream rounded-lg border border-line"
                     >
                       <div>
-                        <div className="font-medium text-gray-900 text-sm capitalize">{key.provider.replace(/_/g, ' ')}</div>
-                        <div className="text-xs text-gray-600">
+                        <div className="font-medium text-ink text-sm capitalize">{key.provider.replace(/_/g, ' ')}</div>
+                        <div className="text-xs text-ink-soft">
                           Added {new Date(key.created_at).toLocaleDateString()}
                         </div>
                       </div>
                       <button
                         onClick={() => handleDeleteApiKey(key.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded transition-colors"
+                        className="p-2 text-danger hover:bg-blush-wash rounded transition-colors"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -394,7 +394,7 @@ export default function AgentVoicePage() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-ink-mute">
                   <Key size={40} className="mx-auto mb-2 opacity-50" />
                   <p className="text-sm">No API keys configured</p>
                   <p className="text-xs mt-1">Add API keys to use cloud-based voice providers</p>
@@ -408,17 +408,17 @@ export default function AgentVoicePage() {
         <div className="flex justify-end gap-3">
           <button
             onClick={() => router.push(`/agents/${agentName}/view`)}
-            className="px-5 py-2 text-sm border border-gray-300 rounded-lg hover:bg-white hover:border-red-300 transition-colors font-medium"
+            className="px-5 py-2 text-sm border border-taupe rounded-lg hover:bg-white hover:border-blush transition-colors font-medium"
           >
             Cancel
           </button>
           <button
             onClick={handleSaveConfig}
             disabled={saving}
-            className="flex items-center gap-2 rounded-[1rem] bg-[#171717] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            className="flex items-center gap-2 rounded-[1rem] bg-ink px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
           >
             <Save size={16} />
-            {saving ? 'Saving...' : 'Save Configuration'}
+            {saving ? 'Saving…' : 'Save Configuration'}
           </button>
         </div>
     </AgentPageShell>

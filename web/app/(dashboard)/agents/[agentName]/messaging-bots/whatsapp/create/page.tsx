@@ -22,14 +22,14 @@ type ActiveTab = "cloud_api" | "device_link";
 type QRStep = 1 | 2 | 3;
 
 const fieldClass =
-  "w-full rounded-[1.15rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]";
+  "w-full rounded-[1.15rem] border border-black/10 bg-cream px-4 py-3 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-mint";
 const sectionTitleClass =
-  "mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[#7c5d45]";
-const helperTextClass = "mt-1 text-xs text-gray-500";
+  "mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-bark";
+const helperTextClass = "mt-1 text-xs text-ink-mute";
 const secondaryButtonClass =
-  "rounded-[1rem] border border-black/10 bg-white/85 px-4 py-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-white hover:text-[#171717]";
+  "rounded-[1rem] border border-black/10 bg-white/85 px-4 py-3 text-sm font-semibold text-ink-soft transition-colors hover:bg-white hover:text-ink";
 const primaryButtonClass =
-  "inline-flex items-center justify-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 rounded-[1rem] bg-ink px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50";
 
 export default function CreateWhatsAppBotPage() {
   const params = useParams();
@@ -59,7 +59,7 @@ export default function CreateWhatsAppBotPage() {
   const [qrBotNameError, setQrBotNameError] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [qrData, setQrData] = useState<string | null>(null);
-  const [qrStatus, setQrStatus] = useState<string>("Waiting for QR code...");
+  const [qrStatus, setQrStatus] = useState<string>("Waiting for QR code…");
   const [connectedPhone, setConnectedPhone] = useState<string | null>(null);
   const [qrError, setQrError] = useState<string | null>(null);
   const [startingQR, setStartingQR] = useState(false);
@@ -139,7 +139,7 @@ export default function CreateWhatsAppBotPage() {
       const { session_id } = await whatsappBotsApi.startQRSession(agentId, qrBotName);
       setSessionId(session_id);
       setQrStep(2);
-      setQrStatus("Waiting for QR code...");
+      setQrStatus("Waiting for QR code…");
       openEventSource(session_id);
     } catch (err: any) {
       setQrError(err?.response?.data?.detail || "Failed to start QR session");
@@ -209,17 +209,17 @@ export default function CreateWhatsAppBotPage() {
     }
     setQrStep(1);
     setQrData(null);
-    setQrStatus("Waiting for QR code...");
+    setQrStatus("Waiting for QR code…");
     setQrError(null);
   };
 
   const inputClass = (hasError?: boolean) =>
-    `${fieldClass} ${hasError ? "border-[#e4b7c6] focus:ring-[#f0bfd0]" : ""}`.trim();
+    `${fieldClass} ${hasError ? "border-blush-wash focus:ring-blush-wash" : ""}`.trim();
 
   if (loading) {
     return (
       <div className="dashboard-resource-page flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[#171717]"></div>
+        <div className="h-8 w-8 motion-safe:animate-spin rounded-full border-b-2 border-ink"></div>
       </div>
     );
   }
@@ -230,7 +230,7 @@ export default function CreateWhatsAppBotPage() {
       title="Create WhatsApp Bot"
       description={
         <>
-          Connect your agent <span className="font-semibold text-gray-900">{agentName}</span> to WhatsApp using Cloud API credentials or a QR-based device link.
+          Connect your agent <span className="font-semibold text-ink">{agentName}</span> to WhatsApp using Cloud API credentials or a QR-based device link.
         </>
       }
       icon={MessageCircle}
@@ -239,25 +239,25 @@ export default function CreateWhatsAppBotPage() {
     >
       <AgentPagePanel className="mb-5 p-5">
         <div className="flex items-start gap-3">
-          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[1rem] border border-black/10 bg-[#f1eadc]">
-            <AlertCircle className="h-4 w-4 text-[#171717]" />
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-[1rem] border border-black/10 bg-sand-deep">
+            <AlertCircle className="h-4 w-4 text-ink" />
           </div>
           <div className="flex-1">
-            <h3 className="mb-2 text-sm font-semibold text-gray-950">
+            <h3 className="mb-2 text-sm font-semibold text-ink">
               Choose how you want to connect WhatsApp
             </h3>
-            <div className="space-y-2 text-xs leading-6 text-gray-600">
+            <div className="space-y-2 text-xs leading-6 text-ink-soft">
               <p>
-                <strong className="text-gray-900">Cloud API</strong> is best for production WhatsApp Business setups with Meta credentials.
+                <strong className="text-ink">Cloud API</strong> is best for production WhatsApp Business setups with Meta credentials.
               </p>
               <p>
-                <strong className="text-gray-900">Device Link</strong> lets you connect a phone by scanning a QR code, which is faster for testing and internal workflows.
+                <strong className="text-ink">Device Link</strong> lets you connect a phone by scanning a QR code, which is faster for testing and internal workflows.
               </p>
               <a
                 href="https://developers.facebook.com/docs/whatsapp/cloud-api/get-started"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 font-semibold text-[#171717] transition-colors hover:text-black"
+                className="inline-flex items-center gap-1 font-semibold text-ink transition-colors hover:text-black"
               >
                 Open WhatsApp setup guide
                 <ExternalLink className="h-3 w-3" />
@@ -268,11 +268,11 @@ export default function CreateWhatsAppBotPage() {
       </AgentPagePanel>
 
       {error && (
-        <div className="mb-5 flex items-start gap-3 rounded-[1.25rem] border border-[#ead8e1] bg-[#f8ecef] px-4 py-4">
-          <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#8b5a74]" />
+        <div className="mb-5 flex items-start gap-3 rounded-[1.25rem] border border-blush-wash bg-blush-wash px-4 py-4">
+          <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-plum" />
           <div>
-            <h3 className="text-sm font-semibold text-[#6f435b]">Error</h3>
-            <p className="mt-1 text-xs text-[#8b5a74]">{error}</p>
+            <h3 className="text-sm font-semibold text-plum">Error</h3>
+            <p className="mt-1 text-xs text-plum">{error}</p>
           </div>
         </div>
       )}
@@ -291,9 +291,9 @@ export default function CreateWhatsAppBotPage() {
 
       {activeTab === "cloud_api" && (
         <>
-          <div className="mb-5 rounded-[1.35rem] border border-[#d7e6ea] bg-[#edf4f6] p-4">
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#486c77]">Before you begin</h3>
-            <ul className="list-inside list-disc space-y-1 text-xs text-[#486c77]">
+          <div className="mb-5 rounded-[1.35rem] border border-sky-wash bg-leaf-wash p-4">
+            <h3 className="mb-2 text-xs font-semibold text-steel">Before you begin</h3>
+            <ul className="list-inside list-disc space-y-1 text-xs text-steel">
               <li>Create a Facebook Developer account at developers.facebook.com</li>
               <li>Set up WhatsApp Business API in your Facebook app</li>
               <li>Get your Phone Number ID and Access Token</li>
@@ -303,7 +303,7 @@ export default function CreateWhatsAppBotPage() {
               href="https://developers.facebook.com/docs/whatsapp/cloud-api/get-started"
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-[#171717] hover:text-black"
+              className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-ink hover:text-black"
             >
               View setup guide
               <ExternalLink className="h-3 w-3" />
@@ -315,7 +315,7 @@ export default function CreateWhatsAppBotPage() {
               <div className="space-y-5 p-6">
                 <div>
                   <label htmlFor="bot_name" className={sectionTitleClass}>
-                    Bot Name <span className="text-[#8b5a74]">*</span>
+                    Bot Name <span className="text-plum">*</span>
                   </label>
                   <input
                     type="text"
@@ -325,12 +325,12 @@ export default function CreateWhatsAppBotPage() {
                     className={inputClass(!!formErrors.bot_name)}
                     placeholder="e.g., Customer Support Bot"
                   />
-                  {formErrors.bot_name && <p className="mt-1 text-xs text-[#8b5a74]">{formErrors.bot_name}</p>}
+                  {formErrors.bot_name && <p className="mt-1 text-xs text-plum">{formErrors.bot_name}</p>}
                 </div>
 
                 <div>
                   <label htmlFor="phone_number_id" className={sectionTitleClass}>
-                    Phone Number ID <span className="text-[#8b5a74]">*</span>
+                    Phone Number ID <span className="text-plum">*</span>
                   </label>
                   <input
                     type="text"
@@ -341,14 +341,14 @@ export default function CreateWhatsAppBotPage() {
                     placeholder="123456789012345"
                   />
                   {formErrors.phone_number_id && (
-                    <p className="mt-1 text-xs text-[#8b5a74]">{formErrors.phone_number_id}</p>
+                    <p className="mt-1 text-xs text-plum">{formErrors.phone_number_id}</p>
                   )}
                   <p className={helperTextClass}>Find this in your WhatsApp Business API settings.</p>
                 </div>
 
                 <div>
                   <label htmlFor="business_account_id" className={sectionTitleClass}>
-                    WhatsApp Business Account ID <span className="text-[#8b5a74]">*</span>
+                    WhatsApp Business Account ID <span className="text-plum">*</span>
                   </label>
                   <input
                     type="text"
@@ -359,13 +359,13 @@ export default function CreateWhatsAppBotPage() {
                     placeholder="123456789012345"
                   />
                   {formErrors.business_account_id && (
-                    <p className="mt-1 text-xs text-[#8b5a74]">{formErrors.business_account_id}</p>
+                    <p className="mt-1 text-xs text-plum">{formErrors.business_account_id}</p>
                   )}
                 </div>
 
                 <div>
                   <label htmlFor="access_token" className={sectionTitleClass}>
-                    Access Token <span className="text-[#8b5a74]">*</span>
+                    Access Token <span className="text-plum">*</span>
                   </label>
                   <input
                     type="password"
@@ -373,10 +373,10 @@ export default function CreateWhatsAppBotPage() {
                     value={formData.access_token}
                     onChange={(e) => handleCloudChange("access_token", e.target.value)}
                     className={`${inputClass(!!formErrors.access_token)} font-mono`}
-                    placeholder="EAAxxxxxxxxxx..."
+                    placeholder="EAAxxxxxxxxxx…"
                   />
                   {formErrors.access_token && (
-                    <p className="mt-1 text-xs text-[#8b5a74]">{formErrors.access_token}</p>
+                    <p className="mt-1 text-xs text-plum">{formErrors.access_token}</p>
                   )}
                   <p className={helperTextClass}>
                     Generate from your Facebook app settings. It will be stored securely.
@@ -400,10 +400,10 @@ export default function CreateWhatsAppBotPage() {
                   </p>
                 </div>
 
-                <div className="rounded-[1.35rem] border border-[#d7e6ea] bg-[#edf4f6] p-4">
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#486c77]">Webhook Configuration</h3>
-                  <p className="mb-2 text-xs text-[#486c77]">Configure this webhook URL in your Facebook app:</p>
-                  <code className="block overflow-x-auto rounded-[1rem] border border-[#bfd6dc] bg-white px-3 py-3 text-xs text-gray-800">
+                <div className="rounded-[1.35rem] border border-sky-wash bg-leaf-wash p-4">
+                  <h3 className="mb-2 text-xs font-semibold text-steel">Webhook Configuration</h3>
+                  <p className="mb-2 text-xs text-steel">Configure this webhook URL in your Facebook app:</p>
+                  <code className="block overflow-x-auto rounded-[1rem] border border-sky-wash bg-white px-3 py-3 text-xs text-ink">
                     {typeof window !== "undefined" ? window.location.origin : ""}/api/v1/whatsapp/webhook
                   </code>
                 </div>
@@ -420,7 +420,7 @@ export default function CreateWhatsAppBotPage() {
                   <button type="submit" disabled={submitting} className={primaryButtonClass}>
                     {submitting ? (
                       <>
-                        <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
+                        <div className="h-4 w-4 motion-safe:animate-spin rounded-full border-b-2 border-white"></div>
                         Creating...
                       </>
                     ) : (
@@ -438,23 +438,23 @@ export default function CreateWhatsAppBotPage() {
         <AgentPagePanel className="overflow-hidden p-6">
           {qrStep === 1 && (
             <div className="space-y-5">
-              <div className="rounded-[1.35rem] border border-[#ead8aa] bg-[linear-gradient(180deg,_rgba(255,251,237,0.98),_rgba(251,244,217,0.96))] p-4">
-                <h3 className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#8b6615]">Link a device via QR code</h3>
-                <p className="text-xs text-[#8b6615]">
+              <div className="rounded-[1.35rem] border border-tan bg-paper p-4">
+                <h3 className="mb-1 text-xs font-semibold text-gold">Link a device via QR code</h3>
+                <p className="text-xs text-gold">
                   This links a personal or business WhatsApp number by scanning a QR code, without needing Meta Business API credentials.
                 </p>
               </div>
 
               {qrError && (
-                <div className="flex items-start gap-3 rounded-[1.25rem] border border-[#ead8e1] bg-[#f8ecef] px-4 py-4">
-                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#8b5a74]" />
-                  <p className="text-xs text-[#8b5a74]">{qrError}</p>
+                <div className="flex items-start gap-3 rounded-[1.25rem] border border-blush-wash bg-blush-wash px-4 py-4">
+                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-plum" />
+                  <p className="text-xs text-plum">{qrError}</p>
                 </div>
               )}
 
               <div>
                 <label htmlFor="qr_bot_name" className={sectionTitleClass}>
-                  Bot Name <span className="text-[#8b5a74]">*</span>
+                  Bot Name <span className="text-plum">*</span>
                 </label>
                 <input
                   type="text"
@@ -467,7 +467,7 @@ export default function CreateWhatsAppBotPage() {
                   className={inputClass(!!qrBotNameError)}
                   placeholder="e.g., Support Bot"
                 />
-                {qrBotNameError && <p className="mt-1 text-xs text-[#8b5a74]">{qrBotNameError}</p>}
+                {qrBotNameError && <p className="mt-1 text-xs text-plum">{qrBotNameError}</p>}
               </div>
 
               <div className="flex flex-col-reverse gap-3 border-t border-black/10 pt-4 sm:flex-row sm:justify-end">
@@ -486,7 +486,7 @@ export default function CreateWhatsAppBotPage() {
                 >
                   {startingQR ? (
                     <>
-                      <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-white"></div>
+                      <div className="h-4 w-4 motion-safe:animate-spin rounded-full border-b-2 border-white"></div>
                       Starting...
                     </>
                   ) : (
@@ -502,9 +502,9 @@ export default function CreateWhatsAppBotPage() {
 
           {qrStep === 2 && (
             <div className="space-y-5">
-              <div className="rounded-[1.35rem] border border-[#d7e6ea] bg-[#edf4f6] p-4">
-                <h3 className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#486c77]">How to link your device</h3>
-                <ol className="list-inside list-decimal space-y-1 text-xs text-[#486c77]">
+              <div className="rounded-[1.35rem] border border-sky-wash bg-leaf-wash p-4">
+                <h3 className="mb-1 text-xs font-semibold text-steel">How to link your device</h3>
+                <ol className="list-inside list-decimal space-y-1 text-xs text-steel">
                   <li>Open WhatsApp on your phone</li>
                   <li>Tap Menu (⋮) or Settings → Linked Devices</li>
                   <li>Tap “Link a Device” and scan the QR code below</li>
@@ -512,28 +512,28 @@ export default function CreateWhatsAppBotPage() {
               </div>
 
               {qrError && (
-                <div className="flex items-start gap-3 rounded-[1.25rem] border border-[#ead8e1] bg-[#f8ecef] px-4 py-4">
-                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#8b5a74]" />
-                  <p className="text-xs text-[#8b5a74]">{qrError}</p>
+                <div className="flex items-start gap-3 rounded-[1.25rem] border border-blush-wash bg-blush-wash px-4 py-4">
+                  <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-plum" />
+                  <p className="text-xs text-plum">{qrError}</p>
                 </div>
               )}
 
-              <div className="flex flex-col items-center rounded-[1.5rem] border border-black/10 bg-[#fcfaf5] py-8">
+              <div className="flex flex-col items-center rounded-[1.5rem] border border-black/10 bg-cream py-8">
                 {qrData ? (
                   <img
                     src={`data:image/png;base64,${qrData}`}
                     alt="WhatsApp QR Code"
-                    className="h-56 w-56 rounded-[1.25rem] border border-black/10 bg-white p-2 shadow-[0_18px_40px_rgba(0,0,0,0.05)]"
+                    className="h-56 w-56 rounded-[1.25rem] border border-black/10 bg-white p-2 shadow-soft"
                   />
                 ) : (
                   <div className="flex h-56 w-56 items-center justify-center rounded-[1.25rem] border-2 border-dashed border-black/15 bg-white">
-                    <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[#171717]"></div>
+                    <div className="h-8 w-8 motion-safe:animate-spin rounded-full border-b-2 border-ink"></div>
                   </div>
                 )}
 
                 <div className="mt-4 flex items-center gap-2">
-                  <div className="h-2 w-2 animate-pulse rounded-full bg-[#ff5f8f]"></div>
-                  <span className="text-xs text-gray-600">{qrStatus}</span>
+                  <div className="h-2 w-2 motion-safe:animate-pulse rounded-full bg-hotpink"></div>
+                  <span className="text-xs text-ink-soft">{qrStatus}</span>
                 </div>
               </div>
 
@@ -547,12 +547,12 @@ export default function CreateWhatsAppBotPage() {
 
           {qrStep === 3 && (
             <div className="flex flex-col items-center space-y-4 py-8">
-              <div className="rounded-full bg-[#e8f4ee] p-4">
-                <CheckCircle className="text-[#2d8b69]" size={40} />
+              <div className="rounded-full bg-leaf-wash p-4">
+                <CheckCircle className="text-leaf" size={40} />
               </div>
-              <h2 className="text-lg font-semibold text-gray-900">Device Linked!</h2>
-              <p className="text-sm text-gray-600">
-                Connected as <span className="font-medium text-gray-900">{connectedPhone}</span>
+              <h2 className="text-lg font-semibold text-ink">Device Linked!</h2>
+              <p className="text-sm text-ink-soft">
+                Connected as <span className="font-medium text-ink">{connectedPhone}</span>
               </p>
               <button
                 type="button"

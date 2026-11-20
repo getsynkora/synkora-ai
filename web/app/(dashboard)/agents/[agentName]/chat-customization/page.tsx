@@ -24,9 +24,9 @@ export default function ChatCustomizationPage() {
     chat_title: '',
     chat_welcome_message: '',
     chat_placeholder: '',
-    chat_primary_color: '#0d9488',
+    chat_primary_color: 'rgb(var(--leaf))',
     chat_logo_url: '',
-    chat_background_color: '#ffffff',
+    chat_background_color: 'rgb(var(--white))',
     chat_font_family: 'Inter',
     chat_transport: 'sse' as 'sse' | 'websocket',
   })
@@ -91,8 +91,8 @@ export default function ChatCustomizationPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 text-sm">Loading chat configuration...</p>
+          <div className="motion-safe:animate-spin rounded-full h-12 w-12 border-b-2 border-danger mx-auto"></div>
+          <p className="mt-4 text-ink-soft text-sm">Loading chat configuration…</p>
         </div>
       </div>
     )
@@ -136,23 +136,23 @@ export default function ChatCustomizationPage() {
           </div>
 
           {/* Footer */}
-          <div className="border-t border-gray-200 px-6 py-4 bg-red-50 flex justify-between items-center">
-            <div className="text-xs text-gray-600">
+          <div className="border-t border-line px-6 py-4 bg-blush-wash flex justify-between items-center">
+            <div className="text-xs text-ink-soft">
               Changes will be applied to all chat interfaces for this agent
             </div>
             <div className="flex gap-3">
               <button
                 onClick={() => router.push(`/agents/${agentName}/view`)}
-                className="px-5 py-2 text-sm border border-gray-300 rounded-lg hover:bg-white hover:border-red-300 transition-colors font-medium"
+                className="px-5 py-2 text-sm border border-taupe rounded-lg hover:bg-white hover:border-blush transition-colors font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={saving}
-                className="px-5 py-2 text-sm bg-[#171717] text-white rounded-[1rem] hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-sm"
+                className="px-5 py-2 text-sm bg-ink text-white rounded-[1rem] hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-sm"
               >
-                {saving ? 'Saving...' : 'Save Changes'}
+                {saving ? 'Saving…' : 'Save Changes'}
               </button>
             </div>
           </div>
@@ -166,26 +166,26 @@ function BrandingTab({ formData, setFormData }: any) {
   return (
     <div className="max-w-5xl space-y-5">
       <div>
-        <h3 className="text-base font-semibold text-gray-900 mb-1">
+        <h3 className="text-base font-semibold text-ink mb-1">
           Brand Identity
         </h3>
-        <p className="text-xs text-gray-600 mb-3">
+        <p className="text-xs text-ink-soft mb-3">
           Customize the visual appearance of your chat interface
         </p>
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-gray-700 mb-2">
+        <label className="block text-xs font-medium text-ink-soft mb-2">
           Logo URL
         </label>
         <input
           type="text"
           value={formData.chat_logo_url}
           onChange={(e) => setFormData({ ...formData, chat_logo_url: e.target.value })}
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+          className="w-full px-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
           placeholder="https://example.com/logo.png"
         />
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-ink-mute">
           Enter the URL of your logo image (PNG, JPG, or SVG)
         </p>
         {formData.chat_logo_url && (
@@ -193,7 +193,7 @@ function BrandingTab({ formData, setFormData }: any) {
             <img 
               src={formData.chat_logo_url} 
               alt="Logo preview" 
-              className="h-10 object-contain border border-gray-200 rounded p-2"
+              className="h-10 object-contain border border-line rounded p-2"
               onError={(e) => {
                 e.currentTarget.style.display = 'none'
               }}
@@ -204,7 +204,7 @@ function BrandingTab({ formData, setFormData }: any) {
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-2">
+          <label className="block text-xs font-medium text-ink-soft mb-2">
             Primary Color
           </label>
           <div className="flex gap-2">
@@ -212,23 +212,23 @@ function BrandingTab({ formData, setFormData }: any) {
               type="color"
               value={formData.chat_primary_color}
               onChange={(e) => setFormData({ ...formData, chat_primary_color: e.target.value })}
-              className="h-9 w-16 rounded border border-gray-300 cursor-pointer"
+              className="h-9 w-16 rounded border border-taupe cursor-pointer"
             />
             <input
               type="text"
               value={formData.chat_primary_color}
               onChange={(e) => setFormData({ ...formData, chat_primary_color: e.target.value })}
-              className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              className="flex-1 px-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
               placeholder="#0d9488"
             />
           </div>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-ink-mute">
             Used for buttons, links, and accents
           </p>
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-2">
+          <label className="block text-xs font-medium text-ink-soft mb-2">
             Background Color
           </label>
           <div className="flex gap-2">
@@ -236,30 +236,30 @@ function BrandingTab({ formData, setFormData }: any) {
               type="color"
               value={formData.chat_background_color}
               onChange={(e) => setFormData({ ...formData, chat_background_color: e.target.value })}
-              className="h-9 w-16 rounded border border-gray-300 cursor-pointer"
+              className="h-9 w-16 rounded border border-taupe cursor-pointer"
             />
             <input
               type="text"
               value={formData.chat_background_color}
               onChange={(e) => setFormData({ ...formData, chat_background_color: e.target.value })}
-              className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              className="flex-1 px-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
               placeholder="#ffffff"
             />
           </div>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-ink-mute">
             Main background color for the chat interface
           </p>
         </div>
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-gray-700 mb-2">
+        <label className="block text-xs font-medium text-ink-soft mb-2">
           Font Family
         </label>
         <select
           value={formData.chat_font_family}
           onChange={(e) => setFormData({ ...formData, chat_font_family: e.target.value })}
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+          className="w-full px-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
         >
           <option value="Inter">Inter (Default)</option>
           <option value="Arial">Arial</option>
@@ -272,14 +272,14 @@ function BrandingTab({ formData, setFormData }: any) {
           <option value="Open Sans">Open Sans</option>
           <option value="Lato">Lato</option>
         </select>
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-ink-mute">
           Choose a font that matches your brand
         </p>
       </div>
 
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <h4 className="text-xs font-medium text-red-900 mb-2">💡 Branding Tips</h4>
-        <ul className="text-xs text-red-800 space-y-1 list-disc list-inside">
+      <div className="bg-blush-wash border border-blush rounded-lg p-4">
+        <h4 className="text-xs font-medium text-wine mb-2">Branding Tips</h4>
+        <ul className="text-xs text-wine space-y-1 list-disc list-inside">
           <li>Use your brand's primary color for consistency</li>
           <li>Ensure good contrast between text and background</li>
           <li>Keep your logo simple and recognizable</li>
@@ -295,65 +295,65 @@ function ContentTab({ formData, setFormData }: any) {
   return (
     <div className="max-w-5xl space-y-5">
       <div>
-        <h3 className="text-base font-semibold text-gray-900 mb-1">
+        <h3 className="text-base font-semibold text-ink mb-1">
           Chat Content
         </h3>
-        <p className="text-xs text-gray-600 mb-3">
+        <p className="text-xs text-ink-soft mb-3">
           Customize the text and messaging in your chat interface
         </p>
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-gray-700 mb-2">
+        <label className="block text-xs font-medium text-ink-soft mb-2">
           Chat Title
         </label>
         <input
           type="text"
           value={formData.chat_title}
           onChange={(e) => setFormData({ ...formData, chat_title: e.target.value })}
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+          className="w-full px-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
           placeholder="Chat with AI Assistant"
         />
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-ink-mute">
           Displayed at the top of the chat interface
         </p>
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-gray-700 mb-2">
+        <label className="block text-xs font-medium text-ink-soft mb-2">
           Welcome Message
         </label>
         <textarea
           value={formData.chat_welcome_message}
           onChange={(e) => setFormData({ ...formData, chat_welcome_message: e.target.value })}
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+          className="w-full px-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
           rows={4}
           placeholder="Hello! I'm here to help you. How can I assist you today?"
         />
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-ink-mute">
           First message shown to users when they start a conversation
         </p>
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-gray-700 mb-2">
+        <label className="block text-xs font-medium text-ink-soft mb-2">
           Input Placeholder
         </label>
         <input
           type="text"
           value={formData.chat_placeholder}
           onChange={(e) => setFormData({ ...formData, chat_placeholder: e.target.value })}
-          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-          placeholder="Type your message..."
+          className="w-full px-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
+          placeholder="Type your message…"
         />
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-ink-mute">
           Placeholder text in the message input field
         </p>
       </div>
 
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <h4 className="text-xs font-medium text-red-900 mb-2">✍️ Content Tips</h4>
-        <ul className="text-xs text-red-800 space-y-1 list-disc list-inside">
+      <div className="bg-blush-wash border border-blush rounded-lg p-4">
+        <h4 className="text-xs font-medium text-wine mb-2">Content Tips</h4>
+        <ul className="text-xs text-wine space-y-1 list-disc list-inside">
           <li>Keep your welcome message friendly and concise</li>
           <li>Clearly state what your agent can help with</li>
           <li>Use action-oriented placeholder text</li>
@@ -369,23 +369,23 @@ function PreviewTab({ formData }: any) {
   return (
     <div className="space-y-5">
       <div>
-        <h3 className="text-base font-semibold text-gray-900 mb-1">
+        <h3 className="text-base font-semibold text-ink mb-1">
           Live Preview
         </h3>
-        <p className="text-xs text-gray-600 mb-3">
+        <p className="text-xs text-ink-soft mb-3">
           See how your chat interface will look with the current settings
         </p>
       </div>
 
       <div 
-        className="border-2 border-gray-200 rounded-lg p-5"
+        className="border-2 border-line rounded-lg p-5"
         style={{ 
           backgroundColor: formData.chat_background_color,
           fontFamily: formData.chat_font_family 
         }}
       >
         {/* Header */}
-        <div className="flex items-center gap-3 mb-5 pb-3 border-b border-gray-200">
+        <div className="flex items-center gap-3 mb-5 pb-3 border-b border-line">
           {formData.chat_logo_url && (
             <img 
               src={formData.chat_logo_url} 
@@ -400,8 +400,8 @@ function PreviewTab({ formData }: any) {
 
         {/* Welcome Message */}
         <div className="mb-5">
-          <div className="bg-gray-100 rounded-lg p-3 max-w-md">
-            <p className="text-gray-800 text-sm">
+          <div className="bg-sand rounded-lg p-3 max-w-md">
+            <p className="text-ink text-sm">
               {formData.chat_welcome_message || 'Hello! How can I help you today?'}
             </p>
           </div>
@@ -411,8 +411,8 @@ function PreviewTab({ formData }: any) {
         <div className="flex gap-2">
           <input
             type="text"
-            placeholder={formData.chat_placeholder || 'Type your message...'}
-            className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg"
+            placeholder={formData.chat_placeholder || 'Type your message…'}
+            className="flex-1 px-3 py-2 text-sm border border-taupe rounded-lg"
             disabled
           />
           <button
@@ -425,9 +425,9 @@ function PreviewTab({ formData }: any) {
         </div>
       </div>
 
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <h4 className="text-xs font-medium text-red-900 mb-2">👁️ Preview Note</h4>
-        <p className="text-xs text-red-800">
+      <div className="bg-blush-wash border border-blush rounded-lg p-4">
+        <h4 className="text-xs font-medium text-wine mb-2">Preview Note</h4>
+        <p className="text-xs text-wine">
           This is a simplified preview. The actual chat interface will include additional features like message history, typing indicators, and more.
         </p>
       </div>
@@ -440,15 +440,15 @@ function AdvancedTab({ formData, setFormData }: any) {
   return (
     <div className="max-w-5xl space-y-6">
       <div>
-        <h3 className="text-base font-semibold text-gray-900 mb-1">Advanced Settings</h3>
-        <p className="text-xs text-gray-600 mb-4">
+        <h3 className="text-base font-semibold text-ink mb-1">Advanced Settings</h3>
+        <p className="text-xs text-ink-soft mb-4">
           Fine-tune the technical behaviour of your chat interface.
         </p>
       </div>
 
       {/* Chat Transport */}
       <div>
-        <label className="block text-xs font-medium text-gray-700 mb-2">
+        <label className="block text-xs font-medium text-ink-soft mb-2">
           Chat Transport
         </label>
         <div className="space-y-2">
@@ -468,8 +468,8 @@ function AdvancedTab({ formData, setFormData }: any) {
               key={value}
               className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
                 formData.chat_transport === value
-                  ? 'border-red-500 bg-red-50'
-                  : 'border-gray-200 hover:border-gray-300 bg-white'
+                  ? 'border-ink bg-blush-wash'
+                  : 'border-line hover:border-taupe bg-white'
               }`}
             >
               <input
@@ -478,18 +478,18 @@ function AdvancedTab({ formData, setFormData }: any) {
                 value={value}
                 checked={formData.chat_transport === value}
                 onChange={() => setFormData({ ...formData, chat_transport: value })}
-                className="mt-0.5 accent-red-600"
+                className="mt-0.5 accent-danger"
               />
               <div>
-                <p className={`text-sm font-medium ${formData.chat_transport === value ? 'text-red-700' : 'text-gray-800'}`}>
+                <p className={`text-sm font-medium ${formData.chat_transport === value ? 'text-leaf' : 'text-ink'}`}>
                   {label}
                 </p>
-                <p className="text-xs text-gray-500 mt-0.5">{description}</p>
+                <p className="text-xs text-ink-mute mt-0.5">{description}</p>
               </div>
             </label>
           ))}
         </div>
-        <p className="mt-2 text-xs text-gray-500">
+        <p className="mt-2 text-xs text-ink-mute">
           Changes take effect the next time a user loads the chat page.
         </p>
       </div>

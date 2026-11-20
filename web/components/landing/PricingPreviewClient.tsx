@@ -28,7 +28,7 @@ const staticPlans = [
 
 export default function PricingPreviewClient() {
   const [pricingPlans, setPricingPlans] = useState<PricingPlan[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchPricingPlans = async () => {
@@ -53,17 +53,17 @@ export default function PricingPreviewClient() {
   }, [])
 
   return (
-    <section className="bg-[#f7f2e7] px-4 py-14 sm:px-6 sm:py-20">
+    <section className="bg-paper px-4 py-14 sm:px-6 sm:py-20">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
-          <h2 className="mb-4 text-4xl font-medium tracking-[-0.05em] text-[#171717]">Enterprise pricing, open-source flexibility</h2>
-          <p className="text-xl leading-relaxed text-[#575149]">Self-host free with all enterprise features included. Scale to cloud or dedicated when you're ready.</p>
+          <h2 className="mb-4 text-4xl font-medium tracking-[-0.05em] text-ink">Enterprise pricing, open-source flexibility</h2>
+          <p className="text-xl leading-relaxed text-ink-soft">Self-host free with all enterprise features included. Scale to cloud or dedicated when you’re ready.</p>
         </div>
 
         {loading ? (
           <div className="grid md:grid-cols-3 gap-6 mb-10">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="animate-pulse rounded-[2rem] border border-black/10 bg-white/60 p-6 shadow-[0_18px_40px_rgba(0,0,0,0.05)]">
+              <div key={i} className="motion-safe:animate-pulse rounded-2xl border border-black/10 bg-white p-6 shadow-soft">
                 <div className="mb-2 h-6 w-24 rounded bg-black/10" />
                 <div className="mb-4 h-4 w-32 rounded bg-black/5" />
                 <div className="mb-4 h-8 w-20 rounded bg-black/10" />
@@ -87,22 +87,22 @@ export default function PricingPreviewClient() {
               else if (plan.max_team_members > 1) features.push(`${plan.max_team_members} team members`)
 
               return (
-                <div key={plan.id} className={`relative rounded-[2rem] bg-white/60 p-6 shadow-[0_18px_40px_rgba(0,0,0,0.05)] ${isPopular ? 'ring-2 ring-[#79dfbc] shadow-[0_24px_60px_rgba(0,0,0,0.08)]' : 'border border-black/10'}`}>
+                <div key={plan.id} className={`relative rounded-2xl bg-white p-6 shadow-soft ${isPopular ? 'ring-2 ring-mint shadow-soft' : 'border border-black/10'}`}>
                   {isPopular && (
-                    <div className="absolute left-1/2 -top-3 -translate-x-1/2 rounded-full bg-[#191919] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#f7f2e7]">
+                    <div className="absolute left-1/2 -top-3 -translate-x-1/2 rounded-full bg-ink px-3 py-1 text-xs font-semibold text-paper">
                       Popular
                     </div>
                   )}
-                  <h3 className="mb-1 text-xl font-semibold tracking-[-0.03em] text-[#171717]">{plan.name}</h3>
-                  <p className="mb-4 text-sm text-[#6d675f]">{plan.description || 'Choose this plan'}</p>
+                  <h3 className="mb-1 text-xl font-semibold tracking-[-0.03em] text-ink">{plan.name}</h3>
+                  <p className="mb-4 text-sm text-ink-mute">{plan.description || 'Choose this plan'}</p>
                   <div className="mb-4">
-                    <span className="text-3xl font-semibold text-[#171717]">${plan.price_monthly || 0}</span>
-                    <span className="text-[#6d675f]">/month</span>
+                    <span className="text-3xl font-semibold text-ink">${plan.price_monthly || 0}</span>
+                    <span className="text-ink-mute">/month</span>
                   </div>
                   <ul className="space-y-2 mb-6">
                     {features.slice(0, 3).map((feature, i) => (
-                      <li key={i} className="flex items-center gap-2 text-sm text-[#575149]">
-                        <svg className="h-4 w-4 text-[#2d8b69]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <li key={i} className="flex items-center gap-2 text-sm text-ink-soft">
+                        <svg aria-hidden="true" className="h-4 w-4 text-leaf" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                         {feature}
@@ -116,23 +116,23 @@ export default function PricingPreviewClient() {
         ) : (
           <div className="grid md:grid-cols-3 gap-6 mb-10">
             {staticPlans.map((plan, i) => (
-              <div key={i} className={`relative rounded-[2rem] bg-white/60 p-6 shadow-[0_18px_40px_rgba(0,0,0,0.05)] ${plan.popular ? 'ring-2 ring-[#79dfbc] shadow-[0_24px_60px_rgba(0,0,0,0.08)]' : 'border border-black/10'}`}>
+              <div key={i} className={`relative rounded-2xl bg-white p-6 shadow-soft ${plan.popular ? 'ring-2 ring-mint shadow-soft' : 'border border-black/10'}`}>
                 {plan.popular && (
-                  <div className="absolute left-1/2 -top-3 -translate-x-1/2 rounded-full bg-[#191919] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#f7f2e7]">
+                  <div className="absolute left-1/2 -top-3 -translate-x-1/2 rounded-full bg-ink px-3 py-1 text-xs font-semibold text-paper">
                     Popular
                   </div>
                 )}
-                <h3 className="mb-1 text-xl font-semibold tracking-[-0.03em] text-[#171717]">{plan.name}</h3>
-                <p className="mb-4 text-sm text-[#6d675f]">{plan.desc}</p>
+                <h3 className="mb-1 text-xl font-semibold tracking-[-0.03em] text-ink">{plan.name}</h3>
+                <p className="mb-4 text-sm text-ink-mute">{plan.desc}</p>
                 <div className="mb-4">
-                  <span className="text-3xl font-semibold text-[#171717]">{plan.price}</span>
-                  {plan.price !== 'Free' && plan.price !== 'Custom' && <span className="text-[#6d675f]">/month</span>}
-                  {plan.price === 'Custom' && <span className="text-[#6d675f] text-base"> — talk to us</span>}
+                  <span className="text-3xl font-semibold text-ink">{plan.price}</span>
+                  {plan.price !== 'Free' && plan.price !== 'Custom' && <span className="text-ink-mute">/month</span>}
+                  {plan.price === 'Custom' && <span className="text-ink-mute text-base">, talk to us</span>}
                 </div>
                 <ul className="space-y-2 mb-4">
                   {plan.features.map((f, j) => (
-                    <li key={j} className="flex items-center gap-2 text-sm text-[#575149]">
-                      <svg className="h-4 w-4 shrink-0 text-[#2d8b69]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <li key={j} className="flex items-center gap-2 text-sm text-ink-soft">
+                      <svg aria-hidden="true" className="h-4 w-4 shrink-0 text-leaf" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                       {f}
@@ -142,7 +142,7 @@ export default function PricingPreviewClient() {
                 {plan.price === 'Custom' && (
                   <a
                     href="mailto:enterprise@synkora.ai"
-                    className="mt-2 block w-full rounded-full border border-black/15 px-4 py-2.5 text-center text-sm font-semibold text-[#171717] transition-colors hover:bg-black/5"
+                    className="mt-2 block w-full rounded-full border border-black/15 px-4 py-2.5 text-center text-sm font-semibold text-ink transition-colors hover:bg-black/5"
                   >
                     Talk to Sales
                   </a>
@@ -153,7 +153,7 @@ export default function PricingPreviewClient() {
         )}
 
         <div className="text-center">
-          <Link href="/pricing" className="inline-flex items-center gap-2 font-semibold text-[#1f1d19] hover:text-black">
+          <Link href="/pricing" className="inline-flex items-center gap-2 font-semibold text-ink hover:text-black">
             View all pricing details
             <ArrowRight className="h-4 w-4" />
           </Link>

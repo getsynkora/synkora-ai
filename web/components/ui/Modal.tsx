@@ -41,8 +41,8 @@ export function Modal({ isOpen, onClose, title, children, className }: ModalProp
         )}
       >
         {title && (
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+          <div className="px-6 py-4 border-b border-line">
+            <h2 className="text-xl font-semibold text-ink">{title}</h2>
           </div>
         )}
         <div className="px-6 py-4">{children}</div>

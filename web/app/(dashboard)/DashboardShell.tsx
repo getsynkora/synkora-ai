@@ -55,8 +55,8 @@ export function DashboardShell({
     return (
       <div className="dashboard-app min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-[#171717]"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <div className="mx-auto h-12 w-12 motion-safe:animate-spin rounded-full border-b-2 border-ink"></div>
+          <p className="mt-4 text-ink-soft">Loading…</p>
         </div>
       </div>
     )

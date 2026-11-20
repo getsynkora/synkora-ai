@@ -15,9 +15,9 @@ export default function CreditBalanceCard({ balance }: CreditBalanceCardProps) {
   const isLow = usagePercentage > 80
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6">
+    <div className="rounded-lg border border-line bg-white p-6">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">Credit Balance</h3>
+        <h3 className="text-lg font-semibold text-ink">Credit Balance</h3>
         {isLow && (
           <div className="flex items-center text-sm text-primary-600">
             <TrendingUp className="mr-1 h-4 w-4" />
@@ -28,19 +28,19 @@ export default function CreditBalanceCard({ balance }: CreditBalanceCardProps) {
 
       <div className="mb-4">
         <div className="flex items-baseline">
-          <span className="text-4xl font-bold text-gray-900">
+          <span className="text-4xl font-bold text-ink">
             {balance.available_credits.toLocaleString()}
           </span>
-          <span className="ml-2 text-gray-600">
+          <span className="ml-2 text-ink-soft">
             / {balance.total_credits.toLocaleString()} credits
           </span>
         </div>
       </div>
 
       <div className="mb-2">
-        <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+        <div className="h-2 w-full overflow-hidden rounded-full bg-line">
           <div
-            className={`h-full transition-all ${
+            className={`h-full transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
               isLow ? 'bg-primary-600' : 'bg-primary-500'
             }`}
             style={{ width: `${Math.min(usagePercentage, 100)}%` }}
@@ -48,7 +48,7 @@ export default function CreditBalanceCard({ balance }: CreditBalanceCardProps) {
         </div>
       </div>
 
-      <div className="flex justify-between text-sm text-gray-600">
+      <div className="flex justify-between text-sm text-ink-soft">
         <span>{usagePercentage.toFixed(1)}% used</span>
         {isLow && (
           <span className="font-semibold text-primary-600">Low balance</span>
@@ -56,8 +56,8 @@ export default function CreditBalanceCard({ balance }: CreditBalanceCardProps) {
       </div>
 
       {balance.next_reset_at && (
-        <div className="mt-4 border-t border-gray-200 pt-4">
-          <p className="text-sm text-gray-600">
+        <div className="mt-4 border-t border-line pt-4">
+          <p className="text-sm text-ink-soft">
             Next reset: {new Date(balance.next_reset_at).toLocaleDateString()}
           </p>
         </div>

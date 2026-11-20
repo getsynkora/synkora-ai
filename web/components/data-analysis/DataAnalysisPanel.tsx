@@ -89,8 +89,8 @@ export default function DataAnalysisPanel({ agentId }: DataAnalysisPanelProps) {
                 onClick={() => setActiveTab("upload")}
                 className={`px-4 py-2 font-medium ${
                   activeTab === "upload"
-                    ? "border-b-2 border-blue-500 text-blue-600"
-                    : "text-gray-500"
+                    ? "border-b-2 border-azure text-azure"
+                    : "text-ink-mute"
                 }`}
               >
                 Upload File
@@ -99,8 +99,8 @@ export default function DataAnalysisPanel({ agentId }: DataAnalysisPanelProps) {
                 onClick={() => setActiveTab("query")}
                 className={`px-4 py-2 font-medium ${
                   activeTab === "query"
-                    ? "border-b-2 border-blue-500 text-blue-600"
-                    : "text-gray-500"
+                    ? "border-b-2 border-azure text-azure"
+                    : "text-ink-mute"
                 }`}
               >
                 Query Data
@@ -109,8 +109,8 @@ export default function DataAnalysisPanel({ agentId }: DataAnalysisPanelProps) {
                 onClick={() => setActiveTab("export")}
                 className={`px-4 py-2 font-medium ${
                   activeTab === "export"
-                    ? "border-b-2 border-blue-500 text-blue-600"
-                    : "text-gray-500"
+                    ? "border-b-2 border-azure text-azure"
+                    : "text-ink-mute"
                 }`}
               >
                 Export Report
@@ -119,10 +119,10 @@ export default function DataAnalysisPanel({ agentId }: DataAnalysisPanelProps) {
 
             {/* Upload Tab */}
             {activeTab === "upload" && (
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
-                <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-semibold text-gray-900">Upload CSV or ZIP file</h3>
-                <p className="mt-1 text-sm text-gray-500">
+              <div className="border-2 border-dashed border-taupe rounded-lg p-12 text-center">
+                <Upload className="mx-auto h-12 w-12 text-ash" />
+                <h3 className="mt-2 text-sm font-semibold text-ink">Upload CSV or ZIP file</h3>
+                <p className="mt-1 text-sm text-ink-mute">
                   Upload data files for analysis (Max 100MB)
                 </p>
                 <div className="mt-6">
@@ -130,7 +130,7 @@ export default function DataAnalysisPanel({ agentId }: DataAnalysisPanelProps) {
                     <Button disabled={isUploading}>
                       {isUploading ? (
                         <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          <Loader2 className="mr-2 h-4 w-4 motion-safe:animate-spin" />
                           Uploading...
                         </>
                       ) : (
@@ -158,16 +158,16 @@ export default function DataAnalysisPanel({ agentId }: DataAnalysisPanelProps) {
             {activeTab === "query" && (
               <div className="rounded-lg border p-6">
                 <div className="flex items-center space-x-4">
-                  <Database className="h-10 w-10 text-blue-500" />
+                  <Database className="h-10 w-10 text-azure" />
                   <div>
                     <h3 className="text-lg font-semibold">Query Data Sources</h3>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-ink-mute">
                       Connect to Datadog, Databricks, Docker logs, or databases
                     </p>
                   </div>
                 </div>
                 <div className="mt-4">
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-ink-soft">
                     Configure data sources in the <strong>Data Sources</strong> section, then use
                     the agent to query and analyze your data.
                   </p>
@@ -184,10 +184,10 @@ export default function DataAnalysisPanel({ agentId }: DataAnalysisPanelProps) {
             {activeTab === "export" && (
               <div className="rounded-lg border p-6">
                 <div className="flex items-center space-x-4">
-                  <FileText className="h-10 w-10 text-green-500" />
+                  <FileText className="h-10 w-10 text-leaf" />
                   <div>
                     <h3 className="text-lg font-semibold">Export Reports</h3>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-ink-mute">
                       Export analysis results in multiple formats
                     </p>
                   </div>
@@ -241,37 +241,37 @@ export default function DataAnalysisPanel({ agentId }: DataAnalysisPanelProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="border rounded-lg p-4">
               <h4 className="font-semibold">Datadog</h4>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-ink-mute mt-1">
                 Fetch metrics and logs from Datadog monitoring platform
               </p>
             </div>
             <div className="border rounded-lg p-4">
               <h4 className="font-semibold">Databricks</h4>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-ink-mute mt-1">
                 Execute SQL queries on Databricks data lakehouse
               </p>
             </div>
             <div className="border rounded-lg p-4">
               <h4 className="font-semibold">Docker Logs</h4>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-ink-mute mt-1">
                 Fetch logs from Docker containers for analysis
               </p>
             </div>
             <div className="border rounded-lg p-4">
               <h4 className="font-semibold">Database Connections</h4>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-ink-mute mt-1">
                 Query PostgreSQL, SQLite, Elasticsearch databases
               </p>
             </div>
             <div className="border rounded-lg p-4">
               <h4 className="font-semibold">CSV Upload</h4>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-ink-mute mt-1">
                 Upload and analyze CSV files with automatic statistics
               </p>
             </div>
             <div className="border rounded-lg p-4">
               <h4 className="font-semibold">ZIP Files</h4>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-ink-mute mt-1">
                 Upload ZIP archives containing multiple CSV files
               </p>
             </div>

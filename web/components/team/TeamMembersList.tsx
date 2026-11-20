@@ -27,12 +27,12 @@ export function TeamMembersList({
 
   const getRoleBadgeColor = (role: UserRole) => {
     const colorMap: Record<UserRole, string> = {
-      owner: 'bg-purple-100 text-purple-800',
-      admin: 'bg-blue-100 text-blue-800',
-      editor: 'bg-green-100 text-green-800',
-      member: 'bg-gray-100 text-gray-800',
+      owner: 'bg-blush-wash text-wine',
+      admin: 'bg-sky-wash text-azure',
+      editor: 'bg-leaf-wash text-forest',
+      member: 'bg-sand text-ink',
     };
-    return colorMap[role] || 'bg-gray-100 text-gray-800';
+    return colorMap[role] || 'bg-sand text-ink';
   };
 
   const handleRoleChange = async (accountId: string, newRole: string) => {
@@ -47,21 +47,21 @@ export function TeamMembersList({
 
   return (
     <div className="bg-white shadow rounded-lg overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-200">
-        <h3 className="text-lg font-medium text-gray-900">Team Members</h3>
-        <p className="mt-1 text-sm text-gray-500">
+      <div className="px-6 py-4 border-b border-line">
+        <h3 className="text-lg font-medium text-ink">Team Members</h3>
+        <p className="mt-1 text-sm text-ink-mute">
           {members.length} {members.length === 1 ? 'member' : 'members'}
         </p>
       </div>
 
-      <ul className="divide-y divide-gray-200">
+      <ul className="divide-y divide-line">
         {members.map((member) => {
           const isCurrentUser = member.account_id === currentUserId;
           const isOwner = member.role === 'owner';
           const canEdit = canManageTeam && !isOwner && !isCurrentUser;
 
           return (
-            <li key={member.account_id} className="px-6 py-4 hover:bg-gray-50">
+            <li key={member.account_id} className="px-6 py-4 hover:bg-cream">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4 flex-1">
                   {/* Avatar */}
@@ -73,8 +73,8 @@ export function TeamMembersList({
                         className="h-10 w-10 rounded-full"
                       />
                     ) : (
-                      <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                        <span className="text-gray-600 font-medium text-sm">
+                      <div className="h-10 w-10 rounded-full bg-line flex items-center justify-center">
+                        <span className="text-ink-soft font-medium text-sm">
                           {member.name.charAt(0).toUpperCase()}
                         </span>
                       </div>
@@ -84,16 +84,16 @@ export function TeamMembersList({
                   {/* Member Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-2">
-                      <p className="text-sm font-medium text-gray-900 truncate">
+                      <p className="text-sm font-medium text-ink truncate">
                         {member.name}
                         {isCurrentUser && (
-                          <span className="ml-2 text-xs text-gray-500">(You)</span>
+                          <span className="ml-2 text-xs text-ink-mute">(You)</span>
                         )}
                       </p>
                     </div>
-                    <p className="text-sm text-gray-500 truncate">{member.email}</p>
+                    <p className="text-sm text-ink-mute truncate">{member.email}</p>
                     {member.joined_at && (
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p className="text-xs text-ash mt-1">
                         Joined {new Date(member.joined_at).toLocaleDateString()}
                       </p>
                     )}
@@ -105,7 +105,7 @@ export function TeamMembersList({
                       <select
                         value={member.role}
                         onChange={(e) => handleRoleChange(member.account_id, e.target.value)}
-                        className="text-sm border border-gray-300 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="text-sm border border-taupe rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-azure"
                       >
                         <option value="admin">Admin</option>
                         <option value="editor">Editor</option>
@@ -125,7 +125,7 @@ export function TeamMembersList({
                     {canEdit && (
                       <button
                         onClick={() => handleRemove(member.account_id, member.name)}
-                        className="text-red-600 hover:text-red-800 text-sm font-medium"
+                        className="text-danger hover:text-wine text-sm font-medium"
                       >
                         Remove
                       </button>
@@ -137,12 +137,12 @@ export function TeamMembersList({
               {/* Custom Permissions */}
               {member.custom_permissions && member.custom_permissions.length > 0 && (
                 <div className="mt-3 pl-14">
-                  <p className="text-xs text-gray-500 mb-1">Custom Permissions:</p>
+                  <p className="text-xs text-ink-mute mb-1">Custom Permissions:</p>
                   <div className="flex flex-wrap gap-1">
                     {member.custom_permissions.map((permission: string, index: number) => (
                       <span
                         key={index}
-                        className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800"
+                        className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-sand-deep text-gold"
                       >
                         {permission}
                       </span>
@@ -157,7 +157,7 @@ export function TeamMembersList({
 
       {members.length === 0 && (
         <div className="px-6 py-12 text-center">
-          <p className="text-gray-500">No team members yet</p>
+          <p className="text-ink-mute">No team members yet</p>
         </div>
       )}
     </div>

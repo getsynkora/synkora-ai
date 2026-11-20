@@ -31,13 +31,13 @@ function timeAgo(iso: string): string {
 function statusMeta(status: string) {
   switch (status) {
     case 'success':
-      return { icon: <CheckCircle className="w-4 h-4 text-green-500" />, badge: 'bg-green-100 text-green-700', label: 'success' }
+      return { icon: <CheckCircle className="w-4 h-4 text-leaf" />, badge: 'bg-leaf-wash text-forest', label: 'success' }
     case 'running':
-      return { icon: <Clock className="w-4 h-4 text-blue-500 animate-pulse" />, badge: 'bg-blue-100 text-blue-700', label: 'running' }
+      return { icon: <Clock className="w-4 h-4 text-azure motion-safe:animate-pulse" />, badge: 'bg-sky-wash text-azure', label: 'running' }
     case 'awaiting_approval':
-      return { icon: <ShieldAlert className="w-4 h-4 text-amber-500" />, badge: 'bg-amber-100 text-amber-700', label: 'awaiting approval' }
+      return { icon: <ShieldAlert className="w-4 h-4 text-warn" />, badge: 'bg-sand-deep text-gold', label: 'awaiting approval' }
     default:
-      return { icon: <XCircle className="w-4 h-4 text-red-500" />, badge: 'bg-red-100 text-red-700', label: status }
+      return { icon: <XCircle className="w-4 h-4 text-leaf" />, badge: 'bg-blush-wash text-danger', label: status }
   }
 }
 
@@ -46,9 +46,9 @@ function RunRow({ run, index }: { run: RunRecord; index: number }) {
   const { icon, badge, label } = statusMeta(run.status)
 
   return (
-    <div className="border-b border-gray-100 last:border-0">
+    <div className="border-b border-sand last:border-0">
       <div
-        className="flex items-center gap-4 px-4 py-3 hover:bg-gray-50 cursor-pointer select-none"
+        className="flex items-center gap-4 px-4 py-3 hover:bg-cream cursor-pointer select-none"
         onClick={() => setExpanded(e => !e)}
       >
         {/* Status icon */}
@@ -56,7 +56,7 @@ function RunRow({ run, index }: { run: RunRecord; index: number }) {
 
         {/* Run number & status */}
         <div className="flex-1 min-w-0">
-          <span className="text-sm font-medium text-gray-800">
+          <span className="text-sm font-medium text-ink">
             Run #{index + 1}
           </span>
           <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full font-medium ${badge}`}>
@@ -65,14 +65,14 @@ function RunRow({ run, index }: { run: RunRecord; index: number }) {
         </div>
 
         {/* Timing */}
-        <div className="text-xs text-gray-500 text-right flex-shrink-0">
+        <div className="text-xs text-ink-mute text-right flex-shrink-0">
           <div>{timeAgo(run.started_at)}</div>
           {run.execution_time_seconds != null && (
             <div>{run.execution_time_seconds.toFixed(1)}s</div>
           )}
         </div>
 
-        <div className="flex-shrink-0 text-gray-400">
+        <div className="flex-shrink-0 text-ash">
           {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </div>
       </div>
@@ -80,16 +80,16 @@ function RunRow({ run, index }: { run: RunRecord; index: number }) {
       {expanded && (
         <div className="px-12 pb-3">
           {run.error_message ? (
-            <div className="rounded bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700 font-mono whitespace-pre-wrap">
+            <div className="rounded bg-blush-wash border border-blush px-3 py-2 text-xs text-danger font-mono whitespace-pre-wrap">
               {run.error_message}
             </div>
           ) : run.output_preview ? (
-            <div className="rounded bg-gray-50 border border-gray-200 px-3 py-2 text-xs text-gray-700 whitespace-pre-wrap">
+            <div className="rounded bg-cream border border-line px-3 py-2 text-xs text-ink-soft whitespace-pre-wrap">
               {run.output_preview}
             </div>
           ) : (
-            <div className="rounded bg-gray-50 border border-gray-200 px-3 py-2 text-xs text-gray-400 italic">
-              No text output — agent completed via tool calls only.
+            <div className="rounded bg-cream border border-line px-3 py-2 text-xs text-ash italic">
+              No text output, agent completed via tool calls only.
             </div>
           )}
         </div>
@@ -101,14 +101,14 @@ function RunRow({ run, index }: { run: RunRecord; index: number }) {
 export function AutonomousRunHistory({ runs }: Props) {
   if (runs.length === 0) {
     return (
-      <div className="py-10 text-center text-sm text-gray-500">
+      <div className="py-10 text-center text-sm text-ink-mute">
         No runs yet. Enable autonomous mode and click Run Now to start.
       </div>
     )
   }
 
   return (
-    <div className="divide-y divide-gray-100">
+    <div className="divide-y divide-sand">
       {runs.map((run, i) => (
         <RunRow key={run.id} run={run} index={runs.length - 1 - i} />
       ))}

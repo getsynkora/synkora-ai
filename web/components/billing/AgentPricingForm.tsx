@@ -63,8 +63,8 @@ export default function AgentPricingForm({ agentId, initialPricing, onSubmit, lo
     <form onSubmit={handleSubmit} className="space-y-8">
 
       {/* Pricing model */}
-      <div className="rounded-lg border border-gray-200 bg-white p-6">
-        <h3 className="font-semibold text-gray-900 mb-4">Pricing Model</h3>
+      <div className="rounded-lg border border-line bg-white p-6">
+        <h3 className="font-semibold text-ink mb-4">Pricing Model</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {[
             { value: 'FREE', label: 'Free', desc: 'Anyone can use for free' },
@@ -78,14 +78,14 @@ export default function AgentPricingForm({ agentId, initialPricing, onSubmit, lo
               key={opt.value}
               type="button"
               onClick={() => set('pricing_model', opt.value)}
-              className={`text-left p-3 rounded-lg border-2 transition-all ${
+              className={`text-left p-3 rounded-lg border-2 transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
                 form.pricing_model === opt.value
                   ? 'border-primary-500 bg-primary-50'
-                  : 'border-gray-200 hover:border-gray-300'
+                  : 'border-line hover:border-taupe'
               }`}
             >
-              <div className="font-medium text-sm text-gray-900">{opt.label}</div>
-              <div className="text-xs text-gray-500 mt-0.5">{opt.desc}</div>
+              <div className="font-medium text-sm text-ink">{opt.label}</div>
+              <div className="text-xs text-ink-mute mt-0.5">{opt.desc}</div>
             </button>
           ))}
         </div>
@@ -93,16 +93,16 @@ export default function AgentPricingForm({ agentId, initialPricing, onSubmit, lo
 
       {/* Per-use cost */}
       {form.pricing_model === 'PER_USE' && (
-        <div className="rounded-lg border border-gray-200 bg-white p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Per-Use Cost</h3>
+        <div className="rounded-lg border border-line bg-white p-6">
+          <h3 className="font-semibold text-ink mb-4">Per-Use Cost</h3>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Credits per message</label>
+            <label className="block text-sm font-medium text-ink-soft mb-1">Credits per message</label>
             <input
               type="number" min="1"
               value={form.credits_per_use}
               onChange={e => set('credits_per_use', e.target.value)}
               placeholder="e.g. 5"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              className="w-full border border-taupe rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
             />
           </div>
         </div>
@@ -110,9 +110,9 @@ export default function AgentPricingForm({ agentId, initialPricing, onSubmit, lo
 
       {/* Chat access tiers */}
       {!isFree && form.pricing_model !== 'PER_USE' && (
-        <div className="rounded-lg border border-gray-200 bg-white p-6">
-          <h3 className="font-semibold text-gray-900 mb-1">Chat Access Tiers</h3>
-          <p className="text-xs text-gray-500 mb-4">Leave a tier blank to hide it from the pricing page. Set at least one.</p>
+        <div className="rounded-lg border border-line bg-white p-6">
+          <h3 className="font-semibold text-ink mb-1">Chat Access Tiers</h3>
+          <p className="text-xs text-ink-mute mb-4">Leave a tier blank to hide it from the pricing page. Set at least one.</p>
           <div className="space-y-4">
             {TIER_FIELDS.filter(t => {
               if (form.pricing_model === 'SESSION') return t.key === 'session_credits'
@@ -123,8 +123,8 @@ export default function AgentPricingForm({ agentId, initialPricing, onSubmit, lo
             }).map(tier => (
               <div key={tier.key} className="flex items-center gap-4">
                 <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{tier.label}</label>
-                  <p className="text-xs text-gray-400">{tier.desc}</p>
+                  <label className="block text-sm font-medium text-ink-soft mb-1">{tier.label}</label>
+                  <p className="text-xs text-ash">{tier.desc}</p>
                 </div>
                 <div className="w-40">
                   <input
@@ -132,7 +132,7 @@ export default function AgentPricingForm({ agentId, initialPricing, onSubmit, lo
                     value={(form as any)[tier.key]}
                     onChange={e => set(tier.key, e.target.value)}
                     placeholder="credits"
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm text-right focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                    className="w-full border border-taupe rounded-md px-3 py-2 text-sm text-right focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
                   />
                 </div>
               </div>
@@ -143,28 +143,28 @@ export default function AgentPricingForm({ agentId, initialPricing, onSubmit, lo
 
       {/* Trial messages */}
       {!isFree && (
-        <div className="rounded-lg border border-gray-200 bg-white p-6">
-          <h3 className="font-semibold text-gray-900 mb-1">Free Trial</h3>
-          <p className="text-xs text-gray-500 mb-4">Let users try before they pay. Set 0 to disable.</p>
+        <div className="rounded-lg border border-line bg-white p-6">
+          <h3 className="font-semibold text-ink mb-1">Free Trial</h3>
+          <p className="text-xs text-ink-mute mb-4">Let users try before they pay. Set 0 to disable.</p>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Free messages before paywall</label>
+            <label className="block text-sm font-medium text-ink-soft mb-1">Free messages before paywall</label>
             <input
               type="number" min="0"
               value={form.trial_messages}
               onChange={e => set('trial_messages', e.target.value)}
-              className="w-40 border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+              className="w-40 border border-taupe rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
             />
           </div>
         </div>
       )}
 
       {/* Email subscription pricing */}
-      <div className="rounded-lg border border-gray-200 bg-white p-6">
-        <h3 className="font-semibold text-gray-900 mb-1">Email Subscription Pricing</h3>
-        <p className="text-xs text-gray-500 mb-4">Separate from chat access — controls who gets emailed when your agent runs.</p>
+      <div className="rounded-lg border border-line bg-white p-6">
+        <h3 className="font-semibold text-ink mb-1">Email Subscription Pricing</h3>
+        <p className="text-xs text-ink-mute mb-4">Separate from chat access, controls who gets emailed when your agent runs.</p>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Email subscription model</label>
+            <label className="block text-sm font-medium text-ink-soft mb-2">Email subscription model</label>
             <div className="flex gap-3">
               {[
                 { value: 'FREE', label: 'Free' },
@@ -175,10 +175,10 @@ export default function AgentPricingForm({ agentId, initialPricing, onSubmit, lo
                   key={opt.value}
                   type="button"
                   onClick={() => set('email_subscription_model', opt.value)}
-                  className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
+                  className={`px-4 py-2 rounded-lg border text-sm font-medium transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
                     form.email_subscription_model === opt.value
                       ? 'border-primary-500 bg-primary-50 text-primary-700'
-                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                      : 'border-line text-ink-soft hover:border-taupe'
                   }`}
                 >
                   {opt.label}
@@ -190,22 +190,22 @@ export default function AgentPricingForm({ agentId, initialPricing, onSubmit, lo
           {form.email_subscription_model !== 'FREE' && (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Price (cents)</label>
+                <label className="block text-sm font-medium text-ink-soft mb-1">Price (cents)</label>
                 <input
                   type="number" min="1"
                   value={form.email_subscription_price_cents}
                   onChange={e => set('email_subscription_price_cents', e.target.value)}
                   placeholder="e.g. 99 = $0.99"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  className="w-full border border-taupe rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Free trial emails</label>
+                <label className="block text-sm font-medium text-ink-soft mb-1">Free trial emails</label>
                 <input
                   type="number" min="0"
                   value={form.email_subscription_trial_emails}
                   onChange={e => set('email_subscription_trial_emails', e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  className="w-full border border-taupe rounded-md px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
                 />
               </div>
             </div>
@@ -215,9 +215,9 @@ export default function AgentPricingForm({ agentId, initialPricing, onSubmit, lo
 
       {/* Revenue share */}
       {!isFree && (
-        <div className="rounded-lg border border-gray-200 bg-white p-6">
-          <h3 className="font-semibold text-gray-900 mb-1">Revenue Share</h3>
-          <p className="text-xs text-gray-500 mb-4">Your percentage of each payment. Platform keeps the rest.</p>
+        <div className="rounded-lg border border-line bg-white p-6">
+          <h3 className="font-semibold text-ink mb-1">Revenue Share</h3>
+          <p className="text-xs text-ink-mute mb-4">Your percentage of each payment. Platform keeps the rest.</p>
           <div className="flex items-center gap-3">
             <input
               type="range" min="0" max="100" step="5"
@@ -227,7 +227,7 @@ export default function AgentPricingForm({ agentId, initialPricing, onSubmit, lo
             />
             <span className="w-16 text-right font-semibold text-primary-600">{form.revenue_share_percentage}%</span>
           </div>
-          <div className="flex justify-between text-xs text-gray-400 mt-1">
+          <div className="flex justify-between text-xs text-ash mt-1">
             <span>You: {form.revenue_share_percentage}%</span>
             <span>Platform: {100 - Number(form.revenue_share_percentage)}%</span>
           </div>
@@ -240,7 +240,7 @@ export default function AgentPricingForm({ agentId, initialPricing, onSubmit, lo
           disabled={loading || submitting}
           className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 transition-colors"
         >
-          {(loading || submitting) && <Loader2 className="h-4 w-4 animate-spin" />}
+          {(loading || submitting) && <Loader2 className="h-4 w-4 motion-safe:animate-spin" />}
           Save pricing
         </button>
       </div>

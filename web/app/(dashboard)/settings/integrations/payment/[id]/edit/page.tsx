@@ -164,13 +164,13 @@ export default function EditPaymentIntegrationPage() {
       <div className="mb-6">
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+          className="flex items-center gap-2 text-ink-soft hover:text-ink mb-4"
         >
           <ArrowLeft size={20} />
           Back
         </button>
-        <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Edit Payment Integration</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight">Edit Payment Integration</h1>
+        <p className="text-ink-soft mt-1">
           Update your {provider} configuration
         </p>
       </div>
@@ -182,43 +182,43 @@ export default function EditPaymentIntegrationPage() {
       )}
 
       {testResult && (
-        <div className={`mb-6 p-4 rounded-lg border ${testResult.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+        <div className={`mb-6 p-4 rounded-lg border ${testResult.success ? 'bg-leaf-wash border-mint' : 'bg-blush-wash border-blush'}`}>
           <div className="flex items-center gap-2">
             {testResult.success ? (
-              <CheckCircle className="text-green-600" size={20} />
+              <CheckCircle className="text-leaf" size={20} />
             ) : (
-              <XCircle className="text-red-600" size={20} />
+              <XCircle className="text-leaf" size={20} />
             )}
-            <span className={testResult.success ? 'text-green-800' : 'text-red-800'}>
+            <span className={testResult.success ? 'text-forest' : 'text-wine'}>
               {testResult.message}
             </span>
           </div>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-line shadow-sm p-6 space-y-6">
         {/* Basic Info */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-ink-soft mb-2">
             Integration Type
           </label>
           <input
             type="text"
             value={integrationType}
             disabled
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100"
+            className="w-full px-4 py-2 border border-taupe rounded-lg bg-sand"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-ink-soft mb-2">
             Provider
           </label>
           <input
             type="text"
             value={provider}
             disabled
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100"
+            className="w-full px-4 py-2 border border-taupe rounded-lg bg-sand"
           />
         </div>
 
@@ -228,9 +228,9 @@ export default function EditPaymentIntegrationPage() {
             id="is_active"
             checked={isActive}
             onChange={(e) => setIsActive(e.target.checked)}
-            className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+            className="w-4 h-4 text-leaf border-taupe rounded focus:ring-ink"
           />
-          <label htmlFor="is_active" className="text-sm text-gray-700">
+          <label htmlFor="is_active" className="text-sm text-ink-soft">
             Active
           </label>
         </div>
@@ -239,10 +239,10 @@ export default function EditPaymentIntegrationPage() {
         {provider === 'stripe' && (
           <>
             <div className="border-t pt-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Stripe Configuration</h3>
+              <h3 className="text-lg font-semibold text-ink mb-4">Stripe Configuration</h3>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-soft mb-2">
                   Secret Key *
                 </label>
                 <input
@@ -250,16 +250,16 @@ export default function EditPaymentIntegrationPage() {
                   value={stripeSecretKey}
                   onChange={(e) => setStripeSecretKey(e.target.value)}
                   placeholder="sk_test_••••••••"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-ink-mute mt-1">
                   Your Stripe secret key (starts with sk_test_ or sk_live_)
                 </p>
               </div>
 
               <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-soft mb-2">
                   Publishable Key *
                 </label>
                 <input
@@ -267,16 +267,16 @@ export default function EditPaymentIntegrationPage() {
                   value={stripePublishableKey}
                   onChange={(e) => setStripePublishableKey(e.target.value)}
                   placeholder="pk_test_••••••••"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-ink-mute mt-1">
                   Your Stripe publishable key (starts with pk_test_ or pk_live_)
                 </p>
               </div>
 
               <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-soft mb-2">
                   Webhook Secret
                 </label>
                 <input
@@ -284,21 +284,21 @@ export default function EditPaymentIntegrationPage() {
                   value={stripeWebhookSecret}
                   onChange={(e) => setStripeWebhookSecret(e.target.value)}
                   placeholder="whsec_••••••••"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-ink-mute mt-1">
                   Your Stripe webhook signing secret (optional, for webhook verification)
                 </p>
               </div>
 
               <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-soft mb-2">
                   Currency *
                 </label>
                 <select
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
                   required
                 >
                   <option value="usd">USD - US Dollar</option>
@@ -319,17 +319,17 @@ export default function EditPaymentIntegrationPage() {
         {provider === 'paddle' && (
           <>
             <div className="border-t pt-6">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                <p className="text-sm text-blue-800">
+              <div className="bg-sky-wash border border-sky-wash rounded-lg p-3 mb-4">
+                <p className="text-sm text-azure">
                   <strong>Paddle as Merchant of Record:</strong> Paddle handles all VAT/tax compliance,
                   invoicing, and payment processing globally.
                 </p>
               </div>
 
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Paddle Configuration</h3>
+              <h3 className="text-lg font-semibold text-ink mb-4">Paddle Configuration</h3>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-soft mb-2">
                   API Key *
                 </label>
                 <input
@@ -337,16 +337,16 @@ export default function EditPaymentIntegrationPage() {
                   value={paddleApiKey}
                   onChange={(e) => setPaddleApiKey(e.target.value)}
                   placeholder="pdl_••••••••"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-ink-mute mt-1">
                   Your Paddle API key from the Developer Tools section
                 </p>
               </div>
 
               <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-soft mb-2">
                   Client-Side Token *
                 </label>
                 <input
@@ -354,16 +354,16 @@ export default function EditPaymentIntegrationPage() {
                   value={paddleClientToken}
                   onChange={(e) => setPaddleClientToken(e.target.value)}
                   placeholder="test_••••••••"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-ink-mute mt-1">
                   Client-side token for Paddle.js initialization
                 </p>
               </div>
 
               <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-soft mb-2">
                   Webhook Secret
                 </label>
                 <input
@@ -371,22 +371,22 @@ export default function EditPaymentIntegrationPage() {
                   value={paddleWebhookSecret}
                   onChange={(e) => setPaddleWebhookSecret(e.target.value)}
                   placeholder="pdl_ntfset_••••••••"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-ink-mute mt-1">
                   Webhook secret key for verifying webhook notifications
                 </p>
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-ink-soft mb-2">
                     Environment *
                   </label>
                   <select
                     value={paddleEnvironment}
                     onChange={(e) => setPaddleEnvironment(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
                     required
                   >
                     <option value="sandbox">Sandbox - For testing</option>
@@ -395,7 +395,7 @@ export default function EditPaymentIntegrationPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-ink-soft mb-2">
                     Credits Product ID
                   </label>
                   <input
@@ -403,19 +403,19 @@ export default function EditPaymentIntegrationPage() {
                     value={paddleCreditsProductId}
                     onChange={(e) => setPaddleCreditsProductId(e.target.value)}
                     placeholder="pro_••••••••"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-ink-mute mt-1">
                     Product ID for credit top-ups
                   </p>
                 </div>
               </div>
 
-              <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <p className="text-sm text-gray-600">
+              <div className="mt-4 p-3 bg-cream rounded-lg border border-line">
+                <p className="text-sm text-ink-soft">
                   <strong>Webhook URL:</strong> Configure this URL in your Paddle dashboard:
                 </p>
-                <code className="text-sm text-gray-800 bg-gray-100 px-2 py-1 rounded mt-1 block">
+                <code className="text-sm text-ink bg-sand px-2 py-1 rounded mt-1 block">
                   https://your-domain.com/api/v1/billing/webhook/paddle
                 </code>
               </div>
@@ -430,7 +430,7 @@ export default function EditPaymentIntegrationPage() {
               type="button"
               onClick={handleTestConnection}
               disabled={testing || saving}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-2 border border-taupe text-ink-soft rounded-lg hover:bg-cream transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {testing ? (
                 <>
@@ -449,7 +449,7 @@ export default function EditPaymentIntegrationPage() {
               type="button"
               onClick={handleDelete}
               disabled={saving || isActive}
-              className="flex items-center gap-2 px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-2 border border-blush text-danger rounded-lg hover:bg-blush-wash transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               title={isActive ? "Deactivate the integration before deleting" : "Delete integration"}
             >
               <Trash2 size={20} />
@@ -461,7 +461,7 @@ export default function EditPaymentIntegrationPage() {
             <button
               type="button"
               onClick={() => router.back()}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-6 py-2 border border-taupe text-ink-soft rounded-lg hover:bg-cream transition-colors"
               disabled={saving}
             >
               Cancel
@@ -469,7 +469,7 @@ export default function EditPaymentIntegrationPage() {
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              className="flex items-center gap-2 px-6 py-2 bg-ink text-white rounded-lg hover:from-danger hover:to-danger transition-[color,background-color,border-color,box-shadow,opacity,transform] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
               {saving ? (
                 <>

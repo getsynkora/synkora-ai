@@ -17,10 +17,10 @@ const inter = localFont({
 export const metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://synkora.ai'),
   title: 'Synkora – Enterprise AI Agent Platform',
-  description: 'The open-source enterprise AI agent platform with SAML/OIDC SSO, RBAC, audit logs, IP allowlist, and encryption key rotation. Self-host on your infrastructure — MIT licensed.',
+  description: 'The open-source enterprise AI agent platform with SAML/OIDC SSO, RBAC, audit logs, IP allowlist, and encryption key rotation. Self-host on your infrastructure, MIT licensed.',
   openGraph: {
     title: 'Synkora – Enterprise AI Agent Platform',
-    description: 'The open-source enterprise AI agent platform with SAML/OIDC SSO, RBAC, audit logs, IP allowlist, and encryption key rotation. Self-host on your infrastructure — MIT licensed.',
+    description: 'The open-source enterprise AI agent platform with SAML/OIDC SSO, RBAC, audit logs, IP allowlist, and encryption key rotation. Self-host on your infrastructure, MIT licensed.',
     type: 'website',
     siteName: 'Synkora',
     images: [{ url: '/images/screenshot-dashboard-full.png', width: 1200, height: 630, alt: 'Synkora – Open-Source LLM Platform' }],
@@ -28,7 +28,7 @@ export const metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Synkora – Enterprise AI Agent Platform',
-    description: 'The open-source enterprise AI agent platform with SAML/OIDC SSO, RBAC, audit logs, IP allowlist, and encryption key rotation. Self-host on your infrastructure — MIT licensed.',
+    description: 'The open-source enterprise AI agent platform with SAML/OIDC SSO, RBAC, audit logs, IP allowlist, and encryption key rotation. Self-host on your infrastructure, MIT licensed.',
     images: ['/images/screenshot-dashboard-full.png'],
   },
 }
@@ -86,8 +86,8 @@ export default function RootLayout({
             success: {
               duration: 4000,
               style: {
-                background: '#f0fdf4', // green-50
-                color: '#14532d', // green-900
+                background: 'rgb(var(--leaf-wash))', // green-50
+                color: 'rgb(var(--forest))', // green-900
                 border: '2px solid #22c55e', // green-500
                 padding: '16px',
                 borderRadius: '12px',
@@ -103,8 +103,8 @@ export default function RootLayout({
             error: {
               duration: 5000,
               style: {
-                background: '#fee2e2', // red-100
-                color: '#7f1d1d', // red-900
+                background: 'rgb(var(--blush-wash))', // red-100
+                color: 'rgb(var(--danger))', // red-900
                 border: '2px solid #ef4444', // red-500
                 padding: '16px',
                 borderRadius: '12px',
@@ -119,8 +119,8 @@ export default function RootLayout({
             // Loading toasts - new brand color
             loading: {
               style: {
-                background: '#ffffff',
-                color: '#1f2937', // gray-800
+                background: 'rgb(var(--white))',
+                color: 'rgb(var(--night))', // gray-800
                 border: '2px solid #ff444f',
                 padding: '16px',
                 borderRadius: '12px',
@@ -134,8 +134,8 @@ export default function RootLayout({
             },
             // Default/custom toasts
             style: {
-              background: '#ffffff',
-              color: '#1f2937', // gray-800
+              background: 'rgb(var(--white))',
+              color: 'rgb(var(--night))', // gray-800
               border: '2px solid #ff444f',
               padding: '16px',
               borderRadius: '12px',

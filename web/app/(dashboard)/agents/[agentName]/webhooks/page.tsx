@@ -32,13 +32,13 @@ export default function AgentWebhooksPage() {
     <AgentPageShell
       agentName={agentName}
       title="Webhooks"
-      description={<>Manage webhook integrations for <span className="font-semibold text-gray-900">{agentName}</span>.</>}
+      description={<>Manage webhook integrations for <span className="font-semibold text-ink">{agentName}</span>.</>}
       icon={Webhook}
       badge="Automation Hooks"
       actions={activeTab === 'list' ? (
         <button
           onClick={handleCreateClick}
-          className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+          className="inline-flex items-center gap-2 rounded-[1rem] bg-ink px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
         >
           <Plus className="w-4 h-4" />
           Add Webhook

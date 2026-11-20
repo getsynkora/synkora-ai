@@ -21,7 +21,7 @@ const DIMENSIONS = [
   {
     key: 'Physical Health',
     label: 'Physical Health',
-    question: 'How well are you taking care of your body — exercise, diet, sleep, energy?',
+    question: 'How well are you taking care of your body, exercise, diet, sleep, energy?',
     low: 'Neglected',
     high: 'Peak form',
   },
@@ -35,7 +35,7 @@ const DIMENSIONS = [
   {
     key: 'Relationships',
     label: 'Relationships',
-    question: 'How strong are your connections — partner, family, friendships, social life?',
+    question: 'How strong are your connections, partner, family, friendships, social life?',
     low: 'Isolated',
     high: 'Deep bonds',
   },
@@ -95,28 +95,28 @@ export function LifeAuditForm({ onSubmit, isLoading }: LifeAuditFormProps) {
         {DIMENSIONS.map((_, i) => (
           <div
             key={i}
-            className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
-              i <= step ? 'bg-red-500' : 'bg-gray-200'
+            className={`h-1.5 flex-1 rounded-full transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 ${
+              i <= step ? 'bg-ink' : 'bg-line'
             }`}
           />
         ))}
       </div>
 
       {/* Step counter */}
-      <div className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">
+      <div className="text-xs font-medium text-ash mb-2">
         {step + 1} of {DIMENSIONS.length}
       </div>
 
       {/* Question */}
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">{currentDim.label}</h2>
-      <p className="text-gray-600 mb-8">{currentDim.question}</p>
+      <h2 className="text-2xl font-bold text-ink mb-2">{currentDim.label}</h2>
+      <p className="text-ink-soft mb-8">{currentDim.question}</p>
 
       {/* Slider */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-sm text-gray-500">{currentDim.low}</span>
-          <span className="text-4xl font-bold text-gray-900">{current.score}</span>
-          <span className="text-sm text-gray-500">{currentDim.high}</span>
+          <span className="text-sm text-ink-mute">{currentDim.low}</span>
+          <span className="text-4xl font-bold text-ink">{current.score}</span>
+          <span className="text-sm text-ink-mute">{currentDim.high}</span>
         </div>
         <input
           type="range"
@@ -124,11 +124,11 @@ export function LifeAuditForm({ onSubmit, isLoading }: LifeAuditFormProps) {
           max={10}
           value={current.score}
           onChange={(e) => updateAnswer('score', parseInt(e.target.value))}
-          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-red-500"
+          className="w-full h-2 bg-line rounded-lg appearance-none cursor-pointer accent-brand"
         />
         <div className="flex justify-between mt-1">
           {Array.from({ length: 10 }, (_, i) => (
-            <span key={i} className="text-[10px] text-gray-400 w-6 text-center">
+            <span key={i} className="text-[10px] text-ash w-6 text-center">
               {i + 1}
             </span>
           ))}
@@ -137,15 +137,15 @@ export function LifeAuditForm({ onSubmit, isLoading }: LifeAuditFormProps) {
 
       {/* Optional context */}
       <div className="mb-8">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Add context <span className="text-gray-400 font-normal">(optional)</span>
+        <label className="block text-sm font-medium text-ink-soft mb-2">
+          Add context <span className="text-ash font-normal">(optional)</span>
         </label>
         <textarea
           value={current.context}
           onChange={(e) => updateAnswer('context', e.target.value)}
-          placeholder="e.g., Just got promoted but working 60hr weeks..."
+          placeholder="e.g., Just got promoted but working 60hr weeks…"
           rows={2}
-          className="w-full px-4 py-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 resize-none placeholder-gray-400"
+          className="w-full px-4 py-3 text-sm border border-line rounded-lg focus:outline-none focus:ring-2 focus:ring-ink/20 focus:border-hotpink resize-none placeholder-ash"
         />
       </div>
 
@@ -154,18 +154,18 @@ export function LifeAuditForm({ onSubmit, isLoading }: LifeAuditFormProps) {
         <button
           onClick={handleBack}
           disabled={step === 0}
-          className="px-5 py-2.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="px-5 py-2.5 text-sm font-medium text-ink-soft border border-line rounded-lg hover:bg-cream disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
           Back
         </button>
         <button
           onClick={handleNext}
           disabled={isLoading}
-          className="px-6 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-red-500 to-red-600 rounded-lg hover:from-red-600 hover:to-red-700 disabled:opacity-50 transition-all"
+          className="px-6 py-2.5 text-sm font-medium text-white bg-ink rounded-lg hover:from-danger hover:to-danger disabled:opacity-50 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
         >
           {isLoading ? (
             <span className="flex items-center gap-2">
-              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full motion-safe:animate-spin" />
               Starting audit...
             </span>
           ) : isLast ? (

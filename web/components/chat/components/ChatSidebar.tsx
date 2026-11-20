@@ -87,7 +87,7 @@ export function ChatSidebar({
   return (
     <div className={cn('flex flex-col h-full', className)}>
       {/* Header - Synkora Logo & Tenant Name */}
-      <div className="p-4 border-b border-gray-100">
+      <div className="p-4 border-b border-sand">
         <a
           href="/agents"
           className="flex items-center gap-2.5 hover:opacity-80 transition-opacity"
@@ -99,13 +99,13 @@ export function ChatSidebar({
               className="w-8 h-8 rounded-lg object-contain flex-shrink-0"
             />
           ) : (
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-              <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+            <div className="w-8 h-8 rounded-xl bg-ink flex items-center justify-center flex-shrink-0 shadow-sm">
+              <svg aria-hidden="true" className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
           )}
-          <span className="font-bold text-gray-900 truncate">
+          <span className="font-bold text-ink truncate">
             {tenantName || 'Synkora'}
           </span>
         </a>
@@ -115,9 +115,9 @@ export function ChatSidebar({
       <div className="flex-1 overflow-y-auto px-2 pt-2 pb-2">
         {sessions.length === 0 ? (
           <div className="py-12 text-center">
-            <MessageSquare size={28} className="mx-auto text-gray-300 mb-3" />
-            <p className="text-sm font-medium text-gray-400">No conversations</p>
-            <p className="text-xs text-gray-400 mt-1">Start chatting to see history</p>
+            <MessageSquare size={28} className="mx-auto text-taupe mb-3" />
+            <p className="text-sm font-medium text-ash">No conversations</p>
+            <p className="text-xs text-ash mt-1">Start chatting to see history</p>
           </div>
         ) : (
           <div className="space-y-5">
@@ -174,27 +174,27 @@ export function ChatSidebar({
       </div>
 
       {/* Footer */}
-      <div className="p-3 border-t border-gray-200/60">
+      <div className="p-3 border-t border-line/60">
         <div className="relative">
           <button
             onClick={() => setShowMenu(!showMenu)}
-            className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-gray-100 rounded-xl transition-colors"
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-sand rounded-xl transition-colors"
           >
-            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-              <User size={16} className="text-gray-600" />
+            <div className="w-8 h-8 rounded-full bg-line flex items-center justify-center">
+              <User size={16} className="text-ink-soft" />
             </div>
-            <span className="text-sm font-semibold text-gray-800 flex-1 text-left truncate">Settings</span>
-            <ChevronDown size={16} className={cn('text-gray-400 transition-transform', showMenu && 'rotate-180')} />
+            <span className="text-sm font-semibold text-ink flex-1 text-left truncate">Settings</span>
+            <ChevronDown size={16} className={cn('text-ash transition-transform motion-reduce:transition-none', showMenu && 'rotate-180')} />
           </button>
 
           {showMenu && (
-            <div className="absolute bottom-full left-0 right-0 mb-1 bg-white rounded-xl shadow-lg border border-gray-200 py-1.5 z-50">
+            <div className="absolute bottom-full left-0 right-0 mb-1 bg-white rounded-xl shadow-lg border border-line py-1.5 z-50">
               <button
                 onClick={() => {
                   window.location.href = '/settings/profile'
                   setShowMenu(false)
                 }}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-ink-soft hover:bg-cream"
               >
                 <User size={16} />
                 Profile
@@ -205,18 +205,18 @@ export function ChatSidebar({
                   window.location.href = `/agents/${agent}/edit`
                   setShowMenu(false)
                 }}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-ink-soft hover:bg-cream"
               >
                 <Settings size={16} />
                 Agent Settings
               </button>
-              <div className="border-t border-gray-100 my-1" />
+              <div className="border-t border-sand my-1" />
               <button
                 onClick={() => {
                   localStorage.removeItem('token')
                   window.location.href = '/signin'
                 }}
-                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50"
+                className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-leaf hover:bg-blush-wash"
               >
                 <LogOut size={16} />
                 Sign out
@@ -252,7 +252,7 @@ function SessionGroup({
 }: SessionGroupProps) {
   return (
     <div>
-      <p className="px-2 py-1.5 text-xs font-bold text-gray-500 uppercase tracking-wide">
+      <p className="px-2 py-1.5 text-xs font-bold text-ink-mute">
         {label}
       </p>
       <div className="space-y-1">
@@ -323,8 +323,8 @@ function SessionItem({ session, isActive, onClick, onDelete, onRename, onShare }
   return (
     <div
       className={cn(
-        'group relative flex items-center rounded-xl transition-all',
-        isEditing ? 'bg-gray-100' : cn('cursor-pointer', isActive ? 'bg-gray-100' : 'hover:bg-gray-50')
+        'group relative flex items-center rounded-xl transition-[color,background-color,border-color,box-shadow,opacity,transform]',
+        isEditing ? 'bg-sand' : cn('cursor-pointer', isActive ? 'bg-sand' : 'hover:bg-cream')
       )}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
@@ -337,21 +337,21 @@ function SessionItem({ session, isActive, onClick, onDelete, onRename, onShare }
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={commitRename}
-            className="flex-1 min-w-0 bg-white border border-gray-300 rounded-lg px-2 py-1 text-sm text-gray-900 focus:outline-none focus:border-gray-400"
+            className="flex-1 min-w-0 bg-white border border-taupe rounded-lg px-2 py-1 text-sm text-ink focus:outline-none focus:border-ash"
           />
           <button
             onMouseDown={(e) => { e.preventDefault(); commitRename() }}
-            className="p-1 hover:bg-gray-200 rounded-lg transition-colors flex-shrink-0"
+            className="p-1 hover:bg-line rounded-lg transition-colors flex-shrink-0"
             title="Save"
           >
-            <Check size={13} className="text-green-600" />
+            <Check size={13} className="text-leaf" />
           </button>
           <button
             onMouseDown={(e) => { e.preventDefault(); cancelRename() }}
-            className="p-1 hover:bg-gray-200 rounded-lg transition-colors flex-shrink-0"
+            className="p-1 hover:bg-line rounded-lg transition-colors flex-shrink-0"
             title="Cancel"
           >
-            <X size={13} className="text-gray-400" />
+            <X size={13} className="text-ash" />
           </button>
         </div>
       ) : (
@@ -363,7 +363,7 @@ function SessionItem({ session, isActive, onClick, onDelete, onRename, onShare }
           >
             <p className={cn(
               'text-sm truncate',
-              isActive ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'
+              isActive ? 'font-semibold text-ink' : 'font-medium text-ink-soft'
             )}>
               {session.title}
             </p>
@@ -374,28 +374,28 @@ function SessionItem({ session, isActive, onClick, onDelete, onRename, onShare }
               {onRename && (
                 <button
                   onClick={startEditing}
-                  className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"
+                  className="p-1.5 hover:bg-line rounded-lg transition-colors"
                   title="Rename"
                 >
-                  <Pencil size={13} className="text-gray-400 hover:text-gray-700" />
+                  <Pencil size={13} className="text-ash hover:text-ink-soft" />
                 </button>
               )}
               {onShare && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onShare() }}
-                  className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"
+                  className="p-1.5 hover:bg-line rounded-lg transition-colors"
                   title="Share"
                 >
-                  <Share2 size={13} className="text-gray-400 hover:text-blue-500" />
+                  <Share2 size={13} className="text-ash hover:text-azure" />
                 </button>
               )}
               {onDelete && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onDelete() }}
-                  className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"
+                  className="p-1.5 hover:bg-line rounded-lg transition-colors"
                   title="Delete"
                 >
-                  <Trash2 size={13} className="text-gray-400 hover:text-red-500" />
+                  <Trash2 size={13} className="text-ash hover:text-leaf" />
                 </button>
               )}
             </div>

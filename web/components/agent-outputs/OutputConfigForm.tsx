@@ -130,24 +130,24 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
       <div className="space-y-6">
         {/* Basic Info */}
         <div>
-          <h3 className="text-base font-semibold text-gray-900 mb-4">Basic Information</h3>
+          <h3 className="text-base font-semibold text-ink mb-4">Basic Information</h3>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Name <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-ink-soft mb-1.5">
+                Name <span className="text-leaf">*</span>
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g., Slack Notifications"
-                className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm text-ink border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-ink-soft mb-1.5">
                 Description
               </label>
               <textarea
@@ -155,7 +155,7 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Optional description"
                 rows={2}
-                className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm text-ink border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
               />
             </div>
           </div>
@@ -163,8 +163,8 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
 
         {/* Provider Selection */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">
-            Provider <span className="text-red-500">*</span>
+          <label className="block text-sm font-medium text-ink-soft mb-1.5">
+            Provider <span className="text-leaf">*</span>
           </label>
           <select
             value={provider}
@@ -173,7 +173,7 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
               setConnectionValue('');
             }}
             disabled={!!output}
-            className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-3 py-2 text-sm text-ink border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
             required
           >
             <option value="slack">Slack</option>
@@ -181,7 +181,7 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
             <option value="webhook">Webhook</option>
           </select>
           {!!output && (
-            <p className="text-xs text-gray-600 mt-1">
+            <p className="text-xs text-ink-soft mt-1">
               Provider cannot be changed after creation
             </p>
           )}
@@ -190,13 +190,13 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
         {/* Connection Selection for Slack */}
         {provider === 'slack' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Slack Connection <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-ink-soft mb-1.5">
+              Slack Connection <span className="text-leaf">*</span>
             </label>
             <select
               value={connectionValue}
               onChange={(e) => setConnectionValue(e.target.value)}
-              className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              className="w-full px-3 py-2 text-sm text-ink border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
               required
             >
               <option value="">Select Slack connection</option>
@@ -204,7 +204,7 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
                 <optgroup label="Slack Bots (Bot Token)">
                   {slackBots.map((bot) => (
                     <option key={bot.id} value={`bot:${bot.id}`}>
-                      {bot.bot_name}{bot.slack_workspace_name ? ` — ${bot.slack_workspace_name}` : ''}
+                      {bot.bot_name}{bot.slack_workspace_name ? `, ${bot.slack_workspace_name}` : ''}
                     </option>
                   ))}
                 </optgroup>
@@ -220,7 +220,7 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
               )}
             </select>
             {slackBots.length === 0 && slackOAuthApps.length === 0 && (
-              <p className="text-xs text-gray-600 mt-1">
+              <p className="text-xs text-ink-soft mt-1">
                 No Slack connections found. Add a Slack Bot or OAuth App first.
               </p>
             )}
@@ -230,13 +230,13 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
         {/* Connection Selection for Email */}
         {provider === 'email' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Email Configuration <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-ink-soft mb-1.5">
+              Email Configuration <span className="text-leaf">*</span>
             </label>
             <select
               value={connectionValue}
               onChange={(e) => setConnectionValue(e.target.value)}
-              className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              className="w-full px-3 py-2 text-sm text-ink border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
               required
             >
               <option value="">Select email app</option>
@@ -247,7 +247,7 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
               ))}
             </select>
             {emailApps.length === 0 && (
-              <p className="text-xs text-gray-600 mt-1">
+              <p className="text-xs text-ink-soft mt-1">
                 No email apps configured. Please set up an OAuth app first.
               </p>
             )}
@@ -258,23 +258,23 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
         {provider === 'slack' && (
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Channel ID <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-ink-soft mb-1.5">
+                Channel ID <span className="text-leaf">*</span>
               </label>
               <input
                 type="text"
                 value={slackChannelId}
                 onChange={(e) => setSlackChannelId(e.target.value)}
                 placeholder="C0123456789"
-                className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm text-ink border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
                 required
               />
-              <p className="text-xs text-gray-600 mt-1">
+              <p className="text-xs text-ink-soft mt-1">
                 Slack channel ID (starts with C). Right-click a channel in Slack → Copy link to find it.
               </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-ink-soft mb-1.5">
                 Channel Name (optional)
               </label>
               <input
@@ -282,7 +282,7 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
                 value={slackChannelName}
                 onChange={(e) => setSlackChannelName(e.target.value)}
                 placeholder="#general"
-                className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm text-ink border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
               />
             </div>
           </div>
@@ -291,31 +291,31 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
         {provider === 'email' && (
           <>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Recipients <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-ink-soft mb-1.5">
+                Recipients <span className="text-leaf">*</span>
               </label>
               <input
                 type="text"
                 value={emailTo}
                 onChange={(e) => setEmailTo(e.target.value)}
                 placeholder="user@example.com, another@example.com"
-                className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm text-ink border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
                 required
               />
-              <p className="text-xs text-gray-600 mt-1">
+              <p className="text-xs text-ink-soft mt-1">
                 Comma-separated email addresses
               </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Subject <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-ink-soft mb-1.5">
+                Subject <span className="text-leaf">*</span>
               </label>
               <input
                 type="text"
                 value={emailSubject}
                 onChange={(e) => setEmailSubject(e.target.value)}
                 placeholder="Agent Output"
-                className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm text-ink border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
                 required
               />
             </div>
@@ -325,26 +325,26 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
         {provider === 'webhook' && (
           <>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Webhook URL <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-ink-soft mb-1.5">
+                Webhook URL <span className="text-leaf">*</span>
               </label>
               <input
                 type="url"
                 value={webhookUrl}
                 onChange={(e) => setWebhookUrl(e.target.value)}
                 placeholder="https://api.example.com/webhook"
-                className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm text-ink border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-ink-soft mb-1.5">
                 HTTP Method
               </label>
               <select
                 value={webhookMethod}
                 onChange={(e) => setWebhookMethod(e.target.value as 'POST' | 'PUT' | 'PATCH')}
-                className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm text-ink border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
               >
                 <option value="POST">POST</option>
                 <option value="PUT">PUT</option>
@@ -352,7 +352,7 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-ink-soft mb-1.5">
                 Custom Headers (JSON)
               </label>
               <textarea
@@ -360,7 +360,7 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
                 onChange={(e) => setWebhookHeaders(e.target.value)}
                 placeholder='{"Authorization": "Bearer token"}'
                 rows={4}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent font-mono"
+                className="w-full px-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent font-mono"
               />
             </div>
           </>
@@ -368,7 +368,7 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
 
         {/* Output Template */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+          <label className="block text-sm font-medium text-ink-soft mb-1.5">
             Output Template (Optional)
           </label>
           <textarea
@@ -376,54 +376,54 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
             onChange={(e) => setOutputTemplate(e.target.value)}
             placeholder="Use {response} for agent output, {event_type} for trigger type, etc."
             rows={4}
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+            className="w-full px-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
           />
-          <p className="text-xs text-gray-600 mt-1">
+          <p className="text-xs text-ink-soft mt-1">
             Leave empty to use default formatting. Variables: {'{response}'}, {'{agent_name}'}, {'{event_type}'}
           </p>
         </div>
 
         {/* Trigger Configuration */}
         <div>
-          <h3 className="text-base font-semibold text-gray-900 mb-3">When to Send</h3>
+          <h3 className="text-base font-semibold text-ink mb-3">When to Send</h3>
           <div className="space-y-3">
-            <label className="flex items-center gap-2.5 p-3 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-gray-300 transition-all">
+            <label className="flex items-center gap-2.5 p-3 border-2 border-line rounded-lg cursor-pointer hover:border-taupe transition-[color,background-color,border-color,box-shadow,opacity,transform]">
               <input
                 type="checkbox"
                 checked={sendOnWebhook}
                 onChange={(e) => setSendOnWebhook(e.target.checked)}
-                className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                className="w-4 h-4 text-leaf border-taupe rounded focus:ring-ink"
               />
-              <span className="text-sm font-medium text-gray-900">Send on webhook trigger</span>
+              <span className="text-sm font-medium text-ink">Send on webhook trigger</span>
             </label>
-            <label className="flex items-center gap-2.5 p-3 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-gray-300 transition-all">
+            <label className="flex items-center gap-2.5 p-3 border-2 border-line rounded-lg cursor-pointer hover:border-taupe transition-[color,background-color,border-color,box-shadow,opacity,transform]">
               <input
                 type="checkbox"
                 checked={sendOnChat}
                 onChange={(e) => setSendOnChat(e.target.checked)}
-                className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                className="w-4 h-4 text-leaf border-taupe rounded focus:ring-ink"
               />
-              <span className="text-sm font-medium text-gray-900">Send on chat completion</span>
+              <span className="text-sm font-medium text-ink">Send on chat completion</span>
             </label>
           </div>
         </div>
 
         {/* Retry Configuration */}
         <div>
-          <h3 className="text-base font-semibold text-gray-900 mb-3">Retry Settings</h3>
+          <h3 className="text-base font-semibold text-ink mb-3">Retry Settings</h3>
           <div className="space-y-3">
-            <label className="flex items-center gap-2.5 p-3 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-gray-300 transition-all">
+            <label className="flex items-center gap-2.5 p-3 border-2 border-line rounded-lg cursor-pointer hover:border-taupe transition-[color,background-color,border-color,box-shadow,opacity,transform]">
               <input
                 type="checkbox"
                 checked={retryOnFailure}
                 onChange={(e) => setRetryOnFailure(e.target.checked)}
-                className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                className="w-4 h-4 text-danger border-taupe rounded focus:ring-ink"
               />
-              <span className="text-sm font-medium text-gray-900">Retry on failure</span>
+              <span className="text-sm font-medium text-ink">Retry on failure</span>
             </label>
             {retryOnFailure && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className="block text-sm font-medium text-ink-soft mb-1.5">
                   Max Retries
                 </label>
                 <input
@@ -432,7 +432,7 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
                   max={5}
                   value={maxRetries}
                   onChange={(e) => setMaxRetries(parseInt(e.target.value))}
-                  className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm text-ink border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
                 />
               </div>
             )}
@@ -441,34 +441,34 @@ export function OutputConfigForm({ output, onSubmit, onCancel }: OutputConfigFor
 
         {/* Enable/Disable */}
         <div>
-          <label className="flex items-center gap-2.5 p-3 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-gray-300 transition-all">
+          <label className="flex items-center gap-2.5 p-3 border-2 border-line rounded-lg cursor-pointer hover:border-taupe transition-[color,background-color,border-color,box-shadow,opacity,transform]">
             <input
               type="checkbox"
               checked={isEnabled}
               onChange={(e) => setIsEnabled(e.target.checked)}
-              className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+              className="w-4 h-4 text-leaf border-taupe rounded focus:ring-ink"
             />
-            <span className="text-sm font-medium text-gray-900">Enable this output</span>
+            <span className="text-sm font-medium text-ink">Enable this output</span>
           </label>
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-end gap-3 pt-5 border-t border-gray-200">
+        <div className="flex items-center justify-end gap-3 pt-5 border-t border-line">
           <button
             type="button"
             onClick={onCancel}
-            className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            className="px-5 py-2.5 text-sm font-medium text-ink-soft bg-sand rounded-lg hover:bg-line transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-lg transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-ink hover:bg-ink/85 rounded-lg transition-[color,background-color,border-color,box-shadow,opacity,transform] shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-4 h-4 motion-safe:animate-spin" />
                 Saving...
               </>
             ) : (

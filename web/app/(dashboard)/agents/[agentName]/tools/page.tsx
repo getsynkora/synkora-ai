@@ -29,7 +29,33 @@ import {
   Link2,
   CheckCircle,
   Mail,
-  Newspaper
+  Newspaper,
+  BarChart3,
+  Bell,
+  Blocks,
+  BookOpen,
+  Bot,
+  Briefcase,
+  Clapperboard,
+  ClipboardList,
+  CloudSun,
+  Container,
+  Folder,
+  FolderOpen,
+  GitBranch,
+  Inbox,
+  KeyRound,
+  Map as MapIcon,
+  Pencil,
+  Play,
+  Rocket,
+  Rss,
+  Share2,
+  Ticket,
+  TrendingUp,
+  Video,
+  Wrench,
+  type LucideIcon
 } from 'lucide-react';
 import Link from 'next/link';
 import { apiClient } from '@/lib/api/client';
@@ -41,7 +67,7 @@ interface Tool {
   displayName: string;
   description: string;
   category: string;
-  icon: string;
+  icon: LucideIcon;
   requiredFields: ToolField[];
   optionalFields?: ToolField[];
   configurable?: boolean;
@@ -87,14 +113,14 @@ interface ToolGroup {
 }
 
 const toolModalShellClass =
-  'w-full max-w-5xl overflow-hidden rounded-[2rem] border border-black/10 bg-[#fffdf8] shadow-[0_32px_90px_rgba(23,23,23,0.22)]';
+  'w-full max-w-5xl overflow-hidden rounded-[2rem] border border-black/10 bg-cream shadow-soft';
 const toolModalSectionClass =
-  'rounded-[1.5rem] border border-black/8 bg-white p-5 shadow-[0_10px_30px_rgba(23,23,23,0.05)]';
+  'rounded-[1.5rem] border border-black/8 bg-white p-5 shadow-soft';
 const toolModalFieldClass =
-  'w-full rounded-[1rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-[#171717] outline-none transition focus:border-[#79dfbc] focus:ring-4 focus:ring-[#79dfbc]/20';
-const toolModalLabelClass = 'mb-1.5 block text-sm font-semibold text-[#171717]';
-const toolModalHelpClass = 'mb-2.5 text-xs leading-5 text-[#6d675f]';
-const toolModalLinkClass = 'font-semibold text-[#d44a32] transition hover:text-[#b93d27]';
+  'w-full rounded-[1rem] border border-black/10 bg-cream px-4 py-3 text-sm text-ink outline-none transition focus:border-mint focus:ring-4 focus:ring-mint/20';
+const toolModalLabelClass = 'mb-1.5 block text-sm font-semibold text-ink';
+const toolModalHelpClass = 'mb-2.5 text-xs leading-5 text-ink-mute';
+const toolModalLinkClass = 'font-semibold text-leaf transition hover:text-leaf';
 
 // Tool categories organized by integration/service (A–Z, Custom last)
 const TOOL_GROUPS: ToolGroup[] = [
@@ -229,7 +255,7 @@ const TOOL_GROUPS: ToolGroup[] = [
   {
     id: 'image_generation',
     name: 'Image Generation',
-    description: 'Generate AI images from text prompts using gpt-image-2, Google Imagen, or Grok Aurora — uses the agent\'s configured LLM API key',
+    description: 'Generate AI images from text prompts using gpt-image-2, Google Imagen, or Grok Aurora, uses the agent\'s configured LLM API key',
     icon: Package,
     tools: [],
     expanded: false
@@ -1320,55 +1346,55 @@ export default function AgentToolsPage() {
     }
   };
 
-  const getToolIcon = (toolName: string): string => {
+  const getToolIcon = (toolName: string): LucideIcon => {
     const name = toolName.toLowerCase();
-    if (name.includes('weather')) return '🌤️';
-    if (name.includes('predicthq') || name.includes('ticketmaster')) return '🎟️';
-    if (name.includes('higgsfield')) return '🎬';
-    if (name.includes('static_map') || name.includes('directions') || name.includes('mapbox')) return '🗺️';
-    if (name.includes('recall')) return '🎥';
-    if (name.includes('gitlab')) return '🦊';
-    if (name.includes('twitter')) return '🐦';
-    if (name.includes('linkedin')) return '💼';
-    if (name.includes('gmail')) return '✉️';
-    if (name.includes('mailisk')) return '📬';
-    if (name === 'internal_send_email' || name === 'internal_send_bulk_emails' || name === 'internal_test_email_connection') return '📧';
-    if (name.startsWith('internal_google_sheets_')) return '📊';
-    if (name.startsWith('internal_google_docs_')) return '📝';
-    if (name.startsWith('internal_elasticsearch_')) return '🔎';
-    if (name === 'internal_generate_dashboard') return '📊';
-    if (name === 'internal_generate_chart' || name === 'internal_query_and_chart') return '📊';
-    if (name === 'generate_chart_from_data') return '📁';
-    if (name === 'query_docker_logs') return '🐳';
-    if (name === 'query_databricks') return '🧱';
-    if (name === 'query_datadog_metrics') return '📈';
-    if (name === 'query_datadog_logs') return '📋';
-    if (name.startsWith('internal_hackernews_')) return '🗞️';
-    if (name === 'internal_news_search') return '📰';
-    if (name === 'internal_fetch_rss_feed') return '📡';
-    if (['spawn_agent', 'transfer_to_agent', 'check_task', 'list_background_tasks', 'escalate_to_human', 'get_my_human_contact', 'get_project_agents', 'get_my_role', 'internal_escalate_followup', 'check_escalation_status', 'get_pending_escalations', 'internal_search_available_tools', 'internal_list_tool_categories'].includes(name)) return '🤖';
-    if (name === 'get_project_info' || name === 'get_project_context' || name === 'update_project_context') return '🗂️';
-    if (['internal_fetch_repository_files', 'internal_identify_abstractions', 'internal_analyze_relationships', 'internal_order_chapters', 'internal_generate_tutorial_chapter', 'internal_combine_tutorial'].includes(name)) return '📖';
-    if (name === 'internal_analyze_contract' || name === 'internal_generate_contract_report') return '📋';
-    if (name.startsWith('internal_1password_')) return '🔐';
-    if (name.startsWith('internal_youtube_') || name.startsWith('youtube_')) return '▶️';
-    if (name === 'web_search' || name === 'internal_web_fetch' || name === 'web_crawl') return '🌐';
-    if (name.includes('followup')) return '🔔';
-    if (name.includes('browser') || name.includes('navigate') || name.includes('screenshot')) return '🌐';
-    if (name.includes('extract_links') || name.includes('extract_structured')) return '🔗';
-    if (name.includes('check_element')) return '🔍';
-    if (name.includes('read') || name.includes('file')) return '📄';
-    if (name.includes('write') || name.includes('edit')) return '✏️';
-    if (name.includes('search')) return '🔍';
-    if (name.includes('directory') || name.includes('list')) return '📁';
-    if (name === 'internal_generate_blog_site' || name === 'internal_create_github_repository' || name === 'internal_deploy_blog_to_github' || name === 'internal_enable_github_pages') return '🚀';
-    if (name.includes('git') || name.includes('github')) return '🐙';
-    if (name.includes('command') || name.includes('execute')) return '⚙️';
-    if (name.includes('database') || name.includes('query')) return '🗄️';
-    if (name.includes('chart')) return '📊';
-    if (name.includes('s3') || name.includes('storage')) return '☁️';
-    if (name.includes('tutorial')) return '📚';
-    return '🔧';
+    if (name.includes('weather')) return CloudSun;
+    if (name.includes('predicthq') || name.includes('ticketmaster')) return Ticket;
+    if (name.includes('higgsfield')) return Clapperboard;
+    if (name.includes('static_map') || name.includes('directions') || name.includes('mapbox')) return MapIcon;
+    if (name.includes('recall')) return Video;
+    if (name.includes('gitlab')) return GitBranch;
+    if (name.includes('twitter')) return Share2;
+    if (name.includes('linkedin')) return Briefcase;
+    if (name.includes('gmail')) return Mail;
+    if (name.includes('mailisk')) return Inbox;
+    if (name === 'internal_send_email' || name === 'internal_send_bulk_emails' || name === 'internal_test_email_connection') return Mail;
+    if (name.startsWith('internal_google_sheets_')) return BarChart3;
+    if (name.startsWith('internal_google_docs_')) return FileText;
+    if (name.startsWith('internal_elasticsearch_')) return Search;
+    if (name === 'internal_generate_dashboard') return BarChart3;
+    if (name === 'internal_generate_chart' || name === 'internal_query_and_chart') return BarChart3;
+    if (name === 'generate_chart_from_data') return Folder;
+    if (name === 'query_docker_logs') return Container;
+    if (name === 'query_databricks') return Blocks;
+    if (name === 'query_datadog_metrics') return TrendingUp;
+    if (name === 'query_datadog_logs') return ClipboardList;
+    if (name.startsWith('internal_hackernews_')) return Newspaper;
+    if (name === 'internal_news_search') return Newspaper;
+    if (name === 'internal_fetch_rss_feed') return Rss;
+    if (['spawn_agent', 'transfer_to_agent', 'check_task', 'list_background_tasks', 'escalate_to_human', 'get_my_human_contact', 'get_project_agents', 'get_my_role', 'internal_escalate_followup', 'check_escalation_status', 'get_pending_escalations', 'internal_search_available_tools', 'internal_list_tool_categories'].includes(name)) return Bot;
+    if (name === 'get_project_info' || name === 'get_project_context' || name === 'update_project_context') return FolderOpen;
+    if (['internal_fetch_repository_files', 'internal_identify_abstractions', 'internal_analyze_relationships', 'internal_order_chapters', 'internal_generate_tutorial_chapter', 'internal_combine_tutorial'].includes(name)) return BookOpen;
+    if (name === 'internal_analyze_contract' || name === 'internal_generate_contract_report') return ClipboardList;
+    if (name.startsWith('internal_1password_')) return KeyRound;
+    if (name.startsWith('internal_youtube_') || name.startsWith('youtube_')) return Play;
+    if (name === 'web_search' || name === 'internal_web_fetch' || name === 'web_crawl') return Globe;
+    if (name.includes('followup')) return Bell;
+    if (name.includes('browser') || name.includes('navigate') || name.includes('screenshot')) return Globe;
+    if (name.includes('extract_links') || name.includes('extract_structured')) return Link2;
+    if (name.includes('check_element')) return Search;
+    if (name.includes('read') || name.includes('file')) return FileText;
+    if (name.includes('write') || name.includes('edit')) return Pencil;
+    if (name.includes('search')) return Search;
+    if (name.includes('directory') || name.includes('list')) return Folder;
+    if (name === 'internal_generate_blog_site' || name === 'internal_create_github_repository' || name === 'internal_deploy_blog_to_github' || name === 'internal_enable_github_pages') return Rocket;
+    if (name.includes('git') || name.includes('github')) return Github;
+    if (name.includes('command') || name.includes('execute')) return Settings;
+    if (name.includes('database') || name.includes('query')) return Database;
+    if (name.includes('chart')) return BarChart3;
+    if (name.includes('s3') || name.includes('storage')) return Cloud;
+    if (name.includes('tutorial')) return BookOpen;
+    return Wrench;
   };
 
   const toggleGroup = (groupId: string) => {
@@ -1473,7 +1499,7 @@ export default function AgentToolsPage() {
       const botsToShow = activeBots.length > 0 ? activeBots : slackBots;
       const botOptions = botsToShow.map(b => ({
         value: `bot:${b.id}`,
-        label: `${b.bot_name}${b.slack_workspace_name ? ` (${b.slack_workspace_name})` : ''} — ${b.connection_status}`,
+        label: `${b.bot_name}${b.slack_workspace_name ? ` (${b.slack_workspace_name})` : ''}, ${b.connection_status}`,
         group: 'Slack Bots',
       }));
       const oauthOptions = getOAuthAppsForProvider('SLACK').map((app: any) => ({
@@ -1489,7 +1515,7 @@ export default function AgentToolsPage() {
           key: 'slack_connection',
           label: 'Slack Connection',
           description: 'Select a Slack bot or OAuth app to use for this tool.',
-          placeholder: 'Select connection...',
+          placeholder: 'Select connection…',
           type: 'select',
           options: allOptions,
           isSlackCombined: true,
@@ -1534,7 +1560,7 @@ export default function AgentToolsPage() {
             : isConfigured ? ' (connected)' : ' (not connected)';
           return {
             value: app.id.toString(),
-            label: `${app.app_name}${app.is_default ? ' · Default' : ''}${suffix}`,
+            label: `${app.app_name}${app.is_default ? ', Default' : ''}${suffix}`,
             isAuthorized: isConfigured,
           };
         });
@@ -1855,7 +1881,7 @@ export default function AgentToolsPage() {
     <AgentPageShell
       agentName={agentName}
       title="Tool Configuration"
-      description={<>Configure tools for <span className="font-semibold text-gray-900">{agent?.agent_name || agentName}</span>.</>}
+      description={<>Configure tools for <span className="font-semibold text-ink">{agent?.agent_name || agentName}</span>.</>}
       icon={Settings}
       badge="Capability Control"
       maxWidthClassName="max-w-7xl"
@@ -1864,27 +1890,27 @@ export default function AgentToolsPage() {
         {/* Search Bar + Active Filter */}
         <div className="mb-5 flex gap-2">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ash" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search tools..."
-              className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white"
+              placeholder="Search tools…"
+              className="w-full pl-10 pr-4 py-2.5 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-ink bg-white"
             />
           </div>
           <button
             onClick={() => setActiveOnly(v => !v)}
             className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium rounded-lg border transition-colors whitespace-nowrap ${
               activeOnly
-                ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
-                : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'
+                ? 'bg-leaf-wash border-mint text-forest'
+                : 'bg-white border-taupe text-ink-soft hover:bg-cream'
             }`}
           >
-            <CheckCircle className={`w-4 h-4 ${activeOnly ? 'text-emerald-600' : 'text-gray-400'}`} />
+            <CheckCircle className={`w-4 h-4 ${activeOnly ? 'text-leaf' : 'text-ash'}`} />
             Active only
             {activeOnly && (
-              <span className="ml-1 bg-emerald-100 text-emerald-700 text-xs font-semibold px-1.5 py-0.5 rounded-full">
+              <span className="ml-1 bg-leaf-wash text-forest text-xs font-semibold px-1.5 py-0.5 rounded-full">
                 {agentTools.filter(t => t.enabled).length}
               </span>
             )}
@@ -1893,27 +1919,27 @@ export default function AgentToolsPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow-sm p-3.5 border border-gray-200">
-            <div className="text-xs text-gray-600">Total Tools</div>
-            <div className="text-2xl font-bold text-gray-900 mt-1">
+          <div className="bg-white rounded-lg shadow-sm p-3.5 border border-line">
+            <div className="text-xs text-ink-soft">Total Tools</div>
+            <div className="text-2xl font-bold text-ink mt-1">
               {availableTools.length + customTools.length}
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm p-3.5 border border-gray-200">
-            <div className="text-xs text-gray-600">Enabled Tools</div>
-            <div className="text-2xl font-bold text-emerald-600 mt-1">
+          <div className="bg-white rounded-lg shadow-sm p-3.5 border border-line">
+            <div className="text-xs text-ink-soft">Enabled Tools</div>
+            <div className="text-2xl font-bold text-leaf mt-1">
               {agentTools.filter(t => t.enabled).length}
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm p-3.5 border border-gray-200">
-            <div className="text-xs text-gray-600">Built-in Tools</div>
-            <div className="text-2xl font-bold text-red-600 mt-1">
+          <div className="bg-white rounded-lg shadow-sm p-3.5 border border-line">
+            <div className="text-xs text-ink-soft">Built-in Tools</div>
+            <div className="text-2xl font-bold text-leaf mt-1">
               {availableTools.length}
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow-sm p-3.5 border border-gray-200">
-            <div className="text-xs text-gray-600">Custom Tools</div>
-            <div className="text-2xl font-bold text-purple-600 mt-1">
+          <div className="bg-white rounded-lg shadow-sm p-3.5 border border-line">
+            <div className="text-xs text-ink-soft">Custom Tools</div>
+            <div className="text-2xl font-bold text-plum mt-1">
               {customTools.length}
             </div>
           </div>
@@ -1930,8 +1956,8 @@ export default function AgentToolsPage() {
 
         {loading ? (
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
-            <p className="mt-4 text-sm text-gray-600">Loading tools...</p>
+            <div className="motion-safe:animate-spin rounded-full h-12 w-12 border-b-2 border-danger mx-auto"></div>
+            <p className="mt-4 text-sm text-ink-soft">Loading tools…</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -1970,20 +1996,20 @@ export default function AgentToolsPage() {
               const authMethod = groupOAuthProvider ? getAuthMethodForProvider(groupOAuthProvider) : 'oauth';
 
               return (
-              <div key={group.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:border-red-200 transition-all">
+              <div key={group.id} className="bg-white rounded-lg shadow-sm border border-line overflow-hidden hover:border-blush transition-[color,background-color,border-color,box-shadow,opacity,transform]">
                 <button
                   onClick={() => toggleGroup(group.id)}
-                  className="w-full flex items-center justify-between p-5 hover:bg-red-50/50 transition-colors"
+                  className="w-full flex items-center justify-between p-5 hover:bg-blush-wash/50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-red-50 rounded-lg">
-                      <group.icon className="w-5 h-5 text-red-600" />
+                    <div className="p-2.5 bg-sand-deep rounded-lg">
+                      <group.icon className="w-5 h-5 text-leaf" />
                     </div>
                     <div className="text-left">
-                      <h2 className="text-base font-semibold text-gray-900">{group.name}</h2>
-                      <p className="text-xs text-gray-600">{group.description}</p>
+                      <h2 className="text-base font-semibold text-ink">{group.name}</h2>
+                      <p className="text-xs text-ink-soft">{group.description}</p>
                     </div>
-                    <span className="ml-3 px-2.5 py-0.5 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
+                    <span className="ml-3 px-2.5 py-0.5 bg-sand text-ink-soft rounded-full text-xs font-medium">
                       {group.id === 'custom'
                         ? customTools.length
                         : group.tools.length} tools
@@ -1991,7 +2017,7 @@ export default function AgentToolsPage() {
                     {/* User Connection Status */}
                     {groupOAuthProvider && hasOAuthApps && (
                       isConnected ? (
-                        <span className="ml-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-medium">
+                        <span className="ml-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-leaf-wash text-forest rounded-full text-xs font-medium">
                           <CheckCircle className="w-3.5 h-3.5" />
                           {authMethod === 'api_token' ? 'Token configured' : (userConnection?.email || userConnection?.username || 'Connected')}
                         </span>
@@ -2001,7 +2027,7 @@ export default function AgentToolsPage() {
                             e.stopPropagation();
                             handleConnectProvider(groupOAuthProvider);
                           }}
-                          className="ml-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-medium cursor-pointer hover:bg-amber-100 transition-colors"
+                          className="ml-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-sand-deep text-gold rounded-full text-xs font-medium cursor-pointer hover:bg-sand-deep transition-colors"
                         >
                           <Link2 className="w-3.5 h-3.5" />
                           {authMethod === 'api_token' ? 'Add your token' : 'Connect your account'}
@@ -2010,14 +2036,14 @@ export default function AgentToolsPage() {
                     )}
                   </div>
                   {group.expanded ? (
-                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                    <ChevronDown className="w-4 h-4 text-ash" />
                   ) : (
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                    <ChevronRight className="w-4 h-4 text-ash" />
                   )}
                 </button>
 
                 {group.expanded && (
-                  <div className="border-t border-gray-200 p-5">
+                  <div className="border-t border-line p-5">
                     {group.id === 'custom' ? (
                       <>
                         {group.filteredCustomTools && group.filteredCustomTools.length > 0 ? (
@@ -2025,18 +2051,18 @@ export default function AgentToolsPage() {
                             {group.filteredCustomTools.map((tool: CustomTool) => (
                               <div
                                 key={tool.id}
-                                className="bg-gray-50 rounded-lg p-3.5 border border-gray-200 hover:border-red-300 hover:shadow-md transition-all"
+                                className="bg-cream rounded-lg p-3.5 border border-line hover:border-blush hover:shadow-md transition-[color,background-color,border-color,box-shadow,opacity,transform]"
                               >
                                 <div className="flex items-start justify-between mb-2.5">
                                   <div className="flex items-center gap-2.5">
                                     {tool.icon ? (
                                       <img src={tool.icon} alt="" className="w-7 h-7 rounded" />
                                     ) : (
-                                      <div className="text-xl">🔧</div>
+                                      <div className="text-xl"></div>
                                     )}
                                     <div>
-                                      <h3 className="text-sm font-semibold text-gray-900">{tool.name}</h3>
-                                      <span className="text-xs text-gray-500 uppercase">{tool.auth_type}</span>
+                                      <h3 className="text-sm font-semibold text-ink">{tool.name}</h3>
+                                      <span className="text-xs text-ink-mute">{tool.auth_type}</span>
                                     </div>
                                   </div>
                                   <button
@@ -2044,16 +2070,16 @@ export default function AgentToolsPage() {
                                       e.stopPropagation();
                                       deleteCustomTool(tool.id);
                                     }}
-                                    className="p-1 rounded text-red-600 hover:bg-red-50 transition-colors"
+                                    className="p-1 rounded text-danger hover:bg-blush-wash transition-colors"
                                   >
                                     <X className="w-3.5 h-3.5" />
                                   </button>
                                 </div>
-                                <p className="text-xs text-gray-600 mb-2.5 line-clamp-2">{tool.description || 'No description'}</p>
-                                <div className="text-xs text-gray-500 truncate mb-2.5">{tool.server_url}</div>
+                                <p className="text-xs text-ink-soft mb-2.5 line-clamp-2">{tool.description || 'No description'}</p>
+                                <div className="text-xs text-ink-mute truncate mb-2.5">{tool.server_url}</div>
                                 <button
                                   onClick={() => openCustomToolOperations()}
-                                  className="w-full flex items-center justify-center gap-2 px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-xs"
+                                  className="w-full flex items-center justify-center gap-2 px-3 py-1.5 bg-white border border-taupe text-ink-soft rounded-lg hover:bg-cream transition-colors text-xs"
                                 >
                                   <Settings className="w-3.5 h-3.5" />
                                   Configure
@@ -2062,7 +2088,7 @@ export default function AgentToolsPage() {
                             ))}
                           </div>
                         ) : (
-                          <div className="text-center py-8 text-gray-500">
+                          <div className="text-center py-8 text-ink-mute">
                             {searchQuery ? 'No custom tools match your search' : 'No custom tools yet. Add your first custom tool above.'}
                           </div>
                         )}
@@ -2070,14 +2096,14 @@ export default function AgentToolsPage() {
                     ) : group.tools.length > 0 ? (
                       <>
                         {/* Bulk action toolbar */}
-                        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-cream px-4 py-3">
                           {/* Left: enable / disable all */}
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium text-gray-500">Bulk:</span>
+                            <span className="text-xs font-medium text-ink-mute">Bulk:</span>
                             <button
                               disabled={bulkLoading[group.id]}
                               onClick={() => handleEnableAll(group)}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 transition-colors hover:bg-emerald-100 disabled:opacity-50"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-mint bg-leaf-wash px-3 py-1.5 text-xs font-medium text-forest transition-colors hover:bg-leaf-wash disabled:opacity-50"
                             >
                               <Check className="w-3.5 h-3.5" />
                               Enable all
@@ -2085,7 +2111,7 @@ export default function AgentToolsPage() {
                             <button
                               disabled={bulkLoading[group.id]}
                               onClick={() => handleDisableAll(group)}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-50"
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-taupe bg-white px-3 py-1.5 text-xs font-medium text-ink-soft transition-colors hover:bg-sand disabled:opacity-50"
                             >
                               <X className="w-3.5 h-3.5" />
                               Disable all
@@ -2099,14 +2125,14 @@ export default function AgentToolsPage() {
                                 value={bulkOAuthSelection[group.id] || ''}
                                 onChange={e => setBulkOAuthSelection(prev => ({ ...prev, [group.id]: e.target.value }))}
                                 disabled={bulkLoading[group.id]}
-                                className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs text-gray-700 focus:border-red-400 focus:outline-none focus:ring-1 focus:ring-red-400 disabled:opacity-50"
+                                className="rounded-lg border border-taupe bg-white px-3 py-1.5 text-xs text-ink-soft focus:border-hotpink focus:outline-none focus:ring-1 focus:ring-hotpink disabled:opacity-50"
                               >
                                 <option value="">Select account…</option>
                                 {getOAuthAppsForProvider(groupOAuthProvider).map((app: any) => {
                                   const isConfigured = app.has_access_token || app.has_api_token;
                                   return (
                                     <option key={app.id} value={app.id.toString()}>
-                                      {app.app_name}{app.is_default ? ' · Default' : ''}{isConfigured ? ' (connected)' : ' (not connected)'}
+                                      {app.app_name}{app.is_default ? ', Default' : ''}{isConfigured ? ' (connected)' : ' (not connected)'}
                                     </option>
                                   );
                                 })}
@@ -2114,7 +2140,7 @@ export default function AgentToolsPage() {
                               <button
                                 disabled={!bulkOAuthSelection[group.id] || bulkLoading[group.id]}
                                 onClick={() => handleApplyOAuthToAll(group, bulkOAuthSelection[group.id])}
-                                className="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-40"
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-ink px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-40"
                               >
                                 Apply to all enabled
                               </button>
@@ -2122,8 +2148,8 @@ export default function AgentToolsPage() {
                           )}
 
                           {bulkLoading[group.id] && (
-                            <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+                            <div className="flex items-center gap-1.5 text-xs text-ink-mute">
+                              <div className="h-3.5 w-3.5 motion-safe:animate-spin rounded-full border-2 border-taupe border-t-ink-soft" />
                               Working…
                             </div>
                           )}
@@ -2135,15 +2161,15 @@ export default function AgentToolsPage() {
                           return (
                             <div
                               key={tool.name}
-                              className="bg-gray-50 rounded-lg p-3.5 border border-gray-200 hover:border-red-300 hover:shadow-md transition-all"
+                              className="bg-cream rounded-lg p-3.5 border border-line hover:border-blush hover:shadow-md transition-[color,background-color,border-color,box-shadow,opacity,transform]"
                             >
                               <div className="flex items-start justify-between mb-2.5">
                                 <div className="flex items-center gap-2.5">
-                                  <div className="text-xl">{tool.icon}</div>
+                                  <tool.icon className="h-5 w-5" aria-hidden="true" />
                                   <div>
-                                    <h3 className="text-sm font-semibold text-gray-900">{tool.displayName}</h3>
+                                    <h3 className="text-sm font-semibold text-ink">{tool.displayName}</h3>
                                     {enabled && (
-                                      <span className="inline-flex items-center gap-1 text-xs text-emerald-600">
+                                      <span className="inline-flex items-center gap-1 text-xs text-leaf">
                                         <Check className="w-3 h-3" />
                                         Enabled
                                       </span>
@@ -2154,18 +2180,18 @@ export default function AgentToolsPage() {
                                   onClick={() => toggleTool(tool.name, enabled)}
                                   className={`p-1.5 rounded-lg transition-colors ${
                                     enabled
-                                      ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-                                      : 'bg-gray-200 text-gray-400 hover:bg-gray-300'
+                                      ? 'bg-leaf-wash text-leaf hover:bg-leaf-wash'
+                                      : 'bg-line text-ash hover:bg-taupe'
                                   }`}
                                 >
                                   {enabled ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
                                 </button>
                               </div>
-                              <p className="text-xs text-gray-600 mb-2.5 line-clamp-2">{tool.description}</p>
+                              <p className="text-xs text-ink-soft mb-2.5 line-clamp-2">{tool.description}</p>
                               {enabled && tool.configurable && (
                                 <button
                                   onClick={() => openConfigModal(tool)}
-                                  className="w-full flex items-center justify-center gap-2 px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-xs"
+                                  className="w-full flex items-center justify-center gap-2 px-3 py-1.5 bg-white border border-taupe text-ink-soft rounded-lg hover:bg-cream transition-colors text-xs"
                                 >
                                   <Settings className="w-3.5 h-3.5" />
                                   Configure
@@ -2177,7 +2203,7 @@ export default function AgentToolsPage() {
                       </div>
                       </>
                     ) : (
-                      <div className="text-center py-8 text-gray-500">
+                      <div className="text-center py-8 text-ink-mute">
                         No tools match your search
                       </div>
                     )}
@@ -2192,39 +2218,39 @@ export default function AgentToolsPage() {
 
       {/* Configuration Modal */}
       {selectedTool && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#171717]/55 p-4 backdrop-blur-md">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/55 p-4">
           <div className={`${toolModalShellClass} flex max-h-[88vh] flex-col`}>
-            <div className="sticky top-0 z-10 border-b border-black/8 bg-white/95 px-8 py-6 backdrop-blur">
+            <div className="sticky top-0 z-10 border-b border-black/8 bg-white/95 px-8 py-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-[1.25rem] border border-black/8 bg-[#fff5f3] text-[1.7rem] shadow-sm">
-                    <span>{selectedTool.icon}</span>
+                  <div className="flex h-14 w-14 items-center justify-center rounded-[1.25rem] border border-black/8 bg-cream text-[1.7rem] shadow-sm">
+                    <selectedTool.icon className="h-7 w-7" aria-hidden="true" />
                   </div>
                   <div>
-                    <h2 className="text-[2rem] font-semibold tracking-[-0.03em] text-[#171717]">
+                    <h2 className="text-[2rem] font-semibold tracking-[-0.03em] text-ink">
                       {selectedTool.displayName}
                     </h2>
-                    <p className="max-w-3xl text-base leading-7 text-[#6d675f]">
+                    <p className="max-w-3xl text-base leading-7 text-ink-mute">
                       {selectedTool.description}
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={closeConfigModal}
-                  className="flex h-11 w-11 items-center justify-center rounded-2xl border border-black/8 bg-[#fcfaf5] text-[#171717] transition hover:bg-[#f3ecdf]"
+                  className="flex h-11 w-11 items-center justify-center rounded-2xl border border-black/8 bg-cream text-ink transition hover:bg-sand"
                 >
                   <X className="h-5 w-5" />
                 </button>
               </div>
             </div>
 
-            <div className="flex-1 space-y-6 overflow-y-auto bg-[#f6f1e7] px-8 py-7">
+            <div className="flex-1 space-y-6 overflow-y-auto bg-paper px-8 py-7">
               {/* Required Fields */}
               {selectedTool.requiredFields.length > 0 && (
                 <section className={toolModalSectionClass}>
                   <div className="mb-5">
-                    <h3 className="text-lg font-semibold tracking-[-0.02em] text-[#171717]">Required Configuration</h3>
-                    <p className="mt-1 text-sm text-[#6d675f]">
+                    <h3 className="text-lg font-semibold tracking-[-0.02em] text-ink">Required Configuration</h3>
+                    <p className="mt-1 text-sm text-ink-mute">
                       Add the minimum setup this tool needs before it can be tested or saved.
                     </p>
                   </div>
@@ -2238,25 +2264,25 @@ export default function AgentToolsPage() {
                         {field.type === 'select' && field.key === 'slack_connection' ? (
                           // Combined Slack bot + OAuth app dropdown
                           (field as any).noAccountsAvailable ? (
-                            <div className="rounded-[1.25rem] border border-amber-200 bg-amber-50/90 p-4">
+                            <div className="rounded-[1.25rem] border border-honey bg-sand-deep/90 p-4">
                               <div className="flex items-start gap-3">
-                                <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                                <AlertTriangle className="w-5 h-5 text-warn flex-shrink-0 mt-0.5" />
                                 <div className="flex-1">
-                                  <p className="text-sm font-medium text-amber-800">No Slack connections found</p>
-                                  <p className="text-xs text-amber-700 mt-1">
+                                  <p className="text-sm font-medium text-gold">No Slack connections found</p>
+                                  <p className="text-xs text-gold mt-1">
                                     Connect a Slack bot to this agent or add a Slack OAuth app.
                                   </p>
                                   <div className="flex gap-2 mt-3">
                                     <Link
                                       href={`/agents/${agentName}/slack-bots/create`}
-                                      className="inline-flex items-center gap-1.5 rounded-xl bg-amber-600 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-amber-700"
+                                      className="inline-flex items-center gap-1.5 rounded-xl bg-warn px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-gold"
                                     >
                                       <Link2 className="w-3.5 h-3.5" />
                                       Add Slack Bot
                                     </Link>
                                     <Link
                                       href="/oauth-apps/create"
-                                      className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 px-3 py-2 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-100"
+                                      className="inline-flex items-center gap-1.5 rounded-xl border border-honey px-3 py-2 text-xs font-medium text-gold transition-colors hover:bg-sand-deep"
                                     >
                                       Add OAuth App
                                     </Link>
@@ -2288,7 +2314,7 @@ export default function AgentToolsPage() {
                                   ));
                                 })()}
                               </select>
-                              <p className="mt-2 text-xs text-[#6d675f]">
+                              <p className="mt-2 text-xs text-ink-mute">
                                 Leave empty to auto-detect the connected Slack bot.
                               </p>
                             </div>
@@ -2296,19 +2322,19 @@ export default function AgentToolsPage() {
                         ) : field.type === 'select' && field.key === 'oauth_app_id' ? (
                           // Special handling for non-Slack Connected Account dropdown
                           (field as any).noAccountsAvailable ? (
-                            <div className="rounded-[1.25rem] border border-amber-200 bg-amber-50/90 p-4">
+                            <div className="rounded-[1.25rem] border border-honey bg-sand-deep/90 p-4">
                               <div className="flex items-start gap-3">
-                                <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                                <AlertTriangle className="w-5 h-5 text-warn flex-shrink-0 mt-0.5" />
                                 <div className="flex-1">
-                                  <p className="text-sm font-medium text-amber-800">
+                                  <p className="text-sm font-medium text-gold">
                                     No {(field as any).providerName} account connected
                                   </p>
-                                  <p className="text-xs text-amber-700 mt-1">
+                                  <p className="text-xs text-gold mt-1">
                                     You need to connect a {(field as any).providerName} account before using this tool.
                                   </p>
                                   <Link
                                     href="/oauth-apps/create"
-                                    className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-amber-600 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-amber-700"
+                                    className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-warn px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-gold"
                                   >
                                     <Link2 className="w-3.5 h-3.5" />
                                     Connect {(field as any).providerName} Account
@@ -2329,7 +2355,7 @@ export default function AgentToolsPage() {
                                 ))}
                               </select>
                               <div className="mt-2 flex items-center justify-between">
-                                <p className="text-xs text-[#6d675f]">
+                                <p className="text-xs text-ink-mute">
                                   Select an account or{' '}
                                   <Link href="/oauth-apps/create" className={toolModalLinkClass}>
                                     connect a new one
@@ -2370,7 +2396,7 @@ export default function AgentToolsPage() {
                               <button
                                 type="button"
                                 onClick={() => toggleShowKey(field.key)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8b857d] transition hover:text-[#171717]"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-ash transition hover:text-ink"
                               >
                                 {showKeys[field.key] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                               </button>
@@ -2387,8 +2413,8 @@ export default function AgentToolsPage() {
               {selectedTool.optionalFields && selectedTool.optionalFields.length > 0 && (
                 <section className={toolModalSectionClass}>
                   <div className="mb-5">
-                    <h3 className="text-lg font-semibold tracking-[-0.02em] text-[#171717]">Optional Configuration</h3>
-                    <p className="mt-1 text-sm text-[#6d675f]">
+                    <h3 className="text-lg font-semibold tracking-[-0.02em] text-ink">Optional Configuration</h3>
+                    <p className="mt-1 text-sm text-ink-mute">
                       Add extra values only if this tool needs custom behavior.
                     </p>
                   </div>
@@ -2411,7 +2437,7 @@ export default function AgentToolsPage() {
                             <button
                               type="button"
                               onClick={() => toggleShowKey(field.key)}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8b857d] transition hover:text-[#171717]"
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-ash transition hover:text-ink"
                             >
                               {showKeys[field.key] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                             </button>
@@ -2428,15 +2454,15 @@ export default function AgentToolsPage() {
                 ['internal_linkedin_post_text', 'internal_linkedin_share_url', 'internal_linkedin_post_with_image'].includes(selectedTool.name) && (
                 <section className={toolModalSectionClass}>
                   <div className="mb-5">
-                    <h3 className="text-lg font-semibold tracking-[-0.02em] text-[#171717]">Company Page</h3>
-                    <p className="mt-1 text-sm text-[#6d675f]">
+                    <h3 className="text-lg font-semibold tracking-[-0.02em] text-ink">Company Page</h3>
+                    <p className="mt-1 text-sm text-ink-mute">
                       Post on behalf of a LinkedIn Company Page instead of the personal account.
                     </p>
                   </div>
                   <div className="flex items-center justify-between rounded-2xl border border-black/8 bg-white/60 px-4 py-3">
                     <div>
-                      <p className="text-sm font-medium text-[#171717]">Post to Company Page</p>
-                      <p className="text-xs text-[#6d675f] mt-0.5">
+                      <p className="text-sm font-medium text-ink">Post to Company Page</p>
+                      <p className="text-xs text-ink-mute mt-0.5">
                         When enabled, posts go to the specified company page instead of the personal feed.
                       </p>
                     </div>
@@ -2444,7 +2470,7 @@ export default function AgentToolsPage() {
                       type="button"
                       onClick={() => handleConfigChange('post_to_company_page', toolConfig['post_to_company_page'] === 'true' ? 'false' : 'true')}
                       className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                        toolConfig['post_to_company_page'] === 'true' ? 'bg-[#171717]' : 'bg-gray-200'
+                        toolConfig['post_to_company_page'] === 'true' ? 'bg-ink' : 'bg-line'
                       }`}
                     >
                       <span
@@ -2477,27 +2503,27 @@ export default function AgentToolsPage() {
                 <section className={toolModalSectionClass}>
                   <div className="mb-4 flex items-center justify-between">
                     <div>
-                      <h3 className="text-lg font-semibold tracking-[-0.02em] text-[#171717]">GitHub Account</h3>
-                      <p className="mt-1 text-sm text-[#6d675f]">
+                      <h3 className="text-lg font-semibold tracking-[-0.02em] text-ink">GitHub Account</h3>
+                      <p className="mt-1 text-sm text-ink-mute">
                         Connect your GitHub account for enhanced access and higher rate limits
                       </p>
                     </div>
                   </div>
 
                   {oauthApps.length === 0 ? (
-                    <div className="rounded-[1.25rem] border border-amber-200 bg-amber-50/90 p-4">
+                    <div className="rounded-[1.25rem] border border-honey bg-sand-deep/90 p-4">
                       <div className="flex items-start gap-3">
-                        <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <AlertTriangle className="w-5 h-5 text-warn flex-shrink-0 mt-0.5" />
                         <div>
-                          <p className="text-sm font-medium text-amber-800">
+                          <p className="text-sm font-medium text-gold">
                             No GitHub account connected
                           </p>
-                          <p className="text-xs text-amber-700 mt-1">
+                          <p className="text-xs text-gold mt-1">
                             Connect your GitHub account to use this tool with full functionality.
                           </p>
                           <Link
                             href="/oauth-apps/create"
-                            className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-amber-600 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-amber-700"
+                            className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-warn px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-gold"
                           >
                             <Link2 className="w-3.5 h-3.5" />
                             Connect GitHub Account
@@ -2506,24 +2532,24 @@ export default function AgentToolsPage() {
                       </div>
                     </div>
                   ) : oauthStatus?.connected ? (
-                    <div className="rounded-[1.25rem] border border-emerald-200 bg-emerald-50/90 p-4">
+                    <div className="rounded-[1.25rem] border border-mint bg-leaf-wash/90 p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100">
-                            <Github className="w-5 h-5 text-emerald-700" />
+                          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-leaf-wash">
+                            <Github className="w-5 h-5 text-forest" />
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-emerald-900">
+                            <p className="text-sm font-medium text-forest">
                               Connected as @{oauthStatus.user}
                             </p>
                             {oauthStatus.user_name && (
-                              <p className="text-xs text-emerald-700">{oauthStatus.user_name}</p>
+                              <p className="text-xs text-forest">{oauthStatus.user_name}</p>
                             )}
                           </div>
                         </div>
                         <button
                           onClick={handleOAuthDisconnect}
-                          className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-red-600 transition-colors hover:bg-red-50"
+                          className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-danger transition-colors hover:bg-blush-wash"
                         >
                           <Unlink className="w-4 h-4" />
                           Disconnect
@@ -2533,7 +2559,7 @@ export default function AgentToolsPage() {
                   ) : (
                     <button
                       onClick={handleOAuthConnect}
-                      className="flex w-full items-center justify-center gap-3 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+                      className="flex w-full items-center justify-center gap-3 rounded-[1rem] bg-ink px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
                     >
                       <Github className="w-5 h-5" />
                       Connect with GitHub
@@ -2544,10 +2570,10 @@ export default function AgentToolsPage() {
 
             </div>
 
-            <div className="sticky bottom-0 flex items-center justify-end gap-3 border-t border-black/8 bg-[#f5eedf]/95 px-8 py-4 backdrop-blur">
+            <div className="sticky bottom-0 flex items-center justify-end gap-3 border-t border-black/8 bg-sand/95 px-8 py-4">
               <button
                 onClick={closeConfigModal}
-                className="rounded-2xl border border-black/10 bg-transparent px-4 py-2.5 text-sm font-medium text-[#5f5a54] transition hover:bg-white/70"
+                className="rounded-2xl border border-black/10 bg-transparent px-4 py-2.5 text-sm font-medium text-ink-soft transition hover:bg-white/70"
               >
                 Cancel
               </button>
@@ -2556,18 +2582,18 @@ export default function AgentToolsPage() {
                   <button
                     onClick={testTool}
                     disabled={testing}
-                    className="flex items-center gap-2 rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm font-medium text-[#171717] transition hover:bg-[#fcfaf5] disabled:opacity-50"
+                    className="flex items-center gap-2 rounded-2xl border border-black/10 bg-white px-4 py-2.5 text-sm font-medium text-ink transition hover:bg-cream disabled:opacity-50"
                   >
                     <TestTube className="h-4 w-4" />
-                    {testing ? 'Testing...' : 'Test'}
+                    {testing ? 'Testing…' : 'Test'}
                   </button>
                   <button
                     onClick={saveTool}
                     disabled={saving}
-                    className="flex items-center gap-2 rounded-2xl bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-black disabled:opacity-50"
+                    className="flex items-center gap-2 rounded-2xl bg-ink px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-black disabled:opacity-50"
                   >
                     <Save className="h-4 w-4" />
-                    {saving ? 'Saving...' : 'Save'}
+                    {saving ? 'Saving…' : 'Save'}
                   </button>
                 </>
               )}
@@ -2583,24 +2609,24 @@ export default function AgentToolsPage() {
       {apiTokenModal.open && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">
+            <div className="px-6 py-4 border-b border-line flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-ink">
                 Add Your {apiTokenModal.provider} API Token
               </h3>
               <button
                 onClick={() => setApiTokenModal({ open: false, appId: null, provider: '' })}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-ash hover:text-ink-soft"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
             <div className="px-6 py-4">
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-sm text-ink-soft mb-4">
                 Enter your personal API token for {apiTokenModal.provider}. This token will be used for your account only.
               </p>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-ink-soft mb-2">
                 API Token
               </label>
               <input
@@ -2608,25 +2634,25 @@ export default function AgentToolsPage() {
                 value={apiTokenInput}
                 onChange={(e) => setApiTokenInput(e.target.value)}
                 placeholder="Enter your API token"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+                className="w-full px-3 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-ink text-sm"
               />
-              <p className="mt-2 text-xs text-gray-500">
+              <p className="mt-2 text-xs text-ink-mute">
                 Your token is encrypted and stored securely.
               </p>
             </div>
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+            <div className="px-6 py-4 border-t border-line flex justify-end gap-3">
               <button
                 onClick={() => setApiTokenModal({ open: false, appId: null, provider: '' })}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                className="px-4 py-2 text-sm font-medium text-ink-soft hover:bg-sand rounded-lg transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveApiToken}
                 disabled={savingApiToken || !apiTokenInput.trim()}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-medium text-white bg-danger hover:bg-danger rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {savingApiToken ? 'Saving...' : 'Save Token'}
+                {savingApiToken ? 'Saving…' : 'Save Token'}
               </button>
             </div>
           </div>

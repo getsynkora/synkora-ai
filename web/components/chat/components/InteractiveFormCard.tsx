@@ -194,19 +194,16 @@ export function InteractiveFormCard({
   }
 
   return (
-    <div className="mt-4 rounded-[1.35rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(247,248,250,0.96))] p-4 shadow-[0_20px_50px_-34px_rgba(15,23,42,0.3)]">
+    <div className="mt-4 rounded-[1.35rem] border border-line/80 bg-white p-4 shadow-soft">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="inline-flex items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-            Interactive Input
-          </div>
-          <h3 className="mt-3 text-base font-semibold tracking-[-0.03em] text-slate-900">{form.title}</h3>
+          <h3 className="mt-3 text-base font-semibold tracking-[-0.03em] text-ink">{form.title}</h3>
           {form.description && (
-            <p className="mt-1 text-sm leading-6 text-slate-600">{form.description}</p>
+            <p className="mt-1 text-sm leading-6 text-ink-soft">{form.description}</p>
           )}
         </div>
         {hasSubmitted && (
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-leaf-wash px-2.5 py-1 text-xs font-medium text-forest">
             <CheckCircle2 size={14} />
             Submitted
           </div>
@@ -219,10 +216,10 @@ export function InteractiveFormCard({
           const uploaded = uploadedFiles[field.id] || []
 
           return (
-            <div key={field.id} className="rounded-2xl border border-slate-200/80 bg-white/90 p-3.5">
-              <label className="block text-sm font-semibold text-slate-800">{formatFieldLabel(field)}</label>
+            <div key={field.id} className="rounded-2xl border border-line/80 bg-white/90 p-3.5">
+              <label className="block text-sm font-semibold text-ink">{formatFieldLabel(field)}</label>
               {field.description && (
-                <p className="mt-1 text-xs leading-5 text-slate-500">{field.description}</p>
+                <p className="mt-1 text-xs leading-5 text-ink-mute">{field.description}</p>
               )}
 
               <div className="mt-3">
@@ -240,10 +237,10 @@ export function InteractiveFormCard({
               </div>
 
               {field.help_text && (
-                <p className="mt-2 text-xs text-slate-500">{field.help_text}</p>
+                <p className="mt-2 text-xs text-ink-mute">{field.help_text}</p>
               )}
               {fieldError && (
-                <p className="mt-2 text-xs font-medium text-rose-600">{fieldError}</p>
+                <p className="mt-2 text-xs font-medium text-danger">{fieldError}</p>
               )}
             </div>
           )
@@ -251,14 +248,14 @@ export function InteractiveFormCard({
       </div>
 
       {uploadProgress.length > 0 && (
-        <div className="mt-4 rounded-2xl border border-slate-200 bg-white px-3.5 py-3">
+        <div className="mt-4 rounded-2xl border border-line bg-white px-3.5 py-3">
           <div className="space-y-2">
             {uploadProgress.map((item) => (
-              <div key={item.fileId} className="flex items-center gap-3 text-xs text-slate-600">
+              <div key={item.fileId} className="flex items-center gap-3 text-xs text-ink-soft">
                 <span className="min-w-0 flex-1 truncate">{item.fileName}</span>
-                <div className="h-1.5 w-24 overflow-hidden rounded-full bg-slate-200">
+                <div className="h-1.5 w-24 overflow-hidden rounded-full bg-line">
                   <div
-                    className="h-full rounded-full transition-all"
+                    className="h-full rounded-full transition-[color,background-color,border-color,box-shadow,opacity,transform]"
                     style={{ width: `${item.progress}%`, backgroundColor: primaryColor }}
                   />
                 </div>
@@ -270,13 +267,13 @@ export function InteractiveFormCard({
       )}
 
       {submitError && (
-        <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-700">
+        <div className="mt-4 rounded-2xl border border-blush bg-blush-wash px-3.5 py-3 text-sm text-danger">
           {submitError}
         </div>
       )}
 
       <div className="mt-4 flex items-center justify-between gap-3">
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-ink-mute">
           Responses are sent back to the agent as structured data.
         </p>
         <button
@@ -284,12 +281,12 @@ export function InteractiveFormCard({
           onClick={handleSubmit}
           disabled={!onSubmit || isDisabled}
           className={cn(
-            'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white transition-all disabled:cursor-not-allowed disabled:opacity-60',
-            !isDisabled && 'shadow-[0_12px_28px_-18px_rgba(15,23,42,0.5)]'
+            'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white transition-[color,background-color,border-color,box-shadow,opacity,transform] disabled:cursor-not-allowed disabled:opacity-60',
+            !isDisabled && 'shadow-soft'
           )}
           style={{ backgroundColor: primaryColor }}
         >
-          {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : null}
+          {isSubmitting ? <Loader2 size={16} className="motion-safe:animate-spin" /> : null}
           {form.submit_label || 'Continue'}
         </button>
       </div>
@@ -321,7 +318,7 @@ function FormFieldInput({
   onRemoveUploadedFile,
 }: FormFieldInputProps) {
   const sharedInputClassName =
-    'w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-slate-300 focus:bg-white'
+    'w-full rounded-2xl border border-line bg-cream px-3 py-2.5 text-sm text-ink outline-none transition focus:border-taupe focus:bg-white'
 
   if (field.type === 'boolean') {
     const selectedValue = typeof value === 'boolean' ? value : null
@@ -340,7 +337,7 @@ function FormFieldInput({
               onClick={() => onChange(field.id, option.value)}
               className={cn(
                 'rounded-2xl border px-3 py-2.5 text-sm font-medium transition',
-                isActive ? 'text-white shadow-sm' : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                isActive ? 'text-white shadow-sm' : 'border-line bg-cream text-ink-soft hover:bg-sand'
               )}
               style={isActive ? { backgroundColor: primaryColor, borderColor: primaryColor } : undefined}
             >
@@ -362,7 +359,7 @@ function FormFieldInput({
               key={option.value}
               className={cn(
                 'flex cursor-pointer items-center gap-3 rounded-2xl border px-3 py-2.5 text-sm transition',
-                checked ? 'border-transparent bg-slate-900 text-white' : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                checked ? 'border-transparent bg-ink text-white' : 'border-line bg-cream text-ink-soft hover:bg-sand'
               )}
             >
               <input
@@ -391,7 +388,7 @@ function FormFieldInput({
           return (
             <label
               key={option.value}
-              className="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 transition hover:bg-slate-100"
+              className="flex cursor-pointer items-center gap-3 rounded-2xl border border-line bg-cream px-3 py-2.5 text-sm text-ink-soft transition hover:bg-sand"
             >
               <input
                 type="checkbox"
@@ -399,7 +396,7 @@ function FormFieldInput({
                 checked={checked}
                 disabled={disabled}
                 onChange={(event) => onCheckboxGroupChange(field.id, option.value, event.target.checked)}
-                className="h-4 w-4 rounded border-slate-300"
+                className="h-4 w-4 rounded border-taupe"
               />
               <span>{option.label}</span>
             </label>
@@ -479,7 +476,7 @@ function FormFieldInput({
                 onClick={() => onChange(field.id, String(optionValue))}
                 className={cn(
                   'min-w-11 rounded-2xl border px-3 py-2 text-sm font-semibold transition',
-                  checked ? 'text-white shadow-sm' : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                  checked ? 'text-white shadow-sm' : 'border-line bg-cream text-ink-soft hover:bg-sand'
                 )}
                 style={checked ? { backgroundColor: primaryColor, borderColor: primaryColor } : undefined}
               >
@@ -489,7 +486,7 @@ function FormFieldInput({
           })}
         </div>
         {(field.min_label || field.max_label) && (
-          <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
+          <div className="mt-2 flex items-center justify-between text-[11px] text-ink-mute">
             <span>{field.min_label || ''}</span>
             <span>{field.max_label || ''}</span>
           </div>
@@ -504,7 +501,7 @@ function FormFieldInput({
 
     return (
       <div className="space-y-3">
-        <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-4 text-sm font-medium text-slate-700 transition hover:bg-slate-100">
+        <label className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-taupe bg-cream px-4 py-4 text-sm font-medium text-ink-soft transition hover:bg-sand">
           {field.type === 'image_upload' ? <Upload size={16} /> : <Paperclip size={16} />}
           {label}
           <input
@@ -525,19 +522,19 @@ function FormFieldInput({
             {uploadedFiles.map((attachment, index) => (
               <div
                 key={`${attachment.file_id || attachment.file_name || 'upload'}-${index}`}
-                className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-white px-3 py-2 text-sm text-ink-soft"
               >
                 <div className="min-w-0">
                   <div className="truncate font-medium">{attachment.file_name || 'Uploaded file'}</div>
                   {attachment.file_type && (
-                    <div className="text-xs text-slate-500">{attachment.file_type}</div>
+                    <div className="text-xs text-ink-mute">{attachment.file_type}</div>
                   )}
                 </div>
                 <button
                   type="button"
                   disabled={disabled}
                   onClick={() => onRemoveUploadedFile(field.id, index)}
-                  className="text-xs font-medium text-slate-500 transition hover:text-slate-800"
+                  className="text-xs font-medium text-ink-mute transition hover:text-ink"
                 >
                   Remove
                 </button>

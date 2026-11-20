@@ -23,7 +23,7 @@ export function ChatContainer({
   return (
     <div
       className={cn(
-        'flex h-screen w-full bg-gradient-to-br from-gray-50 via-white to-gray-50',
+        'flex h-screen w-full bg-cream',
         className
       )}
       style={style}
@@ -52,9 +52,9 @@ export function ChatContainerSection({
   onMouseLeave,
 }: ChatContainerSectionProps) {
   const sideStyles = {
-    left: 'hidden md:flex md:w-56 border-r border-gray-200/60 bg-gray-50/50 flex-shrink-0 flex-col',
+    left: 'hidden md:flex md:w-56 border-r border-line/60 bg-cream/50 flex-shrink-0 flex-col',
     center: 'flex-1 flex flex-col min-w-0 bg-white',
-    right: 'hidden lg:flex lg:w-72 border-l border-gray-200/60 bg-gray-50/30 flex-shrink-0 flex-col',
+    right: 'hidden lg:flex lg:w-72 border-l border-line/60 bg-cream/30 flex-shrink-0 flex-col',
   }
 
   return (

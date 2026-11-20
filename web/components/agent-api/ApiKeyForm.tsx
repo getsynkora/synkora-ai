@@ -94,9 +94,9 @@ export function ApiKeyForm({ agentId, onSubmit, onCancel, isLoading }: ApiKeyFor
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Basic Information */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-white rounded-lg border border-line p-6">
         <h3 className="text-lg font-semibold mb-1">Basic Information</h3>
-        <p className="text-sm text-gray-600 mb-4">Provide a name and description for your API key</p>
+        <p className="text-sm text-ink-soft mb-4">Provide a name and description for your API key</p>
         
         <div className="space-y-4">
           <div className="space-y-2">
@@ -114,9 +114,9 @@ export function ApiKeyForm({ agentId, onSubmit, onCancel, isLoading }: ApiKeyFor
       </div>
 
       {/* Permissions */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-white rounded-lg border border-line p-6">
         <h3 className="text-lg font-semibold mb-1">Permissions</h3>
-        <p className="text-sm text-gray-600 mb-4">Select which operations this API key can perform</p>
+        <p className="text-sm text-ink-soft mb-4">Select which operations this API key can perform</p>
         
         <div className="space-y-3">
           {AVAILABLE_PERMISSIONS.map((permission) => (
@@ -132,7 +132,7 @@ export function ApiKeyForm({ agentId, onSubmit, onCancel, isLoading }: ApiKeyFor
                 <label htmlFor={permission.value} className="text-sm font-medium">
                   {permission.label}
                 </label>
-                <p className="text-sm text-gray-500">{permission.description}</p>
+                <p className="text-sm text-ink-mute">{permission.description}</p>
               </div>
             </div>
           ))}
@@ -140,9 +140,9 @@ export function ApiKeyForm({ agentId, onSubmit, onCancel, isLoading }: ApiKeyFor
       </div>
 
       {/* Rate Limits */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-white rounded-lg border border-line p-6">
         <h3 className="text-lg font-semibold mb-1">Rate Limits</h3>
-        <p className="text-sm text-gray-600 mb-4">Set rate limits to control API usage (leave empty for unlimited)</p>
+        <p className="text-sm text-ink-soft mb-4">Set rate limits to control API usage (leave empty for unlimited)</p>
         
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-2">
@@ -196,9 +196,9 @@ export function ApiKeyForm({ agentId, onSubmit, onCancel, isLoading }: ApiKeyFor
       </div>
 
       {/* Security */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+      <div className="bg-white rounded-lg border border-line p-6">
         <h3 className="text-lg font-semibold mb-1">Security</h3>
-        <p className="text-sm text-gray-600 mb-4">Configure security restrictions for this API key</p>
+        <p className="text-sm text-ink-soft mb-4">Configure security restrictions for this API key</p>
         
         <div className="space-y-4">
           <div className="space-y-2">
@@ -220,13 +220,13 @@ export function ApiKeyForm({ agentId, onSubmit, onCancel, isLoading }: ApiKeyFor
                 {formData.allowed_origins.map((origin) => (
                   <span
                     key={origin}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-100"
+                    className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-sand"
                   >
                     {origin}
                     <button
                       type="button"
                       onClick={() => removeOrigin(origin)}
-                      className="ml-2 text-gray-600 hover:text-gray-800"
+                      className="ml-2 text-ink-soft hover:text-ink"
                     >
                       ×
                     </button>
@@ -255,13 +255,13 @@ export function ApiKeyForm({ agentId, onSubmit, onCancel, isLoading }: ApiKeyFor
                 {formData.allowed_ips.map((ip) => (
                   <span
                     key={ip}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-100"
+                    className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-sand"
                   >
                     {ip}
                     <button
                       type="button"
                       onClick={() => removeIp(ip)}
-                      className="ml-2 text-gray-600 hover:text-gray-800"
+                      className="ml-2 text-ink-soft hover:text-ink"
                     >
                       ×
                     </button>
@@ -290,7 +290,7 @@ export function ApiKeyForm({ agentId, onSubmit, onCancel, isLoading }: ApiKeyFor
           Cancel
         </Button>
         <Button type="submit" disabled={isLoading || !formData.key_name}>
-          {isLoading ? 'Creating...' : 'Create API Key'}
+          {isLoading ? 'Creating…' : 'Create API Key'}
         </Button>
       </div>
     </form>

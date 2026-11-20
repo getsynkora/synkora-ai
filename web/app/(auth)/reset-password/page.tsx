@@ -65,19 +65,19 @@ function ResetPasswordForm() {
       <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center px-4 py-8">
         <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-[1.5rem] bg-red-500">
-            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-[1.5rem] bg-ink">
+            <svg aria-hidden="true" className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('title')}</h1>
-          <p className="text-gray-600">{t('subtitle')}</p>
+          <h1 className="text-3xl font-bold text-ink mb-2">{t('title')}</h1>
+          <p className="text-ink-soft">{t('subtitle')}</p>
         </div>
 
-        <div className="rounded-[1.9rem] border border-black/10 bg-white p-5 shadow-[0_24px_60px_rgba(0,0,0,0.08)] sm:p-8">
+        <div className="rounded-[1.9rem] border border-black/10 bg-white p-5 shadow-soft sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-ink-soft mb-2">
                 {t('newPassword')}
               </label>
               <input
@@ -87,14 +87,14 @@ function ResetPasswordForm() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
-                className="w-full rounded-[1.1rem] border border-gray-200 bg-gray-50 px-4 py-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full rounded-[1.1rem] border border-line bg-cream px-4 py-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
                 placeholder="••••••••"
               />
-              <p className="mt-1 text-xs text-gray-500">{t('hint')}</p>
+              <p className="mt-1 text-xs text-ink-mute">{t('hint')}</p>
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-ink-soft mb-2">
                 {t('confirm')}
               </label>
               <input
@@ -104,7 +104,7 @@ function ResetPasswordForm() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 minLength={6}
-                className="w-full rounded-[1.1rem] border border-gray-200 bg-gray-50 px-4 py-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full rounded-[1.1rem] border border-line bg-cream px-4 py-3 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
                 placeholder="••••••••"
               />
             </div>
@@ -112,11 +112,11 @@ function ResetPasswordForm() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full rounded-[1.1rem] bg-red-500 px-4 py-3 font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-[1.1rem] bg-ink px-4 py-3 font-medium text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isLoading ? (
                 <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                  <svg aria-hidden="true" className="motion-safe:animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
@@ -129,7 +129,7 @@ function ResetPasswordForm() {
           </form>
 
           <div className="mt-6 text-center">
-            <Link href="/signin" className="text-sm font-medium text-red-500 hover:text-red-600">
+            <Link href="/signin" className="text-sm font-medium text-leaf hover:text-forest">
               {t('back')}
             </Link>
           </div>
@@ -145,7 +145,7 @@ export default function ResetPasswordPage() {
     <Suspense fallback={
       <AuthPageFrame>
         <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center">
-          <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-red-500"></div>
+          <div className="h-12 w-12 motion-safe:animate-spin rounded-full border-b-2 border-ink"></div>
         </div>
       </AuthPageFrame>
     }>

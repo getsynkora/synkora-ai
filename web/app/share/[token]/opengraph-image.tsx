@@ -95,7 +95,7 @@ export default async function OpenGraphImage({
           position: 'relative',
           overflow: 'hidden',
           fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
-          color: '#FFFFFF',
+          color: 'rgb(var(--white))',
           background:
             'linear-gradient(135deg, #070B16 0%, #0C1222 48%, #0F1730 100%)',
         }}
@@ -218,7 +218,7 @@ export default async function OpenGraphImage({
                 Growth score {score}%
               </div>
 
-              <div style={{ fontSize: 17, lineHeight: 1.35, color: '#FFFFFF' }}>
+              <div style={{ fontSize: 17, lineHeight: 1.35, color: 'rgb(var(--white))' }}>
                 Interesting enough to post.
                 <br />
                 Clear enough to understand.

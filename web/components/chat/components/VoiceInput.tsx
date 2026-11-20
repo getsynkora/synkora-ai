@@ -122,8 +122,8 @@ export function VoiceInput({
         size="sm"
         onClick={handleStartStop}
         className={cn(
-          'relative transition-all w-10 h-10 p-0',
-          isRecording && 'animate-pulse bg-red-500 hover:bg-red-600 text-white'
+          'relative transition-[color,background-color,border-color,box-shadow,opacity,transform] w-10 h-10 p-0',
+          isRecording && 'motion-safe:animate-pulse bg-ink hover:bg-danger text-white'
         )}
         title={isRecording ? 'Stop recording' : 'Start recording'}
       >
@@ -156,7 +156,7 @@ export function VoiceInput({
       {isRecording && (
         <div className="flex items-center gap-2 text-sm">
           <div className="flex items-center gap-1">
-            <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+            <div className="h-2 w-2 rounded-full bg-ink motion-safe:animate-pulse" />
             <span className="text-muted-foreground">
               {isPaused ? 'Paused' : 'Recording'}
             </span>

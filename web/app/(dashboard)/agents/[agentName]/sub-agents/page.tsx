@@ -29,9 +29,9 @@ interface AvailableAgent {
 }
 
 const warmFieldClass =
-  "w-full rounded-[1.1rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]";
-const warmHelpTextClass = "text-xs leading-5 text-gray-500";
-const warmSectionLabelClass = "block text-sm font-semibold text-gray-800";
+  "w-full rounded-[1.1rem] border border-black/10 bg-cream px-4 py-3 text-sm text-ink transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-mint";
+const warmHelpTextClass = "text-xs leading-5 text-ink-mute";
+const warmSectionLabelClass = "block text-sm font-semibold text-ink";
 
 export default function SubAgentsPage() {
   const params = useParams();
@@ -262,10 +262,10 @@ export default function SubAgentsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 text-sm">Loading sub-agents...</p>
+          <div className="motion-safe:animate-spin rounded-full h-12 w-12 border-b-2 border-danger mx-auto"></div>
+          <p className="mt-4 text-ink-soft text-sm">Loading sub-agents…</p>
         </div>
       </div>
     );
@@ -275,13 +275,13 @@ export default function SubAgentsPage() {
     <AgentPageShell
       agentName={agentName}
       title="Sub-Agents Configuration"
-      description={<>Configure sub-agents for <span className="font-semibold text-gray-900">{agent?.agent_name || agentName}</span>.</>}
+      description={<>Configure sub-agents for <span className="font-semibold text-ink">{agent?.agent_name || agentName}</span>.</>}
       icon={Users}
       badge="Multi-Agent Setup"
       actions={
         <button
           onClick={() => setShowAddDialog(true)}
-          className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+          className="inline-flex items-center gap-2 rounded-[1rem] bg-ink px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
         >
           <Plus className="w-5 h-5" />
           Add Sub-Agent
@@ -291,15 +291,15 @@ export default function SubAgentsPage() {
       <div>
         {/* Workflow Configuration Card */}
         <AgentPagePanel className="mb-6 overflow-hidden">
-          <div className="border-b border-[#eadfce] bg-[linear-gradient(180deg,_rgba(248,243,236,0.98),_rgba(243,237,229,0.96))] px-5 py-4">
+          <div className="border-b border-sand-deep bg-paper px-5 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="rounded-[1rem] bg-[#f3d9db] p-2.5 shadow-[0_12px_24px_-20px_rgba(123,49,55,0.4)]">
-                  <Workflow className="w-5 h-5 text-[#d14c3f]" />
+                <div className="rounded-[1rem] bg-sand-deep p-2.5 shadow-soft">
+                  <Workflow className="w-5 h-5 text-leaf" />
                 </div>
                 <div>
-                  <h2 className="text-base font-semibold text-gray-900">Workflow Configuration</h2>
-                  <p className="text-sm text-gray-600">
+                  <h2 className="text-base font-semibold text-ink">Workflow Configuration</h2>
+                  <p className="text-sm text-ink-soft">
                     Configure how sub-agents are orchestrated and executed
                   </p>
                 </div>
@@ -307,10 +307,10 @@ export default function SubAgentsPage() {
               <button
                 onClick={handleSaveWorkflowConfig}
                 disabled={isSavingWorkflow}
-                className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-[1rem] bg-ink px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />
-                {isSavingWorkflow ? "Saving..." : "Save Config"}
+                {isSavingWorkflow ? "Saving…" : "Save Config"}
               </button>
             </div>
           </div>
@@ -343,7 +343,7 @@ export default function SubAgentsPage() {
 
             {/* Workflow Configuration Options (shown when workflow type is selected) */}
             {workflowType && (
-              <div className="grid grid-cols-1 gap-4 border-t border-[#eadfce] pt-5 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 border-t border-sand-deep pt-5 md:grid-cols-2">
                 <div className="space-y-2.5">
                   <label className={warmSectionLabelClass}>
                     Max Iterations
@@ -371,7 +371,7 @@ export default function SubAgentsPage() {
                       value={customConfigText}
                       onChange={(e) => setCustomConfigText(e.target.value)}
                       rows={8}
-                      className="w-full rounded-[1.1rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-xs font-mono text-gray-900 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]"
+                      className="w-full rounded-[1.1rem] border border-black/10 bg-cream px-4 py-3 text-xs font-mono text-ink transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-mint"
                     />
                     <p className={warmHelpTextClass}>
                       Example: {"{\"nodes\":[{\"type\":\"agent\",\"agents\":[\"story_generator\"]},{\"type\":\"loop\",\"agents\":[\"critic\",\"reviser\"],\"iterations\":2},{\"type\":\"sequential\",\"agents\":[\"grammar_check\",\"tone_check\"]}],\"stop_on_error\":true}"}
@@ -397,7 +397,7 @@ export default function SubAgentsPage() {
                   </p>
                 </div>
 
-                <div className="rounded-[1.25rem] border border-[#e6ddd1] bg-[#fcfaf5] p-4">
+                <div className="rounded-[1.25rem] border border-line bg-cream p-4">
                   <label className="flex cursor-pointer items-center gap-3">
                     <input
                       type="checkbox"
@@ -406,9 +406,9 @@ export default function SubAgentsPage() {
                         ...workflowConfig,
                         continue_on_error: e.target.checked
                       })}
-                      className="h-4 w-4 rounded border-gray-300 text-[#2d8b69] focus:ring-[#79dfbc]"
+                      className="h-4 w-4 rounded border-taupe text-leaf focus:ring-mint"
                     />
-                    <span className="text-sm font-semibold text-gray-800">
+                    <span className="text-sm font-semibold text-ink">
                       Continue on Error
                     </span>
                   </label>
@@ -417,7 +417,7 @@ export default function SubAgentsPage() {
                   </p>
                 </div>
 
-                <div className="rounded-[1.25rem] border border-[#e6ddd1] bg-[#fcfaf5] p-4">
+                <div className="rounded-[1.25rem] border border-line bg-cream p-4">
                   <label className="flex cursor-pointer items-center gap-3">
                     <input
                       type="checkbox"
@@ -426,9 +426,9 @@ export default function SubAgentsPage() {
                         ...workflowConfig,
                         aggregate_outputs: e.target.checked
                       })}
-                      className="h-4 w-4 rounded border-gray-300 text-[#2d8b69] focus:ring-[#79dfbc]"
+                      className="h-4 w-4 rounded border-taupe text-leaf focus:ring-mint"
                     />
-                    <span className="text-sm font-semibold text-gray-800">
+                    <span className="text-sm font-semibold text-ink">
                       Aggregate Outputs
                     </span>
                   </label>
@@ -440,11 +440,11 @@ export default function SubAgentsPage() {
             )}
 
             {/* Workflow Status Indicator */}
-            <div className="flex items-center gap-2 border-t border-[#eadfce] pt-4">
-              <Settings className="w-4 h-4 text-gray-400" />
-              <span className="text-sm text-gray-600">
+            <div className="flex items-center gap-2 border-t border-sand-deep pt-4">
+              <Settings className="w-4 h-4 text-ash" />
+              <span className="text-sm text-ink-soft">
                 {workflowType ? (
-                  <span className="font-semibold text-[#2d8b69]">
+                  <span className="font-semibold text-leaf">
                     Workflow Mode: {workflowType.charAt(0).toUpperCase() + workflowType.slice(1)}
                   </span>
                 ) : (
@@ -458,20 +458,20 @@ export default function SubAgentsPage() {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
           <AgentPagePanel className="p-4">
-            <div className="text-xs text-gray-600">Total Sub-Agents</div>
-            <div className="text-2xl font-bold text-gray-900 mt-1">
+            <div className="text-xs text-ink-soft">Total Sub-Agents</div>
+            <div className="text-2xl font-bold text-ink mt-1">
               {subAgents.length}
             </div>
           </AgentPagePanel>
           <AgentPagePanel className="p-4">
-            <div className="text-xs text-gray-600">Active Sub-Agents</div>
-            <div className="text-2xl font-bold text-emerald-600 mt-1">
+            <div className="text-xs text-ink-soft">Active Sub-Agents</div>
+            <div className="text-2xl font-bold text-leaf mt-1">
               {subAgents.filter(t => t.is_active).length}
             </div>
           </AgentPagePanel>
           <AgentPagePanel className="p-4">
-            <div className="text-xs text-gray-600">Available to Add</div>
-            <div className="text-2xl font-bold text-[#d14c3f] mt-1">
+            <div className="text-xs text-ink-soft">Available to Add</div>
+            <div className="text-2xl font-bold text-leaf mt-1">
               {availableAgents.length}
             </div>
           </AgentPagePanel>
@@ -480,58 +480,58 @@ export default function SubAgentsPage() {
         {/* Hierarchy Visualization */}
         {subAgents.length > 0 && (
           <AgentPagePanel className="mb-6 overflow-hidden">
-            <div className="border-b border-[#eadfce] px-5 py-4">
+            <div className="bg-cream border-b border-sand-deep px-5 py-4">
               <div className="flex items-center gap-3">
-                <div className="rounded-[1rem] bg-[#f1eadc] p-2.5">
-                  <GitBranch className="w-5 h-5 text-[#171717]" />
+                <div className="rounded-[1rem] bg-sand-deep p-2.5">
+                  <GitBranch className="w-5 h-5 text-ink" />
                 </div>
                 <div>
-                  <h2 className="text-base font-semibold text-gray-900">Agent Hierarchy</h2>
-                  <p className="text-sm text-gray-600">Visual overview of the parent-child agent structure</p>
+                  <h2 className="text-base font-semibold text-ink">Agent Hierarchy</h2>
+                  <p className="text-sm text-ink-soft">Visual overview of the parent-child agent structure</p>
                 </div>
               </div>
             </div>
             <div className="p-5">
               {/* Parent node */}
               <div className="flex items-center gap-3 mb-4">
-                <div className="flex items-center gap-2.5 rounded-[1rem] border-2 border-[#171717] bg-[#171717] px-4 py-2.5 text-white shadow-sm">
+                <div className="flex items-center gap-2.5 rounded-[1rem] border-2 border-ink bg-ink px-4 py-2.5 text-white shadow-sm">
                   <Users className="w-4 h-4" />
                   <span className="text-sm font-semibold">{agent?.agent_name || agentName}</span>
                   <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs">parent</span>
                 </div>
                 <button
                   onClick={() => router.push(`/agents/${agentName}/view`)}
-                  className="text-xs text-gray-400 hover:text-gray-700 underline underline-offset-2"
+                  className="text-xs text-ash hover:text-ink-soft underline underline-offset-2"
                 >
                   view
                 </button>
               </div>
 
               {/* Children */}
-              <div className="ml-6 space-y-2 border-l-2 border-dashed border-[#d9cfc3] pl-5">
+              <div className="ml-6 space-y-2 border-l-2 border-dashed border-paper-dim pl-5">
                 {subAgents.map((subAgent) => (
                   <div key={subAgent.id} className="flex items-center gap-3">
-                    <ChevronRight className="w-3.5 h-3.5 -ml-[1.35rem] shrink-0 text-[#b7a897]" />
+                    <ChevronRight className="w-3.5 h-3.5 -ml-[1.35rem] shrink-0 text-taupe" />
                     <div className={`flex items-center gap-2.5 rounded-[1rem] border px-3.5 py-2 text-sm font-medium shadow-sm ${
                       subAgent.is_active
-                        ? 'border-[#d4edda] bg-[#f3fdf5] text-gray-800'
-                        : 'border-[#e8e0d5] bg-[#f8f4ed] text-gray-500'
+                        ? 'border-leaf-wash bg-leaf-wash text-ink'
+                        : 'border-sand-deep bg-paper text-ink-mute'
                     }`}>
                       <Users className="w-3.5 h-3.5" />
                       {subAgent.sub_agent_name}
                       {!subAgent.is_active && (
-                        <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-500">inactive</span>
+                        <span className="rounded-full bg-line px-2 py-0.5 text-xs text-ink-mute">inactive</span>
                       )}
                     </div>
                     <button
                       onClick={() => router.push(`/agents/${subAgent.sub_agent_slug ?? subAgent.sub_agent_name}/view`)}
-                      className="text-xs text-gray-400 hover:text-gray-700 underline underline-offset-2"
+                      className="text-xs text-ash hover:text-ink-soft underline underline-offset-2"
                     >
                       view
                     </button>
                     <button
                       onClick={() => router.push(`/agents/${subAgent.sub_agent_slug ?? subAgent.sub_agent_name}/sub-agents`)}
-                      className="text-xs text-gray-400 hover:text-gray-700 underline underline-offset-2"
+                      className="text-xs text-ash hover:text-ink-soft underline underline-offset-2"
                     >
                       sub-agents
                     </button>
@@ -544,14 +544,14 @@ export default function SubAgentsPage() {
 
         {/* Sub-Agents List */}
         <AgentPagePanel className="overflow-hidden">
-          <div className="border-b border-[#eadfce] px-5 py-4">
+          <div className="border-b border-sand-deep px-5 py-4">
             <div className="flex items-center gap-3">
-              <div className="rounded-[1rem] bg-[#f1eadc] p-2.5">
-                <Users className="w-5 h-5 text-[#171717]" />
+              <div className="rounded-[1rem] bg-sand-deep p-2.5">
+                <Users className="w-5 h-5 text-ink" />
               </div>
               <div>
-                <h2 className="text-base font-semibold text-gray-900">Configured Sub-Agents</h2>
-                <p className="text-sm text-gray-600">
+                <h2 className="text-base font-semibold text-ink">Configured Sub-Agents</h2>
+                <p className="text-sm text-ink-soft">
                   Sub-agents are executed in order when called by the parent agent
                 </p>
               </div>
@@ -560,16 +560,16 @@ export default function SubAgentsPage() {
 
           {subAgents.length === 0 ? (
             <div className="p-10 text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#f1eadc]">
-                <Users className="w-6 h-6 text-[#b18a62]" />
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-sand-deep">
+                <Users className="w-6 h-6 text-clay" />
               </div>
-              <h3 className="text-base font-semibold text-gray-900 mb-2">No Sub-Agents Configured</h3>
-              <p className="text-gray-600 text-sm mb-4 max-w-md mx-auto">
+              <h3 className="text-base font-semibold text-ink mb-2">No Sub-Agents Configured</h3>
+              <p className="text-ink-soft text-sm mb-4 max-w-md mx-auto">
                 Add sub-agents to enable this agent to delegate tasks to specialized agents
               </p>
               <button
                 onClick={() => setShowAddDialog(true)}
-                className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
+                className="inline-flex items-center gap-2 rounded-[1rem] bg-ink px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
               >
                 <Plus className="w-4 h-4" />
                 Add Your First Sub-Agent
@@ -577,32 +577,32 @@ export default function SubAgentsPage() {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-[#efe5d8]">
-                <thead className="bg-[#f8f4ed]">
+              <table className="min-w-full divide-y divide-sand-deep">
+                <thead className="bg-paper">
                   <tr>
-                    <th className="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-5 py-2.5 text-left text-xs font-medium text-ink-mute">
                       Order
                     </th>
-                    <th className="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-5 py-2.5 text-left text-xs font-medium text-ink-mute">
                       Agent Name
                     </th>
-                    <th className="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-5 py-2.5 text-left text-xs font-medium text-ink-mute">
                       Description
                     </th>
-                    <th className="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-5 py-2.5 text-left text-xs font-medium text-ink-mute">
                       Status
                     </th>
-                    <th className="px-5 py-2.5 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-5 py-2.5 text-right text-xs font-medium text-ink-mute">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white divide-y divide-line">
                   {subAgents.map((subAgent, index) => (
-                    <tr key={subAgent.id} className="transition-colors hover:bg-[#fcfaf5]">
+                    <tr key={subAgent.id} className="transition-colors hover:bg-cream">
                       <td className="px-5 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-2">
-                          <span className="rounded-[0.8rem] bg-[#f6dfd9] px-2.5 py-1 font-mono text-xs font-medium text-[#b84a3a]">
+                          <span className="rounded-[0.8rem] bg-blush-wash px-2.5 py-1 font-mono text-xs font-medium text-leaf">
                             {subAgent.execution_order}
                           </span>
                           <div className="flex flex-col gap-0.5">
@@ -614,7 +614,7 @@ export default function SubAgentsPage() {
                                   subAgent.execution_order - 1
                                 )
                               }
-                              className="rounded p-0.5 transition-colors hover:bg-[#f1eadc] disabled:cursor-not-allowed disabled:opacity-30"
+                              className="rounded p-0.5 transition-colors hover:bg-sand-deep disabled:cursor-not-allowed disabled:opacity-30"
                             >
                               <ArrowUp className="w-3 h-3" />
                             </button>
@@ -626,7 +626,7 @@ export default function SubAgentsPage() {
                                   subAgent.execution_order + 1
                                 )
                               }
-                              className="rounded p-0.5 transition-colors hover:bg-[#f1eadc] disabled:cursor-not-allowed disabled:opacity-30"
+                              className="rounded p-0.5 transition-colors hover:bg-sand-deep disabled:cursor-not-allowed disabled:opacity-30"
                             >
                               <ArrowDown className="w-3 h-3" />
                             </button>
@@ -636,14 +636,14 @@ export default function SubAgentsPage() {
                       <td className="px-5 py-3 whitespace-nowrap">
                         <button
                           onClick={() => router.push(`/agents/${subAgent.sub_agent_slug ?? subAgent.sub_agent_name}/view`)}
-                          className="flex items-center gap-1.5 text-sm font-medium text-gray-900 hover:text-[#d14c3f] transition-colors group"
+                          className="flex items-center gap-1.5 text-sm font-medium text-ink hover:text-leaf transition-colors group"
                         >
                           {subAgent.sub_agent_name}
-                          <ExternalLink className="w-3 h-3 text-gray-400 group-hover:text-[#d14c3f] opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <ExternalLink className="w-3 h-3 text-ash group-hover:text-leaf opacity-0 group-hover:opacity-100 transition-opacity" />
                         </button>
                       </td>
                       <td className="px-5 py-3">
-                        <div className="text-xs text-gray-600 max-w-md truncate">
+                        <div className="text-xs text-ink-soft max-w-md truncate">
                           {subAgent.sub_agent_description || "-"}
                         </div>
                       </td>
@@ -655,8 +655,8 @@ export default function SubAgentsPage() {
                             }
                             className={`p-1.5 rounded-lg transition-colors ${
                               subAgent.is_active
-                                ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-                                : 'bg-[#f3ede2] text-[#9e8f7f] hover:bg-[#ece2d3]'
+                                ? 'bg-leaf-wash text-leaf hover:bg-leaf-wash'
+                                : 'bg-sand text-ash hover:bg-sand-deep'
                             }`}
                           >
                             {subAgent.is_active ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
@@ -664,8 +664,8 @@ export default function SubAgentsPage() {
                           <span
                             className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                               subAgent.is_active
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : 'bg-gray-100 text-gray-800'
+                                ? 'bg-leaf-wash text-forest'
+                                : 'bg-sand text-ink'
                             }`}
                           >
                             {subAgent.is_active ? "Active" : "Inactive"}
@@ -676,7 +676,7 @@ export default function SubAgentsPage() {
                         <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => router.push(`/agents/${subAgent.sub_agent_slug ?? subAgent.sub_agent_name}/view`)}
-                            className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-[#f1eadc] hover:text-gray-900"
+                            className="rounded-lg p-1.5 text-ink-mute transition-colors hover:bg-sand-deep hover:text-ink"
                             title="View agent"
                           >
                             <ExternalLink className="w-4 h-4" />
@@ -688,7 +688,7 @@ export default function SubAgentsPage() {
                                 subAgent.sub_agent_name
                               )
                             }
-                            className="rounded-lg p-1.5 text-[#b84a3a] transition-colors hover:bg-[#f8ece8]"
+                            className="rounded-lg p-1.5 text-danger transition-colors hover:bg-paper"
                             title="Remove sub-agent"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -711,12 +711,12 @@ export default function SubAgentsPage() {
         title="Add Sub-Agent"
       >
         <div className="space-y-4">
-          <p className="text-xs text-gray-600">
+          <p className="text-xs text-ink-soft">
             Select an agent to add as a sub-agent for "{agentName}"
           </p>
 
           <div className="space-y-2">
-            <label className="block text-xs font-medium text-gray-700">
+            <label className="block text-xs font-medium text-ink-soft">
               Agent
             </label>
             <select
@@ -735,7 +735,7 @@ export default function SubAgentsPage() {
           </div>
 
           <div className="space-y-2">
-            <label className="block text-xs font-medium text-gray-700">
+            <label className="block text-xs font-medium text-ink-soft">
               Execution Order
             </label>
             <Input
@@ -745,21 +745,21 @@ export default function SubAgentsPage() {
               placeholder="0"
               className={warmFieldClass}
             />
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-ink-mute">
               Lower numbers execute first. Use same number for parallel execution (future feature).
             </p>
           </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-gray-200">
+          <div className="flex justify-end gap-2 pt-3 border-t border-line">
             <button
               onClick={() => setShowAddDialog(false)}
-              className="rounded-[1rem] border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-[#fcfaf5]"
+              className="rounded-[1rem] border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-ink-soft transition-colors hover:bg-cream"
             >
               Cancel
             </button>
             <button
               onClick={handleAddSubAgent}
-              className="rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
+              className="rounded-[1rem] bg-ink px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
             >
               Add Sub-Agent
             </button>

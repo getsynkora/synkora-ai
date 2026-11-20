@@ -18,9 +18,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           'disabled:pointer-events-none disabled:opacity-50',
           {
             'bg-primary-600 text-white hover:bg-primary-700': variant === 'primary',
-            'bg-gray-200 text-gray-900 hover:bg-gray-300': variant === 'secondary',
-            'border border-gray-300 bg-white hover:bg-gray-50': variant === 'outline',
-            'hover:bg-gray-100': variant === 'ghost',
+            'bg-line text-ink hover:bg-taupe': variant === 'secondary',
+            'border border-taupe bg-white hover:bg-cream': variant === 'outline',
+            'hover:bg-sand': variant === 'ghost',
             'h-8 px-3 text-sm': size === 'sm',
             'h-10 px-4': size === 'md',
             'h-12 px-6 text-lg': size === 'lg',
@@ -31,8 +31,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {...props}
       >
         {isLoading && (
-          <svg
-            className="mr-2 h-4 w-4 animate-spin"
+          <svg aria-hidden="true"
+            className="mr-2 h-4 w-4 motion-safe:animate-spin"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"

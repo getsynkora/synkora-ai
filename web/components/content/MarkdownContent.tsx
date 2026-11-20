@@ -14,7 +14,7 @@ const SyntaxHighlighter = dynamic(
   {
     ssr: false,
     loading: () => (
-      <pre className="bg-gray-100 p-4 rounded"><code>Loading...</code></pre>
+      <pre className="bg-sand p-4 rounded"><code>Loading…</code></pre>
     ),
   }
 )
@@ -151,7 +151,7 @@ const markdownComponents = {
     const isInternal = href.startsWith('/')
     if (isInternal) {
       return (
-        <Link href={href} className="font-medium text-[#2d8b69] underline decoration-[#2d8b69]/30 underline-offset-4 hover:text-[#1f6d52]">
+        <Link href={href} className="font-medium text-leaf underline decoration-leaf/30 underline-offset-4 hover:text-forest">
           {children}
         </Link>
       )
@@ -162,7 +162,7 @@ const markdownComponents = {
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="font-medium text-[#2d8b69] underline decoration-[#2d8b69]/30 underline-offset-4 hover:text-[#1f6d52]"
+        className="font-medium text-leaf underline decoration-leaf/30 underline-offset-4 hover:text-forest"
       >
         {children}
       </a>
@@ -185,7 +185,7 @@ const markdownComponents = {
           language={language}
           style={oneDark}
           customStyle={{
-            background: '#161412',
+            background: 'rgb(var(--ink))',
             borderRadius: '1rem',
             border: '1px solid rgba(0,0,0,0.1)',
             padding: '1.25rem 1.5rem',
@@ -202,7 +202,7 @@ const markdownComponents = {
     }
 
     return (
-      <code className="rounded-md bg-black/[0.06] px-1.5 py-0.5 text-[0.95em] text-[#1f1d19]">
+      <code className="rounded-md bg-black/[0.06] px-1.5 py-0.5 text-[0.95em] text-ink">
         {children}
       </code>
     )
@@ -214,7 +214,7 @@ const markdownComponents = {
     <em className="content-emphasis">{children}</em>
   ),
   blockquote: ({ children }: { children?: ReactNode }) => (
-    <blockquote className="rounded-r-2xl border-l-4 border-[#79dfbc] bg-[#ebf7f2] px-5 py-4 text-[#2b3a34]">
+    <blockquote className="rounded-r-2xl border-l-4 border-mint bg-leaf-wash px-5 py-4 text-night">
       {children}
     </blockquote>
   ),

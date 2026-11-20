@@ -69,7 +69,7 @@ export function ApiKeyUsageChart({ usage }: ApiKeyUsageChartProps) {
     return (
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold mb-2">Usage Analytics</h3>
-        <p className="text-gray-500 text-center py-8">
+        <p className="text-ink-mute text-center py-8">
           No usage data available yet
         </p>
       </div>
@@ -81,33 +81,33 @@ export function ApiKeyUsageChart({ usage }: ApiKeyUsageChartProps) {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm font-medium text-gray-500 mb-2">
+          <div className="text-sm font-medium text-ink-mute mb-2">
             Total Requests
           </div>
           <div className="text-2xl font-bold">{stats.totalRequests.toLocaleString()}</div>
         </div>
 
         <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm font-medium text-gray-500 mb-2">
+          <div className="text-sm font-medium text-ink-mute mb-2">
             Success Rate
           </div>
           <div className="text-2xl font-bold">{stats.successRate}%</div>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-ink-mute mt-1">
             {stats.successfulRequests.toLocaleString()} successful
           </p>
         </div>
 
         <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm font-medium text-gray-500 mb-2">
+          <div className="text-sm font-medium text-ink-mute mb-2">
             Failed Requests
           </div>
-          <div className="text-2xl font-bold text-red-600">
+          <div className="text-2xl font-bold text-danger">
             {stats.failedRequests.toLocaleString()}
           </div>
         </div>
 
         <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-sm font-medium text-gray-500 mb-2">
+          <div className="text-sm font-medium text-ink-mute mb-2">
             Avg Response Time
           </div>
           <div className="text-2xl font-bold">{stats.avgResponseTime}ms</div>
@@ -120,11 +120,11 @@ export function ApiKeyUsageChart({ usage }: ApiKeyUsageChartProps) {
         <div className="space-y-2">
           {chartData.map((data) => (
             <div key={data.date} className="flex items-center gap-4">
-              <div className="w-20 text-sm text-gray-500">{data.date}</div>
+              <div className="w-20 text-sm text-ink-mute">{data.date}</div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <div
-                    className="bg-blue-600 h-8 rounded"
+                    className="bg-azure h-8 rounded"
                     style={{
                       width: `${Math.min((data.requests / Math.max(...chartData.map((d) => d.requests))) * 100, 100)}%`,
                     }}
@@ -134,12 +134,12 @@ export function ApiKeyUsageChart({ usage }: ApiKeyUsageChartProps) {
                 {data.errors > 0 && (
                   <div className="flex items-center gap-2 mt-1">
                     <div
-                      className="bg-red-600 h-2 rounded"
+                      className="bg-danger h-2 rounded"
                       style={{
                         width: `${Math.min((data.errors / data.requests) * 100, 100)}%`,
                       }}
                     />
-                    <span className="text-xs text-red-600">{data.errors} errors</span>
+                    <span className="text-xs text-danger">{data.errors} errors</span>
                   </div>
                 )}
               </div>
@@ -161,14 +161,14 @@ export function ApiKeyUsageChart({ usage }: ApiKeyUsageChartProps) {
                 <div className="text-sm font-medium">
                   {formatDate(new Date(u.timestamp), 'MMM dd, yyyy HH:mm')}
                 </div>
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-ink-mute">
                   Endpoint: {u.endpoint || 'N/A'}
                 </div>
               </div>
               <div className="text-right">
                 <div className="text-sm font-medium">{u.request_count} requests</div>
                 {u.error_count && u.error_count > 0 && (
-                  <div className="text-xs text-red-600">{u.error_count} errors</div>
+                  <div className="text-xs text-danger">{u.error_count} errors</div>
                 )}
               </div>
             </div>

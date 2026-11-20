@@ -81,17 +81,17 @@ export default function AgentPortalSettingsPage() {
         <button
           onClick={handleSave}
           disabled={saving || loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all text-xs font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-ink text-white rounded-lg hover:from-danger hover:to-danger transition-[color,background-color,border-color,box-shadow,opacity,transform] text-xs font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Save className="w-3.5 h-3.5" />
-          {saving ? 'Saving...' : 'Save'}
+          {saving ? 'Saving…' : 'Save'}
         </button>
       }
     >
       <AgentPagePanel className="p-5">
         <div className="mb-4">
-          <h3 className="text-sm font-semibold text-gray-900 mb-0.5">Portal Visibility</h3>
-          <p className="text-xs text-gray-500">
+          <h3 className="text-sm font-semibold text-ink mb-0.5">Portal Visibility</h3>
+          <p className="text-xs text-ink-mute">
             This is independent of the Synkora marketplace visibility (<code>is_public</code>).
           </p>
         </div>
@@ -100,10 +100,10 @@ export default function AgentPortalSettingsPage() {
           {VISIBILITY_OPTIONS.map((opt) => (
             <label
               key={opt.value}
-              className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
+              className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
                 portalVisibility === opt.value
-                  ? 'border-red-500 bg-red-50'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
+                  ? 'border-ink bg-blush-wash'
+                  : 'border-line bg-white hover:border-taupe'
               }`}
             >
               <input
@@ -112,21 +112,21 @@ export default function AgentPortalSettingsPage() {
                 value={opt.value}
                 checked={portalVisibility === opt.value}
                 onChange={() => setPortalVisibility(opt.value)}
-                className="mt-0.5 accent-red-600"
+                className="mt-0.5 accent-danger"
                 disabled={loading}
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span
                     className={`${
-                      portalVisibility === opt.value ? 'text-red-600' : 'text-gray-400'
+                      portalVisibility === opt.value ? 'text-leaf' : 'text-ash'
                     }`}
                   >
                     {opt.icon}
                   </span>
-                  <span className="text-sm font-medium text-gray-900">{opt.label}</span>
+                  <span className="text-sm font-medium text-ink">{opt.label}</span>
                 </div>
-                <p className="mt-0.5 text-xs text-gray-500">{opt.description}</p>
+                <p className="mt-0.5 text-xs text-ink-mute">{opt.description}</p>
               </div>
             </label>
           ))}

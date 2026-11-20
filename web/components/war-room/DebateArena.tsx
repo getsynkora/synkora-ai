@@ -48,14 +48,14 @@ export function DebateArena({
           <div key={round}>
             {/* Round divider */}
             <div className="flex items-center gap-4 my-8">
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
-              <div className="flex items-center gap-2 px-4 py-1.5 bg-white rounded-full border border-gray-200 shadow-sm">
-                <Swords className="w-3.5 h-3.5 text-gray-400" />
-                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-taupe to-transparent" />
+              <div className="flex items-center gap-2 px-4 py-1.5 bg-white rounded-full border border-line shadow-sm">
+                <Swords className="w-3.5 h-3.5 text-ash" />
+                <span className="text-xs font-semibold text-ink-soft">
                   Round {round}
                 </span>
               </div>
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
+              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-taupe to-transparent" />
             </div>
 
             {/* Messages */}
@@ -95,14 +95,14 @@ export function DebateArena({
         {streamingParticipantId === 'synthesizer' && (
           <div className="mt-10">
             <div className="flex items-center gap-4 my-8">
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
-              <div className="flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-full border border-amber-200 shadow-sm">
-                <Scale className="w-3.5 h-3.5 text-amber-600" />
-                <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">
+              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-honey to-transparent" />
+              <div className="flex items-center gap-2 px-4 py-1.5 bg-sand-deep rounded-full border border-honey shadow-sm">
+                <Scale className="w-3.5 h-3.5 text-warn" />
+                <span className="text-xs font-bold text-gold">
                   The Verdict
                 </span>
               </div>
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
+              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-honey to-transparent" />
             </div>
             <ParticipantCard
               agentName="Synthesizer"
@@ -120,14 +120,14 @@ export function DebateArena({
         {verdict && !streamingParticipantId && (
           <div className="mt-10">
             <div className="flex items-center gap-4 my-8">
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
-              <div className="flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-amber-50 to-orange-50 rounded-full border border-amber-200 shadow-sm">
-                <Scale className="w-3.5 h-3.5 text-amber-600" />
-                <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">
+              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-honey to-transparent" />
+              <div className="flex items-center gap-2 px-4 py-1.5 bg-sand-deep rounded-full border border-honey shadow-sm">
+                <Scale className="w-3.5 h-3.5 text-warn" />
+                <span className="text-xs font-bold text-gold">
                   The Verdict
                 </span>
               </div>
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
+              <div className="flex-1 h-px bg-gradient-to-r from-transparent via-honey to-transparent" />
             </div>
             {messages
               .filter((m) => m.is_verdict)
@@ -147,11 +147,11 @@ export function DebateArena({
 
         {messages.length === 0 && !streamingParticipantId && (
           <div className="text-center py-20">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gray-100 mb-4">
-              <Swords className="w-7 h-7 text-gray-400" />
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-sand mb-4">
+              <Swords className="w-7 h-7 text-ash" />
             </div>
-            <p className="text-sm text-gray-500 font-medium">The debate will appear here once started.</p>
-            <p className="text-xs text-gray-400 mt-1">Click "Start Debate" to begin the discussion.</p>
+            <p className="text-sm text-ink-mute font-medium">The debate will appear here once started.</p>
+            <p className="text-xs text-ash mt-1">Click "Start Debate" to begin the discussion.</p>
           </div>
         )}
       </div>

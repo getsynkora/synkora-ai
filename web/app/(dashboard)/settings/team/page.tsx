@@ -194,7 +194,7 @@ export default function TeamSettingsPage() {
   if (isInitialLoading) {
     return (
       <div className="dashboard-settings-page flex min-h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+        <div className="motion-safe:animate-spin rounded-full h-12 w-12 border-b-2 border-danger"></div>
       </div>
     );
   }
@@ -205,16 +205,16 @@ export default function TeamSettingsPage() {
         <div className="mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Team Management</h1>
-              <p className="mt-1 text-sm text-gray-600">
+              <h1 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight">Team Management</h1>
+              <p className="mt-1 text-sm text-ink-soft">
                 Manage your team members and their roles
               </p>
             </div>
             <button
               onClick={() => setShowInviteForm(!showInviteForm)}
-              className="px-3 py-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all flex items-center text-xs font-medium shadow-sm"
+              className="px-3 py-1.5 bg-ink text-white rounded-lg hover:from-danger hover:to-danger transition-[color,background-color,border-color,box-shadow,opacity,transform] flex items-center text-xs font-medium shadow-sm"
             >
-              <svg
+              <svg aria-hidden="true"
                 className="w-4 h-4 mr-1.5"
                 fill="none"
                 stroke="currentColor"
@@ -234,15 +234,15 @@ export default function TeamSettingsPage() {
 
         {/* Success Message */}
         {success && (
-          <div className="mb-5 bg-green-50 border border-green-200 rounded-lg p-3.5 flex items-center justify-between">
+          <div className="mb-5 bg-leaf-wash border border-mint rounded-lg p-3.5 flex items-center justify-between">
             <div className="flex items-center">
-              <svg className="w-5 h-5 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <svg aria-hidden="true" className="w-5 h-5 text-leaf mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
-              <p className="text-sm text-green-700">{success}</p>
+              <p className="text-sm text-forest">{success}</p>
             </div>
-            <button onClick={clearMessages} className="text-green-500 hover:text-green-700">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <button onClick={clearMessages} className="text-leaf hover:text-forest">
+              <svg aria-hidden="true" className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
               </svg>
             </button>
@@ -251,15 +251,15 @@ export default function TeamSettingsPage() {
 
         {/* Error Message */}
         {error && (
-          <div className="mb-5 bg-red-50 border border-red-200 rounded-lg p-3.5 flex items-center justify-between">
+          <div className="mb-5 bg-blush-wash border border-blush rounded-lg p-3.5 flex items-center justify-between">
             <div className="flex items-center">
-              <svg className="w-5 h-5 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <svg aria-hidden="true" className="w-5 h-5 text-leaf mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
-              <p className="text-sm text-red-600">{error}</p>
+              <p className="text-sm text-danger">{error}</p>
             </div>
-            <button onClick={clearMessages} className="text-red-500 hover:text-red-700">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <button onClick={clearMessages} className="text-leaf hover:text-danger">
+              <svg aria-hidden="true" className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
               </svg>
             </button>
@@ -285,25 +285,25 @@ export default function TeamSettingsPage() {
         {/* Pending Invitations */}
         {invitations.length > 0 && (
           <div className="mb-6 bg-white shadow rounded-lg overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200 bg-yellow-50">
-              <h3 className="text-lg font-medium text-gray-900 flex items-center">
-                <svg className="w-5 h-5 text-yellow-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="px-6 py-4 border-b border-line bg-sand-deep">
+              <h3 className="text-lg font-medium text-ink flex items-center">
+                <svg aria-hidden="true" className="w-5 h-5 text-warn mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
                 Pending Invitations
               </h3>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-ink-mute">
                 {invitations.length} pending {invitations.length === 1 ? 'invitation' : 'invitations'}
               </p>
             </div>
-            <ul className="divide-y divide-gray-200">
+            <ul className="divide-y divide-line">
               {invitations.map((invitation) => (
-                <li key={invitation.id} className="px-6 py-4 hover:bg-gray-50">
+                <li key={invitation.id} className="px-6 py-4 hover:bg-cream">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">{invitation.email}</p>
-                      <div className="flex items-center mt-1 text-xs text-gray-500 space-x-3">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 capitalize">
+                      <p className="text-sm font-medium text-ink">{invitation.email}</p>
+                      <div className="flex items-center mt-1 text-xs text-ink-mute space-x-3">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-sky-wash text-azure capitalize">
                           {invitation.role}
                         </span>
                         <span>Invited by {invitation.invited_by_name || 'Unknown'}</span>
@@ -313,13 +313,13 @@ export default function TeamSettingsPage() {
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => handleResendInvitation(invitation.id)}
-                        className="px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-colors"
+                        className="px-3 py-1.5 text-xs font-medium text-azure hover:text-azure hover:bg-sky-wash rounded-md transition-colors"
                       >
                         Resend
                       </button>
                       <button
                         onClick={() => handleCancelInvitation(invitation.id)}
-                        className="px-3 py-1.5 text-xs font-medium text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors"
+                        className="px-3 py-1.5 text-xs font-medium text-danger hover:text-wine hover:bg-blush-wash rounded-md transition-colors"
                       >
                         Cancel
                       </button>
@@ -352,11 +352,11 @@ export default function TeamSettingsPage() {
 
         {/* Team Stats */}
         <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-5">
-          <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-4">
+          <div className="bg-white shadow-sm border border-line rounded-lg p-4">
             <div className="flex items-center">
-              <div className="flex-shrink-0 bg-red-100 rounded-md p-2.5">
-                <svg
-                  className="h-5 w-5 text-red-600"
+              <div className="flex-shrink-0 bg-sand-deep rounded-md p-2.5">
+                <svg aria-hidden="true"
+                  className="h-5 w-5 text-leaf"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -370,17 +370,17 @@ export default function TeamSettingsPage() {
                 </svg>
               </div>
               <div className="ml-3.5">
-                <p className="text-xs font-medium text-gray-500">Total Members</p>
-                <p className="text-2xl font-semibold text-gray-900">{members?.length || 0}</p>
+                <p className="text-xs font-medium text-ink-mute">Total Members</p>
+                <p className="text-2xl font-semibold text-ink">{members?.length || 0}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-4">
+          <div className="bg-white shadow-sm border border-line rounded-lg p-4">
             <div className="flex items-center">
-              <div className="flex-shrink-0 bg-emerald-100 rounded-md p-2.5">
-                <svg
-                  className="h-5 w-5 text-emerald-600"
+              <div className="flex-shrink-0 bg-leaf-wash rounded-md p-2.5">
+                <svg aria-hidden="true"
+                  className="h-5 w-5 text-leaf"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -394,19 +394,19 @@ export default function TeamSettingsPage() {
                 </svg>
               </div>
               <div className="ml-3.5">
-                <p className="text-xs font-medium text-gray-500">Admins</p>
-                <p className="text-2xl font-semibold text-gray-900">
+                <p className="text-xs font-medium text-ink-mute">Admins</p>
+                <p className="text-2xl font-semibold text-ink">
                   {members?.filter(m => m.role === 'admin' || m.role === 'owner').length || 0}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-4">
+          <div className="bg-white shadow-sm border border-line rounded-lg p-4">
             <div className="flex items-center">
-              <div className="flex-shrink-0 bg-yellow-100 rounded-md p-2.5">
-                <svg
-                  className="h-5 w-5 text-yellow-600"
+              <div className="flex-shrink-0 bg-sand-deep rounded-md p-2.5">
+                <svg aria-hidden="true"
+                  className="h-5 w-5 text-warn"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -420,8 +420,8 @@ export default function TeamSettingsPage() {
                 </svg>
               </div>
               <div className="ml-3.5">
-                <p className="text-xs font-medium text-gray-500">Pending Invites</p>
-                <p className="text-2xl font-semibold text-gray-900">{invitations?.length || 0}</p>
+                <p className="text-xs font-medium text-ink-mute">Pending Invites</p>
+                <p className="text-2xl font-semibold text-ink">{invitations?.length || 0}</p>
               </div>
             </div>
           </div>
@@ -429,14 +429,14 @@ export default function TeamSettingsPage() {
 
         {/* Security — Console Access Restrictions */}
         <div className="mt-6 bg-white shadow rounded-lg overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900 flex items-center">
-              <svg className="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="px-6 py-4 border-b border-line">
+            <h3 className="text-lg font-medium text-ink flex items-center">
+              <svg aria-hidden="true" className="w-5 h-5 text-leaf mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
               </svg>
               Console Access Restrictions
             </h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-ink-mute">
               Restrict console access to specific IP addresses or CIDR ranges. Leave empty to allow all IPs.
             </p>
           </div>
@@ -445,14 +445,14 @@ export default function TeamSettingsPage() {
             {/* MFA toggle */}
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-700">Require MFA for all members</p>
-                <p className="text-xs text-gray-500 mt-0.5">Members must have multi-factor authentication enabled to access the console.</p>
+                <p className="text-sm font-medium text-ink-soft">Require MFA for all members</p>
+                <p className="text-xs text-ink-mute mt-0.5">Members must have multi-factor authentication enabled to access the console.</p>
               </div>
               <button
                 type="button"
                 disabled={!isOwner}
                 onClick={() => isOwner && setSecurity((prev) => ({ ...prev, mfa_required: !prev.mfa_required }))}
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 ${security.mfa_required ? 'bg-red-600' : 'bg-gray-200'} ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 ${security.mfa_required ? 'bg-danger' : 'bg-line'} ${!isOwner ? 'opacity-50 cursor-not-allowed' : ''}`}
                 aria-pressed={security.mfa_required}
               >
                 <span
@@ -463,27 +463,27 @@ export default function TeamSettingsPage() {
 
             {/* IP allowlist display */}
             <div>
-              <p className="text-sm font-medium text-gray-700 mb-2">IP Allowlist</p>
+              <p className="text-sm font-medium text-ink-soft mb-2">IP Allowlist</p>
               {(!security.console_ip_allowlist || security.console_ip_allowlist.length === 0) ? (
-                <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <svg className="w-4 h-4 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <div className="flex items-center gap-2 p-3 bg-sky-wash border border-sky-wash rounded-lg">
+                  <svg aria-hidden="true" className="w-4 h-4 text-azure flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                   </svg>
-                  <span className="text-sm text-blue-700">All IPs allowed — no restrictions currently configured.</span>
+                  <span className="text-sm text-azure">All IPs allowed, no restrictions currently configured.</span>
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {security.console_ip_allowlist.map((entry) => (
-                    <span key={entry} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-300">
+                    <span key={entry} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-sand text-ink border border-taupe">
                       {entry}
                       {isOwner && (
                         <button
                           type="button"
                           onClick={() => handleRemoveAllowlistEntry(entry)}
-                          className="ml-0.5 text-gray-500 hover:text-red-600 focus:outline-none"
+                          className="ml-0.5 text-ink-mute hover:text-danger focus:outline-none"
                           aria-label={`Remove ${entry}`}
                         >
-                          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                          <svg aria-hidden="true" className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                           </svg>
                         </button>
@@ -497,7 +497,7 @@ export default function TeamSettingsPage() {
             {/* Add entry input — owner only */}
             {isOwner && (
               <div>
-                <label htmlFor="ip-entry" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="ip-entry" className="block text-sm font-medium text-ink-soft mb-1">
                   Add IP / CIDR / wildcard
                 </label>
                 <div className="flex items-center gap-2">
@@ -508,20 +508,20 @@ export default function TeamSettingsPage() {
                     onChange={(e) => { setAllowlistInput(e.target.value); setAllowlistInputError(null); }}
                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddAllowlistEntry(); }}}
                     placeholder='e.g. 192.168.1.0/24 or 10.0.0.1 or *'
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 text-sm"
+                    className="flex-1 px-3 py-2 border border-taupe rounded-md shadow-sm focus:ring-ink focus:border-ink text-sm"
                   />
                   <button
                     type="button"
                     onClick={handleAddAllowlistEntry}
-                    className="px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-md text-sm font-medium text-gray-700 transition-colors"
+                    className="px-3 py-2 bg-sand hover:bg-line border border-taupe rounded-md text-sm font-medium text-ink-soft transition-colors"
                   >
                     Add
                   </button>
                 </div>
                 {allowlistInputError && (
-                  <p className="mt-1 text-xs text-red-600">{allowlistInputError}</p>
+                  <p className="mt-1 text-xs text-danger">{allowlistInputError}</p>
                 )}
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-ink-mute">
                   Accepts: exact IP (1.2.3.4), CIDR range (10.0.0.0/8), or * (allow all).
                 </p>
               </div>
@@ -529,7 +529,7 @@ export default function TeamSettingsPage() {
 
             {/* Read-only notice for non-owners */}
             {!isOwner && (
-              <p className="text-xs text-gray-400 italic">Only Owners can modify security settings.</p>
+              <p className="text-xs text-ash italic">Only Owners can modify security settings.</p>
             )}
 
             {/* Save — owner only */}
@@ -539,9 +539,9 @@ export default function TeamSettingsPage() {
                   type="button"
                   onClick={handleSaveSecurity}
                   disabled={isSavingSecurity}
-                  className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all text-sm font-medium shadow-sm disabled:opacity-50"
+                  className="px-4 py-2 bg-ink text-white rounded-lg hover:from-danger hover:to-danger transition-[color,background-color,border-color,box-shadow,opacity,transform] text-sm font-medium shadow-sm disabled:opacity-50"
                 >
-                  {isSavingSecurity ? 'Saving...' : 'Save Security Settings'}
+                  {isSavingSecurity ? 'Saving…' : 'Save Security Settings'}
                 </button>
               </div>
             )}
@@ -550,34 +550,34 @@ export default function TeamSettingsPage() {
 
         {/* Domain Auto-Assignment Settings */}
         <div className="mt-6 bg-white shadow rounded-lg overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900 flex items-center">
-              <svg className="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="px-6 py-4 border-b border-line">
+            <h3 className="text-lg font-medium text-ink flex items-center">
+              <svg aria-hidden="true" className="w-5 h-5 text-leaf mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
               </svg>
               Domain Settings
             </h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-ink-mute">
               Configure automatic team assignment for users with your company email domain
             </p>
           </div>
           <div className="px-6 py-4 space-y-4">
             <div>
-              <label htmlFor="domain" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="domain" className="block text-sm font-medium text-ink-soft mb-1">
                 Company Domain
               </label>
               <div className="flex items-center gap-2">
-                <span className="text-gray-500">@</span>
+                <span className="text-ink-mute">@</span>
                 <input
                   type="text"
                   id="domain"
                   value={domainInput}
                   onChange={(e) => setDomainInput(e.target.value)}
                   placeholder="example.com"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500 text-sm"
+                  className="flex-1 px-3 py-2 border border-taupe rounded-md shadow-sm focus:ring-ink focus:border-ink text-sm"
                 />
               </div>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-ink-mute">
                 Users who sign up with this email domain will be automatically added to this team
               </p>
             </div>
@@ -588,9 +588,9 @@ export default function TeamSettingsPage() {
                 id="auto-assign"
                 checked={autoAssignEnabled}
                 onChange={(e) => setAutoAssignEnabled(e.target.checked)}
-                className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                className="h-4 w-4 text-leaf focus:ring-ink border-taupe rounded"
               />
-              <label htmlFor="auto-assign" className="ml-2 block text-sm text-gray-700">
+              <label htmlFor="auto-assign" className="ml-2 block text-sm text-ink-soft">
                 Enable automatic team assignment for new users
               </label>
             </div>
@@ -599,20 +599,20 @@ export default function TeamSettingsPage() {
               <button
                 onClick={handleSaveDomainSettings}
                 disabled={isSavingDomain}
-                className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all text-sm font-medium shadow-sm disabled:opacity-50"
+                className="px-4 py-2 bg-ink text-white rounded-lg hover:from-danger hover:to-danger transition-[color,background-color,border-color,box-shadow,opacity,transform] text-sm font-medium shadow-sm disabled:opacity-50"
               >
-                {isSavingDomain ? 'Saving...' : 'Save Domain Settings'}
+                {isSavingDomain ? 'Saving…' : 'Save Domain Settings'}
               </button>
             </div>
           </div>
         </div>
 
         {/* Help Text */}
-        <div className="mt-6 bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="mt-6 bg-blush-wash border border-blush rounded-lg p-4">
           <div className="flex">
             <div className="flex-shrink-0">
-              <svg
-                className="h-4 w-4 text-red-500"
+              <svg aria-hidden="true"
+                className="h-4 w-4 text-leaf"
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
@@ -624,8 +624,8 @@ export default function TeamSettingsPage() {
               </svg>
             </div>
             <div className="ml-3">
-              <h3 className="text-xs font-medium text-red-800">About Team Roles</h3>
-              <div className="mt-2 text-xs text-red-700">
+              <h3 className="text-xs font-medium text-wine">About Team Roles</h3>
+              <div className="mt-2 text-xs text-leaf">
                 <ul className="list-disc list-inside space-y-1">
                   <li><strong>Owner:</strong> Full access to all features and settings</li>
                   <li><strong>Admin:</strong> Can manage team members and most settings</li>

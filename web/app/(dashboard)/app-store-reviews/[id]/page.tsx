@@ -72,30 +72,30 @@ export default function AppStoreSourceDetailsPage() {
   }
 
   const getRatingColor = (rating: number) => {
-    if (rating >= 4) return 'text-green-600'
-    if (rating >= 3) return 'text-yellow-600'
-    return 'text-red-600'
+    if (rating >= 4) return 'text-leaf'
+    if (rating >= 3) return 'text-warn'
+    return 'text-danger'
   }
 
   const getSentimentColor = (sentiment: string) => {
     switch (sentiment) {
       case 'positive':
-        return 'bg-green-100 text-green-800'
+        return 'bg-leaf-wash text-forest'
       case 'negative':
-        return 'bg-red-100 text-red-800'
+        return 'bg-blush-wash text-wine'
       case 'neutral':
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-sand text-ink'
       default:
-        return 'bg-blue-100 text-blue-800'
+        return 'bg-sky-wash text-azure'
     }
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading app source details...</p>
+          <div className="w-16 h-16 border-4 border-azure border-t-transparent rounded-full motion-safe:animate-spin mx-auto mb-4" />
+          <p className="text-ink-soft">Loading app source details…</p>
         </div>
       </div>
     )
@@ -103,13 +103,13 @@ export default function AppStoreSourceDetailsPage() {
 
   if (!source) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600">App source not found</p>
+          <AlertCircle className="w-16 h-16 text-ash mx-auto mb-4" />
+          <p className="text-ink-soft">App source not found</p>
           <Link
             href="/app-store-reviews"
-            className="mt-4 inline-block text-blue-600 hover:text-blue-700"
+            className="mt-4 inline-block text-azure hover:text-azure"
           >
             Back to list
           </Link>
@@ -119,13 +119,13 @@ export default function AppStoreSourceDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-8">
+    <div className="min-h-screen p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <Link
             href="/app-store-reviews"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium mb-6 transition-colors"
+            className="inline-flex items-center gap-2 text-ink-soft hover:text-ink font-medium mb-6 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to App Store Reviews
@@ -133,14 +133,13 @@ export default function AppStoreSourceDetailsPage() {
 
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-600 rounded-lg shadow-sm">
+              <div className="p-3 bg-azure rounded-lg shadow-sm">
                 <Smartphone className="w-8 h-8 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">{source.app_name}</h1>
-                <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+                <h1 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight">{source.app_name}</h1>
+                <div className="flex items-center gap-4 mt-2 text-sm text-ink-soft">
                   <span className="flex items-center gap-1">
-                    {source.store_type === 'google_play' ? '🤖' : '🍎'}
                     {source.store_type === 'google_play' ? 'Google Play' : 'App Store'}
                   </span>
                   <span>•</span>
@@ -155,14 +154,14 @@ export default function AppStoreSourceDetailsPage() {
               <button
                 onClick={handleSync}
                 disabled={syncing}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 bg-azure text-white rounded-lg hover:bg-azure transition-colors disabled:opacity-50"
               >
-                <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
-                {syncing ? 'Syncing...' : 'Sync Now'}
+                <RefreshCw className={`w-4 h-4 ${syncing ? 'motion-safe:animate-spin' : ''}`} />
+                {syncing ? 'Syncing…' : 'Sync Now'}
               </button>
               <Link
                 href={`/app-store-reviews/${sourceId}/edit`}
-                className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 border border-taupe text-ink-soft rounded-lg hover:bg-sand transition-colors"
               >
                 <Settings className="w-4 h-4" />
                 Edit
@@ -173,37 +172,37 @@ export default function AppStoreSourceDetailsPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-lg shadow-sm border border-line p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-600">Total Reviews</span>
-              <MessageSquare className="w-5 h-5 text-blue-600" />
+              <span className="text-sm font-medium text-ink-soft">Total Reviews</span>
+              <MessageSquare className="w-5 h-5 text-azure" />
             </div>
-            <div className="text-xl sm:text-3xl font-bold text-gray-900">
+            <div className="text-xl sm:text-3xl font-bold text-ink">
               {source.total_reviews_collected?.toLocaleString() || 0}
             </div>
             {analytics?.review_volume_change !== undefined && (
               <div className="flex items-center gap-1 mt-2 text-sm">
                 {analytics.review_volume_change >= 0 ? (
-                  <TrendingUp className="w-4 h-4 text-green-600" />
+                  <TrendingUp className="w-4 h-4 text-leaf" />
                 ) : (
-                  <TrendingDown className="w-4 h-4 text-red-600" />
+                  <TrendingDown className="w-4 h-4 text-leaf" />
                 )}
                 <span
                   className={
-                    analytics.review_volume_change >= 0 ? 'text-green-600' : 'text-red-600'
+                    analytics.review_volume_change >= 0 ? 'text-leaf' : 'text-leaf'
                   }
                 >
                   {Math.abs(analytics.review_volume_change).toFixed(1)}%
                 </span>
-                <span className="text-gray-500">vs last period</span>
+                <span className="text-ink-mute">vs last period</span>
               </div>
             )}
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-lg shadow-sm border border-line p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-600">Average Rating</span>
-              <Star className="w-5 h-5 text-yellow-500" />
+              <span className="text-sm font-medium text-ink-soft">Average Rating</span>
+              <Star className="w-5 h-5 text-warn" />
             </div>
             <div className={`text-xl sm:text-3xl font-bold ${getRatingColor(analytics?.average_rating || 0)}`}>
               {analytics?.average_rating?.toFixed(1) || 'N/A'}
@@ -211,25 +210,25 @@ export default function AppStoreSourceDetailsPage() {
             {analytics?.rating_change !== undefined && (
               <div className="flex items-center gap-1 mt-2 text-sm">
                 {analytics.rating_change >= 0 ? (
-                  <TrendingUp className="w-4 h-4 text-green-600" />
+                  <TrendingUp className="w-4 h-4 text-leaf" />
                 ) : (
-                  <TrendingDown className="w-4 h-4 text-red-600" />
+                  <TrendingDown className="w-4 h-4 text-leaf" />
                 )}
-                <span className={analytics.rating_change >= 0 ? 'text-green-600' : 'text-red-600'}>
+                <span className={analytics.rating_change >= 0 ? 'text-leaf' : 'text-leaf'}>
                   {analytics.rating_change >= 0 ? '+' : ''}
                   {analytics.rating_change?.toFixed(2)}
                 </span>
-                <span className="text-gray-500">vs last period</span>
+                <span className="text-ink-mute">vs last period</span>
               </div>
             )}
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-lg shadow-sm border border-line p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-600">Sentiment</span>
-              <BarChart3 className="w-5 h-5 text-purple-600" />
+              <span className="text-sm font-medium text-ink-soft">Sentiment</span>
+              <BarChart3 className="w-5 h-5 text-plum" />
             </div>
-            <div className="text-xl sm:text-3xl font-bold text-gray-900 capitalize">
+            <div className="text-xl sm:text-3xl font-bold text-ink capitalize">
               {analytics?.sentiment_trend || 'N/A'}
             </div>
             {analytics?.sentiment_distribution && (
@@ -243,26 +242,26 @@ export default function AppStoreSourceDetailsPage() {
             )}
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-lg shadow-sm border border-line p-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-600">Last Sync</span>
-              <Calendar className="w-5 h-5 text-gray-600" />
+              <span className="text-sm font-medium text-ink-soft">Last Sync</span>
+              <Calendar className="w-5 h-5 text-ink-soft" />
             </div>
-            <div className="text-lg font-semibold text-gray-900">
+            <div className="text-lg font-semibold text-ink">
               {source.last_sync_at
                 ? new Date(source.last_sync_at).toLocaleDateString()
                 : 'Never'}
             </div>
-            <div className="text-sm text-gray-500 mt-1">
+            <div className="text-sm text-ink-mute mt-1">
               Next: {source.next_sync_at ? new Date(source.next_sync_at).toLocaleDateString() : 'N/A'}
             </div>
           </div>
         </div>
 
         {/* Period Selector */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+        <div className="bg-white rounded-lg shadow-sm border border-line p-4 mb-6">
           <div className="flex items-center gap-4">
-            <span className="text-sm font-medium text-gray-700">Time Period:</span>
+            <span className="text-sm font-medium text-ink-soft">Time Period:</span>
             <div className="flex gap-2">
               {['daily', 'weekly', 'monthly'].map((period) => (
                 <button
@@ -270,8 +269,8 @@ export default function AppStoreSourceDetailsPage() {
                   onClick={() => setSelectedPeriod(period)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     selectedPeriod === period
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? 'bg-azure text-white'
+                      : 'bg-sand text-ink-soft hover:bg-line'
                   }`}
                 >
                   {period.charAt(0).toUpperCase() + period.slice(1)}
@@ -283,8 +282,8 @@ export default function AppStoreSourceDetailsPage() {
 
         {/* Rating Distribution */}
         {analytics?.rating_distribution && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Rating Distribution</h2>
+          <div className="bg-white rounded-lg shadow-sm border border-line p-6 mb-6">
+            <h2 className="text-xl font-semibold text-ink mb-4">Rating Distribution</h2>
             <div className="space-y-3">
               {[5, 4, 3, 2, 1].map((rating) => {
                 const count = analytics.rating_distribution[rating] || 0
@@ -298,15 +297,15 @@ export default function AppStoreSourceDetailsPage() {
                   <div key={rating} className="flex items-center gap-4">
                     <div className="flex items-center gap-1 w-20">
                       <span className="text-sm font-medium">{rating}</span>
-                      <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                      <Star className="w-4 h-4 text-warn fill-warn" />
                     </div>
-                    <div className="flex-1 bg-gray-200 rounded-full h-6 overflow-hidden">
+                    <div className="flex-1 bg-line rounded-full h-6 overflow-hidden">
                       <div
-                        className="bg-blue-600 h-full rounded-full transition-all"
+                        className="bg-azure h-full rounded-full transition-[color,background-color,border-color,box-shadow,opacity,transform]"
                         style={{ width: `${percentage}%` }}
                       />
                     </div>
-                    <span className="text-sm text-gray-600 w-20 text-right">
+                    <span className="text-sm text-ink-soft w-20 text-right">
                       {count} ({percentage.toFixed(1)}%)
                     </span>
                   </div>
@@ -319,13 +318,13 @@ export default function AppStoreSourceDetailsPage() {
         {/* Top Issues & Features */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           {analytics?.top_issues && analytics.top_issues.length > 0 && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Top Issues</h2>
+            <div className="bg-white rounded-lg shadow-sm border border-line p-6">
+              <h2 className="text-xl font-semibold text-ink mb-4">Top Issues</h2>
               <div className="space-y-3">
                 {analytics.top_issues.slice(0, 5).map((issue: any, idx: number) => (
                   <div key={idx} className="flex items-center justify-between">
-                    <span className="text-sm text-gray-700">{issue.name}</span>
-                    <span className="text-sm font-medium text-red-600">{issue.count}</span>
+                    <span className="text-sm text-ink-soft">{issue.name}</span>
+                    <span className="text-sm font-medium text-leaf">{issue.count}</span>
                   </div>
                 ))}
               </div>
@@ -333,13 +332,13 @@ export default function AppStoreSourceDetailsPage() {
           )}
 
           {analytics?.top_features && analytics.top_features.length > 0 && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Top Features</h2>
+            <div className="bg-white rounded-lg shadow-sm border border-line p-6">
+              <h2 className="text-xl font-semibold text-ink mb-4">Top Features</h2>
               <div className="space-y-3">
                 {analytics.top_features.slice(0, 5).map((feature: any, idx: number) => (
                   <div key={idx} className="flex items-center justify-between">
-                    <span className="text-sm text-gray-700">{feature.name}</span>
-                    <span className="text-sm font-medium text-green-600">{feature.count}</span>
+                    <span className="text-sm text-ink-soft">{feature.name}</span>
+                    <span className="text-sm font-medium text-leaf">{feature.count}</span>
                   </div>
                 ))}
               </div>
@@ -349,11 +348,11 @@ export default function AppStoreSourceDetailsPage() {
 
         {/* Recent Reviews */}
         {reviews.length > 0 && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Reviews</h2>
+          <div className="bg-white rounded-lg shadow-sm border border-line p-6">
+            <h2 className="text-xl font-semibold text-ink mb-4">Recent Reviews</h2>
             <div className="space-y-4">
               {reviews.map((review: any) => (
-                <div key={review.id} className="border-b border-gray-200 pb-4 last:border-0">
+                <div key={review.id} className="border-b border-line pb-4 last:border-0">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <div className="flex">
@@ -362,24 +361,24 @@ export default function AppStoreSourceDetailsPage() {
                             key={i}
                             className={`w-4 h-4 ${
                               i < review.rating
-                                ? 'text-yellow-500 fill-yellow-500'
-                                : 'text-gray-300'
+                                ? 'text-warn fill-warn'
+                                : 'text-taupe'
                             }`}
                           />
                         ))}
                       </div>
-                      <span className="text-sm font-medium text-gray-900">
+                      <span className="text-sm font-medium text-ink">
                         {review.author_name}
                       </span>
                     </div>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-ink-mute">
                       {new Date(review.review_date).toLocaleDateString()}
                     </span>
                   </div>
                   {review.title && (
-                    <h3 className="font-medium text-gray-900 mb-1">{review.title}</h3>
+                    <h3 className="font-medium text-ink mb-1">{review.title}</h3>
                   )}
-                  <p className="text-sm text-gray-600 mb-2">{review.content}</p>
+                  <p className="text-sm text-ink-soft mb-2">{review.content}</p>
                   {review.sentiment && (
                     <span
                       className={`inline-block px-2 py-1 rounded text-xs font-medium ${getSentimentColor(

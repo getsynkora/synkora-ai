@@ -34,7 +34,7 @@ export function LanguageSwitcher({ className = '' }: { className?: string }) {
       <select
         value={normalizeLocale(locale) ?? 'en'}
         onChange={(event) => change(event.target.value)}
-        className="rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#79dfbc]"
+        className="rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-sm text-ink-soft shadow-sm focus:outline-none focus:ring-2 focus:ring-mint"
       >
         {locales.map((code: Locale) => (
           <option key={code} value={code}>

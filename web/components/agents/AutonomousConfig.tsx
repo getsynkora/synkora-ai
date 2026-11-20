@@ -137,17 +137,17 @@ export function AutonomousConfig({ agentName, status, onSaved, onTriggered }: Pr
   return (
     <div className="space-y-5">
       {error && (
-        <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-md bg-blush-wash border border-blush px-4 py-3 text-sm text-danger">
           {error}
         </div>
       )}
 
       {/* Goal */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Goal</label>
+        <label className="block text-sm font-medium text-ink-soft mb-1">Goal</label>
         <textarea
           rows={4}
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+          className="w-full rounded-md border border-taupe px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ink"
           placeholder="What should this agent do on every run? Be specific."
           value={goal}
           onChange={e => setGoal(e.target.value)}
@@ -156,7 +156,7 @@ export function AutonomousConfig({ agentName, status, onSaved, onTriggered }: Pr
 
       {/* Schedule */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Schedule</label>
+        <label className="block text-sm font-medium text-ink-soft mb-1">Schedule</label>
         <div className="flex flex-wrap gap-2">
           {SCHEDULE_OPTIONS.map(opt => (
             <button
@@ -165,8 +165,8 @@ export function AutonomousConfig({ agentName, status, onSaved, onTriggered }: Pr
               onClick={() => setScheduleOption(opt.value)}
               className={`px-3 py-1.5 rounded-md text-sm border transition-colors ${
                 scheduleOption === opt.value
-                  ? 'bg-red-500 text-white border-red-500'
-                  : 'bg-white text-gray-700 border-gray-300 hover:border-red-400'
+                  ? 'bg-ink text-white border-ink'
+                  : 'bg-white text-ink-soft border-taupe hover:border-hotpink'
               }`}
             >
               {opt.label}
@@ -176,7 +176,7 @@ export function AutonomousConfig({ agentName, status, onSaved, onTriggered }: Pr
         {scheduleOption === 'custom' && (
           <input
             type="text"
-            className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+            className="mt-2 w-full rounded-md border border-taupe px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ink"
             placeholder="e.g. 0 */4 * * *"
             value={customCron}
             onChange={e => setCustomCron(e.target.value)}
@@ -186,40 +186,40 @@ export function AutonomousConfig({ agentName, status, onSaved, onTriggered }: Pr
 
       {/* Max steps */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-ink-soft mb-1">
           Max steps per run
         </label>
         <input
           type="number"
           min={1}
           max={100}
-          className="w-32 rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+          className="w-32 rounded-md border border-taupe px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ink"
           value={maxSteps}
           onChange={e => setMaxSteps(parseInt(e.target.value, 10) || 20)}
         />
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-ink-mute">
           Tool-call budget per execution (1–100).
         </p>
       </div>
 
       {/* Human Approval */}
-      <div className="border border-gray-200 rounded-lg p-4 space-y-4">
+      <div className="border border-line rounded-lg p-4 space-y-4">
         <div className="flex items-center gap-3">
-          <ShieldCheck className="w-4 h-4 text-gray-500" />
-          <span className="text-sm font-medium text-gray-700">Human-in-the-Loop Approval</span>
+          <ShieldCheck className="w-4 h-4 text-ink-mute" />
+          <span className="text-sm font-medium text-ink-soft">Human-in-the-Loop Approval</span>
           <label className="ml-auto flex items-center gap-2 cursor-pointer">
-            <span className="text-xs text-gray-500">{requireApproval ? 'On' : 'Off'}</span>
+            <span className="text-xs text-ink-mute">{requireApproval ? 'On' : 'Off'}</span>
             <button
               type="button"
               role="switch"
               aria-checked={requireApproval}
               onClick={() => setRequireApproval(v => !v)}
               className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                requireApproval ? 'bg-red-500' : 'bg-gray-200'
+                requireApproval ? 'bg-ink' : 'bg-line'
               }`}
             >
               <span
-                className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform motion-reduce:transition-none ${
                   requireApproval ? 'translate-x-4.5' : 'translate-x-0.5'
                 }`}
               />
@@ -231,7 +231,7 @@ export function AutonomousConfig({ agentName, status, onSaved, onTriggered }: Pr
           <div className="space-y-3 pl-7">
             {/* Approval mode */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Mode</label>
+              <label className="block text-xs font-medium text-ink-soft mb-1">Mode</label>
               <div className="flex gap-2">
                 {(['smart', 'explicit'] as const).map(m => (
                   <button
@@ -240,15 +240,15 @@ export function AutonomousConfig({ agentName, status, onSaved, onTriggered }: Pr
                     onClick={() => setApprovalMode(m)}
                     className={`px-3 py-1.5 rounded-md text-xs border transition-colors ${
                       approvalMode === m
-                        ? 'bg-red-500 text-white border-red-500'
-                        : 'bg-white text-gray-700 border-gray-300 hover:border-red-400'
+                        ? 'bg-ink text-white border-ink'
+                        : 'bg-white text-ink-soft border-taupe hover:border-hotpink'
                     }`}
                   >
                     {m === 'smart' ? 'Smart (auto-detect action tools)' : 'Explicit (specify tools)'}
                   </button>
                 ))}
               </div>
-              <p className="mt-1 text-xs text-gray-400">
+              <p className="mt-1 text-xs text-ash">
                 {approvalMode === 'smart'
                   ? 'Automatically gates tools that write, post, send, or modify data.'
                   : 'Only gate the specific tools you list below.'}
@@ -258,12 +258,12 @@ export function AutonomousConfig({ agentName, status, onSaved, onTriggered }: Pr
             {/* Explicit tool list */}
             {approvalMode === 'explicit' && (
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
+                <label className="block text-xs font-medium text-ink-soft mb-1">
                   Tools to gate (comma-separated)
                 </label>
                 <input
                   type="text"
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-red-500"
+                  className="w-full rounded-md border border-taupe px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-ink"
                   placeholder="internal_twitter_post_tweet, internal_send_email"
                   value={approvalTools}
                   onChange={e => setApprovalTools(e.target.value)}
@@ -273,9 +273,9 @@ export function AutonomousConfig({ agentName, status, onSaved, onTriggered }: Pr
 
             {/* Notification channel */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Approval channel</label>
+              <label className="block text-xs font-medium text-ink-soft mb-1">Approval channel</label>
               <select
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full rounded-md border border-taupe px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-ink"
                 value={approvalChannel}
                 onChange={e => setApprovalChannel(e.target.value)}
               >
@@ -289,12 +289,12 @@ export function AutonomousConfig({ agentName, status, onSaved, onTriggered }: Pr
             {/* Channel config */}
             {approvalChannel !== 'chat' && (
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
+                <label className="block text-xs font-medium text-ink-soft mb-1">
                   Channel config (JSON)
                 </label>
                 <textarea
                   rows={3}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-red-500"
+                  className="w-full rounded-md border border-taupe px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-ink"
                   placeholder={
                     approvalChannel === 'slack'
                       ? '{"channel_id": "C0123ABCDEF"}'
@@ -310,18 +310,18 @@ export function AutonomousConfig({ agentName, status, onSaved, onTriggered }: Pr
 
             {/* Timeout */}
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
+              <label className="block text-xs font-medium text-ink-soft mb-1">
                 Approval timeout (minutes)
               </label>
               <input
                 type="number"
                 min={5}
                 max={1440}
-                className="w-28 rounded-md border border-gray-300 px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-28 rounded-md border border-taupe px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-ink"
                 value={approvalTimeout}
                 onChange={e => setApprovalTimeout(parseInt(e.target.value, 10) || 60)}
               />
-              <p className="mt-1 text-xs text-gray-400">
+              <p className="mt-1 text-xs text-ash">
                 If not approved within this window the action is cancelled.
               </p>
             </div>
@@ -335,7 +335,7 @@ export function AutonomousConfig({ agentName, status, onSaved, onTriggered }: Pr
           type="button"
           onClick={handleSave}
           disabled={saving || !goal.trim() || !effectiveSchedule.trim()}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-white bg-ink hover:bg-danger disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <Save className="w-4 h-4" />
           {saving ? 'Saving…' : isNew ? 'Enable' : 'Save'}
@@ -346,7 +346,7 @@ export function AutonomousConfig({ agentName, status, onSaved, onTriggered }: Pr
             type="button"
             onClick={handleTrigger}
             disabled={triggering}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-red-600 border border-red-300 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-leaf border border-blush hover:bg-blush-wash disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <Play className="w-4 h-4" />
             {triggering ? 'Queuing…' : 'Run Now'}

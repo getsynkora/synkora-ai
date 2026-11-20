@@ -118,7 +118,7 @@ export default function PlatformSettingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
+        <div className="motion-safe:animate-spin rounded-full h-12 w-12 border-b-2 border-leaf"></div>
       </div>
     )
   }
@@ -126,12 +126,12 @@ export default function PlatformSettingsPage() {
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Platform Settings</h1>
-        <p className="mt-2 text-gray-600">Configure Stripe payment integration for the platform</p>
+        <h1 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight">Platform Settings</h1>
+        <p className="mt-2 text-ink-soft">Configure Stripe payment integration for the platform</p>
       </div>
 
       {message && (
-        <div className={`mb-6 p-4 rounded-lg ${message.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+        <div className={`mb-6 p-4 rounded-lg ${message.type === 'success' ? 'bg-leaf-wash text-forest' : 'bg-blush-wash text-wine'}`}>
           {message.text}
         </div>
       )}
@@ -139,56 +139,56 @@ export default function PlatformSettingsPage() {
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Stripe Configuration */}
         <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Stripe Configuration</h2>
-          <p className="text-sm text-gray-600 mb-4">
+          <h2 className="text-xl font-semibold text-ink mb-4">Stripe Configuration</h2>
+          <p className="text-sm text-ink-soft mb-4">
             Configure your Stripe API keys to enable payment processing. You can find these keys in your{' '}
-            <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:text-emerald-700">
+            <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener noreferrer" className="text-leaf hover:text-forest">
               Stripe Dashboard
             </a>.
           </p>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-ink-soft mb-2">
                 Stripe Publishable Key
               </label>
               <input
                 type="text"
                 value={settings.stripe_publishable_key || ''}
                 onChange={(e) => setSettings({ ...settings, stripe_publishable_key: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-leaf focus:border-transparent"
                 placeholder="pk_test_..."
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-ink-mute">
                 This key is safe to expose in your frontend code
               </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-ink-soft mb-2">
                 Stripe Secret Key
               </label>
               <input
                 type="password"
                 value={settings.stripe_secret_key || ''}
                 onChange={(e) => setSettings({ ...settings, stripe_secret_key: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-leaf focus:border-transparent"
                 placeholder="sk_test_..."
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-ink-mute">
                 Keep this key secure and never expose it in frontend code
               </p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-ink-soft mb-2">
                 Stripe Webhook Secret
               </label>
               <input
                 type="password"
                 value={settings.stripe_webhook_secret || ''}
                 onChange={(e) => setSettings({ ...settings, stripe_webhook_secret: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-leaf focus:border-transparent"
                 placeholder="whsec_..."
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-ink-mute">
                 Used to verify webhook events from Stripe
               </p>
             </div>
@@ -199,29 +199,29 @@ export default function PlatformSettingsPage() {
           <button
             type="submit"
             disabled={saving}
-            className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-6 py-3 bg-leaf text-white rounded-lg hover:bg-forest disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {saving ? 'Saving...' : 'Save Settings'}
+            {saving ? 'Saving…' : 'Save Settings'}
           </button>
         </div>
       </form>
 
       {/* Encryption Key Rotation — platform admin only */}
       {isPlatformAdmin && (
-        <div className="mt-10 bg-white shadow rounded-lg p-6 border border-red-100">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2 flex items-center gap-2">
-            <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="mt-10 bg-white shadow rounded-lg p-6 border border-blush-wash">
+          <h2 className="text-xl font-semibold text-ink mb-2 flex items-center gap-2">
+            <svg aria-hidden="true" className="w-5 h-5 text-leaf" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
             </svg>
             Encryption Key Rotation
           </h2>
-          <p className="text-sm text-gray-600 mb-6">
+          <p className="text-sm text-ink-soft mb-6">
             Re-encrypts all stored secrets with the primary encryption key. Use this after rotating{' '}
-            <code className="px-1 py-0.5 bg-gray-100 rounded text-xs font-mono">ENCRYPTION_KEY</code>.
+            <code className="px-1 py-0.5 bg-sand rounded text-xs font-mono">ENCRYPTION_KEY</code>.
             Set{' '}
-            <code className="px-1 py-0.5 bg-gray-100 rounded text-xs font-mono">ENCRYPTION_KEY=NEW_KEY,OLD_KEY</code>,
+            <code className="px-1 py-0.5 bg-sand rounded text-xs font-mono">ENCRYPTION_KEY=NEW_KEY,OLD_KEY</code>,
             restart, then rotate. After rotation, set{' '}
-            <code className="px-1 py-0.5 bg-gray-100 rounded text-xs font-mono">ENCRYPTION_KEY=NEW_KEY</code>{' '}
+            <code className="px-1 py-0.5 bg-sand rounded text-xs font-mono">ENCRYPTION_KEY=NEW_KEY</code>{' '}
             and restart again.
           </p>
 
@@ -230,30 +230,30 @@ export default function PlatformSettingsPage() {
               type="button"
               onClick={handleDryRun}
               disabled={rotationInProgress}
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-800 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-sand hover:bg-line border border-taupe text-ink rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {rotationInProgress ? 'Working...' : 'Dry Run'}
+              {rotationInProgress ? 'Working…' : 'Dry Run'}
             </button>
             <button
               type="button"
               onClick={() => setShowConfirmDialog(true)}
               disabled={rotationInProgress}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-danger hover:bg-danger text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {rotationInProgress ? 'Working...' : 'Start Rotation'}
+              {rotationInProgress ? 'Working…' : 'Start Rotation'}
             </button>
           </div>
 
           {/* Status box after a call */}
           {rotationResult && (
-            <div className="mt-5 p-4 bg-gray-50 border border-gray-200 rounded-lg space-y-1 text-sm">
+            <div className="mt-5 p-4 bg-cream border border-line rounded-lg space-y-1 text-sm">
               <div className="flex items-center gap-2">
-                <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold uppercase ${rotationResult.status === 'queued' ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-700'}`}>
+                <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${rotationResult.status === 'queued' ? 'bg-sky-wash text-azure' : 'bg-line text-ink-soft'}`}>
                   {rotationResult.status}
                 </span>
-                <span className="text-gray-700">{rotationResult.message}</span>
+                <span className="text-ink-soft">{rotationResult.message}</span>
               </div>
-              <p className="text-xs text-gray-500">Task ID: <span className="font-mono">{rotationResult.task_id}</span></p>
+              <p className="text-xs text-ink-mute">Task ID: <span className="font-mono">{rotationResult.task_id}</span></p>
             </div>
           )}
         </div>
@@ -261,26 +261,26 @@ export default function PlatformSettingsPage() {
 
       {/* Confirm dialog for Start Rotation */}
       {showConfirmDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Confirm Key Rotation</h3>
-            <p className="text-sm text-gray-600 mb-6">
+            <h3 className="text-lg font-semibold text-ink mb-2">Confirm Key Rotation</h3>
+            <p className="text-sm text-ink-soft mb-6">
               This will re-encrypt <strong>all stored secrets</strong> using the current primary encryption key. This operation cannot be undone. Make sure you have configured{' '}
-              <code className="px-1 py-0.5 bg-gray-100 rounded text-xs font-mono">ENCRYPTION_KEY=NEW_KEY,OLD_KEY</code>{' '}
+              <code className="px-1 py-0.5 bg-sand rounded text-xs font-mono">ENCRYPTION_KEY=NEW_KEY,OLD_KEY</code>{' '}
               and restarted the API before proceeding.
             </p>
             <div className="flex justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setShowConfirmDialog(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                className="px-4 py-2 text-sm font-medium text-ink-soft bg-sand hover:bg-line rounded-lg transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleStartRotation}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                className="px-4 py-2 text-sm font-medium text-white bg-danger hover:bg-danger rounded-lg transition-colors"
               >
                 Yes, Start Rotation
               </button>

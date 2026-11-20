@@ -113,8 +113,8 @@ export default function LifeAuditResultPage() {
     return (
       <div className="dashboard-resource-page flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-[#171717]" />
-          <p className="text-sm text-gray-500">Loading your life audit...</p>
+          <div className="mx-auto mb-3 h-8 w-8 motion-safe:animate-spin rounded-full border-2 border-line border-t-ink" />
+          <p className="text-sm text-ink-mute">Loading your life audit…</p>
         </div>
       </div>
     )
@@ -161,7 +161,7 @@ export default function LifeAuditResultPage() {
                 navigator.clipboard.writeText(url)
                 toast.success('Share link copied')
               }}
-              className="inline-flex items-center gap-2 rounded-[1rem] border border-black/10 bg-white/85 px-4 py-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-white hover:text-[#171717]"
+              className="inline-flex items-center gap-2 rounded-[1rem] border border-black/10 bg-white/85 px-4 py-3 text-sm font-semibold text-ink-soft transition-colors hover:bg-white hover:text-ink"
             >
               <Share2 className="h-4 w-4" />
               Share
@@ -176,7 +176,7 @@ export default function LifeAuditResultPage() {
             {currentDebate.participants.map((p) => (
               <span
                 key={p.id}
-                className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium text-gray-700"
+                className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium text-ink-soft"
                 style={{ backgroundColor: `${p.color}10`, borderColor: `${p.color}30` }}
               >
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: p.color }} />

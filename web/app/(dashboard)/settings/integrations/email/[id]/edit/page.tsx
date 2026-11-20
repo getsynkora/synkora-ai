@@ -214,13 +214,13 @@ export default function EditIntegrationPage() {
       <div className="mb-6">
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+          className="flex items-center gap-2 text-ink-soft hover:text-ink mb-4"
         >
           <ArrowLeft size={20} />
           Back
         </button>
-        <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Edit Integration</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight">Edit Integration</h1>
+        <p className="text-ink-soft mt-1">
           Update your {provider} configuration
         </p>
       </div>
@@ -232,43 +232,43 @@ export default function EditIntegrationPage() {
       )}
 
       {testResult && (
-        <div className={`mb-6 p-4 rounded-lg border ${testResult.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+        <div className={`mb-6 p-4 rounded-lg border ${testResult.success ? 'bg-leaf-wash border-mint' : 'bg-blush-wash border-blush'}`}>
           <div className="flex items-center gap-2">
             {testResult.success ? (
-              <CheckCircle className="text-green-600" size={20} />
+              <CheckCircle className="text-leaf" size={20} />
             ) : (
-              <XCircle className="text-red-600" size={20} />
+              <XCircle className="text-leaf" size={20} />
             )}
-            <span className={testResult.success ? 'text-green-800' : 'text-red-800'}>
+            <span className={testResult.success ? 'text-forest' : 'text-wine'}>
               {testResult.message}
             </span>
           </div>
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-line shadow-sm p-6 space-y-6">
         {/* Basic Info */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-ink-soft mb-2">
             Integration Type
           </label>
           <input
             type="text"
             value={integrationType}
             disabled
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100"
+            className="w-full px-4 py-2 border border-taupe rounded-lg bg-sand"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-ink-soft mb-2">
             Provider
           </label>
           <input
             type="text"
             value={provider}
             disabled
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100"
+            className="w-full px-4 py-2 border border-taupe rounded-lg bg-sand"
           />
         </div>
 
@@ -278,9 +278,9 @@ export default function EditIntegrationPage() {
             id="is_active"
             checked={isActive}
             onChange={(e) => setIsActive(e.target.checked)}
-            className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+            className="w-4 h-4 text-leaf border-taupe rounded focus:ring-leaf"
           />
-          <label htmlFor="is_active" className="text-sm text-gray-700">
+          <label htmlFor="is_active" className="text-sm text-ink-soft">
             Active
           </label>
         </div>
@@ -289,11 +289,11 @@ export default function EditIntegrationPage() {
         {provider === 'smtp' && (
           <>
             <div className="border-t pt-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">SMTP Configuration</h3>
+              <h3 className="text-lg font-semibold text-ink mb-4">SMTP Configuration</h3>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-ink-soft mb-2">
                     SMTP Host *
                   </label>
                   <input
@@ -301,13 +301,13 @@ export default function EditIntegrationPage() {
                     value={smtpHost}
                     onChange={(e) => setSmtpHost(e.target.value)}
                     placeholder="smtp.gmail.com"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-leaf focus:border-transparent"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-ink-soft mb-2">
                     SMTP Port *
                   </label>
                   <input
@@ -315,7 +315,7 @@ export default function EditIntegrationPage() {
                     value={smtpPort}
                     onChange={(e) => setSmtpPort(e.target.value)}
                     placeholder="587"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-leaf focus:border-transparent"
                     required
                   />
                 </div>
@@ -323,7 +323,7 @@ export default function EditIntegrationPage() {
 
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-ink-soft mb-2">
                     Username *
                   </label>
                   <input
@@ -331,13 +331,13 @@ export default function EditIntegrationPage() {
                     value={smtpUsername}
                     onChange={(e) => setSmtpUsername(e.target.value)}
                     placeholder="your-email@gmail.com"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-leaf focus:border-transparent"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-ink-soft mb-2">
                     Password *
                   </label>
                   <input
@@ -345,7 +345,7 @@ export default function EditIntegrationPage() {
                     value={smtpPassword}
                     onChange={(e) => setSmtpPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-leaf focus:border-transparent"
                     required
                   />
                 </div>
@@ -357,9 +357,9 @@ export default function EditIntegrationPage() {
                     type="checkbox"
                     checked={smtpUseTls}
                     onChange={(e) => setSmtpUseTls(e.target.checked)}
-                    className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+                    className="w-4 h-4 text-leaf border-taupe rounded focus:ring-leaf"
                   />
-                  <span className="text-sm text-gray-700">Use TLS</span>
+                  <span className="text-sm text-ink-soft">Use TLS</span>
                 </label>
 
                 <label className="flex items-center gap-2">
@@ -367,9 +367,9 @@ export default function EditIntegrationPage() {
                     type="checkbox"
                     checked={smtpUseSsl}
                     onChange={(e) => setSmtpUseSsl(e.target.checked)}
-                    className="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+                    className="w-4 h-4 text-leaf border-taupe rounded focus:ring-leaf"
                   />
-                  <span className="text-sm text-gray-700">Use SSL</span>
+                  <span className="text-sm text-ink-soft">Use SSL</span>
                 </label>
               </div>
             </div>
@@ -380,10 +380,10 @@ export default function EditIntegrationPage() {
         {provider === 'sendgrid' && (
           <>
             <div className="border-t pt-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">SendGrid Configuration</h3>
+              <h3 className="text-lg font-semibold text-ink mb-4">SendGrid Configuration</h3>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-soft mb-2">
                   API Key *
                 </label>
                 <input
@@ -391,13 +391,13 @@ export default function EditIntegrationPage() {
                   value={sendgridApiKey}
                   onChange={(e) => setSendgridApiKey(e.target.value)}
                   placeholder="SG.••••••••"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-leaf focus:border-transparent"
                   required
                 />
               </div>
 
               <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-soft mb-2">
                   Reply To
                 </label>
                 <input
@@ -405,7 +405,7 @@ export default function EditIntegrationPage() {
                   value={replyTo}
                   onChange={(e) => setReplyTo(e.target.value)}
                   placeholder="support@example.com"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-leaf focus:border-transparent"
                 />
               </div>
             </div>
@@ -416,10 +416,10 @@ export default function EditIntegrationPage() {
         {provider === 'mailgun' && (
           <>
             <div className="border-t pt-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Mailgun Configuration</h3>
+              <h3 className="text-lg font-semibold text-ink mb-4">Mailgun Configuration</h3>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-soft mb-2">
                   API Key *
                 </label>
                 <input
@@ -427,13 +427,13 @@ export default function EditIntegrationPage() {
                   value={mailgunApiKey}
                   onChange={(e) => setMailgunApiKey(e.target.value)}
                   placeholder="key-••••••••••••••••••••••••••••"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-leaf focus:border-transparent"
                   required
                 />
               </div>
 
               <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-soft mb-2">
                   Domain *
                 </label>
                 <input
@@ -441,16 +441,16 @@ export default function EditIntegrationPage() {
                   value={mailgunDomain}
                   onChange={(e) => setMailgunDomain(e.target.value)}
                   placeholder="mg.example.com"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-leaf focus:border-transparent"
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-ink-mute mt-1">
                   Your Mailgun sending domain (e.g., mg.example.com)
                 </p>
               </div>
 
               <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-soft mb-2">
                   Reply To
                 </label>
                 <input
@@ -458,7 +458,7 @@ export default function EditIntegrationPage() {
                   value={replyTo}
                   onChange={(e) => setReplyTo(e.target.value)}
                   placeholder="support@example.com"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-leaf focus:border-transparent"
                 />
               </div>
             </div>
@@ -469,10 +469,10 @@ export default function EditIntegrationPage() {
         {provider === 'brevo' && (
           <>
             <div className="border-t pt-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Brevo Configuration</h3>
+              <h3 className="text-lg font-semibold text-ink mb-4">Brevo Configuration</h3>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-soft mb-2">
                   API Key *
                 </label>
                 <input
@@ -480,16 +480,16 @@ export default function EditIntegrationPage() {
                   value={brevoApiKey}
                   onChange={(e) => setBrevoApiKey(e.target.value)}
                   placeholder="xkeysib-••••••••••••••••••••••••••••"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-leaf focus:border-transparent"
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-ink-mute mt-1">
                   Found in Brevo dashboard → SMTP & API → API Keys
                 </p>
               </div>
 
               <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-soft mb-2">
                   Reply To
                 </label>
                 <input
@@ -497,7 +497,7 @@ export default function EditIntegrationPage() {
                   value={replyTo}
                   onChange={(e) => setReplyTo(e.target.value)}
                   placeholder="support@example.com"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-leaf focus:border-transparent"
                 />
               </div>
             </div>
@@ -506,11 +506,11 @@ export default function EditIntegrationPage() {
 
         {/* Common Email Settings */}
         <div className="border-t pt-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Email Settings</h3>
+          <h3 className="text-lg font-semibold text-ink mb-4">Email Settings</h3>
           
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-ink-soft mb-2">
                 From Email *
               </label>
               <input
@@ -518,13 +518,13 @@ export default function EditIntegrationPage() {
                 value={fromEmail}
                 onChange={(e) => setFromEmail(e.target.value)}
                 placeholder="noreply@example.com"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-leaf focus:border-transparent"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-ink-soft mb-2">
                 From Name *
               </label>
               <input
@@ -532,7 +532,7 @@ export default function EditIntegrationPage() {
                 value={fromName}
                 onChange={(e) => setFromName(e.target.value)}
                 placeholder="My Platform"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-leaf focus:border-transparent"
                 required
               />
             </div>
@@ -546,7 +546,7 @@ export default function EditIntegrationPage() {
               type="button"
               onClick={handleTestConnection}
               disabled={testing || saving}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-2 border border-taupe text-ink-soft rounded-lg hover:bg-cream transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {testing ? (
                 <>
@@ -565,7 +565,7 @@ export default function EditIntegrationPage() {
               type="button"
               onClick={handleDelete}
               disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-2 border border-blush text-danger rounded-lg hover:bg-blush-wash transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Trash2 size={20} />
               Delete
@@ -576,7 +576,7 @@ export default function EditIntegrationPage() {
             <button
               type="button"
               onClick={() => router.back()}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-6 py-2 border border-taupe text-ink-soft rounded-lg hover:bg-cream transition-colors"
               disabled={saving}
             >
               Cancel
@@ -584,7 +584,7 @@ export default function EditIntegrationPage() {
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center gap-2 px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-6 py-2 bg-leaf text-white rounded-lg hover:bg-forest transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? (
                 <>

@@ -104,9 +104,9 @@ export default function IntegrationsPage() {
         ]}
       >
         <DashboardPagePanel className="p-10 text-center">
-          <Lock className="mx-auto mb-4 h-12 w-12 text-[#9a7a5e]" />
-          <h3 className="text-lg font-semibold text-gray-900">Access Denied</h3>
-          <p className="mt-2 text-sm text-gray-600">
+          <Lock className="mx-auto mb-4 h-12 w-12 text-clay" />
+          <h3 className="text-lg font-semibold text-ink">Access Denied</h3>
+          <p className="mt-2 text-sm text-ink-soft">
             You do not have permission to view integration configurations.
           </p>
         </DashboardPagePanel>
@@ -153,26 +153,26 @@ export default function IntegrationsPage() {
           <div className="relative z-[70] group">
             <button
               type="button"
-              className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+              className="inline-flex items-center gap-2 rounded-[1rem] bg-ink px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
             >
               <Plus size={16} />
               Add Integration
             </button>
-            <div className="absolute right-0 top-full z-[80] mt-2 hidden w-64 overflow-hidden rounded-[1.25rem] border border-[#e5d9ca] bg-white shadow-[0_24px_70px_-36px_rgba(73,45,23,0.3)] group-hover:block group-focus-within:block">
+            <div className="absolute right-0 top-full z-[80] mt-2 hidden w-64 overflow-hidden rounded-[1.25rem] border border-line bg-white shadow-soft group-hover:block group-focus-within:block">
               {INTEGRATION_TYPES.map((type) => {
                 const Icon = type.icon
                 return (
                   <button
                     key={type.value}
                     onClick={() => router.push(`/settings/integrations/${type.value}/create`)}
-                    className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[#f7f2e7]"
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-paper"
                   >
-                    <div className="rounded-[0.95rem] bg-[#f3ecde] p-2.5">
-                      <Icon size={16} className="text-[#171717]" />
+                    <div className="rounded-[0.95rem] bg-sand p-2.5">
+                      <Icon size={16} className="text-ink" />
                     </div>
                     <div>
-                      <div className="text-sm font-semibold text-gray-900">{type.label}</div>
-                      <div className="text-xs text-gray-500">{type.description}</div>
+                      <div className="text-sm font-semibold text-ink">{type.label}</div>
+                      <div className="text-xs text-ink-mute">{type.description}</div>
                     </div>
                   </button>
                 )
@@ -202,11 +202,11 @@ export default function IntegrationsPage() {
 
         {filteredConfigs.length === 0 ? (
           <DashboardPagePanel className="p-12 text-center">
-            <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-[#f3ecde]">
-              <Plus size={28} className="text-[#171717]" />
+            <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-sand">
+              <Plus size={28} className="text-ink" />
             </div>
-            <h3 className="text-base font-semibold text-gray-900">No integrations found</h3>
-            <p className="mt-2 text-sm text-gray-600">
+            <h3 className="text-base font-semibold text-ink">No integrations found</h3>
+            <p className="mt-2 text-sm text-ink-soft">
               {selectedType === 'all'
                 ? 'Get started by adding your first integration using the action above.'
                 : `No ${selectedType} integrations configured yet.`}

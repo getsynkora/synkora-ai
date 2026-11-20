@@ -87,7 +87,7 @@ function BillingContent() {
           return
         } else if (response.checkout_url) {
           // Redirect to Stripe Checkout
-          toast.loading('Redirecting to payment...', { id: 'checkout-redirect' })
+          toast.loading('Redirecting to payment…', { id: 'checkout-redirect' })
           window.location.href = response.checkout_url
         }
       } else {
@@ -136,7 +136,7 @@ function BillingContent() {
           return
         } else if (response.checkout_url) {
           // Redirect to Stripe Checkout
-          toast.loading('Redirecting to payment...', { id: 'checkout-redirect' })
+          toast.loading('Redirecting to payment…', { id: 'checkout-redirect' })
           window.location.href = response.checkout_url
         }
       } else {
@@ -224,14 +224,14 @@ function BillingContent() {
         <div className="max-w-7xl mx-auto">
           {/* Header - More Compact */}
           <div className="mb-6">
-            <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Billing & Usage</h1>
-            <p className="mt-1 text-sm text-gray-600">
+            <h1 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight">Billing & Usage</h1>
+            <p className="mt-1 text-sm text-ink-soft">
               Manage your subscription, credits, and view usage analytics
             </p>
           </div>
 
           {/* Tabs - More Compact */}
-          <div className="mb-6 border-b border-gray-200 bg-white rounded-t-lg px-4">
+          <div className="mb-6 border-b border-line bg-white rounded-t-lg px-4">
             <nav className="-mb-px flex space-x-6">
               {tabs.map((tab) => {
                 const Icon = tab.icon
@@ -242,7 +242,7 @@ function BillingContent() {
                     className={`flex items-center border-b-2 px-1 py-3 text-sm font-medium transition-colors ${
                       activeTab === tab.id
                         ? 'border-primary-500 text-primary-600'
-                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                        : 'border-transparent text-ink-mute hover:border-taupe hover:text-ink-soft'
                     }`}
                   >
                     <Icon className="mr-2 h-4 w-4" />
@@ -258,27 +258,27 @@ function BillingContent() {
             <div className="space-y-6">
               {/* Current Subscription */}
               {subscription && (
-                <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-                  <h2 className="mb-3 text-base font-semibold text-gray-900">
+                <div className="rounded-lg border border-line bg-white p-5 shadow-sm">
+                  <h2 className="mb-3 text-base font-semibold text-ink">
                     Current Subscription
                   </h2>
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-base font-medium text-gray-900">
+                      <p className="text-base font-medium text-ink">
                         {subscription.plan_name}
                       </p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-ink-soft">
                         Status: <span className="capitalize">{subscription.status}</span>
                       </p>
                       {subscription.current_period_end && (
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-ink-soft">
                           Renews on:{' '}
                           {new Date(subscription.current_period_end).toLocaleDateString()}
                         </p>
                       )}
                     </div>
                     {subscription.cancel_at_period_end && (
-                      <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-800">
+                      <span className="rounded-full bg-sand-deep px-3 py-1 text-xs font-medium text-gold">
                         Cancels at period end
                       </span>
                     )}
@@ -288,12 +288,12 @@ function BillingContent() {
 
               {/* Available Plans */}
               <div>
-                <h2 className="mb-4 text-base font-semibold text-gray-900">
+                <h2 className="mb-4 text-base font-semibold text-ink">
                   Available Plans
                 </h2>
                 {plansLoading ? (
                   <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+                    <Loader2 className="h-8 w-8 motion-safe:animate-spin text-primary-500" />
                   </div>
                 ) : (
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -322,16 +322,16 @@ function BillingContent() {
 
               {/* Credit Top-ups */}
               <div>
-                <h2 className="mb-4 text-base font-semibold text-gray-900">
+                <h2 className="mb-4 text-base font-semibold text-ink">
                   Purchase Credits
                 </h2>
                 {creditsLoading ? (
                   <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+                    <Loader2 className="h-8 w-8 motion-safe:animate-spin text-primary-500" />
                   </div>
                 ) : !Array.isArray(topups) || topups.length === 0 ? (
-                  <div className="rounded-lg border border-gray-200 bg-white p-8 text-center shadow-sm">
-                    <p className="text-sm text-gray-600">No credit packages available</p>
+                  <div className="rounded-lg border border-line bg-white p-8 text-center shadow-sm">
+                    <p className="text-sm text-ink-soft">No credit packages available</p>
                   </div>
                 ) : (
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -349,7 +349,7 @@ function BillingContent() {
 
               {/* Transaction History */}
               <div>
-                <h2 className="mb-4 text-base font-semibold text-gray-900">
+                <h2 className="mb-4 text-base font-semibold text-ink">
                   Transaction History
                 </h2>
                 <CreditTransactionHistory
@@ -365,7 +365,7 @@ function BillingContent() {
             <div className="space-y-6">
               {/* Usage Analytics */}
               <div>
-                <h2 className="mb-4 text-base font-semibold text-gray-900">
+                <h2 className="mb-4 text-base font-semibold text-ink">
                   Usage Analytics
                 </h2>
                 <UsageAnalyticsChart
@@ -376,24 +376,24 @@ function BillingContent() {
 
               {/* Usage Summary */}
               <div className="grid gap-4 md:grid-cols-3">
-                <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-                  <h3 className="mb-1 text-xs font-medium text-gray-600">
+                <div className="rounded-lg border border-line bg-white p-4 shadow-sm">
+                  <h3 className="mb-1 text-xs font-medium text-ink-soft">
                     Total Actions
                   </h3>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-2xl font-bold text-ink">
                     {actionBreakdown.reduce((sum, item) => sum + item.count, 0)}
                   </p>
                 </div>
-                <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-                  <h3 className="mb-1 text-xs font-medium text-gray-600">
+                <div className="rounded-lg border border-line bg-white p-4 shadow-sm">
+                  <h3 className="mb-1 text-xs font-medium text-ink-soft">
                     Credits Used
                   </h3>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-2xl font-bold text-ink">
                     {actionBreakdown.reduce((sum, item) => sum + item.credits_used, 0)}
                   </p>
                 </div>
-                <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-                  <h3 className="mb-1 text-xs font-medium text-gray-600">
+                <div className="rounded-lg border border-line bg-white p-4 shadow-sm">
+                  <h3 className="mb-1 text-xs font-medium text-ink-soft">
                     Available Credits
                   </h3>
                   <p className="text-2xl font-bold text-primary-600">
@@ -414,7 +414,7 @@ export default function BillingPage() {
     <Suspense fallback={
       <div className="dashboard-resource-page min-h-screen p-4 md:p-6">
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+          <Loader2 className="h-8 w-8 motion-safe:animate-spin text-primary-500" />
         </div>
       </div>
     }>

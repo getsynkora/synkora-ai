@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { Github, Link2, Linkedin, Mail, Twitter } from 'lucide-react'
 import { useAuthStore } from '@/lib/store/authStore'
 import {
   ChatMessages,
@@ -151,10 +152,10 @@ export default function AdvancedChatPage() {
         title: 'Connect',
         content: {
           links: [
-            { label: 'Twitter', handle: '@synkora', url: 'https://twitter.com/synkora', icon: '🐦' },
-            { label: 'LinkedIn', handle: 'company/synkora', url: 'https://linkedin.com/company/synkora', icon: '💼' },
-            { label: 'GitHub', handle: '@getsynkora/synkora-ai', url: 'https://github.com/getsynkora/synkora-ai', icon: '💻' },
-            { label: 'Email', handle: 'hello@synkora.ai', url: 'mailto:hello@synkora.ai', icon: '✉️' }
+            { label: 'Twitter', handle: '@synkora', url: 'https://twitter.com/synkora', icon: Twitter },
+            { label: 'LinkedIn', handle: 'company/synkora', url: 'https://linkedin.com/company/synkora', icon: Linkedin },
+            { label: 'GitHub', handle: '@getsynkora/synkora-ai', url: 'https://github.com/getsynkora/synkora-ai', icon: Github },
+            { label: 'Email', handle: 'hello@synkora.ai', url: 'mailto:hello@synkora.ai', icon: Mail }
           ]
         }
       },
@@ -577,7 +578,7 @@ export default function AdvancedChatPage() {
     setMessages((prev) => [...prev, userMessage, assistantMessage])
     setIsStreaming(true)
     setStreamStartTime(Date.now())
-    setThinkingStatus('Thinking...')
+    setThinkingStatus('Thinking…')
 
     // Resolve or create conversation ID (non-blocking relative to UI update above)
     let activeConversation = currentConversation
@@ -643,7 +644,7 @@ export default function AdvancedChatPage() {
           textBatch.push(fullResponse)
         } else if (event.type === 'status') {
           if (!event.content?.includes('completed')) {
-            setThinkingStatus(event.content || 'Thinking...')
+            setThinkingStatus(event.content || 'Thinking…')
           }
         } else if (event.type === 'tool_status') {
           const newToolStatus = {
@@ -949,7 +950,7 @@ export default function AdvancedChatPage() {
     switch (widget.type) {
       case 'profile':
         return (
-          <div className="bg-white rounded-xl p-4 border border-[#ece2d6]">
+          <div className="bg-white rounded-xl p-4 border border-sand-deep">
             <div className="flex flex-col items-center text-center">
               <div 
                 className="w-24 h-24 rounded-full mb-4 flex items-center justify-center text-white text-xl sm:text-3xl font-bold shadow-lg"
@@ -961,10 +962,10 @@ export default function AdvancedChatPage() {
                   agent?.agent_name?.charAt(0).toUpperCase()
                 )}
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-1">{widget.content?.name || agent?.agent_name}</h3>
-              <p className="text-sm text-gray-600 mb-4">{widget.content?.title || agent?.description}</p>
+              <h3 className="text-xl font-bold text-ink mb-1">{widget.content?.name || agent?.agent_name}</h3>
+              <p className="text-sm text-ink-soft mb-4">{widget.content?.title || agent?.description}</p>
               {widget.content?.bio && (
-                <p className="text-xs text-gray-500 leading-relaxed">{widget.content.bio}</p>
+                <p className="text-xs text-ink-mute leading-relaxed">{widget.content.bio}</p>
               )}
             </div>
           </div>
@@ -972,9 +973,9 @@ export default function AdvancedChatPage() {
       
       case 'social':
         return (
-          <div className="bg-white rounded-xl p-4 border border-[#ece2d6]">
-            <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="bg-white rounded-xl p-4 border border-sand-deep">
+            <h3 className="text-sm font-bold text-ink mb-4 flex items-center gap-2">
+              <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
               </svg>
               {widget.title || 'Connect With Me'}
@@ -986,19 +987,19 @@ export default function AdvancedChatPage() {
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-all group"
+                  className="flex items-center gap-3 p-3 rounded-xl hover:bg-cream transition-[color,background-color,border-color,box-shadow,opacity,transform] group"
                 >
                   <div
                     className="w-10 h-10 rounded-lg flex items-center justify-center text-white shadow-sm"
                     style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd)` }}
                   >
-                    {link.icon || '🔗'}
+                    {typeof link.icon === 'string' ? link.icon : link.icon ? <link.icon className="h-5 w-5" aria-hidden="true" /> : <Link2 className="h-5 w-5" aria-hidden="true" />}
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-gray-900 group-hover:text-gray-700">{link.label}</p>
-                    <p className="text-xs text-gray-500">{link.handle || link.url}</p>
+                    <p className="text-sm font-semibold text-ink group-hover:text-ink-soft">{link.label}</p>
+                    <p className="text-xs text-ink-mute">{link.handle || link.url}</p>
                   </div>
-                  <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg aria-hidden="true" className="w-4 h-4 text-ash group-hover:text-ink-soft" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </a>
@@ -1009,9 +1010,9 @@ export default function AdvancedChatPage() {
       
       case 'resume':
         return (
-          <div className="bg-white rounded-xl p-4 border border-[#ece2d6]">
-            <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="bg-white rounded-xl p-4 border border-sand-deep">
+            <h3 className="text-sm font-bold text-ink mb-4 flex items-center gap-2">
+              <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               {widget.title || 'Resume'}
@@ -1019,10 +1020,10 @@ export default function AdvancedChatPage() {
             <a
               href={widget.content?.url}
               download
-              className="flex items-center justify-center gap-2 p-3 rounded-xl border-2 border-dashed hover:border-solid transition-all group"
+              className="flex items-center justify-center gap-2 p-3 rounded-xl border-2 border-dashed hover:border-solid transition-[color,background-color,border-color,box-shadow,opacity,transform] group"
               style={{ borderColor: primaryColor }}
             >
-              <svg className="w-5 h-5" style={{ color: primaryColor }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg aria-hidden="true" className="w-5 h-5" style={{ color: primaryColor }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               <span className="text-sm font-semibold" style={{ color: primaryColor }}>Download Resume</span>
@@ -1032,9 +1033,9 @@ export default function AdvancedChatPage() {
       
       case 'about':
         return (
-          <div className="bg-white rounded-xl p-4 border border-[#ece2d6]">
-            <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="bg-white rounded-xl p-4 border border-sand-deep">
+            <h3 className="text-sm font-bold text-ink mb-4 flex items-center gap-2">
+              <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               {widget.title || 'About'}
@@ -1043,7 +1044,7 @@ export default function AdvancedChatPage() {
             {/* Agent Avatar */}
             {agent?.avatar && (
               <div className="flex justify-center mb-4">
-                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-100 shadow-sm">
+                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-sand shadow-sm">
                   <img 
                     src={agent.avatar} 
                     alt={agent.agent_name} 
@@ -1055,18 +1056,18 @@ export default function AdvancedChatPage() {
             
             {/* Description */}
             <div className="prose prose-sm max-w-none mb-4">
-              <p className="text-xs text-gray-600 leading-relaxed">{widget.content?.text}</p>
+              <p className="text-xs text-ink-soft leading-relaxed">{widget.content?.text}</p>
             </div>
             
             {/* Interactions & Engagement Stats */}
-            <div className="space-y-3 pt-4 border-t border-gray-100">
+            <div className="space-y-3 pt-4 border-t border-sand">
               {/* Interactions Count */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg aria-hidden="true" className="w-4 h-4 text-ink-mute" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
-                  <span className="text-xs text-gray-600">Interactions</span>
+                  <span className="text-xs text-ink-soft">Interactions</span>
                 </div>
                 <span className="text-sm font-semibold" style={{ color: primaryColor }}>
                   {agent?.usage_count?.toLocaleString() || '0'}
@@ -1077,19 +1078,19 @@ export default function AdvancedChatPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1">
-                    <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 24 24">
+                    <svg aria-hidden="true" className="w-4 h-4 text-leaf" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3v11z" />
                     </svg>
-                    <span className="text-xs text-gray-600">{agent?.likes_count || 0}</span>
+                    <span className="text-xs text-ink-soft">{agent?.likes_count || 0}</span>
                   </div>
                   <div className="flex items-center gap-1 ml-2">
-                    <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                    <svg aria-hidden="true" className="w-4 h-4 text-leaf" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M10 15v4a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3zm7-13h2.67A2.31 2.31 0 0122 4v7a2.31 2.31 0 01-2.33 2H17V2z" />
                     </svg>
-                    <span className="text-xs text-gray-600">{agent?.dislikes_count || 0}</span>
+                    <span className="text-xs text-ink-soft">{agent?.dislikes_count || 0}</span>
                   </div>
                 </div>
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-ink-mute">
                   {agent?.likes_count && agent?.dislikes_count 
                     ? `${Math.round((agent.likes_count / (agent.likes_count + agent.dislikes_count)) * 100)}% positive`
                     : 'No ratings yet'}
@@ -1100,12 +1101,12 @@ export default function AdvancedChatPage() {
               {agent?.creator_name && (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg aria-hidden="true" className="w-4 h-4 text-ink-mute" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
-                    <span className="text-xs text-gray-600">Created by</span>
+                    <span className="text-xs text-ink-soft">Created by</span>
                   </div>
-                  <span className="text-xs font-semibold text-gray-900">{agent.creator_name}</span>
+                  <span className="text-xs font-semibold text-ink">{agent.creator_name}</span>
                 </div>
               )}
               
@@ -1113,12 +1114,12 @@ export default function AdvancedChatPage() {
               {agent?.created_at && (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg aria-hidden="true" className="w-4 h-4 text-ink-mute" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    <span className="text-xs text-gray-600">Created</span>
+                    <span className="text-xs text-ink-soft">Created</span>
                   </div>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-ink-mute">
                     {new Date(agent.created_at).toLocaleDateString('en-US', { 
                       month: 'short', 
                       day: 'numeric', 
@@ -1133,13 +1134,13 @@ export default function AdvancedChatPage() {
       
       case 'stats':
         return (
-          <div className="bg-white rounded-xl p-4 border border-[#ece2d6]">
-            <h3 className="text-sm font-bold text-gray-900 mb-3">{widget.title || 'Stats'}</h3>
+          <div className="bg-white rounded-xl p-4 border border-sand-deep">
+            <h3 className="text-sm font-bold text-ink mb-3">{widget.title || 'Stats'}</h3>
             <div className="grid grid-cols-2 gap-2">
               {widget.content?.items?.map((stat: any, idx: number) => (
-                <div key={idx} className="text-center p-2.5 rounded-lg bg-[#faf5f0]">
+                <div key={idx} className="text-center p-2.5 rounded-lg bg-cream">
                   <p className="text-lg font-bold truncate" style={{ color: primaryColor }}>{stat.value}</p>
-                  <p className="text-xs text-gray-500 mt-0.5 leading-tight">{stat.label}</p>
+                  <p className="text-xs text-ink-mute mt-0.5 leading-tight">{stat.label}</p>
                 </div>
               ))}
             </div>
@@ -1148,8 +1149,8 @@ export default function AdvancedChatPage() {
       
       case 'links':
         return (
-          <div className="bg-white rounded-xl p-4 border border-[#ece2d6]">
-            <h3 className="text-sm font-bold text-gray-900 mb-4">{widget.title || 'Quick Links'}</h3>
+          <div className="bg-white rounded-xl p-4 border border-sand-deep">
+            <h3 className="text-sm font-bold text-ink mb-4">{widget.title || 'Quick Links'}</h3>
             <div className="space-y-2">
               {widget.content?.items?.map((link: any, idx: number) => (
                 <a
@@ -1157,10 +1158,10 @@ export default function AdvancedChatPage() {
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-all group"
+                  className="flex items-center justify-between p-3 rounded-xl hover:bg-cream transition-[color,background-color,border-color,box-shadow,opacity,transform] group"
                 >
-                  <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">{link.label}</span>
-                  <svg className="w-4 h-4 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span className="text-sm font-medium text-ink-soft group-hover:text-ink">{link.label}</span>
+                  <svg aria-hidden="true" className="w-4 h-4 text-ash group-hover:text-ink-soft" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                   </svg>
                 </a>
@@ -1184,7 +1185,7 @@ export default function AdvancedChatPage() {
 
   return (
     <>
-    <div style={getChatStyles()} className="dashboard-resource-page min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.98),_rgba(247,240,231,0.94)_55%,_rgba(239,232,223,0.92)_100%)] custom-scrollbar-container">
+    <div style={getChatStyles()} className="dashboard-resource-page min-h-screen custom-scrollbar-container">
       <style jsx global>{`
         /* Custom scrollbar styling */
         .custom-scrollbar-container ::-webkit-scrollbar {
@@ -1231,21 +1232,21 @@ export default function AdvancedChatPage() {
             'fixed inset-y-0 left-0 z-50 md:relative md:inset-y-auto md:left-auto md:z-auto',
             // Mobile slide
             isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
-            'transition-all duration-300 ease-in-out',
+            'transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 ease-in-out',
           ].join(' ')}
           onMouseEnter={() => setIsSidebarExpanded(true)}
           onMouseLeave={() => setIsSidebarExpanded(false)}
         >
           <div
-            className={`transition-all duration-300 ease-in-out ${isSidebarExpanded || isMobileSidebarOpen ? 'w-56' : 'w-14'} h-full border-r border-[#ece2d6] bg-[rgba(255,255,255,0.86)] shadow-sm relative overflow-hidden backdrop-blur`}
+            className={`transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 ease-in-out ${isSidebarExpanded || isMobileSidebarOpen ? 'w-56' : 'w-14'} h-full border-r border-sand-deep bg-white/85 shadow-sm relative overflow-hidden`}
           >
             {/* Collapsed State - Show Icons */}
             {!isSidebarExpanded && !isMobileSidebarOpen && (
-              <div className="flex h-full flex-col bg-[rgba(252,249,244,0.8)] pt-3">
+              <div className="flex h-full flex-col bg-cream/80 pt-3">
                 {/* Synkora Logo */}
                 <div className="flex justify-center mb-4">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#171717]">
-                    <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink">
+                    <svg aria-hidden="true" className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                   </div>
@@ -1255,10 +1256,10 @@ export default function AdvancedChatPage() {
                 <div className="flex-1 flex flex-col items-center space-y-2">
                   <button
                     onClick={() => window.location.href = '/agents'}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-all hover:bg-white hover:text-[#171717] hover:shadow-sm"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-ink-mute transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:bg-white hover:text-ink hover:shadow-sm"
                     title="Home"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                     </svg>
                   </button>
@@ -1269,10 +1270,10 @@ export default function AdvancedChatPage() {
                         setCurrentConversation(conversations[0])
                       }
                     }}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-all hover:bg-white hover:text-[#171717] hover:shadow-sm"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-ink-mute transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:bg-white hover:text-ink hover:shadow-sm"
                     title="Chat History"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                     </svg>
                   </button>
@@ -1282,10 +1283,10 @@ export default function AdvancedChatPage() {
                 <div className="pb-4 flex flex-col items-center space-y-2">
                   <button
                     onClick={() => window.location.href = '/settings/profile'}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-all hover:bg-white hover:text-[#171717] hover:shadow-sm"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-ink-mute transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:bg-white hover:text-ink hover:shadow-sm"
                     title="Profile"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                   </button>
@@ -1294,10 +1295,10 @@ export default function AdvancedChatPage() {
                     onClick={() => {
                       window.location.href = `/agents/${agentName}/edit`
                     }}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-all hover:bg-white hover:text-[#171717] hover:shadow-sm"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-ink-mute transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:bg-white hover:text-ink hover:shadow-sm"
                     title="Settings"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
@@ -1308,10 +1309,10 @@ export default function AdvancedChatPage() {
                       localStorage.removeItem('token')
                       window.location.href = '/signin'
                     }}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-all hover:bg-[#fbf1f4] hover:text-[#8a445c]"
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-ink-mute transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:bg-cream hover:text-wine"
                     title="Logout"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                     </svg>
                   </button>
@@ -1361,12 +1362,12 @@ export default function AdvancedChatPage() {
         {/* Main Content Area */}
         <div className="flex-1 flex overflow-hidden">
           {/* Center - Chat Widget */}
-          <div className="flex-1 flex min-w-0 flex-col h-screen rounded-l-[1.25rem] border border-black/5 bg-[rgba(255,255,255,0.86)] backdrop-blur">
+          <div className="flex-1 flex min-w-0 flex-col h-screen rounded-l-[1.25rem] border border-black/5 bg-white/85">
               {/* Error Message */}
               {agentLoadError && (
-                <div className="flex-shrink-0 border-b border-[#eed6dd] bg-[#fbf1f4] p-3">
-                  <div className="flex items-center gap-2 text-red-800">
-                    <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <div className="flex-shrink-0 border-b border-blush-wash bg-cream p-3">
+                  <div className="flex items-center gap-2 text-wine">
+                    <svg aria-hidden="true" className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                     </svg>
                     <div>
@@ -1378,18 +1379,18 @@ export default function AdvancedChatPage() {
               )}
 
               {/* Compact Chat Header */}
-              <div className="flex-shrink-0 border-b border-[#ece2d6] px-3 py-2.5 sm:px-4" style={{
+              <div className="flex-shrink-0 border-b border-sand-deep px-3 py-2.5 sm:px-4" style={{
                 background: `linear-gradient(135deg, ${chatConfig?.chat_primary_color || '#ff444f'}15, ${chatConfig?.chat_primary_color || '#ff444f'}05)`
               }}>
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5">
                     {/* Mobile sidebar toggle */}
                     <button
-                      className="md:hidden p-1.5 rounded-lg hover:bg-black/5 transition-colors text-gray-600"
+                      className="md:hidden p-1.5 rounded-lg hover:bg-black/5 transition-colors text-ink-soft"
                       onClick={() => setIsMobileSidebarOpen(true)}
                       aria-label="Open chat history"
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                       </svg>
                     </button>
@@ -1404,8 +1405,8 @@ export default function AdvancedChatPage() {
                       )}
                     </div>
                     <div>
-                      <h2 className="text-base font-bold text-gray-900">{chatConfig?.chat_title || agent?.agent_name}</h2>
-                      <p className="text-[11px] font-medium text-gray-500">Online • Ready to help</p>
+                      <h2 className="text-base font-bold text-ink">{chatConfig?.chat_title || agent?.agent_name}</h2>
+                      <p className="text-[11px] font-medium text-ink-mute">Online • Ready to help</p>
                     </div>
                   </div>
                   <div className="flex flex-shrink-0 items-center gap-1.5">
@@ -1443,20 +1444,20 @@ export default function AdvancedChatPage() {
                           ? `/agents/${agentName}/lens/sessions/${currentConversation.id}`
                           : `/agents/${agentName}/lens/sessions`
                       )}
-                      className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-gray-600 transition-colors hover:bg-[#f3ecde] hover:text-[#171717]"
+                      className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-ink-soft transition-colors hover:bg-sand hover:text-ink"
                       title={currentConversation ? 'View this session in Lens' : 'View Lens sessions'}
                     >
-                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                       </svg>
                       <span className="text-[11px] font-medium">Lens</span>
                     </button>
                     <button
                       onClick={handleNewChat}
-                      className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-gray-600 transition-colors hover:bg-[#f3ecde] hover:text-[#171717]"
+                      className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-ink-soft transition-colors hover:bg-sand hover:text-ink"
                       title="New Chat"
                     >
-                      <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                       </svg>
                       <span className="text-[11px] font-medium">New chat</span>
@@ -1464,10 +1465,10 @@ export default function AdvancedChatPage() {
                     {currentConversation && (
                       <button
                         onClick={() => setShareConvId(currentConversation.id)}
-                        className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-gray-600 transition-colors hover:bg-[#f3ecde] hover:text-[#171717]"
+                        className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-ink-soft transition-colors hover:bg-sand hover:text-ink"
                         title="Share conversation"
                       >
-                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                         </svg>
                         <span className="text-[11px] font-medium">Share</span>
@@ -1482,10 +1483,10 @@ export default function AdvancedChatPage() {
                             await loadConversations(selectedSource)
                           } catch {}
                         }}
-                        className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-gray-600 transition-colors hover:bg-red-50 hover:text-red-600"
+                        className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-ink-soft transition-colors hover:bg-blush-wash hover:text-leaf"
                         title="Close session"
                       >
-                        <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                         <span className="text-[11px] font-medium">Close session</span>
@@ -1535,15 +1536,15 @@ export default function AdvancedChatPage() {
                   agentLoadError
                     ? 'Agent failed to load'
                     : !agentId
-                      ? 'Loading agent...'
-                      : chatConfig?.chat_placeholder || 'Type your message...'
+                      ? 'Loading agent…'
+                      : chatConfig?.chat_placeholder || 'Type your message…'
                 }
               />
           </div>
 
           {/* Right Sidebar - Widgets (hidden on mobile) */}
           {showSidebar && rightWidgets.length > 0 && (
-            <div className="hidden w-72 flex-shrink-0 space-y-3 overflow-y-auto border-l border-[#ece2d6] bg-[#faf8f5] p-3 lg:block">
+            <div className="hidden w-72 flex-shrink-0 space-y-3 overflow-y-auto border-l border-sand-deep bg-cream p-3 lg:block">
               {rightWidgets.map((widget, idx) => (
                 <div key={idx}>{renderWidget(widget)}</div>
               ))}

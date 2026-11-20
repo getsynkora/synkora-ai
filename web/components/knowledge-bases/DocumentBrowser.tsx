@@ -211,7 +211,7 @@ export default function DocumentBrowser({
   if (loading && documents.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-[#2d8b69]" />
+        <Loader2 className="h-8 w-8 motion-safe:animate-spin text-leaf" />
       </div>
     )
   }
@@ -221,7 +221,7 @@ export default function DocumentBrowser({
       {/* Search and Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-ash" />
           <input
             type="text"
             value={searchQuery}
@@ -229,8 +229,8 @@ export default function DocumentBrowser({
               setSearchQuery(e.target.value)
               setPage(1)
             }}
-            placeholder="Search documents..."
-            className="w-full rounded-[1rem] border border-black/10 bg-white px-4 py-3 pl-10 text-sm text-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+            placeholder="Search documents…"
+            className="w-full rounded-[1rem] border border-black/10 bg-white px-4 py-3 pl-10 text-sm text-ink focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
           />
         </div>
         
@@ -240,7 +240,7 @@ export default function DocumentBrowser({
             setSourceTypeFilter(e.target.value)
             setPage(1)
           }}
-          className="rounded-[1rem] border border-black/10 bg-white px-4 py-3 text-sm text-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+          className="rounded-[1rem] border border-black/10 bg-white px-4 py-3 text-sm text-ink focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
         >
           <option value="">All Sources</option>
           <option value="manual">Manual Upload</option>
@@ -255,7 +255,7 @@ export default function DocumentBrowser({
             setHasImagesFilter(e.target.value === '' ? undefined : e.target.value === 'true')
             setPage(1)
           }}
-          className="rounded-[1rem] border border-black/10 bg-white px-4 py-3 text-sm text-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+          className="rounded-[1rem] border border-black/10 bg-white px-4 py-3 text-sm text-ink focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink"
         >
           <option value="">All Documents</option>
           <option value="true">With Images</option>
@@ -265,13 +265,13 @@ export default function DocumentBrowser({
 
       {/* Bulk Actions */}
       {selectedDocs.size > 0 && (
-        <div className="flex items-center justify-between rounded-[1.25rem] border border-black/10 bg-[#f7f2e7] p-4">
-          <span className="text-sm font-medium text-gray-900">
+        <div className="flex items-center justify-between rounded-[1.25rem] border border-black/10 bg-paper p-4">
+          <span className="text-sm font-medium text-ink">
             {selectedDocs.size} document(s) selected
           </span>
           <button
             onClick={handleBulkDelete}
-            className="flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-black"
+            className="flex items-center gap-2 rounded-[1rem] bg-ink px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-black"
           >
             <Trash2 className="w-4 h-4" />
             Delete Selected
@@ -281,65 +281,65 @@ export default function DocumentBrowser({
 
       {/* Documents Table */}
       {documents.length === 0 ? (
-        <div className="rounded-[1.6rem] border border-black/10 bg-[#fcfaf5] py-12 text-center">
-          <FileText className="mx-auto mb-4 h-16 w-16 text-[#8a8378]" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No documents found</h3>
-          <p className="text-gray-600">Upload documents to get started</p>
+        <div className="rounded-[1.6rem] border border-black/10 bg-cream py-12 text-center">
+          <FileText className="mx-auto mb-4 h-16 w-16 text-ash" />
+          <h3 className="text-lg font-semibold text-ink mb-2">No documents found</h3>
+          <p className="text-ink-soft">Upload documents to get started</p>
         </div>
       ) : (
         <div className="overflow-hidden rounded-[1.6rem] border border-black/10 bg-white/80">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="border-b border-black/10 bg-[#fcfaf5]">
+              <thead className="border-b border-black/10 bg-cream">
                 <tr>
                   <th className="px-4 py-3 text-left">
                     <input
                       type="checkbox"
                       checked={selectedDocs.size === documents.length}
                       onChange={toggleSelectAll}
-                      className="rounded border-gray-300"
+                      className="rounded border-taupe"
                     />
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-ink-mute">
                     Document
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-ink-mute">
                     Source
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-ink-mute">
                     Size
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-ink-mute">
                     Chunks
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-ink-mute">
                     Created
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-right text-xs font-medium text-ink-mute">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-black/10">
                 {documents.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-[#fcfaf5]">
+                  <tr key={doc.id} className="hover:bg-cream">
                     <td className="px-4 py-4">
                       <input
                         type="checkbox"
                         checked={selectedDocs.has(doc.id)}
                         onChange={() => toggleSelectDoc(doc.id)}
-                        className="rounded border-gray-300"
+                        className="rounded border-taupe"
                       />
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-3">
-                        <FileText className="h-5 w-5 flex-shrink-0 text-[#2d8b69]" />
+                        <FileText className="h-5 w-5 flex-shrink-0 text-leaf" />
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
+                          <p className="text-sm font-medium text-ink truncate">
                             {doc.title}
                           </p>
                           {doc.has_images && (
-                            <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                            <div className="flex items-center gap-1 text-xs text-ink-mute mt-1">
                               <ImageIcon className="w-3 h-3" />
                               {doc.image_count} image{doc.image_count !== 1 ? 's' : ''}
                             </div>
@@ -348,26 +348,26 @@ export default function DocumentBrowser({
                       </div>
                     </td>
                     <td className="px-4 py-4">
-                      <span className="inline-flex items-center rounded-full bg-[#f7f2e7] px-2.5 py-1 text-xs font-medium text-[#6e675d]">
+                      <span className="inline-flex items-center rounded-full bg-paper px-2.5 py-1 text-xs font-medium text-ink-mute">
                         {doc.source_type}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-500">
+                    <td className="px-4 py-4 text-sm text-ink-mute">
                       {formatFileSize(doc.file_size)}
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-500">
+                    <td className="px-4 py-4 text-sm text-ink-mute">
                       {doc.status === 'PENDING' || doc.status === 'PROCESSING' ? (
-                        <span className="inline-flex items-center gap-1 text-amber-600">
-                          <Loader2 className="w-3 h-3 animate-spin" />
+                        <span className="inline-flex items-center gap-1 text-warn">
+                          <Loader2 className="w-3 h-3 motion-safe:animate-spin" />
                           Processing
                         </span>
                       ) : doc.status === 'ERROR' ? (
-                        <span className="text-red-500" title={doc.metadata?.error || 'Processing failed'}>Error</span>
+                        <span className="text-leaf" title={doc.metadata?.error || 'Processing failed'}>Error</span>
                       ) : (
                         doc.chunk_count
                       )}
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-500">
+                    <td className="px-4 py-4 text-sm text-ink-mute">
                       {formatDate(doc.created_at)}
                     </td>
                     <td className="px-4 py-4 text-right">
@@ -375,7 +375,7 @@ export default function DocumentBrowser({
                         {doc.status === 'PROCESSING' && onCancelDocument && (
                           <button
                             onClick={() => handleCancel(doc.id)}
-                            className="rounded-full p-2 text-gray-400 transition-colors hover:bg-amber-50 hover:text-amber-600"
+                            className="rounded-full p-2 text-ash transition-colors hover:bg-sand-deep hover:text-warn"
                             title="Cancel processing"
                           >
                             <XCircle className="w-4 h-4" />
@@ -384,7 +384,7 @@ export default function DocumentBrowser({
                         {(doc.status === 'PENDING' || doc.status === 'ERROR') && onReprocessDocument && (
                           <button
                             onClick={() => handleReprocess(doc.id)}
-                            className="rounded-full p-2 text-gray-400 transition-colors hover:bg-[#eef7f1] hover:text-[#2d8b69]"
+                            className="rounded-full p-2 text-ash transition-colors hover:bg-leaf-wash hover:text-leaf"
                             title="Reprocess document"
                           >
                             <RefreshCw className="w-4 h-4" />
@@ -393,7 +393,7 @@ export default function DocumentBrowser({
                         {doc.status === 'COMPLETED' && (
                           <button
                             onClick={() => setViewingDoc(doc)}
-                            className="rounded-full p-2 text-gray-400 transition-colors hover:bg-[#eef7f1] hover:text-[#2d8b69]"
+                            className="rounded-full p-2 text-ash transition-colors hover:bg-leaf-wash hover:text-leaf"
                             title="View"
                           >
                             <Eye className="w-4 h-4" />
@@ -401,14 +401,14 @@ export default function DocumentBrowser({
                         )}
                         <button
                           onClick={() => handleDownload(doc)}
-                          className="rounded-full p-2 text-gray-400 transition-colors hover:bg-[#f7f2e7] hover:text-[#171717]"
+                          className="rounded-full p-2 text-ash transition-colors hover:bg-paper hover:text-ink"
                           title="Download"
                         >
                           <Download className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(doc.id)}
-                          className="rounded-full p-2 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                          className="rounded-full p-2 text-ash transition-colors hover:bg-blush-wash hover:text-danger"
                           title="Delete"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -424,7 +424,7 @@ export default function DocumentBrowser({
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t border-black/10 px-4 py-3">
-              <div className="text-sm text-gray-700">
+              <div className="text-sm text-ink-soft">
                 Showing <span className="font-medium">{(page - 1) * pageSize + 1}</span> to{' '}
                 <span className="font-medium">{Math.min(page * pageSize, total)}</span> of{' '}
                 <span className="font-medium">{total}</span> documents
@@ -433,17 +433,17 @@ export default function DocumentBrowser({
                 <button
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="rounded-[0.9rem] border border-black/10 bg-white p-2 transition-colors hover:bg-[#f7f2e7] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-[0.9rem] border border-black/10 bg-white p-2 transition-colors hover:bg-paper disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
-                <span className="text-sm text-gray-700">
+                <span className="text-sm text-ink-soft">
                   Page {page} of {totalPages}
                 </span>
                 <button
                   onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
-                  className="rounded-[0.9rem] border border-black/10 bg-white p-2 transition-colors hover:bg-[#f7f2e7] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-[0.9rem] border border-black/10 bg-white p-2 transition-colors hover:bg-paper disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <ChevronRight className="w-5 h-5" />
                 </button>

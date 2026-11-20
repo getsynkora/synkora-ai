@@ -195,14 +195,14 @@ export default function ToolsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-8">
+    <div className="min-h-screen p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <Settings className="w-8 h-8 text-teal-600" />
-            <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Tool Configuration</h1>
+            <Settings className="w-8 h-8 text-leaf" />
+            <h1 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight">Tool Configuration</h1>
           </div>
-          <p className="text-gray-600">
+          <p className="text-ink-soft">
             Configure API keys and settings for agent tools. These configurations are stored securely
             and used by your agents when they need to access external services.
           </p>
@@ -220,29 +220,29 @@ export default function ToolsPage() {
             return (
               <div
                 key={tool.name}
-                className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+                className="bg-white rounded-lg shadow-sm border border-line overflow-hidden"
               >
-                <div className="bg-gradient-to-r from-teal-50 to-blue-50 p-6 border-b border-gray-200">
+                <div className="bg-leaf-wash p-6 border-b border-line">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4">
                       <div className="p-3 bg-white rounded-lg shadow-sm">
-                        <Icon className="w-6 h-6 text-teal-600" />
+                        <Icon className="w-6 h-6 text-leaf" />
                       </div>
                       <div>
-                        <h2 className="text-xl font-semibold text-gray-900 mb-1">
+                        <h2 className="text-xl font-semibold text-ink mb-1">
                           {tool.displayName}
                         </h2>
-                        <p className="text-gray-600">{tool.description}</p>
+                        <p className="text-ink-soft">{tool.description}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       {allRequiredFilled ? (
-                        <div className="flex items-center gap-1 text-green-600 text-sm">
+                        <div className="flex items-center gap-1 text-leaf text-sm">
                           <CheckCircle className="w-4 h-4" />
                           <span>Configured</span>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-1 text-amber-600 text-sm">
+                        <div className="flex items-center gap-1 text-warn text-sm">
                           <AlertCircle className="w-4 h-4" />
                           <span>Not Configured</span>
                         </div>
@@ -254,17 +254,17 @@ export default function ToolsPage() {
                 <div className="p-6 space-y-6">
                   {tool.requiredKeys && tool.requiredKeys.length > 0 && (
                     <div>
-                      <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-ink mb-4 flex items-center gap-2">
                         <Key className="w-4 h-4" />
                         Required Configuration
                       </h3>
                       <div className="space-y-4">
                         {tool.requiredKeys.map((keyConfig) => (
                           <div key={keyConfig.key}>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-ink-soft mb-1">
                               {keyConfig.label}
                             </label>
-                            <p className="text-xs text-gray-500 mb-2">
+                            <p className="text-xs text-ink-mute mb-2">
                               {keyConfig.description}
                             </p>
                             <div className="relative">
@@ -275,13 +275,13 @@ export default function ToolsPage() {
                                   handleConfigChange(tool.name, keyConfig.key, e.target.value)
                                 }
                                 placeholder={keyConfig.placeholder}
-                                className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                className="w-full px-4 py-2 pr-10 border border-taupe rounded-lg focus:ring-2 focus:ring-leaf focus:border-transparent"
                               />
                               {keyConfig.type === 'password' && (
                                 <button
                                   type="button"
                                   onClick={() => toggleShowKey(keyConfig.key)}
-                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ash hover:text-ink-soft"
                                 >
                                   {showKeys[keyConfig.key] ? (
                                     <EyeOff className="w-4 h-4" />
@@ -299,16 +299,16 @@ export default function ToolsPage() {
 
                   {tool.optionalKeys && tool.optionalKeys.length > 0 && (
                     <div>
-                      <h3 className="text-sm font-semibold text-gray-900 mb-4">
+                      <h3 className="text-sm font-semibold text-ink mb-4">
                         Optional Configuration
                       </h3>
                       <div className="space-y-4">
                         {tool.optionalKeys.map((keyConfig) => (
                           <div key={keyConfig.key}>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-ink-soft mb-1">
                               {keyConfig.label}
                             </label>
-                            <p className="text-xs text-gray-500 mb-2">
+                            <p className="text-xs text-ink-mute mb-2">
                               {keyConfig.description}
                             </p>
                             <div className="relative">
@@ -319,13 +319,13 @@ export default function ToolsPage() {
                                   handleConfigChange(tool.name, keyConfig.key, e.target.value)
                                 }
                                 placeholder={keyConfig.placeholder}
-                                className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                className="w-full px-4 py-2 pr-10 border border-taupe rounded-lg focus:ring-2 focus:ring-leaf focus:border-transparent"
                               />
                               {keyConfig.type === 'password' && (
                                 <button
                                   type="button"
                                   onClick={() => toggleShowKey(keyConfig.key)}
-                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ash hover:text-ink-soft"
                                 >
                                   {showKeys[keyConfig.key] ? (
                                     <EyeOff className="w-4 h-4" />
@@ -341,20 +341,20 @@ export default function ToolsPage() {
                     </div>
                   )}
 
-                  <div className="flex items-center gap-3 pt-4 border-t border-gray-200">
+                  <div className="flex items-center gap-3 pt-4 border-t border-line">
                     <button
                       onClick={() => saveConfiguration(tool.name)}
                       disabled={saving === tool.name}
-                      className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="flex items-center gap-2 px-4 py-2 bg-leaf text-white rounded-lg hover:bg-forest disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       <Save className="w-4 h-4" />
-                      {saving === tool.name ? 'Saving...' : 'Save Configuration'}
+                      {saving === tool.name ? 'Saving…' : 'Save Configuration'}
                     </button>
 
                     {allRequiredFilled && (
                       <button
                         onClick={() => testConfiguration(tool.name)}
-                        className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 border border-taupe text-ink-soft rounded-lg hover:bg-cream transition-colors"
                       >
                         <CheckCircle className="w-4 h-4" />
                         Test Configuration
@@ -362,14 +362,14 @@ export default function ToolsPage() {
                     )}
 
                     {status === 'success' && (
-                      <div className="flex items-center gap-2 text-green-600 text-sm">
+                      <div className="flex items-center gap-2 text-leaf text-sm">
                         <CheckCircle className="w-4 h-4" />
                         <span>Saved successfully!</span>
                       </div>
                     )}
 
                     {status === 'error' && (
-                      <div className="flex items-center gap-2 text-red-600 text-sm">
+                      <div className="flex items-center gap-2 text-danger text-sm">
                         <XCircle className="w-4 h-4" />
                         <span>Failed to save</span>
                       </div>
@@ -381,9 +381,9 @@ export default function ToolsPage() {
           })}
         </div>
 
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-blue-900 mb-2">Need Help?</h3>
-          <ul className="space-y-2 text-sm text-blue-800">
+        <div className="mt-8 bg-sky-wash border border-sky-wash rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-azure mb-2">Need Help?</h3>
+          <ul className="space-y-2 text-sm text-azure">
             <li>• <strong>SerpAPI:</strong> Sign up at <a href="https://serpapi.com" target="_blank" rel="noopener noreferrer" className="underline">serpapi.com</a> for free web search (100 searches/month)</li>
             <li>• <strong>GitHub:</strong> Generate a token at <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" className="underline">github.com/settings/tokens</a></li>
             <li>• <strong>YouTube:</strong> Create an API key in <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="underline">Google Cloud Console</a></li>

@@ -55,26 +55,26 @@ export function SourceCard({ source, compact = false, className = '' }: SourceCa
 
   if (compact) {
     return (
-      <div className={`flex items-center gap-2 px-2 py-1.5 bg-gray-50 rounded-lg text-xs ${className}`}>
-        <span className="text-gray-400">{getSourceIcon(displayType, 12)}</span>
-        <span className="text-gray-700 truncate flex-1">{title}</span>
-        <span className="text-teal-600 font-medium">{score}%</span>
+      <div className={`flex items-center gap-2 px-2 py-1.5 bg-cream rounded-lg text-xs ${className}`}>
+        <span className="text-ash">{getSourceIcon(displayType, 12)}</span>
+        <span className="text-ink-soft truncate flex-1">{title}</span>
+        <span className="text-leaf font-medium">{score}%</span>
       </div>
     )
   }
 
   return (
-    <div className={`bg-gray-50 rounded-lg p-3 text-xs border border-gray-100 hover:border-gray-200 transition-all ${className}`}>
+    <div className={`bg-cream rounded-lg p-3 text-xs border border-sand hover:border-line transition-[color,background-color,border-color,box-shadow,opacity,transform] ${className}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <span className="text-gray-400 flex-shrink-0">{getSourceIcon(displayType)}</span>
-          <span className="font-medium text-gray-800 truncate">{title}</span>
+          <span className="text-ash flex-shrink-0">{getSourceIcon(displayType)}</span>
+          <span className="font-medium text-ink truncate">{title}</span>
         </div>
-        <span className="text-teal-600 font-bold flex-shrink-0">{score}%</span>
+        <span className="text-leaf font-bold flex-shrink-0">{score}%</span>
       </div>
 
       {source.text_preview && (
-        <p className="mt-2 text-gray-600 line-clamp-2 leading-relaxed pl-5">
+        <p className="mt-2 text-ink-soft line-clamp-2 leading-relaxed pl-5">
           {source.text_preview}
         </p>
       )}
@@ -85,7 +85,7 @@ export function SourceCard({ source, compact = false, className = '' }: SourceCa
             href={source.external_url || source.presigned_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-teal-600 hover:text-teal-700 hover:underline"
+            className="inline-flex items-center gap-1 text-leaf hover:text-forest hover:underline"
           >
             {source.presigned_url ? <Download size={12} /> : <ExternalLink size={12} />}
             <span>{source.presigned_url ? 'Download' : 'View'}</span>
@@ -155,26 +155,26 @@ function DocumentGroup({ group, defaultExpanded = false }: DocumentGroupProps) {
   const hasMultipleChunks = group.chunks.length > 1
 
   return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+    <div className="border border-line rounded-lg overflow-hidden bg-white">
       {/* Document Header */}
       <div
-        className={`flex items-center gap-2 px-3 py-2 bg-gray-50 ${hasMultipleChunks ? 'cursor-pointer hover:bg-gray-100' : ''}`}
+        className={`flex items-center gap-2 px-3 py-2 bg-cream ${hasMultipleChunks ? 'cursor-pointer hover:bg-sand' : ''}`}
         onClick={() => hasMultipleChunks && setExpanded(!expanded)}
       >
         {hasMultipleChunks && (
-          <span className="text-gray-400 flex-shrink-0">
+          <span className="text-ash flex-shrink-0">
             {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </span>
         )}
-        <span className="text-gray-500 flex-shrink-0">{getSourceIcon(group.type, 14)}</span>
-        <span className="font-semibold text-gray-800 truncate flex-1 text-sm">{group.title}</span>
+        <span className="text-ink-mute flex-shrink-0">{getSourceIcon(group.type, 14)}</span>
+        <span className="font-semibold text-ink truncate flex-1 text-sm">{group.title}</span>
         <div className="flex items-center gap-2 flex-shrink-0">
           {hasMultipleChunks && (
-            <span className="text-xs text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded">
+            <span className="text-xs text-ink-mute bg-line px-1.5 py-0.5 rounded">
               {group.chunks.length} chunks
             </span>
           )}
-          <span className="text-teal-600 font-bold text-sm">
+          <span className="text-leaf font-bold text-sm">
             {(group.topScore * 100).toFixed(0)}%
           </span>
         </div>
@@ -182,12 +182,12 @@ function DocumentGroup({ group, defaultExpanded = false }: DocumentGroupProps) {
 
       {/* Document Actions */}
       {(group.url || group.presignedUrl) && (
-        <div className="px-3 py-1.5 border-t border-gray-100 bg-white">
+        <div className="px-3 py-1.5 border-t border-sand bg-white">
           <a
             href={group.url || group.presignedUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs text-teal-600 hover:text-teal-700 hover:underline"
+            className="inline-flex items-center gap-1.5 text-xs text-leaf hover:text-forest hover:underline"
           >
             {group.presignedUrl ? <Download size={12} /> : <ExternalLink size={12} />}
             <span>{group.presignedUrl ? 'Download Document' : 'View Document'}</span>
@@ -197,22 +197,22 @@ function DocumentGroup({ group, defaultExpanded = false }: DocumentGroupProps) {
 
       {/* Chunks - Show if expanded or single chunk */}
       {(expanded || !hasMultipleChunks) && (
-        <div className="border-t border-gray-100">
+        <div className="border-t border-sand">
           {group.chunks.map((chunk, idx) => (
             <div
               key={chunk.segment_id || `chunk-${idx}`}
-              className={`px-3 py-2 text-xs ${idx > 0 ? 'border-t border-gray-50' : ''}`}
+              className={`px-3 py-2 text-xs ${idx > 0 ? 'border-t border-cream' : ''}`}
             >
               <div className="flex items-center justify-between gap-2 mb-1">
-                <span className="text-gray-400">
+                <span className="text-ash">
                   {hasMultipleChunks ? `Chunk ${(chunk.metadata?.chunk_index ?? idx) + 1}` : 'Content'}
                 </span>
-                <span className="text-teal-500 font-medium">
+                <span className="text-leaf font-medium">
                   {((chunk.score || 0) * 100).toFixed(0)}%
                 </span>
               </div>
               {chunk.text_preview && (
-                <p className="text-gray-600 line-clamp-2 leading-relaxed">
+                <p className="text-ink-soft line-clamp-2 leading-relaxed">
                   {chunk.text_preview}
                 </p>
               )}
@@ -250,13 +250,13 @@ export function SourcesList({
     <div className={`mt-4 ${className}`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
-        <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+        <h4 className="text-xs font-bold text-ink-mute">
           Sources ({sources.length} chunks from {groupedDocs.length} {groupedDocs.length === 1 ? 'document' : 'documents'})
         </h4>
         {hasMore && (
           <button
             onClick={() => setShowAll(!showAll)}
-            className="text-xs text-teal-600 hover:text-teal-700 font-medium"
+            className="text-xs text-leaf hover:text-forest font-medium"
           >
             {showAll ? 'Show less' : `+${groupedDocs.length - maxVisible} more`}
           </button>
