@@ -148,7 +148,7 @@ export default function AutonomousPage() {
         <span className="flex items-center gap-1.5">
           Approvals
           {pendingApprovals > 0 && (
-            <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-amber-500 text-white text-[10px] font-bold">
+            <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-warn text-white text-[10px] font-bold">
               {pendingApprovals}
             </span>
           )}
@@ -174,23 +174,23 @@ export default function AutonomousPage() {
         <>
           <button
             onClick={handleToggleActive}
-            className="flex items-center gap-2 rounded-[1rem] border border-black/10 bg-white/80 px-4 py-3 text-sm font-semibold text-[#171717] transition-colors hover:bg-white"
+            className="flex items-center gap-2 rounded-[1rem] border border-black/10 bg-white/80 px-4 py-3 text-sm font-semibold text-ink transition-colors hover:bg-white"
           >
             {status.is_active ? (
               <>
-                <ToggleRight className="w-5 h-5 text-green-500" />
+                <ToggleRight className="w-5 h-5 text-leaf" />
                 Pause
               </>
             ) : (
               <>
-                <ToggleLeft className="w-5 h-5 text-gray-400" />
+                <ToggleLeft className="w-5 h-5 text-ash" />
                 Resume
               </>
             )}
           </button>
           <button
             onClick={() => setShowDisableDialog(true)}
-            className="rounded-[1rem] border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600 transition-colors hover:bg-red-100"
+            className="rounded-[1rem] border border-blush bg-blush-wash px-4 py-3 text-sm font-semibold text-danger transition-colors hover:bg-blush-wash"
           >
             Delete
           </button>
@@ -202,33 +202,33 @@ export default function AutonomousPage() {
         {pendingApprovals > 0 && activeTab !== 'approvals' && (
           <button
             onClick={() => setActiveTab('approvals')}
-            className="mb-4 w-full flex items-center gap-2 rounded-md bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800 hover:bg-amber-100 transition-colors text-left"
+            className="mb-4 w-full flex items-center gap-2 rounded-md bg-sand-deep border border-honey px-4 py-3 text-sm text-gold hover:bg-sand-deep transition-colors text-left"
           >
-            <ShieldCheck className="w-4 h-4 text-amber-500 flex-shrink-0" />
+            <ShieldCheck className="w-4 h-4 text-warn flex-shrink-0" />
             <span>
               <strong>{pendingApprovals} action{pendingApprovals > 1 ? 's' : ''}</strong> waiting for your approval
             </span>
-            <span className="ml-auto text-amber-600 font-medium text-xs">Review →</span>
+            <span className="ml-auto text-warn font-medium text-xs">Review</span>
           </button>
         )}
 
         {/* Toast */}
         {toastMsg && (
-          <div className="mb-4 rounded-md bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
+          <div className="mb-4 rounded-md bg-leaf-wash border border-mint px-4 py-3 text-sm text-forest">
             {toastMsg}
           </div>
         )}
 
         {/* Error */}
         {error && (
-          <div className="mb-4 rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+          <div className="mb-4 rounded-md bg-blush-wash border border-blush px-4 py-3 text-sm text-danger">
             {error}
           </div>
         )}
 
         {loading ? (
           <div className="flex items-center justify-center py-16">
-            <div className="w-6 h-6 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-ink border-t-transparent rounded-full motion-safe:animate-spin" />
           </div>
         ) : !status?.task_id ? (
           /* No autonomous task configured — show setup form */
@@ -242,7 +242,7 @@ export default function AutonomousPage() {
                   showToast('Autonomous mode enabled')
                 }}
                 onTriggered={() => {
-                  showToast('Run queued — check Recent Runs shortly')
+                  showToast('Run queued, check Recent Runs shortly')
                   setActiveTab('history')
                 }}
               />
@@ -269,7 +269,7 @@ export default function AutonomousPage() {
                     showToast('Saved')
                   }}
                   onTriggered={() => {
-                    showToast('Run queued — check Recent Runs shortly')
+                    showToast('Run queued, check Recent Runs shortly')
                     setActiveTab('history')
                   }}
                 />
@@ -305,26 +305,26 @@ export default function AutonomousPage() {
       {showDisableDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowDisableDialog(false)} />
-          <div className="relative w-full max-w-sm rounded-[1.8rem] border border-black/10 bg-[#fcfaf5] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.18)]">
+          <div className="relative w-full max-w-sm rounded-[1.8rem] border border-black/10 bg-cream p-6 shadow-soft">
             <div className="flex items-center gap-3 mb-4">
-              <div className="rounded-[1rem] bg-red-50 p-2.5">
-                <Bot className="w-5 h-5 text-red-600" />
+              <div className="rounded-[1rem] bg-sand-deep p-2.5">
+                <Bot className="w-5 h-5 text-danger" />
               </div>
-              <h2 className="text-base font-semibold text-gray-900">Delete Autonomous Task</h2>
+              <h2 className="text-base font-semibold text-ink">Delete Autonomous Task</h2>
             </div>
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-sm text-ink-soft mb-6">
               This will permanently delete the autonomous schedule and all run history for <strong>{agentName}</strong>. This action cannot be undone.
             </p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setShowDisableDialog(false)}
-                className="rounded-[1rem] border border-black/10 bg-[#f1eadc] px-4 py-2.5 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#e8ddc8]"
+                className="rounded-[1rem] border border-black/10 bg-sand-deep px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-line"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDelete}
-                className="rounded-[1rem] bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-700"
+                className="rounded-[1rem] bg-danger px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-danger"
               >
                 Delete
               </button>

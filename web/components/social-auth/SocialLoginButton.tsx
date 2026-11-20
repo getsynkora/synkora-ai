@@ -28,9 +28,9 @@ export const SocialLoginButton: React.FC<SocialLoginButtonProps> = ({
   };
 
   const providerColors: Record<SocialProvider, string> = {
-    google: 'hover:bg-red-50 dark:hover:bg-red-900/20 border-gray-300 dark:border-gray-600',
-    microsoft: 'hover:bg-blue-50 dark:hover:bg-blue-900/20 border-gray-300 dark:border-gray-600',
-    apple: 'hover:bg-gray-100 dark:hover:bg-gray-700 border-gray-300 dark:border-gray-600',
+    google: 'hover:bg-blush-wash dark:hover:bg-wine/20 border-taupe dark:border-ink-soft',
+    microsoft: 'hover:bg-sky-wash dark:hover:bg-azure/20 border-taupe dark:border-ink-soft',
+    apple: 'hover:bg-sand dark:hover:bg-ink-soft border-taupe dark:border-ink-soft',
   };
 
   if (variant === 'icon') {
@@ -42,15 +42,15 @@ export const SocialLoginButton: React.FC<SocialLoginButtonProps> = ({
         className={`
           flex items-center justify-center
           w-12 h-12 rounded-lg
-          bg-white dark:bg-gray-800
+          bg-white dark:bg-ink
           border ${providerColors[provider]}
-          transition-all duration-200
+          transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-200
           disabled:opacity-50 disabled:cursor-not-allowed
           hover:shadow-md
         `}
       >
         {loading ? (
-          <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+          <div className="w-5 h-5 border-2 border-taupe border-t-ink-soft rounded-full motion-safe:animate-spin" />
         ) : (
           <ProviderIcon provider={provider} size="sm" />
         )}
@@ -65,19 +65,19 @@ export const SocialLoginButton: React.FC<SocialLoginButtonProps> = ({
       className={`
         w-full flex items-center justify-center gap-3
         px-4 py-3 rounded-lg
-        bg-white dark:bg-gray-800
+        bg-white dark:bg-ink
         border ${providerColors[provider]}
-        transition-all duration-200
+        transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-200
         disabled:opacity-50 disabled:cursor-not-allowed
         hover:shadow-md
       `}
     >
       {loading ? (
-        <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+        <div className="w-5 h-5 border-2 border-taupe border-t-ink-soft rounded-full motion-safe:animate-spin" />
       ) : (
         <ProviderIcon provider={provider} size="sm" />
       )}
-      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+      <span className="text-sm font-medium text-ink-soft dark:text-taupe">
         {loading ? t('connecting') : t('continueWith', { provider: providerNames[provider] })}
       </span>
     </button>

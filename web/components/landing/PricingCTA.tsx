@@ -35,10 +35,10 @@ export function PricingCTA({ agentSlug, agentName, pricingId, tiers, trialMessag
     return (
       <a
         href={`/agents/${encodeURIComponent(agentName)}/chat`}
-        className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full font-semibold text-white text-base transition-all hover:opacity-90"
+        className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full font-semibold text-white text-base transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:opacity-90"
         style={{ background: accentColor }}
       >
-        Start chatting →
+        Start chatting
       </a>
     )
   }
@@ -93,11 +93,11 @@ export function PricingCTA({ agentSlug, agentName, pricingId, tiers, trialMessag
             <button
               key={t.tier}
               onClick={() => setSelectedTier(t.tier)}
-              className="p-4 rounded-xl border-2 text-left transition-all bg-white hover:bg-gray-50"
-              style={selectedTier === t.tier ? { borderColor: accentColor } : { borderColor: '#e5e7eb' }}
+              className="p-4 rounded-xl border-2 text-left transition-[color,background-color,border-color,box-shadow,opacity,transform] bg-white hover:bg-cream"
+              style={selectedTier === t.tier ? { borderColor: accentColor } : { borderColor: 'rgb(var(--sky-wash))' }}
             >
-              <div className="font-semibold text-sm text-gray-900">{t.label}</div>
-              <div className="text-gray-400 text-xs mt-0.5">{t.credits} credits</div>
+              <div className="font-semibold text-sm text-ink">{t.label}</div>
+              <div className="text-ash text-xs mt-0.5">{t.credits} credits</div>
             </button>
           ))}
         </div>
@@ -108,10 +108,10 @@ export function PricingCTA({ agentSlug, agentName, pricingId, tiers, trialMessag
         <button
           onClick={handleSubscribe}
           disabled={loading || !selectedTier}
-          className="w-full py-3.5 rounded-full font-semibold text-white text-base transition-all hover:opacity-90 disabled:opacity-50 shadow-lg"
+          className="w-full py-3.5 rounded-full font-semibold text-white text-base transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:opacity-90 disabled:opacity-50 shadow-lg"
           style={{ background: accentColor, boxShadow: `0 8px 24px ${accentColor}40` }}
         >
-          {loading ? 'Processing...' : 'Subscribe with credits'}
+          {loading ? 'Processing…' : 'Subscribe with credits'}
         </button>
       )}
 
@@ -124,30 +124,30 @@ export function PricingCTA({ agentSlug, agentName, pricingId, tiers, trialMessag
               value={guestEmail}
               onChange={e => setGuestEmail(e.target.value)}
               placeholder="your@email.com"
-              className="flex-1 px-4 py-3 bg-white border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:border-transparent"
+              className="flex-1 px-4 py-3 bg-white border border-taupe rounded-xl text-sm focus:outline-none focus:ring-2 focus:border-transparent"
               style={{ '--tw-ring-color': accentColor } as React.CSSProperties}
             />
             <button
               onClick={handleGuestCheckout}
               disabled={loading || !guestEmail}
-              className="px-6 py-3 rounded-xl font-semibold text-white text-sm transition-all hover:opacity-90 disabled:opacity-50"
+              className="px-6 py-3 rounded-xl font-semibold text-white text-sm transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:opacity-90 disabled:opacity-50"
               style={{ background: accentColor }}
             >
               {loading ? '...' : 'Continue →'}
             </button>
           </div>
           {isAuthenticated && (
-            <button onClick={() => setShowEmailForm(false)} className="text-xs text-gray-400 hover:text-gray-600 w-full text-center">
+            <button onClick={() => setShowEmailForm(false)} className="text-xs text-ash hover:text-ink-soft w-full text-center">
               ← Back to credits
             </button>
           )}
         </div>
       )}
 
-      {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+      {error && <p className="text-leaf text-sm text-center">{error}</p>}
       {trialMessages > 0 && (
-        <p className="text-gray-400 text-xs text-center">
-          First {trialMessages} messages free — no credit card required
+        <p className="text-ash text-xs text-center">
+          First {trialMessages} messages free, no credit card required
         </p>
       )}
     </div>

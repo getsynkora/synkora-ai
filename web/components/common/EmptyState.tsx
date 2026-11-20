@@ -18,10 +18,10 @@ export default function EmptyState({
   onAction,
 }: EmptyStateProps) {
   return (
-    <div className="text-center py-12 bg-white rounded-lg border-2 border-dashed border-gray-300">
+    <div className="text-center py-12 bg-white rounded-lg border-2 border-dashed border-taupe">
       {icon || (
-        <svg
-          className="mx-auto h-12 w-12 text-gray-400"
+        <svg aria-hidden="true"
+          className="mx-auto h-12 w-12 text-ash"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -34,16 +34,16 @@ export default function EmptyState({
           />
         </svg>
       )}
-      <h3 className="mt-2 text-sm font-medium text-gray-900">{title}</h3>
-      <p className="mt-1 text-sm text-gray-500">{description}</p>
+      <h3 className="mt-2 text-sm font-medium text-ink">{title}</h3>
+      <p className="mt-1 text-sm text-ink-mute">{description}</p>
       {(actionLabel && (actionHref || onAction)) && (
         <div className="mt-6">
           {actionHref ? (
             <Link
               href={actionHref}
-              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transition-all"
+              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-ink hover:bg-ink/85 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
             >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg aria-hidden="true" className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               {actionLabel}
@@ -51,9 +51,9 @@ export default function EmptyState({
           ) : (
             <button
               onClick={onAction}
-              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transition-all"
+              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-lg text-white bg-ink hover:bg-ink/85 transition-[color,background-color,border-color,box-shadow,opacity,transform]"
             >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg aria-hidden="true" className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               {actionLabel}

@@ -66,32 +66,32 @@ export default function ActivityLogPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+        <div className="motion-safe:animate-spin rounded-full h-12 w-12 border-b-2 border-danger"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40">
+    <div className="min-h-screen">
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Activity Log</h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <h1 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight">Activity Log</h1>
+          <p className="mt-1 text-sm text-ink-soft">
             View all activity and changes in your workspace
           </p>
         </div>
 
         {/* Filters */}
-        <div className="mb-5 bg-white shadow-sm border border-gray-200 rounded-lg p-4">
+        <div className="mb-5 bg-white shadow-sm border border-line rounded-lg p-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+              <label className="block text-xs font-medium text-ink-soft mb-1.5">
                 Action Type
               </label>
               <select
                 value={filters.action || ''}
                 onChange={(e) => setFilters({ ...filters, action: (e.target.value as ActivityAction) || undefined })}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                className="w-full px-3 py-2 text-sm border border-taupe rounded-lg focus:outline-none focus:ring-2 focus:ring-ink focus:border-ink"
               >
                 <option value="">All Actions</option>
                 <option value="create">Create</option>
@@ -103,13 +103,13 @@ export default function ActivityLogPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+              <label className="block text-xs font-medium text-ink-soft mb-1.5">
                 Resource Type
               </label>
               <select
                 value={filters.resource_type || ''}
                 onChange={(e) => setFilters({ ...filters, resource_type: (e.target.value as ActivityResourceType) || undefined })}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                className="w-full px-3 py-2 text-sm border border-taupe rounded-lg focus:outline-none focus:ring-2 focus:ring-ink focus:border-ink"
               >
                 <option value="">All Resources</option>
                 <option value="agent">Agent</option>
@@ -120,13 +120,13 @@ export default function ActivityLogPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+              <label className="block text-xs font-medium text-ink-soft mb-1.5">
                 Date Range
               </label>
               <select
                 value={daysFilter}
                 onChange={(e) => setDaysFilter(parseInt(e.target.value))}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                className="w-full px-3 py-2 text-sm border border-taupe rounded-lg focus:outline-none focus:ring-2 focus:ring-ink focus:border-ink"
               >
                 <option value="1">Last 24 hours</option>
                 <option value="7">Last 7 days</option>
@@ -139,10 +139,10 @@ export default function ActivityLogPage() {
 
         {/* Export Controls — visible to owners and admins only */}
         {canExport && (
-          <div className="mb-5 bg-white shadow-sm border border-gray-200 rounded-lg p-4">
+          <div className="mb-5 bg-white shadow-sm border border-line rounded-lg p-4">
             <div className="flex flex-wrap items-end gap-4">
               <div>
-                <span className="block text-xs font-medium text-gray-700 mb-1.5">Export Format</span>
+                <span className="block text-xs font-medium text-ink-soft mb-1.5">Export Format</span>
                 <div className="flex gap-3">
                   {(['csv', 'json'] as ExportFormat[]).map((fmt) => (
                     <label key={fmt} className="flex items-center gap-1.5 cursor-pointer">
@@ -152,16 +152,16 @@ export default function ActivityLogPage() {
                         value={fmt}
                         checked={exportFormat === fmt}
                         onChange={() => setExportFormat(fmt)}
-                        className="accent-red-600"
+                        className="accent-danger"
                       />
-                      <span className="text-sm text-gray-700 uppercase">{fmt}</span>
+                      <span className="text-sm text-ink-soft">{fmt}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                <label className="block text-xs font-medium text-ink-soft mb-1.5">
                   Record Limit
                 </label>
                 <input
@@ -170,7 +170,7 @@ export default function ActivityLogPage() {
                   max={10000}
                   value={exportLimit}
                   onChange={(e) => setExportLimit(parseInt(e.target.value, 10) || 1000)}
-                  className="w-28 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  className="w-28 px-3 py-2 text-sm border border-taupe rounded-lg focus:outline-none focus:ring-2 focus:ring-ink focus:border-ink"
                 />
               </div>
 
@@ -178,29 +178,29 @@ export default function ActivityLogPage() {
                 <button
                   onClick={handleExport}
                   disabled={isExporting}
-                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-danger rounded-lg hover:bg-danger focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-1 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                 >
                   {isExporting ? (
-                    <span className="h-4 w-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    <span className="h-4 w-4 border-2 border-white/40 border-t-white rounded-full motion-safe:animate-spin" />
                   ) : (
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
                   )}
-                  {isExporting ? 'Exporting...' : 'Export'}
+                  {isExporting ? 'Exporting…' : 'Export'}
                 </button>
 
                 {chainIntegrity !== null && (
                   <span
                     className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
                       chainIntegrity === 'valid'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-yellow-100 text-yellow-800'
+                        ? 'bg-leaf-wash text-forest'
+                        : 'bg-sand-deep text-gold'
                     }`}
                   >
                     <span
                       className={`h-1.5 w-1.5 rounded-full ${
-                        chainIntegrity === 'valid' ? 'bg-green-500' : 'bg-yellow-500'
+                        chainIntegrity === 'valid' ? 'bg-leaf' : 'bg-warn'
                       }`}
                     />
                     Chain integrity: {chainIntegrity === 'valid' ? 'Valid' : 'Warning'}
@@ -215,11 +215,11 @@ export default function ActivityLogPage() {
         <ActivityLogTable logs={logs} />
 
         {/* Info Box */}
-        <div className="mt-6 bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="mt-6 bg-blush-wash border border-blush rounded-lg p-4">
           <div className="flex">
             <div className="flex-shrink-0">
-              <svg
-                className="h-4 w-4 text-red-500"
+              <svg aria-hidden="true"
+                className="h-4 w-4 text-leaf"
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
@@ -231,8 +231,8 @@ export default function ActivityLogPage() {
               </svg>
             </div>
             <div className="ml-3">
-              <h3 className="text-xs font-medium text-red-800">About Activity Logs</h3>
-              <div className="mt-1.5 text-xs text-red-700">
+              <h3 className="text-xs font-medium text-wine">About Activity Logs</h3>
+              <div className="mt-1.5 text-xs text-leaf">
                 <p>
                   Activity logs track all important actions in your workspace for security and compliance.
                   Logs are retained for 90 days and can be exported for audit purposes.

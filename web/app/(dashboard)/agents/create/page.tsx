@@ -19,7 +19,25 @@ import {
   Settings2,
   Sparkles,
   Save,
-  Info
+  Info,
+  BarChart3,
+  Brain,
+  Cloud,
+  Diamond,
+  Dna,
+  Handshake,
+  Hexagon,
+  Link,
+  Mountain,
+  Orbit,
+  PartyPopper,
+  RefreshCw,
+  Search,
+  Server,
+  Shuffle,
+  Waves,
+  Wind,
+  type LucideIcon
 } from 'lucide-react'
 import { apiClient } from '@/lib/api/client'
 import { AvatarUpload } from '@/components/profile/AvatarUpload'
@@ -37,30 +55,30 @@ const STEPS = [
 ]
 
 // Provider icons mapping
-const PROVIDER_ICONS: Record<string, string> = {
-  openai: '🤖',
-  anthropic: '🧠',
-  google: '✨',
-  gemini: '✨',
-  deepseek: '🐋',
-  groq: '⚡',
-  openrouter: '🔀',
-  minimax: '🔶',
-  azure_openai: '☁️',
-  bedrock: '🏔️',
-  vertex_ai: '🔷',
-  ollama: '🦙',
-  together_ai: '🤝',
-  mistral: '🌬️',
-  cohere: '🔮',
-  fireworks: '🎆',
-  deepinfra: '🧬',
-  anyscale: '📊',
-  litellm: '🔗',
-  perplexity: '🔍',
-  replicate: '🔄',
-  huggingface: '🤗',
-  default: '🤖',
+const PROVIDER_ICONS: Record<string, LucideIcon> = {
+  openai: Bot,
+  anthropic: Brain,
+  google: Sparkles,
+  gemini: Sparkles,
+  deepseek: Waves,
+  groq: Zap,
+  openrouter: Shuffle,
+  minimax: Diamond,
+  azure_openai: Cloud,
+  bedrock: Mountain,
+  vertex_ai: Hexagon,
+  ollama: Server,
+  together_ai: Handshake,
+  mistral: Wind,
+  cohere: Orbit,
+  fireworks: PartyPopper,
+  deepinfra: Dna,
+  anyscale: BarChart3,
+  litellm: Link,
+  perplexity: Search,
+  replicate: RefreshCw,
+  huggingface: Smile,
+  default: Bot,
 }
 
 // Personality presets
@@ -358,20 +376,20 @@ export default function CreateAgentPage() {
     <div className="agent-workspace min-h-full px-4 py-4 md:px-8 md:py-6 xl:px-10">
       <div className="mx-auto max-w-[90rem] py-1">
         <div className="mb-4 flex items-center justify-between gap-4">
-          <nav className="flex items-center gap-2 text-sm text-[#8a8378]">
+          <nav className="flex items-center gap-2 text-sm text-ash">
             <button
               onClick={() => router.push('/agents')}
-              className="inline-flex items-center gap-1.5 transition-colors hover:text-[#171717]"
+              className="inline-flex items-center gap-1.5 transition-colors hover:text-ink"
             >
               <ArrowLeft size={14} />
               <span className="font-medium">Agents</span>
             </button>
             <span className="text-black/20">/</span>
-            <span className="font-medium text-[#171717]">Create Agent</span>
+            <span className="font-medium text-ink">Create Agent</span>
           </nav>
           <button
             onClick={() => setShowTemplateSelector(true)}
-            className="inline-flex items-center gap-2 rounded-full bg-[#181818] px-4 py-2 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5"
+            className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-[13px] font-medium text-paper transition-transform motion-reduce:transition-none hover:-translate-y-0.5"
           >
             <Sparkles size={18} />
             <span className="font-medium">Use Template</span>
@@ -382,18 +400,18 @@ export default function CreateAgentPage() {
         <div className="dashboard-surface mb-6 rounded-[2rem] p-5 md:p-6">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#8a8378]">Creation Wizard</p>
-              <h2 className="text-[1.05rem] font-semibold text-gray-900 md:text-[1.2rem]">
+              <p className="text-[11px] font-semibold text-ash">Creation Wizard</p>
+              <h2 className="text-[1.05rem] font-semibold text-ink md:text-[1.2rem]">
                 Step {currentStep}: <span className="highlight-mint">{STEPS[currentStep - 1].name}</span>
               </h2>
             </div>
-            <span className="text-sm text-gray-500 font-medium">{currentStep} of {STEPS.length}</span>
+            <span className="text-sm text-ink-mute font-medium">{currentStep} of {STEPS.length}</span>
           </div>
 
           {/* Progress Bar */}
-          <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-4">
+          <div className="h-2 bg-sand rounded-full overflow-hidden mb-4">
             <div
-              className="h-full bg-gradient-to-r from-primary-500 to-primary-600 rounded-full transition-all duration-500"
+              className="h-full bg-ink hover:bg-ink/85 rounded-full transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-500"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -410,8 +428,8 @@ export default function CreateAgentPage() {
                   step.id === currentStep
                     ? 'text-primary-600'
                     : step.id < currentStep
-                      ? 'text-green-600'
-                      : 'text-gray-400'
+                      ? 'text-leaf'
+                      : 'text-ash'
                 }`}>
                   {step.id < currentStep ? (
                     <span className="flex items-center gap-1">
@@ -462,12 +480,12 @@ export default function CreateAgentPage() {
           </div>
 
           {/* Footer Navigation */}
-          <div className="flex items-center justify-between border-t border-black/[0.08] bg-[#f1eadc] px-6 py-4 md:px-8">
+          <div className="flex items-center justify-between border-t border-black/[0.08] bg-sand-deep px-6 py-4 md:px-8">
             <div>
               {currentStep > 1 && (
                 <button
                   onClick={prevStep}
-                  className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-medium text-[#5b564e] transition-colors hover:bg-white/50 hover:text-[#171717]"
+                  className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-medium text-ink-soft transition-colors hover:bg-white/50 hover:text-ink"
                 >
                   <ArrowLeft size={18} />
                   Back
@@ -478,7 +496,7 @@ export default function CreateAgentPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/agents')}
-                className="rounded-full px-5 py-2.5 text-[13px] font-medium text-[#5b564e] transition-colors hover:bg-white/50 hover:text-[#171717]"
+                className="rounded-full px-5 py-2.5 text-[13px] font-medium text-ink-soft transition-colors hover:bg-white/50 hover:text-ink"
               >
                 Cancel
               </button>
@@ -486,7 +504,7 @@ export default function CreateAgentPage() {
               {currentStep < STEPS.length ? (
                 <button
                   onClick={nextStep}
-                  className="inline-flex items-center gap-2 rounded-full bg-[#181818] px-6 py-2.5 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5"
+                  className="inline-flex items-center gap-2 rounded-full bg-ink px-6 py-2.5 text-[13px] font-medium text-paper transition-transform motion-reduce:transition-none hover:-translate-y-0.5"
                 >
                   Continue
                   <ArrowRight size={18} />
@@ -495,11 +513,11 @@ export default function CreateAgentPage() {
                 <button
                   onClick={handleSubmit}
                   disabled={creating}
-                  className="inline-flex items-center gap-2 rounded-full bg-[#181818] px-6 py-2.5 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-full bg-ink px-6 py-2.5 text-[13px] font-medium text-paper transition-transform motion-reduce:transition-none hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {creating ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full motion-safe:animate-spin" />
                       Creating...
                     </>
                   ) : (
@@ -535,8 +553,8 @@ function Step1Basics({ formData, setFormData, onAvatarUpload, onAvatarRemove, na
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="mb-3 text-gray-900">Define <span className="highlight-mint">Your Agent</span></h1>
-        <p className="max-w-3xl text-[15px] text-gray-600">
+        <h1 className="mb-3 text-ink">Define <span className="highlight-mint">Your Agent</span></h1>
+        <p className="max-w-3xl text-[15px] text-ink-soft">
           Give your AI agent an identity. A clear name and purpose helps users understand what it does.
         </p>
       </div>
@@ -544,7 +562,7 @@ function Step1Basics({ formData, setFormData, onAvatarUpload, onAvatarRemove, na
       {/* Avatar and Name Row */}
       <div className="flex flex-col sm:flex-row items-start gap-6 sm:gap-8">
         <div className="flex-shrink-0">
-          <label className="block text-sm font-bold text-gray-900 mb-3">
+          <label className="block text-sm font-bold text-ink mb-3">
             Avatar
           </label>
           <AvatarUpload
@@ -558,10 +576,10 @@ function Step1Basics({ formData, setFormData, onAvatarUpload, onAvatarRemove, na
           {/* Agent Name */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-bold text-gray-900">
+              <label className="block text-sm font-bold text-ink">
                 Agent Name *
               </label>
-              <span className={`text-xs font-medium ${formData.name.length > 50 ? 'text-red-500' : 'text-gray-400'}`}>
+              <span className={`text-xs font-medium ${formData.name.length > 50 ? 'text-leaf' : 'text-ash'}`}>
                 {formData.name.length}/50
               </span>
             </div>
@@ -572,23 +590,23 @@ function Step1Basics({ formData, setFormData, onAvatarUpload, onAvatarRemove, na
                 setFormData({ ...formData, name: e.target.value.slice(0, 50) })
                 if (nameError) setNameError(null)
               }}
-              className={`w-full px-5 py-4 border-2 rounded-xl focus:ring-2 transition-all bg-white text-lg font-medium ${
+              className={`w-full px-5 py-4 border-2 rounded-xl focus:ring-2 transition-[color,background-color,border-color,box-shadow,opacity,transform] bg-white text-lg font-medium ${
                 nameError
-                  ? 'border-red-400 focus:ring-red-300 focus:border-red-500'
-                  : 'border-gray-200 focus:ring-primary-500 focus:border-primary-500'
+                  ? 'border-hotpink focus:ring-blush focus:border-ink'
+                  : 'border-line focus:ring-primary-500 focus:border-primary-500'
               }`}
               placeholder="e.g., Marketing Expert, Code Reviewer"
             />
             {nameError && (
-              <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                <span>⚠</span> {nameError}
+              <p className="mt-2 text-sm text-danger flex items-center gap-1">
+                <span></span> {nameError}
               </p>
             )}
           </div>
 
           {/* Agent Type */}
           <div>
-            <label className="block text-sm font-bold text-gray-900 mb-3">
+            <label className="block text-sm font-bold text-ink mb-3">
               Agent Type
             </label>
             <div className="grid grid-cols-4 gap-3">
@@ -601,23 +619,23 @@ function Step1Basics({ formData, setFormData, onAvatarUpload, onAvatarRemove, na
                 <button
                   key={type.value}
                   onClick={() => setFormData({ ...formData, agent_type: type.value })}
-                  className={`relative p-4 rounded-2xl border-2 transition-all text-left ${
+                  className={`relative p-4 rounded-2xl border-2 transition-[color,background-color,border-color,box-shadow,opacity,transform] text-left ${
                     formData.agent_type === type.value
-                      ? 'border-black/15 bg-primary-50 shadow-[0_18px_40px_rgba(0,0,0,0.06)]'
-                      : 'border-gray-200 hover:border-black/10 hover:shadow-md bg-white'
+                      ? 'border-black/15 bg-primary-50 shadow-soft'
+                      : 'border-line hover:border-black/10 hover:shadow-md bg-white'
                   }`}
                 >
                   <type.icon className={`w-6 h-6 mb-2 ${
-                    formData.agent_type === type.value ? 'text-primary-600' : 'text-gray-400'
+                    formData.agent_type === type.value ? 'text-primary-600' : 'text-ash'
                   }`} />
                   <div className={`font-bold text-sm ${
-                    formData.agent_type === type.value ? 'text-primary-900' : 'text-gray-900'
+                    formData.agent_type === type.value ? 'text-primary-900' : 'text-ink'
                   }`}>
                     {type.label}
                   </div>
-                  <div className="text-xs text-gray-500">{type.desc}</div>
+                  <div className="text-xs text-ink-mute">{type.desc}</div>
                   {formData.agent_type === type.value && (
-                    <div className="absolute top-2 right-2 w-5 h-5 bg-[#181818] rounded-full flex items-center justify-center">
+                    <div className="absolute top-2 right-2 w-5 h-5 bg-ink rounded-full flex items-center justify-center">
                       <Check size={12} className="text-white" />
                     </div>
                   )}
@@ -631,22 +649,22 @@ function Step1Basics({ formData, setFormData, onAvatarUpload, onAvatarRemove, na
       {/* Description */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="block text-sm font-bold text-gray-900">
+          <label className="block text-sm font-bold text-ink">
             What does this agent do? *
           </label>
-          <span className={`text-xs font-medium ${formData.description.length > 160 ? 'text-red-500' : 'text-gray-400'}`}>
+          <span className={`text-xs font-medium ${formData.description.length > 160 ? 'text-leaf' : 'text-ash'}`}>
             {formData.description.length}/160
           </span>
         </div>
         <textarea
           value={formData.description}
           onChange={(e) => setFormData({ ...formData, description: e.target.value.slice(0, 160) })}
-          className="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-white text-base resize-none"
+          className="w-full px-5 py-4 border-2 border-line rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-[color,background-color,border-color,box-shadow,opacity,transform] bg-white text-base resize-none"
           rows={3}
-          placeholder="Describe what your agent helps with..."
+          placeholder="Describe what your agent helps with…"
         />
-        <p className="mt-2 text-sm text-gray-500 flex items-center gap-2">
-          <Lightbulb size={14} className="text-amber-500" />
+        <p className="mt-2 text-sm text-ink-mute flex items-center gap-2">
+          <Lightbulb size={14} className="text-warn" />
           Be specific! "Writes SEO blog posts" is better than "Helps with writing"
         </p>
       </div>
@@ -770,8 +788,8 @@ function Step2AIModel({ formData, setFormData }: any) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-gray-500 font-medium">Loading AI providers...</p>
+          <div className="motion-safe:animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-ink-mute font-medium">Loading AI providers…</p>
         </div>
       </div>
     )
@@ -781,18 +799,18 @@ function Step2AIModel({ formData, setFormData }: any) {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="mb-3 text-gray-900">Choose Your <span className="highlight-mint">AI Brain</span></h1>
-        <p className="max-w-3xl text-[15px] text-gray-600">
+        <h1 className="mb-3 text-ink">Choose Your <span className="highlight-mint">AI Brain</span></h1>
+        <p className="max-w-3xl text-[15px] text-ink-soft">
           Select the AI provider and model that will power your agent.
         </p>
       </div>
 
       {/* Step 1: Select Provider */}
       <div>
-          <h2 className="mb-4 flex items-center gap-2 text-[1rem] font-semibold text-gray-900">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#181818] text-[12px] font-bold text-white">1</span>
+          <h2 className="mb-4 flex items-center gap-2 text-[1rem] font-semibold text-ink">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-[12px] font-bold text-white">1</span>
             Select Provider
-            <span className="text-sm font-normal text-gray-500 ml-2">({providers.length} available)</span>
+            <span className="text-sm font-normal text-ink-mute ml-2">({providers.length} available)</span>
           </h2>
 
         {/* Provider Search */}
@@ -803,7 +821,7 @@ function Step2AIModel({ formData, setFormData }: any) {
               value={providerSearch}
               onChange={(e) => setProviderSearch(e.target.value)}
               placeholder="Search providers (e.g., OpenAI, LiteLLM, Ollama...)"
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-base"
+              className="w-full px-4 py-3 border-2 border-line rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-base"
             />
           </div>
         )}
@@ -813,27 +831,27 @@ function Step2AIModel({ formData, setFormData }: any) {
             <button
               key={provider.provider_id}
               onClick={() => handleProviderSelect(provider.provider_id)}
-              className={`relative p-4 rounded-2xl border-2 transition-all text-left group ${
+              className={`relative p-4 rounded-2xl border-2 transition-[color,background-color,border-color,box-shadow,opacity,transform] text-left group ${
                 formData.llm_provider === provider.provider_id
-                  ? 'border-black/15 bg-primary-50 shadow-[0_18px_40px_rgba(0,0,0,0.06)]'
-                  : 'border-gray-200 hover:border-black/10 hover:shadow-md bg-white'
+                  ? 'border-black/15 bg-primary-50 shadow-soft'
+                  : 'border-line hover:border-black/10 hover:shadow-md bg-white'
               }`}
             >
               <div className="flex items-center gap-3">
-                <span className="text-3xl">{PROVIDER_ICONS[provider.provider_id] || PROVIDER_ICONS.default}</span>
+                {(() => { const ProviderIcon = PROVIDER_ICONS[provider.provider_id] || PROVIDER_ICONS.default; return <ProviderIcon className="h-8 w-8" aria-hidden="true" /> })()}
                 <div className="flex-1 min-w-0">
                   <div className={`font-bold text-base truncate ${
-                    formData.llm_provider === provider.provider_id ? 'text-primary-900' : 'text-gray-900'
+                    formData.llm_provider === provider.provider_id ? 'text-primary-900' : 'text-ink'
                   }`}>
                     {provider.provider_name}
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-ink-mute">
                     {provider.model_count || provider.models?.length || 0} models
                   </div>
                 </div>
               </div>
               {formData.llm_provider === provider.provider_id && (
-                <div className="absolute top-2 right-2 w-6 h-6 bg-[#181818] rounded-full flex items-center justify-center">
+                <div className="absolute top-2 right-2 w-6 h-6 bg-ink rounded-full flex items-center justify-center">
                   <Check size={14} className="text-white" />
                 </div>
               )}
@@ -841,7 +859,7 @@ function Step2AIModel({ formData, setFormData }: any) {
           ))}
         </div>
         {filteredProviders.length === 0 && providerSearch && (
-          <p className="text-sm text-gray-500 mt-3 text-center py-4">
+          <p className="text-sm text-ink-mute mt-3 text-center py-4">
             No providers found matching "{providerSearch}"
           </p>
         )}
@@ -850,18 +868,18 @@ function Step2AIModel({ formData, setFormData }: any) {
       {/* Step 2: Select Model */}
       {formData.llm_provider && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <h2 className="mb-4 flex items-center gap-2 text-[1rem] font-semibold text-gray-900">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#181818] text-[12px] font-bold text-white">2</span>
+          <h2 className="mb-4 flex items-center gap-2 text-[1rem] font-semibold text-ink">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-[12px] font-bold text-white">2</span>
             Select Model
             {models.length > 0 && (
-              <span className="text-sm font-normal text-gray-500 ml-2">({models.length} available)</span>
+              <span className="text-sm font-normal text-ink-mute ml-2">({models.length} available)</span>
             )}
           </h2>
 
           {loadingModels ? (
-            <div className="flex items-center justify-center py-8 bg-gray-50 rounded-2xl">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-              <span className="ml-3 text-gray-500 font-medium">Loading models...</span>
+            <div className="flex items-center justify-center py-8 bg-cream rounded-2xl">
+              <div className="motion-safe:animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+              <span className="ml-3 text-ink-mute font-medium">Loading models…</span>
             </div>
           ) : models.length > 0 ? (
             <>
@@ -872,8 +890,8 @@ function Step2AIModel({ formData, setFormData }: any) {
                     type="text"
                     value={modelSearch}
                     onChange={(e) => setModelSearch(e.target.value)}
-                    placeholder="Search models..."
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-base"
+                    placeholder="Search models…"
+                    className="w-full px-4 py-3 border-2 border-line rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-base"
                   />
                 </div>
               )}
@@ -883,24 +901,24 @@ function Step2AIModel({ formData, setFormData }: any) {
                   const score = model.quality_score
                   const qualityPct = score !== null ? (score / 10) * 100 : null
                   const qualityBarColor = score !== null
-                    ? score >= 9 ? 'bg-green-500' : score >= 8 ? 'bg-amber-400' : 'bg-gray-300'
+                    ? score >= 9 ? 'bg-leaf' : score >= 8 ? 'bg-honey' : 'bg-taupe'
                     : ''
                   const qualityTextColor = score !== null
-                    ? score >= 9 ? 'text-green-600' : score >= 8 ? 'text-amber-600' : 'text-gray-500'
+                    ? score >= 9 ? 'text-leaf' : score >= 8 ? 'text-warn' : 'text-ink-mute'
                     : ''
 
                   return (
                     <button
                       key={model.model_name}
                       onClick={() => handleModelSelect(model.model_name)}
-                      className={`relative flex flex-col gap-0 rounded-2xl border-2 text-left transition-all duration-150 overflow-hidden ${
+                      className={`relative flex flex-col gap-0 rounded-2xl border-2 text-left transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-150 overflow-hidden ${
                         isSelected
-                          ? 'border-black/15 shadow-[0_18px_40px_rgba(0,0,0,0.06)]'
-                          : 'border-gray-200 bg-white hover:border-black/10 hover:shadow-md'
+                          ? 'border-black/15 shadow-soft'
+                          : 'border-line bg-white hover:border-black/10 hover:shadow-md'
                       }`}
                     >
                       {/* Coloured top accent strip */}
-                      <div className={`h-1 w-full ${isSelected ? 'bg-[#63dfbe]' : 'bg-transparent'}`} />
+                      <div className={`h-1 w-full ${isSelected ? 'bg-mint' : 'bg-transparent'}`} />
 
                       {/* Body */}
                       <div className={`flex-1 px-5 pt-4 pb-3 ${isSelected ? 'bg-primary-50' : ''}`}>
@@ -908,34 +926,34 @@ function Step2AIModel({ formData, setFormData }: any) {
                         {/* Name row */}
                         <div className="flex items-start justify-between gap-2 mb-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className={`font-bold text-base leading-tight ${isSelected ? 'text-primary-900' : 'text-gray-900'}`}>
+                            <span className={`font-bold text-base leading-tight ${isSelected ? 'text-primary-900' : 'text-ink'}`}>
                               {model.name}
                             </span>
                             {index === 0 && !modelSearch && (
-                              <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+                              <span className="px-2 py-0.5 bg-leaf-wash text-forest text-xs font-semibold rounded-full">
                                 Recommended
                               </span>
                             )}
                             {model.is_open_source && (
-                              <span className="px-2 py-0.5 bg-violet-100 text-violet-700 text-xs font-semibold rounded-full">
+                              <span className="px-2 py-0.5 bg-sand-deep text-ink-soft text-xs font-semibold rounded-full">
                                 Open Source
                               </span>
                             )}
                           </div>
                           {isSelected && (
-                            <div className="shrink-0 w-6 h-6 bg-[#181818] rounded-full flex items-center justify-center">
+                            <div className="shrink-0 w-6 h-6 bg-ink rounded-full flex items-center justify-center">
                               <Check size={13} className="text-white" />
                             </div>
                           )}
                         </div>
 
                         {/* Model ID */}
-                        <p className="text-xs text-gray-400 font-mono truncate mb-3">
+                        <p className="text-xs text-ash font-mono truncate mb-3">
                           {model.model_name}
                         </p>
 
                         {/* Description */}
-                        <p className="text-sm text-gray-600 leading-relaxed line-clamp-2 mb-4">
+                        <p className="text-sm text-ink-soft leading-relaxed line-clamp-2 mb-4">
                           {model.description}
                         </p>
                       </div>
@@ -944,56 +962,56 @@ function Step2AIModel({ formData, setFormData }: any) {
                       <div className={`grid grid-cols-3 divide-x border-t px-0 ${
                         isSelected
                           ? 'bg-primary-100/60 border-primary-200 divide-primary-200'
-                          : 'bg-gray-50 border-gray-100 divide-gray-100'
+                          : 'bg-cream border-sand divide-sand'
                       }`}>
 
                         {/* Quality */}
                         <div className="px-4 py-3">
-                          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1.5">Quality</p>
+                          <p className="text-[10px] font-semibold text-ash mb-1.5">Quality</p>
                           {score !== null ? (
                             <>
                               <p className={`text-xl font-bold tabular-nums leading-none ${qualityTextColor}`}>
                                 {score.toFixed(1)}
                               </p>
-                              <div className="mt-1.5 h-1 w-full bg-gray-200 rounded-full overflow-hidden">
+                              <div className="mt-1.5 h-1 w-full bg-line rounded-full overflow-hidden">
                                 <div className={`h-full rounded-full ${qualityBarColor}`} style={{ width: `${qualityPct}%` }} />
                               </div>
                             </>
                           ) : (
-                            <p className="text-sm text-gray-400">—</p>
+                            <p className="text-sm text-ash">—</p>
                           )}
                         </div>
 
                         {/* Speed */}
                         <div className="px-4 py-3">
-                          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1.5">Speed</p>
+                          <p className="text-[10px] font-semibold text-ash mb-1.5">Speed</p>
                           {model.speed_tier ? (
                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold ${
-                              model.speed_tier === 'fast'   ? 'bg-green-100 text-green-700' :
-                              model.speed_tier === 'medium' ? 'bg-amber-100 text-amber-700' :
-                                                              'bg-red-100 text-red-700'
+                              model.speed_tier === 'fast'   ? 'bg-leaf-wash text-forest' :
+                              model.speed_tier === 'medium' ? 'bg-sand-deep text-gold' :
+                                                              'bg-blush-wash text-leaf'
                             }`}>
                               {model.speed_tier === 'fast' && <Zap className="w-3 h-3" />}
                               {model.speed_tier.charAt(0).toUpperCase() + model.speed_tier.slice(1)}
                             </span>
                           ) : (
-                            <p className="text-sm text-gray-400">—</p>
+                            <p className="text-sm text-ash">—</p>
                           )}
                         </div>
 
                         {/* Cost */}
                         <div className="px-4 py-3">
-                          <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1.5">Cost / 1M</p>
+                          <p className="text-[10px] font-semibold text-ash mb-1.5">Cost / 1M</p>
                           {model.cost_input_per_1m === null ? (
-                            <p className="text-sm text-gray-400">—</p>
+                            <p className="text-sm text-ash">—</p>
                           ) : model.cost_input_per_1m === 0 ? (
-                            <p className="text-sm font-bold text-green-600">Free</p>
+                            <p className="text-sm font-bold text-leaf">Free</p>
                           ) : (
                             <>
-                              <p className="text-sm font-bold text-gray-800 tabular-nums leading-tight">
+                              <p className="text-sm font-bold text-ink tabular-nums leading-tight">
                                 ${model.cost_input_per_1m}
                               </p>
-                              <p className="text-xs text-gray-400 tabular-nums mt-0.5">
+                              <p className="text-xs text-ash tabular-nums mt-0.5">
                                 ${model.cost_output_per_1m} out
                               </p>
                             </>
@@ -1006,13 +1024,13 @@ function Step2AIModel({ formData, setFormData }: any) {
                 })}
               </div>
               {filteredModels.length === 0 && modelSearch && (
-                <p className="text-sm text-gray-500 mt-3 text-center py-4">
+                <p className="text-sm text-ink-mute mt-3 text-center py-4">
                   No models found matching "{modelSearch}"
                 </p>
               )}
             </>
           ) : (
-            <div className="text-center py-8 bg-gray-50 rounded-2xl text-gray-500">
+            <div className="text-center py-8 bg-cream rounded-2xl text-ink-mute">
               No models available for this provider
             </div>
           )}
@@ -1022,13 +1040,13 @@ function Step2AIModel({ formData, setFormData }: any) {
       {/* Step 3: API Key (always required) */}
       {formData.llm_model && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <h2 className="mb-4 flex items-center gap-2 text-[1rem] font-semibold text-gray-900">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#181818] text-[12px] font-bold text-white">3</span>
+          <h2 className="mb-4 flex items-center gap-2 text-[1rem] font-semibold text-ink">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-ink text-[12px] font-bold text-white">3</span>
             Enter API Key
-            <span className="text-red-500">*</span>
+            <span className="text-leaf">*</span>
           </h2>
 
-          <div className="bg-gray-50 rounded-2xl p-6">
+          <div className="bg-cream rounded-2xl p-6">
             <div className="relative">
               <input
                 type={showApiKey ? 'text' : 'password'}
@@ -1036,7 +1054,7 @@ function Step2AIModel({ formData, setFormData }: any) {
                 onChange={(e) => setFormData({ ...formData, llm_api_key: e.target.value })}
                 placeholder={`Paste your ${selectedProvider?.provider_name || 'provider'} API key here`}
                 className={`w-full px-5 py-4 border-2 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-base font-medium pr-24 ${
-                  formData.llm_api_key ? 'border-green-300' : 'border-gray-200'
+                  formData.llm_api_key ? 'border-mint' : 'border-line'
                 }`}
               />
               <button
@@ -1049,16 +1067,16 @@ function Step2AIModel({ formData, setFormData }: any) {
             </div>
 
             {selectedProvider?.setup_instructions && (
-              <div className="mt-3 flex items-start gap-2 text-sm text-gray-600">
-                <Lightbulb size={16} className="text-amber-500 mt-0.5 flex-shrink-0" />
+              <div className="mt-3 flex items-start gap-2 text-sm text-ink-soft">
+                <Lightbulb size={16} className="text-warn mt-0.5 flex-shrink-0" />
                 <span>{selectedProvider.setup_instructions}</span>
               </div>
             )}
 
             {formData.llm_api_key && (
-              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-xl flex items-center gap-2">
-                <Check size={16} className="text-green-600" />
-                <p className="text-sm text-green-800 font-medium">
+              <div className="mt-4 p-3 bg-leaf-wash border border-mint rounded-xl flex items-center gap-2">
+                <Check size={16} className="text-leaf" />
+                <p className="text-sm text-forest font-medium">
                   API key entered
                 </p>
               </div>
@@ -1070,8 +1088,8 @@ function Step2AIModel({ formData, setFormData }: any) {
       {/* API Base URL for special providers */}
       {selectedProvider && selectedProvider.requires_api_base && formData.llm_model && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <span className="w-7 h-7 bg-gray-400 text-white rounded-full flex items-center justify-center text-sm font-bold">+</span>
+          <h2 className="text-lg font-bold text-ink mb-4 flex items-center gap-2">
+            <span className="w-7 h-7 bg-ash text-white rounded-full flex items-center justify-center text-sm font-bold">+</span>
             API Endpoint
           </h2>
           <input
@@ -1079,7 +1097,7 @@ function Step2AIModel({ formData, setFormData }: any) {
             value={formData.llm_api_base}
             onChange={(e) => setFormData({ ...formData, llm_api_base: e.target.value })}
             placeholder={selectedProvider.default_api_base || 'https://api.example.com/v1'}
-            className="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-base"
+            className="w-full px-5 py-4 border-2 border-line rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white text-base"
           />
         </div>
       )}
@@ -1088,25 +1106,25 @@ function Step2AIModel({ formData, setFormData }: any) {
       {formData.llm_provider && formData.llm_model && (
         <div className={`rounded-2xl p-5 border-2 ${
           formData.llm_api_key
-            ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200'
-            : 'bg-gradient-to-r from-primary-50 to-primary-100 border-primary-200'
+            ? 'bg-leaf-wash border-mint'
+            : 'bg-ink hover:bg-ink/85 border-primary-200'
         }`}>
           <div className="flex items-center gap-4">
-            <span className="text-4xl">{PROVIDER_ICONS[formData.llm_provider] || PROVIDER_ICONS.default}</span>
+            {(() => { const ProviderIcon = PROVIDER_ICONS[formData.llm_provider] || PROVIDER_ICONS.default; return <ProviderIcon className="h-10 w-10" aria-hidden="true" /> })()}
             <div className="flex-1">
-              <div className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${
-                formData.llm_api_key ? 'text-green-600' : 'text-primary-600'
+              <div className={`text-[11px] font-semibold ${
+                formData.llm_api_key ? 'text-leaf' : 'text-primary-600'
               }`}>
                 {formData.llm_api_key ? 'Ready to Go!' : 'Almost There'}
               </div>
-              <div className="text-[1.15rem] font-semibold text-gray-900">{selectedProvider?.provider_name} / {selectedModel?.name}</div>
+              <div className="text-[1.15rem] font-semibold text-ink">{selectedProvider?.provider_name} / {selectedModel?.name}</div>
             </div>
             {formData.llm_api_key ? (
-              <div className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-full text-sm font-bold shadow-lg shadow-green-500/30">
+              <div className="flex items-center gap-2 px-4 py-2 bg-leaf text-white rounded-full text-sm font-bold shadow-lg shadow-green-500/30">
                 <Check size={16} /> Complete
               </div>
             ) : (
-              <div className="flex items-center gap-2 px-4 py-2 bg-amber-100 text-amber-700 rounded-full text-sm font-bold">
+              <div className="flex items-center gap-2 px-4 py-2 bg-sand-deep text-gold rounded-full text-sm font-bold">
                 Enter API Key
               </div>
             )}
@@ -1130,50 +1148,50 @@ function Step3Personality({ formData, setFormData, onPersonalityChange }: {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="mb-3 text-gray-900">Set the <span className="highlight-pink">Tone</span></h1>
-        <p className="max-w-3xl text-[15px] text-gray-600">
+        <h1 className="mb-3 text-ink">Set the <span className="highlight-pink">Tone</span></h1>
+        <p className="max-w-3xl text-[15px] text-ink-soft">
           Pick a starting personality, then customize the system prompt as needed.
         </p>
       </div>
 
       {/* Personality Options - Horizontal layout */}
       <div>
-        <label className="block text-sm font-bold text-gray-900 mb-3">Start with a Personality Template</label>
+        <label className="block text-sm font-bold text-ink mb-3">Start with a Personality Template</label>
         <div className="grid grid-cols-4 gap-3">
           {PERSONALITIES.map((personality) => (
             <button
               key={personality.id}
               onClick={() => onPersonalityChange(personality.id)}
-              className={`p-4 rounded-2xl border-2 transition-all text-left relative ${
+              className={`p-4 rounded-2xl border-2 transition-[color,background-color,border-color,box-shadow,opacity,transform] text-left relative ${
                 formData.personality === personality.id
-                  ? 'border-black/15 bg-red-50 shadow-[0_18px_40px_rgba(0,0,0,0.06)]'
-                  : 'border-gray-200 hover:border-black/10 hover:shadow-md bg-white'
+                  ? 'border-black/15 bg-blush-wash shadow-soft'
+                  : 'border-line hover:border-black/10 hover:shadow-md bg-white'
               }`}
             >
               {formData.personality === personality.id && (
-                <div className="absolute top-2 right-2 w-5 h-5 bg-[#181818] rounded-full flex items-center justify-center">
+                <div className="absolute top-2 right-2 w-5 h-5 bg-ink rounded-full flex items-center justify-center">
                   <Check size={12} className="text-white" />
                 </div>
               )}
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-2 ${
                 formData.personality === personality.id
-                  ? 'bg-red-100'
-                  : 'bg-gray-100'
+                  ? 'bg-blush-wash'
+                  : 'bg-sand'
               }`}>
                 <personality.icon className={`w-5 h-5 ${
                   formData.personality === personality.id
-                    ? 'text-[#171717]'
-                    : 'text-gray-500'
+                    ? 'text-ink'
+                    : 'text-ink-mute'
                 }`} />
               </div>
               <div className={`font-bold text-sm mb-1 ${
                 formData.personality === personality.id
                   ? 'text-primary-900'
-                  : 'text-gray-900'
+                  : 'text-ink'
               }`}>
                 {personality.name}
               </div>
-              <div className="text-xs text-gray-500 leading-relaxed line-clamp-2">
+              <div className="text-xs text-ink-mute leading-relaxed line-clamp-2">
                 {personality.description}
               </div>
             </button>
@@ -1186,17 +1204,17 @@ function Step3Personality({ formData, setFormData, onPersonalityChange }: {
         {/* System Prompt - Takes 3 columns */}
         <div className="col-span-3">
           <div className="flex items-center justify-between mb-2">
-            <label className="block text-sm font-bold text-gray-900">
+            <label className="block text-sm font-bold text-ink">
               System Prompt
             </label>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-ink-mute">
               Currently: {selectedPersonality?.name} template
             </span>
           </div>
           <textarea
             value={formData.system_prompt}
             onChange={(e) => setFormData((prev: any) => ({ ...prev, system_prompt: e.target.value }))}
-            className="w-full px-5 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-white font-mono text-sm"
+            className="w-full px-5 py-4 border-2 border-line rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-[color,background-color,border-color,box-shadow,opacity,transform] bg-white font-mono text-sm"
             rows={12}
             placeholder="You are a helpful AI assistant...
 
@@ -1206,24 +1224,24 @@ Define your agent's personality, behavior, and capabilities here. Be specific ab
 - Any specific rules or guidelines
 - Knowledge domains or expertise areas"
           />
-          <p className="mt-2 text-xs text-gray-500">
+          <p className="mt-2 text-xs text-ink-mute">
             This is the complete system prompt for your agent. Select a personality template above to pre-fill, then edit as needed.
           </p>
         </div>
 
         {/* Visual Preview - Takes 2 columns */}
         <div className="col-span-2">
-            <div className="bg-gray-50 rounded-xl p-5 sticky top-4 border border-black/[0.08]">
+            <div className="bg-cream rounded-xl p-5 sticky top-4 border border-black/[0.08]">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-sm font-medium text-gray-700">Live Preview</span>
+              <div className="w-2 h-2 bg-leaf rounded-full motion-safe:animate-pulse" />
+              <span className="text-sm font-medium text-ink-soft">Live Preview</span>
             </div>
 
             <div className="space-y-3 mb-4">
               {/* User Message */}
               <div className="flex justify-end">
-                <div className="bg-white rounded-2xl rounded-tr-md px-3 py-2 max-w-[85%] shadow-sm border border-gray-100">
-                  <p className="text-xs text-gray-700">Hey there! I need help setting up my first project.</p>
+                <div className="bg-white rounded-2xl rounded-tr-md px-3 py-2 max-w-[85%] shadow-sm border border-sand">
+                  <p className="text-xs text-ink-soft">Hey there! I need help setting up my first project.</p>
                 </div>
               </div>
 
@@ -1231,7 +1249,7 @@ Define your agent's personality, behavior, and capabilities here. Be specific ab
               <div className="flex justify-start">
                 <div className="bg-primary-50 rounded-2xl rounded-tl-md px-3 py-2 max-w-[85%] border border-primary-100">
                   <p className="text-[10px] font-medium text-primary-600 mb-1">Agent</p>
-                  <p className="text-xs text-gray-700">
+                  <p className="text-xs text-ink-soft">
                     {selectedPersonality?.id === 'friendly' && "I'd be absolutely thrilled to help you get started! Let's do this together, step by step."}
                     {selectedPersonality?.id === 'professional' && "I'll be happy to assist you with your project setup. Please provide the specific requirements."}
                     {selectedPersonality?.id === 'expert' && "Certainly. Let's begin with the foundational aspects. I'll need to understand your requirements first."}
@@ -1242,7 +1260,7 @@ Define your agent's personality, behavior, and capabilities here. Be specific ab
             </div>
 
             {/* Personality Label */}
-            <div className="text-center p-3 bg-gradient-to-br from-primary-50 to-primary-100 rounded-xl border border-black/[0.06]">
+            <div className="text-center p-3 bg-ink hover:bg-ink/85 rounded-xl border border-black/[0.06]">
               <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm">
                 {selectedPersonality && <selectedPersonality.icon className="w-5 h-5 text-primary-600" />}
               </div>
@@ -1276,8 +1294,8 @@ function Step4Capabilities({
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="mb-3 text-gray-900">Add <span className="highlight-mint">Superpowers</span></h1>
-        <p className="max-w-3xl text-[15px] text-gray-600">
+        <h1 className="mb-3 text-ink">Add <span className="highlight-mint">Superpowers</span></h1>
+        <p className="max-w-3xl text-[15px] text-ink-soft">
           Select capabilities to unlock powerful tools and integrations for your agent.
         </p>
       </div>
@@ -1292,16 +1310,16 @@ function Step4Capabilities({
       />
 
       {selectedCapabilities.length > 0 && (
-        <div className="p-5 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl">
+        <div className="p-5 bg-leaf-wash border-2 border-mint rounded-2xl">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 bg-leaf rounded-full flex items-center justify-center">
               <Check className="w-5 h-5 text-white" />
             </div>
             <div>
-              <span className="font-bold text-green-900 text-lg">
+              <span className="font-bold text-forest text-lg">
                 {selectedCapabilities.length} capability{selectedCapabilities.length !== 1 ? 'ies' : ''} selected
               </span>
-              <p className="text-sm text-green-700">
+              <p className="text-sm text-forest">
                 These will be enabled automatically when your agent is created.
               </p>
             </div>
@@ -1339,8 +1357,8 @@ function Step5Review({ formData, setFormData, selectedCapabilities, humanContact
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="mb-3 text-gray-900">Ready to <span className="highlight-pink">Launch</span></h1>
-        <p className="max-w-3xl text-[15px] text-gray-600">
+        <h1 className="mb-3 text-ink">Ready to <span className="highlight-pink">Launch</span></h1>
+        <p className="max-w-3xl text-[15px] text-ink-soft">
           Review your agent configuration. You can always edit these later.
         </p>
       </div>
@@ -1348,58 +1366,58 @@ function Step5Review({ formData, setFormData, selectedCapabilities, humanContact
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-6">
         {/* Basic Info Card */}
-        <div className="p-5 bg-gray-50 rounded-2xl border border-gray-200">
-          <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+        <div className="p-5 bg-cream rounded-2xl border border-line">
+          <h3 className="font-bold text-ink mb-4 flex items-center gap-2">
             <User className="w-5 h-5 text-primary-600" />
             Basic Info
           </h3>
           <div className="space-y-3">
             <div>
-              <div className="text-xl font-bold text-gray-900">{formData.name || '-'}</div>
-              <div className="text-sm text-gray-500">{formData.agent_type} Agent</div>
+              <div className="text-xl font-bold text-ink">{formData.name || '-'}</div>
+              <div className="text-sm text-ink-mute">{formData.agent_type} Agent</div>
             </div>
-            <p className="text-sm text-gray-600">{formData.description || '-'}</p>
+            <p className="text-sm text-ink-soft">{formData.description || '-'}</p>
           </div>
         </div>
 
         {/* AI Model Card */}
-        <div className="p-5 bg-gray-50 rounded-2xl border border-gray-200">
-          <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+        <div className="p-5 bg-cream rounded-2xl border border-line">
+          <h3 className="font-bold text-ink mb-4 flex items-center gap-2">
             <Cpu className="w-5 h-5 text-primary-600" />
             AI Model
           </h3>
           <div className="flex items-center gap-4">
-            <span className="text-4xl">{PROVIDER_ICONS[formData.llm_provider] || PROVIDER_ICONS.default}</span>
+            {(() => { const ProviderIcon = PROVIDER_ICONS[formData.llm_provider] || PROVIDER_ICONS.default; return <ProviderIcon className="h-10 w-10" aria-hidden="true" /> })()}
             <div className="flex-1">
-              <div className="font-bold text-gray-900 text-lg">{providerName}</div>
-              <div className="text-sm text-gray-500">{formData.llm_model}</div>
+              <div className="font-bold text-ink text-lg">{providerName}</div>
+              <div className="text-sm text-ink-mute">{formData.llm_model}</div>
             </div>
-            <span className="px-3 py-1.5 bg-green-100 text-green-700 rounded-full text-xs font-bold flex items-center gap-1">
+            <span className="px-3 py-1.5 bg-leaf-wash text-forest rounded-full text-xs font-bold flex items-center gap-1">
               <Check size={12} /> Configured
             </span>
           </div>
         </div>
 
         {/* Personality Card */}
-        <div className="p-5 bg-gray-50 rounded-2xl border border-gray-200">
-          <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+        <div className="p-5 bg-cream rounded-2xl border border-line">
+          <h3 className="font-bold text-ink mb-4 flex items-center gap-2">
             <Smile className="w-5 h-5 text-primary-600" />
             Personality
           </h3>
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-sand-deep rounded-xl flex items-center justify-center">
               {selectedPersonality && <selectedPersonality.icon className="w-6 h-6 text-primary-600" />}
             </div>
             <div>
-              <div className="font-bold text-gray-900 text-lg">{selectedPersonality?.name}</div>
-              <div className="text-sm text-gray-500">{selectedPersonality?.description}</div>
+              <div className="font-bold text-ink text-lg">{selectedPersonality?.name}</div>
+              <div className="text-sm text-ink-mute">{selectedPersonality?.description}</div>
             </div>
           </div>
         </div>
 
         {/* Capabilities Card */}
-        <div className="p-5 bg-gray-50 rounded-2xl border border-gray-200">
-          <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+        <div className="p-5 bg-cream rounded-2xl border border-line">
+          <h3 className="font-bold text-ink mb-4 flex items-center gap-2">
             <Zap className="w-5 h-5 text-primary-600" />
             Capabilities
           </h3>
@@ -1411,46 +1429,46 @@ function Step5Review({ formData, setFormData, selectedCapabilities, humanContact
                 </span>
               ))}
               {selectedCapabilities.length > 6 && (
-                <span className="px-3 py-1.5 bg-gray-200 text-gray-600 rounded-lg text-xs font-bold">
+                <span className="px-3 py-1.5 bg-line text-ink-soft rounded-lg text-xs font-bold">
                   +{selectedCapabilities.length - 6} more
                 </span>
               )}
             </div>
           ) : (
-            <p className="text-sm text-gray-500 italic">No capabilities selected</p>
+            <p className="text-sm text-ink-mute italic">No capabilities selected</p>
           )}
         </div>
 
         {/* Advanced Settings Card */}
-        <div className="p-5 bg-gray-50 rounded-2xl border border-gray-200">
-          <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+        <div className="p-5 bg-cream rounded-2xl border border-line">
+          <h3 className="font-bold text-ink mb-4 flex items-center gap-2">
             <Settings2 className="w-5 h-5 text-primary-600" />
             Settings
           </h3>
 
           {/* Marketplace Toggle */}
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm text-gray-700">List in Marketplace</span>
+            <span className="text-sm text-ink-soft">List in Marketplace</span>
             <button
               onClick={() => setFormData({ ...formData, is_public: !formData.is_public })}
               className={`relative w-11 h-6 rounded-full transition-colors ${
-                formData.is_public ? 'bg-primary-500' : 'bg-gray-300'
+                formData.is_public ? 'bg-primary-500' : 'bg-taupe'
               }`}
             >
-              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform motion-reduce:transition-none ${
                 formData.is_public ? 'translate-x-5' : 'translate-x-0'
               }`} />
             </button>
           </div>
 
           {formData.is_public && (
-            <div className="space-y-3 pt-3 border-t border-gray-200">
+            <div className="space-y-3 pt-3 border-t border-line">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
+                <label className="block text-xs font-medium text-ink-soft mb-1">Category</label>
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-line rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
                   <option value="">Select category</option>
                   <option value="Productivity">Productivity</option>
@@ -1463,12 +1481,12 @@ function Step5Review({ formData, setFormData, selectedCapabilities, humanContact
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Tags</label>
+                <label className="block text-xs font-medium text-ink-soft mb-1">Tags</label>
                 <input
                   type="text"
                   value={formData.tags}
                   onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-line rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="e.g., automation, productivity"
                 />
               </div>
@@ -1476,12 +1494,12 @@ function Step5Review({ formData, setFormData, selectedCapabilities, humanContact
           )}
 
           {/* Human Contact */}
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <label className="block text-xs font-medium text-gray-700 mb-1">Human Escalation Contact</label>
+          <div className="mt-4 pt-4 border-t border-line">
+            <label className="block text-xs font-medium text-ink-soft mb-1">Human Escalation Contact</label>
             <select
               value={formData.human_contact_id}
               onChange={(e) => setFormData({ ...formData, human_contact_id: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="w-full px-3 py-2 border border-line rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             >
               <option value="">No escalation contact</option>
               {humanContacts?.map((contact: any) => (
@@ -1495,19 +1513,19 @@ function Step5Review({ formData, setFormData, selectedCapabilities, humanContact
       </div>
 
       {/* Next Steps Info */}
-      <div className="p-5 bg-blue-50 border border-blue-200 rounded-2xl">
-        <h4 className="font-bold text-blue-900 mb-3">After creating your agent</h4>
-        <ul className="text-sm text-blue-800 space-y-2">
+      <div className="p-5 bg-sky-wash border border-sky-wash rounded-2xl">
+        <h4 className="font-bold text-azure mb-3">After creating your agent</h4>
+        <ul className="text-sm text-azure space-y-2">
           <li className="flex items-center gap-3">
-            <span className="w-2 h-2 bg-blue-500 rounded-full" />
+            <span className="w-2 h-2 bg-azure rounded-full" />
             Upload skills and context documents
           </li>
           <li className="flex items-center gap-3">
-            <span className="w-2 h-2 bg-blue-500 rounded-full" />
+            <span className="w-2 h-2 bg-azure rounded-full" />
             Connect knowledge bases for enhanced responses
           </li>
           <li className="flex items-center gap-3">
-            <span className="w-2 h-2 bg-blue-500 rounded-full" />
+            <span className="w-2 h-2 bg-azure rounded-full" />
             Test your agent in the chat interface
           </li>
         </ul>
@@ -1544,9 +1562,9 @@ function CreatorTip({ step }: { step: number }) {
   const tip = tips[step as keyof typeof tips]
 
   return (
-    <div className="mt-6 rounded-[1.4rem] border border-primary-200 bg-gradient-to-r from-primary-50 to-primary-100/50 p-5">
+    <div className="mt-6 rounded-[1.4rem] border border-primary-200 bg-ink hover:bg-ink/85/50 p-5">
       <div className="flex items-start gap-3">
-        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#181818] text-white">
+        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-ink text-white">
           <Lightbulb className="w-4 h-4" />
         </div>
         <div>

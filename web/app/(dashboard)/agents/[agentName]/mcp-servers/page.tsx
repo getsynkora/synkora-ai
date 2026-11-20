@@ -52,9 +52,9 @@ interface MCPTool {
 }
 
 const warmModalFieldClass =
-  'w-full rounded-[1rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]'
-const warmModalLabelClass = 'mb-2 block text-sm font-semibold text-gray-800'
-const warmModalHelpClass = 'mt-1.5 text-xs leading-5 text-gray-500'
+  'w-full rounded-[1rem] border border-black/10 bg-cream px-4 py-3 text-sm text-ink transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-mint'
+const warmModalLabelClass = 'mb-2 block text-sm font-semibold text-ink'
+const warmModalHelpClass = 'mt-1.5 text-xs leading-5 text-ink-mute'
 
 export default function AgentMCPServersPage() {
   const params = useParams()
@@ -272,12 +272,12 @@ export default function AgentMCPServersPage() {
 
   const getAuthTypeBadgeColor = (authType: string) => {
     const colors: Record<string, string> = {
-      'api_key': 'bg-red-100 text-red-800',
-      'bearer': 'bg-purple-100 text-purple-800',
-      'oauth': 'bg-emerald-100 text-emerald-800',
-      'none': 'bg-gray-100 text-gray-800',
+      'api_key': 'bg-blush-wash text-wine',
+      'bearer': 'bg-blush-wash text-wine',
+      'oauth': 'bg-leaf-wash text-forest',
+      'none': 'bg-sand text-ink',
     }
-    return colors[authType.toLowerCase()] || 'bg-gray-100 text-gray-800'
+    return colors[authType.toLowerCase()] || 'bg-sand text-ink'
   }
 
   const getUnattachedServers = () => {
@@ -297,7 +297,7 @@ export default function AgentMCPServersPage() {
     <AgentPageShell
       agentName={agentName}
       title="MCP Servers"
-      description={<>Configure which MCP servers <span className="font-semibold text-gray-900">{agent?.name || agentName}</span> can access for extended tool capabilities.</>}
+      description={<>Configure which MCP servers <span className="font-semibold text-ink">{agent?.name || agentName}</span> can access for extended tool capabilities.</>}
       icon={Server}
       backHref={`/agents/${agentName}/view`}
       backLabel="Back to Agent"
@@ -306,7 +306,7 @@ export default function AgentMCPServersPage() {
         <button
           onClick={() => setShowAttachModal(true)}
           disabled={getUnattachedServers().length === 0}
-          className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-[1rem] bg-ink px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Plus className="w-4 h-4" />
           Attach MCP Server
@@ -324,8 +324,8 @@ export default function AgentMCPServersPage() {
       {attachedServers.length === 0 ? (
         <EmptyState
           icon={
-            <svg
-              className="mx-auto h-10 w-10 text-red-400"
+            <svg aria-hidden="true"
+              className="mx-auto h-10 w-10 text-hotpink"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -348,13 +348,13 @@ export default function AgentMCPServersPage() {
           {attachedServers.map((server) => (
             <div
               key={server.id}
-              className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md hover:border-red-300 transition-all flex flex-col"
+              className="bg-white rounded-xl border border-line p-4 hover:shadow-md hover:border-blush transition-[color,background-color,border-color,box-shadow,opacity,transform] flex flex-col"
             >
               {/* Header */}
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${server.is_active ? 'bg-emerald-500' : 'bg-gray-300'}`} title={server.is_active ? 'Active' : 'Inactive'} />
-                  <h3 className="text-sm font-semibold text-gray-900 truncate">
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${server.is_active ? 'bg-leaf' : 'bg-taupe'}`} title={server.is_active ? 'Active' : 'Inactive'} />
+                  <h3 className="text-sm font-semibold text-ink truncate">
                     {server.name}
                   </h3>
                 </div>
@@ -364,19 +364,19 @@ export default function AgentMCPServersPage() {
               </div>
 
               {/* Description */}
-              <p className="text-xs text-gray-500 line-clamp-2 mb-2">
+              <p className="text-xs text-ink-mute line-clamp-2 mb-2">
                 {server.description}
               </p>
 
               {/* URL */}
-              <p className="text-[10px] text-gray-400 font-mono truncate mb-3">{server.url}</p>
+              <p className="text-[10px] text-ash font-mono truncate mb-3">{server.url}</p>
 
               {/* Config Stats */}
-              <div className="flex items-center gap-3 text-[10px] text-gray-500 mb-3 pb-3 border-b border-gray-100">
-                <span>Timeout: <span className="text-gray-700 font-medium">{server.mcp_config.timeout || 30}s</span></span>
-                <span>Retries: <span className="text-gray-700 font-medium">{server.mcp_config.max_retries || 3}</span></span>
+              <div className="flex items-center gap-3 text-[10px] text-ink-mute mb-3 pb-3 border-b border-sand">
+                <span>Timeout: <span className="text-ink-soft font-medium">{server.mcp_config.timeout || 30}s</span></span>
+                <span>Retries: <span className="text-ink-soft font-medium">{server.mcp_config.max_retries || 3}</span></span>
                 {server.mcp_config.enabled_tools && server.mcp_config.enabled_tools.length > 0 && (
-                  <span>Tools: <span className="text-gray-700 font-medium">{server.mcp_config.enabled_tools.length}</span></span>
+                  <span>Tools: <span className="text-ink-soft font-medium">{server.mcp_config.enabled_tools.length}</span></span>
                 )}
               </div>
 
@@ -384,22 +384,22 @@ export default function AgentMCPServersPage() {
               <div className="flex items-center gap-2 mt-auto">
                 <button
                   onClick={() => handleViewTools(server.id)}
-                  className="flex-1 px-2 py-1.5 text-[11px] font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                  className="flex-1 px-2 py-1.5 text-[11px] font-medium text-leaf bg-blush-wash rounded-lg hover:bg-blush-wash transition-colors"
                 >
                   View Tools
                 </button>
                 <button
                   onClick={() => handleManageTools(server.id, server.mcp_config)}
-                  className="flex-1 px-2 py-1.5 text-[11px] font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                  className="flex-1 px-2 py-1.5 text-[11px] font-medium text-leaf bg-blush-wash rounded-lg hover:bg-blush-wash transition-colors"
                 >
                   Manage
                 </button>
                 <button
                   onClick={() => handleDetach(server.id, server.name)}
-                  className="px-2 py-1.5 text-[11px] font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  className="px-2 py-1.5 text-[11px] font-medium text-ink-mute hover:text-leaf hover:bg-blush-wash rounded-lg transition-colors"
                   title="Detach server"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -411,14 +411,14 @@ export default function AgentMCPServersPage() {
 
       {/* Attach Modal */}
       {showAttachModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(28,22,16,0.28)] p-4 backdrop-blur-[8px]">
-          <div className="max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-[1.7rem] border border-[#ddd3c5] bg-[linear-gradient(180deg,_rgba(250,247,241,0.98),_rgba(241,236,229,0.98))] shadow-[0_36px_96px_-40px_rgba(17,14,10,0.45)]">
-            <div className="flex items-start justify-between border-b border-[#e7ded2] px-5 py-5 sm:px-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/30 p-4">
+          <div className="max-h-[88vh] w-full max-w-3xl overflow-y-auto rounded-[1.7rem] border border-line bg-cream shadow-soft">
+            <div className="flex items-start justify-between border-b border-sand-deep px-5 py-5 sm:px-6">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8d6c51]">
+                <p className="text-[11px] font-semibold text-clay">
                   External Tooling
                 </p>
-                <h2 className="mt-1 text-[1.9rem] font-semibold tracking-[-0.04em] text-gray-950">
+                <h2 className="mt-1 text-[1.9rem] font-semibold tracking-[-0.04em] text-ink">
                   Attach MCP Server
                 </h2>
               </div>
@@ -427,9 +427,9 @@ export default function AgentMCPServersPage() {
                   setShowAttachModal(false)
                   setSelectedServerId(null)
                 }}
-                className="rounded-full p-2 text-[#9a8f81] transition-colors hover:bg-white/80 hover:text-[#5f564c]"
+                className="rounded-full p-2 text-ash transition-colors hover:bg-white/80 hover:text-ink-soft"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -446,33 +446,33 @@ export default function AgentMCPServersPage() {
                     <button
                       key={server.id}
                       onClick={() => setSelectedServerId(String(server.id))}
-                      className={`w-full rounded-[1.15rem] border text-left transition-all ${
+                      className={`w-full rounded-[1.15rem] border text-left transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
                         selectedServerId === String(server.id)
-                          ? 'border-[#d7b8a3] bg-[linear-gradient(180deg,_rgba(252,245,238,0.98),_rgba(247,239,231,0.98))] shadow-[0_14px_36px_-28px_rgba(135,85,42,0.35)]'
-                          : 'border-[#e6ddd1] bg-white/75 hover:border-[#dccab6] hover:bg-[#fcfaf5]'
+                          ? 'border-tan bg-cream shadow-soft'
+                          : 'border-line bg-white/75 hover:border-line hover:bg-cream'
                       }`}
                     >
                       <div className="flex items-start gap-3 px-4 py-3.5">
-                        <div className="mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[1rem] bg-[#f1eadc]">
-                          <Server className="h-4.5 w-4.5 text-[#171717]" />
+                        <div className="mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[1rem] bg-sand-deep">
+                          <Server className="h-4.5 w-4.5 text-ink" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <h3 className="truncate text-sm font-semibold text-gray-900">{server.name}</h3>
-                              <p className="mt-1 text-sm text-gray-600">{server.description}</p>
+                              <h3 className="truncate text-sm font-semibold text-ink">{server.name}</h3>
+                              <p className="mt-1 text-sm text-ink-soft">{server.description}</p>
                             </div>
                             <div className="flex items-center gap-2">
                               <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${getAuthTypeBadgeColor(server.auth_type)}`}>
                                 {server.auth_type}
                               </span>
                               <span
-                                className={`h-2.5 w-2.5 rounded-full ${server.is_active ? 'bg-emerald-500' : 'bg-gray-300'}`}
+                                className={`h-2.5 w-2.5 rounded-full ${server.is_active ? 'bg-leaf' : 'bg-taupe'}`}
                                 title={server.is_active ? 'Active' : 'Inactive'}
                               />
                             </div>
                           </div>
-                          <p className="mt-2 truncate font-mono text-xs text-[#8b7760]">{server.url}</p>
+                          <p className="mt-2 truncate font-mono text-xs text-clay">{server.url}</p>
                         </div>
                       </div>
                     </button>
@@ -482,10 +482,10 @@ export default function AgentMCPServersPage() {
 
               {/* MCP Configuration */}
               {selectedServerId && (
-                <div className="space-y-4 rounded-[1.3rem] border border-[#e4dbcf] bg-white/55 p-4">
+                <div className="space-y-4 rounded-[1.3rem] border border-line bg-white/55 p-4">
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-900">MCP Configuration</h3>
-                    <p className="mt-1 text-xs text-gray-500">
+                    <h3 className="text-sm font-semibold text-ink">MCP Configuration</h3>
+                    <p className="mt-1 text-xs text-ink-mute">
                       Configure default behavior for this server when attached to the agent.
                     </p>
                   </div>
@@ -548,20 +548,20 @@ export default function AgentMCPServersPage() {
               )}
 
               {/* Actions */}
-              <div className="flex flex-col-reverse gap-3 border-t border-[#e6ddd2] pt-4 sm:flex-row sm:items-center">
+              <div className="flex flex-col-reverse gap-3 border-t border-line pt-4 sm:flex-row sm:items-center">
                 <button
                   onClick={() => {
                     setShowAttachModal(false)
                     setSelectedServerId(null)
                   }}
-                  className="inline-flex min-w-[8rem] items-center justify-center rounded-[1rem] border border-[#ddd7ce] bg-white px-4 py-2.5 text-sm font-semibold text-[#5f564c] transition-colors hover:bg-[#fcfaf5]"
+                  className="inline-flex min-w-[8rem] items-center justify-center rounded-[1rem] border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink-soft transition-colors hover:bg-cream"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleAttach}
                   disabled={!selectedServerId}
-                  className="inline-flex flex-1 items-center justify-center rounded-[1rem] bg-[#171717] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex flex-1 items-center justify-center rounded-[1rem] bg-ink px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Attach MCP Server
                 </button>
@@ -573,19 +573,19 @@ export default function AgentMCPServersPage() {
 
       {/* Tools Modal */}
       {showToolsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(28,22,16,0.28)] p-4 backdrop-blur-[8px]">
-          <div className="flex max-h-[88vh] w-full max-w-3xl flex-col rounded-[1.7rem] border border-[#ddd3c5] bg-[linear-gradient(180deg,_rgba(250,247,241,0.98),_rgba(241,236,229,0.98))] shadow-[0_36px_96px_-40px_rgba(17,14,10,0.45)]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/30 p-4">
+          <div className="flex max-h-[88vh] w-full max-w-3xl flex-col rounded-[1.7rem] border border-line bg-cream shadow-soft">
             {/* Header */}
-            <div className="flex flex-shrink-0 items-start justify-between border-b border-[#e7ded2] px-5 py-5 sm:px-6">
+            <div className="flex flex-shrink-0 items-start justify-between border-b border-sand-deep px-5 py-5 sm:px-6">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8d6c51]">
+                <p className="text-[11px] font-semibold text-clay">
                   MCP Server
                 </p>
-                <h2 className="mt-1 text-[1.9rem] font-semibold tracking-[-0.04em] text-gray-950">
+                <h2 className="mt-1 text-[1.9rem] font-semibold tracking-[-0.04em] text-ink">
                   Available Tools
                 </h2>
                 {!loadingTools && selectedServerTools.length > 0 && (
-                  <p className="mt-0.5 text-sm text-[#9a8570]">
+                  <p className="mt-0.5 text-sm text-clay">
                     {selectedServerTools.length} tool{selectedServerTools.length !== 1 ? 's' : ''} available
                   </p>
                 )}
@@ -598,9 +598,9 @@ export default function AgentMCPServersPage() {
                   setToolSearch('')
                   setExpandedTools(new Set())
                 }}
-                className="rounded-full p-2 text-[#9a8f81] transition-colors hover:bg-white/80 hover:text-[#5f564c]"
+                className="rounded-full p-2 text-ash transition-colors hover:bg-white/80 hover:text-ink-soft"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -610,15 +610,15 @@ export default function AgentMCPServersPage() {
             {!loadingTools && selectedServerTools.length > 0 && (
               <div className="flex-shrink-0 px-5 pt-4 sm:px-6">
                 <div className="relative">
-                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a89880]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-taupe" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                   <input
                     type="text"
-                    placeholder="Search tools..."
+                    placeholder="Search tools…"
                     value={toolSearch}
                     onChange={(e) => setToolSearch(e.target.value)}
-                    className="w-full rounded-[1rem] border border-[#ddd3c5] bg-white/70 py-2.5 pl-9 pr-4 text-sm text-gray-900 placeholder-[#b8a898] transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#c8a882]"
+                    className="w-full rounded-[1rem] border border-line bg-white/70 py-2.5 pl-9 pr-4 text-sm text-ink placeholder-taupe transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-tan"
                   />
                 </div>
               </div>
@@ -632,20 +632,20 @@ export default function AgentMCPServersPage() {
                 </div>
               ) : selectedServerTools.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#f0e8dc]">
-                    <svg className="h-6 w-6 text-[#b8997a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-sand-deep">
+                    <svg aria-hidden="true" className="h-6 w-6 text-tan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                     </svg>
                   </div>
-                  <p className="mt-4 text-sm font-semibold text-gray-800">No tools available</p>
-                  <p className="mt-1 text-xs text-[#9a8570]">This MCP server doesn't provide any tools or failed to connect.</p>
+                  <p className="mt-4 text-sm font-semibold text-ink">No tools available</p>
+                  <p className="mt-1 text-xs text-clay">This MCP server doesn't provide any tools or failed to connect.</p>
                 </div>
               ) : (() => {
                 const filtered = selectedServerTools.filter(t =>
                   !toolSearch || t.name.toLowerCase().includes(toolSearch.toLowerCase()) || t.description?.toLowerCase().includes(toolSearch.toLowerCase())
                 )
                 if (filtered.length === 0) return (
-                  <div className="py-10 text-center text-sm text-[#9a8570]">No tools match &ldquo;{toolSearch}&rdquo;</div>
+                  <div className="py-10 text-center text-sm text-clay">No tools match &ldquo;{toolSearch}&rdquo;</div>
                 )
                 return (
                   <div className="space-y-2">
@@ -656,27 +656,27 @@ export default function AgentMCPServersPage() {
                       return (
                         <div
                           key={tool.name}
-                          className="overflow-hidden rounded-[1.15rem] border border-[#e6ddd1] bg-white/60 transition-all hover:border-[#d4c4b0]"
+                          className="overflow-hidden rounded-[1.15rem] border border-line bg-white/60 transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-paper-dim"
                         >
                           {/* Tool header row */}
                           <div className="flex items-center gap-3 px-4 py-3">
-                            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[0.65rem] bg-[#f1e9dc]">
-                              <svg className="h-3.5 w-3.5 text-[#8d6c4e]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[0.65rem] bg-sand-deep">
+                              <svg aria-hidden="true" className="h-3.5 w-3.5 text-clay" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                               </svg>
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
-                                <span className="font-mono text-sm font-semibold text-gray-900">{tool.name}</span>
+                                <span className="font-mono text-sm font-semibold text-ink">{tool.name}</span>
                                 {hasParams && (
-                                  <span className="rounded-full bg-[#f0e8dc] px-2 py-0.5 text-[10px] font-semibold text-[#8d6c4e]">
+                                  <span className="rounded-full bg-sand-deep px-2 py-0.5 text-[10px] font-semibold text-clay">
                                     {Object.keys(tool.inputSchema.properties).length} param{Object.keys(tool.inputSchema.properties).length !== 1 ? 's' : ''}
                                   </span>
                                 )}
                               </div>
                               {tool.description && (
-                                <p className="mt-0.5 text-xs leading-relaxed text-[#6b5e52] line-clamp-2">{tool.description}</p>
+                                <p className="mt-0.5 text-xs leading-relaxed text-ink-soft line-clamp-2">{tool.description}</p>
                               )}
                             </div>
                             {hasParams && (
@@ -687,10 +687,10 @@ export default function AgentMCPServersPage() {
                                   else next.add(tool.name)
                                   return next
                                 })}
-                                className="ml-2 flex-shrink-0 rounded-full p-1.5 text-[#a08870] transition-colors hover:bg-[#f0e8dc] hover:text-[#6b5040]"
+                                className="ml-2 flex-shrink-0 rounded-full p-1.5 text-clay transition-colors hover:bg-sand-deep hover:text-bark"
                                 title={isExpanded ? 'Collapse parameters' : 'Expand parameters'}
                               >
-                                <svg className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg aria-hidden="true" className={`h-4 w-4 transition-transform motion-reduce:transition-none ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                 </svg>
                               </button>
@@ -699,22 +699,22 @@ export default function AgentMCPServersPage() {
 
                           {/* Expandable params */}
                           {hasParams && isExpanded && (
-                            <div className="border-t border-[#ece3d8] bg-[#faf6f0] px-4 py-3">
-                              <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[#a08870]">Parameters</p>
+                            <div className="border-t border-sand-deep bg-cream px-4 py-3">
+                              <p className="mb-2 text-[10px] font-semibold text-clay">Parameters</p>
                               <div className="space-y-2">
                                 {Object.entries(tool.inputSchema.properties).map(([key, val]: [string, any]) => {
                                   const isRequired = requiredParams.includes(key)
                                   return (
                                     <div key={key} className="flex items-start gap-2.5">
                                       <div className="flex items-center gap-1.5 pt-0.5">
-                                        <span className="font-mono text-xs font-semibold text-[#b05c3a]">{key}</span>
-                                        <span className="rounded bg-[#ede8e0] px-1.5 py-0.5 text-[10px] text-[#7a6a5a]">{val.type || 'any'}</span>
+                                        <span className="font-mono text-xs font-semibold text-rust">{key}</span>
+                                        <span className="rounded bg-sand px-1.5 py-0.5 text-[10px] text-ink-mute">{val.type || 'any'}</span>
                                         {isRequired && (
-                                          <span className="rounded bg-[#fde8df] px-1.5 py-0.5 text-[10px] font-semibold text-[#c0502a]">required</span>
+                                          <span className="rounded bg-sand-deep px-1.5 py-0.5 text-[10px] font-semibold text-rust">required</span>
                                         )}
                                       </div>
                                       {val.description && (
-                                        <p className="text-xs text-[#7a6a58] leading-relaxed">{val.description}</p>
+                                        <p className="text-xs text-ink-mute leading-relaxed">{val.description}</p>
                                       )}
                                     </div>
                                   )
@@ -731,7 +731,7 @@ export default function AgentMCPServersPage() {
             </div>
 
             {/* Footer */}
-            <div className="flex-shrink-0 border-t border-[#e6ddd2] px-5 py-4 sm:px-6">
+            <div className="flex-shrink-0 border-t border-line px-5 py-4 sm:px-6">
               <button
                 onClick={() => {
                   setShowToolsModal(false)
@@ -740,7 +740,7 @@ export default function AgentMCPServersPage() {
                   setToolSearch('')
                   setExpandedTools(new Set())
                 }}
-                className="inline-flex w-full items-center justify-center rounded-[1rem] border border-[#ddd7ce] bg-white px-4 py-2.5 text-sm font-semibold text-[#5f564c] transition-colors hover:bg-[#fcfaf5]"
+                className="inline-flex w-full items-center justify-center rounded-[1rem] border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink-soft transition-colors hover:bg-cream"
               >
                 Close
               </button>
@@ -751,19 +751,19 @@ export default function AgentMCPServersPage() {
 
       {/* Manage Tools Modal */}
       {showManageToolsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(28,22,16,0.28)] p-4 backdrop-blur-[8px]">
-          <div className="flex max-h-[88vh] w-full max-w-3xl flex-col rounded-[1.7rem] border border-[#ddd3c5] bg-[linear-gradient(180deg,_rgba(250,247,241,0.98),_rgba(241,236,229,0.98))] shadow-[0_36px_96px_-40px_rgba(17,14,10,0.45)]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/30 p-4">
+          <div className="flex max-h-[88vh] w-full max-w-3xl flex-col rounded-[1.7rem] border border-line bg-cream shadow-soft">
             {/* Header */}
-            <div className="flex flex-shrink-0 items-start justify-between border-b border-[#e7ded2] px-5 py-5 sm:px-6">
+            <div className="flex flex-shrink-0 items-start justify-between border-b border-sand-deep px-5 py-5 sm:px-6">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8d6c51]">
+                <p className="text-[11px] font-semibold text-clay">
                   MCP Server
                 </p>
-                <h2 className="mt-1 text-[1.9rem] font-semibold tracking-[-0.04em] text-gray-950">
+                <h2 className="mt-1 text-[1.9rem] font-semibold tracking-[-0.04em] text-ink">
                   Manage Tools
                 </h2>
                 {!loadingTools && selectedServerTools.length > 0 && (
-                  <p className="mt-0.5 text-sm text-[#9a8570]">
+                  <p className="mt-0.5 text-sm text-clay">
                     {manageToolsConfig.enabled_tools.length === 0
                       ? 'All tools enabled by default'
                       : `${manageToolsConfig.enabled_tools.length} of ${selectedServerTools.length} tools enabled`}
@@ -776,9 +776,9 @@ export default function AgentMCPServersPage() {
                   setSelectedServerId(null)
                   setSelectedServerTools([])
                 }}
-                className="rounded-full p-2 text-[#9a8f81] transition-colors hover:bg-white/80 hover:text-[#5f564c]"
+                className="rounded-full p-2 text-ash transition-colors hover:bg-white/80 hover:text-ink-soft"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -794,31 +794,31 @@ export default function AgentMCPServersPage() {
                 <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6 space-y-5">
 
                   {/* Configuration row */}
-                  <div className="rounded-[1.3rem] border border-[#e4dbcf] bg-white/55 p-4">
-                    <h3 className="mb-3 text-sm font-semibold text-gray-900">Connection Settings</h3>
+                  <div className="rounded-[1.3rem] border border-line bg-white/55 p-4">
+                    <h3 className="mb-3 text-sm font-semibold text-ink">Connection Settings</h3>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="mb-1.5 block text-xs font-semibold text-gray-700">
+                        <label className="mb-1.5 block text-xs font-semibold text-ink-soft">
                           Timeout (seconds)
                         </label>
                         <input
                           type="number"
                           value={manageToolsConfig.timeout}
                           onChange={(e) => setManageToolsConfig({ ...manageToolsConfig, timeout: parseInt(e.target.value) })}
-                          className="w-full rounded-[1rem] border border-black/10 bg-[#fcfaf5] px-4 py-2.5 text-sm text-gray-900 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#c8a882]"
+                          className="w-full rounded-[1rem] border border-black/10 bg-cream px-4 py-2.5 text-sm text-ink transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-tan"
                           min="1"
                           max="300"
                         />
                       </div>
                       <div>
-                        <label className="mb-1.5 block text-xs font-semibold text-gray-700">
+                        <label className="mb-1.5 block text-xs font-semibold text-ink-soft">
                           Max Retries
                         </label>
                         <input
                           type="number"
                           value={manageToolsConfig.max_retries}
                           onChange={(e) => setManageToolsConfig({ ...manageToolsConfig, max_retries: parseInt(e.target.value) })}
-                          className="w-full rounded-[1rem] border border-black/10 bg-[#fcfaf5] px-4 py-2.5 text-sm text-gray-900 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#c8a882]"
+                          className="w-full rounded-[1rem] border border-black/10 bg-cream px-4 py-2.5 text-sm text-ink transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-tan"
                           min="0"
                           max="10"
                         />
@@ -830,8 +830,8 @@ export default function AgentMCPServersPage() {
                   <div>
                     <div className="mb-3 flex items-center justify-between">
                       <div>
-                        <h3 className="text-sm font-semibold text-gray-900">Enabled Tools</h3>
-                        <p className="mt-0.5 text-xs text-[#9a8570]">
+                        <h3 className="text-sm font-semibold text-ink">Enabled Tools</h3>
+                        <p className="mt-0.5 text-xs text-clay">
                           {manageToolsConfig.enabled_tools.length === 0
                             ? 'All tools will be available to the agent.'
                             : 'Only checked tools will be available to the agent.'}
@@ -840,7 +840,7 @@ export default function AgentMCPServersPage() {
                       {selectedServerTools.length > 0 && (
                         <button
                           onClick={handleToggleAllTools}
-                          className="rounded-[0.75rem] border border-[#ddd3c5] bg-white/70 px-3 py-1.5 text-xs font-semibold text-[#6b5040] transition-colors hover:bg-[#f5ede2]"
+                          className="rounded-[0.75rem] border border-line bg-white/70 px-3 py-1.5 text-xs font-semibold text-bark transition-colors hover:bg-sand"
                         >
                           {manageToolsConfig.enabled_tools.length === selectedServerTools.length ? 'Deselect All' : 'Select All'}
                         </button>
@@ -849,13 +849,13 @@ export default function AgentMCPServersPage() {
 
                     {selectedServerTools.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-10 text-center">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f0e8dc]">
-                          <svg className="h-5 w-5 text-[#b8997a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sand-deep">
+                          <svg aria-hidden="true" className="h-5 w-5 text-tan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                           </svg>
                         </div>
-                        <p className="mt-3 text-sm font-semibold text-gray-800">No tools available</p>
-                        <p className="mt-1 text-xs text-[#9a8570]">This MCP server doesn't provide any tools or failed to connect.</p>
+                        <p className="mt-3 text-sm font-semibold text-ink">No tools available</p>
+                        <p className="mt-1 text-xs text-clay">This MCP server doesn't provide any tools or failed to connect.</p>
                       </div>
                     ) : (
                       <div className="space-y-1.5">
@@ -865,20 +865,20 @@ export default function AgentMCPServersPage() {
                           return (
                             <label
                               key={tool.name}
-                              className={`flex cursor-pointer items-center gap-3 rounded-[1.1rem] border px-4 py-3 transition-all ${
+                              className={`flex cursor-pointer items-center gap-3 rounded-[1.1rem] border px-4 py-3 transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
                                 checked
-                                  ? 'border-[#d4b896] bg-[linear-gradient(180deg,_rgba(252,245,238,0.9),_rgba(247,239,231,0.9))] shadow-[0_2px_12px_-4px_rgba(135,85,42,0.18)]'
-                                  : 'border-[#e6ddd1] bg-white/50 hover:border-[#d8ccbf] hover:bg-white/70'
+                                  ? 'border-tan bg-cream shadow-soft'
+                                  : 'border-line bg-white/50 hover:border-paper-dim hover:bg-white/70'
                               }`}
                             >
                               {/* Custom checkbox */}
-                              <div className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-[0.4rem] border-2 transition-all ${
+                              <div className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-[0.4rem] border-2 transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
                                 checked
-                                  ? 'border-[#b07040] bg-[#c07840]'
-                                  : 'border-[#c8b8a4] bg-white/80'
+                                  ? 'border-rust bg-rust'
+                                  : 'border-tan bg-white/80'
                               }`}>
                                 {checked && (
-                                  <svg className="h-3 w-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <svg aria-hidden="true" className="h-3 w-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                                   </svg>
                                 )}
@@ -891,15 +891,15 @@ export default function AgentMCPServersPage() {
                               />
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-mono text-sm font-semibold text-gray-900">{tool.name}</span>
+                                  <span className="font-mono text-sm font-semibold text-ink">{tool.name}</span>
                                   {paramCount > 0 && (
-                                    <span className="rounded-full bg-[#f0e8dc] px-2 py-0.5 text-[10px] font-semibold text-[#8d6c4e]">
+                                    <span className="rounded-full bg-sand-deep px-2 py-0.5 text-[10px] font-semibold text-clay">
                                       {paramCount}p
                                     </span>
                                   )}
                                 </div>
                                 {tool.description && (
-                                  <p className="mt-0.5 text-xs text-[#7a6a58] line-clamp-1">{tool.description}</p>
+                                  <p className="mt-0.5 text-xs text-ink-mute line-clamp-1">{tool.description}</p>
                                 )}
                               </div>
                             </label>
@@ -911,7 +911,7 @@ export default function AgentMCPServersPage() {
                 </div>
 
                 {/* Footer actions */}
-                <div className="flex flex-shrink-0 flex-col-reverse gap-3 border-t border-[#e6ddd2] px-5 py-4 sm:flex-row sm:items-center sm:px-6">
+                <div className="flex flex-shrink-0 flex-col-reverse gap-3 border-t border-line px-5 py-4 sm:flex-row sm:items-center sm:px-6">
                   <button
                     onClick={() => {
                       setShowManageToolsModal(false)
@@ -919,14 +919,14 @@ export default function AgentMCPServersPage() {
                       setSelectedServerTools([])
                     }}
                     disabled={savingTools}
-                    className="inline-flex min-w-[8rem] items-center justify-center rounded-[1rem] border border-[#ddd7ce] bg-white px-4 py-2.5 text-sm font-semibold text-[#5f564c] transition-colors hover:bg-[#fcfaf5] disabled:opacity-50"
+                    className="inline-flex min-w-[8rem] items-center justify-center rounded-[1rem] border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink-soft transition-colors hover:bg-cream disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleSaveToolConfig}
                     disabled={savingTools}
-                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-[1rem] bg-[#171717] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-[1rem] bg-ink px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {savingTools ? (
                       <>

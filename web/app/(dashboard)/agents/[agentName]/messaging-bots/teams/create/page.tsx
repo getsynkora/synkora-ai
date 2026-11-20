@@ -93,36 +93,36 @@ export default function CreateTeamsBotPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+        <div className="motion-safe:animate-spin rounded-full h-8 w-8 border-b-2 border-danger"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50/60 via-white to-rose-50/40 p-4 md:p-6">
+    <div className="min-h-screen p-4 md:p-6">
       <div className="max-w-3xl mx-auto">
         <div className="mb-6">
           <button
             onClick={() => router.push(`/agents/${agentName}/messaging-bots`)}
-            className="flex items-center text-red-600 hover:text-red-700 mb-4 text-sm font-medium"
+            className="flex items-center text-leaf hover:text-leaf mb-4 text-sm font-medium"
           >
             <ArrowLeft size={16} className="mr-2" />
             Back to Messaging Bots
           </button>
           <div className="flex items-center gap-3">
-            <div className="bg-blue-100 p-2.5 rounded-lg">
-              <Users className="text-blue-600" size={20} />
+            <div className="bg-sky-wash p-2.5 rounded-lg">
+              <Users className="text-azure" size={20} />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Create Teams Bot</h1>
-              <p className="text-gray-600 mt-0.5 text-sm">Connect your agent to Microsoft Teams</p>
+              <h1 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight">Create Teams Bot</h1>
+              <p className="text-ink-soft mt-0.5 text-sm">Connect your agent to Microsoft Teams</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-5">
-          <h3 className="text-xs font-medium text-blue-900 mb-2">Before you begin</h3>
-          <ul className="text-xs text-blue-800 space-y-1 list-disc list-inside">
+        <div className="bg-sky-wash border border-sky-wash rounded-lg p-4 mb-5">
+          <h3 className="text-xs font-medium text-azure mb-2">Before you begin</h3>
+          <ul className="text-xs text-azure space-y-1 list-disc list-inside">
             <li>Register your bot in Azure Portal</li>
             <li>Create a Bot Channels Registration</li>
             <li>Get your App ID and generate an App Password</li>
@@ -132,78 +132,78 @@ export default function CreateTeamsBotPage() {
             href="https://dev.botframework.com/"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-xs text-blue-600 hover:text-blue-700 font-medium mt-2 inline-block"
+            className="text-xs text-azure hover:text-azure font-medium mt-2 inline-block"
           >
-            View Setup Guide →
+            View Setup Guide
           </a>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-5 flex items-start">
-            <AlertCircle className="text-red-600 mr-2 flex-shrink-0 mt-0.5" size={16} />
+          <div className="bg-blush-wash border border-blush rounded-lg p-3 mb-5 flex items-start">
+            <AlertCircle className="text-danger mr-2 flex-shrink-0 mt-0.5" size={16} />
             <div>
-              <h3 className="text-xs font-medium text-red-800">Error</h3>
-              <p className="text-xs text-red-700 mt-1">{error}</p>
+              <h3 className="text-xs font-medium text-wine">Error</h3>
+              <p className="text-xs text-danger mt-1">{error}</p>
             </div>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-5">
+        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-line p-5 space-y-5">
           <div>
-            <label htmlFor="bot_name" className="block text-xs font-medium text-gray-700 mb-2">
-              Bot Name <span className="text-red-500">*</span>
+            <label htmlFor="bot_name" className="block text-xs font-medium text-ink-soft mb-2">
+              Bot Name <span className="text-leaf">*</span>
             </label>
             <input
               type="text"
               id="bot_name"
               value={formData.bot_name}
               onChange={(e) => handleChange("bot_name", e.target.value)}
-              className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-                errors.bot_name ? "border-red-500" : "border-gray-300"
+              className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent ${
+                errors.bot_name ? "border-ink" : "border-taupe"
               }`}
               placeholder="e.g., Support Bot"
             />
-            {errors.bot_name && <p className="mt-1 text-xs text-red-600">{errors.bot_name}</p>}
+            {errors.bot_name && <p className="mt-1 text-xs text-danger">{errors.bot_name}</p>}
           </div>
 
           <div>
-            <label htmlFor="app_id" className="block text-xs font-medium text-gray-700 mb-2">
-              App ID <span className="text-red-500">*</span>
+            <label htmlFor="app_id" className="block text-xs font-medium text-ink-soft mb-2">
+              App ID <span className="text-leaf">*</span>
             </label>
             <input
               type="text"
               id="app_id"
               value={formData.app_id}
               onChange={(e) => handleChange("app_id", e.target.value)}
-              className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-                errors.app_id ? "border-red-500" : "border-gray-300"
+              className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent ${
+                errors.app_id ? "border-ink" : "border-taupe"
               }`}
               placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
             />
-            {errors.app_id && <p className="mt-1 text-xs text-red-600">{errors.app_id}</p>}
-            <p className="mt-1 text-xs text-gray-500">
+            {errors.app_id && <p className="mt-1 text-xs text-danger">{errors.app_id}</p>}
+            <p className="mt-1 text-xs text-ink-mute">
               Find this in your Azure Bot Channels Registration
             </p>
           </div>
 
           <div>
-            <label htmlFor="app_password" className="block text-xs font-medium text-gray-700 mb-2">
-              App Password <span className="text-red-500">*</span>
+            <label htmlFor="app_password" className="block text-xs font-medium text-ink-soft mb-2">
+              App Password <span className="text-leaf">*</span>
             </label>
             <input
               type="password"
               id="app_password"
               value={formData.app_password}
               onChange={(e) => handleChange("app_password", e.target.value)}
-              className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${
-                errors.app_password ? "border-red-500" : "border-gray-300"
+              className={`w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent ${
+                errors.app_password ? "border-ink" : "border-taupe"
               }`}
               placeholder="App password"
             />
             {errors.app_password && (
-              <p className="mt-1 text-xs text-red-600">{errors.app_password}</p>
+              <p className="mt-1 text-xs text-danger">{errors.app_password}</p>
             )}
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-ink-mute">
               Generate from Azure Portal (will be encrypted)
             </p>
           </div>
@@ -212,7 +212,7 @@ export default function CreateTeamsBotPage() {
             <button
               type="button"
               onClick={() => router.push(`/agents/${agentName}/messaging-bots`)}
-              className="px-5 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-white hover:border-red-300 transition-colors font-medium"
+              className="px-5 py-2 text-sm border border-taupe rounded-lg text-ink-soft hover:bg-white hover:border-blush transition-colors font-medium"
               disabled={submitting}
             >
               Cancel
@@ -220,11 +220,11 @@ export default function CreateTeamsBotPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium shadow-sm"
+              className="px-5 py-2 text-sm bg-azure text-white rounded-lg hover:bg-azure transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-medium shadow-sm"
             >
               {submitting ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <div className="motion-safe:animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                   Creating...
                 </>
               ) : (

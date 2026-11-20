@@ -103,13 +103,13 @@ export function DiagramRenderer({ diagram }: DiagramRendererProps) {
 
   if (loading) {
     return (
-      <div className="my-3 rounded-lg border border-gray-200 overflow-hidden">
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border-b border-gray-200">
-          <span className="text-xs text-gray-500 font-medium">{diagram.title || 'Diagram'}</span>
+      <div className="my-3 rounded-lg border border-line overflow-hidden">
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-cream border-b border-line">
+          <span className="text-xs text-ink-mute font-medium">{diagram.title || 'Diagram'}</span>
         </div>
         <div className="flex items-center justify-center h-48 bg-white">
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+          <div className="flex items-center gap-2 text-sm text-ink-mute">
+            <div className="w-4 h-4 border-2 border-ash border-t-transparent rounded-full motion-safe:animate-spin" />
             Loading diagram...
           </div>
         </div>
@@ -119,8 +119,8 @@ export function DiagramRenderer({ diagram }: DiagramRendererProps) {
 
   if (error) {
     return (
-      <div className="my-3 rounded-lg border border-red-200 overflow-hidden">
-        <div className="px-3 py-2 bg-red-50 text-sm text-red-600">
+      <div className="my-3 rounded-lg border border-blush overflow-hidden">
+        <div className="px-3 py-2 bg-blush-wash text-sm text-danger">
           Failed to load diagram: {error}
         </div>
         {diagram.svg_url && (
@@ -135,7 +135,7 @@ export function DiagramRenderer({ diagram }: DiagramRendererProps) {
                   .catch((e) => setError(e.message))
                   .finally(() => setLoading(false))
               }}
-              className="text-blue-500 hover:underline"
+              className="text-azure hover:underline"
             >
               Retry
             </button>
@@ -172,10 +172,10 @@ export function DiagramRenderer({ diagram }: DiagramRendererProps) {
 
   return (
     <>
-      <div className="my-3 -mx-2 rounded-lg border border-gray-200 overflow-hidden">
+      <div className="my-3 -mx-2 rounded-lg border border-line overflow-hidden">
         {/* Toolbar header */}
-        <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50 border-b border-gray-200">
-          <span className="text-xs text-gray-500 font-medium truncate max-w-[200px]">
+        <div className="flex items-center justify-between px-3 py-1.5 bg-cream border-b border-line">
+          <span className="text-xs text-ink-mute font-medium truncate max-w-[200px]">
             {diagram.title || 'Diagram'}
           </span>
           <DiagramToolbar
@@ -195,7 +195,7 @@ export function DiagramRenderer({ diagram }: DiagramRendererProps) {
 
         {/* Description */}
         {diagram.description && (
-          <div className="px-3 py-1.5 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
+          <div className="px-3 py-1.5 bg-cream border-t border-line text-xs text-ink-mute">
             {diagram.description}
           </div>
         )}
@@ -204,8 +204,8 @@ export function DiagramRenderer({ diagram }: DiagramRendererProps) {
       {/* Fullscreen overlay */}
       {isFullscreen && (
         <div className="fixed inset-0 z-50 bg-white flex flex-col">
-          <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200">
-            <span className="text-sm font-medium text-gray-700">{diagram.title || 'Diagram'}</span>
+          <div className="flex items-center justify-between px-4 py-2 border-b border-line">
+            <span className="text-sm font-medium text-ink-soft">{diagram.title || 'Diagram'}</span>
             <div className="flex items-center gap-2">
               <DiagramToolbar
                 svgContent={sanitizedSvg}

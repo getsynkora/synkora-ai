@@ -64,61 +64,61 @@ const getCategoryTone = (category: string) => {
     }
   > = {
     Productivity: {
-      avatar: 'bg-[linear-gradient(135deg,_#171717,_#434343)] text-[#f8f4ec]',
-      badge: 'border-[#d8e5d9] bg-[#eef7f1] text-[#24543b]',
-      icon: 'text-[#24543b]',
-      soft: 'bg-[#eef7f1]',
+      avatar: ' text-paper',
+      badge: 'border-leaf-wash bg-leaf-wash text-forest',
+      icon: 'text-forest',
+      soft: 'bg-leaf-wash',
     },
     Support: {
-      avatar: 'bg-[linear-gradient(135deg,_#1f513d,_#2d8b69)] text-white',
-      badge: 'border-[#d8e5d9] bg-[#eef7f1] text-[#24543b]',
-      icon: 'text-[#24543b]',
-      soft: 'bg-[#eef7f1]',
+      avatar: ' text-white',
+      badge: 'border-leaf-wash bg-leaf-wash text-forest',
+      icon: 'text-forest',
+      soft: 'bg-leaf-wash',
     },
     Engineering: {
-      avatar: 'bg-[linear-gradient(135deg,_#2b3348,_#4d638d)] text-white',
-      badge: 'border-[#d7e1ef] bg-[#eef4fb] text-[#345c8a]',
-      icon: 'text-[#345c8a]',
-      soft: 'bg-[#eef4fb]',
+      avatar: ' text-white',
+      badge: 'border-sky-wash bg-sky-wash text-azure',
+      icon: 'text-azure',
+      soft: 'bg-sky-wash',
     },
     Sales: {
-      avatar: 'bg-[linear-gradient(135deg,_#6a4020,_#b36a3b)] text-white',
-      badge: 'border-[#f0d8bf] bg-[#fff5e7] text-[#9d6a1d]',
-      icon: 'text-[#9d6a1d]',
-      soft: 'bg-[#fff5e7]',
+      avatar: ' text-white',
+      badge: 'border-line bg-paper text-gold',
+      icon: 'text-gold',
+      soft: 'bg-paper',
     },
     Marketing: {
-      avatar: 'bg-[linear-gradient(135deg,_#7b3553,_#bf5f87)] text-white',
-      badge: 'border-[#efd8dd] bg-[#fdf3f5] text-[#8a445c]',
-      icon: 'text-[#8a445c]',
-      soft: 'bg-[#fdf3f5]',
+      avatar: ' text-white',
+      badge: 'border-blush-wash bg-cream text-wine',
+      icon: 'text-wine',
+      soft: 'bg-cream',
     },
     Research: {
-      avatar: 'bg-[linear-gradient(135deg,_#2e2f22,_#6f714f)] text-white',
-      badge: 'border-[#e6dfc6] bg-[#f7f4e8] text-[#6b6643]',
-      icon: 'text-[#6b6643]',
-      soft: 'bg-[#f7f4e8]',
+      avatar: ' text-white',
+      badge: 'border-line bg-paper text-bark',
+      icon: 'text-bark',
+      soft: 'bg-paper',
     },
     Analytics: {
-      avatar: 'bg-[linear-gradient(135deg,_#1e4050,_#3d738b)] text-white',
-      badge: 'border-[#d7e1ef] bg-[#eef4fb] text-[#345c8a]',
-      icon: 'text-[#345c8a]',
-      soft: 'bg-[#eef4fb]',
+      avatar: ' text-white',
+      badge: 'border-sky-wash bg-sky-wash text-azure',
+      icon: 'text-azure',
+      soft: 'bg-sky-wash',
     },
     Content: {
-      avatar: 'bg-[linear-gradient(135deg,_#5e3d27,_#aa7a52)] text-white',
-      badge: 'border-[#e6dccf] bg-[#f8f3eb] text-[#7c5d45]',
-      icon: 'text-[#7c5d45]',
-      soft: 'bg-[#f8f3eb]',
+      avatar: ' text-white',
+      badge: 'border-line bg-paper text-bark',
+      icon: 'text-bark',
+      soft: 'bg-paper',
     },
   }
 
   return (
     tones[category] || {
-      avatar: 'bg-[linear-gradient(135deg,_#171717,_#444444)] text-[#f8f4ec]',
-      badge: 'border-[#e6dccf] bg-[#f8f3eb] text-[#7c5d45]',
-      icon: 'text-[#7c5d45]',
-      soft: 'bg-[#f8f3eb]',
+      avatar: ' text-paper',
+      badge: 'border-line bg-paper text-bark',
+      icon: 'text-bark',
+      soft: 'bg-paper',
     }
   )
 }
@@ -234,8 +234,8 @@ export default function AgentDetailPage() {
     return (
       <div className="dashboard-resource-page flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <div className="inline-block h-14 w-14 animate-spin rounded-full border-4 border-[#171717] border-t-transparent"></div>
-          <p className="mt-4 text-sm font-medium text-gray-600">Loading agent details...</p>
+          <div className="inline-block h-14 w-14 motion-safe:animate-spin rounded-full border-4 border-ink border-t-transparent"></div>
+          <p className="mt-4 text-sm font-medium text-ink-soft">Loading agent details…</p>
         </div>
       </div>
     )
@@ -269,7 +269,7 @@ export default function AgentDetailPage() {
           <>
             <button
               onClick={() => router.push(`/agents/${agent.slug}/chat`)}
-              className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+              className="inline-flex items-center gap-2 rounded-[1rem] bg-ink px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
             >
               <MessageSquare className="h-4 w-4" />
               Start Chat
@@ -277,7 +277,7 @@ export default function AgentDetailPage() {
             {agent.allow_subscriptions ? (
               <button
                 onClick={() => setShowSubscribeForm(true)}
-                className="inline-flex items-center gap-2 rounded-[1rem] border border-[#e5d9ca] bg-white/85 px-4 py-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-white hover:text-[#171717]"
+                className="inline-flex items-center gap-2 rounded-[1rem] border border-line bg-white/85 px-4 py-3 text-sm font-semibold text-ink-soft transition-colors hover:bg-white hover:text-ink"
               >
                 <Bell className="h-4 w-4" />
                 Subscribe
@@ -290,7 +290,7 @@ export default function AgentDetailPage() {
           <div className="space-y-6">
             <DashboardPagePanel className="p-5 md:p-6">
               <div className="flex flex-col gap-5 md:flex-row">
-                <div className={`relative flex h-28 w-28 flex-shrink-0 items-center justify-center overflow-hidden rounded-[1.9rem] text-2xl font-semibold shadow-[0_24px_45px_-30px_rgba(0,0,0,0.35)] ${categoryTone.avatar}`}>
+                <div className={`relative flex h-28 w-28 flex-shrink-0 items-center justify-center overflow-hidden rounded-[1.9rem] text-2xl font-semibold shadow-soft ${categoryTone.avatar}`}>
                   {agent.avatar ? (
                     agent.avatar.startsWith('http://') || agent.avatar.startsWith('https://') ? (
                       <img
@@ -313,20 +313,20 @@ export default function AgentDetailPage() {
 
                 <div className="min-w-0 flex-1">
                   <div className="mb-3 flex flex-wrap items-center gap-2">
-                    <span className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] ${categoryTone.badge}`}>
+                    <span className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold ${categoryTone.badge}`}>
                       {agent.category}
                     </span>
-                    <span className="inline-flex items-center gap-1 rounded-full border border-[#e6dccf] bg-white/80 px-3 py-1 text-xs font-medium text-gray-600">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-line bg-white/80 px-3 py-1 text-xs font-medium text-ink-soft">
                       <Eye className="h-3.5 w-3.5" />
                       {agent.usage_count} uses
                     </span>
-                    <span className="inline-flex items-center gap-1 rounded-full border border-[#e6dccf] bg-white/80 px-3 py-1 text-xs font-medium text-gray-600">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-line bg-white/80 px-3 py-1 text-xs font-medium text-ink-soft">
                       <ThumbsUp className="h-3.5 w-3.5" />
                       {agent.likes_count} likes
                     </span>
                   </div>
 
-                  <p className="text-sm leading-7 text-gray-600">
+                  <p className="text-sm leading-7 text-ink-soft">
                     {agent.description || 'A powerful AI agent ready to assist you with various tasks.'}
                   </p>
 
@@ -335,7 +335,7 @@ export default function AgentDetailPage() {
                       {agent.tags.map((tag, idx) => (
                         <span
                           key={idx}
-                          className="rounded-full border border-[#e6dccf] bg-[#fcfaf5] px-3 py-1.5 text-xs font-semibold text-[#7c5d45]"
+                          className="rounded-full border border-line bg-cream px-3 py-1.5 text-xs font-semibold text-bark"
                         >
                           #{tag}
                         </span>
@@ -353,11 +353,11 @@ export default function AgentDetailPage() {
                     <Zap className={`h-4 w-4 ${categoryTone.icon}`} />
                   </div>
                   <div>
-                    <h2 className="text-lg font-semibold tracking-[-0.03em] text-gray-950">Tools & Capabilities</h2>
-                    <p className="text-sm text-gray-500">What this agent is designed to help with.</p>
+                    <h2 className="text-lg font-semibold tracking-[-0.03em] text-ink">Tools & Capabilities</h2>
+                    <p className="text-sm text-ink-mute">What this agent is designed to help with.</p>
                   </div>
                 </div>
-                <p className="text-sm leading-7 text-gray-700">{agent.description}</p>
+                <p className="text-sm leading-7 text-ink-soft">{agent.description}</p>
               </DashboardPagePanel>
             ) : null}
           </div>
@@ -365,46 +365,46 @@ export default function AgentDetailPage() {
           <div className="space-y-5">
             <DashboardPagePanel className="p-5">
               <div className="mb-4 flex items-center gap-3">
-                <div className="rounded-[1rem] bg-[#eef4fb] p-2.5">
-                  <Brain className="h-4 w-4 text-[#345c8a]" />
+                <div className="rounded-[1rem] bg-sky-wash p-2.5">
+                  <Brain className="h-4 w-4 text-azure" />
                 </div>
                 <div>
-                  <h2 className="text-base font-semibold text-gray-950">Model Configuration</h2>
-                  <p className="text-xs text-gray-500">Current default runtime settings.</p>
+                  <h2 className="text-base font-semibold text-ink">Model Configuration</h2>
+                  <p className="text-xs text-ink-mute">Current default runtime settings.</p>
                 </div>
               </div>
 
               <div className="space-y-3">
                 {defaultLLMConfig ? (
                   <>
-                    <div className="rounded-[1rem] border border-[#e6dccf] bg-[#fcfaf5] px-4 py-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9a7a5e]">Provider</p>
-                      <p className="mt-1 text-sm font-semibold capitalize text-gray-900">{defaultLLMConfig.provider}</p>
+                    <div className="rounded-[1rem] border border-line bg-cream px-4 py-3">
+                      <p className="text-[11px] font-semibold text-clay">Provider</p>
+                      <p className="mt-1 text-sm font-semibold capitalize text-ink">{defaultLLMConfig.provider}</p>
                     </div>
-                    <div className="rounded-[1rem] border border-[#e6dccf] bg-[#fcfaf5] px-4 py-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9a7a5e]">Model</p>
-                      <p className="mt-1 text-sm font-semibold text-gray-900">{defaultLLMConfig.model_name}</p>
+                    <div className="rounded-[1rem] border border-line bg-cream px-4 py-3">
+                      <p className="text-[11px] font-semibold text-clay">Model</p>
+                      <p className="mt-1 text-sm font-semibold text-ink">{defaultLLMConfig.model_name}</p>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-                      <div className="rounded-[1rem] border border-[#e6dccf] bg-[#fcfaf5] px-4 py-3">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9a7a5e]">Temperature</p>
-                        <p className="mt-1 text-sm font-semibold text-gray-900">{defaultLLMConfig.temperature}</p>
+                      <div className="rounded-[1rem] border border-line bg-cream px-4 py-3">
+                        <p className="text-[11px] font-semibold text-clay">Temperature</p>
+                        <p className="mt-1 text-sm font-semibold text-ink">{defaultLLMConfig.temperature}</p>
                       </div>
-                      <div className="rounded-[1rem] border border-[#e6dccf] bg-[#fcfaf5] px-4 py-3">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9a7a5e]">Max Tokens</p>
-                        <p className="mt-1 text-sm font-semibold text-gray-900">{defaultLLMConfig.max_tokens || 'Auto'}</p>
+                      <div className="rounded-[1rem] border border-line bg-cream px-4 py-3">
+                        <p className="text-[11px] font-semibold text-clay">Max Tokens</p>
+                        <p className="mt-1 text-sm font-semibold text-ink">{defaultLLMConfig.max_tokens || 'Auto'}</p>
                       </div>
                     </div>
                   </>
                 ) : (
-                  <div className="rounded-[1rem] border border-dashed border-[#ddcfbc] bg-[#fcfaf5] px-4 py-4 text-sm text-[#8c6b4d]">
+                  <div className="rounded-[1rem] border border-dashed border-line bg-cream px-4 py-4 text-sm text-clay">
                     No LLM configuration available.
                   </div>
                 )}
 
-                <div className="rounded-[1rem] border border-[#e6dccf] bg-[#f8f3eb] px-4 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#9a7a5e]">Created</p>
-                  <p className="mt-1 text-sm font-semibold text-gray-900">
+                <div className="rounded-[1rem] border border-line bg-paper px-4 py-3">
+                  <p className="text-[11px] font-semibold text-clay">Created</p>
+                  <p className="mt-1 text-sm font-semibold text-ink">
                     {new Date(agent.created_at).toLocaleDateString()}
                   </p>
                 </div>
@@ -412,15 +412,15 @@ export default function AgentDetailPage() {
             </DashboardPagePanel>
 
             <DashboardPagePanel className="p-5">
-              <h2 className="text-base font-semibold text-gray-950">Rate This Agent</h2>
-              <p className="mt-1 text-xs text-gray-500">Share quick feedback with one tap.</p>
+              <h2 className="text-base font-semibold text-ink">Rate This Agent</h2>
+              <p className="mt-1 text-xs text-ink-mute">Share quick feedback with one tap.</p>
               <div className="mt-4 grid grid-cols-2 gap-3">
                 <button
                   onClick={() => handleRating('like')}
                   className={`inline-flex items-center justify-center gap-2 rounded-[1rem] px-4 py-3 text-sm font-semibold transition-colors ${
                     agent.user_rating === 'like'
-                      ? 'border border-[#cfe5d7] bg-[#edf7f1] text-[#24543b]'
-                      : 'border border-[#e6dccf] bg-white/85 text-gray-700 hover:bg-[#eef7f1] hover:text-[#24543b]'
+                      ? 'border border-leaf-wash bg-leaf-wash text-forest'
+                      : 'border border-line bg-white/85 text-ink-soft hover:bg-leaf-wash hover:text-forest'
                   }`}
                 >
                   <ThumbsUp className="h-4 w-4" />
@@ -430,8 +430,8 @@ export default function AgentDetailPage() {
                   onClick={() => handleRating('dislike')}
                   className={`inline-flex items-center justify-center gap-2 rounded-[1rem] px-4 py-3 text-sm font-semibold transition-colors ${
                     agent.user_rating === 'dislike'
-                      ? 'border border-[#efd8dd] bg-[#fdf3f5] text-[#8a445c]'
-                      : 'border border-[#e6dccf] bg-white/85 text-gray-700 hover:bg-[#fdf3f5] hover:text-[#8a445c]'
+                      ? 'border border-blush-wash bg-cream text-wine'
+                      : 'border border-line bg-white/85 text-ink-soft hover:bg-cream hover:text-wine'
                   }`}
                 >
                   <ThumbsDown className="h-4 w-4" />
@@ -441,31 +441,31 @@ export default function AgentDetailPage() {
             </DashboardPagePanel>
 
             <DashboardPagePanel className="p-5">
-              <h2 className="text-base font-semibold text-gray-950">Statistics</h2>
+              <h2 className="text-base font-semibold text-ink">Statistics</h2>
               <div className="mt-4 space-y-3">
-                <div className="flex items-center justify-between rounded-[1rem] border border-[#e6dccf] bg-[#fcfaf5] px-4 py-3">
-                  <span className="text-sm text-gray-600">Total Uses</span>
-                  <span className="text-sm font-semibold text-gray-950">{agent.usage_count}</span>
+                <div className="flex items-center justify-between rounded-[1rem] border border-line bg-cream px-4 py-3">
+                  <span className="text-sm text-ink-soft">Total Uses</span>
+                  <span className="text-sm font-semibold text-ink">{agent.usage_count}</span>
                 </div>
-                <div className="flex items-center justify-between rounded-[1rem] border border-[#e6dccf] bg-[#eef7f1] px-4 py-3">
-                  <span className="text-sm text-[#24543b]">Likes</span>
-                  <span className="text-sm font-semibold text-[#24543b]">{agent.likes_count}</span>
+                <div className="flex items-center justify-between rounded-[1rem] border border-line bg-leaf-wash px-4 py-3">
+                  <span className="text-sm text-forest">Likes</span>
+                  <span className="text-sm font-semibold text-forest">{agent.likes_count}</span>
                 </div>
-                <div className="flex items-center justify-between rounded-[1rem] border border-[#e6dccf] bg-[#fdf3f5] px-4 py-3">
-                  <span className="text-sm text-[#8a445c]">Dislikes</span>
-                  <span className="text-sm font-semibold text-[#8a445c]">{agent.dislikes_count}</span>
+                <div className="flex items-center justify-between rounded-[1rem] border border-line bg-cream px-4 py-3">
+                  <span className="text-sm text-wine">Dislikes</span>
+                  <span className="text-sm font-semibold text-wine">{agent.dislikes_count}</span>
                 </div>
-                <div className="rounded-[1rem] border border-[#e6dccf] bg-[#f8f3eb] px-4 py-4">
+                <div className="rounded-[1rem] border border-line bg-paper px-4 py-4">
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-700">
-                      <Star className="h-4 w-4 text-[#9d6a1d]" />
+                    <span className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft">
+                      <Star className="h-4 w-4 text-gold" />
                       Rating
                     </span>
-                    <span className="text-sm font-semibold text-gray-950">{getRatingPercentage()}%</span>
+                    <span className="text-sm font-semibold text-ink">{getRatingPercentage()}%</span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-[#e8dece]">
+                  <div className="h-2 overflow-hidden rounded-full bg-line">
                     <div
-                      className="h-full rounded-full bg-[linear-gradient(90deg,_#171717,_#2d8b69)]"
+                      className="bg-forest h-full rounded-full"
                       style={{ width: `${getRatingPercentage()}%` }}
                     />
                   </div>
@@ -477,16 +477,16 @@ export default function AgentDetailPage() {
       </DashboardPageShell>
 
       {showSubscribeForm ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-[2rem] border border-[#e6dccf] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,245,239,0.96))] p-6 shadow-[0_32px_90px_-45px_rgba(0,0,0,0.45)]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <div className="w-full max-w-md rounded-[2rem] border border-line bg-white p-6 shadow-soft">
             {subscribeStatus === 'success' ? (
               <div className="py-4 text-center">
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#edf7f1]">
-                  <CheckCircle className="h-7 w-7 text-[#2b7a52]" />
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-leaf-wash">
+                  <CheckCircle className="h-7 w-7 text-leaf" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-950">You&apos;re subscribed!</h3>
-                <p className="mt-2 text-sm leading-6 text-gray-600">
-                  You&apos;ll receive reports from <span className="font-semibold text-gray-900">{agent.agent_name}</span> in your inbox.
+                <h3 className="text-lg font-semibold text-ink">You&apos;re subscribed!</h3>
+                <p className="mt-2 text-sm leading-6 text-ink-soft">
+                  You&apos;ll receive reports from <span className="font-semibold text-ink">{agent.agent_name}</span> in your inbox.
                 </p>
                 <button
                   onClick={() => {
@@ -494,19 +494,19 @@ export default function AgentDetailPage() {
                     setSubscribeStatus('idle')
                     setSubscribeEmail('')
                   }}
-                  className="mt-5 inline-flex rounded-[1rem] border border-[#e6dccf] bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-[#fcfaf5]"
+                  className="mt-5 inline-flex rounded-[1rem] border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink-soft transition-colors hover:bg-cream"
                 >
                   Close
                 </button>
               </div>
             ) : subscribeStatus === 'already_subscribed' ? (
               <div className="py-4 text-center">
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#fff5e7]">
-                  <Bell className="h-7 w-7 text-[#9d6a1d]" />
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-paper">
+                  <Bell className="h-7 w-7 text-gold" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-950">Already subscribed</h3>
-                <p className="mt-2 text-sm leading-6 text-gray-600">
-                  <span className="font-semibold text-gray-900">{subscribeEmail}</span> is already subscribed to this agent&apos;s reports.
+                <h3 className="text-lg font-semibold text-ink">Already subscribed</h3>
+                <p className="mt-2 text-sm leading-6 text-ink-soft">
+                  <span className="font-semibold text-ink">{subscribeEmail}</span> is already subscribed to this agent&apos;s reports.
                 </p>
                 <button
                   onClick={() => {
@@ -514,7 +514,7 @@ export default function AgentDetailPage() {
                     setSubscribeStatus('idle')
                     setSubscribeEmail('')
                   }}
-                  className="mt-5 inline-flex rounded-[1rem] border border-[#e6dccf] bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-[#fcfaf5]"
+                  className="mt-5 inline-flex rounded-[1rem] border border-line bg-white px-4 py-2.5 text-sm font-semibold text-ink-soft transition-colors hover:bg-cream"
                 >
                   Close
                 </button>
@@ -523,12 +523,12 @@ export default function AgentDetailPage() {
               <>
                 <div className="mb-5 flex items-start justify-between gap-4">
                   <div className="flex items-start gap-3">
-                    <div className="rounded-[1rem] bg-[#fff5e7] p-3">
-                      <Bell className="h-5 w-5 text-[#9d6a1d]" />
+                    <div className="rounded-[1rem] bg-paper p-3">
+                      <Bell className="h-5 w-5 text-gold" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-950">Subscribe to reports</h3>
-                      <p className="mt-1 text-sm text-gray-500">{agent.agent_name}</p>
+                      <h3 className="text-lg font-semibold text-ink">Subscribe to reports</h3>
+                      <p className="mt-1 text-sm text-ink-mute">{agent.agent_name}</p>
                     </div>
                   </div>
                   <button
@@ -536,13 +536,13 @@ export default function AgentDetailPage() {
                       setShowSubscribeForm(false)
                       setSubscribeEmail('')
                     }}
-                    className="text-2xl leading-none text-gray-400 transition-colors hover:text-gray-700"
+                    className="text-2xl leading-none text-ash transition-colors hover:text-ink-soft"
                   >
                     ×
                   </button>
                 </div>
 
-                <p className="mb-4 text-sm leading-6 text-gray-600">
+                <p className="mb-4 text-sm leading-6 text-ink-soft">
                   Get this agent&apos;s scheduled reports delivered to your inbox automatically.
                 </p>
 
@@ -554,7 +554,7 @@ export default function AgentDetailPage() {
                     value={subscribeEmail}
                     onChange={(e) => setSubscribeEmail(e.target.value)}
                     placeholder="your@email.com"
-                    className="w-full rounded-[1.15rem] border border-black/10 bg-[#fcfaf5] px-4 py-3.5 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-[#79dfbc] focus:ring-4 focus:ring-[#79dfbc]/20"
+                    className="w-full rounded-[1.15rem] border border-black/10 bg-cream px-4 py-3.5 text-sm text-ink placeholder-ash outline-none transition focus:border-mint focus:ring-4 focus:ring-mint/20"
                   />
 
                   <div className="flex gap-3">
@@ -564,21 +564,21 @@ export default function AgentDetailPage() {
                         setShowSubscribeForm(false)
                         setSubscribeEmail('')
                       }}
-                      className="flex-1 rounded-[1rem] border border-[#e6dccf] bg-white px-4 py-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-[#fcfaf5]"
+                      className="flex-1 rounded-[1rem] border border-line bg-white px-4 py-3 text-sm font-semibold text-ink-soft transition-colors hover:bg-cream"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={subscribeStatus === 'loading'}
-                      className="flex flex-1 items-center justify-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-60"
+                      className="flex flex-1 items-center justify-center gap-2 rounded-[1rem] bg-ink px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-60"
                     >
-                      {subscribeStatus === 'loading' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bell className="h-4 w-4" />}
-                      {subscribeStatus === 'loading' ? 'Subscribing...' : 'Subscribe'}
+                      {subscribeStatus === 'loading' ? <Loader2 className="h-4 w-4 motion-safe:animate-spin" /> : <Bell className="h-4 w-4" />}
+                      {subscribeStatus === 'loading' ? 'Subscribing…' : 'Subscribe'}
                     </button>
                   </div>
 
-                  <p className="text-center text-xs text-gray-400">
+                  <p className="text-center text-xs text-ash">
                     You can unsubscribe anytime via the link in emails.
                   </p>
                 </form>

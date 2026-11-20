@@ -33,9 +33,9 @@ const providerIcons: Record<string, any> = {
 }
 
 const providerColors: Record<string, string> = {
-  slack: 'bg-pink-100 text-pink-700',
-  email: 'bg-blue-100 text-blue-700',
-  webhook: 'bg-purple-100 text-purple-700'
+  slack: 'bg-sand-deep text-ink-soft',
+  email: 'bg-sky-wash text-azure',
+  webhook: 'bg-sand-deep text-ink-soft'
 }
 
 export function OutputConfigList({ agentId, refreshKey = 0, onCreateClick, onEditClick }: OutputConfigListProps) {
@@ -65,8 +65,8 @@ export function OutputConfigList({ agentId, refreshKey = 0, onCreateClick, onEdi
     return (
       <div className="flex items-center justify-center py-16">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 text-red-500 animate-spin mx-auto mb-3" />
-          <p className="text-gray-600 text-sm">Loading output configurations...</p>
+          <Loader2 className="w-8 h-8 text-leaf motion-safe:animate-spin mx-auto mb-3" />
+          <p className="text-ink-soft text-sm">Loading output configurations…</p>
         </div>
       </div>
     )
@@ -75,12 +75,12 @@ export function OutputConfigList({ agentId, refreshKey = 0, onCreateClick, onEdi
   if (error) {
     return (
       <div className="p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="bg-blush-wash border border-blush rounded-lg p-4">
           <div className="flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+            <AlertCircle className="w-5 h-5 text-danger flex-shrink-0" />
             <div>
-              <p className="font-medium text-red-900">Error Loading Output Configurations</p>
-              <p className="text-sm text-red-700 mt-1">{error}</p>
+              <p className="font-medium text-wine">Error Loading Output Configurations</p>
+              <p className="text-sm text-danger mt-1">{error}</p>
             </div>
           </div>
         </div>
@@ -91,16 +91,16 @@ export function OutputConfigList({ agentId, refreshKey = 0, onCreateClick, onEdi
   if (configs.length === 0) {
     return (
       <div className="p-16 text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
-          <Send className="w-8 h-8 text-red-600" />
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-sand-deep rounded-full mb-4">
+          <Send className="w-8 h-8 text-leaf" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">No Output Configurations Yet</h3>
-        <p className="text-gray-600 mb-6 max-w-md mx-auto text-sm">
+        <h3 className="text-lg font-semibold text-ink mb-2">No Output Configurations Yet</h3>
+        <p className="text-ink-soft mb-6 max-w-md mx-auto text-sm">
           Create your first output configuration to route agent responses to Slack, Email, or external webhooks.
         </p>
         <button
           onClick={onCreateClick}
-          className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-lg transition-all shadow-sm hover:shadow-md"
+          className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-ink hover:bg-ink/85 rounded-lg transition-[color,background-color,border-color,box-shadow,opacity,transform] shadow-sm hover:shadow-md"
         >
           <Plus className="w-4 h-4" />
           Create Output Configuration
@@ -114,12 +114,12 @@ export function OutputConfigList({ agentId, refreshKey = 0, onCreateClick, onEdi
       <div className="grid gap-4">
         {configs.map((config) => {
           const Icon = providerIcons[config.provider] || Send
-          const colorClass = providerColors[config.provider] || 'bg-gray-100 text-gray-700'
+          const colorClass = providerColors[config.provider] || 'bg-sand text-ink-soft'
 
           return (
             <div
               key={config.id}
-              className="border border-gray-200 rounded-lg p-5 hover:border-red-300 hover:shadow-sm transition-all bg-white"
+              className="border border-line rounded-lg p-5 hover:border-blush hover:shadow-sm transition-[color,background-color,border-color,box-shadow,opacity,transform] bg-white"
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-4 flex-1">
@@ -128,70 +128,70 @@ export function OutputConfigList({ agentId, refreshKey = 0, onCreateClick, onEdi
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold text-gray-900">{config.name}</h3>
+                      <h3 className="font-semibold text-ink">{config.name}</h3>
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
                         config.is_enabled
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-gray-100 text-gray-600'
+                          ? 'bg-leaf-wash text-forest'
+                          : 'bg-sand text-ink-soft'
                       }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${
-                          config.is_enabled ? 'bg-green-600' : 'bg-gray-400'
+                          config.is_enabled ? 'bg-leaf' : 'bg-ash'
                         }`} />
                         {config.is_enabled ? 'Enabled' : 'Disabled'}
                       </span>
                     </div>
                     
                     {config.description && (
-                      <p className="text-sm text-gray-600 mb-3">{config.description}</p>
+                      <p className="text-sm text-ink-soft mb-3">{config.description}</p>
                     )}
 
-                    <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
+                    <div className="flex items-center gap-4 text-sm text-ink-soft mb-3">
                       <span className="capitalize">{config.provider}</span>
                       {config.provider === 'slack' && config.config?.channel && (
                         <>
-                          <span className="text-gray-300">•</span>
+                          <span className="text-taupe">•</span>
                           <span className="font-mono text-xs">{config.config.channel}</span>
                         </>
                       )}
                       {config.provider === 'email' && config.config?.to && (
                         <>
-                          <span className="text-gray-300">•</span>
+                          <span className="text-taupe">•</span>
                           <span className="text-xs">{config.config.to.join(', ')}</span>
                         </>
                       )}
                       {config.provider === 'webhook' && config.config?.url && (
                         <>
-                          <span className="text-gray-300">•</span>
+                          <span className="text-taupe">•</span>
                           <span className="font-mono text-xs truncate max-w-xs">{config.config.url}</span>
                         </>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                    <div className="flex items-center gap-4 text-xs text-ink-mute">
                       {config.send_on_webhook_trigger && (
                         <div className="flex items-center gap-1.5">
-                          <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+                          <CheckCircle className="w-3.5 h-3.5 text-leaf" />
                           <span>Webhook triggers</span>
                         </div>
                       )}
                       {config.send_on_chat_completion && (
                         <div className="flex items-center gap-1.5">
-                          <CheckCircle className="w-3.5 h-3.5 text-green-600" />
+                          <CheckCircle className="w-3.5 h-3.5 text-leaf" />
                           <span>Chat completions</span>
                         </div>
                       )}
                       {config.retry_on_failure && (
                         <div className="flex items-center gap-1.5">
-                          <span className="text-gray-400">•</span>
+                          <span className="text-ash">•</span>
                           <span>Retries: {config.max_retries}</span>
                         </div>
                       )}
                     </div>
 
                     {config.output_template && (
-                      <div className="mt-3 p-2 bg-gray-50 rounded border border-gray-200">
-                        <p className="text-xs text-gray-500 mb-1">Custom Template:</p>
-                        <code className="text-xs text-gray-700 font-mono block truncate">
+                      <div className="mt-3 p-2 bg-cream rounded border border-line">
+                        <p className="text-xs text-ink-mute mb-1">Custom Template:</p>
+                        <code className="text-xs text-ink-soft font-mono block truncate">
                           {config.output_template}
                         </code>
                       </div>
@@ -203,10 +203,10 @@ export function OutputConfigList({ agentId, refreshKey = 0, onCreateClick, onEdi
                   <button
                     onClick={() => setActionMenuOpen(actionMenuOpen === config.id ? null : config.id)}
                     disabled={deleting === config.id}
-                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                    className="p-2 text-ash hover:text-ink-soft hover:bg-sand rounded-lg transition-colors disabled:opacity-50"
                   >
                     {deleting === config.id ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <Loader2 className="w-5 h-5 motion-safe:animate-spin" />
                     ) : (
                       <MoreVertical className="w-5 h-5" />
                     )}
@@ -218,20 +218,20 @@ export function OutputConfigList({ agentId, refreshKey = 0, onCreateClick, onEdi
                         className="fixed inset-0 z-10"
                         onClick={() => setActionMenuOpen(null)}
                       />
-                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-line py-1 z-20">
                         <button
                           onClick={() => {
                             setActionMenuOpen(null)
                             onEditClick?.(config)
                           }}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-ink-soft hover:bg-cream transition-colors"
                         >
                           <Edit className="w-4 h-4" />
                           Edit
                         </button>
                         <button
                           onClick={() => handleDelete(config.id)}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-danger hover:bg-blush-wash transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
                           Delete

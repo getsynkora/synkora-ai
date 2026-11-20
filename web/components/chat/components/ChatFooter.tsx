@@ -13,7 +13,7 @@ export function ChatFooter({ chatConfig }: ChatFooterProps) {
 
   return (
     <div 
-      className="border-t bg-gradient-to-br from-gray-50 via-white to-gray-50 backdrop-blur-sm"
+      className="border-t bg-cream"
       style={{
         borderColor: `${primaryColor}20`,
       }}
@@ -30,7 +30,7 @@ export function ChatFooter({ chatConfig }: ChatFooterProps) {
                 border: `1px solid ${primaryColor}20`,
               }}
             >
-              <svg 
+              <svg aria-hidden="true" 
                 className="w-4 h-4" 
                 fill="none" 
                 stroke="currentColor" 
@@ -45,7 +45,7 @@ export function ChatFooter({ chatConfig }: ChatFooterProps) {
                 />
               </svg>
             </div>
-            <span className="text-sm font-medium text-gray-700">
+            <span className="text-sm font-medium text-ink-soft">
               {footerText}
             </span>
           </div>
@@ -59,7 +59,7 @@ export function ChatFooter({ chatConfig }: ChatFooterProps) {
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-200 hover:shadow-sm"
+                  className="px-3 py-1.5 text-sm font-medium rounded-lg transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-200 hover:shadow-sm"
                   style={{
                     color: primaryColor,
                     background: `${primaryColor}08`,
@@ -87,7 +87,7 @@ export function ChatFooter({ chatConfig }: ChatFooterProps) {
             borderColor: `${primaryColor}10`,
           }}
         >
-          <span className="text-xs text-gray-500">Powered by</span>
+          <span className="text-xs text-ink-mute">Powered by</span>
           <div className="flex items-center gap-1.5">
             <div 
               className="w-5 h-5 rounded flex items-center justify-center"
@@ -95,7 +95,7 @@ export function ChatFooter({ chatConfig }: ChatFooterProps) {
                 background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd)`,
               }}
             >
-              <svg 
+              <svg aria-hidden="true" 
                 className="w-3 h-3 text-white" 
                 fill="currentColor" 
                 viewBox="0 0 20 20"

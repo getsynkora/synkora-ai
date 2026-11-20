@@ -14,11 +14,11 @@ import { cn } from '@/lib/utils/cn'
 import DashboardPageShell, { DashboardPagePanel } from '@/components/dashboard/DashboardPageShell'
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  pending: { label: 'Ready to Start', color: 'text-gray-500' },
-  active: { label: 'Live', color: 'text-green-600' },
-  synthesizing: { label: 'Synthesizing Verdict...', color: 'text-amber-600' },
-  completed: { label: 'Completed', color: 'text-blue-600' },
-  error: { label: 'Error', color: 'text-red-600' },
+  pending: { label: 'Ready to Start', color: 'text-ink-mute' },
+  active: { label: 'Live', color: 'text-leaf' },
+  synthesizing: { label: 'Synthesizing Verdict…', color: 'text-warn' },
+  completed: { label: 'Completed', color: 'text-azure' },
+  error: { label: 'Error', color: 'text-danger' },
 }
 
 export default function DebateSessionPage() {
@@ -96,7 +96,7 @@ export default function DebateSessionPage() {
   if (!currentDebate) {
     return (
       <div className="dashboard-resource-page flex min-h-screen items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-[#171717]" />
+        <div className="h-6 w-6 motion-safe:animate-spin rounded-full border-2 border-line border-t-ink" />
       </div>
     )
   }
@@ -127,7 +127,7 @@ export default function DebateSessionPage() {
           {canStart ? (
             <button
               onClick={() => router.push(`/war-room/create?edit=${debateId}`)}
-              className="inline-flex items-center gap-2 rounded-[1rem] border border-black/10 bg-white/85 px-4 py-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-white hover:text-[#171717]"
+              className="inline-flex items-center gap-2 rounded-[1rem] border border-black/10 bg-white/85 px-4 py-3 text-sm font-semibold text-ink-soft transition-colors hover:bg-white hover:text-ink"
             >
               Edit
             </button>
@@ -135,7 +135,7 @@ export default function DebateSessionPage() {
           {currentDebate.allow_external && currentDebate.share_token ? (
             <button
               onClick={() => setShowConnectModal(true)}
-              className="inline-flex items-center gap-2 rounded-[1rem] border border-[#f0d8bf] bg-[#fff5e7] px-4 py-3 text-sm font-semibold text-[#9d6a1d] transition-colors hover:bg-[#fef0da]"
+              className="inline-flex items-center gap-2 rounded-[1rem] border border-line bg-paper px-4 py-3 text-sm font-semibold text-gold transition-colors hover:bg-sand-deep"
             >
               <PlugZap className="h-4 w-4" />
               Connect Agent
@@ -148,7 +148,7 @@ export default function DebateSessionPage() {
                 navigator.clipboard.writeText(url)
                 toast.success('Share link copied')
               }}
-              className="inline-flex items-center gap-2 rounded-[1rem] border border-black/10 bg-white/85 px-4 py-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-white hover:text-[#171717]"
+              className="inline-flex items-center gap-2 rounded-[1rem] border border-black/10 bg-white/85 px-4 py-3 text-sm font-semibold text-ink-soft transition-colors hover:bg-white hover:text-ink"
             >
               <Share2 className="h-4 w-4" />
               Copy Share Link
@@ -165,7 +165,7 @@ export default function DebateSessionPage() {
                   console.error('Failed to stop debate:', err)
                 }
               }}
-              className="inline-flex items-center gap-2 rounded-[1rem] border border-[#eed6dd] bg-[#fdf3f5] px-4 py-3 text-sm font-semibold text-[#8a445c] transition-colors hover:bg-[#f9e9ed]"
+              className="inline-flex items-center gap-2 rounded-[1rem] border border-blush-wash bg-cream px-4 py-3 text-sm font-semibold text-wine transition-colors hover:bg-blush-wash"
             >
               Stop Debate
             </button>
@@ -173,7 +173,7 @@ export default function DebateSessionPage() {
           {canStart ? (
             <button
               onClick={startStream}
-              className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+              className="inline-flex items-center gap-2 rounded-[1rem] bg-ink px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
             >
               Start Debate
             </button>
@@ -184,14 +184,14 @@ export default function DebateSessionPage() {
       {currentDebate.debate_metadata?.context?.type === 'github_pr' ? (
         <DashboardPagePanel className="mb-6 p-4">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="rounded-[0.9rem] bg-[#edf7f1] p-2">
-              <GitPullRequest className="h-4 w-4 text-[#2d8b69]" />
+            <div className="rounded-[0.9rem] bg-leaf-wash p-2">
+              <GitPullRequest className="h-4 w-4 text-leaf" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-gray-900">
+              <p className="truncate text-sm font-semibold text-ink">
                 {currentDebate.debate_metadata.context.pr_title}
               </p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-ink-mute">
                 {currentDebate.debate_metadata.context.repo_full_name}#{currentDebate.debate_metadata.context.pr_number}
               </p>
             </div>
@@ -200,7 +200,7 @@ export default function DebateSessionPage() {
                 href={currentDebate.debate_metadata.context.github_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 rounded-[0.9rem] border border-black/10 bg-white/90 px-3 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-white hover:text-[#171717]"
+                className="inline-flex items-center gap-1 rounded-[0.9rem] border border-black/10 bg-white/90 px-3 py-2 text-xs font-semibold text-ink-soft transition-colors hover:bg-white hover:text-ink"
               >
                 Open PR
                 <ExternalLink className="h-3.5 w-3.5" />
@@ -215,13 +215,13 @@ export default function DebateSessionPage() {
           {currentDebate.participants.map((p) => (
             <span
               key={p.id}
-              className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium text-gray-700"
+              className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium text-ink-soft"
               style={{ backgroundColor: `${p.color}10`, borderColor: `${p.color}30` }}
             >
               <span className="h-2 w-2 rounded-full" style={{ backgroundColor: p.color }} />
               {p.agent_name}
-              {p.role ? <span className="text-gray-500">({p.role})</span> : null}
-              {p.is_external ? <span className="text-[#b84a3a] text-[10px]">EXT</span> : null}
+              {p.role ? <span className="text-ink-mute">({p.role})</span> : null}
+              {p.is_external ? <span className="text-leaf text-[10px]">EXT</span> : null}
             </span>
           ))}
         </div>

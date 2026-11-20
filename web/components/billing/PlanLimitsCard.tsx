@@ -46,9 +46,9 @@ export default function PlanLimitsCard({ limits, showUpgradePrompt = true }: Pla
 
   const getProgressColor = (current: number, limit: number) => {
     const percentage = (current / limit) * 100
-    if (percentage >= 90) return 'bg-red-500'
-    if (percentage >= 75) return 'bg-yellow-500'
-    return 'bg-emerald-500'
+    if (percentage >= 90) return 'bg-ink'
+    if (percentage >= 75) return 'bg-warn'
+    return 'bg-leaf'
   }
 
   const getProgressPercentage = (current: number, limit: number) => {
@@ -57,11 +57,11 @@ export default function PlanLimitsCard({ limits, showUpgradePrompt = true }: Pla
   }
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6">
+    <div className="rounded-lg border border-line bg-white p-6">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">Plan Usage</h3>
+        <h3 className="text-lg font-semibold text-ink">Plan Usage</h3>
         {subscription && (
-          <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-800">
+          <span className="rounded-full bg-leaf-wash px-3 py-1 text-sm font-medium text-forest">
             {subscription.plan_name}
           </span>
         )}
@@ -77,20 +77,20 @@ export default function PlanLimitsCard({ limits, showUpgradePrompt = true }: Pla
             <div key={index} className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="text-gray-600">{resource.icon}</div>
-                  <span className="text-sm font-medium text-gray-700">
+                  <div className="text-ink-soft">{resource.icon}</div>
+                  <span className="text-sm font-medium text-ink-soft">
                     {resource.name}
                   </span>
                   {resource.upgradeRequired && (
-                    <Lock className="h-4 w-4 text-gray-400" />
+                    <Lock className="h-4 w-4 text-ash" />
                   )}
                 </div>
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-ink-soft">
                   {isUnlimited ? (
-                    <span className="font-medium text-emerald-600">Unlimited</span>
+                    <span className="font-medium text-leaf">Unlimited</span>
                   ) : (
                     <>
-                      <span className={isAtLimit ? 'font-semibold text-red-600' : ''}>
+                      <span className={isAtLimit ? 'font-semibold text-leaf' : ''}>
                         {resource.current}
                       </span>
                       {' / '}
@@ -102,9 +102,9 @@ export default function PlanLimitsCard({ limits, showUpgradePrompt = true }: Pla
 
               {!isUnlimited && (
                 <>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-line">
                     <div
-                      className={`h-full transition-all duration-300 ${getProgressColor(
+                      className={`h-full transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 ${getProgressColor(
                         resource.current,
                         resource.limit
                       )}`}
@@ -115,9 +115,9 @@ export default function PlanLimitsCard({ limits, showUpgradePrompt = true }: Pla
                   </div>
 
                   {isNearLimit && (
-                    <div className="flex items-start gap-2 rounded-md bg-yellow-50 p-2">
-                      <AlertCircle className="h-4 w-4 flex-shrink-0 text-yellow-600" />
-                      <p className="text-xs text-yellow-800">
+                    <div className="flex items-start gap-2 rounded-md bg-sand-deep p-2">
+                      <AlertCircle className="h-4 w-4 flex-shrink-0 text-warn" />
+                      <p className="text-xs text-gold">
                         {isAtLimit
                           ? `You've reached your ${resource.name.toLowerCase()} limit. Upgrade to add more.`
                           : `You're approaching your ${resource.name.toLowerCase()} limit.`}
@@ -132,19 +132,19 @@ export default function PlanLimitsCard({ limits, showUpgradePrompt = true }: Pla
       </div>
 
       {showUpgradePrompt && (
-        <div className="mt-6 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 p-4">
+        <div className="mt-6 rounded-lg bg-leaf-wash p-4">
           <div className="flex items-start gap-3">
-            <TrendingUp className="h-5 w-5 flex-shrink-0 text-emerald-600" />
+            <TrendingUp className="h-5 w-5 flex-shrink-0 text-leaf" />
             <div className="flex-1">
-              <h4 className="text-sm font-semibold text-gray-900">
+              <h4 className="text-sm font-semibold text-ink">
                 Need more resources?
               </h4>
-              <p className="mt-1 text-xs text-gray-600">
+              <p className="mt-1 text-xs text-ink-soft">
                 Upgrade your plan to unlock higher limits and premium features.
               </p>
               <Link
                 href="/billing/subscription"
-                className="mt-2 inline-flex items-center text-sm font-medium text-emerald-600 hover:text-emerald-700"
+                className="mt-2 inline-flex items-center text-sm font-medium text-leaf hover:text-forest"
               >
                 View Plans
                 <Zap className="ml-1 h-4 w-4" />

@@ -106,22 +106,22 @@ export default function ImageUpload({
 
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700">
+      <label className="block text-sm font-medium text-ink-soft">
         {label}
       </label>
       
       {description && (
-        <p className="text-sm text-gray-500">{description}</p>
+        <p className="text-sm text-ink-mute">{description}</p>
       )}
       
       {recommendedSize && (
-        <p className="text-xs text-gray-400">Recommended: {recommendedSize}</p>
+        <p className="text-xs text-ash">Recommended: {recommendedSize}</p>
       )}
 
       {preview ? (
         <div className="relative">
           <div 
-            className="relative border-2 border-gray-200 rounded-lg p-4 bg-gray-50"
+            className="relative border-2 border-line rounded-lg p-4 bg-cream"
             style={aspectRatio ? { aspectRatio } : undefined}
           >
             <div className="relative w-full h-full flex items-center justify-center">
@@ -140,11 +140,11 @@ export default function ImageUpload({
             <button
               onClick={handleRemove}
               disabled={uploading}
-              className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+              className="absolute top-2 right-2 p-2 bg-danger text-white rounded-full hover:bg-danger transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
               title="Remove image"
             >
               {uploading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-4 h-4 motion-safe:animate-spin" />
               ) : (
                 <X className="w-4 h-4" />
               )}
@@ -154,10 +154,10 @@ export default function ImageUpload({
           <button
             {...getRootProps()}
             disabled={uploading}
-            className="mt-2 w-full px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="mt-2 w-full px-4 py-2 text-sm text-ink-soft bg-white border border-taupe rounded-lg hover:bg-cream transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <input {...getInputProps()} />
-            {uploading ? 'Uploading...' : 'Change Image'}
+            {uploading ? 'Uploading…' : 'Change Image'}
           </button>
         </div>
       ) : (
@@ -165,29 +165,29 @@ export default function ImageUpload({
           {...getRootProps()}
           className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
             isDragActive
-              ? 'border-blue-500 bg-blue-50'
-              : 'border-gray-300 hover:border-gray-400 bg-gray-50'
+              ? 'border-azure bg-sky-wash'
+              : 'border-taupe hover:border-ash bg-cream'
           } ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
           style={aspectRatio ? { aspectRatio } : undefined}
         >
           <input {...getInputProps()} />
           
           {uploading ? (
-            <Loader2 className="w-12 h-12 text-gray-400 mx-auto mb-4 animate-spin" />
+            <Loader2 className="w-12 h-12 text-ash mx-auto mb-4 motion-safe:animate-spin" />
           ) : (
-            <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <ImageIcon className="w-12 h-12 text-ash mx-auto mb-4" />
           )}
           
           {isDragActive ? (
-            <p className="text-sm font-medium text-blue-600">Drop image here...</p>
+            <p className="text-sm font-medium text-azure">Drop image here…</p>
           ) : uploading ? (
-            <p className="text-sm font-medium text-gray-600">Uploading...</p>
+            <p className="text-sm font-medium text-ink-soft">Uploading…</p>
           ) : (
             <>
-              <p className="text-sm font-medium text-gray-900 mb-1">
+              <p className="text-sm font-medium text-ink mb-1">
                 Drag & drop an image here, or click to select
               </p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-ink-mute">
                 PNG, JPG, SVG, or WebP (max {maxSize / 1024 / 1024}MB)
               </p>
             </>

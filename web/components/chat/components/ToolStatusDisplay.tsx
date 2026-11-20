@@ -129,25 +129,25 @@ export function ToolStatusDisplay({
   return (
     <div
       className={cn(
-        'rounded-lg border border-gray-200 bg-white overflow-hidden shadow-sm',
+        'rounded-lg border border-line bg-white overflow-hidden shadow-sm',
         className
       )}
     >
       {/* Header with overall timer */}
       {(isStreaming || elapsedTime > 0) && (
         <div
-          className="flex items-center justify-between px-3 py-2 border-b border-gray-100"
+          className="flex items-center justify-between px-3 py-2 border-b border-sand"
           style={{ backgroundColor: `${primaryColor}08` }}
         >
           <div className="flex items-center gap-2">
             {isStreaming && (
               <Loader2
                 size={14}
-                className="animate-spin"
+                className="motion-safe:animate-spin"
                 style={{ color: primaryColor }}
               />
             )}
-            <span className="text-xs font-medium text-gray-600">
+            <span className="text-xs font-medium text-ink-soft">
               {isStreaming ? 'Processing' : 'Completed'}
             </span>
           </div>
@@ -162,7 +162,7 @@ export function ToolStatusDisplay({
       )}
 
       {/* Tool list */}
-      <div className="divide-y divide-gray-100">
+      <div className="divide-y divide-sand">
         {allTools.map((tool, index) => {
           const Icon = getToolIcon(tool.tool_name)
           const isRunning = tool.status === 'started'
@@ -174,7 +174,7 @@ export function ToolStatusDisplay({
               key={`${tool.tool_name}-${index}`}
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 transition-colors',
-                isRunning && 'bg-amber-50/50'
+                isRunning && 'bg-sand-deep/50'
               )}
             >
               {/* Status indicator */}
@@ -184,24 +184,24 @@ export function ToolStatusDisplay({
                     {/* Animated spinner for running */}
                     <Loader2
                       size={18}
-                      className="animate-spin"
+                      className="motion-safe:animate-spin"
                       style={{ color: primaryColor }}
                     />
                     {/* Pulsing ring for more visibility */}
                     <div
-                      className="absolute inset-0 rounded-full animate-ping opacity-30"
+                      className="absolute inset-0 rounded-full motion-safe:animate-ping opacity-30"
                       style={{ backgroundColor: primaryColor }}
                     />
                   </div>
                 ) : isCompleted ? (
                   <div
                     className="w-5 h-5 rounded flex items-center justify-center"
-                    style={{ backgroundColor: '#10b981' }}
+                    style={{ backgroundColor: 'rgb(var(--mint))' }}
                   >
                     <Check size={12} className="text-white" strokeWidth={3} />
                   </div>
                 ) : (
-                  <div className="w-5 h-5 rounded bg-red-500 flex items-center justify-center">
+                  <div className="w-5 h-5 rounded bg-ink flex items-center justify-center">
                     <AlertCircle size={12} className="text-white" />
                   </div>
                 )}
@@ -212,7 +212,7 @@ export function ToolStatusDisplay({
                 size={14}
                 className={cn(
                   'flex-shrink-0',
-                  isRunning ? 'text-gray-700' : 'text-gray-400'
+                  isRunning ? 'text-ink-soft' : 'text-ash'
                 )}
               />
 
@@ -220,7 +220,7 @@ export function ToolStatusDisplay({
               <span
                 className={cn(
                   'text-sm flex-1 truncate',
-                  isRunning ? 'text-gray-900 font-medium' : 'text-gray-500'
+                  isRunning ? 'text-ink font-medium' : 'text-ink-mute'
                 )}
               >
                 {tool.description}
@@ -230,14 +230,14 @@ export function ToolStatusDisplay({
               <div className="flex items-center gap-2 flex-shrink-0">
                 {/* File path or detail (if available) */}
                 {tool.details?.file_path && (
-                  <span className="text-gray-400 truncate max-w-[100px] text-xs font-mono">
+                  <span className="text-ash truncate max-w-[100px] text-xs font-mono">
                     {tool.details.file_path.split('/').slice(-2).join('/')}
                   </span>
                 )}
 
                 {/* Duration */}
                 {isCompleted && tool.duration_ms !== undefined && (
-                  <span className="text-xs text-gray-400 flex items-center gap-1 tabular-nums">
+                  <span className="text-xs text-ash flex items-center gap-1 tabular-nums">
                     <Clock size={10} />
                     {formatDuration(tool.duration_ms)}
                   </span>
@@ -246,7 +246,7 @@ export function ToolStatusDisplay({
                 {/* Running indicator text */}
                 {isRunning && (
                   <span
-                    className="text-xs font-medium animate-pulse"
+                    className="text-xs font-medium motion-safe:animate-pulse"
                     style={{ color: primaryColor }}
                   >
                     Running...
@@ -255,7 +255,7 @@ export function ToolStatusDisplay({
 
                 {/* Error indicator */}
                 {isError && (
-                  <span className="text-xs text-red-500 font-medium">
+                  <span className="text-xs text-leaf font-medium">
                     Failed
                   </span>
                 )}

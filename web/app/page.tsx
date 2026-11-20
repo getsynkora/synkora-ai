@@ -36,82 +36,45 @@ export default async function LandingPage() {
 
   return (
     <div
-      className="min-h-screen bg-[#f7f2e7] text-[#191919]"
-      style={{ fontFamily: '"Avenir Next", "Helvetica Neue", "Segoe UI", sans-serif' }}
+      className="landing min-h-screen bg-paper text-ink"
     >
-      {/* Enterprise feature strip */}
-      <div className="bg-[#171717] px-4 py-2.5">
-        <div className="mx-auto flex max-w-6xl items-center justify-center gap-6 text-xs font-medium tracking-[0.1em] text-white/55">
-          <div className="flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#7de5c1]" />
-            <span>SAML / OIDC SSO</span>
-          </div>
-          <span className="hidden text-white/20 sm:block">·</span>
-          <div className="hidden items-center gap-1.5 sm:flex">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#7de5c1]" />
-            <span>RBAC + Audit Logs</span>
-          </div>
-          <span className="hidden text-white/20 sm:block">·</span>
-          <div className="hidden items-center gap-1.5 sm:flex">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#7de5c1]" />
-            <span>IP Allowlist</span>
-          </div>
-          <span className="hidden text-white/20 lg:block">·</span>
-          <div className="hidden items-center gap-1.5 lg:flex">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#7de5c1]" />
-            <span>Encryption Key Rotation</span>
-          </div>
-          <span className="hidden text-white/20 lg:block">·</span>
-          <div className="hidden items-center gap-1.5 lg:flex">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#7de5c1]" />
-            <span>MIT Licensed · Self-host</span>
-          </div>
-          <a
-            href="mailto:enterprise@synkora.ai"
-            className="ml-2 whitespace-nowrap rounded-full border border-white/15 px-3 py-1 text-white/70 transition-colors hover:border-white/30 hover:text-white"
-          >
-            Talk to Sales →
-          </a>
-        </div>
-      </div>
-
       <AnimatedNav />
-      <AnimatedHero stars={stars} />
+      <AnimatedHero />
 
-      <section className="border-y border-black/10 bg-[#f4eee1] px-6 py-8">
+      <section className="border-y border-black/10 bg-sand px-6 py-8">
         <div className="mx-auto max-w-6xl">
           <div className="flex flex-col items-center justify-center gap-8 text-center sm:flex-row sm:gap-14">
             <div>
-              <div className="text-2xl font-semibold tracking-[-0.04em] text-[#171717]">MIT</div>
-              <div className="mt-1 text-xs uppercase tracking-[0.22em] text-[#6d675f]">Open Source License</div>
+              <div className="text-2xl font-semibold tracking-[-0.04em] text-ink">MIT</div>
+              <div className="mt-1 text-xs text-ink-mute">Open Source License</div>
             </div>
             <div className="hidden h-8 w-px bg-black/10 sm:block" />
             <div>
-              <div className="text-2xl font-semibold tracking-[-0.04em] text-[#171717]">SOC 2</div>
-              <div className="mt-1 text-xs uppercase tracking-[0.22em] text-[#6d675f]">Ready architecture</div>
+              <div className="text-2xl font-semibold tracking-[-0.04em] text-ink">SOC 2</div>
+              <div className="mt-1 text-xs text-ink-mute">Ready architecture</div>
             </div>
             <div className="hidden h-8 w-px bg-black/10 sm:block" />
             <div>
-              <div className="text-2xl font-semibold tracking-[-0.04em] text-[#171717]">SAML</div>
-              <div className="mt-1 text-xs uppercase tracking-[0.22em] text-[#6d675f]">+ OIDC SSO</div>
+              <div className="text-2xl font-semibold tracking-[-0.04em] text-ink">SAML</div>
+              <div className="mt-1 text-xs text-ink-mute">+ OIDC SSO</div>
             </div>
             <div className="hidden h-8 w-px bg-black/10 sm:block" />
             <div>
-              <div className="text-2xl font-semibold tracking-[-0.04em] text-[#171717]">BYOK</div>
-              <div className="mt-1 text-xs uppercase tracking-[0.22em] text-[#6d675f]">Bring your own LLM keys</div>
+              <div className="text-2xl font-semibold tracking-[-0.04em] text-ink">BYOK</div>
+              <div className="mt-1 text-xs text-ink-mute">Bring your own LLM keys</div>
             </div>
             <div className="hidden h-8 w-px bg-black/10 sm:block" />
             <a
               href="https://github.com/getsynkora/synkora-ai"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 text-[#6d675f] transition-colors hover:text-black"
+              className="flex items-center gap-2 text-ink-mute transition-colors hover:text-black"
             >
-              <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+              <svg aria-hidden="true" className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
               </svg>
               {stars !== null && (
-                <span className="text-base font-semibold tracking-[-0.02em] text-[#3d3933]">
+                <span className="text-base font-semibold tracking-[-0.02em] text-ink-soft">
                   {formatStars(stars)}
                 </span>
               )}
@@ -124,44 +87,40 @@ export default async function LandingPage() {
 
       <AnimatedFeatures />
 
-      <section className="bg-[#f4eee1] px-4 py-14 sm:px-6 sm:py-20">
+      <section className="bg-sand px-4 py-14 sm:px-6 sm:py-20">
         <div className="mx-auto max-w-6xl">
           <div className="mb-14 text-center">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/60 px-4 py-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#4b463e]">
-              <Play className="h-4 w-4" />
-              How It Works
-            </div>
-            <h2 className="mb-4 text-4xl font-medium tracking-[-0.05em] text-[#171717]">
+            <h2 className="mb-4 text-4xl font-medium tracking-[-0.05em] text-ink">
               From idea to deployed agent in minutes
             </h2>
-            <p className="mx-auto max-w-2xl text-xl leading-relaxed text-[#565149]">
+            <p className="mx-auto max-w-2xl text-xl leading-relaxed text-ink-soft">
               No infrastructure to configure. No framework to learn. Just build.
             </p>
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {[
-              { num: '01', icon: Code2, title: 'Create', desc: 'Define your agent — personality, LLM provider, tools — via UI or API' },
+              { num: '01', icon: Code2, title: 'Create', desc: 'Define your agent (personality, LLM provider, tools) via UI or API' },
               { num: '02', icon: Blocks, title: 'Connect', desc: 'Add knowledge bases, database connections, and 50+ integrations' },
               { num: '03', icon: MessageSquare, title: 'Test', desc: 'Use the built-in playground to iterate with real-time feedback' },
               { num: '04', icon: Rocket, title: 'Deploy', desc: 'Ship to Slack, WhatsApp, Teams, web widget, or REST API' },
             ].map((step, idx) => (
               <div
                 key={idx}
-                className="relative rounded-[2rem] border border-black/10 bg-white/60 p-6 shadow-[0_18px_40px_rgba(0,0,0,0.05)] backdrop-blur"
+                className="relative rounded-2xl border border-black/10 bg-white p-6 shadow-soft"
               >
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#79dfbc] text-[#11231d]">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-mint text-ink">
                   <step.icon className="h-6 w-6" />
                 </div>
                 <span className="absolute right-4 top-4 text-4xl font-medium tracking-[-0.05em] text-black/10">{step.num}</span>
-                <h3 className="mb-2 text-xl font-semibold tracking-[-0.03em] text-[#171717]">{step.title}</h3>
-                <p className="text-sm leading-relaxed text-[#575149]">{step.desc}</p>
+                <h3 className="mb-2 text-xl font-semibold tracking-[-0.03em] text-ink">{step.title}</h3>
+                <p className="text-sm leading-relaxed text-ink-soft">{step.desc}</p>
               </div>
             ))}
           </div>
 
           <div className="mt-10 text-center">
-            <Link href="/how-it-works" className="inline-flex items-center gap-2 font-semibold text-[#1f1d19] hover:text-black">
+            <Link href="/how-it-works" className="inline-flex items-center gap-2 font-semibold text-ink hover:text-black">
               See the full walkthrough
               <ArrowRight className="h-4 w-4" />
             </Link>
@@ -170,18 +129,14 @@ export default async function LandingPage() {
       </section>
 
       {/* Enterprise Security Section */}
-      <section className="bg-[#f7f2e7] px-4 py-14 sm:px-6 sm:py-20">
+      <section className="bg-paper px-4 py-14 sm:px-6 sm:py-20">
         <div className="mx-auto max-w-6xl">
           <div className="mb-14 text-center">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/60 px-4 py-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#4b463e]">
-              <ShieldCheck className="h-4 w-4 text-[#2d8b69]" />
-              Enterprise Security
-            </div>
-            <h2 className="mb-4 text-4xl font-medium tracking-[-0.05em] text-[#171717]">
+            <h2 className="mb-4 text-4xl font-medium tracking-[-0.05em] text-ink">
               Security built in, not bolted on
             </h2>
-            <p className="mx-auto max-w-2xl text-xl leading-relaxed text-[#565149]">
-              Every enterprise control your security team will ask for — available out of the box.
+            <p className="mx-auto max-w-2xl text-xl leading-relaxed text-ink-soft">
+              Every enterprise control your security team will ask for, available out of the box.
             </p>
           </div>
 
@@ -191,63 +146,54 @@ export default async function LandingPage() {
                 icon: UserCheck,
                 title: 'SAML & OIDC SSO',
                 desc: 'One-click SSO with Okta, Azure AD, Google Workspace, and any SAML 2.0 or OIDC provider',
-                accent: '#79dfbc',
               },
               {
                 icon: Users,
                 title: 'RBAC & Roles',
                 desc: 'Owner, Admin, Editor, and custom roles with granular per-resource permission overrides',
-                accent: '#79dfbc',
               },
               {
                 icon: FileSearch,
                 title: 'Audit Logs',
                 desc: 'Tamper-evident chain-hashed audit trail of every action. Export to CSV or JSON for compliance',
-                accent: '#79dfbc',
               },
               {
                 icon: Fingerprint,
                 title: 'MFA Enforcement',
                 desc: 'TOTP-based 2FA with tenant-wide enforcement and backup recovery codes',
-                accent: '#79dfbc',
               },
               {
                 icon: Server,
                 title: 'IP Allowlisting',
                 desc: 'Restrict console access to approved CIDR ranges. Block unauthorized network access entirely',
-                accent: '#f0c56d',
               },
               {
                 icon: KeyRound,
                 title: 'Encryption Key Rotation',
                 desc: 'MultiFernet key rotation across all 28 encrypted fields with dry-run preview and zero downtime',
-                accent: '#f0c56d',
               },
               {
                 icon: Lock,
                 title: 'RS256 / ES256 JWT',
                 desc: 'Asymmetric JWT signing with JWKS endpoint. Rotate keys without re-deploying clients',
-                accent: '#f0c56d',
               },
               {
                 icon: ShieldCheck,
                 title: 'Secret Scanning',
                 desc: 'Automatic detection of leaked API keys and credentials in agent inputs, with configurable policies',
-                accent: '#f0c56d',
               },
             ].map((feature, idx) => (
               <div
                 key={idx}
-                className="relative rounded-[1.75rem] border border-black/10 bg-white/60 p-6 shadow-[0_18px_40px_rgba(0,0,0,0.05)] backdrop-blur"
+                className="relative rounded-2xl border border-black/10 bg-white p-6 shadow-soft"
               >
                 <div
-                  className="mb-4 flex h-11 w-11 items-center justify-center rounded-[1rem] border border-black/8"
-                  style={{ background: `linear-gradient(135deg, ${feature.accent}30, rgba(255,255,255,0.9))` }}
+                  className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-sand-deep"
                 >
-                  <feature.icon className="h-5 w-5 text-[#171717]" />
+                  <feature.icon className="h-5 w-5 text-ink" />
                 </div>
-                <h3 className="mb-2 text-base font-semibold tracking-[-0.03em] text-[#171717]">{feature.title}</h3>
-                <p className="text-sm leading-relaxed text-[#575149]">{feature.desc}</p>
+                <h3 className="mb-2 text-base font-semibold tracking-[-0.03em] text-ink">{feature.title}</h3>
+                <p className="text-sm leading-relaxed text-ink-soft">{feature.desc}</p>
               </div>
             ))}
           </div>
@@ -255,7 +201,7 @@ export default async function LandingPage() {
           <div className="mt-10 text-center">
             <a
               href="/docs/security"
-              className="inline-flex items-center gap-2 font-semibold text-[#1f1d19] hover:text-black"
+              className="inline-flex items-center gap-2 font-semibold text-ink hover:text-black"
             >
               Security documentation
               <ArrowRight className="h-4 w-4" />
@@ -264,24 +210,20 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      <section className="bg-[#171717] px-4 py-14 sm:px-6 sm:py-20">
+      <section className="bg-sand px-4 py-14 sm:px-6 sm:py-20">
         <div className="mx-auto max-w-5xl">
           <div className="grid items-center gap-12 md:grid-cols-2">
             <div>
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-mono text-sm text-[#7de5c1]">
-                <span className="h-2 w-2 rounded-full bg-[#7de5c1]" />
-                Self-hosted in minutes
-              </div>
-              <h2 className="mb-4 text-3xl font-medium tracking-[-0.04em] text-white">
+              <h2 className="mb-4 text-3xl font-medium tracking-[-0.04em] text-ink">
                 Your infrastructure. Your data. Your rules.
               </h2>
-              <p className="mb-6 leading-relaxed text-[#cfc7bb]">
-                Run Synkora on your own servers with Docker. No data leaves your environment. Use your own PostgreSQL, Redis, and S3-compatible storage. MIT licensed — no usage fees, no phone-home.
+              <p className="mb-6 leading-relaxed text-ink-soft">
+                Run Synkora on your own servers with Docker. No data leaves your environment. Use your own PostgreSQL, Redis, and S3-compatible storage. MIT licensed, with no usage fees and no phone-home.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <a
                   href="/docs"
-                  className="inline-flex items-center gap-2 rounded-full bg-[#f7f2e7] px-5 py-2.5 text-sm font-semibold text-[#181818] transition-colors hover:bg-white"
+                  className="inline-flex items-center gap-2 rounded-full bg-paper px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-white"
                 >
                   Self-host docs
                   <ArrowRight className="h-4 w-4" />
@@ -290,9 +232,9 @@ export default async function LandingPage() {
                   href="https://github.com/getsynkora/synkora-ai"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+                  className="inline-flex items-center gap-2 rounded-full border border-ink/10 bg-white px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-white"
                 >
-                  <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                  <svg aria-hidden="true" className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
                   </svg>
                   View on GitHub
@@ -300,22 +242,17 @@ export default async function LandingPage() {
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-white/10 bg-[#0f0f0f] p-6 font-mono text-sm">
-              <div className="mb-4 flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-[#ff5f57]" />
-                <div className="h-3 w-3 rounded-full bg-[#febc2e]" />
-                <div className="h-3 w-3 rounded-full bg-[#28c840]" />
-                <span className="ml-2 text-xs text-[#7d766c]">terminal</span>
-              </div>
+            <div className="rounded-2xl border border-white/10 bg-ink p-6 font-mono text-sm">
+              <div className="mb-4 font-sans text-xs text-ink-mute">Terminal</div>
               <div className="space-y-2 text-sm">
-                <div><span className="text-[#7d766c]"># Clone the repo</span></div>
-                <div><span className="text-[#7de5c1]">$</span> <span className="text-white">git clone https://github.com/getsynkora/synkora-ai</span></div>
-                <div><span className="text-[#7de5c1]">$</span> <span className="text-white">cd synkora-ai</span></div>
-                <div className="pt-1"><span className="text-[#7d766c]"># Copy env and start</span></div>
-                <div><span className="text-[#7de5c1]">$</span> <span className="text-white">cp .env.example .env</span></div>
-                <div><span className="text-[#7de5c1]">$</span> <span className="text-white">docker-compose up -d</span></div>
-                <div className="pt-2 text-[#cfc7bb]">
-                  <span className="text-[#7de5c1]">✓</span> Running at <span className="text-[#c4d8ff]">http://localhost:3005</span>
+                <div><span className="text-ink-mute"># Clone the repo</span></div>
+                <div><span className="text-mint">$</span> <span className="text-white">git clone https://github.com/getsynkora/synkora-ai</span></div>
+                <div><span className="text-mint">$</span> <span className="text-white">cd synkora-ai</span></div>
+                <div className="pt-1"><span className="text-ink-mute"># Copy env and start</span></div>
+                <div><span className="text-mint">$</span> <span className="text-white">cp .env.example .env</span></div>
+                <div><span className="text-mint">$</span> <span className="text-white">docker-compose up -d</span></div>
+                <div className="pt-2 text-paper-dim">
+                  <span className="text-mint">✓</span> Running at <span className="text-mint">http://localhost:3005</span>
                 </div>
               </div>
             </div>
@@ -325,12 +262,12 @@ export default async function LandingPage() {
 
       <AgentsSectionClient />
 
-      <section className="bg-[#f7f2e7] px-4 py-14 sm:px-6 sm:py-20">
+      <section className="bg-paper px-4 py-14 sm:px-6 sm:py-20">
         <div className="mx-auto max-w-5xl">
           <div className="mb-12 text-center">
-            <h2 className="mb-3 text-3xl font-medium tracking-[-0.04em] text-[#171717]">Platform, not a framework</h2>
-            <p className="mx-auto max-w-xl text-lg leading-relaxed text-[#575149]">
-              Frameworks give you building blocks. Synkora gives you the whole platform — deployed, monitored, and ready to use.
+            <h2 className="mb-3 text-3xl font-medium tracking-[-0.04em] text-ink">Platform, not a framework</h2>
+            <p className="mx-auto max-w-xl text-lg leading-relaxed text-ink-soft">
+              Frameworks give you building blocks. Synkora gives you the whole platform: deployed, monitored, and ready to use.
             </p>
           </div>
 
@@ -340,39 +277,39 @@ export default async function LandingPage() {
                 name: 'LangChain / CrewAI',
                 color: 'border-black/10',
                 tag: 'Framework',
-                tagColor: 'bg-black/5 text-[#5f5a52]',
+                tagColor: 'bg-black/5 text-ink-soft',
                 points: ['Python code only', 'No web UI', 'No deployment infrastructure', 'No multi-tenancy', 'No SSO or audit logs', 'You build everything yourself'],
                 cta: null,
               },
               {
                 name: 'Synkora',
-                color: 'border-[#79dfbc] ring-2 ring-[#79dfbc]',
+                color: 'border-mint ring-2 ring-mint',
                 tag: 'Platform',
-                tagColor: 'bg-[#79dfbc]/25 text-[#153129]',
-                points: ['Web UI + REST API', 'Multi-tenant workspaces', 'Deploy to 6+ channels', 'SAML / OIDC SSO + RBAC', 'Audit logs + IP allowlist', 'Self-host or cloud — MIT license'],
+                tagColor: 'bg-mint/25 text-ink',
+                points: ['Web UI + REST API', 'Multi-tenant workspaces', 'Deploy to 6+ channels', 'SAML / OIDC SSO + RBAC', 'Audit logs + IP allowlist', 'Self-host or cloud, MIT license'],
                 cta: 'Get Started Free',
               },
               {
                 name: 'Flowise',
                 color: 'border-black/10',
                 tag: 'Visual builder',
-                tagColor: 'bg-black/5 text-[#5f5a52]',
+                tagColor: 'bg-black/5 text-ink-soft',
                 points: ['Drag-and-drop UI', 'Single-user, local-first', 'Good for prototyping', 'Not built for production teams', 'No SSO or audit logs', 'No multi-tenancy'],
                 cta: null,
               },
             ].map((col, i) => (
               <div
                 key={i}
-                className={`rounded-[2rem] border bg-white/60 p-6 shadow-[0_18px_40px_rgba(0,0,0,0.05)] backdrop-blur ${col.color} ${i === 1 ? 'shadow-[0_24px_60px_rgba(0,0,0,0.08)]' : ''}`}
+                className={`rounded-2xl border bg-white p-6 shadow-soft ${col.color} ${i === 1 ? 'shadow-soft' : ''}`}
               >
                 <div className="mb-4 flex items-center justify-between">
-                  <h3 className="font-semibold tracking-[-0.03em] text-[#171717]">{col.name}</h3>
-                  <span className={`rounded-full px-2 py-1 text-xs font-semibold uppercase tracking-[0.14em] ${col.tagColor}`}>{col.tag}</span>
+                  <h3 className="font-semibold tracking-[-0.03em] text-ink">{col.name}</h3>
+                  <span className={`rounded-full px-2 py-1 text-xs font-semibold ${col.tagColor}`}>{col.tag}</span>
                 </div>
                 <ul className="mb-5 space-y-2">
                   {col.points.map((p, j) => (
-                    <li key={j} className="flex items-start gap-2 text-sm text-[#575149]">
-                      <span className={`mt-0.5 shrink-0 text-base leading-none ${i === 1 ? 'text-[#2d8b69]' : 'text-black/25'}`}>{i === 1 ? '✓' : '–'}</span>
+                    <li key={j} className="flex items-start gap-2 text-sm text-ink-soft">
+                      <span className={`mt-0.5 shrink-0 text-base leading-none ${i === 1 ? 'text-leaf' : 'text-black/25'}`}>{i === 1 ? '✓' : '–'}</span>
                       {p}
                     </li>
                   ))}
@@ -380,7 +317,7 @@ export default async function LandingPage() {
                 {col.cta && (
                   <Link
                     href="https://app.synkora.ai/signup"
-                    className="block w-full rounded-full bg-[#191919] px-4 py-2.5 text-center text-sm font-semibold uppercase tracking-[0.14em] text-[#f7f2e7] transition-transform hover:-translate-y-0.5"
+                    className="block w-full rounded-full bg-ink px-4 py-2.5 text-center text-sm font-semibold text-paper transition-colors hover:bg-black"
                   >
                     {col.cta}
                   </Link>
@@ -390,7 +327,7 @@ export default async function LandingPage() {
           </div>
 
           <div className="mt-8 text-center">
-            <Link href="/alternatives" className="inline-flex items-center gap-2 text-sm font-semibold text-[#1f1d19] hover:text-black">
+            <Link href="/alternatives" className="inline-flex items-center gap-2 text-sm font-semibold text-ink hover:text-black">
               See detailed comparisons
               <ArrowRight className="h-4 w-4" />
             </Link>
@@ -399,7 +336,7 @@ export default async function LandingPage() {
       </section>
 
       <PricingPreviewClient />
-      <CTASectionClient />
+      <CTASectionClient stars={stars} />
     </div>
   )
 }

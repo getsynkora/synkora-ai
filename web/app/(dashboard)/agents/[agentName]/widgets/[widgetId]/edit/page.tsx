@@ -215,7 +215,7 @@ export default function WidgetEditPage() {
       const result = await apiClient.regenerateIdentitySecret(widgetId);
       setIdentitySecret(result.data?.identity_secret || null);
       setShowSecret(true);
-      toast.success("New secret generated — copy it now, it won't be shown again");
+      toast.success("New secret generated, copy it now, it won't be shown again");
     } catch (err: any) {
       toast.error(extractErrorMessage(err, "Failed to regenerate secret"))
     } finally {
@@ -319,18 +319,18 @@ export default function WidgetEditPage() {
   };
 
   const sectionClass =
-    "rounded-[1.9rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,245,239,0.96))] p-6 shadow-[0_24px_60px_-46px_rgba(73,45,23,0.3)] sm:p-7";
+    "rounded-[1.9rem] border border-line bg-white p-6 shadow-soft sm:p-7";
   const inputClass =
-    "w-full rounded-[1.1rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]";
+    "w-full rounded-[1.1rem] border border-black/10 bg-cream px-4 py-3 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-mint";
   const compactInputClass =
-    "rounded-[1rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]";
+    "rounded-[1rem] border border-black/10 bg-cream px-4 py-3 text-sm text-ink transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-mint";
   const codeInlineClass =
-    "rounded-md border border-black/5 bg-white/80 px-1.5 py-0.5 font-mono text-[11px] text-gray-700";
+    "rounded-md border border-black/5 bg-white/80 px-1.5 py-0.5 font-mono text-[11px] text-ink-soft";
 
   if (loading) {
     return (
       <div className="dashboard-resource-page flex min-h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[#171717]" />
+        <div className="h-8 w-8 motion-safe:animate-spin rounded-full border-b-2 border-ink" />
       </div>
     );
   }
@@ -347,8 +347,8 @@ export default function WidgetEditPage() {
         badge="Embeddable UI"
         maxWidthClassName="max-w-[90rem]"
       >
-        <AgentPagePanel className="border-[#eed6dd] bg-[linear-gradient(180deg,_rgba(252,245,247,0.98),_rgba(249,236,240,0.96))] p-4">
-          <p className="text-sm text-[#8a445c]">Widget not found.</p>
+        <AgentPagePanel className="border-blush-wash bg-white p-4">
+          <p className="text-sm text-wine">Widget not found.</p>
         </AgentPagePanel>
       </AgentPageShell>
     );
@@ -358,7 +358,7 @@ export default function WidgetEditPage() {
     <AgentPageShell
       agentName={agentName}
       title="Edit Widget"
-      description={<>Update settings for <span className="font-semibold text-gray-900">{widget.widget_name}</span>.</>}
+      description={<>Update settings for <span className="font-semibold text-ink">{widget.widget_name}</span>.</>}
       icon={Palette}
       backHref={`/agents/${agentName}/widgets`}
       backLabel="Back to Widgets"
@@ -375,7 +375,7 @@ export default function WidgetEditPage() {
         <div className="flex flex-wrap gap-3">
           <Link
             href={`/agents/${agentName}/widgets`}
-            className="inline-flex items-center justify-center rounded-[1rem] border border-black/10 bg-white/85 px-4 py-3 text-sm font-semibold text-gray-700 transition-colors hover:bg-white hover:text-[#171717]"
+            className="inline-flex items-center justify-center rounded-[1rem] border border-black/10 bg-white/85 px-4 py-3 text-sm font-semibold text-ink-soft transition-colors hover:bg-white hover:text-ink"
           >
             Cancel
           </Link>
@@ -383,7 +383,7 @@ export default function WidgetEditPage() {
             type="submit"
             form="widget-edit-form"
             disabled={saving}
-            className="inline-flex items-center justify-center rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
+            className="inline-flex items-center justify-center rounded-[1rem] bg-ink px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save Changes"}
           </button>
@@ -393,8 +393,8 @@ export default function WidgetEditPage() {
 
         {/* Error */}
         {error && (
-          <div className="mb-6 rounded-[1rem] border border-[#eed6dd] bg-[linear-gradient(180deg,_rgba(252,245,247,0.98),_rgba(249,236,240,0.96))] p-3">
-            <p className="text-sm text-[#8a445c]">{error}</p>
+          <div className="mb-6 rounded-[1rem] border border-blush-wash bg-white p-3">
+            <p className="text-sm text-wine">{error}</p>
           </div>
         )}
 
@@ -405,47 +405,47 @@ export default function WidgetEditPage() {
         >
 
           {/* ── Flutter SDK highlight banner ───────────────────────────────────── */}
-          <div className="relative overflow-hidden rounded-[1.9rem] border border-[#d7dcee] bg-[linear-gradient(135deg,_rgba(240,244,253,0.98),_rgba(247,241,251,0.96)_55%,_rgba(252,243,246,0.95)_100%)] p-6 shadow-[0_24px_60px_-46px_rgba(57,75,120,0.24)]">
+          <div className="relative overflow-hidden rounded-[1.9rem] border border-sky-wash bg-sky-wash p-6 shadow-soft">
             <div className="flex items-start gap-4">
               <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-[1rem] border border-white/80 bg-white/90 shadow-sm">
-                <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none">
+                <svg aria-hidden="true" viewBox="0 0 24 24" className="w-6 h-6" fill="none">
                   <path d="M14.314 0L2.3 12 6 15.7 21.684 0h-7.37zm.014 11.072L7.857 17.53l6.47 6.47H21.7l-6.46-6.468 6.46-6.46h-7.37z" fill="#54C5F8"/>
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 className="text-sm font-semibold text-indigo-900">Flutter SDK available</h3>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">pub.dev</span>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Open Source</span>
+                  <h3 className="text-sm font-semibold text-azure">Flutter SDK available</h3>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-sky-wash text-azure">pub.dev</span>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-leaf-wash text-forest">Open Source</span>
                 </div>
-                <p className="text-xs text-indigo-700 mb-3">
-                  Embed this AI agent natively into any Flutter app — Android, iOS, and beyond. Drop-in chat UI, SSE streaming, local message cache, and optional FCM push notifications.
+                <p className="text-xs text-azure mb-3">
+                  Embed this AI agent natively into any Flutter app, Android, iOS, and beyond. Drop-in chat UI, SSE streaming, local message cache, and optional FCM push notifications.
                 </p>
                 <div className="flex items-center gap-3 flex-wrap">
-                  <code className="rounded-md border border-indigo-200 bg-white/90 px-2 py-1 font-mono text-xs text-indigo-800">
+                  <code className="rounded-md border border-sky-wash bg-white/90 px-2 py-1 font-mono text-xs text-azure">
                     flutter pub add synkora_chat
                   </code>
-                  <span className="text-xs text-indigo-500">·</span>
-                  <code className="rounded-md border border-indigo-200 bg-white/90 px-2 py-1 font-mono text-xs text-indigo-800">
+                  <span className="text-xs text-azure">·</span>
+                  <code className="rounded-md border border-sky-wash bg-white/90 px-2 py-1 font-mono text-xs text-azure">
                     flutter pub add synkora_push
                   </code>
-                  <span className="text-xs text-indigo-400">optional, for push notifications</span>
+                  <span className="text-xs text-steel">optional, for push notifications</span>
                 </div>
               </div>
               {/* Decorative blobs */}
-              <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-indigo-100 opacity-40 pointer-events-none" />
-              <div className="absolute right-8 -bottom-6 w-16 h-16 rounded-full bg-purple-100 opacity-40 pointer-events-none" />
+              <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-sky-wash opacity-40 pointer-events-none" />
+              <div className="absolute right-8 -bottom-6 w-16 h-16 rounded-full bg-sand-deep opacity-40 pointer-events-none" />
             </div>
           </div>
 
           {/* ── General ───────────────────────────────────────────────────────── */}
           <div className={sectionClass}>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">General</h2>
+            <h2 className="text-lg font-semibold text-ink mb-4">General</h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  Widget name <span className="text-red-500">*</span>
+                <label className="block text-sm font-semibold text-ink-soft mb-1.5">
+                  Widget name <span className="text-leaf">*</span>
                 </label>
                 <input
                   type="text"
@@ -457,9 +457,9 @@ export default function WidgetEditPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                <label className="block text-sm font-semibold text-ink-soft mb-1.5">
                   Allowed domains
-                  <span className="ml-1 font-normal text-gray-500">(comma-separated, leave blank to allow all)</span>
+                  <span className="ml-1 font-normal text-ink-mute">(comma-separated, leave blank to allow all)</span>
                 </label>
                 <input
                   type="text"
@@ -471,8 +471,8 @@ export default function WidgetEditPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  Rate limit <span className="font-normal text-gray-500">(requests / hour)</span>
+                <label className="block text-sm font-semibold text-ink-soft mb-1.5">
+                  Rate limit <span className="font-normal text-ink-mute">(requests / hour)</span>
                 </label>
                 <input
                   type="number"
@@ -490,11 +490,11 @@ export default function WidgetEditPage() {
                     type="checkbox"
                     checked={isActive}
                     onChange={(e) => setIsActive(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-[#2d8b69] focus:ring-[#79dfbc]"
+                    className="h-4 w-4 rounded border-taupe text-leaf focus:ring-mint"
                   />
-                  <span className="text-sm text-gray-700">Widget is active</span>
+                  <span className="text-sm text-ink-soft">Widget is active</span>
                 </label>
-                <p className="mt-1 text-xs text-gray-500 ml-6">Inactive widgets stop accepting all traffic</p>
+                <p className="mt-1 text-xs text-ink-mute ml-6">Inactive widgets stop accepting all traffic</p>
               </div>
             </div>
           </div>
@@ -502,17 +502,17 @@ export default function WidgetEditPage() {
           {/* ── Chat Appearance ───────────────────────────────────────────────── */}
           <div className={sectionClass}>
             <div className="flex items-center gap-2 mb-1">
-              <Palette className="h-5 w-5 text-[#2d8b69]" />
-              <h2 className="text-lg font-semibold text-gray-900">Chat Appearance</h2>
+              <Palette className="h-5 w-5 text-leaf" />
+              <h2 className="text-lg font-semibold text-ink">Chat Appearance</h2>
             </div>
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="text-sm text-ink-mute mb-4">
               Override the default agent appearance for this widget. Leave blank to use the agent&apos;s defaults.
             </p>
 
             <div className="space-y-4">
               {/* Primary color */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Brand color</label>
+                <label className="block text-sm font-semibold text-ink-soft mb-1.5">Brand color</label>
                 <div className="flex items-center gap-3">
                   <input
                     type="color"
@@ -527,15 +527,15 @@ export default function WidgetEditPage() {
                     placeholder="#ff444f"
                     className={`w-32 font-mono ${compactInputClass}`}
                   />
-                  <span className="text-xs text-gray-500">Used for the toggle button, hero, and accents</span>
+                  <span className="text-xs text-ink-mute">Used for the toggle button, hero, and accents</span>
                 </div>
               </div>
 
               {/* Welcome message */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                <label className="block text-sm font-semibold text-ink-soft mb-1.5">
                   Welcome message
-                  <span className="ml-1 font-normal text-gray-500">(shown in the home screen hero)</span>
+                  <span className="ml-1 font-normal text-ink-mute">(shown in the home screen hero)</span>
                 </label>
                 <textarea
                   value={welcomeMessage}
@@ -544,12 +544,12 @@ export default function WidgetEditPage() {
                   placeholder={"Hi there 👋\nHow can we help?"}
                   className={`${inputClass} resize-none`}
                 />
-                <p className="mt-1 text-xs text-gray-400">Use a newline to split into title + subtitle</p>
+                <p className="mt-1 text-xs text-ash">Use a newline to split into title + subtitle</p>
               </div>
 
               {/* Placeholder */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Input placeholder</label>
+                <label className="block text-sm font-semibold text-ink-soft mb-1.5">Input placeholder</label>
                 <input
                   type="text"
                   value={chatPlaceholder}
@@ -560,7 +560,7 @@ export default function WidgetEditPage() {
               </div>
 
               {/* Live preview swatch */}
-              <div className="rounded-xl overflow-hidden border border-gray-200 mt-2">
+              <div className="rounded-xl overflow-hidden border border-line mt-2">
                 <div
                   className="px-5 py-4"
                   style={{ background: `linear-gradient(160deg, ${primaryColor} 0%, ${primaryColor}cc 100%)` }}
@@ -574,15 +574,15 @@ export default function WidgetEditPage() {
                     </div>
                   )}
                 </div>
-                <div className="bg-gray-50 px-4 py-3 flex items-center gap-2">
+                <div className="bg-cream px-4 py-3 flex items-center gap-2">
                   <input
                     readOnly
                     value=""
                     placeholder={chatPlaceholder || "Message…"}
-                    className="flex-1 text-sm text-gray-400 bg-transparent outline-none"
+                    className="flex-1 text-sm text-ash bg-transparent outline-none"
                   />
                   <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: primaryColor }}>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><line x1="22" y1="2" x2="11" y2="13" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/><polygon points="22 2 15 22 11 13 2 9 22 2" fill="#fff"/></svg>
+                    <svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none"><line x1="22" y1="2" x2="11" y2="13" stroke="#fff" strokeWidth="2.5" strokeLinecap="round"/><polygon points="22 2 15 22 11 13 2 9 22 2" fill="#fff"/></svg>
                   </div>
                 </div>
               </div>
@@ -592,17 +592,17 @@ export default function WidgetEditPage() {
           {/* ── Translations ──────────────────────────────────────────────────── */}
           <div className={sectionClass}>
             <div className="flex items-center gap-2 mb-1">
-              <Languages className="h-5 w-5 text-[#2d8b69]" />
-              <h2 className="text-lg font-semibold text-gray-900">Translations</h2>
+              <Languages className="h-5 w-5 text-leaf" />
+              <h2 className="text-lg font-semibold text-ink">Translations</h2>
             </div>
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="text-sm text-ink-mute mb-4">
               Text for people who open the chat in another language. Anything left blank uses the default text
               above. The agent itself answers in the language the chat is set to.
             </p>
 
             <div className="mb-4 flex flex-wrap items-end gap-2">
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Language</label>
+                <label className="block text-xs font-semibold text-ink-soft mb-1">Language</label>
                 <select
                   value={newLanguage}
                   onChange={(e) => setNewLanguage(e.target.value)}
@@ -617,7 +617,7 @@ export default function WidgetEditPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">or another code</label>
+                <label className="block text-xs font-semibold text-ink-soft mb-1">or another code</label>
                 <input
                   type="text"
                   value={customLanguage}
@@ -629,31 +629,31 @@ export default function WidgetEditPage() {
               <button
                 type="button"
                 onClick={addTranslationLanguage}
-                className="inline-flex items-center gap-1.5 rounded-[1rem] border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                className="inline-flex items-center gap-1.5 rounded-[1rem] border border-black/10 bg-white px-4 py-3 text-sm font-semibold text-ink-soft hover:bg-cream"
               >
                 <Plus className="h-4 w-4" /> Add language
               </button>
             </div>
 
             {Object.keys(translations).length === 0 ? (
-              <p className="text-sm text-gray-400">No translations yet.</p>
+              <p className="text-sm text-ash">No translations yet.</p>
             ) : (
               <div className="space-y-4">
                 {Object.entries(translations).map(([code, entry]) => (
                   <div key={code} className="rounded-[1.2rem] border border-black/10 bg-white/70 p-4 space-y-3">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-gray-800">{languageLabel(code)}</h3>
+                      <h3 className="text-sm font-semibold text-ink">{languageLabel(code)}</h3>
                       <button
                         type="button"
                         onClick={() => removeTranslationLanguage(code)}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-700"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-danger hover:text-danger"
                       >
                         <Trash2 className="h-3.5 w-3.5" /> Remove
                       </button>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">Title</label>
+                      <label className="block text-xs font-semibold text-ink-soft mb-1">Title</label>
                       <input
                         type="text"
                         value={entry.title ?? ""}
@@ -662,9 +662,9 @@ export default function WidgetEditPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">
+                      <label className="block text-xs font-semibold text-ink-soft mb-1">
                         Welcome message
-                        <span className="ml-1 font-normal text-gray-500">(newline splits title and subtitle)</span>
+                        <span className="ml-1 font-normal text-ink-mute">(newline splits title and subtitle)</span>
                       </label>
                       <textarea
                         value={entry.welcome_message ?? ""}
@@ -674,7 +674,7 @@ export default function WidgetEditPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">Input placeholder</label>
+                      <label className="block text-xs font-semibold text-ink-soft mb-1">Input placeholder</label>
                       <input
                         type="text"
                         value={entry.placeholder ?? ""}
@@ -683,7 +683,7 @@ export default function WidgetEditPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">Agent description</label>
+                      <label className="block text-xs font-semibold text-ink-soft mb-1">Agent description</label>
                       <textarea
                         value={entry.agent_description ?? ""}
                         onChange={(e) => updateTranslation(code, { agent_description: e.target.value })}
@@ -692,7 +692,7 @@ export default function WidgetEditPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">Privacy policy text</label>
+                      <label className="block text-xs font-semibold text-ink-soft mb-1">Privacy policy text</label>
                       <input
                         type="text"
                         value={entry.privacy_policy_text ?? ""}
@@ -703,16 +703,16 @@ export default function WidgetEditPage() {
 
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <label className="block text-xs font-semibold text-gray-600">
+                        <label className="block text-xs font-semibold text-ink-soft">
                           Suggested prompts
-                          <span className="ml-1 font-normal text-gray-500">
+                          <span className="ml-1 font-normal text-ink-mute">
                             (replace the agent&apos;s prompts in this language)
                           </span>
                         </label>
                         <button
                           type="button"
                           onClick={() => addTranslatedPrompt(code)}
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-[#2d8b69] hover:underline"
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-leaf hover:underline"
                         >
                           <Plus className="h-3.5 w-3.5" /> Add prompt
                         </button>
@@ -745,7 +745,7 @@ export default function WidgetEditPage() {
                               type="button"
                               onClick={() => removeTranslatedPrompt(code, i)}
                               aria-label="Remove prompt"
-                              className="rounded-[1rem] border border-black/10 bg-white px-3 text-gray-500 hover:text-red-600"
+                              className="rounded-[1rem] border border-black/10 bg-white px-3 text-ink-mute hover:text-danger"
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
@@ -763,21 +763,21 @@ export default function WidgetEditPage() {
           <div className={sectionClass}>
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2">
-                <svg className="h-5 w-5 text-[#2d8b69]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg aria-hidden="true" className="h-5 w-5 text-leaf" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
-                <h2 className="text-lg font-semibold text-gray-900">Pre-chat Form</h2>
+                <h2 className="text-lg font-semibold text-ink">Pre-chat Form</h2>
               </div>
               <button
                 type="button"
                 onClick={() => setPreChatEnabled(!preChatEnabled)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${preChatEnabled ? 'bg-[#2d8b69]' : 'bg-gray-200'}`}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${preChatEnabled ? 'bg-leaf' : 'bg-line'}`}
               >
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${preChatEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform motion-reduce:transition-none ${preChatEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
               </button>
             </div>
-            <p className="text-sm text-gray-500 mb-4">
-              Show a short form before the first message to collect user info. Applies to anonymous users only — identified users skip it automatically.
+            <p className="text-sm text-ink-mute mb-4">
+              Show a short form before the first message to collect user info. Applies to anonymous users only, identified users skip it automatically.
             </p>
             {preChatEnabled && (
               <div className="space-y-3">
@@ -788,13 +788,13 @@ export default function WidgetEditPage() {
                   { label: 'Allow users to skip the form', value: preChatSkippable, set: setPreChatSkippable },
                 ].map(({ label, value, set }) => (
                   <label key={label} className="flex items-center justify-between cursor-pointer">
-                    <span className="text-sm text-gray-700">{label}</span>
+                    <span className="text-sm text-ink-soft">{label}</span>
                     <button
                       type="button"
                       onClick={() => set(!value)}
-                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${value ? 'bg-[#2d8b69]' : 'bg-gray-200'}`}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${value ? 'bg-leaf' : 'bg-line'}`}
                     >
-                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${value ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform motion-reduce:transition-none ${value ? 'translate-x-4' : 'translate-x-0.5'}`} />
                     </button>
                   </label>
                 ))}
@@ -805,10 +805,10 @@ export default function WidgetEditPage() {
           {/* ── Identity Verification ─────────────────────────────────────────── */}
           <div className={sectionClass}>
             <div className="flex items-center gap-2 mb-1">
-              <Shield className="h-5 w-5 text-[#2d8b69]" />
-              <h2 className="text-lg font-semibold text-gray-900">Identity Verification</h2>
+              <Shield className="h-5 w-5 text-leaf" />
+              <h2 className="text-lg font-semibold text-ink">Identity Verification</h2>
             </div>
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="text-sm text-ink-mute mb-4">
               Prevent end-users from impersonating each other using HMAC signatures generated on your server.
             </p>
 
@@ -819,18 +819,18 @@ export default function WidgetEditPage() {
                   type="checkbox"
                   checked={identityVerificationRequired}
                   onChange={(e) => setIdentityVerificationRequired(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-[#2d8b69] focus:ring-[#79dfbc]"
+                  className="h-4 w-4 rounded border-taupe text-leaf focus:ring-mint"
                 />
-                <span className="text-sm text-gray-700">Require identity verification on every request</span>
+                <span className="text-sm text-ink-soft">Require identity verification on every request</span>
               </label>
-              <p className="mt-1 text-xs text-gray-500 ml-6">
+              <p className="mt-1 text-xs text-ink-mute ml-6">
                 When enabled, requests without a valid{" "}
                 <code className={codeInlineClass}>userHash</code> are rejected with HTTP 403.
               </p>
             </div>
 
             {identityVerificationRequired && (
-              <div className="mb-4 flex gap-2 rounded-[1rem] border border-[#ead8aa] bg-[linear-gradient(180deg,_rgba(255,251,237,0.98),_rgba(251,244,217,0.96))] p-3 text-xs text-[#8b6615]">
+              <div className="mb-4 flex gap-2 rounded-[1rem] border border-tan bg-paper p-3 text-xs text-gold">
                 <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
                 <span>
                   Make sure your server is generating the hash before enabling this, otherwise all widget traffic will be blocked.
@@ -839,37 +839,37 @@ export default function WidgetEditPage() {
             )}
 
             {/* Secret */}
-            <div className="border-t border-gray-200 pt-4 space-y-2">
-              <h3 className="text-sm font-medium text-gray-700">Identity secret</h3>
-              <p className="text-xs text-gray-500">
+            <div className="border-t border-line pt-4 space-y-2">
+              <h3 className="text-sm font-medium text-ink-soft">Identity secret</h3>
+              <p className="text-xs text-ink-mute">
                 Compute <code className={codeInlineClass}>HMAC-SHA256(secret, userId)</code> on your server and pass
                 it as <code className={codeInlineClass}>userHash</code> in the widget init call.{" "}
-                <span className="font-medium text-gray-700">Never expose this secret in the browser.</span>
+                <span className="font-medium text-ink-soft">Never expose this secret in the browser.</span>
               </p>
 
               {identitySecret ? (
-                <div className="flex items-center gap-2 rounded-[1rem] border border-[#d8e5d9] bg-[linear-gradient(180deg,_rgba(244,249,245,0.98),_rgba(235,245,238,0.95))] px-3 py-2">
-                  <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-                  <code className="text-xs text-green-800 break-all flex-1">
+                <div className="flex items-center gap-2 rounded-[1rem] border border-leaf-wash bg-cream px-3 py-2">
+                  <CheckCircle className="h-4 w-4 text-leaf flex-shrink-0" />
+                  <code className="text-xs text-forest break-all flex-1">
                     {showSecret ? identitySecret : "•".repeat(44)}
                   </code>
                   <button
                     type="button"
                     onClick={() => setShowSecret(!showSecret)}
-                    className="text-green-600 hover:text-green-800 transition-colors"
+                    className="text-leaf hover:text-forest transition-colors"
                   >
                     {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                   <button
                     type="button"
                     onClick={() => copyToClipboard(identitySecret)}
-                    className="text-green-600 hover:text-green-800 transition-colors"
+                    className="text-leaf hover:text-forest transition-colors"
                   >
                     <Copy className="h-4 w-4" />
                   </button>
                 </div>
               ) : (
-                <p className="text-xs text-gray-500 italic">
+                <p className="text-xs text-ink-mute italic">
                   The secret was shown when this widget was created. Use the button below to rotate it.
                 </p>
               )}
@@ -878,17 +878,17 @@ export default function WidgetEditPage() {
                 type="button"
                 onClick={handleRegenerateSecret}
                 disabled={regeneratingSecret}
-                className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-red-600 transition-colors disabled:opacity-50 font-medium"
+                className="inline-flex items-center gap-1.5 text-sm text-ink-soft hover:text-leaf transition-colors disabled:opacity-50 font-medium"
               >
-                <RefreshCw className={`h-3.5 w-3.5 ${regeneratingSecret ? "animate-spin" : ""}`} />
+                <RefreshCw className={`h-3.5 w-3.5 ${regeneratingSecret ? "motion-safe:animate-spin" : ""}`} />
                 Regenerate secret
               </button>
             </div>
 
             {/* Code examples */}
             <details className="mt-4 group">
-              <summary className="flex items-center gap-1.5 text-sm font-medium text-gray-600 cursor-pointer select-none list-none">
-                <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+              <summary className="flex items-center gap-1.5 text-sm font-medium text-ink-soft cursor-pointer select-none list-none">
+                <ChevronDown className="h-4 w-4 transition-transform motion-reduce:transition-none group-open:rotate-180" />
                 Server-side code examples
               </summary>
               <div className="mt-3 space-y-2">
@@ -910,22 +910,22 @@ export default function WidgetEditPage() {
                     code: `require "openssl"\nhash = OpenSSL::HMAC.hexdigest("SHA256", ENV["WIDGET_IDENTITY_SECRET"], user_id)`,
                   },
                 ].map(({ lang, code }) => (
-                  <div key={lang} className="overflow-hidden rounded-[1rem] bg-[#171717] text-xs shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                    <div className="flex items-center justify-between bg-gray-800 px-3 py-1.5">
-                      <span className="text-gray-400 text-[11px] uppercase tracking-wide">{lang}</span>
+                  <div key={lang} className="overflow-hidden rounded-[1rem] bg-ink text-xs shadow-soft">
+                    <div className="flex items-center justify-between bg-ink px-3 py-1.5">
+                      <span className="text-ash text-[11px]">{lang}</span>
                       <button
                         type="button"
                         onClick={() => copyToClipboard(code)}
-                        className="text-gray-400 hover:text-white transition-colors"
+                        className="text-ash hover:text-white transition-colors"
                       >
                         <Copy className="h-3.5 w-3.5" />
                       </button>
                     </div>
-                    <pre className="overflow-x-auto p-3 leading-relaxed text-[#d4f4da]">{code}</pre>
+                    <pre className="overflow-x-auto p-3 leading-relaxed text-leaf-wash">{code}</pre>
                   </div>
                 ))}
 
-                <div className="rounded-[1rem] border border-[#e5d9ca] bg-[#fcfaf5] p-3 text-xs text-gray-600">
+                <div className="rounded-[1rem] border border-line bg-cream p-3 text-xs text-ink-soft">
                   <p className="font-medium mb-1.5">Widget init with identity verification:</p>
                   <pre className="overflow-x-auto whitespace-pre rounded-[0.9rem] border border-black/5 bg-white/80 p-2 text-[11px]">{`SynkoraWidget.init({
   widgetId:  "your-widget-id",
@@ -941,27 +941,27 @@ export default function WidgetEditPage() {
           {/* ── Mobile & Push Notifications ───────────────────────────────────── */}
           <div className={sectionClass}>
             <div className="flex items-center gap-2 mb-1">
-              <svg className="h-5 w-5 text-[#2d8b69]" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <svg aria-hidden="true" className="h-5 w-5 text-leaf" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 0 0 6 3.75v16.5a2.25 2.25 0 0 0 2.25 2.25h7.5A2.25 2.25 0 0 0 18 20.25V3.75a2.25 2.25 0 0 0-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 8.25h3m-3 3h3m-3 3h3" />
               </svg>
-              <h2 className="text-lg font-semibold text-gray-900">Mobile &amp; Push Notifications</h2>
+              <h2 className="text-lg font-semibold text-ink">Mobile &amp; Push Notifications</h2>
             </div>
-            <p className="text-sm text-gray-500 mb-5">
+            <p className="text-sm text-ink-mute mb-5">
               Enable the Flutter SDK and optionally configure FCM to send push notifications when the agent replies.
             </p>
 
             {/* Mobile allowed toggle */}
-            <div className="flex items-center justify-between py-3 border-b border-gray-100 mb-4">
+            <div className="flex items-center justify-between py-3 border-b border-sand mb-4">
               <div>
-                <p className="text-sm font-medium text-gray-900">Allow Mobile Apps (Flutter SDK)</p>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-sm font-medium text-ink">Allow Mobile Apps (Flutter SDK)</p>
+                <p className="text-xs text-ink-mute mt-0.5">
                   Skips the browser Origin check so requests from the Flutter SDK are accepted.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setMobileAllowed(!mobileAllowed)}
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${mobileAllowed ? "bg-[#171717]" : "bg-gray-200"}`}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${mobileAllowed ? "bg-ink" : "bg-line"}`}
               >
                 <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${mobileAllowed ? "translate-x-5" : "translate-x-0"}`} />
               </button>
@@ -969,8 +969,8 @@ export default function WidgetEditPage() {
 
             {/* FCM Server Key */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">FCM Server Key (optional)</label>
-              <p className="text-xs text-gray-500 mb-2">
+              <label className="block text-sm font-medium text-ink-soft mb-1">FCM Server Key (optional)</label>
+              <p className="text-xs text-ink-mute mb-2">
                 Paste your Firebase service account JSON or FCM server key. Stored encrypted. Leave blank to keep the existing key.
               </p>
               <div className="relative">
@@ -978,13 +978,13 @@ export default function WidgetEditPage() {
                   type={showFcmKey ? "text" : "password"}
                   value={fcmServerKey}
                   onChange={(e) => setFcmServerKey(e.target.value)}
-                  placeholder="Paste FCM server key or service account JSON..."
+                  placeholder="Paste FCM server key or service account JSON…"
                   className={`pr-10 ${inputClass}`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowFcmKey(!showFcmKey)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-ash hover:text-ink-soft"
                 >
                   {showFcmKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -995,11 +995,11 @@ export default function WidgetEditPage() {
           {/* ── Agent Routing ─────────────────────────────────────────────────── */}
           <div className={sectionClass}>
             <div className="flex items-center gap-2 mb-1">
-              <GitBranch className="h-5 w-5 text-[#2d8b69]" />
-              <h2 className="text-lg font-semibold text-gray-900">Agent Routing</h2>
+              <GitBranch className="h-5 w-5 text-leaf" />
+              <h2 className="text-lg font-semibold text-ink">Agent Routing</h2>
             </div>
-            <p className="text-sm text-gray-500 mb-4">
-              Route different customer orgs to different agents — each with their own knowledge base, prompts, and tools.
+            <p className="text-sm text-ink-mute mb-4">
+              Route different customer orgs to different agents, each with their own knowledge base, prompts, and tools.
             </p>
 
             {/* Toggle */}
@@ -1009,45 +1009,45 @@ export default function WidgetEditPage() {
                   type="checkbox"
                   checked={enableAgentRouting}
                   onChange={(e) => setEnableAgentRouting(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-[#2d8b69] focus:ring-[#79dfbc]"
+                  className="h-4 w-4 rounded border-taupe text-leaf focus:ring-mint"
                 />
-                <span className="text-sm text-gray-700">Enable org-based agent routing</span>
+                <span className="text-sm text-ink-soft">Enable org-based agent routing</span>
               </label>
-              <p className="mt-1 text-xs text-gray-500 ml-6">
+              <p className="mt-1 text-xs text-ink-mute ml-6">
                 When enabled, requests with a <code className={codeInlineClass}>user.orgId</code> are routed using
                 the table below. Unmatched orgs fall back to this widget&apos;s default agent.
               </p>
             </div>
 
             {enableAgentRouting && (
-              <div className="border-t border-gray-200 pt-4 space-y-4">
+              <div className="border-t border-line pt-4 space-y-4">
                 {/* Routes table */}
                 {routes.length > 0 ? (
-                  <div className="overflow-hidden rounded-[1rem] border border-[#e5d9ca]">
+                  <div className="overflow-hidden rounded-[1rem] border border-line">
                     <table className="w-full text-sm">
-                      <thead className="bg-[#f7f2e7]">
+                      <thead className="bg-paper">
                         <tr>
-                          <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+                          <th className="px-4 py-2.5 text-left text-xs font-medium text-ink-mute">
                             Org ID
                           </th>
-                          <th className="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wide">
+                          <th className="px-4 py-2.5 text-left text-xs font-medium text-ink-mute">
                             Agent
                           </th>
                           <th className="px-4 py-2.5 w-10" />
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-100">
+                      <tbody className="divide-y divide-sand">
                         {routes.map((route) => (
-                          <tr key={route.external_org_id} className="hover:bg-gray-50">
+                          <tr key={route.external_org_id} className="hover:bg-cream">
                             <td className="px-4 py-3">
                               <code className={codeInlineClass}>{route.external_org_id}</code>
                             </td>
-                            <td className="px-4 py-3 text-sm text-gray-700">{route.agent_name || route.agent_id}</td>
+                            <td className="px-4 py-3 text-sm text-ink-soft">{route.agent_name || route.agent_id}</td>
                             <td className="px-4 py-3 text-right">
                               <button
                                 type="button"
                                 onClick={() => handleDeleteRoute(route.external_org_id)}
-                                className="text-gray-400 hover:text-red-500 transition-colors"
+                                className="text-ash hover:text-leaf transition-colors"
                                 title="Remove route"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -1059,7 +1059,7 @@ export default function WidgetEditPage() {
                     </table>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500 italic">
+                  <p className="text-sm text-ink-mute italic">
                     No routes yet. All orgs will use this widget&apos;s default agent.
                   </p>
                 )}
@@ -1067,7 +1067,7 @@ export default function WidgetEditPage() {
                 {/* Add route */}
                 <div className="flex items-end gap-2">
                   <div className="flex-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Org ID</label>
+                    <label className="block text-xs font-medium text-ink-soft mb-1">Org ID</label>
                     <input
                       type="text"
                       value={newOrgId}
@@ -1083,7 +1083,7 @@ export default function WidgetEditPage() {
                     />
                   </div>
                   <div className="flex-1">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Route to agent</label>
+                    <label className="block text-xs font-medium text-ink-soft mb-1">Route to agent</label>
                     <select
                       value={newAgentId}
                       onChange={(e) => setNewAgentId(e.target.value)}
@@ -1101,14 +1101,14 @@ export default function WidgetEditPage() {
                     type="button"
                     onClick={handleAddRoute}
                     disabled={addingRoute || !newOrgId.trim() || !newAgentId}
-                    className="flex items-center gap-1.5 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex items-center gap-1.5 rounded-[1rem] bg-ink px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Plus className="h-4 w-4" />
                     Add
                   </button>
                 </div>
 
-                <div className="rounded-[1rem] border border-[#d8e5d9] bg-[linear-gradient(180deg,_rgba(244,249,245,0.98),_rgba(235,245,238,0.95))] p-3 text-xs text-[#24543b]">
+                <div className="rounded-[1rem] border border-leaf-wash bg-cream p-3 text-xs text-forest">
                   Pass <code className={codeInlineClass}>user.orgId</code> in{" "}
                   <code className={codeInlineClass}>SynkoraWidget.init()</code> to activate routing. Orgs not
                   listed above fall back to the widget&apos;s default agent.
@@ -1120,17 +1120,17 @@ export default function WidgetEditPage() {
           {/* ── Flutter Integration ───────────────────────────────────────────── */}
           <div className={sectionClass}>
             <div className="flex items-center gap-2 mb-1">
-              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none">
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none">
                 <path d="M14.314 0L2.3 12 6 15.7 21.684 0h-7.37zm.014 11.072L7.857 17.53l6.47 6.47H21.7l-6.46-6.468 6.46-6.46h-7.37z" fill="#54C5F8"/>
               </svg>
-              <h2 className="text-lg font-semibold text-gray-900">Flutter Integration</h2>
+              <h2 className="text-lg font-semibold text-ink">Flutter Integration</h2>
             </div>
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="text-sm text-ink-mute mb-4">
               Copy the snippet below to integrate this widget into your Flutter app. Enable "Allow Mobile Apps" above first.
             </p>
 
             {/* Tabs */}
-            <div className="mb-3 flex w-fit gap-1 rounded-[1rem] border border-black/10 bg-white/80 p-1.5 shadow-[0_12px_28px_rgba(0,0,0,0.04)]">
+            <div className="mb-3 flex w-fit gap-1 rounded-[1rem] border border-black/10 bg-white/80 p-1.5 shadow-soft">
               {(["pubspec", "basic", "push"] as const).map((tab) => (
                 <button
                   key={tab}
@@ -1138,8 +1138,8 @@ export default function WidgetEditPage() {
                   onClick={() => setFlutterTab(tab)}
                   className={`rounded-[0.85rem] px-3 py-2 text-xs font-semibold transition-colors ${
                     flutterTab === tab
-                      ? "bg-[#171717] text-white shadow-[0_10px_22px_rgba(0,0,0,0.12)]"
-                      : "text-gray-500 hover:bg-[#f7f2e7] hover:text-[#171717]"
+                      ? "bg-ink text-white shadow-soft"
+                      : "text-ink-mute hover:bg-paper hover:text-ink"
                   }`}
                 >
                   {tab === "pubspec" ? "pubspec.yaml" : tab === "basic" ? "Basic usage" : "With push"}
@@ -1153,30 +1153,30 @@ export default function WidgetEditPage() {
                 type="button"
                 onClick={() => {
                   const snippets = {
-                    pubspec: `dependencies:\n  synkora_chat: ^1.0.0\n\n# Optional — for push notifications\n  synkora_push: ^1.0.0`,
-                    basic: `import 'package:synkora_chat/synkora_chat.dart';\n\n// Drop-in — place anywhere in your widget tree\nSynkoraChatWidget(\n  widgetKey: '${widgetId}',\n  baseUrl: 'https://your-synkora-instance.com',\n  userId: currentUser.id,  // optional\n  onClose: () => Navigator.pop(context),\n)`,
+                    pubspec: `dependencies:\n  synkora_chat: ^1.0.0\n\n# Optional, for push notifications\n  synkora_push: ^1.0.0`,
+                    basic: `import 'package:synkora_chat/synkora_chat.dart';\n\n// Drop-in, place anywhere in your widget tree\nSynkoraChatWidget(\n  widgetKey: '${widgetId}',\n  baseUrl: 'https://your-synkora-instance.com',\n  userId: currentUser.id,  // optional\n  onClose: () => Navigator.pop(context),\n)`,
                     push: `// main.dart\nvoid main() async {\n  WidgetsFlutterBinding.ensureInitialized();\n  await Firebase.initializeApp();\n\n  await SynkoraPush.init(\n    widgetKey: '${widgetId}',\n    baseUrl: 'https://your-synkora-instance.com',\n    conversationIdProvider: () => chatController.conversationId,\n  );\n\n  // Optional: handle foreground messages\n  SynkoraPush.onMessage = (message) {\n    // show in-app banner or navigate to chat\n  };\n\n  runApp(MyApp());\n}`,
                   };
                   navigator.clipboard.writeText(snippets[flutterTab]);
                 }}
-                className="absolute top-3 right-3 z-10 rounded-[0.85rem] bg-white/10 p-2 text-gray-300 transition-colors hover:bg-white/20 hover:text-white"
+                className="absolute top-3 right-3 z-10 rounded-[0.85rem] bg-white/10 p-2 text-taupe transition-colors hover:bg-white/20 hover:text-white"
                 title="Copy to clipboard"
               >
                 <Copy className="h-3.5 w-3.5" />
               </button>
 
               {flutterTab === "pubspec" && (
-                <pre className="overflow-x-auto rounded-[1rem] bg-[#171717] p-4 text-xs leading-relaxed text-[#f6f1e8]">
+                <pre className="overflow-x-auto rounded-[1rem] bg-ink p-4 text-xs leading-relaxed text-paper">
 {`dependencies:
   synkora_chat: ^1.0.0
 
-  # Optional — for FCM push notifications
+  # Optional, for FCM push notifications
   synkora_push: ^1.0.0`}
                 </pre>
               )}
 
               {flutterTab === "basic" && (
-                <pre className="overflow-x-auto rounded-[1rem] bg-[#171717] p-4 text-xs leading-relaxed text-[#f6f1e8]">
+                <pre className="overflow-x-auto rounded-[1rem] bg-ink p-4 text-xs leading-relaxed text-paper">
 {`import 'package:synkora_chat/synkora_chat.dart';
 
 // Drop-in — place anywhere in your widget tree
@@ -1190,8 +1190,8 @@ SynkoraChatWidget(
               )}
 
               {flutterTab === "push" && (
-                <pre className="overflow-x-auto rounded-[1rem] bg-[#171717] p-4 text-xs leading-relaxed text-[#f6f1e8]">
-{`// main.dart — call once after Firebase.initializeApp()
+                <pre className="overflow-x-auto rounded-[1rem] bg-ink p-4 text-xs leading-relaxed text-paper">
+{`// main.dart, call once after Firebase.initializeApp()
 import 'package:synkora_push/synkora_push.dart';
 
 await SynkoraPush.init(
@@ -1210,10 +1210,10 @@ SynkoraPush.onMessage = (message) {
             </div>
 
             {/* Requirements note */}
-            <div className="mt-3 flex items-start gap-2 text-xs text-gray-500">
-              <CheckCircle className="h-3.5 w-3.5 text-green-500 flex-shrink-0 mt-0.5" />
+            <div className="mt-3 flex items-start gap-2 text-xs text-ink-mute">
+              <CheckCircle className="h-3.5 w-3.5 text-leaf flex-shrink-0 mt-0.5" />
               <span>
-                Make sure <strong className="text-gray-700">Allow Mobile Apps</strong> is enabled above, and run{" "}
+                Make sure <strong className="text-ink-soft">Allow Mobile Apps</strong> is enabled above, and run{" "}
                 <code className={codeInlineClass}>flutter pub get</code> then{" "}
                 <code className={codeInlineClass}>flutter pub run build_runner build</code> after adding the dependency.
               </span>

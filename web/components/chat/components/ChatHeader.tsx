@@ -100,14 +100,14 @@ export function ChatHeader({
   return (
     <div
       className={cn(
-        'flex items-center justify-between px-4 py-2.5 border-b border-gray-200/80 bg-white/95 backdrop-blur-sm',
+        'flex items-center justify-between px-4 py-2.5 border-b border-line/80 bg-white/95',
         className
       )}
     >
       {/* Agent Info - More Compact */}
       <div className="flex items-center gap-3">
         {hasAgentAvatar ? (
-          <div className="w-9 h-9 rounded-lg overflow-hidden shadow-md flex items-center justify-center bg-white relative ring-2 ring-gray-100">
+          <div className="w-9 h-9 rounded-lg overflow-hidden shadow-md flex items-center justify-center bg-white relative ring-2 ring-sand">
             {agent.avatar && (agent.avatar.startsWith('http://') || agent.avatar.startsWith('https://')) ? (
               <img
                 src={agent.avatar}
@@ -133,21 +133,21 @@ export function ChatHeader({
         )}
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-base font-semibold text-gray-900">
+            <h1 className="text-base font-semibold text-ink">
               {displayTitle}
             </h1>
             <span
               className={cn(
                 'px-1.5 py-0.5 rounded text-[10px] font-medium',
                 agent?.status === 'active'
-                  ? 'bg-emerald-100 text-emerald-700'
-                  : 'bg-gray-100 text-gray-700'
+                  ? 'bg-leaf-wash text-forest'
+                  : 'bg-sand text-ink-soft'
               )}
             >
               {agent?.status || 'Unknown'}
             </span>
           </div>
-          <p className="text-xs text-gray-500 line-clamp-1">
+          <p className="text-xs text-ink-mute line-clamp-1">
             {agent?.agent_type === 'digital_clone' ? '🤖 Digital Clone' : agent?.description || agent?.agent_type || 'AI Assistant'}
           </p>
         </div>
@@ -164,19 +164,19 @@ export function ChatHeader({
                 onLLMConfigChange(e.target.value)
               }
             }}
-            className="hidden sm:block max-w-[160px] px-2.5 py-1.5 rounded-lg bg-gray-50 border border-gray-200 text-xs font-medium text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent cursor-pointer"
+            className="hidden sm:block max-w-[160px] px-2.5 py-1.5 rounded-lg bg-cream border border-line text-xs font-medium text-ink-soft hover:bg-sand focus:outline-none focus:ring-2 focus:ring-warn focus:border-transparent cursor-pointer"
           >
             {enabledConfigs.map((config) => (
               <option key={config.id} value={config.id}>
-                {config.provider}/{config.model_name}{config.is_default ? ' ⭐' : ''}
+                {config.provider}/{config.model_name}{config.is_default ? ' (default)' : ''}
               </option>
             ))}
           </select>
         )}
         
         {(!enabledConfigs.length && agent?.model) && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-50 border border-gray-200">
-            <span className="text-xs font-medium text-gray-700">{agent.model}</span>
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-cream border border-line">
+            <span className="text-xs font-medium text-ink-soft">{agent.model}</span>
           </div>
         )}
 
@@ -184,7 +184,7 @@ export function ChatHeader({
         {onRefresh && (
           <button
             onClick={onRefresh}
-            className="p-1.5 rounded-lg transition-colors hover:bg-amber-50"
+            className="p-1.5 rounded-lg transition-colors hover:bg-sand-deep"
             style={{
               color: primaryColor,
             }}
@@ -198,7 +198,7 @@ export function ChatHeader({
         {onShareClick && (
           <button
             onClick={onShareClick}
-            className="p-1.5 rounded-lg transition-colors hover:bg-amber-50"
+            className="p-1.5 rounded-lg transition-colors hover:bg-sand-deep"
             style={{
               color: primaryColor,
             }}
@@ -212,7 +212,7 @@ export function ChatHeader({
         {onSettingsClick && (
           <button
             onClick={onSettingsClick}
-            className="p-1.5 rounded-lg transition-colors hover:bg-amber-50"
+            className="p-1.5 rounded-lg transition-colors hover:bg-sand-deep"
             style={{
               color: primaryColor,
             }}
@@ -226,10 +226,10 @@ export function ChatHeader({
         <div className="relative">
           <button
             onClick={() => setShowMenu(!showMenu)}
-            className="p-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-cream transition-colors"
             title="More"
           >
-            <MoreVertical size={16} className="text-gray-600" />
+            <MoreVertical size={16} className="text-ink-soft" />
           </button>
 
           {showMenu && (
@@ -238,14 +238,14 @@ export function ChatHeader({
                 className="fixed inset-0 z-10"
                 onClick={() => setShowMenu(false)}
               />
-              <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-20">
+              <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-xl border border-line py-1 z-20">
                 {onExportClick && (
                   <button
                     onClick={() => {
                       onExportClick()
                       setShowMenu(false)
                     }}
-                    className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-amber-50 flex items-center gap-2 transition-colors"
+                    className="w-full px-3 py-1.5 text-left text-xs text-ink-soft hover:bg-sand-deep flex items-center gap-2 transition-colors"
                   >
                     <Download size={14} />
                     Export
@@ -257,7 +257,7 @@ export function ChatHeader({
                       onClearChat()
                       setShowMenu(false)
                     }}
-                    className="w-full px-3 py-1.5 text-left text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                    className="w-full px-3 py-1.5 text-left text-xs text-leaf hover:bg-blush-wash flex items-center gap-2 transition-colors"
                   >
                     <Trash2 size={14} />
                     Clear

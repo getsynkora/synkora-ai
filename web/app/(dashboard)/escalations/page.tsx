@@ -54,10 +54,10 @@ const STATUS_OPTIONS = [
 ]
 
 const PRIORITY_OPTIONS = [
-  { value: 'low', label: 'Low', color: 'bg-gray-100 text-gray-700' },
-  { value: 'medium', label: 'Medium', color: 'bg-blue-100 text-blue-700' },
-  { value: 'high', label: 'High', color: 'bg-amber-100 text-amber-700' },
-  { value: 'urgent', label: 'Urgent', color: 'bg-red-100 text-red-700' },
+  { value: 'low', label: 'Low', color: 'bg-sand text-ink-soft' },
+  { value: 'medium', label: 'Medium', color: 'bg-sky-wash text-azure' },
+  { value: 'high', label: 'High', color: 'bg-sand-deep text-gold' },
+  { value: 'urgent', label: 'Urgent', color: 'bg-blush-wash text-leaf' },
 ]
 
 const REASON_OPTIONS = [
@@ -140,13 +140,13 @@ export default function EscalationsPage() {
 
   const getStatusStyle = (status: string) => {
     const styles: Record<string, string> = {
-      pending: 'bg-amber-100 text-amber-700',
-      notified: 'bg-blue-100 text-blue-700',
-      in_progress: 'bg-purple-100 text-purple-700',
-      resolved: 'bg-emerald-100 text-emerald-700',
-      expired: 'bg-gray-100 text-gray-600',
+      pending: 'bg-sand-deep text-gold',
+      notified: 'bg-sky-wash text-azure',
+      in_progress: 'bg-sand-deep text-ink-soft',
+      resolved: 'bg-leaf-wash text-forest',
+      expired: 'bg-sand text-ink-soft',
     }
-    return styles[status] || 'bg-gray-100 text-gray-600'
+    return styles[status] || 'bg-sand text-ink-soft'
   }
 
   const getStatusIcon = (status: string) => {
@@ -163,7 +163,7 @@ export default function EscalationsPage() {
 
   const getPriorityStyle = (priority: string) => {
     const option = PRIORITY_OPTIONS.find(o => o.value === priority)
-    return option?.color || 'bg-gray-100 text-gray-700'
+    return option?.color || 'bg-sand text-ink-soft'
   }
 
   const formatDate = (dateString: string) => {
@@ -188,8 +188,8 @@ export default function EscalationsPage() {
     return (
       <div className="dashboard-resource-page flex h-screen items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading escalations...</p>
+          <div className="motion-safe:animate-spin rounded-full h-12 w-12 border-b-2 border-danger mx-auto mb-4"></div>
+          <p className="text-ink-soft">Loading escalations…</p>
         </div>
       </div>
     )
@@ -202,8 +202,8 @@ export default function EscalationsPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Escalations</h1>
-              <p className="text-gray-600 mt-1">
+              <h1 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight">Escalations</h1>
+              <p className="text-ink-soft mt-1">
                 Review and respond to agent escalation requests
               </p>
             </div>
@@ -211,50 +211,50 @@ export default function EscalationsPage() {
 
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div className="bg-white rounded-xl shadow-sm border border-sand p-5">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-red-100 rounded-xl">
-                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                <div className="p-2.5 bg-sand-deep rounded-xl">
+                  <AlertTriangle className="w-5 h-5 text-danger" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Total</p>
-                  <p className="text-2xl font-bold text-gray-900">{escalations.length}</p>
+                  <p className="text-sm text-ink-soft">Total</p>
+                  <p className="text-2xl font-bold text-ink">{escalations.length}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div className="bg-white rounded-xl shadow-sm border border-sand p-5">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-amber-100 rounded-xl">
-                  <Clock className="w-5 h-5 text-amber-600" />
+                <div className="p-2.5 bg-sand-deep rounded-xl">
+                  <Clock className="w-5 h-5 text-warn" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Pending</p>
-                  <p className="text-2xl font-bold text-gray-900">{pendingCount}</p>
+                  <p className="text-sm text-ink-soft">Pending</p>
+                  <p className="text-2xl font-bold text-ink">{pendingCount}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div className="bg-white rounded-xl shadow-sm border border-sand p-5">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-red-100 rounded-xl">
-                  <AlertCircle className="w-5 h-5 text-red-600" />
+                <div className="p-2.5 bg-sand-deep rounded-xl">
+                  <AlertCircle className="w-5 h-5 text-danger" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Urgent</p>
-                  <p className="text-2xl font-bold text-gray-900">{urgentCount}</p>
+                  <p className="text-sm text-ink-soft">Urgent</p>
+                  <p className="text-2xl font-bold text-ink">{urgentCount}</p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <div className="bg-white rounded-xl shadow-sm border border-sand p-5">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-emerald-100 rounded-xl">
-                  <CheckCircle className="w-5 h-5 text-emerald-600" />
+                <div className="p-2.5 bg-leaf-wash rounded-xl">
+                  <CheckCircle className="w-5 h-5 text-leaf" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Resolved</p>
-                  <p className="text-2xl font-bold text-gray-900">{resolvedCount}</p>
+                  <p className="text-sm text-ink-soft">Resolved</p>
+                  <p className="text-2xl font-bold text-ink">{resolvedCount}</p>
                 </div>
               </div>
             </div>
@@ -263,21 +263,21 @@ export default function EscalationsPage() {
           {/* Filters */}
           <div className="flex gap-4 flex-wrap">
             <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-ash" />
               <input
                 type="text"
-                placeholder="Search escalations..."
+                placeholder="Search escalations…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent shadow-sm"
+                className="w-full pl-12 pr-4 py-3 bg-white border border-line rounded-xl focus:ring-2 focus:ring-ink focus:border-transparent shadow-sm"
               />
             </div>
             <div className="relative">
-              <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-ash" />
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="pl-12 pr-8 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent shadow-sm appearance-none cursor-pointer"
+                className="pl-12 pr-8 py-3 bg-white border border-line rounded-xl focus:ring-2 focus:ring-ink focus:border-transparent shadow-sm appearance-none cursor-pointer"
               >
                 {STATUS_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -291,27 +291,27 @@ export default function EscalationsPage() {
 
         {/* Error */}
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4">
+          <div className="mb-6 bg-blush-wash border border-blush rounded-xl p-4">
             <div className="flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600" />
-              <p className="text-red-700">{error}</p>
+              <AlertCircle className="w-5 h-5 text-danger" />
+              <p className="text-danger">{error}</p>
             </div>
           </div>
         )}
 
         {/* Escalations List */}
         {filteredEscalations.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+          <div className="bg-white rounded-2xl shadow-sm border border-sand p-12 text-center">
             <div className="w-32 h-32 mx-auto mb-6 relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-100 to-emerald-50 rounded-2xl transform rotate-6"></div>
-              <div className="absolute inset-0 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center">
-                <CheckCircle className="w-12 h-12 text-emerald-500" />
+              <div className="absolute inset-0 bg-leaf-wash rounded-2xl transform rotate-6"></div>
+              <div className="absolute inset-0 bg-white rounded-2xl shadow-sm border border-sand flex items-center justify-center">
+                <CheckCircle className="w-12 h-12 text-leaf" />
               </div>
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            <h3 className="text-xl font-semibold text-ink mb-2">
               {escalations.length === 0 ? 'No escalations' : 'No results found'}
             </h3>
-            <p className="text-gray-600 max-w-md mx-auto">
+            <p className="text-ink-soft max-w-md mx-auto">
               {escalations.length === 0
                 ? 'All clear! No escalations require your attention right now.'
                 : 'Try adjusting your search or filter.'}
@@ -322,10 +322,10 @@ export default function EscalationsPage() {
             {filteredEscalations.map((escalation) => (
               <div
                 key={escalation.id}
-                className={`bg-white rounded-xl shadow-sm border transition-all hover:shadow-md ${
+                className={`bg-white rounded-xl shadow-sm border transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:shadow-md ${
                   escalation.priority === 'urgent' && escalation.status !== 'resolved'
-                    ? 'border-red-200 hover:border-red-300'
-                    : 'border-gray-100 hover:border-red-200'
+                    ? 'border-blush hover:border-blush'
+                    : 'border-sand hover:border-blush'
                 }`}
               >
                 <div className="p-5">
@@ -339,25 +339,25 @@ export default function EscalationsPage() {
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${getPriorityStyle(escalation.priority)}`}>
                           {escalation.priority}
                         </span>
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-sand-deep text-ink-soft">
                           {REASON_OPTIONS.find(r => r.value === escalation.reason)?.label || escalation.reason}
                         </span>
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900 truncate">
+                      <h3 className="text-lg font-semibold text-ink truncate">
                         {escalation.subject}
                       </h3>
                     </div>
-                    <span className="text-xs text-gray-500 whitespace-nowrap">
+                    <span className="text-xs text-ink-mute whitespace-nowrap">
                       {formatDate(escalation.created_at)}
                     </span>
                   </div>
 
-                  <p className="text-sm text-gray-600 line-clamp-2 mb-4">
+                  <p className="text-sm text-ink-soft line-clamp-2 mb-4">
                     {escalation.message}
                   </p>
 
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                    <div className="flex items-center gap-4 text-xs text-ink-mute">
                       <div className="flex items-center gap-1.5">
                         <Bot className="w-4 h-4" />
                         <span>{escalation.from_agent?.agent_name || 'Unknown agent'}</span>
@@ -368,7 +368,7 @@ export default function EscalationsPage() {
                       </div>
                       {escalation.project && (
                         <div className="flex items-center gap-1.5">
-                          <span className="text-gray-400">|</span>
+                          <span className="text-ash">|</span>
                           <span>{escalation.project.name}</span>
                         </div>
                       )}
@@ -377,7 +377,7 @@ export default function EscalationsPage() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => setShowDetailModal(escalation)}
-                        className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                        className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-ink-soft bg-sand rounded-lg hover:bg-line transition-colors"
                       >
                         <Eye className="w-4 h-4" />
                         View
@@ -388,7 +388,7 @@ export default function EscalationsPage() {
                             setShowResolveModal(escalation)
                             setResponseText('')
                           }}
-                          className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                          className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-danger rounded-lg hover:bg-danger transition-colors"
                         >
                           <MessageSquare className="w-4 h-4" />
                           Respond
@@ -405,15 +405,15 @@ export default function EscalationsPage() {
 
       {/* Detail Modal */}
       {showDetailModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Escalation Details</h3>
+            <div className="sticky top-0 bg-white border-b border-sand px-6 py-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-ink">Escalation Details</h3>
               <button
                 onClick={() => setShowDetailModal(null)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-sand rounded-lg transition-colors"
               >
-                <X className="w-5 h-5 text-gray-500" />
+                <X className="w-5 h-5 text-ink-mute" />
               </button>
             </div>
 
@@ -426,48 +426,48 @@ export default function EscalationsPage() {
                 <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${getPriorityStyle(showDetailModal.priority)}`}>
                   {showDetailModal.priority}
                 </span>
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-sand-deep text-ink-soft">
                   {REASON_OPTIONS.find(r => r.value === showDetailModal.reason)?.label || showDetailModal.reason}
                 </span>
               </div>
 
               <div>
-                <h4 className="text-xl font-semibold text-gray-900 mb-2">{showDetailModal.subject}</h4>
-                <p className="text-gray-600">{showDetailModal.message}</p>
+                <h4 className="text-xl font-semibold text-ink mb-2">{showDetailModal.subject}</h4>
+                <p className="text-ink-soft">{showDetailModal.message}</p>
               </div>
 
               {showDetailModal.context_summary && (
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h5 className="text-sm font-medium text-gray-700 mb-2">Context Summary</h5>
-                  <p className="text-sm text-gray-600">{showDetailModal.context_summary}</p>
+                <div className="bg-cream rounded-lg p-4">
+                  <h5 className="text-sm font-medium text-ink-soft mb-2">Context Summary</h5>
+                  <p className="text-sm text-ink-soft">{showDetailModal.context_summary}</p>
                 </div>
               )}
 
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="text-gray-500">From Agent:</span>
-                  <p className="font-medium text-gray-900">{showDetailModal.from_agent?.agent_name || 'Unknown'}</p>
+                  <span className="text-ink-mute">From Agent:</span>
+                  <p className="font-medium text-ink">{showDetailModal.from_agent?.agent_name || 'Unknown'}</p>
                 </div>
                 <div>
-                  <span className="text-gray-500">To Human:</span>
-                  <p className="font-medium text-gray-900">{showDetailModal.to_human?.name || 'Unknown'}</p>
+                  <span className="text-ink-mute">To Human:</span>
+                  <p className="font-medium text-ink">{showDetailModal.to_human?.name || 'Unknown'}</p>
                 </div>
                 <div>
-                  <span className="text-gray-500">Project:</span>
-                  <p className="font-medium text-gray-900">{showDetailModal.project?.name || 'None'}</p>
+                  <span className="text-ink-mute">Project:</span>
+                  <p className="font-medium text-ink">{showDetailModal.project?.name || 'None'}</p>
                 </div>
                 <div>
-                  <span className="text-gray-500">Created:</span>
-                  <p className="font-medium text-gray-900">{new Date(showDetailModal.created_at).toLocaleString()}</p>
+                  <span className="text-ink-mute">Created:</span>
+                  <p className="font-medium text-ink">{new Date(showDetailModal.created_at).toLocaleString()}</p>
                 </div>
               </div>
 
               {showDetailModal.human_response && (
-                <div className="bg-emerald-50 rounded-lg p-4">
-                  <h5 className="text-sm font-medium text-emerald-700 mb-2">Human Response</h5>
-                  <p className="text-sm text-emerald-900">{showDetailModal.human_response}</p>
+                <div className="bg-leaf-wash rounded-lg p-4">
+                  <h5 className="text-sm font-medium text-forest mb-2">Human Response</h5>
+                  <p className="text-sm text-forest">{showDetailModal.human_response}</p>
                   {showDetailModal.resolved_at && (
-                    <p className="text-xs text-emerald-600 mt-2">
+                    <p className="text-xs text-leaf mt-2">
                       Resolved at {new Date(showDetailModal.resolved_at).toLocaleString()}
                     </p>
                   )}
@@ -481,7 +481,7 @@ export default function EscalationsPage() {
                     setShowResolveModal(showDetailModal)
                     setResponseText('')
                   }}
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-danger rounded-lg hover:bg-danger transition-colors"
                 >
                   <MessageSquare className="w-4 h-4" />
                   Respond to Escalation
@@ -494,32 +494,32 @@ export default function EscalationsPage() {
 
       {/* Resolve Modal */}
       {showResolveModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full">
-            <div className="border-b border-gray-100 px-6 py-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Respond to Escalation</h3>
+            <div className="border-b border-sand px-6 py-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-ink">Respond to Escalation</h3>
               <button
                 onClick={() => setShowResolveModal(null)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-sand rounded-lg transition-colors"
               >
-                <X className="w-5 h-5 text-gray-500" />
+                <X className="w-5 h-5 text-ink-mute" />
               </button>
             </div>
 
             <div className="p-6">
-              <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm font-medium text-gray-900 mb-1">{showResolveModal.subject}</p>
-                <p className="text-sm text-gray-600 line-clamp-2">{showResolveModal.message}</p>
+              <div className="mb-4 p-4 bg-cream rounded-lg">
+                <p className="text-sm font-medium text-ink mb-1">{showResolveModal.subject}</p>
+                <p className="text-sm text-ink-soft line-clamp-2">{showResolveModal.message}</p>
               </div>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Your Response *</label>
+                <label className="block text-sm font-medium text-ink-soft mb-1">Your Response *</label>
                 <textarea
                   value={responseText}
                   onChange={(e) => setResponseText(e.target.value)}
-                  placeholder="Provide guidance or answer the agent's question..."
+                  placeholder="Provide guidance or answer the agent's question…"
                   rows={5}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+                  className="w-full px-4 py-2.5 border border-line rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent resize-none"
                 />
               </div>
 
@@ -527,18 +527,18 @@ export default function EscalationsPage() {
                 <button
                   onClick={() => setShowResolveModal(null)}
                   disabled={resolving}
-                  className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                  className="px-4 py-2.5 text-sm font-medium text-ink-soft bg-sand rounded-lg hover:bg-line transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleResolve}
                   disabled={resolving || !responseText.trim()}
-                  className="px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="px-4 py-2.5 text-sm font-medium text-white bg-danger rounded-lg hover:bg-danger transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
                   {resolving ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full motion-safe:animate-spin" />
                       Sending...
                     </>
                   ) : (

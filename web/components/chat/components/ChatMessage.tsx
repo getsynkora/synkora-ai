@@ -67,12 +67,12 @@ function sanitizeSvg(svgContent: string): string {
   })
   // Keep SVG responsive inside a capped-width chat container.
   return clean
-    .replace(/<svg([^>]*)>/, (_match, attrs: string) => {
+    .replace(/<svg aria-hidden="true"([^>]*)>/, (_match, attrs: string) => {
       const withoutDims = attrs
         .replace(/\s+width="[^"]*"/g, '')
         .replace(/\s+height="[^"]*"/g, '')
         .replace(/\s+style="[^"]*"/g, '')
-      return `<svg${withoutDims} width="100%" style="display:block;max-width:100%;height:auto;margin:0 auto">`
+      return `<svg aria-hidden="true"${withoutDims} width="100%" style="display:block;max-width:100%;height:auto;margin:0 auto">`
     })
 }
 
@@ -172,17 +172,17 @@ function detectDocumentUrls(content: string): Array<{ url: string; type: string 
 function PlainCodeBlock({ language, code }: { language?: string; code: string }) {
   return (
     <div className="not-prose relative group/code my-3 max-w-full overflow-hidden rounded-lg">
-      <div className="flex items-center justify-between px-3 py-1.5 bg-gray-800 rounded-t-lg border-b border-gray-700">
-        <span className="text-xs text-gray-400 font-mono">{language || 'code'}</span>
+      <div className="flex items-center justify-between px-3 py-1.5 bg-ink rounded-t-lg border-b border-ink-soft">
+        <span className="text-xs text-ash font-mono">{language || 'code'}</span>
         <button
           onClick={() => navigator.clipboard.writeText(code)}
-          className="text-xs text-gray-400 hover:text-white transition-colors flex items-center gap-1"
+          className="text-xs text-ash hover:text-white transition-colors flex items-center gap-1"
         >
           <Copy size={12} />
           Copy
         </button>
       </div>
-      <pre className="overflow-x-auto bg-gray-950 text-gray-100 !my-0 p-3 text-[13px] leading-relaxed rounded-b-lg">
+      <pre className="overflow-x-auto bg-ink text-sand !my-0 p-3 text-[13px] leading-relaxed rounded-b-lg">
         <code>{code}</code>
       </pre>
     </div>
@@ -300,16 +300,16 @@ function TableWithExport({ children, ...props }: any) {
   }
 
   return (
-    <div className="my-3 rounded-lg border border-gray-200 overflow-hidden w-full max-w-full">
-      <div className="flex items-center justify-end gap-3 px-3 py-1.5 bg-gray-50 border-b border-gray-200">
+    <div className="my-3 rounded-lg border border-line overflow-hidden w-full max-w-full">
+      <div className="flex items-center justify-end gap-3 px-3 py-1.5 bg-cream border-b border-line">
         <button
           onClick={exportCSV}
           disabled={exporting !== null}
           title={t('exportCsv')}
-          className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-1 text-xs text-ink-mute hover:text-ink transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {exporting === 'csv' ? (
-            <svg className="animate-spin" width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+            <svg aria-hidden="true" className="motion-safe:animate-spin" width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
               <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" strokeLinecap="round"/>
             </svg>
           ) : (
@@ -321,10 +321,10 @@ function TableWithExport({ children, ...props }: any) {
           onClick={exportPDF}
           disabled={exporting !== null}
           title={t('exportPdf')}
-          className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-1 text-xs text-ink-mute hover:text-ink transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {exporting === 'pdf' ? (
-            <svg className="animate-spin" width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+            <svg aria-hidden="true" className="motion-safe:animate-spin" width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
               <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" strokeLinecap="round"/>
             </svg>
           ) : (
@@ -334,7 +334,7 @@ function TableWithExport({ children, ...props }: any) {
         </button>
       </div>
       <div className="overflow-x-auto">
-        <table ref={tableRef} className="min-w-full divide-y divide-gray-200" {...props}>
+        <table ref={tableRef} className="min-w-full divide-y divide-line" {...props}>
           {children}
         </table>
       </div>
@@ -441,9 +441,9 @@ export const ChatMessage = memo(function ChatMessage({
     return (
       <div className={cn('flex justify-end items-start gap-2.5 group', className)}>
         <div className="max-w-[85%] sm:max-w-[72%]">
-          <div className="bg-[#f0f0f0] border border-black/[0.07] rounded-2xl rounded-tr-sm px-4 py-3.5 shadow-sm">
+          <div className="bg-cream border border-black/[0.07] rounded-2xl rounded-tr-sm px-4 py-3.5 shadow-sm">
             <p
-              className="text-[15px] font-semibold text-[#111111] leading-[1.65] whitespace-pre-wrap tracking-[-0.01em] max-h-48 overflow-y-auto"
+              className="text-[15px] font-semibold text-ink leading-[1.65] whitespace-pre-wrap tracking-[-0.01em] max-h-48 overflow-y-auto"
               style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(0,0,0,0.15) transparent' }}
             >{message.content}</p>
             {message.attachments && message.attachments.length > 0 && (
@@ -457,16 +457,16 @@ export const ChatMessage = memo(function ChatMessage({
           <div className="flex items-center justify-end gap-1.5 mt-1 px-1">
             {onDelete && confirmingDelete ? (
               <>
-                <span className="text-[10px] text-gray-500">{t('deleteThis')}</span>
+                <span className="text-[10px] text-ink-mute">{t('deleteThis')}</span>
                 <button
                   onClick={() => { onDelete(message.id); setConfirmingDelete(false) }}
-                  className="text-[10px] font-medium text-red-500 hover:text-red-600 transition-colors"
+                  className="text-[10px] font-medium text-leaf hover:text-danger transition-colors"
                 >
                   {t('delete')}
                 </button>
                 <button
                   onClick={() => setConfirmingDelete(false)}
-                  className="text-[10px] text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-[10px] text-ash hover:text-ink-soft transition-colors"
                 >
                   {t('cancel')}
                 </button>
@@ -476,7 +476,7 @@ export const ChatMessage = memo(function ChatMessage({
                 {onDelete && (
                   <button
                     onClick={() => setConfirmingDelete(true)}
-                    className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-all"
+                    className="opacity-0 group-hover:opacity-100 p-1 text-ash hover:text-leaf transition-[color,background-color,border-color,box-shadow,opacity,transform]"
                     title={t('deleteMessage')}
                   >
                     <Trash2 size={11} />
@@ -484,14 +484,14 @@ export const ChatMessage = memo(function ChatMessage({
                 )}
                 <button
                   onClick={handleCopy}
-                  className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-gray-600 transition-all"
+                  className="opacity-0 group-hover:opacity-100 p-1 text-ash hover:text-ink-soft transition-[color,background-color,border-color,box-shadow,opacity,transform]"
                   title={t('copyMessage')}
                 >
-                  {copied ? <Check size={11} className="text-green-500" /> : <Copy size={11} />}
+                  {copied ? <Check size={11} className="text-leaf" /> : <Copy size={11} />}
                 </button>
-                <span className="text-[10px] text-gray-400">{t('you')}</span>
-                <span className="text-[10px] text-gray-300">·</span>
-                <span className="text-[10px] text-gray-400">{formatTimestamp(message.timestamp, t, locale)}</span>
+                <span className="text-[10px] text-ash">{t('you')}</span>
+                <span className="text-[10px] text-taupe">·</span>
+                <span className="text-[10px] text-ash">{formatTimestamp(message.timestamp, t, locale)}</span>
               </>
             )}
           </div>
@@ -512,7 +512,7 @@ export const ChatMessage = memo(function ChatMessage({
     <div className={cn('group', className)}>
       <div className="flex items-center gap-2 mb-3">
         {agentAvatar ? (
-          <div className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center bg-white relative shrink-0 ring-1 ring-slate-200">
+          <div className="w-7 h-7 rounded-full overflow-hidden flex items-center justify-center bg-white relative shrink-0 ring-1 ring-line">
             {agentAvatar.startsWith('http://') || agentAvatar.startsWith('https://') ? (
               <Image
                 src={agentAvatar}
@@ -534,9 +534,9 @@ export const ChatMessage = memo(function ChatMessage({
             <Sparkles size={12} className="text-white" />
           </div>
         )}
-        <span className="text-sm font-semibold text-gray-700 tracking-[-0.01em]">{agentName || 'Assistant'}</span>
+        <span className="text-sm font-semibold text-ink-soft tracking-[-0.01em]">{agentName || 'Assistant'}</span>
         {message.metadata?.confidence && (
-          <span className="text-[11px] text-gray-400">Confidence: {message.metadata.confidence}</span>
+          <span className="text-[11px] text-ash">Confidence: {message.metadata.confidence}</span>
         )}
       </div>
 
@@ -602,8 +602,8 @@ export const ChatMessage = memo(function ChatMessage({
 
         {/* Error Message */}
         {message.isError && (
-          <div className="flex items-start gap-2 px-3 py-2.5 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 mb-2">
-            <svg className="w-4 h-4 mt-0.5 flex-shrink-0 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+          <div className="flex items-start gap-2 px-3 py-2.5 bg-blush-wash border border-blush rounded-xl text-sm text-danger mb-2">
+            <svg aria-hidden="true" className="w-4 h-4 mt-0.5 flex-shrink-0 text-leaf" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
             </svg>
             <span>{message.content}</span>
@@ -628,7 +628,7 @@ export const ChatMessage = memo(function ChatMessage({
                   />
                 ))}
               </span>
-              <span className="text-sm font-medium" style={{ color: '#ff444f' }}>Working…</span>
+              <span className="text-sm font-medium" style={{ color: 'rgb(var(--brand))' }}>Working…</span>
             </div>
           ) : !message.isError ? (
             <ReactMarkdown
@@ -658,7 +658,7 @@ export const ChatMessage = memo(function ChatMessage({
                   if (isInline) {
                     return (
                       <code
-                        className="px-1.5 py-0.5 rounded text-[13px] font-mono bg-gray-100 text-gray-800"
+                        className="px-1.5 py-0.5 rounded text-[13px] font-mono bg-sand text-ink"
                         {...props}
                       >
                         {children}
@@ -679,28 +679,28 @@ export const ChatMessage = memo(function ChatMessage({
                   <TableWithExport {...props}>{children}</TableWithExport>
                 ),
                 thead: ({ children, ...props }: any) => (
-                  <thead className="bg-gray-50" {...props}>
+                  <thead className="bg-cream" {...props}>
                     {children}
                   </thead>
                 ),
                 tbody: ({ children, ...props }: any) => (
-                  <tbody className="bg-white divide-y divide-gray-100" {...props}>
+                  <tbody className="bg-white divide-y divide-sand" {...props}>
                     {children}
                   </tbody>
                 ),
                 tr: ({ children, ...props }: any) => (
-                  <tr className="hover:bg-gray-50 transition-colors" {...props}>{children}</tr>
+                  <tr className="hover:bg-cream transition-colors" {...props}>{children}</tr>
                 ),
                 th: ({ children, ...props }: any) => (
                   <th
-                    className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide"
+                    className="px-3 py-2 text-left text-xs font-semibold text-ink-soft"
                     {...props}
                   >
                     {children}
                   </th>
                 ),
                 td: ({ children, ...props }: any) => (
-                  <td className="px-3 py-2 text-sm text-gray-700" {...props}>
+                  <td className="px-3 py-2 text-sm text-ink-soft" {...props}>
                     {children}
                   </td>
                 ),
@@ -716,17 +716,17 @@ export const ChatMessage = memo(function ChatMessage({
                   </a>
                 ),
                 h1: ({ children, ...props }: any) => (
-                  <h1 className="text-xl font-bold text-gray-900 mb-3 mt-4 first:mt-0 flex flex-wrap items-center gap-2 min-w-0" {...props}>
+                  <h1 className="text-xl font-bold text-ink mb-3 mt-4 first:mt-0 flex flex-wrap items-center gap-2 min-w-0" {...props}>
                     {children}
                   </h1>
                 ),
                 h2: ({ children, ...props }: any) => (
-                  <h2 className="text-lg font-bold text-gray-900 mb-2 mt-4 first:mt-0 flex flex-wrap items-center gap-2 min-w-0" {...props}>
+                  <h2 className="text-lg font-bold text-ink mb-2 mt-4 first:mt-0 flex flex-wrap items-center gap-2 min-w-0" {...props}>
                     {children}
                   </h2>
                 ),
                 h3: ({ children, ...props }: any) => (
-                  <h3 className="text-base font-semibold text-gray-900 mb-2 mt-3 first:mt-0" {...props}>
+                  <h3 className="text-base font-semibold text-ink mb-2 mt-3 first:mt-0" {...props}>
                     {children}
                   </h3>
                 ),
@@ -741,18 +741,18 @@ export const ChatMessage = memo(function ChatMessage({
                   </ol>
                 ),
                 li: ({ children, ...props }: any) => (
-                  <li className="text-[15px] leading-[1.65] text-gray-700 relative pl-4 before:content-['•'] before:absolute before:left-0 before:text-gray-400" {...props}>
+                  <li className="text-[15px] leading-[1.65] text-ink-soft relative pl-4 before:content-['•'] before:absolute before:left-0 before:text-ash" {...props}>
                     {children}
                   </li>
                 ),
                 p: ({ children, ...props }: any) => (
-                  <p className="mb-3 last:mb-0 text-[15px] leading-[1.7] text-gray-700 tracking-[-0.005em]" {...props}>
+                  <p className="mb-3 last:mb-0 text-[15px] leading-[1.7] text-ink-soft tracking-[-0.005em]" {...props}>
                     {children}
                   </p>
                 ),
                 blockquote: ({ children, ...props }: any) => (
                   <blockquote
-                    className="border-l-3 pl-3 py-1 my-3 text-gray-600 bg-gray-50 rounded-r"
+                    className="border-l-3 pl-3 py-1 my-3 text-ink-soft bg-cream rounded-r"
                     style={{ borderLeftColor: primaryColor, borderLeftWidth: '3px' }}
                     {...props}
                   >
@@ -760,10 +760,10 @@ export const ChatMessage = memo(function ChatMessage({
                   </blockquote>
                 ),
                 hr: ({ ...props }: any) => (
-                  <hr className="my-4 border-gray-200" {...props} />
+                  <hr className="my-4 border-line" {...props} />
                 ),
                 strong: ({ children, ...props }: any) => (
-                  <strong className="font-semibold text-gray-900" {...props}>
+                  <strong className="font-semibold text-ink" {...props}>
                     {children}
                   </strong>
                 ),
@@ -775,7 +775,7 @@ export const ChatMessage = memo(function ChatMessage({
                       <img
                         src={src}
                         alt={alt || t('image')}
-                        className="max-w-full h-auto rounded-lg border border-gray-200"
+                        className="max-w-full h-auto rounded-lg border border-line"
                         loading="lazy"
                         {...props}
                       />
@@ -905,7 +905,7 @@ export const ChatMessage = memo(function ChatMessage({
                       src={img.url}
                       alt={img.revised_prompt || img.prompt || t('generatedImage')}
                       className="w-full h-auto block"
-                      style={{ maxHeight: '640px', objectFit: 'contain', background: '#0a0a0a' }}
+                      style={{ maxHeight: '640px', objectFit: 'contain', background: 'rgb(var(--ink))' }}
                     />
 
                     {/* Hover overlay with actions */}
@@ -928,7 +928,7 @@ export const ChatMessage = memo(function ChatMessage({
                             download={`generated-${img.id || index}.png`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/25 backdrop-blur-sm text-white text-xs font-medium rounded-lg transition-colors border border-white/20"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/15 hover:bg-white/25 text-white text-xs font-medium rounded-lg transition-colors border border-white/20"
                             onClick={e => e.stopPropagation()}
                           >
                             <Download className="w-3.5 h-3.5" />
@@ -939,8 +939,8 @@ export const ChatMessage = memo(function ChatMessage({
                     </div>
                   </>
                 ) : (
-                  <div className="px-4 py-6 text-sm text-zinc-400 bg-zinc-900 text-center rounded-xl">
-                    Image unavailable — S3 storage not configured
+                  <div className="px-4 py-6 text-sm text-ash bg-ink text-center rounded-xl">
+                    Image unavailable, S3 storage not configured
                   </div>
                 )}
               </div>
@@ -952,7 +952,7 @@ export const ChatMessage = memo(function ChatMessage({
         {message.metadata?.generated_videos && message.metadata.generated_videos.length > 0 && (
           <div className="mt-3 space-y-4">
             {message.metadata.generated_videos.map((vid: GeneratedVideoData, index: number) => (
-              <div key={vid.id || index} className="rounded-xl overflow-hidden shadow-lg bg-zinc-900">
+              <div key={vid.id || index} className="rounded-xl overflow-hidden shadow-lg bg-ink">
                 {vid.url ? (
                   <>
                     <video
@@ -961,18 +961,18 @@ export const ChatMessage = memo(function ChatMessage({
                       playsInline
                       preload="metadata"
                       className="w-full h-auto block"
-                      style={{ maxHeight: '640px', background: '#0a0a0a' }}
+                      style={{ maxHeight: '640px', background: 'rgb(var(--ink))' }}
                     >
                       {t('videoUnsupported')}
                     </video>
                     <div className="flex items-center justify-between gap-3 px-3 py-2">
-                      <p className="text-zinc-300 text-xs leading-relaxed line-clamp-2 flex-1 min-w-0">
+                      <p className="text-taupe text-xs leading-relaxed line-clamp-2 flex-1 min-w-0">
                         {vid.prompt}
                       </p>
                       <div className="flex items-center gap-2 shrink-0">
                         {(vid.duration || vid.resolution) && (
-                          <span className="text-zinc-500 text-xs font-mono hidden sm:block">
-                            {[vid.duration ? `${vid.duration}s` : null, vid.resolution].filter(Boolean).join(' · ')}
+                          <span className="text-ink-mute text-xs font-mono hidden sm:block">
+                            {[vid.duration ? `${vid.duration}s` : null, vid.resolution].filter(Boolean).join(', ')}
                           </span>
                         )}
                         <a
@@ -989,7 +989,7 @@ export const ChatMessage = memo(function ChatMessage({
                     </div>
                   </>
                 ) : (
-                  <div className="px-4 py-6 text-sm text-zinc-400 text-center">Video unavailable</div>
+                  <div className="px-4 py-6 text-sm text-ash text-center">Video unavailable</div>
                 )}
               </div>
             ))}
@@ -1016,13 +1016,13 @@ export const ChatMessage = memo(function ChatMessage({
         {message.metadata?.vehicle_maps && message.metadata.vehicle_maps.length > 0 && (
           <div className="mt-3 space-y-3">
             {message.metadata.vehicle_maps.map((map: any, index: number) => (
-              <div key={map.id || index} className="rounded-lg overflow-hidden border border-gray-200">
+              <div key={map.id || index} className="rounded-lg overflow-hidden border border-line">
                 {(map.distance_km || map.duration_min) && (
-                  <div className="px-3 py-2 bg-gray-50 border-b border-gray-200 flex items-center gap-3 text-xs text-gray-600">
+                  <div className="px-3 py-2 bg-cream border-b border-line flex items-center gap-3 text-xs text-ink-soft">
                     {map.profile && <span className="capitalize font-medium">{map.profile}</span>}
-                    {map.distance_km && <span>📍 {map.distance_km} km</span>}
+                    {map.distance_km && <span>{map.distance_km} km</span>}
                     {map.duration_min && <span>⏱ {map.duration_min} min</span>}
-                    {map.marker_count > 0 && <span>🔵 {map.marker_count} vehicles</span>}
+                    {map.marker_count > 0 && <span>{map.marker_count} vehicles</span>}
                   </div>
                 )}
                 <img
@@ -1032,8 +1032,8 @@ export const ChatMessage = memo(function ChatMessage({
                   style={{ maxHeight: '500px', objectFit: 'cover' }}
                 />
                 {map.embed_url && (
-                  <div className="px-3 py-2 bg-gray-50 border-t border-gray-200 text-xs">
-                    <a href={map.embed_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  <div className="px-3 py-2 bg-cream border-t border-line text-xs">
+                    <a href={map.embed_url} target="_blank" rel="noopener noreferrer" className="text-azure hover:underline">
                       Open interactive map ↗
                     </a>
                   </div>
@@ -1058,10 +1058,10 @@ export const ChatMessage = memo(function ChatMessage({
 
         {/* Message Actions */}
         {!isStreaming && (
-          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 flex-wrap">
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-sand flex-wrap">
             <button
               onClick={handleCopy}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-ink-soft bg-white border border-line hover:border-taupe hover:bg-cream transition-colors"
             >
               {copied ? <Check size={12} /> : <Copy size={12} />}
               {copied ? t('copied') : t('copy')}
@@ -1077,7 +1077,7 @@ export const ChatMessage = memo(function ChatMessage({
                 a.click()
                 URL.revokeObjectURL(url)
               }}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-ink-soft bg-white border border-line hover:border-taupe hover:bg-cream transition-colors"
             >
               <Download size={12} />
               {t('export')}
@@ -1102,8 +1102,8 @@ export const ChatMessage = memo(function ChatMessage({
                   className={cn(
                     'p-1.5 rounded-lg transition-colors',
                     feedbackRating === 1
-                      ? 'text-green-600 bg-green-50'
-                      : 'text-gray-400 hover:text-green-600 hover:bg-green-50',
+                      ? 'text-leaf bg-leaf-wash'
+                      : 'text-ash hover:text-leaf hover:bg-leaf-wash',
                   )}
                   title={t('helpful')}
                 >
@@ -1124,8 +1124,8 @@ export const ChatMessage = memo(function ChatMessage({
                   className={cn(
                     'p-1.5 rounded-lg transition-colors',
                     feedbackRating === -1
-                      ? 'text-red-600 bg-red-50'
-                      : 'text-gray-400 hover:text-red-500 hover:bg-red-50',
+                      ? 'text-leaf bg-blush-wash'
+                      : 'text-ash hover:text-leaf hover:bg-blush-wash',
                   )}
                   title={t('notHelpful')}
                 >
@@ -1137,7 +1137,7 @@ export const ChatMessage = memo(function ChatMessage({
             {onRetry && (
               <button
                 onClick={() => onRetry(message.id)}
-                className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-1.5 text-ash hover:text-ink-soft hover:bg-sand rounded-lg transition-colors"
                 title={t('regenerate')}
               >
                 <RefreshCw size={12} />
@@ -1147,16 +1147,16 @@ export const ChatMessage = memo(function ChatMessage({
             {onDelete && (
               confirmingDelete ? (
                 <div className="flex items-center gap-2 ml-1">
-                  <span className="text-[11px] text-gray-500">Delete this message?</span>
+                  <span className="text-[11px] text-ink-mute">Delete this message?</span>
                   <button
                     onClick={() => { onDelete(message.id); setConfirmingDelete(false) }}
-                    className="text-[11px] font-medium text-red-500 hover:text-red-600 transition-colors"
+                    className="text-[11px] font-medium text-leaf hover:text-danger transition-colors"
                   >
                     {t('delete')}
                   </button>
                   <button
                     onClick={() => setConfirmingDelete(false)}
-                    className="text-[11px] text-gray-400 hover:text-gray-600 transition-colors"
+                    className="text-[11px] text-ash hover:text-ink-soft transition-colors"
                   >
                     {t('cancel')}
                   </button>
@@ -1164,7 +1164,7 @@ export const ChatMessage = memo(function ChatMessage({
               ) : (
                 <button
                   onClick={() => setConfirmingDelete(true)}
-                  className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                  className="p-1.5 text-ash hover:text-leaf hover:bg-blush-wash rounded-lg transition-colors"
                   title={t('deleteMessage')}
                 >
                   <Trash2 size={12} />
@@ -1172,10 +1172,10 @@ export const ChatMessage = memo(function ChatMessage({
               )
             )}
 
-            <div className="flex items-center gap-2 ml-auto text-[11px] text-gray-400">
+            <div className="flex items-center gap-2 ml-auto text-[11px] text-ash">
               {message.stopped && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-gray-400">
-                  <Square size={8} className="fill-gray-300" />
+                <span className="inline-flex items-center gap-1 rounded-full border border-line bg-cream px-2 py-0.5 text-ash">
+                  <Square size={8} className="fill-taupe" />
                   stopped
                 </span>
               )}
@@ -1207,10 +1207,10 @@ function AttachmentPreview({ attachment }: AttachmentPreviewProps) {
 
   // Get file icon based on type
   const getFileIcon = (fileType: string) => {
-    if (fileType.startsWith('image/')) return <ImageIcon size={20} className="text-blue-500" />
-    if (fileType === 'application/pdf') return <FileText size={20} className="text-red-500" />
-    if (fileType.includes('word') || fileType.includes('document')) return <FileText size={20} className="text-blue-600" />
-    return <File size={20} className="text-gray-500" />
+    if (fileType.startsWith('image/')) return <ImageIcon size={20} className="text-azure" />
+    if (fileType === 'application/pdf') return <FileText size={20} className="text-leaf" />
+    if (fileType.includes('word') || fileType.includes('document')) return <FileText size={20} className="text-azure" />
+    return <File size={20} className="text-ink-mute" />
   }
 
   // Format file size
@@ -1229,7 +1229,7 @@ function AttachmentPreview({ attachment }: AttachmentPreviewProps) {
       return (
         <>
           <div 
-            className="rounded-lg overflow-hidden border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity max-w-md"
+            className="rounded-lg overflow-hidden border border-line cursor-pointer hover:opacity-90 transition-opacity max-w-md"
             onClick={() => setShowLightbox(true)}
           >
             <img
@@ -1249,9 +1249,9 @@ function AttachmentPreview({ attachment }: AttachmentPreviewProps) {
               <div className="relative max-w-7xl max-h-full">
                 <button
                   onClick={() => setShowLightbox(false)}
-                  className="absolute top-4 right-4 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2"
+                  className="absolute top-4 right-4 text-white hover:text-taupe bg-black bg-opacity-50 rounded-full p-2"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg aria-hidden="true" className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -1274,20 +1274,20 @@ function AttachmentPreview({ attachment }: AttachmentPreviewProps) {
         href={attachment.file_url}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+        className="flex items-center gap-3 p-3 bg-cream rounded-lg hover:bg-sand transition-colors border border-line"
       >
         <div className="flex-shrink-0">
           {getFileIcon(attachment.file_type || '')}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900 truncate">
+          <p className="text-sm font-medium text-ink truncate">
             {attachment.file_name || t('file')}
           </p>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-ink-mute">
             {attachment.file_size ? formatFileSize(attachment.file_size) : t('unknownSize')}
           </p>
         </div>
-        <Download size={16} className="text-gray-400 flex-shrink-0" />
+        <Download size={16} className="text-ash flex-shrink-0" />
       </a>
     )
   }
@@ -1296,7 +1296,7 @@ function AttachmentPreview({ attachment }: AttachmentPreviewProps) {
   switch (attachment.type) {
     case 'image':
       return (
-        <div className="rounded-lg overflow-hidden border border-gray-200">
+        <div className="rounded-lg overflow-hidden border border-line">
           <img
             src={attachment.url}
             alt={attachment.name || t('attachment')}
@@ -1310,7 +1310,7 @@ function AttachmentPreview({ attachment }: AttachmentPreviewProps) {
           href={attachment.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+          className="flex items-center gap-2 p-3 bg-cream rounded-lg hover:bg-sand transition-colors"
         >
           {attachment.thumbnail && (
             <img
@@ -1320,10 +1320,10 @@ function AttachmentPreview({ attachment }: AttachmentPreviewProps) {
             />
           )}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">
+            <p className="text-sm font-medium text-ink truncate">
               {attachment.name || t('link')}
             </p>
-            <p className="text-xs text-gray-500 truncate">{attachment.url}</p>
+            <p className="text-xs text-ink-mute truncate">{attachment.url}</p>
           </div>
         </a>
       )
@@ -1349,7 +1349,7 @@ function EmbeddedImage({ url, primaryColor = '#0d9488' }: EmbeddedImageProps) {
 
   if (imageError) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+      <div className="rounded-lg border border-blush bg-blush-wash p-3 text-sm text-danger">
         <div className="flex items-center gap-2">
           <ImageIcon size={16} />
           <span>{t('imageFailed')}</span>
@@ -1371,16 +1371,16 @@ function EmbeddedImage({ url, primaryColor = '#0d9488' }: EmbeddedImageProps) {
     <>
       <div
         className={cn(
-          "relative rounded-lg overflow-hidden border border-gray-200 cursor-pointer",
-          "hover:border-gray-300 transition-all max-w-lg",
-          isLoading && "min-h-[100px] bg-gray-100"
+          "relative rounded-lg overflow-hidden border border-line cursor-pointer",
+          "hover:border-taupe transition-[color,background-color,border-color,box-shadow,opacity,transform] max-w-lg",
+          isLoading && "min-h-[100px] bg-sand"
         )}
         onClick={() => setShowLightbox(true)}
       >
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div
-              className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"
+              className="w-6 h-6 border-2 border-t-transparent rounded-full motion-safe:animate-spin"
               style={{ borderColor: primaryColor, borderTopColor: 'transparent' }}
             />
           </div>
@@ -1416,9 +1416,9 @@ function EmbeddedImage({ url, primaryColor = '#0d9488' }: EmbeddedImageProps) {
           <div className="relative max-w-7xl max-h-full">
             <button
               onClick={() => setShowLightbox(false)}
-              className="absolute top-4 right-4 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2 z-10"
+              className="absolute top-4 right-4 text-white hover:text-taupe bg-black bg-opacity-50 rounded-full p-2 z-10"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg aria-hidden="true" className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -1426,7 +1426,7 @@ function EmbeddedImage({ url, primaryColor = '#0d9488' }: EmbeddedImageProps) {
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="absolute top-4 left-4 text-white hover:text-gray-300 bg-black bg-opacity-50 rounded-full p-2 z-10"
+              className="absolute top-4 left-4 text-white hover:text-taupe bg-black bg-opacity-50 rounded-full p-2 z-10"
               onClick={(e) => e.stopPropagation()}
               title={t('openNewTab')}
             >

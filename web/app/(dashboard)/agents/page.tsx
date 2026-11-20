@@ -408,11 +408,11 @@ function FilterDropdown({
       <button
         ref={btnRef}
         onClick={toggle}
-        className="flex w-full items-center justify-between rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] text-[#171717] outline-none transition-all focus:border-[#ff5f8f] focus:ring-2 focus:ring-[#ff5f8f]/20 md:text-[14px]"
+        className="flex w-full items-center justify-between rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-3 text-[13px] text-ink outline-none transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-hotpink focus:ring-2 focus:ring-hotpink/20 md:text-[14px]"
         style={{ borderColor: open ? '#ff5f8f' : undefined, boxShadow: open ? '0 0 0 2px rgba(255,95,143,0.2)' : undefined }}
       >
         <span>{t(selected.label)}</span>
-        <ChevronDown className={`h-4 w-4 text-[#5b564e] transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`h-4 w-4 text-ink-soft transition-transform motion-reduce:transition-none ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && anchorRect && createPortal(
         <div
@@ -424,13 +424,13 @@ function FilterDropdown({
             width: anchorRect.width,
             zIndex: 9999,
           }}
-          className="rounded-[0.45rem] border border-black/[0.08] bg-[rgba(255,255,255,0.94)] py-1.5 shadow-[0_18px_40px_rgba(0,0,0,0.12)] backdrop-blur-xl"
+          className="rounded-[0.45rem] border border-black/[0.08] bg-white/95 py-1.5 shadow-soft"
         >
           {FILTER_OPTIONS.map((opt) => (
             <button
               key={opt.value}
               onClick={() => { onChange(opt.value); setOpen(false) }}
-              className={`flex w-full items-center gap-2.5 px-4 py-2 text-[13px] text-left transition-colors hover:bg-black/5 ${value === opt.value ? 'font-semibold text-[#ff5f8f]' : 'text-gray-700'}`}
+              className={`flex w-full items-center gap-2.5 px-4 py-2 text-[13px] text-left transition-colors hover:bg-black/5 ${value === opt.value ? 'font-semibold text-hotpink' : 'text-ink-soft'}`}
             >
               {t(opt.label)}
             </button>
@@ -480,47 +480,47 @@ const DropdownMenu = ({
     <div
       ref={menuRef}
       style={style}
-      className="rounded-[0.45rem] border border-black/[0.08] bg-[rgba(255,255,255,0.84)] py-1.5 shadow-[0_18px_40px_rgba(0,0,0,0.12)] backdrop-blur-xl"
+      className="rounded-[0.45rem] border border-black/[0.08] bg-white/85 py-1.5 shadow-soft"
     >
       <button
         onClick={() => { router.push(`/agents/${agent.slug}/edit`); onClose() }}
-        className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-black/5"
+        className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-ink-soft hover:bg-black/5"
       >
-        <Settings size={15} className="text-gray-400" />
+        <Settings size={15} className="text-ash" />
         {t('menuEdit')}
       </button>
       <button
         onClick={() => { router.push(`/agents/${agent.slug}/landing-page`); onClose() }}
-        className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-black/5"
+        className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-ink-soft hover:bg-black/5"
       >
-        <Globe size={15} className="text-[#ff5f8f]" />
+        <Globe size={15} className="text-hotpink" />
         {t('menuLandingPage')}
       </button>
       <button
         onClick={() => { router.push(`/agents/${agent.slug}/sub-agents`); onClose() }}
-        className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-black/5"
+        className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-ink-soft hover:bg-black/5"
       >
-        <Users size={15} className="text-gray-400" />
+        <Users size={15} className="text-ash" />
         {t('menuSubAgents')}
       </button>
       <button
         onClick={() => { router.push(`/agents/${agent.slug}/clone`); onClose() }}
-        className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-black/5"
+        className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-ink-soft hover:bg-black/5"
       >
-        <Copy size={15} className="text-gray-400" />
+        <Copy size={15} className="text-ash" />
         {t('menuDuplicate')}
       </button>
       <button
         onClick={() => { router.push(`/agents/${agent.slug}/lens`); onClose() }}
-        className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-gray-700 hover:bg-black/5"
+        className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-ink-soft hover:bg-black/5"
       >
-        <Activity size={15} className="text-indigo-400" />
+        <Activity size={15} className="text-steel" />
         {t('menuLens')}
       </button>
       <div className="my-1.5 h-px bg-black/[0.08]" />
       <button
         onClick={() => { onDelete(); onClose() }}
-        className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+        className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-danger hover:bg-blush-wash"
       >
         <Trash2 size={15} />
         {t('delete')}
@@ -556,7 +556,7 @@ const AgentCard = ({
   }
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-[0.5rem] border border-black/10 bg-white/60 shadow-[0_18px_40px_rgba(0,0,0,0.05)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_56px_rgba(0,0,0,0.08)]">
+    <div className="flex flex-col overflow-hidden rounded-[0.5rem] border border-black/10 bg-white/60 shadow-soft transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300 hover:-translate-y-1 hover:shadow-soft">
       <div className="relative flex min-h-[16rem] items-center justify-center overflow-hidden border-b border-black/10 md:min-h-[18.5rem]">
         {hasAvatar ? (
           <>
@@ -565,8 +565,8 @@ const AgentCard = ({
               alt={agent.agent_name}
               className="absolute inset-0 h-full w-full object-cover object-center"
             />
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_24%,rgba(255,255,255,0.22),transparent_42%)]" />
-            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(243,236,223,0.08),rgba(243,236,223,0.04)_45%,rgba(255,255,255,0.1))]" />
+            <div className="pointer-events-none absolute inset-0" />
+            <div className="pointer-events-none absolute inset-0" />
           </>
         ) : (
           <AgentIllustration name={agent.agent_name} />
@@ -576,9 +576,9 @@ const AgentCard = ({
           <button
             ref={btnRef}
             onClick={handleMenuToggle}
-            className="flex h-10 w-10 items-center justify-center rounded-[0.35rem] border border-black/10 bg-white/88 shadow-[0_8px_20px_rgba(0,0,0,0.08)] transition-colors hover:bg-white"
+            className="flex h-10 w-10 items-center justify-center rounded-[0.35rem] border border-black/10 bg-white/88 shadow-soft transition-colors hover:bg-white"
           >
-            <MoreVertical className="h-4 w-4 text-gray-500" />
+            <MoreVertical className="h-4 w-4 text-ink-mute" />
           </button>
           {menuOpen && anchorRect && (
             <DropdownMenu
@@ -593,26 +593,26 @@ const AgentCard = ({
 
       <div className="flex flex-1 flex-col p-6">
         <div className="mb-2 flex items-start justify-between gap-3">
-          <h3 className="line-clamp-2 text-[1.35rem] font-semibold leading-tight tracking-[-0.04em] text-[#171717]">
+          <h3 className="line-clamp-2 text-[1.35rem] font-semibold leading-tight tracking-[-0.04em] text-ink">
             {agent.agent_name}
           </h3>
-          <div className="flex shrink-0 items-center gap-1.5 text-[#7a736a]">
-            {agent.is_public ? <Globe className="h-4 w-4 text-[#2d8b69]" /> : <Lock className="h-4 w-4" />}
-            <span className="text-[11px] font-semibold uppercase tracking-[0.16em]">
+          <div className="flex shrink-0 items-center gap-1.5 text-ink-mute">
+            {agent.is_public ? <Globe className="h-4 w-4 text-leaf" /> : <Lock className="h-4 w-4" />}
+            <span className="text-[11px] font-semibold">
               {agent.is_public ? t('public') : t('private')}
             </span>
           </div>
         </div>
 
-        <p className="mb-3 text-sm uppercase tracking-[0.16em] text-[#7a736a]">
+        <p className="mb-3 text-sm text-ink-mute">
           {agent.category || agent.agent_type || t('defaultCategory')}
         </p>
 
-        <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-[#575149]">
+        <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-ink-soft">
           {agent.description || t('noDescription')}
         </p>
 
-        <p className="text-xs text-[#7a736a]">
+        <p className="text-xs text-ink-mute">
           {t('created', { date: formatDate(agent.created_at, locale, t('recently')) })}
         </p>
 
@@ -620,29 +620,29 @@ const AgentCard = ({
 
         <div className="mb-5 flex items-center gap-6">
           <div>
-            <p className="mb-0.5 text-xs uppercase tracking-[0.16em] text-[#7a736a]">{t('uses')}</p>
-            <p className="text-xl font-semibold text-[#171717]">{formatNumber(agent.execution_count || 0)}</p>
+            <p className="mb-0.5 text-xs text-ink-mute">{t('uses')}</p>
+            <p className="text-xl font-semibold text-ink">{formatNumber(agent.execution_count || 0)}</p>
           </div>
           <div>
-            <p className="mb-0.5 text-xs uppercase tracking-[0.16em] text-[#7a736a]">{t('success')}</p>
-            <p className="text-xl font-semibold text-[#171717]">{(agent.success_rate || 0).toFixed(0)}%</p>
+            <p className="mb-0.5 text-xs text-ink-mute">{t('success')}</p>
+            <p className="text-xl font-semibold text-ink">{(agent.success_rate || 0).toFixed(0)}%</p>
           </div>
           <div>
-            <p className="mb-0.5 text-xs uppercase tracking-[0.16em] text-[#7a736a]">{t('team')}</p>
-            <p className="text-xl font-semibold text-[#171717]">{agent.sub_agents_count || 0}</p>
+            <p className="mb-0.5 text-xs text-ink-mute">{t('team')}</p>
+            <p className="text-xl font-semibold text-ink">{agent.sub_agents_count || 0}</p>
           </div>
         </div>
 
         <div className="mt-auto flex items-center gap-3">
           <button
             onClick={() => router.push(`/agents/${agent.slug}/chat`)}
-            className="flex-1 rounded-[0.35rem] border border-black/15 bg-white/70 px-5 py-2.5 text-center text-sm font-semibold uppercase tracking-[0.14em] text-[#171717] transition-colors hover:bg-white"
+            className="flex-1 rounded-[0.35rem] border border-black/15 bg-white/70 px-5 py-2.5 text-center text-sm font-semibold text-ink transition-colors hover:bg-white"
           >
             {t('startChat')}
           </button>
           <button
             onClick={() => router.push(`/agents/${agent.slug}/view`)}
-            className="px-4 py-2.5 text-sm font-medium text-[#7a736a] transition-colors hover:text-[#171717]"
+            className="px-4 py-2.5 text-sm font-medium text-ink-mute transition-colors hover:text-ink"
           >
             {t('viewDetails')}
           </button>
@@ -650,7 +650,7 @@ const AgentCard = ({
             href={`/a/${agent.public_slug || slugify(agent.agent_name)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex h-10 w-10 items-center justify-center rounded-[0.35rem] border border-black/10 bg-white/70 text-[#7a736a] transition-colors hover:bg-white hover:text-[#171717]"
+            className="flex h-10 w-10 items-center justify-center rounded-[0.35rem] border border-black/10 bg-white/70 text-ink-mute transition-colors hover:bg-white hover:text-ink"
             title={t('viewPublicPage')}
           >
             <Globe className="h-4 w-4" />
@@ -690,7 +690,7 @@ export default function AgentsPage() {
     }
     try {
       const response = await apiClient.getAgents(page, pageSize, search || undefined)
-      if (id !== fetchIdRef.current) return // stale response — discard
+      if (id !== fetchIdRef.current) return // stale response, discard
       const agentsList = response.agents_list || []
       const pagination = response.pagination || {}
       setAgents(agentsList)
@@ -772,20 +772,16 @@ export default function AgentsPage() {
         <div className="dashboard-surface mb-6 p-5 md:p-6 xl:p-7">
           <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
             <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/70 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6e675d]">
-                <Sparkles className="h-3 w-3 text-[#ff5f8f]" />
-                {t('library')}
-              </div>
-              <h1 className="text-[1.8rem] font-semibold tracking-[-0.05em] text-[#171717] md:text-[2.65rem]">
+              <h1 className="text-[1.8rem] font-semibold tracking-[-0.05em] text-ink md:text-[2.65rem]">
                 <span className="editorial-highlight">{t('heading')}</span>
               </h1>
-              <p className="mt-3 max-w-3xl text-[13px] leading-relaxed text-[#5b564e] md:text-[15px]">
+              <p className="mt-3 max-w-3xl text-[13px] leading-relaxed text-ink-soft md:text-[15px]">
                 {t('summary', { total: parentAgentCount, active: activeCount, public: publicCount })}
               </p>
             </div>
             <button
               onClick={() => router.push('/agents/create')}
-              className="inline-flex flex-shrink-0 items-center gap-2 rounded-[0.35rem] bg-[#181818] px-5 py-3 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 md:text-[14px]"
+              className="inline-flex flex-shrink-0 items-center gap-2 rounded-[0.35rem] bg-ink px-5 py-3 text-[13px] font-medium text-paper transition-transform motion-reduce:transition-none hover:-translate-y-0.5 md:text-[14px]"
             >
               <Plus size={18} />
               <span className="hidden sm:inline">{t('newAgent')}</span>
@@ -802,13 +798,13 @@ export default function AgentsPage() {
 
           <div className="mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
             <label className="relative block">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8a8378]" />
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ash" />
               <input
                 type="text"
                 placeholder={t('searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                className="w-full rounded-[0.35rem] border border-black/10 bg-white/[0.72] py-3 pl-11 pr-4 text-[13px] text-[#171717] outline-none transition-all focus:border-[#ff5f8f] focus:ring-2 focus:ring-[#ff5f8f]/20 md:text-[14px]"
+                className="w-full rounded-[0.35rem] border border-black/10 bg-white/[0.72] py-3 pl-11 pr-4 text-[13px] text-ink outline-none transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-hotpink focus:ring-2 focus:ring-hotpink/20 md:text-[14px]"
               />
             </label>
 
@@ -820,8 +816,8 @@ export default function AgentsPage() {
         {loading ? (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="animate-pulse overflow-hidden rounded-[0.5rem] border border-black/10 bg-white/60 shadow-[0_18px_40px_rgba(0,0,0,0.05)]">
-                <div className="flex items-center justify-center border-b border-black/10 bg-[#efe7d8] pt-10 pb-12">
+              <div key={i} className="motion-safe:animate-pulse overflow-hidden rounded-[0.5rem] border border-black/10 bg-white/60 shadow-soft">
+                <div className="flex items-center justify-center border-b border-black/10 bg-sand-deep pt-10 pb-12">
                   <div className="h-24 w-24 rounded-[0.45rem] bg-white shadow-lg" />
                 </div>
                 <div className="p-6">
@@ -857,13 +853,13 @@ export default function AgentsPage() {
           </div>
         ) : filteredAgents.length === 0 ? (
           <div className="dashboard-surface py-20 text-center">
-            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-[0.45rem] bg-[#ffe1ea]">
-              <Bot className="h-10 w-10 text-[#171717]" />
+            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-[0.45rem] bg-blush-wash">
+              <Bot className="h-10 w-10 text-ink" />
             </div>
-            <h3 className="mb-2 text-[1.05rem] font-semibold text-[#171717] md:text-[1.35rem]">
+            <h3 className="mb-2 text-[1.05rem] font-semibold text-ink md:text-[1.35rem]">
               {searchQuery || filterType !== 'all' ? t('noMatching') : t('noAgents')}
             </h3>
-            <p className="mb-6 text-[13px] text-[#6c655c] md:text-[14px]">
+            <p className="mb-6 text-[13px] text-ink-mute md:text-[14px]">
               {searchQuery || filterType !== 'all'
                 ? t('tryAdjusting')
                 : t('createFirst')}
@@ -871,7 +867,7 @@ export default function AgentsPage() {
             {!searchQuery && filterType === 'all' && (
               <button
                 onClick={() => router.push('/agents/create')}
-                className="inline-flex items-center gap-2 rounded-[0.35rem] bg-[#181818] px-6 py-3 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 md:text-[14px]"
+                className="inline-flex items-center gap-2 rounded-[0.35rem] bg-ink px-6 py-3 text-[13px] font-medium text-paper transition-transform motion-reduce:transition-none hover:-translate-y-0.5 md:text-[14px]"
               >
                 <Plus size={20} />
                 {t('createAgent')}
@@ -898,17 +894,17 @@ export default function AgentsPage() {
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="rounded-[0.35rem] px-4 py-2 text-[13px] font-medium text-[#5b564e] transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-[0.35rem] px-4 py-2 text-[13px] font-medium text-ink-soft transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {t('previous')}
                 </button>
-                <span className="text-[13px] text-[#6c655c]">
+                <span className="text-[13px] text-ink-mute">
                   {t('pageOf', { current: currentPage, total: totalPages })}
                 </span>
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="rounded-[0.35rem] px-4 py-2 text-[13px] font-medium text-[#5b564e] transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-[0.35rem] px-4 py-2 text-[13px] font-medium text-ink-soft transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {t('next')}
                 </button>
@@ -922,25 +918,25 @@ export default function AgentsPage() {
       {showDeleteModal && agentToDelete && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="dashboard-surface w-full max-w-sm p-6">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[0.35rem] bg-[#ffe1ea]">
-              <Trash2 className="w-6 h-6 text-red-600" />
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-[0.35rem] bg-sand-deep">
+              <Trash2 className="w-6 h-6 text-leaf" />
             </div>
-            <h3 className="mb-2 text-center text-[1rem] font-semibold text-[#171717] md:text-[1.1rem]">
+            <h3 className="mb-2 text-center text-[1rem] font-semibold text-ink md:text-[1.1rem]">
               {t('deleteTitle')}
             </h3>
-            <p className="mb-6 text-center text-[13px] text-[#6c655c] md:text-[14px]">
-              {t.rich('deleteBody', { name: agentToDelete.name, strong: (chunks) => <strong className="text-[#171717]">{chunks}</strong> })}
+            <p className="mb-6 text-center text-[13px] text-ink-mute md:text-[14px]">
+              {t.rich('deleteBody', { name: agentToDelete.name, strong: (chunks) => <strong className="text-ink">{chunks}</strong> })}
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => { setShowDeleteModal(false); setAgentToDelete(null) }}
-                className="flex-1 rounded-[0.35rem] bg-white/70 px-4 py-2 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white"
+                className="flex-1 rounded-[0.35rem] bg-white/70 px-4 py-2 text-[13px] font-medium text-ink transition-colors hover:bg-white"
               >
                 {t('cancel')}
               </button>
               <button
                 onClick={handleDeleteAgent}
-                className="flex-1 rounded-[0.35rem] bg-[#181818] px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-black"
+                className="flex-1 rounded-[0.35rem] bg-ink px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-black"
               >
                 {t('delete')}
               </button>

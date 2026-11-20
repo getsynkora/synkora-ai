@@ -98,7 +98,7 @@ export default function CountdownPage() {
   if (!mounted) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="w-14 h-14 bg-red-500/20 rounded-2xl animate-pulse" />
+        <div className="w-14 h-14 bg-brand/20 rounded-2xl motion-safe:animate-pulse" />
       </div>
     )
   }
@@ -120,21 +120,18 @@ export default function CountdownPage() {
       </div>
 
       {/* Gradient Orbs */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-red-500/20 to-transparent blur-3xl" />
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-red-500/5 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-rose-500/5 rounded-full blur-3xl" />
 
       {/* Content */}
       <div className="relative z-10 max-w-3xl w-full text-center">
         {/* Logo */}
         <div className="flex flex-col items-center gap-3 mb-12">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-rose-600 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-ink rounded-xl flex items-center justify-center">
               <Zap className="w-7 h-7 text-white" />
             </div>
             <span className="text-3xl font-bold text-white">Synkora</span>
           </div>
-          <span className="text-gray-500 text-sm tracking-wide">No-Code AI Agent Platform</span>
+          <span className="text-ink-mute text-sm tracking-wide">No-Code AI Agent Platform</span>
         </div>
 
         {/* Headline with rotating role */}
@@ -145,7 +142,7 @@ export default function CountdownPage() {
           <div className="h-[50px] md:h-[75px] flex items-center justify-center overflow-hidden">
             <span
               key={currentRole}
-              className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-red-500 to-rose-500 whitespace-nowrap"
+              className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-ink whitespace-nowrap"
             >
               {roles[currentRole]}
             </span>
@@ -155,7 +152,7 @@ export default function CountdownPage() {
           </p>
         </div>
 
-        <p className="text-xl text-gray-400 mb-16 max-w-xl mx-auto leading-relaxed">
+        <p className="text-xl text-ash mb-16 max-w-xl mx-auto leading-relaxed">
           AI teammates that actually get things done. Not another chatbot.
         </p>
 
@@ -165,32 +162,32 @@ export default function CountdownPage() {
             <span className="text-5xl md:text-7xl font-black text-white tabular-nums">
               {formatNumber(timeLeft.hours)}
             </span>
-            <span className="text-xs text-gray-600 uppercase tracking-widest mt-2">hrs</span>
+            <span className="text-xs text-ink-soft mt-2">hrs</span>
           </div>
 
-          <span className="text-4xl md:text-6xl font-light text-red-500/50 -mt-6">:</span>
+          <span className="text-4xl md:text-6xl font-light text-leaf/50 -mt-6">:</span>
 
           <div className="flex flex-col items-center">
             <span className="text-5xl md:text-7xl font-black text-white tabular-nums">
               {formatNumber(timeLeft.minutes)}
             </span>
-            <span className="text-xs text-gray-600 uppercase tracking-widest mt-2">min</span>
+            <span className="text-xs text-ink-soft mt-2">min</span>
           </div>
 
-          <span className="text-4xl md:text-6xl font-light text-red-500/50 -mt-6">:</span>
+          <span className="text-4xl md:text-6xl font-light text-leaf/50 -mt-6">:</span>
 
           <div className="flex flex-col items-center">
             <span className="text-5xl md:text-7xl font-black text-white tabular-nums">
               {formatNumber(timeLeft.seconds)}
             </span>
-            <span className="text-xs text-gray-600 uppercase tracking-widest mt-2">sec</span>
+            <span className="text-xs text-ink-soft mt-2">sec</span>
           </div>
         </div>
 
         {/* Subscribe Form */}
         {isSubscribed ? (
-          <div className="border border-green-500/30 rounded-full px-8 py-4 inline-block">
-            <p className="text-green-400 font-medium">
+          <div className="border border-leaf/30 rounded-full px-8 py-4 inline-block">
+            <p className="text-mint font-medium">
               You're in. We'll be in touch.
             </p>
           </div>
@@ -203,17 +200,17 @@ export default function CountdownPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com"
                 required
-                className="flex-1 px-6 py-4 bg-transparent text-white placeholder-gray-600 focus:outline-none text-lg"
+                className="flex-1 px-6 py-4 bg-transparent text-white placeholder-ink-soft focus:outline-none text-lg"
               />
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-8 py-4 bg-white hover:bg-gray-100 text-black font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                className="px-8 py-4 bg-white hover:bg-sand text-black font-bold rounded-xl transition-[color,background-color,border-color,box-shadow,opacity,transform] disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
               >
-                {isSubmitting ? 'Joining...' : 'Get Early Access'}
+                {isSubmitting ? 'Joining…' : 'Get Early Access'}
               </button>
             </div>
-            <p className="text-gray-600 text-sm mt-4">
+            <p className="text-ink-soft text-sm mt-4">
               Join 500+ founders waiting for launch
             </p>
           </form>
@@ -221,10 +218,10 @@ export default function CountdownPage() {
       </div>
 
       {/* Bottom Pills */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 text-xs text-gray-600">
-        <span className="px-3 py-1.5 border border-gray-800 rounded-full">Open Source</span>
-        <span className="px-3 py-1.5 border border-gray-800 rounded-full">Your LLM Keys</span>
-        <span className="px-3 py-1.5 border border-gray-800 rounded-full">Self-Host</span>
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4 text-xs text-ink-soft">
+        <span className="px-3 py-1.5 border border-ink rounded-full">Open Source</span>
+        <span className="px-3 py-1.5 border border-ink rounded-full">Your LLM Keys</span>
+        <span className="px-3 py-1.5 border border-ink rounded-full">Self-Host</span>
       </div>
     </div>
   )

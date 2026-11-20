@@ -54,7 +54,7 @@ export function ChatInput({
   onStop,
   isStreaming = false,
   disabled = false,
-  placeholder = 'Type your message...',
+  placeholder = 'Type your message…',
   className,
   conversationId,
   chatConfig,
@@ -184,11 +184,11 @@ export function ChatInput({
 
   const getFileIcon = (file: File) => {
     if (file.type.startsWith('image/')) {
-      return <ImageIcon size={14} className="text-blue-500" />
+      return <ImageIcon size={14} className="text-azure" />
     } else if (file.type === 'application/pdf') {
-      return <FileText size={14} className="text-red-500" />
+      return <FileText size={14} className="text-leaf" />
     }
-    return <File size={14} className="text-gray-500" />
+    return <File size={14} className="text-ink-mute" />
   }
 
   const insertFormatting = (format: string) => {
@@ -238,41 +238,41 @@ export function ChatInput({
       {/* Formatting Toolbar */}
       {showToolbar && (
         <div className="px-3 sm:px-4 lg:px-5 pb-2">
-          <div className="flex items-center gap-0.5 p-1 bg-gray-50 rounded-lg w-fit">
+          <div className="flex items-center gap-0.5 p-1 bg-cream rounded-lg w-fit">
             <button
               onClick={() => insertFormatting('bold')}
-              className="p-1.5 hover:bg-white hover:shadow-sm rounded transition-all"
+              className="p-1.5 hover:bg-white hover:shadow-sm rounded transition-[color,background-color,border-color,box-shadow,opacity,transform]"
               title="Bold (Ctrl+B)"
             >
-              <Bold size={14} className="text-gray-600" />
+              <Bold size={14} className="text-ink-soft" />
             </button>
             <button
               onClick={() => insertFormatting('italic')}
-              className="p-1.5 hover:bg-white hover:shadow-sm rounded transition-all"
+              className="p-1.5 hover:bg-white hover:shadow-sm rounded transition-[color,background-color,border-color,box-shadow,opacity,transform]"
               title="Italic (Ctrl+I)"
             >
-              <Italic size={14} className="text-gray-600" />
+              <Italic size={14} className="text-ink-soft" />
             </button>
             <button
               onClick={() => insertFormatting('code')}
-              className="p-1.5 hover:bg-white hover:shadow-sm rounded transition-all"
+              className="p-1.5 hover:bg-white hover:shadow-sm rounded transition-[color,background-color,border-color,box-shadow,opacity,transform]"
               title="Code"
             >
-              <Code size={14} className="text-gray-600" />
+              <Code size={14} className="text-ink-soft" />
             </button>
             <button
               onClick={() => insertFormatting('link')}
-              className="p-1.5 hover:bg-white hover:shadow-sm rounded transition-all"
+              className="p-1.5 hover:bg-white hover:shadow-sm rounded transition-[color,background-color,border-color,box-shadow,opacity,transform]"
               title="Link"
             >
-              <LinkIcon size={14} className="text-gray-600" />
+              <LinkIcon size={14} className="text-ink-soft" />
             </button>
-            <div className="w-px h-4 bg-gray-300 mx-1" />
+            <div className="w-px h-4 bg-taupe mx-1" />
             <button
               onClick={() => setShowToolbar(false)}
-              className="p-1.5 hover:bg-white hover:shadow-sm rounded transition-all"
+              className="p-1.5 hover:bg-white hover:shadow-sm rounded transition-[color,background-color,border-color,box-shadow,opacity,transform]"
             >
-              <X size={14} className="text-gray-500" />
+              <X size={14} className="text-ink-mute" />
             </button>
           </div>
         </div>
@@ -282,12 +282,12 @@ export function ChatInput({
       {uploadError && (
         <div className="px-3 sm:px-4 lg:px-5 pb-2">
           <div>
-            <div className="flex items-center gap-2 px-3 py-2 bg-red-50 rounded-lg text-red-700 text-sm">
+            <div className="flex items-center gap-2 px-3 py-2 bg-blush-wash rounded-lg text-danger text-sm">
               <X size={14} />
               <span className="flex-1">{uploadError}</span>
               <button
                 onClick={() => setUploadError(null)}
-                className="p-1 hover:bg-red-100 rounded"
+                className="p-1 hover:bg-blush-wash rounded"
               >
                 <X size={12} />
               </button>
@@ -299,10 +299,10 @@ export function ChatInput({
       {/* Analysis Upload Error */}
       {analysisUploadState.error && (
         <div className="px-3 sm:px-4 lg:px-5 pb-2">
-          <div className="flex items-center gap-2 px-3 py-2 bg-red-50 rounded-lg text-red-700 text-sm">
+          <div className="flex items-center gap-2 px-3 py-2 bg-blush-wash rounded-lg text-danger text-sm">
             <X size={14} />
             <span className="flex-1">{analysisUploadState.error}</span>
-            <button onClick={resetAnalysis} className="p-1 hover:bg-red-100 rounded">
+            <button onClick={resetAnalysis} className="p-1 hover:bg-blush-wash rounded">
               <X size={12} />
             </button>
           </div>
@@ -313,15 +313,15 @@ export function ChatInput({
       {analysisUploadState.status === 'uploading' && (
         <div className="px-3 sm:px-4 lg:px-5 pb-2">
           <div className="flex items-center gap-2 text-sm">
-            <BarChart2 size={14} className="text-teal-600 shrink-0" />
-            <span className="text-gray-600 flex-1 truncate">Uploading for analysis…</span>
-            <div className="w-20 bg-gray-200 rounded-full h-1">
+            <BarChart2 size={14} className="text-leaf shrink-0" />
+            <span className="text-ink-soft flex-1 truncate">Uploading for analysis…</span>
+            <div className="w-20 bg-line rounded-full h-1">
               <div
-                className="h-1 rounded-full transition-all"
+                className="h-1 rounded-full transition-[color,background-color,border-color,box-shadow,opacity,transform]"
                 style={{ width: `${analysisUploadState.progress}%`, backgroundColor: primaryColor }}
               />
             </div>
-            <span className="text-gray-400 text-xs w-8">{analysisUploadState.progress}%</span>
+            <span className="text-ash text-xs w-8">{analysisUploadState.progress}%</span>
           </div>
         </div>
       )}
@@ -332,17 +332,17 @@ export function ChatInput({
           <div className="space-y-1.5">
             {uploadProgress.map((progress) => (
               <div key={progress.fileId} className="flex items-center gap-2 text-sm">
-                <span className="text-gray-600 truncate flex-1">{progress.fileName}</span>
-                <div className="w-20 bg-gray-200 rounded-full h-1">
+                <span className="text-ink-soft truncate flex-1">{progress.fileName}</span>
+                <div className="w-20 bg-line rounded-full h-1">
                   <div
-                    className="h-1 rounded-full transition-all"
+                    className="h-1 rounded-full transition-[color,background-color,border-color,box-shadow,opacity,transform]"
                     style={{
                       width: `${progress.progress}%`,
                       backgroundColor: progress.status === 'error' ? '#ef4444' : primaryColor
                     }}
                   />
                 </div>
-                <span className="text-gray-400 text-xs w-8">{progress.progress}%</span>
+                <span className="text-ash text-xs w-8">{progress.progress}%</span>
               </div>
             ))}
           </div>
@@ -356,31 +356,31 @@ export function ChatInput({
             {selectedFiles.map((file, index) => (
               <div
                 key={`file-${index}`}
-                className="flex items-center gap-1.5 px-2 py-1 bg-gray-100 rounded-md text-sm"
+                className="flex items-center gap-1.5 px-2 py-1 bg-sand rounded-md text-sm"
               >
                 {getFileIcon(file)}
-                <span className="text-gray-700 truncate max-w-[150px]">{file.name}</span>
+                <span className="text-ink-soft truncate max-w-[150px]">{file.name}</span>
                 <button
                   onClick={() => removeFile(index)}
-                  className="p-0.5 hover:bg-gray-200 rounded transition-colors"
+                  className="p-0.5 hover:bg-line rounded transition-colors"
                   disabled={isUploading}
                 >
-                  <X size={12} className="text-gray-500" />
+                  <X size={12} className="text-ink-mute" />
                 </button>
               </div>
             ))}
             {uploadedAttachments.map((attachment, index) => (
               <div
                 key={`uploaded-${index}`}
-                className="flex items-center gap-1.5 px-2 py-1 bg-green-50 rounded-md text-sm"
+                className="flex items-center gap-1.5 px-2 py-1 bg-leaf-wash rounded-md text-sm"
               >
-                <Paperclip size={12} className="text-green-600" />
-                <span className="text-green-700 truncate max-w-[150px]">{attachment.file_name}</span>
+                <Paperclip size={12} className="text-leaf" />
+                <span className="text-forest truncate max-w-[150px]">{attachment.file_name}</span>
                 <button
                   onClick={() => removeUploadedAttachment(index)}
-                  className="p-0.5 hover:bg-green-100 rounded transition-colors"
+                  className="p-0.5 hover:bg-leaf-wash rounded transition-colors"
                 >
-                  <X size={12} className="text-green-600" />
+                  <X size={12} className="text-leaf" />
                 </button>
               </div>
             ))}
@@ -391,7 +391,7 @@ export function ChatInput({
       {/* Input Area */}
       <div className="px-3 py-2.5 sm:px-4 sm:py-2.5 lg:px-5">
         <div>
-          <div className="flex items-end gap-1 rounded-[1rem] border border-[#d9cfbf] bg-[linear-gradient(180deg,_rgba(248,243,235,0.94),_rgba(244,238,229,0.92))] p-2 shadow-[0_16px_30px_-30px_rgba(31,22,15,0.26)] transition-all focus-within:border-black/15 focus-within:bg-[linear-gradient(180deg,_rgba(255,255,255,0.94),_rgba(248,243,235,0.98))]">
+          <div className="flex items-end gap-1 rounded-[1rem] border border-line bg-paper p-2 shadow-soft transition-[color,background-color,border-color,box-shadow,opacity,transform] focus-within:border-black/15 bg-white">
             {/* Action Buttons - Left */}
             <div className="flex items-center">
               <input
@@ -410,7 +410,7 @@ export function ChatInput({
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="rounded-[0.8rem] p-1.5 text-gray-400 transition-colors hover:bg-white/70 hover:text-gray-600"
+                className="rounded-[0.8rem] p-1.5 text-ash transition-colors hover:bg-white/70 hover:text-ink-soft"
                 title="Attach file"
                 disabled={isDisabled}
               >
@@ -418,7 +418,7 @@ export function ChatInput({
               </button>
               <button
                 onClick={() => analysisFileInputRef.current?.click()}
-                className="rounded-[0.8rem] p-1.5 text-gray-400 transition-colors hover:bg-white/70 hover:text-gray-600"
+                className="rounded-[0.8rem] p-1.5 text-ash transition-colors hover:bg-white/70 hover:text-ink-soft"
                 title="Upload CSV / data file for analysis"
                 disabled={isDisabled || analysisUploadState.status === 'uploading'}
               >
@@ -436,7 +436,7 @@ export function ChatInput({
                 placeholder={effectivePlaceholder}
                 disabled={isDisabled}
                 rows={1}
-                className="min-h-[32px] w-full resize-none border-0 bg-transparent py-1 text-[14px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0"
+                className="min-h-[32px] w-full resize-none border-0 bg-transparent py-1 text-[14px] text-ink placeholder-ash focus:outline-none focus:ring-0"
                 style={{ maxHeight: '124px' }}
               />
             </div>
@@ -445,7 +445,7 @@ export function ChatInput({
             <div className="flex items-center gap-0.5">
               <button
                 onClick={() => setShowVoiceInput(true)}
-                className="rounded-[0.8rem] p-1.5 text-gray-400 transition-colors hover:bg-white/70 hover:text-gray-600"
+                className="rounded-[0.8rem] p-1.5 text-ash transition-colors hover:bg-white/70 hover:text-ink-soft"
                 title="Voice input"
                 disabled={isDisabled}
               >
@@ -454,7 +454,7 @@ export function ChatInput({
               {isStreaming && onStop ? (
                 <button
                   onClick={onStop}
-                  className="rounded-[0.85rem] p-1.5 transition-all text-white"
+                  className="rounded-[0.85rem] p-1.5 transition-[color,background-color,border-color,box-shadow,opacity,transform] text-white"
                   style={{ background: primaryColor }}
                   title="Stop generating"
                 >
@@ -465,9 +465,9 @@ export function ChatInput({
                   onClick={handleSend}
                   disabled={isDisabled || !canSend}
                   className={cn(
-                    'rounded-[0.85rem] p-1.5 transition-all',
+                    'rounded-[0.85rem] p-1.5 transition-[color,background-color,border-color,box-shadow,opacity,transform]',
                     isDisabled || !canSend
-                      ? 'text-gray-300 cursor-not-allowed'
+                      ? 'text-taupe cursor-not-allowed'
                       : 'text-white'
                   )}
                   style={
@@ -478,7 +478,7 @@ export function ChatInput({
                   title="Send message (Enter)"
                 >
                   {isUploading ? (
-                    <Loader2 size={17} className="animate-spin" />
+                    <Loader2 size={17} className="motion-safe:animate-spin" />
                   ) : (
                     <Send size={16} />
                   )}

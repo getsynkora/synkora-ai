@@ -152,17 +152,17 @@ export default function FileUpload({ onUploadComplete, onUpload }: FileUploadPro
   }
 
   const getFileIcon = () => {
-    return <FileText className="w-5 h-5 text-[#2d8b69]" />
+    return <FileText className="w-5 h-5 text-leaf" />
   }
 
   const getStatusIcon = (status: FileWithProgress['status']) => {
     switch (status) {
       case 'uploading':
-        return <Loader2 className="w-5 h-5 text-[#2d8b69] animate-spin" />
+        return <Loader2 className="w-5 h-5 text-leaf motion-safe:animate-spin" />
       case 'success':
-        return <CheckCircle className="w-5 h-5 text-green-600" />
+        return <CheckCircle className="w-5 h-5 text-leaf" />
       case 'error':
-        return <AlertCircle className="w-5 h-5 text-red-600" />
+        return <AlertCircle className="w-5 h-5 text-danger" />
       default:
         return null
     }
@@ -175,23 +175,23 @@ export default function FileUpload({ onUploadComplete, onUpload }: FileUploadPro
         {...getRootProps()}
         className={`cursor-pointer rounded-[1.5rem] border-2 border-dashed p-8 text-center transition-colors ${
           isDragActive
-            ? 'border-[#2d8b69] bg-[#eef7f1]'
-            : 'border-black/10 bg-white hover:border-black/20 hover:bg-[#f7f2e7]'
+            ? 'border-leaf bg-leaf-wash'
+            : 'border-black/10 bg-white hover:border-black/20 hover:bg-paper'
         } ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <input {...getInputProps()} />
-        <Upload className="mx-auto mb-4 h-12 w-12 text-[#8a8378]" />
+        <Upload className="mx-auto mb-4 h-12 w-12 text-ash" />
         {isDragActive ? (
-          <p className="text-lg font-medium text-[#2d8b69]">Drop files here...</p>
+          <p className="text-lg font-medium text-leaf">Drop files here…</p>
         ) : (
           <>
-            <p className="text-lg font-medium text-gray-900 mb-2">
+            <p className="text-lg font-medium text-ink mb-2">
               Drag & drop files here, or click to select
             </p>
-            <p className="text-sm text-gray-500 mb-4">
+            <p className="text-sm text-ink-mute mb-4">
               Supported formats: PDF, DOCX, TXT, MD, HTML, CSV
             </p>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-ash">
               Maximum {MAX_FILES} files, 50MB per file
             </p>
           </>
@@ -202,13 +202,13 @@ export default function FileUpload({ onUploadComplete, onUpload }: FileUploadPro
       {files.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-900">
+            <h3 className="text-sm font-medium text-ink">
               Selected Files ({files.length})
             </h3>
             {!uploading && (
               <button
                 onClick={() => setFiles([])}
-                className="text-sm text-gray-500 transition-colors hover:text-[#171717]"
+                className="text-sm text-ink-mute transition-colors hover:text-ink"
               >
                 Clear all
               </button>
@@ -229,10 +229,10 @@ export default function FileUpload({ onUploadComplete, onUpload }: FileUploadPro
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
+                        <p className="text-sm font-medium text-ink truncate">
                           {fileWithProgress.file.name}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-ink-mute">
                           {formatFileSize(fileWithProgress.file.size)}
                         </p>
                       </div>
@@ -242,7 +242,7 @@ export default function FileUpload({ onUploadComplete, onUpload }: FileUploadPro
                         {!uploading && fileWithProgress.status === 'pending' && (
                           <button
                             onClick={() => removeFile(index)}
-                            className="text-gray-400 transition-colors hover:text-[#171717]"
+                            className="text-ash transition-colors hover:text-ink"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -253,13 +253,13 @@ export default function FileUpload({ onUploadComplete, onUpload }: FileUploadPro
                     {/* Progress Bar */}
                     {fileWithProgress.status === 'uploading' && (
                       <div className="mt-2">
-                        <div className="h-1.5 w-full rounded-full bg-gray-200">
+                        <div className="h-1.5 w-full rounded-full bg-line">
                           <div
-                            className="h-1.5 rounded-full bg-[#2d8b69] transition-all duration-300"
+                            className="h-1.5 rounded-full bg-leaf transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-300"
                             style={{ width: `${fileWithProgress.progress}%` }}
                           />
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-ink-mute mt-1">
                           {fileWithProgress.progress}%
                         </p>
                       </div>
@@ -267,14 +267,14 @@ export default function FileUpload({ onUploadComplete, onUpload }: FileUploadPro
 
                     {/* Error Message */}
                     {fileWithProgress.status === 'error' && fileWithProgress.error && (
-                      <p className="text-xs text-red-600 mt-1">
+                      <p className="text-xs text-danger mt-1">
                         {fileWithProgress.error}
                       </p>
                     )}
 
                     {/* Success Message */}
                     {fileWithProgress.status === 'success' && (
-                      <p className="text-xs text-green-600 mt-1">
+                      <p className="text-xs text-leaf mt-1">
                         Uploaded successfully
                       </p>
                     )}
@@ -288,11 +288,11 @@ export default function FileUpload({ onUploadComplete, onUpload }: FileUploadPro
           <button
             onClick={handleUpload}
             disabled={uploading || files.length === 0 || files.some(f => f.status === 'success')}
-            className="flex w-full items-center justify-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-2 rounded-[1rem] bg-ink px-4 py-3 font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
           >
             {uploading ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-5 h-5 motion-safe:animate-spin" />
                 Uploading...
               </>
             ) : (

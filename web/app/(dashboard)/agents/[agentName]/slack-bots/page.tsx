@@ -115,7 +115,7 @@ export default function SlackBotsPage() {
     try {
       setActionLoading(botId);
       await apiClient.startSlackBot(botId);
-      toast.success("Bot starting...");
+      toast.success("Bot starting…");
       // Wait for worker to update status
       const success = await waitForStatusChange(botId, "connected");
       if (success) {
@@ -134,7 +134,7 @@ export default function SlackBotsPage() {
     try {
       setActionLoading(botId);
       await apiClient.stopSlackBot(botId);
-      toast.success("Bot stopping...");
+      toast.success("Bot stopping…");
       // Wait for worker to update status
       await waitForStatusChange(botId, "disconnected");
       await loadBots();
@@ -150,7 +150,7 @@ export default function SlackBotsPage() {
     try {
       setActionLoading(botId);
       await apiClient.restartSlackBot(botId);
-      toast.success("Bot restarting...");
+      toast.success("Bot restarting…");
       // Wait for worker to update status
       await waitForStatusChange(botId, "connected");
       await loadBots();
@@ -183,13 +183,13 @@ export default function SlackBotsPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "connected":
-        return "text-emerald-600 bg-emerald-50";
+        return "text-leaf bg-leaf-wash";
       case "disconnected":
-        return "text-red-600 bg-red-50";
+        return "text-danger bg-blush-wash";
       case "connecting":
-        return "text-red-600 bg-red-50";
+        return "text-leaf bg-blush-wash";
       default:
-        return "text-gray-600 bg-gray-50";
+        return "text-ink-soft bg-cream";
     }
   };
 
@@ -201,7 +201,7 @@ export default function SlackBotsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-[#171717]"></div>
+        <div className="h-8 w-8 motion-safe:animate-spin rounded-full border-b-2 border-ink"></div>
       </div>
     );
   }
@@ -210,13 +210,13 @@ export default function SlackBotsPage() {
     <AgentPageShell
       agentName={agentName}
       title="Slack Bots"
-      description={<>Connect your agent <span className="font-semibold text-gray-900">{agentName}</span> to Slack workspaces.</>}
+      description={<>Connect your agent <span className="font-semibold text-ink">{agentName}</span> to Slack workspaces.</>}
       icon={Slack}
       badge="Slack Channel"
       actions={
         <button
           onClick={() => router.push(`/agents/${agentName}/slack-bots/create`)}
-          className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
+          className="inline-flex items-center gap-2 rounded-[1rem] bg-ink px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black"
         >
           <Plus size={16} />
           Add Slack Bot
@@ -225,17 +225,17 @@ export default function SlackBotsPage() {
     >
 
         {/* Setup Guide */}
-        <div className="mb-6 rounded-[1.45rem] border border-black/10 bg-[#fcfaf5] p-4">
+        <div className="mb-6 rounded-[1.45rem] border border-black/10 bg-cream p-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3 flex-1">
-              <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[0.95rem] bg-[#f1eadc]">
-                <ExternalLink className="h-4 w-4 text-[#171717]" />
+              <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[0.95rem] bg-sand-deep">
+                <ExternalLink className="h-4 w-4 text-ink" />
               </div>
               <div>
-                <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7c5d45]">
+                <h3 className="text-xs font-semibold text-bark">
                   Quick setup: create a Slack app from manifest
                 </h3>
-                <p className="mt-1 text-xs leading-6 text-gray-600">
+                <p className="mt-1 text-xs leading-6 text-ink-soft">
                   Download the pre-configured manifest for this agent, then go to the Slack API Dashboard
                   → <strong>Create New App</strong> → <strong>From a manifest</strong> and paste it in.
                   All scopes and settings will be configured automatically.
@@ -244,7 +244,7 @@ export default function SlackBotsPage() {
                   href="https://api.slack.com/apps"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-2 inline-flex items-center text-xs font-semibold text-[#171717] hover:text-black"
+                  className="mt-2 inline-flex items-center text-xs font-semibold text-ink hover:text-black"
                 >
                   Go to Slack API Dashboard
                   <ExternalLink className="ml-1 h-3 w-3" />
@@ -254,10 +254,10 @@ export default function SlackBotsPage() {
             <button
               onClick={handleDownloadManifest}
               disabled={!agentId || manifestLoading}
-              className="flex flex-shrink-0 items-center gap-1.5 rounded-[1rem] bg-[#171717] px-3.5 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex flex-shrink-0 items-center gap-1.5 rounded-[1rem] bg-ink px-3.5 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
             >
               {manifestLoading ? (
-                <div className="h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full motion-safe:animate-spin" />
               ) : (
                 <Download className="h-3.5 w-3.5" />
               )}
@@ -268,25 +268,25 @@ export default function SlackBotsPage() {
 
         {/* Error Message */}
         {error && (
-          <div className="mb-6 rounded-[1.2rem] border border-[#ead8e1] bg-[#f8ecef] p-3">
-          <p className="text-xs text-[#8b5a74]">{error}</p>
+          <div className="mb-6 rounded-[1.2rem] border border-blush-wash bg-blush-wash p-3">
+          <p className="text-xs text-plum">{error}</p>
         </div>
       )}
 
         {/* Bots List */}
         {bots.length === 0 ? (
-          <div className="rounded-[1.75rem] border border-dashed border-black/10 bg-white/80 py-12 text-center shadow-[0_18px_40px_rgba(0,0,0,0.04)]">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[1.2rem] bg-[#f1eadc]">
-            <Power className="h-7 w-7 text-[#171717]" />
+          <div className="rounded-[1.75rem] border border-dashed border-black/10 bg-white/80 py-12 text-center shadow-soft">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-[1.2rem] bg-sand-deep">
+            <Power className="h-7 w-7 text-ink" />
           </div>
-          <h3 className="mt-3 text-base font-semibold text-gray-950">No Slack bots</h3>
-          <p className="mt-1 text-sm text-gray-500">
+          <h3 className="mt-3 text-base font-semibold text-ink">No Slack bots</h3>
+          <p className="mt-1 text-sm text-ink-mute">
             Get started by creating a new Slack bot.
           </p>
           <div className="mt-5">
             <button
               onClick={() => router.push(`/agents/${agentName}/slack-bots/create`)}
-              className="inline-flex items-center rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
+              className="inline-flex items-center rounded-[1rem] bg-ink px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Slack Bot
@@ -294,35 +294,35 @@ export default function SlackBotsPage() {
           </div>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-[1.75rem] border border-black/10 bg-white/85 shadow-[0_18px_40px_rgba(0,0,0,0.04)]">
-            <div className="border-b border-black/10 px-5 py-4 bg-[#fcfaf5]">
-              <h2 className="text-base font-semibold text-gray-900">Your Slack Bots</h2>
+          <div className="overflow-hidden rounded-[1.75rem] border border-black/10 bg-white/85 shadow-soft">
+            <div className="border-b border-black/10 px-5 py-4 bg-cream">
+              <h2 className="text-base font-semibold text-ink">Your Slack Bots</h2>
             </div>
             <div className="divide-y divide-black/10">
               {bots.map((bot) => (
-                <div key={bot.id} className="p-5 transition-colors hover:bg-[#fcfaf5]">
+                <div key={bot.id} className="p-5 transition-colors hover:bg-cream">
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2">
-                        <h3 className="text-base font-medium text-gray-900 truncate">
+                        <h3 className="text-base font-medium text-ink truncate">
                           {bot.bot_name}
                         </h3>
                         {/* Event Mode bots are always "connected" when active */}
                         <span
                           className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                             bot.connection_mode === "event"
-                              ? "text-emerald-600 bg-emerald-50"
+                              ? "text-leaf bg-leaf-wash"
                               : getStatusColor(bot.connection_status)
                           }`}
                         >
                           {bot.connection_mode === "event" ? "connected" : bot.connection_status}
                         </span>
                       </div>
-                      <div className="mt-1.5 flex flex-wrap items-center text-xs text-gray-500 gap-x-3 gap-y-1">
+                      <div className="mt-1.5 flex flex-wrap items-center text-xs text-ink-mute gap-x-3 gap-y-1">
                         <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
                           bot.connection_mode === "event"
-                            ? "bg-[#edf4f6] text-[#486c77]"
-                            : "bg-[#f1eadc] text-[#7c5d45]"
+                            ? "bg-leaf-wash text-steel"
+                            : "bg-sand-deep text-bark"
                         }`}>
                           {bot.connection_mode === "event" ? "Event Mode" : "Socket Mode"}
                         </span>
@@ -338,9 +338,9 @@ export default function SlackBotsPage() {
 
                       {/* Webhook URL for Event Mode */}
                       {bot.connection_mode === "event" && bot.webhook_url && (
-                        <div className="mt-3 flex items-center gap-2 rounded-[1rem] border border-[#d7e6ea] bg-[#edf4f6] p-2.5">
-                          <ExternalLink className="h-4 w-4 flex-shrink-0 text-[#486c77]" />
-                          <code className="flex-1 truncate text-xs font-mono text-[#2f4e57]" title={bot.webhook_url}>
+                        <div className="mt-3 flex items-center gap-2 rounded-[1rem] border border-sky-wash bg-leaf-wash p-2.5">
+                          <ExternalLink className="h-4 w-4 flex-shrink-0 text-steel" />
+                          <code className="flex-1 truncate text-xs font-mono text-steel" title={bot.webhook_url}>
                             {bot.webhook_url}
                           </code>
                           <button
@@ -349,9 +349,9 @@ export default function SlackBotsPage() {
                             title="Copy webhook URL"
                           >
                             {copiedId === bot.id ? (
-                              <Check className="h-4 w-4 text-emerald-600" />
+                              <Check className="h-4 w-4 text-leaf" />
                             ) : (
-                              <Copy className="h-4 w-4 text-[#486c77]" />
+                              <Copy className="h-4 w-4 text-steel" />
                             )}
                           </button>
                         </div>
@@ -365,7 +365,7 @@ export default function SlackBotsPage() {
                             <button
                               onClick={() => handleStopBot(bot.id)}
                               disabled={actionLoading === bot.id}
-                              className="rounded-lg p-2 text-[#8b5a74] transition-colors hover:bg-[#f8ecef] disabled:opacity-50"
+                              className="rounded-lg p-2 text-plum transition-colors hover:bg-sand-deep disabled:opacity-50"
                               title="Stop bot"
                             >
                               <PowerOff size={16} />
@@ -374,7 +374,7 @@ export default function SlackBotsPage() {
                             <button
                               onClick={() => handleStartBot(bot.id)}
                               disabled={actionLoading === bot.id}
-                              className="p-2 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors disabled:opacity-50"
+                              className="p-2 text-leaf hover:bg-leaf-wash rounded-lg transition-colors disabled:opacity-50"
                               title="Start bot"
                             >
                               <Power size={16} />
@@ -383,7 +383,7 @@ export default function SlackBotsPage() {
                           <button
                             onClick={() => handleRestartBot(bot.id)}
                             disabled={actionLoading === bot.id}
-                            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                            className="p-2 text-ink-soft hover:bg-sand rounded-lg transition-colors disabled:opacity-50"
                             title="Restart bot"
                           >
                             <RefreshCw size={16} />
@@ -392,7 +392,7 @@ export default function SlackBotsPage() {
                       )}
                       {/* Event Mode bots are always "on" - show active indicator */}
                       {bot.connection_mode === "event" && (
-                        <span className="px-2 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 rounded-lg border border-emerald-200">
+                        <span className="px-2 py-1 text-xs font-medium text-forest bg-leaf-wash rounded-lg border border-mint">
                           Active
                         </span>
                       )}
@@ -400,7 +400,7 @@ export default function SlackBotsPage() {
                         onClick={() =>
                           router.push(`/agents/${agentName}/slack-bots/${bot.id}/edit`)
                         }
-                        className="rounded-lg p-2 text-gray-600 transition-colors hover:bg-[#fcfaf5]"
+                        className="rounded-lg p-2 text-ink-soft transition-colors hover:bg-cream"
                         title="Edit bot"
                       >
                         <Settings size={16} />
@@ -408,7 +408,7 @@ export default function SlackBotsPage() {
                       <button
                         onClick={() => handleDeleteBot(bot.id, bot.bot_name)}
                         disabled={actionLoading === bot.id}
-                        className="rounded-lg p-2 text-[#8b5a74] transition-colors hover:bg-[#f8ecef] disabled:opacity-50"
+                        className="rounded-lg p-2 text-plum transition-colors hover:bg-sand-deep disabled:opacity-50"
                         title="Delete bot"
                       >
                         <Trash2 size={16} />

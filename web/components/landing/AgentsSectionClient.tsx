@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Sparkles, Star, ArrowRight } from 'lucide-react'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'
@@ -43,8 +43,8 @@ const PreBuiltAgentCard = ({ agent }: { agent: PublicAgent }) => {
 
   return (
     <Link href={`/a/${agent.slug || slugify(agent.agent_name)}`}>
-      <div className="flex flex-col overflow-hidden rounded-[2rem] border border-black/10 bg-white/60 shadow-[0_18px_40px_rgba(0,0,0,0.05)] transition-shadow duration-300 hover:shadow-[0_24px_56px_rgba(0,0,0,0.08)]">
-        <div className="relative flex min-h-[16rem] items-center justify-center overflow-hidden border-b border-black/10 bg-[linear-gradient(180deg,#efe7d8_0%,#f3ecdf_100%)] md:min-h-[18.5rem]">
+      <div className="flex flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-soft ">
+        <div className="relative flex min-h-[16rem] items-center justify-center overflow-hidden border-b border-black/10 bg-sand-deep md:min-h-[18.5rem]">
           {agent.avatar ? (
             <>
               <img
@@ -52,49 +52,47 @@ const PreBuiltAgentCard = ({ agent }: { agent: PublicAgent }) => {
                 alt={agent.agent_name}
                 className="absolute inset-0 h-full w-full object-cover object-center"
               />
-              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_24%,rgba(255,255,255,0.22),transparent_42%)]" />
-              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(243,236,223,0.08),rgba(243,236,223,0.04)_45%,rgba(255,255,255,0.1))]" />
             </>
           ) : (
-            <div className="relative z-10 flex h-[7.75rem] w-[7.75rem] items-center justify-center rounded-[0.4rem] border border-white/90 bg-[#fcfbf8] shadow-[0_22px_40px_rgba(109,84,55,0.16)] md:h-[9.25rem] md:w-[9.25rem]">
-              <Sparkles className="h-12 w-12 text-[#2d8b69]" />
+            <div className="relative z-10 flex h-[7.75rem] w-[7.75rem] items-center justify-center rounded-[0.4rem] border border-white/90 bg-paper shadow-soft md:h-[9.25rem] md:w-[9.25rem]">
+              <Sparkles className="h-12 w-12 text-leaf" />
             </div>
           )}
         </div>
         <div className="p-6 flex-1 flex flex-col">
           <div className="flex items-start justify-between gap-3 mb-1">
-            <h3 className="line-clamp-1 text-lg font-semibold tracking-[-0.03em] text-[#171717]">{agent.agent_name}</h3>
+            <h3 className="line-clamp-1 text-lg font-semibold tracking-[-0.03em] text-ink">{agent.agent_name}</h3>
             {getRating() > 0 && (
-              <div className="flex shrink-0 items-center gap-1 text-[#b7832f]">
+              <div className="flex shrink-0 items-center gap-1 text-honey">
                 <Star className="h-4 w-4 fill-current" />
                 <span className="text-sm font-semibold">{getRating().toFixed(1)}</span>
               </div>
             )}
           </div>
-          <p className="mb-3 text-sm uppercase tracking-[0.16em] text-[#7a736a]">{agent.category || 'AI Agent'}</p>
-          <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-[#575149]">
+          <p className="mb-3 text-sm text-ink-mute">{agent.category || 'AI Agent'}</p>
+          <p className="mb-4 line-clamp-2 text-sm leading-relaxed text-ink-soft">
             {agent.description || 'No description provided'}
           </p>
           <div className="my-4 border-t border-black/10" />
           <div className="flex items-center gap-6 mb-5">
             <div>
-              <p className="mb-0.5 text-xs uppercase tracking-[0.16em] text-[#7a736a]">Uses</p>
-              <p className="text-xl font-semibold text-[#171717]">{formatNumber(agent.usage_count || 0)}</p>
+              <p className="mb-0.5 text-xs text-ink-mute">Uses</p>
+              <p className="text-xl font-semibold text-ink">{formatNumber(agent.usage_count || 0)}</p>
             </div>
             <div>
-              <p className="mb-0.5 text-xs uppercase tracking-[0.16em] text-[#7a736a]">Likes</p>
-              <p className="text-xl font-semibold text-[#171717]">{agent.likes_count || 0}</p>
+              <p className="mb-0.5 text-xs text-ink-mute">Likes</p>
+              <p className="text-xl font-semibold text-ink">{agent.likes_count || 0}</p>
             </div>
             <div>
-              <p className="mb-0.5 text-xs uppercase tracking-[0.16em] text-[#7a736a]">Rating</p>
-              <p className="text-xl font-semibold text-[#171717]">{getRating().toFixed(1)}</p>
+              <p className="mb-0.5 text-xs text-ink-mute">Rating</p>
+              <p className="text-xl font-semibold text-ink">{getRating().toFixed(1)}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 mt-auto">
-            <span className="flex-1 rounded-full border border-black/15 px-5 py-2.5 text-center text-sm font-semibold uppercase tracking-[0.14em] text-[#171717] transition-colors hover:bg-white/80">
+            <span className="flex-1 rounded-full border border-black/15 px-5 py-2.5 text-center text-sm font-semibold text-ink transition-colors hover:bg-white/80">
               Try Agent
             </span>
-            <span className="px-4 py-2.5 text-sm font-medium text-[#7a736a] transition-colors hover:text-[#171717]">
+            <span className="px-4 py-2.5 text-sm font-medium text-ink-mute transition-colors hover:text-ink">
               View Details
             </span>
           </div>
@@ -105,8 +103,8 @@ const PreBuiltAgentCard = ({ agent }: { agent: PublicAgent }) => {
 }
 
 const AgentCardSkeleton = () => (
-  <div className="animate-pulse overflow-hidden rounded-[2rem] border border-black/10 bg-white/60 shadow-[0_18px_40px_rgba(0,0,0,0.05)]">
-    <div className="flex min-h-[16rem] items-center justify-center border-b border-black/10 bg-[#efe7d8] md:min-h-[18.5rem]">
+  <div className="motion-safe:animate-pulse overflow-hidden rounded-2xl border border-black/10 bg-white shadow-soft">
+    <div className="flex min-h-[16rem] items-center justify-center border-b border-black/10 bg-sand-deep md:min-h-[18.5rem]">
       <div className="h-[7.75rem] w-[7.75rem] rounded-[0.4rem] bg-white shadow-lg md:h-[9.25rem] md:w-[9.25rem]" />
     </div>
     <div className="p-6">
@@ -145,9 +143,8 @@ const staticAgents = [
 ]
 
 export default function AgentsSectionClient() {
-  const sectionRef = useRef<HTMLElement>(null)
   const [publicAgents, setPublicAgents] = useState<PublicAgent[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchPublicAgents = async () => {
@@ -169,54 +166,17 @@ export default function AgentsSectionClient() {
     fetchPublicAgents()
   }, [])
 
-  useEffect(() => {
-    if (!sectionRef.current || loading) return
-    const agentCards = Array.from(sectionRef.current.querySelectorAll('.agent-card-animated'))
-    if (agentCards.length === 0) return
-
-    const sectionEl = sectionRef.current
-    let trigger: { kill: () => void } | undefined
-    let cancelled = false
-
-    Promise.all([import('gsap'), import('gsap/ScrollTrigger')]).then(
-      ([{ default: gsap }, { ScrollTrigger }]) => {
-        if (cancelled) return
-        gsap.registerPlugin(ScrollTrigger)
-        trigger = ScrollTrigger.create({
-          trigger: sectionEl,
-          start: 'top 75%',
-          onEnter: () => {
-            gsap.fromTo(agentCards,
-              { opacity: 0, y: 60, scale: 0.95 },
-              { opacity: 1, y: 0, scale: 1, duration: 0.8, stagger: 0.15, ease: 'power3.out' }
-            )
-          },
-          once: true,
-        })
-      }
-    )
-
-    return () => {
-      cancelled = true
-      trigger?.kill()
-    }
-  }, [publicAgents, loading])
-
   return (
-    <section ref={sectionRef} className="bg-[#f4eee1] px-4 py-16 sm:px-6 sm:py-24">
+    <section className="landing bg-sand px-4 py-16 sm:px-6 sm:py-24">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/60 px-4 py-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#4b463e]">
-            <Sparkles className="h-4 w-4" />
-            Pre-built Agents
-          </div>
-          <h2 className="mb-5 text-3xl font-medium tracking-[-0.05em] text-[#171717] sm:text-5xl">
+          <h2 className="mb-5 text-3xl font-medium tracking-[-0.05em] text-ink sm:text-5xl">
             Powerful AI Agents
-            <span className="block text-[#2d8b69]">
+            <span className="block text-leaf">
               Ready to Deploy
             </span>
           </h2>
-          <p className="mx-auto max-w-2xl text-xl leading-relaxed text-[#575149]">
+          <p className="mx-auto max-w-2xl text-xl leading-relaxed text-ink-soft">
             Start from a template or build from scratch. Every agent is fully customizable.
           </p>
         </div>
@@ -228,7 +188,7 @@ export default function AgentsSectionClient() {
         ) : publicAgents.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {publicAgents.map((agent) => (
-              <div key={agent.id} className="agent-card-animated">
+              <div key={agent.id}>
                 <PreBuiltAgentCard agent={agent} />
               </div>
             ))}
@@ -236,24 +196,24 @@ export default function AgentsSectionClient() {
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {staticAgents.map((agent, i) => (
-              <div key={i} className="flex flex-col overflow-hidden rounded-[2rem] border border-black/10 bg-white/60 shadow-[0_18px_40px_rgba(0,0,0,0.05)] transition-shadow hover:shadow-[0_24px_56px_rgba(0,0,0,0.08)]">
-                <div className="flex min-h-[16rem] items-center justify-center border-b border-black/10 bg-[#efe7d8] md:min-h-[18.5rem]">
-                  <div className="flex h-[7.75rem] w-[7.75rem] items-center justify-center rounded-[0.4rem] border border-white/90 bg-white shadow-[0_22px_40px_rgba(109,84,55,0.16)] md:h-[9.25rem] md:w-[9.25rem]">
-                    <Sparkles className="h-12 w-12 text-[#2d8b69]" />
+              <div key={i} className="flex flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-soft transition-shadow hover:shadow-soft">
+                <div className="flex min-h-[16rem] items-center justify-center border-b border-black/10 bg-sand-deep md:min-h-[18.5rem]">
+                  <div className="flex h-[7.75rem] w-[7.75rem] items-center justify-center rounded-[0.4rem] border border-white/90 bg-white shadow-soft md:h-[9.25rem] md:w-[9.25rem]">
+                    <Sparkles className="h-12 w-12 text-leaf" />
                   </div>
                 </div>
                 <div className="p-6 flex-1 flex flex-col">
-                  <h3 className="mb-1 text-lg font-semibold tracking-[-0.03em] text-[#171717]">{agent.name}</h3>
-                  <p className="mb-3 text-sm uppercase tracking-[0.16em] text-[#7a736a]">{agent.category}</p>
-                  <p className="mb-4 text-sm leading-relaxed text-[#575149]">{agent.description}</p>
+                  <h3 className="mb-1 text-lg font-semibold tracking-[-0.03em] text-ink">{agent.name}</h3>
+                  <p className="mb-3 text-sm text-ink-mute">{agent.category}</p>
+                  <p className="mb-4 text-sm leading-relaxed text-ink-soft">{agent.description}</p>
                   <div className="mt-auto flex items-center gap-6 border-t border-black/10 pt-4">
                     <div>
-                      <p className="mb-0.5 text-xs uppercase tracking-[0.16em] text-[#7a736a]">Uses</p>
-                      <p className="text-xl font-semibold text-[#171717]">{formatNumber(agent.usage_count)}</p>
+                      <p className="mb-0.5 text-xs text-ink-mute">Uses</p>
+                      <p className="text-xl font-semibold text-ink">{formatNumber(agent.usage_count)}</p>
                     </div>
                     <div>
-                      <p className="mb-0.5 text-xs uppercase tracking-[0.16em] text-[#7a736a]">Likes</p>
-                      <p className="text-xl font-semibold text-[#171717]">{agent.likes_count}</p>
+                      <p className="mb-0.5 text-xs text-ink-mute">Likes</p>
+                      <p className="text-xl font-semibold text-ink">{agent.likes_count}</p>
                     </div>
                   </div>
                 </div>
@@ -265,10 +225,10 @@ export default function AgentsSectionClient() {
         <div className="text-center mt-16">
           <Link
             href="https://app.synkora.ai/signup"
-            className="group inline-flex items-center gap-3 rounded-full bg-[#191919] px-10 py-5 text-lg font-semibold text-[#f7f2e7] transition-transform hover:-translate-y-0.5"
+            className="group inline-flex items-center gap-3 rounded-full bg-ink px-10 py-5 text-lg font-semibold text-paper transition-colors hover:bg-black"
           >
             <span>Start Building Free</span>
-            <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+            <ArrowRight className="h-5 w-5 transition-transform motion-reduce:transition-none group-hover:translate-x-1" />
           </Link>
         </div>
       </div>

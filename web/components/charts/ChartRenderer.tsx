@@ -26,7 +26,7 @@ const PlotlyRenderer = dynamic(
 
 function ChartPlaceholder() {
   return (
-    <div className="flex items-center justify-center h-full text-gray-300 text-sm animate-pulse">
+    <div className="flex items-center justify-center h-full text-taupe text-sm motion-safe:animate-pulse">
       Loading chart…
     </div>
   )
@@ -113,14 +113,14 @@ export function ChartRenderer({ chart, className = '' }: ChartRendererProps) {
       </div>
 
       {showData && tableData && tableData.length > 0 && (
-        <div className="mt-3 border-t border-gray-100 pt-3 overflow-auto max-h-52">
+        <div className="mt-3 border-t border-sand pt-3 overflow-auto max-h-52">
           <table className="w-full text-xs border-collapse">
             <thead>
               <tr>
                 {tableColumns.map((col) => (
                   <th
                     key={col}
-                    className="text-left px-2 py-1 bg-gray-50 border border-gray-200 font-medium text-gray-600 whitespace-nowrap"
+                    className="text-left px-2 py-1 bg-cream border border-line font-medium text-ink-soft whitespace-nowrap"
                   >
                     {col}
                   </th>
@@ -129,11 +129,11 @@ export function ChartRenderer({ chart, className = '' }: ChartRendererProps) {
             </thead>
             <tbody>
               {tableData.slice(0, 20).map((row, i) => (
-                <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
+                <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-cream/50'}>
                   {tableColumns.map((col) => (
                     <td
                       key={col}
-                      className="px-2 py-1 border border-gray-100 text-gray-700 whitespace-nowrap"
+                      className="px-2 py-1 border border-sand text-ink-soft whitespace-nowrap"
                     >
                       {String(row[col] ?? '')}
                     </td>
@@ -143,7 +143,7 @@ export function ChartRenderer({ chart, className = '' }: ChartRendererProps) {
             </tbody>
           </table>
           {tableData.length > 20 && (
-            <p className="text-xs text-gray-400 mt-1 px-1">
+            <p className="text-xs text-ash mt-1 px-1">
               Showing first 20 of {tableData.length} rows
             </p>
           )}
@@ -159,31 +159,31 @@ export function ChartRenderer({ chart, className = '' }: ChartRendererProps) {
           onClick={() => setShowData((v) => !v)}
           className={`p-1.5 rounded transition-colors ${
             showData
-              ? 'bg-indigo-100 text-indigo-600'
-              : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+              ? 'bg-sky-wash text-azure'
+              : 'text-ash hover:text-ink-soft hover:bg-sand'
           }`}
           title={showData ? 'Hide data' : 'Show data table'}
         >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M3 10h18M3 14h18M10 3v18M14 3v18" />
           </svg>
         </button>
       )}
       <button
         onClick={downloadPng}
-        className="p-1.5 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+        className="p-1.5 rounded text-ash hover:text-ink-soft hover:bg-sand transition-colors"
         title="Download PNG"
       >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
         </svg>
       </button>
       <button
         onClick={() => setIsFullscreen(true)}
-        className="p-1.5 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+        className="p-1.5 rounded text-ash hover:text-ink-soft hover:bg-sand transition-colors"
         title="Fullscreen"
       >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3" />
         </svg>
       </button>
@@ -192,12 +192,12 @@ export function ChartRenderer({ chart, className = '' }: ChartRendererProps) {
 
   return (
     <>
-      <div className={`bg-white rounded-lg border border-gray-200 overflow-hidden ${className}`}>
-        <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 bg-gray-50/50">
+      <div className={`bg-white rounded-lg border border-line overflow-hidden ${className}`}>
+        <div className="flex items-center justify-between px-3 py-2 border-b border-sand bg-cream/50">
           <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-semibold text-gray-800 truncate">{chart.title}</h3>
+            <h3 className="text-sm font-semibold text-ink truncate">{chart.title}</h3>
             {chart.description && (
-              <p className="text-xs text-gray-500 mt-0.5 truncate">{chart.description}</p>
+              <p className="text-xs text-ink-mute mt-0.5 truncate">{chart.description}</p>
             )}
           </div>
           {toolbar}
@@ -207,11 +207,11 @@ export function ChartRenderer({ chart, className = '' }: ChartRendererProps) {
 
       {isFullscreen && (
         <div className="fixed inset-0 z-50 bg-white flex flex-col">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-line">
             <div className="min-w-0 flex-1">
-              <h3 className="font-semibold text-gray-800">{chart.title}</h3>
+              <h3 className="font-semibold text-ink">{chart.title}</h3>
               {chart.description && (
-                <p className="text-sm text-gray-500 mt-0.5">{chart.description}</p>
+                <p className="text-sm text-ink-mute mt-0.5">{chart.description}</p>
               )}
             </div>
             <div className="flex items-center gap-2 ml-4">
@@ -220,11 +220,11 @@ export function ChartRenderer({ chart, className = '' }: ChartRendererProps) {
                   onClick={() => setShowData((v) => !v)}
                   className={`px-3 py-1.5 rounded text-xs flex items-center gap-1.5 transition-colors ${
                     showData
-                      ? 'bg-indigo-100 text-indigo-600'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? 'bg-sky-wash text-azure'
+                      : 'bg-sand text-ink-soft hover:bg-line'
                   }`}
                 >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M3 10h18M3 14h18M10 3v18M14 3v18" />
                   </svg>
                   {showData ? 'Hide data' : 'Show data'}
@@ -232,19 +232,19 @@ export function ChartRenderer({ chart, className = '' }: ChartRendererProps) {
               )}
               <button
                 onClick={downloadPng}
-                className="px-3 py-1.5 bg-gray-100 text-gray-600 hover:bg-gray-200 rounded text-xs flex items-center gap-1.5 transition-colors"
+                className="px-3 py-1.5 bg-sand text-ink-soft hover:bg-line rounded text-xs flex items-center gap-1.5 transition-colors"
               >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
                 </svg>
                 Download PNG
               </button>
               <button
                 onClick={() => setIsFullscreen(false)}
-                className="p-1.5 rounded text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                className="p-1.5 rounded text-ink-mute hover:text-ink-soft hover:bg-sand transition-colors"
                 title="Exit fullscreen"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M8 3v3a2 2 0 01-2 2H3m18 0h-3a2 2 0 01-2-2V3m0 18v-3a2 2 0 012-2h3M3 16h3a2 2 0 012 2v3" />
                 </svg>
               </button>

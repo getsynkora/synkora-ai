@@ -50,7 +50,7 @@ export default function RateMyLifePage() {
       ]}
     >
       {error ? (
-        <DashboardPagePanel className="mb-6 border-[#eed6dd] bg-[linear-gradient(180deg,_rgba(252,245,247,0.98),_rgba(249,236,240,0.96))] p-4 text-sm text-[#8a445c]">
+        <DashboardPagePanel className="mb-6 border-blush-wash bg-white p-4 text-sm text-wine">
           {error}
         </DashboardPagePanel>
       ) : null}
@@ -61,12 +61,12 @@ export default function RateMyLifePage() {
 
       {history.length > 0 ? (
         <div>
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-[#9a7a5e]">Past Audits</h2>
+          <h2 className="mb-4 text-sm font-semibold text-clay">Past Audits</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {history.map((audit) => (
               <DashboardPagePanel
                 key={audit.id}
-                className="cursor-pointer p-4 transition-all hover:-translate-y-0.5 hover:border-[#d4baa1]"
+                className="cursor-pointer p-4 transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:-translate-y-0.5 hover:border-tan"
               >
                 <button
                   onClick={() => router.push(`/rate-my-life/${audit.id}`)}
@@ -79,17 +79,17 @@ export default function RateMyLifePage() {
                     >
                       {audit.scores.overall}
                     </span>
-                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${
+                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
                       audit.status === 'completed'
-                        ? 'bg-[#ebf5ee] text-[#24543b]'
+                        ? 'bg-leaf-wash text-forest'
                         : audit.status === 'active'
-                          ? 'bg-[#eef4fb] text-[#345c8a]'
-                          : 'bg-[#f3ede5] text-[#6b5a4a]'
+                          ? 'bg-sky-wash text-azure'
+                          : 'bg-paper text-ink-soft'
                     }`}>
                       {audit.status}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-ash">
                     {new Date(audit.created_at).toLocaleDateString('en-US', {
                       month: 'short',
                       day: 'numeric',

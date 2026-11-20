@@ -41,12 +41,12 @@ const providerIcons: Record<string, any> = {
 }
 
 const providerColors: Record<string, string> = {
-  github: 'bg-gray-100 text-gray-700',
-  clickup: 'bg-purple-100 text-purple-700',
-  jira: 'bg-blue-100 text-blue-700',
-  slack: 'bg-pink-100 text-pink-700',
-  sentry: 'bg-orange-100 text-orange-700',
-  custom: 'bg-amber-100 text-amber-700'
+  github: 'bg-sand text-ink-soft',
+  clickup: 'bg-sand-deep text-ink-soft',
+  jira: 'bg-sky-wash text-azure',
+  slack: 'bg-sand-deep text-ink-soft',
+  sentry: 'bg-sand-deep text-gold',
+  custom: 'bg-sand-deep text-gold'
 }
 
 const providerEventTypes: Record<string, string[]> = {
@@ -75,13 +75,13 @@ function DeleteModal({
       <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
       <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
         <div className="flex items-start gap-4 mb-5">
-          <div className="p-2.5 bg-red-100 rounded-lg flex-shrink-0">
-            <Trash2 className="w-5 h-5 text-red-600" />
+          <div className="p-2.5 bg-sand-deep rounded-lg flex-shrink-0">
+            <Trash2 className="w-5 h-5 text-leaf" />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-gray-900">Delete Webhook</h3>
-            <p className="text-sm text-gray-600 mt-1">
-              Are you sure you want to delete <span className="font-medium text-gray-900">"{webhook.name}"</span>?
+            <h3 className="text-base font-semibold text-ink">Delete Webhook</h3>
+            <p className="text-sm text-ink-soft mt-1">
+              Are you sure you want to delete <span className="font-medium text-ink">"{webhook.name}"</span>?
               This will permanently remove the webhook and all its event history. This action cannot be undone.
             </p>
           </div>
@@ -90,17 +90,17 @@ function DeleteModal({
           <button
             onClick={onCancel}
             disabled={deleting}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+            className="px-4 py-2 text-sm font-medium text-ink-soft bg-sand rounded-lg hover:bg-line transition-colors disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
             disabled={deleting}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-danger hover:bg-danger rounded-lg transition-colors disabled:opacity-50"
           >
-            {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-            {deleting ? 'Deleting...' : 'Delete'}
+            {deleting ? <Loader2 className="w-4 h-4 motion-safe:animate-spin" /> : <Trash2 className="w-4 h-4" />}
+            {deleting ? 'Deleting…' : 'Delete'}
           </button>
         </div>
       </div>
@@ -176,9 +176,9 @@ function EditModal({
       <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
       <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h3 className="text-base font-semibold text-gray-900">Edit Webhook</h3>
-          <button onClick={onCancel} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-line">
+          <h3 className="text-base font-semibold text-ink">Edit Webhook</h3>
+          <button onClick={onCancel} className="p-1.5 text-ash hover:text-ink-soft hover:bg-sand rounded-lg transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -186,21 +186,21 @@ function EditModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {/* Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Webhook Name <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium text-ink-soft mb-1.5">
+              Webhook Name <span className="text-leaf">*</span>
             </label>
             <input
               type="text"
               value={formData.name}
               onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              className="w-full px-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
               required
             />
           </div>
 
           {/* Active toggle */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+            <label className="block text-sm font-medium text-ink-soft mb-2">Status</label>
             <label className="flex items-center gap-3 cursor-pointer">
               <div className="relative">
                 <input
@@ -209,36 +209,36 @@ function EditModal({
                   checked={formData.is_active}
                   onChange={e => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
                 />
-                <div className={`w-10 h-6 rounded-full transition-colors ${formData.is_active ? 'bg-green-500' : 'bg-gray-300'}`} />
-                <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${formData.is_active ? 'translate-x-4' : 'translate-x-0'}`} />
+                <div className={`w-10 h-6 rounded-full transition-colors ${formData.is_active ? 'bg-leaf' : 'bg-taupe'}`} />
+                <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform motion-reduce:transition-none ${formData.is_active ? 'translate-x-4' : 'translate-x-0'}`} />
               </div>
-              <span className="text-sm font-medium text-gray-900">{formData.is_active ? 'Active' : 'Inactive'}</span>
+              <span className="text-sm font-medium text-ink">{formData.is_active ? 'Active' : 'Inactive'}</span>
             </label>
           </div>
 
           {/* Event Types */}
           {availableEvents.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Event Types <span className="text-red-500">*</span>
+              <label className="block text-sm font-medium text-ink-soft mb-2">
+                Event Types <span className="text-leaf">*</span>
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {availableEvents.map(event => (
                   <label
                     key={event}
-                    className={`flex items-center gap-2 p-2.5 border-2 rounded-lg cursor-pointer transition-all text-sm ${
+                    className={`flex items-center gap-2 p-2.5 border-2 rounded-lg cursor-pointer transition-[color,background-color,border-color,box-shadow,opacity,transform] text-sm ${
                       formData.event_types.includes(event)
-                        ? 'border-red-500 bg-red-50'
-                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                        ? 'border-ink bg-blush-wash'
+                        : 'border-line hover:border-taupe bg-white'
                     }`}
                   >
                     <input
                       type="checkbox"
                       checked={formData.event_types.includes(event)}
                       onChange={() => toggleEvent(event)}
-                      className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                      className="w-4 h-4 text-leaf border-taupe rounded focus:ring-ink"
                     />
-                    <span className="font-medium text-gray-900">{event}</span>
+                    <span className="font-medium text-ink">{event}</span>
                   </label>
                 ))}
               </div>
@@ -247,7 +247,7 @@ function EditModal({
 
           {/* Signature Verification */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Signature Verification</label>
+            <label className="block text-sm font-medium text-ink-soft mb-2">Signature Verification</label>
             <label className="flex items-center gap-3 cursor-pointer">
               <div className="relative">
                 <input
@@ -256,12 +256,12 @@ function EditModal({
                   checked={formData.verify_signature}
                   onChange={e => setFormData(prev => ({ ...prev, verify_signature: e.target.checked }))}
                 />
-                <div className={`w-10 h-6 rounded-full transition-colors ${formData.verify_signature ? 'bg-red-500' : 'bg-gray-300'}`} />
-                <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${formData.verify_signature ? 'translate-x-4' : 'translate-x-0'}`} />
+                <div className={`w-10 h-6 rounded-full transition-colors ${formData.verify_signature ? 'bg-ink' : 'bg-taupe'}`} />
+                <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform motion-reduce:transition-none ${formData.verify_signature ? 'translate-x-4' : 'translate-x-0'}`} />
               </div>
               <div>
-                <span className="text-sm font-medium text-gray-900">{formData.verify_signature ? 'Enabled' : 'Disabled'}</span>
-                <p className="text-xs text-gray-500">
+                <span className="text-sm font-medium text-ink">{formData.verify_signature ? 'Enabled' : 'Disabled'}</span>
+                <p className="text-xs text-ink-mute">
                   {formData.verify_signature
                     ? 'Requests without a valid signature will be rejected'
                     : 'All incoming requests will be accepted without signature check'}
@@ -272,7 +272,7 @@ function EditModal({
 
           {/* Smart filtering (Jev) */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Smart filtering (Jev)</label>
+            <label className="block text-sm font-medium text-ink-soft mb-2">Smart filtering (Jev)</label>
             <label className="flex items-center gap-3 cursor-pointer">
               <div className="relative">
                 <input
@@ -281,12 +281,12 @@ function EditModal({
                   checked={formData.jev_enabled}
                   onChange={e => setFormData(prev => ({ ...prev, jev_enabled: e.target.checked }))}
                 />
-                <div className={`w-10 h-6 rounded-full transition-colors ${formData.jev_enabled ? 'bg-red-500' : 'bg-gray-300'}`} />
-                <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${formData.jev_enabled ? 'translate-x-4' : 'translate-x-0'}`} />
+                <div className={`w-10 h-6 rounded-full transition-colors ${formData.jev_enabled ? 'bg-ink' : 'bg-taupe'}`} />
+                <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform motion-reduce:transition-none ${formData.jev_enabled ? 'translate-x-4' : 'translate-x-0'}`} />
               </div>
               <div>
-                <span className="text-sm font-medium text-gray-900">{formData.jev_enabled ? 'Enabled' : 'Disabled'}</span>
-                <p className="text-xs text-gray-500">
+                <span className="text-sm font-medium text-ink">{formData.jev_enabled ? 'Enabled' : 'Disabled'}</span>
+                <p className="text-xs text-ink-mute">
                   Check each event before running the agent, so routine noise (bot chatter, status changes, &quot;LGTM&quot;)
                   doesn&apos;t use an agent run.
                 </p>
@@ -294,7 +294,7 @@ function EditModal({
             </label>
 
             {formData.jev_enabled && (
-              <div className="mt-3 p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-4">
+              <div className="mt-3 p-4 bg-cream border border-line rounded-lg space-y-4">
                 <div className="space-y-2">
                   {([
                     ['shadow', 'Test only', 'Score every event and record it, but always run the agent. Start here.'],
@@ -306,20 +306,20 @@ function EditModal({
                         name="jev_mode"
                         checked={formData.jev_mode === value}
                         onChange={() => setFormData(prev => ({ ...prev, jev_mode: value }))}
-                        className="mt-0.5 accent-red-500"
+                        className="mt-0.5 accent-brand"
                       />
                       <span>
-                        <span className="text-sm font-medium text-gray-900">{label}</span>
-                        <span className="block text-xs text-gray-500">{hint}</span>
+                        <span className="text-sm font-medium text-ink">{label}</span>
+                        <span className="block text-xs text-ink-mute">{hint}</span>
                       </span>
                     </label>
                   ))}
                 </div>
 
                 <div>
-                  <label className="flex items-center justify-between text-sm text-gray-700 mb-1.5">
+                  <label className="flex items-center justify-between text-sm text-ink-soft mb-1.5">
                     <span>Skip only when needs-action is below</span>
-                    <span className="font-mono text-xs bg-white border border-gray-200 px-2 py-0.5 rounded">
+                    <span className="font-mono text-xs bg-white border border-line px-2 py-0.5 rounded">
                       {Math.round(formData.jev_min_actionable * 100)}%
                     </span>
                   </label>
@@ -330,23 +330,23 @@ function EditModal({
                     step={0.05}
                     value={formData.jev_min_actionable}
                     onChange={e => setFormData(prev => ({ ...prev, jev_min_actionable: parseFloat(e.target.value) }))}
-                    className="w-full accent-red-500"
+                    className="w-full accent-brand"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Lower is safer: fewer events are skipped, more reach the agent.</p>
+                  <p className="text-xs text-ink-mute mt-1">Lower is safer: fewer events are skipped, more reach the agent.</p>
                 </div>
 
                 <div>
-                  <label className="block text-sm text-gray-700 mb-1.5">What should the agent act on? (optional)</label>
+                  <label className="block text-sm text-ink-soft mb-1.5">What should the agent act on? (optional)</label>
                   <textarea
                     value={formData.jev_instructions}
                     onChange={e => setFormData(prev => ({ ...prev, jev_instructions: e.target.value.slice(0, 1000) }))}
                     rows={3}
                     placeholder="Act on new pull requests and failing builds. Ignore bot comments and label changes."
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className="w-full px-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
                   />
                 </div>
 
-                <p className="text-xs text-slate-600">
+                <p className="text-xs text-ink-soft">
                   Event text is sent to TypeSafe for scoring and needs a TypeSafe API key under Settings → Integrations.
                   If TypeSafe is unavailable or unsure, the event runs normally.
                 </p>
@@ -355,22 +355,22 @@ function EditModal({
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end gap-3 pt-2 border-t border-gray-200">
+          <div className="flex justify-end gap-3 pt-2 border-t border-line">
             <button
               type="button"
               onClick={onCancel}
               disabled={saving}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-ink-soft bg-sand rounded-lg hover:bg-line transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-lg transition-all disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-ink hover:bg-ink/85 rounded-lg transition-[color,background-color,border-color,box-shadow,opacity,transform] disabled:opacity-50"
             >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              {saving ? 'Saving...' : 'Save Changes'}
+              {saving ? <Loader2 className="w-4 h-4 motion-safe:animate-spin" /> : <Save className="w-4 h-4" />}
+              {saving ? 'Saving…' : 'Save Changes'}
             </button>
           </div>
         </form>
@@ -426,8 +426,8 @@ export function WebhookList({ agentName, refreshKey = 0, onCreateClick }: Webhoo
     return (
       <div className="flex items-center justify-center py-16">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 text-red-500 animate-spin mx-auto mb-3" />
-          <p className="text-gray-600 text-sm">Loading webhooks...</p>
+          <Loader2 className="w-8 h-8 text-leaf motion-safe:animate-spin mx-auto mb-3" />
+          <p className="text-ink-soft text-sm">Loading webhooks…</p>
         </div>
       </div>
     )
@@ -436,12 +436,12 @@ export function WebhookList({ agentName, refreshKey = 0, onCreateClick }: Webhoo
   if (error) {
     return (
       <div className="p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="bg-blush-wash border border-blush rounded-lg p-4">
           <div className="flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+            <AlertCircle className="w-5 h-5 text-danger flex-shrink-0" />
             <div>
-              <p className="font-medium text-red-900">Error Loading Webhooks</p>
-              <p className="text-sm text-red-700 mt-1">{error}</p>
+              <p className="font-medium text-wine">Error Loading Webhooks</p>
+              <p className="text-sm text-danger mt-1">{error}</p>
             </div>
           </div>
         </div>
@@ -452,16 +452,16 @@ export function WebhookList({ agentName, refreshKey = 0, onCreateClick }: Webhoo
   if (webhooks.length === 0) {
     return (
       <div className="p-16 text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
-          <Webhook className="w-8 h-8 text-red-600" />
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-sand-deep rounded-full mb-4">
+          <Webhook className="w-8 h-8 text-leaf" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">No Webhooks Yet</h3>
-        <p className="text-gray-600 mb-6 max-w-md mx-auto text-sm">
+        <h3 className="text-lg font-semibold text-ink mb-2">No Webhooks Yet</h3>
+        <p className="text-ink-soft mb-6 max-w-md mx-auto text-sm">
           Create your first webhook to receive real-time events from GitHub, ClickUp, Jira, Slack, or Sentry.
         </p>
         <button
           onClick={onCreateClick}
-          className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-lg transition-all shadow-sm hover:shadow-md"
+          className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-ink hover:bg-ink/85 rounded-lg transition-[color,background-color,border-color,box-shadow,opacity,transform] shadow-sm hover:shadow-md"
         >
           <Plus className="w-4 h-4" />
           Create Webhook
@@ -483,7 +483,7 @@ export function WebhookList({ agentName, refreshKey = 0, onCreateClick }: Webhoo
             return (
               <div
                 key={webhook.id}
-                className="border border-gray-200 rounded-lg p-5 hover:border-red-300 hover:shadow-sm transition-all bg-white"
+                className="border border-line rounded-lg p-5 hover:border-blush hover:shadow-sm transition-[color,background-color,border-color,box-shadow,opacity,transform] bg-white"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-4 flex-1">
@@ -492,29 +492,29 @@ export function WebhookList({ agentName, refreshKey = 0, onCreateClick }: Webhoo
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-semibold text-gray-900">{webhook.name}</h3>
+                        <h3 className="font-semibold text-ink">{webhook.name}</h3>
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
                           webhook.is_active
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-gray-100 text-gray-600'
+                            ? 'bg-leaf-wash text-forest'
+                            : 'bg-sand text-ink-soft'
                         }`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${
-                            webhook.is_active ? 'bg-green-600' : 'bg-gray-400'
+                            webhook.is_active ? 'bg-leaf' : 'bg-ash'
                           }`} />
                           {webhook.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-4 text-sm text-gray-600 mb-3 flex-wrap">
+                      <div className="flex items-center gap-4 text-sm text-ink-soft mb-3 flex-wrap">
                         <span className="capitalize">{webhook.provider}</span>
                         {webhook.event_types && webhook.event_types.length > 0 && (
                           <>
-                            <span className="text-gray-300">•</span>
+                            <span className="text-taupe">•</span>
                             <span>{webhook.event_types.join(', ')}</span>
                           </>
                         )}
-                        <span className="text-gray-300">•</span>
-                        <span className={`inline-flex items-center gap-1 text-xs font-medium ${webhook.config?.verify_signature !== false ? 'text-green-600' : 'text-gray-400'}`}>
+                        <span className="text-taupe">•</span>
+                        <span className={`inline-flex items-center gap-1 text-xs font-medium ${webhook.config?.verify_signature !== false ? 'text-leaf' : 'text-ash'}`}>
                           {webhook.config?.verify_signature !== false
                             ? <><Shield className="w-3 h-3" /> Signature: On</>
                             : <><ShieldOff className="w-3 h-3" /> Signature: Off</>
@@ -522,31 +522,31 @@ export function WebhookList({ agentName, refreshKey = 0, onCreateClick }: Webhoo
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-2 bg-gray-50 rounded-lg p-3 border border-gray-200">
-                        <code className="text-xs text-gray-700 flex-1 truncate font-mono">
+                      <div className="flex items-center gap-2 bg-cream rounded-lg p-3 border border-line">
+                        <code className="text-xs text-ink-soft flex-1 truncate font-mono">
                           {`${API_URL}${webhook.webhook_url}`}
                         </code>
                         <button
                           onClick={() => handleCopyUrl(webhook.webhook_url)}
-                          className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors flex-shrink-0"
+                          className="p-1.5 text-ink-mute hover:text-leaf hover:bg-blush-wash rounded transition-colors flex-shrink-0"
                           title="Copy URL"
                         >
                           <Copy className="w-4 h-4" />
                         </button>
                       </div>
 
-                      <div className="flex items-center gap-6 mt-3 text-xs text-gray-500">
+                      <div className="flex items-center gap-6 mt-3 text-xs text-ink-mute">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-green-600">{webhook.success_count || 0}</span>
+                          <span className="font-medium text-leaf">{webhook.success_count || 0}</span>
                           <span>successful</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-red-600">{webhook.failure_count || 0}</span>
+                          <span className="font-medium text-danger">{webhook.failure_count || 0}</span>
                           <span>failed</span>
                         </div>
                         {webhook.last_triggered_at && (
                           <>
-                            <span className="text-gray-300">•</span>
+                            <span className="text-taupe">•</span>
                             <span>Last triggered {new Date(webhook.last_triggered_at).toLocaleDateString()}</span>
                           </>
                         )}
@@ -558,10 +558,10 @@ export function WebhookList({ agentName, refreshKey = 0, onCreateClick }: Webhoo
                     <button
                       onClick={() => setActionMenuOpen(actionMenuOpen === webhook.id ? null : webhook.id)}
                       disabled={isDeleting || isSaving}
-                      className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                      className="p-2 text-ash hover:text-ink-soft hover:bg-sand rounded-lg transition-colors disabled:opacity-50"
                     >
                       {isDeleting || isSaving ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <Loader2 className="w-5 h-5 motion-safe:animate-spin" />
                       ) : (
                         <MoreVertical className="w-5 h-5" />
                       )}
@@ -570,13 +570,13 @@ export function WebhookList({ agentName, refreshKey = 0, onCreateClick }: Webhoo
                     {actionMenuOpen === webhook.id && (
                       <>
                         <div className="fixed inset-0 z-10" onClick={() => setActionMenuOpen(null)} />
-                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-line py-1 z-20">
                           <button
                             onClick={() => {
                               setActionMenuOpen(null)
                               setEditTarget(webhook)
                             }}
-                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-ink-soft hover:bg-cream transition-colors"
                           >
                             <Edit className="w-4 h-4" />
                             Edit
@@ -586,7 +586,7 @@ export function WebhookList({ agentName, refreshKey = 0, onCreateClick }: Webhoo
                               setActionMenuOpen(null)
                               setDeleteTarget(webhook)
                             }}
-                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-danger hover:bg-blush-wash transition-colors"
                           >
                             <Trash2 className="w-4 h-4" />
                             Delete

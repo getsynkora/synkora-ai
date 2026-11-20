@@ -3,7 +3,6 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
 import { BlogArticleFade } from '@/components/blog/BlogArticleWrapper'
-import BlogArtisticEffects from '@/components/blog/BlogArtisticEffects'
 import ReadingProgress from '@/components/blog/ReadingProgress'
 import MarkdownContent from '@/components/content/MarkdownContent'
 import PublicPageFrame from '@/components/public/PublicPageFrame'
@@ -119,7 +118,6 @@ export default async function BlogPostPage({
   return (
     <PublicPageFrame mainClassName="pt-28 pb-20 px-4 sm:px-6">
       <ReadingProgress />
-      <BlogArtisticEffects />
 
       <div className={`${lora.variable} relative z-10 mx-auto max-w-6xl`}>
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start">
@@ -127,32 +125,23 @@ export default async function BlogPostPage({
           <BlogArticleFade>
             <article
               data-blog-article
-              className="relative overflow-hidden rounded-[2rem] border border-black/10 bg-white/80 p-8 shadow-[0_32px_80px_rgba(0,0,0,0.07)] backdrop-blur sm:p-14"
+              className="relative overflow-hidden rounded-[2rem] border border-black/10 bg-white p-8 shadow-soft sm:p-14"
             >
-              {/* Ambient blobs */}
-              <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-                <div className="blog-blob-a absolute -left-20 -top-16 h-64 w-64 rounded-full bg-[#79dfbc]/14 blur-3xl" />
-                <div className="blog-blob-b absolute -bottom-20 -right-16 h-72 w-72 rounded-full bg-[#ffd7a8]/18 blur-3xl" />
-                <div className="blog-blob-a absolute right-1/3 top-1/2 h-48 w-48 rounded-full bg-[#ffb7c9]/10 blur-3xl" style={{ animationDelay: '8s' }} />
-                {/* Rotating arc decorations */}
-                <div className="blog-arc blog-arc-outer absolute -right-28 -top-28" />
-                <div className="blog-arc blog-arc-inner absolute -bottom-16 -left-16" />
-              </div>
 
               <div className="relative">
                 <Link
                   href="/blog"
-                  className="inline-flex items-center text-sm font-medium text-[#5b564e] transition-colors hover:text-[#171717]"
+                  className="inline-flex items-center text-sm font-medium text-ink-soft transition-colors hover:text-ink"
                 >
-                  ← Back to blog
+                  Back to blog
                 </Link>
 
                 <div className="mt-7">
-                  <div className="flex flex-wrap items-center gap-2 text-sm text-[#7a736a]">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-mute">
                     {post.publishedAt ? <span>{formatDate(post.publishedAt)}</span> : null}
-                    {post.authors.length > 0 ? <span>· {post.authors.map((author) => author.name).join(', ')}</span> : null}
+                    {post.authors.length > 0 ? <span>{post.authors.map((author) => author.name).join(', ')}</span> : null}
                   </div>
-                  <h1 className="mt-4 font-[family-name:var(--font-lora)] text-4xl font-bold leading-tight tracking-[-0.04em] text-[#171717] sm:text-5xl">
+                  <h1 className="mt-4 font-[family-name:var(--font-lora)] text-4xl font-bold leading-tight tracking-[-0.04em] text-ink sm:text-5xl">
                     {post.title}
                   </h1>
                   {post.tags.length > 0 && (
@@ -160,7 +149,7 @@ export default async function BlogPostPage({
                       {post.tags.map((tag) => (
                         <span
                           key={`${post.slug}-${tag}`}
-                          className="rounded-full border border-[#d7eadf] bg-[#edf8f3] px-3 py-1 text-xs font-medium text-[#2d8b69]"
+                          className="rounded-full border border-leaf-wash bg-leaf-wash px-3 py-1 text-xs font-medium text-leaf"
                         >
                           {tag}
                         </span>
@@ -180,19 +169,19 @@ export default async function BlogPostPage({
           {otherPosts.length > 0 && (
             <BlogArticleFade delay={0.18}>
             <aside className="lg:sticky lg:top-8">
-              <div className="overflow-hidden rounded-[2rem] border border-black/10 bg-[#f6f1e7] shadow-[0_24px_60px_rgba(0,0,0,0.06)]">
+              <div className="overflow-hidden rounded-[2rem] border border-black/10 bg-paper shadow-soft">
 
                 {/* Tag filter widget */}
                 {allTags.length > 0 && (
-                  <div className="border-b border-[#d8d2c8] px-7 pt-7 pb-5">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#7a736a]">
+                  <div className="border-b border-paper-dim px-7 pt-7 pb-5">
+                    <p className="text-[11px] font-semibold text-ink-mute">
                       Browse by topic
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {/* "All" pill */}
                       <Link
                         href="/blog"
-                        className="rounded-full border border-[#c8c2b8] px-3 py-1.5 text-[12px] font-medium text-[#5b564e] transition-colors hover:border-[#1a1714] hover:text-[#1a1714]"
+                        className="rounded-full border border-paper-dim px-3 py-1.5 text-[12px] font-medium text-ink-soft transition-colors hover:border-ink hover:text-ink"
                       >
                         All
                         <span className="ml-1.5 opacity-60">{otherPosts.length}</span>
@@ -201,7 +190,7 @@ export default async function BlogPostPage({
                         <Link
                           key={tag}
                           href={`/blog?tag=${encodeURIComponent(tag)}`}
-                          className="rounded-full border border-[#c8c2b8] px-3 py-1.5 text-[12px] font-medium text-[#5b564e] transition-colors hover:border-[#2d8b69] hover:text-[#2d8b69]"
+                          className="rounded-full border border-paper-dim px-3 py-1.5 text-[12px] font-medium text-ink-soft transition-colors hover:border-leaf hover:text-leaf"
                         >
                           {tag}
                           <span className="ml-1.5 opacity-60">{tagCounts.get(tag)}</span>
@@ -213,7 +202,7 @@ export default async function BlogPostPage({
 
                 {/* Post list */}
                 <div className="px-7 pt-5 pb-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#7a736a]">
+                  <p className="text-[11px] font-semibold text-ink-mute">
                     More from the blog
                   </p>
                 </div>
@@ -223,15 +212,15 @@ export default async function BlogPostPage({
                       <Link
                         key={p.slug}
                         href={`/blog/${p.slug}`}
-                        className="group block px-7 py-6 transition-colors hover:bg-[#ede8db]"
+                        className="group block px-7 py-6 transition-colors hover:bg-sand-deep"
                         style={{ borderTop: i === 0 ? 'none' : '1px solid #d8d2c8' }}
                       >
                         <div className="flex items-start gap-4">
-                          <span className="mt-0.5 shrink-0 text-[#3a3530] transition-colors group-hover:text-[#2d8b69]">
+                          <span className="mt-0.5 shrink-0 text-night transition-colors group-hover:text-leaf">
                             <PostIcon tags={p.tags} slug={p.slug} />
                           </span>
                           <div className="min-w-0">
-                            <p className="line-clamp-2 text-[1.3rem] font-semibold leading-snug tracking-[-0.04em] text-[#1a1714] transition-colors group-hover:text-[#2d8b69]">
+                            <p className="line-clamp-2 text-[1.3rem] font-semibold leading-snug tracking-[-0.04em] text-ink transition-colors group-hover:text-leaf">
                               {p.title}
                             </p>
                             {p.tags.length > 0 && (
@@ -239,7 +228,7 @@ export default async function BlogPostPage({
                                 {p.tags.slice(0, 3).map((tag) => (
                                   <span
                                     key={tag}
-                                    className="rounded-full border border-[#c8c2b8] px-2 py-0.5 text-[10px] font-medium text-[#7a736a]"
+                                    className="rounded-full border border-paper-dim px-2 py-0.5 text-[10px] font-medium text-ink-mute"
                                   >
                                     {tag}
                                   </span>

@@ -78,33 +78,33 @@ function ApprovalCard({
   }
 
   return (
-    <div className={`rounded-lg border ${expired ? 'border-gray-200 opacity-60' : 'border-amber-200 bg-amber-50'} p-4`}>
+    <div className={`rounded-lg border ${expired ? 'border-line opacity-60' : 'border-honey bg-sand-deep'} p-4`}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <Clock className="w-4 h-4 text-amber-500 flex-shrink-0" />
-            <span className="text-xs font-medium text-amber-700">Pending Action</span>
-            <span className="text-xs text-gray-400 ml-auto">{timeAgo(approval.created_at)}</span>
+            <Clock className="w-4 h-4 text-warn flex-shrink-0" />
+            <span className="text-xs font-medium text-gold">Pending Action</span>
+            <span className="text-xs text-ash ml-auto">{timeAgo(approval.created_at)}</span>
           </div>
 
           <div className="mb-2">
-            <span className="text-xs text-gray-500">Tool: </span>
-            <code className="text-xs font-mono bg-white border border-gray-200 rounded px-1.5 py-0.5 text-gray-800">
+            <span className="text-xs text-ink-mute">Tool: </span>
+            <code className="text-xs font-mono bg-white border border-line rounded px-1.5 py-0.5 text-ink">
               {approval.tool_name}
             </code>
-            <span className="ml-2 text-xs text-gray-400">via {approval.notification_channel}</span>
+            <span className="ml-2 text-xs text-ash">via {approval.notification_channel}</span>
           </div>
 
-          <pre className="text-xs bg-white border border-gray-200 rounded p-2 overflow-auto max-h-32 text-gray-700 whitespace-pre-wrap">
+          <pre className="text-xs bg-white border border-line rounded p-2 overflow-auto max-h-32 text-ink-soft whitespace-pre-wrap">
             {JSON.stringify(approval.tool_args, null, 2)}
           </pre>
 
-          <div className="mt-1 text-xs text-gray-400">{expired ? 'Expired' : timeUntil(approval.expires_at)}</div>
+          <div className="mt-1 text-xs text-ash">{expired ? 'Expired' : timeUntil(approval.expires_at)}</div>
         </div>
       </div>
 
       {error && (
-        <div className="mt-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded px-2 py-1">
+        <div className="mt-2 text-xs text-danger bg-blush-wash border border-blush rounded px-2 py-1">
           {error}
         </div>
       )}
@@ -115,8 +115,8 @@ function ApprovalCard({
             <div className="space-y-2">
               <textarea
                 rows={2}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
-                placeholder="Describe the changes you want..."
+                className="w-full rounded-md border border-taupe px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ink"
+                placeholder="Describe the changes you want…"
                 value={feedback}
                 onChange={e => setFeedback(e.target.value)}
               />
@@ -124,14 +124,14 @@ function ApprovalCard({
                 <button
                   onClick={() => respond('feedback')}
                   disabled={responding || !feedback.trim()}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium text-white bg-blue-500 hover:bg-blue-600 disabled:opacity-50"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium text-white bg-azure hover:bg-azure disabled:opacity-50"
                 >
                   <MessageSquare className="w-3 h-3" />
                   {responding ? 'Sending…' : 'Send Feedback'}
                 </button>
                 <button
                   onClick={() => setShowFeedback(false)}
-                  className="px-3 py-1.5 rounded-md text-xs text-gray-600 border border-gray-300 hover:bg-gray-50"
+                  className="px-3 py-1.5 rounded-md text-xs text-ink-soft border border-taupe hover:bg-cream"
                 >
                   Cancel
                 </button>
@@ -142,7 +142,7 @@ function ApprovalCard({
               <button
                 onClick={() => respond('approved')}
                 disabled={responding}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium text-white bg-leaf hover:bg-forest disabled:opacity-50"
               >
                 <CheckCircle className="w-3 h-3" />
                 {responding ? 'Processing…' : 'Approve'}
@@ -150,7 +150,7 @@ function ApprovalCard({
               <button
                 onClick={() => respond('rejected')}
                 disabled={responding}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium text-white bg-red-500 hover:bg-red-600 disabled:opacity-50"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium text-white bg-ink hover:bg-danger disabled:opacity-50"
               >
                 <XCircle className="w-3 h-3" />
                 Reject
@@ -158,7 +158,7 @@ function ApprovalCard({
               <button
                 onClick={() => setShowFeedback(true)}
                 disabled={responding}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium text-ink-soft border border-taupe hover:bg-cream disabled:opacity-50"
               >
                 <MessageSquare className="w-3 h-3" />
                 Feedback…
@@ -201,7 +201,7 @@ export function AutonomousApprovals({ agentName, onCountChange }: Props) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-10">
-        <div className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-5 h-5 border-2 border-ink border-t-transparent rounded-full motion-safe:animate-spin" />
       </div>
     )
   }
@@ -209,14 +209,14 @@ export function AutonomousApprovals({ agentName, onCountChange }: Props) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-ink-soft">
           {approvals.length === 0
             ? 'No pending approvals.'
             : `${approvals.length} action${approvals.length > 1 ? 's' : ''} waiting for your review.`}
         </p>
         <button
           onClick={fetchApprovals}
-          className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"
+          className="flex items-center gap-1 text-xs text-ink-mute hover:text-ink-soft"
         >
           <RefreshCw className="w-3 h-3" />
           Refresh
@@ -224,7 +224,7 @@ export function AutonomousApprovals({ agentName, onCountChange }: Props) {
       </div>
 
       {approvals.length === 0 ? (
-        <div className="py-8 text-center text-sm text-gray-400 border border-dashed border-gray-200 rounded-lg">
+        <div className="py-8 text-center text-sm text-ash border border-dashed border-line rounded-lg">
           When the agent proposes an action that requires approval, it will appear here.
         </div>
       ) : (

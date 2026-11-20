@@ -24,7 +24,7 @@ export function MessageRenderer({ message, onConfirm, onCancelAction }: Props) {
             className={`rounded-xl px-3 py-2.5 text-sm whitespace-pre-wrap leading-relaxed ${
               isUser
                 ? 'bg-primary-500 text-white'
-                : 'bg-gray-100 text-gray-900'
+                : 'bg-sand text-ink'
             }`}
           >
             {message.content}

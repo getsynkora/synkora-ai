@@ -39,9 +39,9 @@ function CopyBtn({ text }: { text: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors"
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md border border-taupe text-ink-soft hover:bg-cream hover:border-ash transition-colors"
     >
-      {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+      {copied ? <Check className="w-3 h-3 text-leaf" /> : <Copy className="w-3 h-3" />}
       {copied ? 'Copied' : 'Copy'}
     </button>
   )
@@ -52,7 +52,7 @@ function CodeBlock({ code, label }: { code: string; label?: string }) {
     <div>
       {label && (
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-xs font-medium text-gray-700">{label}</span>
+          <span className="text-xs font-medium text-ink-soft">{label}</span>
           <CopyBtn text={code} />
         </div>
       )}
@@ -61,7 +61,7 @@ function CodeBlock({ code, label }: { code: string; label?: string }) {
           <CopyBtn text={code} />
         </div>
       )}
-      <pre className="bg-gray-900 text-gray-100 text-[11px] p-3 rounded-lg overflow-x-auto font-mono leading-relaxed whitespace-pre-wrap">
+      <pre className="bg-ink text-sand text-[11px] p-3 rounded-lg overflow-x-auto font-mono leading-relaxed whitespace-pre-wrap">
         {code}
       </pre>
     </div>
@@ -87,7 +87,7 @@ export function ConnectAgentModal({ isOpen, onClose, shareToken, topic }: Connec
   // --- Python ---
   const pythonOneLiner = `curl -s "${scriptUrl}" | python3 -`
   const pythonSave = `curl -s "${scriptUrl}" -o debate_agent.py\n${sel.envVar ? `export ${sel.envVar}=${sel.envHint}` : '# No API key needed'}\npython3 debate_agent.py`
-  const pythonInstall = sel.pyPkg ? `pip install ${sel.pyPkg}` : '# Ollama runs locally — no pip install needed'
+  const pythonInstall = sel.pyPkg ? `pip install ${sel.pyPkg}` : '# Ollama runs locally, no pip install needed'
 
   // --- Node.js ---
   const nodeScript = `#!/usr/bin/env node
@@ -212,7 +212,7 @@ main().catch(console.error);`
 
   // --- Shell ---
   const shellScript = `#!/bin/bash
-# Synkora War Room — Shell Agent
+# Synkora War Room, Shell Agent
 # Topic: ${topic}
 # This script joins a debate and submits static responses.
 # Edit the RESPONSE variable for each round.
@@ -221,7 +221,7 @@ API="${apiBase}"
 TOKEN="${shareToken}"
 NAME="${agentName}"
 
-echo "Joining debate..."
+echo "Joining debate…"
 JOIN=$(curl -s -X POST "$API/api/v1/war-room/$TOKEN/join" \\
   -H "Content-Type: application/json" \\
   -d "{\\"agent_name\\": \\"$NAME\\"}")
@@ -234,7 +234,7 @@ echo "Joined! participant_id=$PID rounds=$ROUNDS"
 for ROUND in $(seq 1 $ROUNDS); do
   echo ""
   echo "--- Round $ROUND ---"
-  echo "Waiting for round to start..."
+  echo "Waiting for round to start…"
 
   while true; do
     CTX=$(curl -s "$API/api/v1/war-room/$TOKEN/rounds/$ROUND")
@@ -248,10 +248,10 @@ for ROUND in $(seq 1 $ROUNDS); do
     sleep 4
   done
 
-  # Generate your response here — replace with your own logic
+  # Generate your response here, replace with your own logic
   RESPONSE="This is ${agentName}'s argument for round $ROUND of the debate on: ${topic}. [Edit this script to add real arguments or pipe in from an LLM]"
 
-  echo "Submitting response..."
+  echo "Submitting response…"
   curl -s -X POST "$API/api/v1/war-room/$TOKEN/respond" \\
     -H "Content-Type: application/json" \\
     -d "{\\"participant_id\\": \\"$PID\\", \\"round\\": $ROUND, \\"content\\": \\"$RESPONSE\\"}"
@@ -277,7 +277,7 @@ curl -s ${roundsUrl}/1
 # 3. Submit your argument
 curl -s -X POST ${respondUrl} \\
   -H "Content-Type: application/json" \\
-  -d '{"participant_id": "YOUR_PARTICIPANT_ID", "round": 1, "content": "Your argument here..."}'
+  -d '{"participant_id": "YOUR_PARTICIPANT_ID", "round": 1, "content": "Your argument here…"}'
 
 # Repeat steps 2-3 for each round.`
 
@@ -285,14 +285,14 @@ curl -s -X POST ${respondUrl} \\
     <Modal isOpen={isOpen} onClose={onClose} title="Connect External Agent" className="max-w-2xl">
       <div className="space-y-4">
         {/* Language tabs */}
-        <div className="flex gap-1 p-1 bg-gray-100 rounded-lg">
+        <div className="flex gap-1 p-1 bg-sand rounded-lg">
           {LANG_TABS.map(({ id, label }) => (
             <button
               key={id}
               onClick={() => setLang(id)}
               className={cn(
                 'flex-1 px-2 py-1.5 text-[11px] font-medium rounded-md transition-colors',
-                lang === id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                lang === id ? 'bg-white text-ink shadow-sm' : 'text-ink-mute hover:text-ink-soft'
               )}
             >
               {label}
@@ -303,12 +303,12 @@ curl -s -X POST ${respondUrl} \\
         {/* Agent Name */}
         {lang !== 'web' && (
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Agent Display Name</label>
+            <label className="block text-xs font-medium text-ink-soft mb-1">Agent Display Name</label>
             <input
               type="text"
               value={agentName}
               onChange={(e) => setAgentName(e.target.value)}
-              className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500/20 focus:border-red-400 outline-none"
+              className="w-full px-3 py-1.5 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink/20 focus:border-hotpink outline-none"
               placeholder="My Claude Agent"
             />
           </div>
@@ -317,7 +317,7 @@ curl -s -X POST ${respondUrl} \\
         {/* Provider selector (Python & Node.js only) */}
         {showProviders && (
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">LLM Provider</label>
+            <label className="block text-xs font-medium text-ink-soft mb-1">LLM Provider</label>
             <div className="flex gap-2">
               {PROVIDERS.map((p) => (
                 <button
@@ -326,8 +326,8 @@ curl -s -X POST ${respondUrl} \\
                   className={cn(
                     'flex-1 px-2 py-1.5 text-[11px] font-medium rounded-lg border transition-colors',
                     provider === p.id
-                      ? 'border-red-300 bg-red-50 text-red-700'
-                      : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                      ? 'border-blush bg-blush-wash text-leaf'
+                      : 'border-line text-ink-soft hover:border-taupe hover:bg-cream'
                   )}
                 >
                   {p.label}
@@ -342,9 +342,9 @@ curl -s -X POST ${respondUrl} \\
           <div className="space-y-3">
             <CodeBlock label="Quick Run (one-liner)" code={pythonOneLiner} />
             <CodeBlock label="Save & Run" code={pythonSave} />
-            <div className="flex items-start gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
-              <span className="text-amber-600 text-[11px] mt-px">Requires:</span>
-              <code className="text-[11px] text-amber-800 font-mono">{pythonInstall}</code>
+            <div className="flex items-start gap-2 p-2.5 bg-sand-deep border border-honey rounded-lg">
+              <span className="text-warn text-[11px] mt-px">Requires:</span>
+              <code className="text-[11px] text-gold font-mono">{pythonInstall}</code>
             </div>
           </div>
         )}
@@ -354,8 +354,8 @@ curl -s -X POST ${respondUrl} \\
           <div className="space-y-3">
             <CodeBlock label="Save & Run" code={nodeOneLiner} />
             <details className="group">
-              <summary className="text-xs font-medium text-gray-600 cursor-pointer hover:text-gray-900 flex items-center gap-1">
-                <span className="group-open:rotate-90 transition-transform inline-block">&#9654;</span>
+              <summary className="text-xs font-medium text-ink-soft cursor-pointer hover:text-ink flex items-center gap-1">
+                <span className="group-open:rotate-90 transition-transform motion-reduce:transition-none inline-block">&#9654;</span>
                 Preview full script
               </summary>
               <div className="mt-2">
@@ -363,9 +363,9 @@ curl -s -X POST ${respondUrl} \\
               </div>
             </details>
             {sel.npmPkg && (
-              <div className="flex items-start gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
-                <span className="text-amber-600 text-[11px] mt-px">Requires:</span>
-                <code className="text-[11px] text-amber-800 font-mono">npm install {sel.npmPkg}</code>
+              <div className="flex items-start gap-2 p-2.5 bg-sand-deep border border-honey rounded-lg">
+                <span className="text-warn text-[11px] mt-px">Requires:</span>
+                <code className="text-[11px] text-gold font-mono">npm install {sel.npmPkg}</code>
               </div>
             )}
           </div>
@@ -375,8 +375,8 @@ curl -s -X POST ${respondUrl} \\
         {lang === 'shell' && (
           <div className="space-y-3">
             <CodeBlock label="Bash Script" code={shellScript} />
-            <p className="text-[11px] text-gray-500">
-              Edit the RESPONSE variable in the script — or pipe in output from any LLM CLI tool (e.g. <code className="bg-gray-100 px-1 rounded">llm</code>, <code className="bg-gray-100 px-1 rounded">ollama run</code>).
+            <p className="text-[11px] text-ink-mute">
+              Edit the RESPONSE variable in the script, or pipe in output from any LLM CLI tool (e.g. <code className="bg-sand px-1 rounded">llm</code>, <code className="bg-sand px-1 rounded">ollama run</code>).
             </p>
           </div>
         )}
@@ -385,7 +385,7 @@ curl -s -X POST ${respondUrl} \\
         {lang === 'curl' && (
           <div className="space-y-3">
             <CodeBlock label="REST API Commands" code={curlScript} />
-            <p className="text-[11px] text-gray-500">
+            <p className="text-[11px] text-ink-mute">
               Use these endpoints from any language or tool. The protocol is simple: join, poll for rounds, submit responses.
             </p>
           </div>
@@ -394,18 +394,18 @@ curl -s -X POST ${respondUrl} \\
         {/* Web UI */}
         {lang === 'web' && (
           <div className="space-y-3">
-            <p className="text-sm text-gray-600">
-              Open the web join page to participate directly from a browser. Anyone with the link can join — no account needed.
+            <p className="text-sm text-ink-soft">
+              Open the web join page to participate directly from a browser. Anyone with the link can join, no account needed.
             </p>
-            <div className="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-              <code className="text-xs text-gray-700 font-mono truncate flex-1">{webJoinUrl}</code>
+            <div className="flex items-center gap-2 p-3 bg-cream border border-line rounded-lg">
+              <code className="text-xs text-ink-soft font-mono truncate flex-1">{webJoinUrl}</code>
               <CopyBtn text={webJoinUrl} />
             </div>
             <a
               href={webJoinUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white text-sm font-medium rounded-lg hover:from-red-600 hover:to-red-700 transition-all"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-ink text-white text-sm font-medium rounded-lg hover:from-danger hover:to-danger transition-[color,background-color,border-color,box-shadow,opacity,transform]"
             >
               <ExternalLink className="w-4 h-4" />
               Open Join Page
@@ -414,9 +414,9 @@ curl -s -X POST ${respondUrl} \\
         )}
 
         {/* Topic reference */}
-        <div className="pt-3 border-t border-gray-100">
-          <p className="text-[11px] text-gray-400">
-            Debate: <span className="text-gray-600">{topic}</span>
+        <div className="pt-3 border-t border-sand">
+          <p className="text-[11px] text-ash">
+            Debate: <span className="text-ink-soft">{topic}</span>
           </p>
         </div>
       </div>

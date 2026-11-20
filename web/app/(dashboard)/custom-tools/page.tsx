@@ -113,21 +113,21 @@ export default function CustomToolsPage() {
         <div className="mb-6">
           <button
             onClick={() => router.push('/agents')}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-3 text-sm"
+            className="flex items-center gap-2 text-ink-soft hover:text-ink mb-3 text-sm"
           >
             <ArrowLeft size={18} />
             Back to Agents
           </button>
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Custom Tools</h1>
-              <p className="text-gray-600 mt-1 text-sm">
+              <h1 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight">Custom Tools</h1>
+              <p className="text-ink-soft mt-1 text-sm">
                 Import and manage OpenAPI-based tools for your agents
               </p>
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-5 py-2.5 rounded-lg transition-all shadow-sm hover:shadow-md text-sm font-medium"
+              className="flex items-center gap-2 bg-ink hover:bg-ink/85 text-white px-5 py-2.5 rounded-lg transition-[color,background-color,border-color,box-shadow,opacity,transform] shadow-sm hover:shadow-md text-sm font-medium"
             >
               <Plus size={18} />
               Import Tool
@@ -137,19 +137,19 @@ export default function CustomToolsPage() {
 
         {/* Stats - More Compact */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <div className="text-gray-600 text-xs font-medium">Total Tools</div>
-            <div className="text-2xl font-bold text-gray-900 mt-1">{tools.length}</div>
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-line">
+            <div className="text-ink-soft text-xs font-medium">Total Tools</div>
+            <div className="text-2xl font-bold text-ink mt-1">{tools.length}</div>
           </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <div className="text-gray-600 text-xs font-medium">Enabled Tools</div>
-            <div className="text-2xl font-bold text-emerald-600 mt-1">
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-line">
+            <div className="text-ink-soft text-xs font-medium">Enabled Tools</div>
+            <div className="text-2xl font-bold text-leaf mt-1">
               {tools.filter(t => t.enabled).length}
             </div>
           </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <div className="text-gray-600 text-xs font-medium">Total Operations</div>
-            <div className="text-2xl font-bold text-red-600 mt-1">
+          <div className="bg-white p-4 rounded-lg shadow-sm border border-line">
+            <div className="text-ink-soft text-xs font-medium">Total Operations</div>
+            <div className="text-2xl font-bold text-leaf mt-1">
               {tools.reduce((sum, tool) => {
                 const paths = tool.openapi_schema?.paths || {}
                 return sum + Object.keys(paths).reduce((pathSum, path) => {
@@ -165,68 +165,68 @@ export default function CustomToolsPage() {
         {/* Search - More Compact */}
         <div className="mb-5">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-ash" size={18} />
             <input
               type="text"
-              placeholder="Search tools by name, description, or tags..."
+              placeholder="Search tools by name, description, or tags…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2.5 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent"
             />
           </div>
         </div>
 
         {/* Tools List - More Compact */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="px-5 py-3 border-b border-gray-200">
-            <h2 className="text-base font-semibold text-gray-900">Imported Tools</h2>
+        <div className="bg-white rounded-lg shadow-sm border border-line overflow-hidden">
+          <div className="px-5 py-3 border-b border-line">
+            <h2 className="text-base font-semibold text-ink">Imported Tools</h2>
           </div>
 
           {loading ? (
-            <div className="p-12 text-center text-gray-500 text-sm">Loading tools...</div>
+            <div className="p-12 text-center text-ink-mute text-sm">Loading tools…</div>
           ) : filteredTools.length === 0 ? (
             <div className="p-12 text-center">
-              <Wrench className="mx-auto text-gray-400 mb-3" size={40} />
-              <p className="text-gray-500 mb-3 text-sm">
+              <Wrench className="mx-auto text-ash mb-3" size={40} />
+              <p className="text-ink-mute mb-3 text-sm">
                 {searchQuery ? 'No tools match your search' : 'No custom tools imported yet'}
               </p>
               {!searchQuery && (
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="text-red-600 hover:text-red-700 font-medium text-sm"
+                  className="text-leaf hover:text-leaf font-medium text-sm"
                 >
                   Import your first custom tool
                 </button>
               )}
             </div>
           ) : (
-            <div className="divide-y divide-gray-200">
+            <div className="divide-y divide-line">
               {filteredTools.map((tool) => (
-                <div key={tool.id} className="p-4 hover:bg-gray-50 transition-colors">
+                <div key={tool.id} className="p-4 hover:bg-cream transition-colors">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1.5">
                         {tool.icon ? (
                           <img src={tool.icon} alt="" className="w-6 h-6 rounded" />
                         ) : (
-                          <Wrench className="text-red-600" size={18} />
+                          <Wrench className="text-leaf" size={18} />
                         )}
-                        <h3 className="text-base font-semibold text-gray-900">{tool.name}</h3>
+                        <h3 className="text-base font-semibold text-ink">{tool.name}</h3>
                         <span
                           className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                             tool.enabled
-                              ? 'bg-emerald-100 text-emerald-700'
-                              : 'bg-gray-100 text-gray-700'
+                              ? 'bg-leaf-wash text-forest'
+                              : 'bg-sand text-ink-soft'
                           }`}
                         >
                           {tool.enabled ? 'Enabled' : 'Disabled'}
                         </span>
-                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blush-wash text-leaf">
                           {tool.auth_type}
                         </span>
                       </div>
-                      <p className="text-gray-600 mb-1.5 text-sm">{tool.description}</p>
-                      <div className="flex items-center gap-3 text-xs text-gray-500 mb-1.5">
+                      <p className="text-ink-soft mb-1.5 text-sm">{tool.description}</p>
+                      <div className="flex items-center gap-3 text-xs text-ink-mute mb-1.5">
                         <span className="font-mono">{tool.server_url}</span>
                         <span>•</span>
                         <span>Added {new Date(tool.created_at).toLocaleDateString()}</span>
@@ -236,7 +236,7 @@ export default function CustomToolsPage() {
                           {tool.tags.map((tag, idx) => (
                             <span
                               key={idx}
-                              className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs"
+                              className="inline-flex items-center gap-1 px-2 py-1 bg-sand text-ink-soft rounded text-xs"
                             >
                               <Tag size={12} />
                               {tag}
@@ -249,14 +249,14 @@ export default function CustomToolsPage() {
                     <div className="flex items-center gap-1.5 ml-4">
                       <button
                         onClick={() => handleViewOperations(tool)}
-                        className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                        className="p-2 text-plum hover:bg-sand-deep rounded-lg transition-colors"
                         title="View Operations"
                       >
                         <Eye size={18} />
                       </button>
                       <button
                         onClick={() => handleTest(tool.id)}
-                        className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                        className="p-2 text-leaf hover:bg-leaf-wash rounded-lg transition-colors"
                         title="Test Connection"
                       >
                         <TestTube size={18} />
@@ -272,7 +272,7 @@ export default function CustomToolsPage() {
                             toast.error('Failed to load tool details')
                           }
                         }}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-2 text-leaf hover:bg-blush-wash rounded-lg transition-colors"
                         title="Edit Tool"
                       >
                         <Edit size={18} />
@@ -284,11 +284,11 @@ export default function CustomToolsPage() {
                           onChange={(e) => toggleToolStatus(tool.id, e.target.checked)}
                           className="sr-only peer"
                         />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                        <div className="w-11 h-6 bg-line peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blush rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-taupe after:border after:rounded-full after:h-5 after:w-5 after:transition-[color,background-color,border-color,box-shadow,opacity,transform] peer-checked:bg-danger"></div>
                       </label>
                       <button
                         onClick={() => handleDelete(tool.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-2 text-danger hover:bg-blush-wash rounded-lg transition-colors"
                         title="Delete Tool"
                       >
                         <Trash2 size={18} />
@@ -362,11 +362,11 @@ function CustomToolModal({
   const [saving, setSaving] = useState(false)
   const [importing, setImporting] = useState(false)
   const formId = 'custom-tool-modal-form'
-  const fieldClass = 'w-full rounded-[1.15rem] border border-gray-200 bg-gray-50 px-4 py-4 text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500'
+  const fieldClass = 'w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink'
   const textareaClass = `${fieldClass} resize-y`
-  const codeClass = 'w-full rounded-[1.15rem] border border-gray-200 bg-gray-50 px-4 py-4 font-mono text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500'
-  const labelClass = 'mb-2 block text-sm font-semibold text-gray-700'
-  const helpClass = 'mt-2 text-xs leading-relaxed text-gray-500'
+  const codeClass = 'w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 font-mono text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink'
+  const labelClass = 'mb-2 block text-sm font-semibold text-ink-soft'
+  const helpClass = 'mt-2 text-xs leading-relaxed text-ink-mute'
 
   const handleImportFromUrl = async () => {
     if (!schemaUrl) {
@@ -440,17 +440,13 @@ function CustomToolModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-4xl overflow-hidden rounded-[2rem] border border-black/10 bg-[#fcfaf5] shadow-[0_32px_90px_rgba(0,0,0,0.18)]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+      <div className="w-full max-w-4xl overflow-hidden rounded-[2rem] border border-black/10 bg-cream shadow-soft">
         <div className="border-b border-black/10 bg-white px-8 py-6">
-          <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/55 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#6e675d]">
-            <Wrench className="h-3.5 w-3.5 text-[#2d8b69]" />
-            Custom Tool
-          </div>
-          <h2 className="mt-4 text-3xl font-semibold tracking-tight text-gray-900">
+          <h2 className="mt-4 text-3xl font-semibold tracking-tight text-ink">
             {tool ? 'Edit Custom Tool' : 'Import Custom Tool'}
           </h2>
-          <p className="mt-2 text-base text-gray-600">
+          <p className="mt-2 text-base text-ink-soft">
             Configure your OpenAPI-based tool
           </p>
         </div>
@@ -469,33 +465,33 @@ function CustomToolModal({
                 <button
                   type="button"
                   onClick={() => setImportMethod('url')}
-                  className={`rounded-[1.5rem] border px-5 py-4 text-left transition-all ${
+                  className={`rounded-[1.5rem] border px-5 py-4 text-left transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
                     importMethod === 'url'
-                      ? 'border-black/10 bg-white text-gray-900 shadow-[0_16px_36px_rgba(0,0,0,0.08)]'
-                      : 'border-black/10 bg-[#f4efe4] text-[#5b564e] hover:bg-white'
+                      ? 'border-black/10 bg-white text-ink shadow-soft'
+                      : 'border-black/10 bg-paper text-ink-soft hover:bg-white'
                   }`}
                 >
                   <div className="text-sm font-semibold text-current">Import from URL</div>
-                  <div className="mt-1 text-sm leading-relaxed text-[#5b564e]">Fetch the OpenAPI schema from a hosted endpoint.</div>
+                  <div className="mt-1 text-sm leading-relaxed text-ink-soft">Fetch the OpenAPI schema from a hosted endpoint.</div>
                 </button>
                 <button
                   type="button"
                   onClick={() => setImportMethod('paste')}
-                  className={`rounded-[1.5rem] border px-5 py-4 text-left transition-all ${
+                  className={`rounded-[1.5rem] border px-5 py-4 text-left transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
                     importMethod === 'paste'
-                      ? 'border-black/10 bg-white text-gray-900 shadow-[0_16px_36px_rgba(0,0,0,0.08)]'
-                      : 'border-black/10 bg-[#f4efe4] text-[#5b564e] hover:bg-white'
+                      ? 'border-black/10 bg-white text-ink shadow-soft'
+                      : 'border-black/10 bg-paper text-ink-soft hover:bg-white'
                   }`}
                 >
                   <div className="text-sm font-semibold text-current">Paste Schema</div>
-                  <div className="mt-1 text-sm leading-relaxed text-[#5b564e]">Manually provide the OpenAPI JSON and configuration.</div>
+                  <div className="mt-1 text-sm leading-relaxed text-ink-soft">Manually provide the OpenAPI JSON and configuration.</div>
                 </button>
               </div>
             </div>
           )}
 
           {!tool && importMethod === 'url' && (
-            <div className="rounded-[1.6rem] border border-black/10 bg-white p-5 shadow-[0_20px_50px_rgba(0,0,0,0.05)]">
+            <div className="rounded-[1.6rem] border border-black/10 bg-white p-5 shadow-soft">
               <label className={labelClass}>
                 OpenAPI Schema URL *
               </label>
@@ -511,9 +507,9 @@ function CustomToolModal({
                   type="button"
                   onClick={handleImportFromUrl}
                   disabled={importing}
-                  className="rounded-[1.2rem] bg-[#171717] px-6 py-4 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-[1.2rem] bg-ink px-6 py-4 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {importing ? 'Importing...' : 'Import'}
+                  {importing ? 'Importing…' : 'Import'}
                 </button>
               </div>
               <p className={helpClass}>
@@ -563,7 +559,7 @@ function CustomToolModal({
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className={textareaClass}
                   rows={3}
-                  placeholder="Describe what this tool does..."
+                  placeholder="Describe what this tool does…"
                   required
                 />
               </div>
@@ -646,9 +642,9 @@ function CustomToolModal({
                 />
               </div>
 
-              <div className="rounded-[1.5rem] border border-black/10 bg-[#f7f2e7] p-4">
-                <h4 className="text-sm font-semibold text-gray-900">About Custom Tools</h4>
-                <p className="mt-2 text-xs leading-relaxed text-[#5b564e]">
+              <div className="rounded-[1.5rem] border border-black/10 bg-paper p-4">
+                <h4 className="text-sm font-semibold text-ink">About Custom Tools</h4>
+                <p className="mt-2 text-xs leading-relaxed text-ink-soft">
                   Custom tools allow you to import OpenAPI-based APIs and use their operations with your agents.
                   Each tool can have multiple operations that can be individually enabled for different agents.
                 </p>
@@ -661,7 +657,7 @@ function CustomToolModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-[1.2rem] border border-black/10 bg-[#f4efe4] px-5 py-3 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#ebe2cf]"
+            className="rounded-[1.2rem] border border-black/10 bg-paper px-5 py-3 text-sm font-semibold text-ink transition-colors hover:bg-sand-deep"
           >
             Cancel
           </button>
@@ -669,9 +665,9 @@ function CustomToolModal({
             type="submit"
             form={formId}
             disabled={saving}
-            className="rounded-[1.2rem] bg-[#171717] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-[1.2rem] bg-ink px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {saving ? 'Saving...' : tool ? 'Update Tool' : 'Create Tool'}
+            {saving ? 'Saving…' : tool ? 'Update Tool' : 'Create Tool'}
           </button>
         </div>
       </div>
@@ -692,19 +688,19 @@ function OperationsModal({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
+        <div className="sticky top-0 bg-white border-b border-line px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">
+              <h2 className="text-xl font-bold text-ink">
                 {tool.name} - Available Operations
               </h2>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-ink-soft mt-1">
                 {operations.length} operations available
               </p>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg"
+              className="p-2 hover:bg-sand rounded-lg"
             >
               <span className="text-2xl">&times;</span>
             </button>
@@ -713,34 +709,34 @@ function OperationsModal({
 
         <div className="p-6 space-y-4">
           {operations.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
+            <div className="text-center py-12 text-ink-mute">
               No operations found in this tool
             </div>
           ) : (
             operations.map((operation) => (
               <div
                 key={operation.operation_id}
-                className="border border-gray-200 rounded-lg p-4 hover:border-red-300 transition-colors"
+                className="border border-line rounded-lg p-4 hover:border-blush transition-colors"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <span className={`px-2 py-1 text-xs font-semibold rounded ${
-                        operation.method === 'GET' ? 'bg-blue-100 text-blue-700' :
-                        operation.method === 'POST' ? 'bg-green-100 text-green-700' :
-                        operation.method === 'PUT' ? 'bg-yellow-100 text-yellow-700' :
-                        operation.method === 'DELETE' ? 'bg-red-100 text-red-700' :
-                        'bg-gray-100 text-gray-700'
+                        operation.method === 'GET' ? 'bg-sky-wash text-azure' :
+                        operation.method === 'POST' ? 'bg-leaf-wash text-forest' :
+                        operation.method === 'PUT' ? 'bg-sand-deep text-gold' :
+                        operation.method === 'DELETE' ? 'bg-blush-wash text-danger' :
+                        'bg-sand text-ink-soft'
                       }`}>
                         {operation.method}
                       </span>
-                      <code className="text-sm text-gray-600">{operation.path}</code>
+                      <code className="text-sm text-ink-soft">{operation.path}</code>
                     </div>
-                    <h4 className="font-semibold text-gray-900 mb-1">
+                    <h4 className="font-semibold text-ink mb-1">
                       {operation.summary || operation.operation_id}
                     </h4>
                     {operation.description && (
-                      <p className="text-sm text-gray-600">{operation.description}</p>
+                      <p className="text-sm text-ink-soft">{operation.description}</p>
                     )}
                   </div>
                 </div>

@@ -45,14 +45,14 @@ function parseUserAgent(ua: string | null): { device: string; browser: string; o
 }
 
 function DeviceIcon({ ua }: { ua: string | null }) {
-  if (!ua) return <Monitor className="w-4 h-4 text-gray-400" />;
+  if (!ua) return <Monitor className="w-4 h-4 text-ash" />;
   if (/iPhone|iPod/.test(ua) || /Android.*Mobile/.test(ua)) {
-    return <Smartphone className="w-4 h-4 text-gray-400" />;
+    return <Smartphone className="w-4 h-4 text-ash" />;
   }
   if (/iPad|Android(?!.*Mobile)/.test(ua)) {
-    return <Laptop className="w-4 h-4 text-gray-400" />;
+    return <Laptop className="w-4 h-4 text-ash" />;
   }
-  return <Monitor className="w-4 h-4 text-gray-400" />;
+  return <Monitor className="w-4 h-4 text-ash" />;
 }
 
 function formatSessionDate(iso: string): string {
@@ -198,7 +198,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="dashboard-settings-page flex min-h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+        <div className="motion-safe:animate-spin rounded-full h-12 w-12 border-b-2 border-danger"></div>
       </div>
     );
   }
@@ -208,47 +208,47 @@ export default function ProfilePage() {
       <div className="max-w-5xl mx-auto px-4 md:px-6 py-4 md:py-6">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Profile Settings</h1>
-          <p className="mt-1 text-sm text-gray-600">Manage your personal information and preferences</p>
+          <h1 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight">Profile Settings</h1>
+          <p className="mt-1 text-sm text-ink-soft">Manage your personal information and preferences</p>
         </div>
 
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* Left Sidebar - Profile Card */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              <div className="h-20 bg-gradient-to-r from-red-500 to-red-600"></div>
+            <div className="bg-white rounded-lg shadow-sm border border-line overflow-hidden">
+              <div className="h-20 bg-sand-deep"></div>
               <div className="px-5 pb-5">
                 <div className="flex flex-col items-center -mt-10">
                   <AvatarUpload
                     currentAvatar={profile?.avatar_url}
                     onUpload={handleAvatarUpload}
                   />
-                  <h2 className="mt-3 text-lg font-semibold text-gray-900">{profile?.name || 'User'}</h2>
-                  <p className="text-xs text-gray-500">{profile?.email}</p>
+                  <h2 className="mt-3 text-lg font-semibold text-ink">{profile?.name || 'User'}</h2>
+                  <p className="text-xs text-ink-mute">{profile?.email}</p>
                   {profile?.job_title && (
-                    <p className="mt-2 text-xs text-gray-600">{profile.job_title}</p>
+                    <p className="mt-2 text-xs text-ink-soft">{profile.job_title}</p>
                   )}
                   {profile?.company && (
-                    <p className="text-xs text-gray-500">{profile.company}</p>
+                    <p className="text-xs text-ink-mute">{profile.company}</p>
                   )}
                 </div>
 
                 {/* Quick Stats */}
-                <div className="mt-5 pt-5 border-t border-gray-200 space-y-2.5">
+                <div className="mt-5 pt-5 border-t border-line space-y-2.5">
                   <div className="flex items-center text-xs">
-                    <Shield className="w-3.5 h-3.5 text-red-600 mr-2" />
-                    <span className="text-gray-600">
-                      2FA: <span className="font-medium text-gray-900">
+                    <Shield className="w-3.5 h-3.5 text-leaf mr-2" />
+                    <span className="text-ink-soft">
+                      2FA: <span className="font-medium text-ink">
                         {profile?.two_factor_enabled ? 'Enabled' : 'Disabled'}
                       </span>
                     </span>
                   </div>
                   {profile?.last_login_at && (
                     <div className="flex items-center text-xs">
-                      <Clock className="w-3.5 h-3.5 text-red-600 mr-2" />
-                      <span className="text-gray-600">
-                        Last login: <span className="font-medium text-gray-900">
+                      <Clock className="w-3.5 h-3.5 text-leaf mr-2" />
+                      <span className="text-ink-soft">
+                        Last login: <span className="font-medium text-ink">
                           {new Date(profile.last_login_at).toLocaleDateString()}
                         </span>
                       </span>
@@ -261,14 +261,14 @@ export default function ProfilePage() {
 
           {/* Right Content - Form */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="bg-white rounded-lg shadow-sm border border-line">
               {/* Form Header */}
-              <div className="px-5 py-3.5 border-b border-gray-200 flex items-center justify-between">
-                <h3 className="text-base font-semibold text-gray-900">Personal Information</h3>
+              <div className="px-5 py-3.5 border-b border-line flex items-center justify-between">
+                <h3 className="text-base font-semibold text-ink">Personal Information</h3>
                 {!isEditing ? (
                   <button
                     onClick={() => setIsEditing(true)}
-                    className="px-3 py-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all text-xs font-medium shadow-sm"
+                    className="px-3 py-1.5 bg-ink text-white rounded-lg hover:from-danger hover:to-danger transition-[color,background-color,border-color,box-shadow,opacity,transform] text-xs font-medium shadow-sm"
                   >
                     Edit Profile
                   </button>
@@ -276,16 +276,16 @@ export default function ProfilePage() {
                   <div className="flex gap-2">
                     <button
                       onClick={handleCancel}
-                      className="px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-xs font-medium"
+                      className="px-3 py-1.5 border border-taupe text-ink-soft rounded-lg hover:bg-cream transition-colors text-xs font-medium"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleSave}
                       disabled={isSaving}
-                      className="px-3 py-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all text-xs font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3 py-1.5 bg-ink text-white rounded-lg hover:from-danger hover:to-danger transition-[color,background-color,border-color,box-shadow,opacity,transform] text-xs font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {isSaving ? 'Saving...' : 'Save Changes'}
+                      {isSaving ? 'Saving…' : 'Save Changes'}
                     </button>
                   </div>
                 )}
@@ -297,11 +297,11 @@ export default function ProfilePage() {
                   {/* Basic Information */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                        Full Name <span className="text-red-500">*</span>
+                      <label className="block text-xs font-medium text-ink-soft mb-1.5">
+                        Full Name <span className="text-leaf">*</span>
                       </label>
                       <div className="relative">
-                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-ash" />
                         <input
                           type="text"
                           name="name"
@@ -309,18 +309,18 @@ export default function ProfilePage() {
                           onChange={handleInputChange}
                           disabled={!isEditing}
                           required
-                          className="w-full pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 disabled:bg-gray-50 disabled:text-gray-500 transition-colors"
+                          className="w-full pl-10 pr-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-ink disabled:bg-cream disabled:text-ink-mute transition-colors"
                           placeholder="Enter your full name"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                        Email Address <span className="text-red-500">*</span>
+                      <label className="block text-xs font-medium text-ink-soft mb-1.5">
+                        Email Address <span className="text-leaf">*</span>
                       </label>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-ash" />
                         <input
                           type="email"
                           name="email"
@@ -328,39 +328,39 @@ export default function ProfilePage() {
                           onChange={handleInputChange}
                           disabled={!isEditing}
                           required
-                          className="w-full pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 disabled:bg-gray-50 disabled:text-gray-500 transition-colors"
+                          className="w-full pl-10 pr-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-ink disabled:bg-cream disabled:text-ink-mute transition-colors"
                           placeholder="your.email@example.com"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1.5">Phone Number</label>
+                      <label className="block text-xs font-medium text-ink-soft mb-1.5">Phone Number</label>
                       <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-ash" />
                         <input
                           type="tel"
                           name="phone"
                           value={formData.phone}
                           onChange={handleInputChange}
                           disabled={!isEditing}
-                          className="w-full pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 disabled:bg-gray-50 disabled:text-gray-500 transition-colors"
+                          className="w-full pl-10 pr-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-ink disabled:bg-cream disabled:text-ink-mute transition-colors"
                           placeholder="+1 (555) 000-0000"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1.5">Location</label>
+                      <label className="block text-xs font-medium text-ink-soft mb-1.5">Location</label>
                       <div className="relative">
-                        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-ash" />
                         <input
                           type="text"
                           name="location"
                           value={formData.location}
                           onChange={handleInputChange}
                           disabled={!isEditing}
-                          className="w-full pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 disabled:bg-gray-50 disabled:text-gray-500 transition-colors"
+                          className="w-full pl-10 pr-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-ink disabled:bg-cream disabled:text-ink-mute transition-colors"
                           placeholder="City, Country"
                         />
                       </div>
@@ -368,52 +368,52 @@ export default function ProfilePage() {
                   </div>
 
                   {/* Professional Information */}
-                  <div className="pt-5 border-t border-gray-200">
-                    <h4 className="text-sm font-semibold text-gray-900 mb-3.5">Professional Details</h4>
+                  <div className="pt-5 border-t border-line">
+                    <h4 className="text-sm font-semibold text-ink mb-3.5">Professional Details</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1.5">Company</label>
+                        <label className="block text-xs font-medium text-ink-soft mb-1.5">Company</label>
                         <div className="relative">
-                          <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-ash" />
                           <input
                             type="text"
                             name="company"
                             value={formData.company}
                             onChange={handleInputChange}
                             disabled={!isEditing}
-                            className="w-full pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 disabled:bg-gray-50 disabled:text-gray-500 transition-colors"
+                            className="w-full pl-10 pr-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-ink disabled:bg-cream disabled:text-ink-mute transition-colors"
                             placeholder="Your company name"
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1.5">Job Title</label>
+                        <label className="block text-xs font-medium text-ink-soft mb-1.5">Job Title</label>
                         <div className="relative">
-                          <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-ash" />
                           <input
                             type="text"
                             name="job_title"
                             value={formData.job_title}
                             onChange={handleInputChange}
                             disabled={!isEditing}
-                            className="w-full pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 disabled:bg-gray-50 disabled:text-gray-500 transition-colors"
+                            className="w-full pl-10 pr-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-ink disabled:bg-cream disabled:text-ink-mute transition-colors"
                             placeholder="Your role"
                           />
                         </div>
                       </div>
 
                       <div className="md:col-span-2">
-                        <label className="block text-xs font-medium text-gray-700 mb-1.5">Website</label>
+                        <label className="block text-xs font-medium text-ink-soft mb-1.5">Website</label>
                         <div className="relative">
-                          <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-ash" />
                           <input
                             type="url"
                             name="website"
                             value={formData.website}
                             onChange={handleInputChange}
                             disabled={!isEditing}
-                            className="w-full pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 disabled:bg-gray-50 disabled:text-gray-500 transition-colors"
+                            className="w-full pl-10 pr-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-ink disabled:bg-cream disabled:text-ink-mute transition-colors"
                             placeholder="https://yourwebsite.com"
                           />
                         </div>
@@ -422,20 +422,20 @@ export default function ProfilePage() {
                   </div>
 
                   {/* Bio Section */}
-                  <div className="pt-5 border-t border-gray-200">
-                    <h4 className="text-sm font-semibold text-gray-900 mb-3.5">About You</h4>
+                  <div className="pt-5 border-t border-line">
+                    <h4 className="text-sm font-semibold text-ink mb-3.5">About You</h4>
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1.5">Bio</label>
+                      <label className="block text-xs font-medium text-ink-soft mb-1.5">Bio</label>
                       <div className="relative">
-                        <FileText className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                        <FileText className="absolute left-3 top-3 w-4 h-4 text-ash" />
                         <textarea
                           name="bio"
                           value={formData.bio}
                           onChange={handleInputChange}
                           disabled={!isEditing}
                           rows={4}
-                          className="w-full pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 disabled:bg-gray-50 disabled:text-gray-500 transition-colors resize-none"
-                          placeholder="Tell us about yourself..."
+                          className="w-full pl-10 pr-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-ink focus:border-ink disabled:bg-cream disabled:text-ink-mute transition-colors resize-none"
+                          placeholder="Tell us about yourself…"
                         />
                       </div>
                     </div>
@@ -448,24 +448,24 @@ export default function ProfilePage() {
 
         {/* Active Sessions — full-width below the two-column grid */}
         <div className="mt-5">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="bg-white rounded-lg shadow-sm border border-line">
             {/* Card header */}
-            <div className="px-5 py-3.5 border-b border-gray-200">
-              <h3 className="text-base font-semibold text-gray-900">Active Sessions</h3>
-              <p className="text-xs text-gray-500 mt-0.5">Manage devices and sessions signed into your account</p>
+            <div className="px-5 py-3.5 border-b border-line">
+              <h3 className="text-base font-semibold text-ink">Active Sessions</h3>
+              <p className="text-xs text-ink-mute mt-0.5">Manage devices and sessions signed into your account</p>
             </div>
 
             {/* Card body */}
             <div className="p-5">
               {sessionsLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-600" />
+                  <div className="motion-safe:animate-spin rounded-full h-6 w-6 border-b-2 border-danger" />
                 </div>
               ) : sessions.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-6">No active sessions found.</p>
+                <p className="text-sm text-ink-mute text-center py-6">No active sessions found.</p>
               ) : (
                 <>
-                  <ul className="divide-y divide-gray-100">
+                  <ul className="divide-y divide-sand">
                     {sessions.map(session => {
                       const { device } = parseUserAgent(session.user_agent);
                       const isRevoking = revokingId === session.session_id;
@@ -477,18 +477,18 @@ export default function ProfilePage() {
                             </div>
                             <div className="min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-sm font-medium text-gray-900 truncate">{device}</span>
+                                <span className="text-sm font-medium text-ink truncate">{device}</span>
                                 {session.is_current && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 border border-green-200">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-leaf-wash text-forest border border-mint">
                                     Current session
                                   </span>
                                 )}
                               </div>
                               <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
-                                <span className="text-xs text-gray-500">
+                                <span className="text-xs text-ink-mute">
                                   {session.ip_address ?? 'Unknown location'}
                                 </span>
-                                <span className="text-xs text-gray-400">
+                                <span className="text-xs text-ash">
                                   Signed in {formatSessionDate(session.created_at)}
                                 </span>
                               </div>
@@ -499,11 +499,11 @@ export default function ProfilePage() {
                             <button
                               onClick={() => handleRevokeSession(session.session_id)}
                               disabled={isRevoking || revokingAll}
-                              className="flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-danger border border-blush rounded-lg hover:bg-blush-wash transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               {isRevoking ? (
                                 <>
-                                  <div className="animate-spin rounded-full h-3 w-3 border-b border-red-600" />
+                                  <div className="motion-safe:animate-spin rounded-full h-3 w-3 border-b border-danger" />
                                   Revoking...
                                 </>
                               ) : (
@@ -521,15 +521,15 @@ export default function ProfilePage() {
 
                   {/* Footer: revoke all other sessions */}
                   {sessions.filter(s => !s.is_current).length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end">
+                    <div className="mt-4 pt-4 border-t border-sand flex justify-end">
                       <button
                         onClick={handleRevokeAllSessions}
                         disabled={revokingAll}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-danger bg-blush-wash border border-blush rounded-lg hover:bg-blush-wash transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {revokingAll ? (
                           <>
-                            <div className="animate-spin rounded-full h-3 w-3 border-b border-red-700" />
+                            <div className="motion-safe:animate-spin rounded-full h-3 w-3 border-b border-danger" />
                             Revoking all...
                           </>
                         ) : (
@@ -544,7 +544,7 @@ export default function ProfilePage() {
 
                   {/* Empty other-sessions state */}
                   {sessions.filter(s => !s.is_current).length === 0 && !sessionsLoading && (
-                    <p className="mt-3 text-xs text-gray-400 text-center">No other active sessions.</p>
+                    <p className="mt-3 text-xs text-ash text-center">No other active sessions.</p>
                   )}
                 </>
               )}

@@ -55,33 +55,33 @@ export function IntegrationCard({ config, onTest, onActivate, onDelete, isPlatfo
   }
 
   return (
-    <div className="p-6 hover:bg-gray-50 transition-colors">
+    <div className="p-6 hover:bg-cream transition-colors">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
-            <h3 className="text-lg font-semibold text-gray-900">{config.provider.toUpperCase()}</h3>
+            <h3 className="text-lg font-semibold text-ink">{config.provider.toUpperCase()}</h3>
             <span
               className={`px-3 py-1 rounded-full text-xs font-medium ${
                 config.is_active
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-gray-100 text-gray-800'
+                  ? 'bg-leaf-wash text-forest'
+                  : 'bg-sand text-ink'
               }`}
             >
               {config.is_active ? 'Active' : 'Inactive'}
             </span>
             {config.is_default && (
-              <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              <span className="px-3 py-1 rounded-full text-xs font-medium bg-sky-wash text-azure">
                 Default
               </span>
             )}
-            <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+            <span className="px-3 py-1 rounded-full text-xs font-medium bg-blush-wash text-wine">
               {config.integration_type}
             </span>
           </div>
-          <p className="text-gray-600 mb-2">
+          <p className="text-ink-soft mb-2">
             {config.config_data?.metadata?.description || `${config.integration_type} integration`}
           </p>
-          <div className="flex items-center gap-4 text-sm text-gray-500">
+          <div className="flex items-center gap-4 text-sm text-ink-mute">
             {config.config_data?.settings?.from_email && (
               <>
                 <span className="font-mono">{config.config_data.settings.from_email}</span>
@@ -93,7 +93,7 @@ export function IntegrationCard({ config, onTest, onActivate, onDelete, isPlatfo
           {config.config_data?.metadata?.tags && config.config_data.metadata.tags.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {config.config_data.metadata.tags.map((tag: string) => (
-                <span key={tag} className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
+                <span key={tag} className="px-2 py-1 bg-sand text-ink-soft rounded text-xs">
                   {tag}
                 </span>
               ))}
@@ -105,11 +105,11 @@ export function IntegrationCard({ config, onTest, onActivate, onDelete, isPlatfo
           <button
             onClick={handleTest}
             disabled={testing || activating || deleting}
-            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+            className="p-2 text-leaf hover:bg-leaf-wash rounded-lg transition-colors disabled:opacity-50"
             title="Test Connection"
           >
             {testing ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600"></div>
+              <div className="motion-safe:animate-spin rounded-full h-5 w-5 border-b-2 border-leaf"></div>
             ) : (
               <TestTube size={20} />
             )}
@@ -119,16 +119,16 @@ export function IntegrationCard({ config, onTest, onActivate, onDelete, isPlatfo
             <button
               onClick={handleActivate}
               disabled={testing || activating || deleting}
-              className="px-3 py-1 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50"
+              className="px-3 py-1 text-sm bg-leaf text-white rounded-lg hover:bg-forest transition-colors disabled:opacity-50"
             >
-              {activating ? 'Activating...' : 'Activate'}
+              {activating ? 'Activating…' : 'Activate'}
             </button>
           )}
 
           <button
             onClick={handleEdit}
             disabled={testing || activating || deleting}
-            className="p-2 text-teal-600 hover:bg-teal-50 rounded-lg transition-colors disabled:opacity-50"
+            className="p-2 text-leaf hover:bg-leaf-wash rounded-lg transition-colors disabled:opacity-50"
             title="Edit"
           >
             <Settings size={20} />
@@ -144,7 +144,7 @@ export function IntegrationCard({ config, onTest, onActivate, onDelete, isPlatfo
                 config.is_active ||
                 (config.is_platform_config && !isPlatformOwner)
               }
-              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+              className="p-2 text-leaf hover:bg-blush-wash rounded-lg transition-colors disabled:opacity-50"
               title={
                 config.is_active 
                   ? "Cannot delete active integration" 
@@ -154,7 +154,7 @@ export function IntegrationCard({ config, onTest, onActivate, onDelete, isPlatfo
               }
             >
               {deleting ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-600"></div>
+                <div className="motion-safe:animate-spin rounded-full h-5 w-5 border-b-2 border-danger"></div>
               ) : config.is_platform_config && !isPlatformOwner ? (
                 <Lock size={20} />
               ) : (

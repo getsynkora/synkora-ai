@@ -3,7 +3,10 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, AlertCircle, CheckCircle, Database } from 'lucide-react'
+import {
+  AlertCircle, ArrowLeft, BookOpen, CheckCircle, CheckSquare, ClipboardList, Database, Github, Mail, MessageSquare,
+  NotebookText, Ruler,
+} from 'lucide-react'
 import LoadingSpinner from '@/components/common/LoadingSpinner'
 import { apiClient } from '@/lib/api/client'
 
@@ -33,64 +36,64 @@ const SOURCE_TYPES = [
     value: 'SLACK',
     label: 'Slack',
     description: 'Sync messages, threads, and files from Slack channels',
-    icon: '💬',
-    color: 'bg-[#f4ebe2] text-[#6f4f36]',
+    icon: MessageSquare,
+    color: 'bg-sand text-bark',
     authLabel: 'OAuth Required',
   },
   {
     value: 'GMAIL',
     label: 'Gmail',
     description: 'Sync emails from Gmail using labels and filters',
-    icon: '📧',
-    color: 'bg-[#f8e4dd] text-[#9f4b31]',
+    icon: Mail,
+    color: 'bg-sand-deep text-danger',
     authLabel: 'OAuth Required',
   },
   {
     value: 'GITHUB',
     label: 'GitHub',
     description: 'Sync repositories, issues, pull requests, and discussions',
-    icon: '🐙',
-    color: 'bg-[#e6f0ea] text-[#2f6a51]',
+    icon: Github,
+    color: 'bg-leaf-wash text-forest',
     authLabel: 'OAuth Required',
   },
   {
     value: 'JIRA',
     label: 'Jira',
     description: 'Sync issues, comments, and project activity from Jira',
-    icon: '📋',
-    color: 'bg-[#e7edfb] text-[#31489f]',
+    icon: ClipboardList,
+    color: 'bg-sky-wash text-azure',
     authLabel: 'OAuth Required',
   },
   {
     value: 'CLICKUP',
     label: 'ClickUp',
     description: 'Sync tasks and docs across ClickUp spaces and lists',
-    icon: '✅',
-    color: 'bg-[#f0e9fb] text-[#6a3f9f]',
+    icon: CheckSquare,
+    color: 'bg-blush-wash text-azure',
     authLabel: 'OAuth Required',
   },
   {
     value: 'NOTION',
     label: 'Notion',
     description: 'Sync pages and databases using a Notion internal integration token',
-    icon: '📓',
-    color: 'bg-[#eceaea] text-[#3a3a3a]',
+    icon: NotebookText,
+    color: 'bg-sky-wash text-night',
     authLabel: 'API Token',
   },
   {
     value: 'CONFLUENCE',
     label: 'Confluence',
     description: 'Sync spaces and pages using an API token or personal access token',
-    icon: '📚',
-    color: 'bg-[#e6f0ea] text-[#2f6a51]',
+    icon: BookOpen,
+    color: 'bg-leaf-wash text-forest',
     authLabel: 'API Token',
   },
   {
     value: 'LINEAR',
     label: 'Linear',
     description: 'Sync issues and project activity using a Linear personal API key',
-    icon: '📐',
-    color: 'bg-[#e7edfb] text-[#31489f]',
+    icon: Ruler,
+    color: 'bg-sky-wash text-azure',
     authLabel: 'API Token',
   },
 ]
@@ -172,10 +175,10 @@ function ConnectDataSourceContent() {
     { id: 2, label: 'Select KB' },
     { id: 3, label: 'Configure' },
   ]
-  const fieldClass = 'w-full rounded-[1.15rem] border border-gray-200 bg-gray-50 px-4 py-4 text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500'
-  const labelClass = 'mb-2 block text-sm font-semibold text-gray-700'
-  const compactLabelClass = 'mb-1.5 block text-sm font-semibold text-gray-700'
-  const helpClass = 'mt-2 text-xs leading-relaxed text-gray-500'
+  const fieldClass = 'w-full rounded-[1.15rem] border border-line bg-cream px-4 py-4 text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ink'
+  const labelClass = 'mb-2 block text-sm font-semibold text-ink-soft'
+  const compactLabelClass = 'mb-1.5 block text-sm font-semibold text-ink-soft'
+  const helpClass = 'mt-2 text-xs leading-relaxed text-ink-mute'
   const selectedSource = SOURCE_TYPES.find((type) => type.value === selectedType)
   const selectedKnowledgeBase = knowledgeBases.find((kb) => kb.id === selectedKbId)
   const isDirectAuth = DIRECT_AUTH_TYPES.has(selectedType)
@@ -399,11 +402,11 @@ function ConnectDataSourceContent() {
   return (
     <div className="dashboard-resource-page min-h-screen p-4 md:p-6">
       <div className="mx-auto max-w-5xl space-y-6">
-        <div className="overflow-hidden rounded-[2rem] border border-[#eadfce] bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.96),_rgba(247,240,231,0.94)_50%,_rgba(237,230,220,0.92)_100%)] shadow-[0_28px_80px_-42px_rgba(88,63,39,0.32)]">
+        <div className="bg-cream overflow-hidden rounded-[2rem] border border-sand-deep shadow-soft">
           <div className="flex flex-col gap-6 p-6 md:p-8">
             <Link
               href="/data-sources"
-              className="inline-flex w-fit items-center gap-2 rounded-full border border-[#dbcdb9] bg-white/80 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-[#cdb79d] hover:text-gray-900"
+              className="inline-flex w-fit items-center gap-2 rounded-full border border-line bg-white/80 px-4 py-2 text-sm font-semibold text-ink-soft transition-colors hover:border-tan hover:text-ink"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Data Sources
@@ -411,32 +414,28 @@ function ConnectDataSourceContent() {
 
             <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
               <div className="max-w-2xl space-y-3">
-                <div className="inline-flex items-center gap-2 rounded-full border border-[#dfd1be] bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#7c5d45]">
-                  <Database className="h-3.5 w-3.5" />
-                  Data Source Setup
-                </div>
                 <div className="space-y-2">
-                  <h1 className="text-3xl font-semibold tracking-[-0.04em] text-gray-950 md:text-[2.6rem]">
+                  <h1 className="text-3xl font-semibold tracking-[-0.04em] text-ink md:text-[2.6rem]">
                     Connect Data Source
                   </h1>
-                  <p className="max-w-xl text-sm leading-6 text-gray-600 md:text-[15px]">
+                  <p className="max-w-xl text-sm leading-6 text-ink-soft md:text-[15px]">
                     Connect a data source to sync documents to your knowledge base.
                   </p>
                 </div>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-[1.5rem] border border-white/70 bg-white/75 px-4 py-3 shadow-[0_20px_45px_-38px_rgba(77,51,28,0.4)] backdrop-blur">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7a5e]">Current Step</p>
-                  <p className="mt-2 text-lg font-semibold text-gray-900">{steps[currentStep - 1].label}</p>
+                <div className="rounded-[1.5rem] border border-white/70 bg-white/75 px-4 py-3 shadow-soft">
+                  <p className="text-[11px] font-semibold text-clay">Current Step</p>
+                  <p className="mt-2 text-lg font-semibold text-ink">{steps[currentStep - 1].label}</p>
                 </div>
-                <div className="rounded-[1.5rem] border border-white/70 bg-white/75 px-4 py-3 shadow-[0_20px_45px_-38px_rgba(77,51,28,0.4)] backdrop-blur">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7a5e]">Selection</p>
+                <div className="rounded-[1.5rem] border border-white/70 bg-white/75 px-4 py-3 shadow-soft">
+                  <p className="text-[11px] font-semibold text-clay">Selection</p>
                   <div className="mt-2 space-y-1">
-                    <p className="text-lg font-semibold text-gray-900">
+                    <p className="text-lg font-semibold text-ink">
                       {selectedSource?.label || 'Choose source'}
                     </p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-ink-mute">
                       {selectedKnowledgeBase?.name || (hasPresetKb ? 'Knowledge base selected' : 'Choose knowledge base')}
                     </p>
                   </div>
@@ -446,7 +445,7 @@ function ConnectDataSourceContent() {
           </div>
         </div>
 
-        <div className="rounded-[1.75rem] border border-[#e7dccd] bg-white/95 p-4 shadow-[0_24px_60px_-42px_rgba(76,48,23,0.28)]">
+        <div className="rounded-[1.75rem] border border-line bg-white/95 p-4 shadow-soft">
           <div className="grid gap-3 md:grid-cols-3">
             {steps.map((stepItem) => {
               const isActive = stepItem.id === currentStep
@@ -455,31 +454,31 @@ function ConnectDataSourceContent() {
               return (
                 <div
                   key={stepItem.id}
-                  className={`rounded-[1.35rem] border px-4 py-4 transition-all ${
+                  className={`rounded-[1.35rem] border px-4 py-4 transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
                     isActive
-                      ? 'border-[#d7bea3] bg-[#f6ede4] shadow-[0_18px_36px_-28px_rgba(104,72,46,0.3)]'
+                      ? 'border-tan bg-paper shadow-soft'
                       : isComplete
-                        ? 'border-[#d9e6dc] bg-[#eef6f1]'
-                        : 'border-gray-200 bg-gray-50/90'
+                        ? 'border-leaf-wash bg-leaf-wash'
+                        : 'border-line bg-cream/90'
                   }`}
                 >
                   <div className="flex items-center gap-3">
                     <div
                       className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold ${
                         isActive
-                          ? 'bg-gray-950 text-white'
+                          ? 'bg-ink text-white'
                           : isComplete
-                            ? 'bg-[#2f6a51] text-white'
-                            : 'bg-white text-gray-500'
+                            ? 'bg-forest text-white'
+                            : 'bg-white text-ink-mute'
                       }`}
                     >
                       {isComplete ? <CheckCircle className="h-4 w-4" /> : stepItem.id}
                     </div>
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">
+                      <p className="text-[11px] font-semibold text-ink-mute">
                         Step {stepItem.id}
                       </p>
-                      <p className="text-sm font-semibold text-gray-900">{stepItem.label}</p>
+                      <p className="text-sm font-semibold text-ink">{stepItem.label}</p>
                     </div>
                   </div>
                 </div>
@@ -489,16 +488,16 @@ function ConnectDataSourceContent() {
         </div>
 
         {error && (
-          <div className="rounded-[1.6rem] border border-[#e6c0b8] bg-[#fbefec] px-5 py-4 text-sm text-[#8f3f2c] shadow-[0_16px_40px_-34px_rgba(152,64,42,0.28)]">
+          <div className="rounded-[1.6rem] border border-paper-dim bg-paper px-5 py-4 text-sm text-danger shadow-soft">
             <div className="flex items-start gap-3">
               <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
               <div className="flex-1">
-                <p className="font-semibold text-[#7f301f]">Unable to continue</p>
+                <p className="font-semibold text-danger">Unable to continue</p>
                 <p className="mt-1 leading-6">{error}</p>
               </div>
               <button
                 onClick={() => setError(null)}
-                className="rounded-full border border-[#e1b5aa] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#8f3f2c] transition-colors hover:bg-white/70"
+                className="rounded-full border border-tan px-3 py-1 text-xs font-semibold text-danger transition-colors hover:bg-white/70"
               >
                 Dismiss
               </button>
@@ -509,9 +508,9 @@ function ConnectDataSourceContent() {
         {step === 'select-type' && (
           <div className="space-y-5">
             <div className="space-y-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#9a7a5e]">Step 1</p>
-              <h2 className="text-2xl font-semibold tracking-[-0.03em] text-gray-950">Select Data Source Type</h2>
-              <p className="text-sm leading-6 text-gray-600">
+              <p className="text-[11px] font-semibold text-clay">Step 1</p>
+              <h2 className="text-2xl font-semibold tracking-[-0.03em] text-ink">Select Data Source Type</h2>
+              <p className="text-sm leading-6 text-ink-soft">
                 Select the type of data source you want to connect.
               </p>
             </div>
@@ -521,26 +520,26 @@ function ConnectDataSourceContent() {
                 <button
                   key={type.value}
                   onClick={() => handleTypeSelect(type.value)}
-                  className="group rounded-[1.75rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(247,242,236,0.94))] p-5 text-left shadow-[0_20px_50px_-40px_rgba(73,45,23,0.28)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#d4baa1] hover:shadow-[0_26px_60px_-36px_rgba(73,45,23,0.34)]"
+                  className="group rounded-[1.75rem] border border-line bg-white p-5 text-left shadow-soft transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-200 hover:-translate-y-0.5 hover:border-tan hover:shadow-soft"
                 >
                   <div className="space-y-4">
                     <div className="flex items-start justify-between gap-4">
-                      <div className="flex h-14 w-14 items-center justify-center rounded-[1.3rem] bg-white text-3xl shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_16px_30px_-24px_rgba(74,49,22,0.45)]">
-                        {type.icon}
+                      <div className="flex h-14 w-14 items-center justify-center rounded-[1.3rem] bg-white shadow-soft">
+                        <type.icon className="h-7 w-7" aria-hidden="true" />
                       </div>
-                      <span className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${type.color}`}>
+                      <span className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold ${type.color}`}>
                         {type.authLabel}
                       </span>
                     </div>
 
                     <div className="space-y-2">
-                      <h3 className="text-lg font-semibold text-gray-950">{type.label}</h3>
-                      <p className="text-sm leading-6 text-gray-600">{type.description}</p>
+                      <h3 className="text-lg font-semibold text-ink">{type.label}</h3>
+                      <p className="text-sm leading-6 text-ink-soft">{type.description}</p>
                     </div>
 
-                    <div className="flex items-center justify-between border-t border-[#ebe1d6] pt-4">
-                      <span className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Connect securely</span>
-                      <span className="text-sm font-semibold text-gray-900 transition-transform duration-200 group-hover:translate-x-0.5">
+                    <div className="flex items-center justify-between border-t border-sand-deep pt-4">
+                      <span className="text-xs font-semibold text-ink-mute">Connect securely</span>
+                      <span className="text-sm font-semibold text-ink transition-transform motion-reduce:transition-none duration-200 group-hover:translate-x-0.5">
                         Continue
                       </span>
                     </div>
@@ -555,15 +554,15 @@ function ConnectDataSourceContent() {
           <div className="space-y-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div className="space-y-1">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#9a7a5e]">Step 2</p>
-                <h2 className="text-2xl font-semibold tracking-[-0.03em] text-gray-950">Select Knowledge Base</h2>
-                <p className="text-sm leading-6 text-gray-600">
+                <p className="text-[11px] font-semibold text-clay">Step 2</p>
+                <h2 className="text-2xl font-semibold tracking-[-0.03em] text-ink">Select Knowledge Base</h2>
+                <p className="text-sm leading-6 text-ink-soft">
                   Choose which knowledge base should receive this data source.
                 </p>
               </div>
               <button
                 onClick={() => setStep('select-type')}
-                className="inline-flex items-center gap-2 rounded-full border border-[#ddd2c2] bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-[#ccb59a] hover:text-gray-900"
+                className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-4 py-2 text-sm font-semibold text-ink-soft transition-colors hover:border-tan hover:text-ink"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Back
@@ -576,18 +575,18 @@ function ConnectDataSourceContent() {
                   <button
                     key={kb.id}
                     onClick={() => handleKbSelect(kb.id)}
-                    className={`rounded-[1.5rem] border px-5 py-4 text-left shadow-[0_18px_44px_-38px_rgba(68,43,19,0.22)] transition-all ${
+                    className={`rounded-[1.5rem] border px-5 py-4 text-left shadow-soft transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
                       selectedKbId === kb.id
-                        ? 'border-[#cfae8b] bg-[#f8efe5]'
-                        : 'border-[#e4d9cb] bg-white hover:border-[#cfb69c] hover:bg-[#fcfaf7]'
+                        ? 'border-tan bg-paper'
+                        : 'border-line bg-white hover:border-tan hover:bg-cream'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-4">
                       <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#9a7a5e]">Knowledge Base</p>
-                        <h3 className="mt-1 text-base font-semibold text-gray-950">{kb.name}</h3>
+                        <p className="text-[11px] font-semibold text-clay">Knowledge Base</p>
+                        <h3 className="mt-1 text-base font-semibold text-ink">{kb.name}</h3>
                       </div>
-                      <span className={`text-sm font-semibold ${selectedKbId === kb.id ? 'text-[#8f5a2d]' : 'text-gray-900'}`}>
+                      <span className={`text-sm font-semibold ${selectedKbId === kb.id ? 'text-gold' : 'text-ink'}`}>
                         {selectedKbId === kb.id ? 'Selected' : 'Select'}
                       </span>
                     </div>
@@ -595,12 +594,12 @@ function ConnectDataSourceContent() {
                 ))}
               </div>
             ) : (
-              <div className="rounded-[1.75rem] border border-[#e5d9ca] bg-white px-6 py-10 text-center shadow-[0_18px_48px_-40px_rgba(70,43,22,0.25)]">
-                <p className="text-lg font-semibold text-gray-900">No knowledge bases found.</p>
-                <p className="mt-2 text-sm text-gray-600">Create a knowledge base first, then return here to connect your source.</p>
+              <div className="rounded-[1.75rem] border border-line bg-white px-6 py-10 text-center shadow-soft">
+                <p className="text-lg font-semibold text-ink">No knowledge bases found.</p>
+                <p className="mt-2 text-sm text-ink-soft">Create a knowledge base first, then return here to connect your source.</p>
                 <Link
                   href="/knowledge-bases/create"
-                  className="mt-5 inline-flex items-center rounded-full bg-gray-950 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-gray-800"
+                  className="mt-5 inline-flex items-center rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-ink"
                 >
                   Create knowledge base
                 </Link>
@@ -610,13 +609,13 @@ function ConnectDataSourceContent() {
         )}
 
         {checkingOAuth && (
-          <div className="rounded-[1.85rem] border border-[#e7dccd] bg-white px-6 py-12 shadow-[0_24px_60px_-42px_rgba(76,48,23,0.28)]">
+          <div className="rounded-[1.85rem] border border-line bg-white px-6 py-12 shadow-soft">
             <div className="flex flex-col items-center justify-center text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#f6ede4]">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-paper">
                 <LoadingSpinner />
               </div>
-              <h3 className="mt-5 text-lg font-semibold text-gray-900">Checking OAuth configuration</h3>
-              <p className="mt-2 max-w-md text-sm leading-6 text-gray-600">
+              <h3 className="mt-5 text-lg font-semibold text-ink">Checking OAuth configuration</h3>
+              <p className="mt-2 max-w-md text-sm leading-6 text-ink-soft">
                 Checking available OAuth apps for {selectedSource?.label || 'this source'}.
               </p>
             </div>
@@ -629,24 +628,24 @@ function ConnectDataSourceContent() {
           !(selectedType === 'SLACK' && slackBots.length > 0) &&
           selectedType &&
           selectedKbId && (
-          <div className="rounded-[1.9rem] border border-[#ead8aa] bg-[linear-gradient(180deg,_rgba(255,251,237,0.98),_rgba(251,244,217,0.96))] p-6 shadow-[0_24px_60px_-44px_rgba(126,89,25,0.25)]">
+          <div className="rounded-[1.9rem] border border-tan bg-paper p-6 shadow-soft">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-              <div className="flex h-14 w-14 items-center justify-center rounded-[1.25rem] bg-white/85 text-[#9d6a1e] shadow-[0_16px_32px_-24px_rgba(126,89,25,0.28)]">
+              <div className="flex h-14 w-14 items-center justify-center rounded-[1.25rem] bg-white/85 text-gold shadow-soft">
                 <AlertCircle className="h-6 w-6" />
               </div>
 
               <div className="flex-1 space-y-5">
                 <div className="space-y-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#a1722a]">OAuth Required</p>
-                  <h3 className="text-2xl font-semibold tracking-[-0.03em] text-[#4e3415]">OAuth app not configured</h3>
-                  <p className="max-w-3xl text-sm leading-6 text-[#725433]">
+                  <p className="text-[11px] font-semibold text-gold">OAuth Required</p>
+                  <h3 className="text-2xl font-semibold tracking-[-0.03em] text-bark">OAuth app not configured</h3>
+                  <p className="max-w-3xl text-sm leading-6 text-bark">
                     You need to configure a {selectedSource?.label || 'data source'} OAuth app before you can connect this integration. OAuth apps let Synkora securely access your account on your behalf.
                   </p>
                 </div>
 
-                <div className="rounded-[1.5rem] border border-[#eadbb4] bg-white/75 p-5">
-                  <p className="text-sm font-semibold text-gray-900">What you need to do</p>
-                  <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-gray-700">
+                <div className="rounded-[1.5rem] border border-line bg-white/75 p-5">
+                  <p className="text-sm font-semibold text-ink">What you need to do</p>
+                  <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-6 text-ink-soft">
                     <li>Create a {selectedSource?.label || 'provider'} OAuth app in the provider developer console.</li>
                     <li>Configure the required scopes and callback URL.</li>
                     <li>Add the OAuth credentials to Synkora.</li>
@@ -657,13 +656,13 @@ function ConnectDataSourceContent() {
                 <div className="flex flex-wrap gap-3">
                   <Link
                     href="/oauth-apps/create"
-                    className="inline-flex items-center rounded-full bg-gray-950 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-gray-800"
+                    className="inline-flex items-center rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-ink"
                   >
                     Configure OAuth App
                   </Link>
                   <button
                     onClick={handleConfigureBack}
-                    className="inline-flex items-center rounded-full border border-[#d7c4aa] bg-white/75 px-5 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:border-[#c8b090] hover:text-gray-900"
+                    className="inline-flex items-center rounded-full border border-tan bg-white/75 px-5 py-2.5 text-sm font-semibold text-ink-soft transition-colors hover:border-tan hover:text-ink"
                   >
                     Go Back
                   </button>
@@ -679,24 +678,24 @@ function ConnectDataSourceContent() {
           <div className="space-y-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div className="space-y-1">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#9a7a5e]">Step 3</p>
-                <h2 className="text-2xl font-semibold tracking-[-0.03em] text-gray-950">
+                <p className="text-[11px] font-semibold text-clay">Step 3</p>
+                <h2 className="text-2xl font-semibold tracking-[-0.03em] text-ink">
                   Configure {selectedSource?.label || 'Data Source'}
                 </h2>
-                <p className="text-sm leading-6 text-gray-600">
+                <p className="text-sm leading-6 text-ink-soft">
                   Configure the connection and sync settings.
                 </p>
               </div>
               <button
                 onClick={handleConfigureBack}
-                className="inline-flex items-center gap-2 rounded-full border border-[#ddd2c2] bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-[#ccb59a] hover:text-gray-900"
+                className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-4 py-2 text-sm font-semibold text-ink-soft transition-colors hover:border-tan hover:text-ink"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Back
               </button>
             </div>
 
-            <div className="rounded-[2rem] border border-[#e5d9ca] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(249,245,239,0.96))] p-6 shadow-[0_28px_70px_-48px_rgba(73,45,23,0.32)] md:p-8">
+            <div className="rounded-[2rem] border border-line bg-white p-6 shadow-soft md:p-8">
               <div className="space-y-8">
                 {selectedType === 'SLACK' && slackBots.length > 0 && (
                   <div className="mb-5 space-y-3">
@@ -704,10 +703,10 @@ function ConnectDataSourceContent() {
                       <button
                         type="button"
                         onClick={() => setUseExistingSlackBot(true)}
-                        className={`flex-1 rounded-[1.1rem] border px-4 py-3 text-sm font-semibold transition-all ${
+                        className={`flex-1 rounded-[1.1rem] border px-4 py-3 text-sm font-semibold transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
                           useExistingSlackBot
-                            ? 'border-[#d7bea3] bg-[#f6ede4] text-gray-900'
-                            : 'border-gray-200 bg-white text-gray-600'
+                            ? 'border-tan bg-paper text-ink'
+                            : 'border-line bg-white text-ink-soft'
                         }`}
                       >
                         Use existing Slack bot
@@ -715,10 +714,10 @@ function ConnectDataSourceContent() {
                       <button
                         type="button"
                         onClick={() => setUseExistingSlackBot(false)}
-                        className={`flex-1 rounded-[1.1rem] border px-4 py-3 text-sm font-semibold transition-all ${
+                        className={`flex-1 rounded-[1.1rem] border px-4 py-3 text-sm font-semibold transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
                           !useExistingSlackBot
-                            ? 'border-[#d7bea3] bg-[#f6ede4] text-gray-900'
-                            : 'border-gray-200 bg-white text-gray-600'
+                            ? 'border-tan bg-paper text-ink'
+                            : 'border-line bg-white text-ink-soft'
                         }`}
                       >
                         Set up new OAuth app
@@ -729,7 +728,7 @@ function ConnectDataSourceContent() {
                       <select
                         value={selectedSlackBotId || ''}
                         onChange={(e) => setSelectedSlackBotId(e.target.value)}
-                        className="w-full rounded-[1rem] border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900"
+                        className="w-full rounded-[1rem] border border-line bg-cream px-4 py-3 text-sm text-ink"
                       >
                         <option value="" disabled>
                           Select a Slack bot
@@ -748,7 +747,7 @@ function ConnectDataSourceContent() {
                   {!isDirectAuth && !(selectedType === 'SLACK' && useExistingSlackBot) && (
                   <div>
                     <label className={labelClass}>
-                      Select OAuth App <span className="text-red-500">*</span>
+                      Select OAuth App <span className="text-leaf">*</span>
                     </label>
                     <select
                       value={selectedOAuthAppId || ''}
@@ -756,7 +755,7 @@ function ConnectDataSourceContent() {
                       className={fieldClass}
                       required
                     >
-                      <option value="">Choose an OAuth app...</option>
+                      <option value="">Choose an OAuth app…</option>
                       {oauthApps.map((app) => (
                         <option key={app.id} value={app.id}>
                           {app.app_name}
@@ -771,7 +770,7 @@ function ConnectDataSourceContent() {
 
                   <div>
                     <label className={labelClass}>
-                      Data Source Name <span className="text-red-500">*</span>
+                      Data Source Name <span className="text-leaf">*</span>
                     </label>
                     <input
                       type="text"
@@ -786,10 +785,10 @@ function ConnectDataSourceContent() {
                 </div>
 
                 {selectedType === 'SLACK' && (
-                  <div className="rounded-[1.5rem] border border-[#ebe1d5] bg-white/70 p-5 md:p-6">
+                  <div className="rounded-[1.5rem] border border-sand-deep bg-white/70 p-5 md:p-6">
                     <div className="mb-5">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7a5e]">Slack Settings</p>
-                      <h3 className="mt-2 text-lg font-semibold text-gray-950">Workspace sync configuration</h3>
+                      <p className="text-[11px] font-semibold text-clay">Slack Settings</p>
+                      <h3 className="mt-2 text-lg font-semibold text-ink">Workspace sync configuration</h3>
                     </div>
 
                     <div className="grid gap-5 md:grid-cols-2">
@@ -819,29 +818,29 @@ function ConnectDataSourceContent() {
                     </div>
 
                     <div className="mt-5 grid gap-3 md:grid-cols-2">
-                      <label className="flex items-center gap-3 rounded-[1.1rem] border border-[#ebe1d5] bg-[#faf7f2] px-4 py-3">
+                      <label className="flex items-center gap-3 rounded-[1.1rem] border border-sand-deep bg-cream px-4 py-3">
                         <input
                           type="checkbox"
                           checked={slackConfig.include_threads}
                           onChange={(e) => setSlackConfig({ ...slackConfig, include_threads: e.target.checked })}
-                          className="h-4 w-4 rounded border-gray-300 text-gray-950 focus:ring-red-500"
+                          className="h-4 w-4 rounded border-taupe text-ink focus:ring-ink"
                         />
                         <div>
-                          <p className="text-sm font-semibold text-gray-900">Include thread replies</p>
-                          <p className="text-xs text-gray-500">Keep conversation context connected.</p>
+                          <p className="text-sm font-semibold text-ink">Include thread replies</p>
+                          <p className="text-xs text-ink-mute">Keep conversation context connected.</p>
                         </div>
                       </label>
 
-                      <label className="flex items-center gap-3 rounded-[1.1rem] border border-[#ebe1d5] bg-[#faf7f2] px-4 py-3">
+                      <label className="flex items-center gap-3 rounded-[1.1rem] border border-sand-deep bg-cream px-4 py-3">
                         <input
                           type="checkbox"
                           checked={slackConfig.include_files}
                           onChange={(e) => setSlackConfig({ ...slackConfig, include_files: e.target.checked })}
-                          className="h-4 w-4 rounded border-gray-300 text-gray-950 focus:ring-red-500"
+                          className="h-4 w-4 rounded border-taupe text-ink focus:ring-ink"
                         />
                         <div>
-                          <p className="text-sm font-semibold text-gray-900">Include file attachments</p>
-                          <p className="text-xs text-gray-500">Bring uploaded files into the sync flow.</p>
+                          <p className="text-sm font-semibold text-ink">Include file attachments</p>
+                          <p className="text-xs text-ink-mute">Bring uploaded files into the sync flow.</p>
                         </div>
                       </label>
                     </div>
@@ -849,10 +848,10 @@ function ConnectDataSourceContent() {
                 )}
 
                 {selectedType === 'GMAIL' && (
-                  <div className="rounded-[1.5rem] border border-[#ebe1d5] bg-white/70 p-5 md:p-6">
+                  <div className="rounded-[1.5rem] border border-sand-deep bg-white/70 p-5 md:p-6">
                     <div className="mb-5">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7a5e]">Gmail Settings</p>
-                      <h3 className="mt-2 text-lg font-semibold text-gray-950">Mailbox sync configuration</h3>
+                      <p className="text-[11px] font-semibold text-clay">Gmail Settings</p>
+                      <h3 className="mt-2 text-lg font-semibold text-ink">Mailbox sync configuration</h3>
                     </div>
 
                     <div className="grid gap-5 md:grid-cols-2">
@@ -896,10 +895,10 @@ function ConnectDataSourceContent() {
                 )}
 
                 {selectedType === 'GITHUB' && (
-                  <div className="space-y-6 rounded-[1.5rem] border border-[#ebe1d5] bg-white/70 p-5 md:p-6">
+                  <div className="space-y-6 rounded-[1.5rem] border border-sand-deep bg-white/70 p-5 md:p-6">
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7a5e]">GitHub Settings</p>
-                      <h3 className="mt-2 text-lg font-semibold text-gray-950">Repository sync configuration</h3>
+                      <p className="text-[11px] font-semibold text-clay">GitHub Settings</p>
+                      <h3 className="mt-2 text-lg font-semibold text-ink">Repository sync configuration</h3>
                     </div>
 
                     {selectedOAuthAppId && (
@@ -907,12 +906,12 @@ function ConnectDataSourceContent() {
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>
                             <label className={compactLabelClass}>Select Repositories</label>
-                            <p className="text-xs text-gray-500">Choose specific repositories, or leave all unchecked to sync all accessible repositories.</p>
+                            <p className="text-xs text-ink-mute">Choose specific repositories, or leave all unchecked to sync all accessible repositories.</p>
                           </div>
                           {repositories.length > 0 && (
                             <button
                               onClick={toggleAllRepositories}
-                              className="inline-flex items-center rounded-full border border-[#d9c8b3] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-gray-700 transition-colors hover:border-[#c8b090] hover:text-gray-900"
+                              className="inline-flex items-center rounded-full border border-line bg-white px-4 py-2 text-xs font-semibold text-ink-soft transition-colors hover:border-tan hover:text-ink"
                             >
                               {selectedRepos.size === repositories.length ? 'Deselect All' : 'Select All'}
                             </button>
@@ -920,41 +919,41 @@ function ConnectDataSourceContent() {
                         </div>
 
                         {loadingRepos ? (
-                          <div className="flex items-center justify-center rounded-[1.25rem] border border-[#e5d9ca] bg-[#faf7f2] py-10">
+                          <div className="flex items-center justify-center rounded-[1.25rem] border border-line bg-cream py-10">
                             <LoadingSpinner size="sm" />
-                            <span className="ml-3 text-sm text-gray-600">Loading repositories...</span>
+                            <span className="ml-3 text-sm text-ink-soft">Loading repositories…</span>
                           </div>
                         ) : repositories.length > 0 ? (
-                          <div className="max-h-72 overflow-y-auto rounded-[1.35rem] border border-[#e5d9ca] bg-[#faf7f2]">
+                          <div className="max-h-72 overflow-y-auto rounded-[1.35rem] border border-line bg-cream">
                             {repositories.map((repo) => (
                               <label
                                 key={repo.id}
-                                className="flex cursor-pointer items-start gap-3 border-b border-[#ebe1d5] px-4 py-3.5 transition-colors hover:bg-white last:border-b-0"
+                                className="flex cursor-pointer items-start gap-3 border-b border-sand-deep px-4 py-3.5 transition-colors hover:bg-white last:border-b-0"
                               >
                                 <input
                                   type="checkbox"
                                   checked={selectedRepos.has(repo.full_name)}
                                   onChange={() => toggleRepository(repo.full_name)}
-                                  className="mt-1 h-4 w-4 rounded border-gray-300 text-gray-950 focus:ring-red-500"
+                                  className="mt-1 h-4 w-4 rounded border-taupe text-ink focus:ring-ink"
                                 />
                                 <div className="min-w-0 flex-1">
                                   <div className="flex flex-wrap items-center gap-2">
-                                    <span className="font-semibold text-gray-900">{repo.full_name}</span>
+                                    <span className="font-semibold text-ink">{repo.full_name}</span>
                                     {repo.private && (
-                                      <span className="inline-flex items-center rounded-full bg-[#f6ead8] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8d5d16]">
+                                      <span className="inline-flex items-center rounded-full bg-sand-deep px-2.5 py-1 text-[11px] font-semibold text-gold">
                                         Private
                                       </span>
                                     )}
                                     {repo.has_wiki && (
-                                      <span className="inline-flex items-center rounded-full bg-[#e7f0ff] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#335e9f]">
+                                      <span className="inline-flex items-center rounded-full bg-sky-wash px-2.5 py-1 text-[11px] font-semibold text-azure">
                                         Wiki
                                       </span>
                                     )}
                                   </div>
                                   {repo.description && (
-                                    <p className="mt-1 truncate text-sm text-gray-600">{repo.description}</p>
+                                    <p className="mt-1 truncate text-sm text-ink-soft">{repo.description}</p>
                                   )}
-                                  <p className="mt-1 text-xs text-gray-400">
+                                  <p className="mt-1 text-xs text-ash">
                                     Updated: {new Date(repo.updated_at).toLocaleDateString()}
                                   </p>
                                 </div>
@@ -962,7 +961,7 @@ function ConnectDataSourceContent() {
                             ))}
                           </div>
                         ) : (
-                          <div className="rounded-[1.25rem] border border-[#e5d9ca] bg-[#faf7f2] px-5 py-8 text-center text-sm text-gray-500">
+                          <div className="rounded-[1.25rem] border border-line bg-cream px-5 py-8 text-center text-sm text-ink-mute">
                             No repositories found for this account.
                           </div>
                         )}
@@ -991,44 +990,44 @@ function ConnectDataSourceContent() {
                       <div>
                         <label className={labelClass}>Content to Sync</label>
                         <div className="grid gap-3 sm:grid-cols-2">
-                          <label className="flex items-center gap-3 rounded-[1.1rem] border border-[#ebe1d5] bg-[#faf7f2] px-4 py-3">
+                          <label className="flex items-center gap-3 rounded-[1.1rem] border border-sand-deep bg-cream px-4 py-3">
                             <input
                               type="checkbox"
                               checked={githubConfig.include_issues}
                               onChange={(e) => setGithubConfig({ ...githubConfig, include_issues: e.target.checked })}
-                              className="h-4 w-4 rounded border-gray-300 text-gray-950 focus:ring-red-500"
+                              className="h-4 w-4 rounded border-taupe text-ink focus:ring-ink"
                             />
-                            <span className="text-sm font-semibold text-gray-800">Include Issues</span>
+                            <span className="text-sm font-semibold text-ink">Include Issues</span>
                           </label>
 
-                          <label className="flex items-center gap-3 rounded-[1.1rem] border border-[#ebe1d5] bg-[#faf7f2] px-4 py-3">
+                          <label className="flex items-center gap-3 rounded-[1.1rem] border border-sand-deep bg-cream px-4 py-3">
                             <input
                               type="checkbox"
                               checked={githubConfig.include_pull_requests}
                               onChange={(e) => setGithubConfig({ ...githubConfig, include_pull_requests: e.target.checked })}
-                              className="h-4 w-4 rounded border-gray-300 text-gray-950 focus:ring-red-500"
+                              className="h-4 w-4 rounded border-taupe text-ink focus:ring-ink"
                             />
-                            <span className="text-sm font-semibold text-gray-800">Include Pull Requests</span>
+                            <span className="text-sm font-semibold text-ink">Include Pull Requests</span>
                           </label>
 
-                          <label className="flex items-center gap-3 rounded-[1.1rem] border border-[#ebe1d5] bg-[#faf7f2] px-4 py-3">
+                          <label className="flex items-center gap-3 rounded-[1.1rem] border border-sand-deep bg-cream px-4 py-3">
                             <input
                               type="checkbox"
                               checked={githubConfig.include_discussions}
                               onChange={(e) => setGithubConfig({ ...githubConfig, include_discussions: e.target.checked })}
-                              className="h-4 w-4 rounded border-gray-300 text-gray-950 focus:ring-red-500"
+                              className="h-4 w-4 rounded border-taupe text-ink focus:ring-ink"
                             />
-                            <span className="text-sm font-semibold text-gray-800">Include Discussions</span>
+                            <span className="text-sm font-semibold text-ink">Include Discussions</span>
                           </label>
 
-                          <label className="flex items-center gap-3 rounded-[1.1rem] border border-[#ebe1d5] bg-[#faf7f2] px-4 py-3">
+                          <label className="flex items-center gap-3 rounded-[1.1rem] border border-sand-deep bg-cream px-4 py-3">
                             <input
                               type="checkbox"
                               checked={githubConfig.create_wiki}
                               onChange={(e) => setGithubConfig({ ...githubConfig, create_wiki: e.target.checked })}
-                              className="h-4 w-4 rounded border-gray-300 text-gray-950 focus:ring-red-500"
+                              className="h-4 w-4 rounded border-taupe text-ink focus:ring-ink"
                             />
-                            <span className="text-sm font-semibold text-gray-800">Create Repository Wiki</span>
+                            <span className="text-sm font-semibold text-ink">Create Repository Wiki</span>
                           </label>
                         </div>
                         <p className={helpClass}>
@@ -1040,16 +1039,16 @@ function ConnectDataSourceContent() {
                 )}
 
                 {selectedType === 'NOTION' && (
-                  <div className="rounded-[1.5rem] border border-[#ebe1d5] bg-white/70 p-5 md:p-6">
+                  <div className="rounded-[1.5rem] border border-sand-deep bg-white/70 p-5 md:p-6">
                     <div className="mb-5">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7a5e]">Notion Settings</p>
-                      <h3 className="mt-2 text-lg font-semibold text-gray-950">Internal integration token</h3>
+                      <p className="text-[11px] font-semibold text-clay">Notion Settings</p>
+                      <h3 className="mt-2 text-lg font-semibold text-ink">Internal integration token</h3>
                     </div>
 
                     <div className="grid gap-5 md:grid-cols-2">
                       <div>
                         <label className={labelClass}>
-                          Internal Integration Token <span className="text-red-500">*</span>
+                          Internal Integration Token <span className="text-leaf">*</span>
                         </label>
                         <input
                           type="password"
@@ -1081,10 +1080,10 @@ function ConnectDataSourceContent() {
                 )}
 
                 {selectedType === 'CONFLUENCE' && (
-                  <div className="rounded-[1.5rem] border border-[#ebe1d5] bg-white/70 p-5 md:p-6">
+                  <div className="rounded-[1.5rem] border border-sand-deep bg-white/70 p-5 md:p-6">
                     <div className="mb-5">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7a5e]">Confluence Settings</p>
-                      <h3 className="mt-2 text-lg font-semibold text-gray-950">Authenticate with a PAT or API token</h3>
+                      <p className="text-[11px] font-semibold text-clay">Confluence Settings</p>
+                      <h3 className="mt-2 text-lg font-semibold text-ink">Authenticate with a PAT or API token</h3>
                     </div>
 
                     <div className="grid gap-5 md:grid-cols-2">
@@ -1141,16 +1140,16 @@ function ConnectDataSourceContent() {
                 )}
 
                 {selectedType === 'LINEAR' && (
-                  <div className="rounded-[1.5rem] border border-[#ebe1d5] bg-white/70 p-5 md:p-6">
+                  <div className="rounded-[1.5rem] border border-sand-deep bg-white/70 p-5 md:p-6">
                     <div className="mb-5">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7a5e]">Linear Settings</p>
-                      <h3 className="mt-2 text-lg font-semibold text-gray-950">Personal API key</h3>
+                      <p className="text-[11px] font-semibold text-clay">Linear Settings</p>
+                      <h3 className="mt-2 text-lg font-semibold text-ink">Personal API key</h3>
                     </div>
 
                     <div className="grid gap-5 md:grid-cols-2">
                       <div>
                         <label className={labelClass}>
-                          Personal API Key <span className="text-red-500">*</span>
+                          Personal API Key <span className="text-leaf">*</span>
                         </label>
                         <input
                           type="password"
@@ -1182,14 +1181,14 @@ function ConnectDataSourceContent() {
               </div>
             </div>
 
-            <div className="rounded-[1.6rem] border border-[#d8e5d9] bg-[linear-gradient(180deg,_rgba(244,249,245,0.98),_rgba(235,245,238,0.95))] p-5 shadow-[0_18px_45px_-38px_rgba(37,86,59,0.25)]">
+            <div className="rounded-[1.6rem] border border-leaf-wash bg-cream p-5 shadow-soft">
               <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#2f6a51]">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-forest">
                   <CheckCircle className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-900">Connect Data Source</p>
-                  <p className="mt-1 text-sm leading-6 text-gray-600">
+                  <p className="text-sm font-semibold text-ink">Connect Data Source</p>
+                  <p className="mt-1 text-sm leading-6 text-ink-soft">
                     This will link your {selectedSource?.label || 'data source'} to the selected knowledge base{' '}
                     {isDirectAuth
                       ? 'using the API token provided above'
@@ -1203,14 +1202,14 @@ function ConnectDataSourceContent() {
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <Link
                 href="/data-sources"
-                className="inline-flex items-center justify-center rounded-full border border-[#ddd2c2] bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition-colors hover:border-[#ccb59a] hover:text-gray-900"
+                className="inline-flex items-center justify-center rounded-full border border-line bg-white px-5 py-3 text-sm font-semibold text-ink-soft transition-colors hover:border-tan hover:text-ink"
               >
                 Cancel
               </Link>
               <button
                 onClick={handleConnect}
                 disabled={loading}
-                className="inline-flex min-w-[220px] items-center justify-center rounded-full bg-gray-950 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex min-w-[220px] items-center justify-center rounded-full bg-ink px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-ink disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? (
                   <span className="flex items-center gap-2">
@@ -1234,12 +1233,12 @@ export default function ConnectDataSourcePage() {
     <Suspense fallback={
       <div className="dashboard-resource-page min-h-screen p-4 md:p-6">
         <div className="mx-auto max-w-5xl">
-          <div className="rounded-[1.85rem] border border-[#e7dccd] bg-white px-6 py-14 shadow-[0_24px_60px_-42px_rgba(76,48,23,0.28)]">
+          <div className="rounded-[1.85rem] border border-line bg-white px-6 py-14 shadow-soft">
             <div className="flex flex-col items-center justify-center text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#f6ede4]">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-paper">
                 <LoadingSpinner />
               </div>
-              <p className="mt-4 text-sm font-medium text-gray-600">Loading data source setup...</p>
+              <p className="mt-4 text-sm font-medium text-ink-soft">Loading data source setup…</p>
             </div>
           </div>
         </div>

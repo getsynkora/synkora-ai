@@ -80,13 +80,13 @@ export default function TestRunsPage({ params }: { params: Promise<{ id: string 
 
   const getStatusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      pending: 'bg-blue-100 text-blue-700',
-      initializing: 'bg-yellow-100 text-yellow-700',
-      running: 'bg-green-100 text-green-700',
-      stopping: 'bg-orange-100 text-orange-700',
-      completed: 'bg-emerald-100 text-emerald-700',
-      failed: 'bg-red-100 text-red-700',
-      cancelled: 'bg-gray-100 text-gray-700',
+      pending: 'bg-sky-wash text-azure',
+      initializing: 'bg-sand-deep text-gold',
+      running: 'bg-leaf-wash text-forest',
+      stopping: 'bg-sand-deep text-gold',
+      completed: 'bg-leaf-wash text-forest',
+      failed: 'bg-blush-wash text-danger',
+      cancelled: 'bg-sand text-ink-soft',
     }
     return styles[status] || styles.pending
   }
@@ -94,16 +94,16 @@ export default function TestRunsPage({ params }: { params: Promise<{ id: string 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
-        return <CheckCircle className="w-5 h-5 text-emerald-600" />
+        return <CheckCircle className="w-5 h-5 text-leaf" />
       case 'failed':
-        return <XCircle className="w-5 h-5 text-red-600" />
+        return <XCircle className="w-5 h-5 text-danger" />
       case 'cancelled':
-        return <XCircle className="w-5 h-5 text-gray-600" />
+        return <XCircle className="w-5 h-5 text-ink-soft" />
       case 'running':
       case 'initializing':
-        return <Activity className="w-5 h-5 text-green-600 animate-pulse" />
+        return <Activity className="w-5 h-5 text-leaf motion-safe:animate-pulse" />
       default:
-        return <Clock className="w-5 h-5 text-blue-600" />
+        return <Clock className="w-5 h-5 text-azure" />
     }
   }
 
@@ -124,10 +124,10 @@ export default function TestRunsPage({ params }: { params: Promise<{ id: string 
 
   if (loading && !loadTest) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-50 via-white to-primary-50/30">
+      <div className="flex items-center justify-center h-screen bg-cream50/30">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading test runs...</p>
+          <div className="motion-safe:animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-ink-soft">Loading test runs…</p>
         </div>
       </div>
     )
@@ -135,10 +135,10 @@ export default function TestRunsPage({ params }: { params: Promise<{ id: string 
 
   if (!loadTest) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-primary-50/30 p-4 md:p-6">
+      <div className="min-h-screen bg-cream50/30 p-4 md:p-6">
         <div className="max-w-4xl mx-auto text-center py-12">
-          <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Test Not Found</h2>
+          <AlertCircle className="w-16 h-16 text-taupe mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-ink mb-2">Test Not Found</h2>
           <Link href="/load-testing" className="text-primary-600 hover:text-primary-700">
             Back to Load Tests
           </Link>
@@ -148,13 +148,13 @@ export default function TestRunsPage({ params }: { params: Promise<{ id: string 
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-primary-50/30 p-4 md:p-6">
+    <div className="min-h-screen bg-cream50/30 p-4 md:p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <Link
             href={`/load-testing/${id}`}
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+            className="inline-flex items-center gap-2 text-ink-soft hover:text-ink mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to {loadTest.name}
@@ -162,8 +162,8 @@ export default function TestRunsPage({ params }: { params: Promise<{ id: string 
 
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">Test Runs</h1>
-              <p className="text-gray-600 mt-1">
+              <h1 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight">Test Runs</h1>
+              <p className="text-ink-soft mt-1">
                 View all test runs for {loadTest.name}
               </p>
             </div>
@@ -171,20 +171,20 @@ export default function TestRunsPage({ params }: { params: Promise<{ id: string 
             <div className="flex gap-3">
               <button
                 onClick={fetchData}
-                className="inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 bg-white text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
+                className="inline-flex items-center gap-2 px-4 py-2.5 border border-line bg-white text-ink-soft rounded-xl hover:bg-cream transition-colors font-medium"
               >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 ${loading ? 'motion-safe:animate-spin' : ''}`} />
                 Refresh
               </button>
               {loadTest.status === 'ready' && (
                 <button
                   onClick={handleStartTest}
                   disabled={starting}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl transition-all shadow-sm hover:shadow-md font-medium disabled:opacity-50"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-leaf text-white rounded-xl transition-[color,background-color,border-color,box-shadow,opacity,transform] shadow-sm hover:shadow-md font-medium disabled:opacity-50"
                 >
                   {starting ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full motion-safe:animate-spin" />
                       Starting...
                     </>
                   ) : (
@@ -202,8 +202,8 @@ export default function TestRunsPage({ params }: { params: Promise<{ id: string 
         {/* Filters */}
         <div className="mb-6 flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-500" />
-            <span className="text-sm text-gray-600">Filter:</span>
+            <Filter className="w-4 h-4 text-ink-mute" />
+            <span className="text-sm text-ink-soft">Filter:</span>
           </div>
           <select
             value={statusFilter}
@@ -211,7 +211,7 @@ export default function TestRunsPage({ params }: { params: Promise<{ id: string 
               setStatusFilter(e.target.value)
               setPage(1)
             }}
-            className="px-4 py-2 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent shadow-sm"
+            className="px-4 py-2 bg-white border border-line rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent shadow-sm"
           >
             <option value="">All Status</option>
             <option value="pending">Pending</option>
@@ -221,25 +221,25 @@ export default function TestRunsPage({ params }: { params: Promise<{ id: string 
             <option value="failed">Failed</option>
             <option value="cancelled">Cancelled</option>
           </select>
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-ink-mute">
             {total} total run{total !== 1 ? 's' : ''}
           </span>
         </div>
 
         {/* Test Runs List */}
         {testRuns.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+          <div className="bg-white rounded-2xl shadow-sm border border-sand p-12 text-center">
             <div className="w-32 h-32 mx-auto mb-6 relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary-100 to-primary-50 rounded-2xl transform rotate-6"></div>
-              <div className="absolute inset-0 bg-white rounded-2xl shadow-sm border border-gray-100 flex items-center justify-center">
+              <div className="absolute inset-0 bg-ink hover:bg-ink/85 rounded-2xl transform rotate-6"></div>
+              <div className="absolute inset-0 bg-white rounded-2xl shadow-sm border border-sand flex items-center justify-center">
                 <BarChart3 className="w-12 h-12 text-primary-500" />
               </div>
             </div>
 
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            <h3 className="text-xl font-semibold text-ink mb-2">
               {statusFilter ? 'No runs match filter' : 'No test runs yet'}
             </h3>
-            <p className="text-gray-600 mb-6 max-w-md mx-auto">
+            <p className="text-ink-soft mb-6 max-w-md mx-auto">
               {statusFilter
                 ? 'Try changing your filter settings.'
                 : 'Start a test run to see performance metrics and results here.'}
@@ -248,7 +248,7 @@ export default function TestRunsPage({ params }: { params: Promise<{ id: string 
               <button
                 onClick={handleStartTest}
                 disabled={starting}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl transition-all shadow-sm hover:shadow-md font-medium"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-leaf text-white rounded-xl transition-[color,background-color,border-color,box-shadow,opacity,transform] shadow-sm hover:shadow-md font-medium"
               >
                 <Play className="w-5 h-5" />
                 Start First Test Run
@@ -257,24 +257,24 @@ export default function TestRunsPage({ params }: { params: Promise<{ id: string 
           </div>
         ) : (
           <>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden overflow-x-auto">
+            <div className="bg-white rounded-xl shadow-sm border border-sand overflow-hidden overflow-x-auto">
               <table className="w-full min-w-[600px]">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-100">
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">Status</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">Started</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">Duration</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">Requests</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">Peak VUs</th>
-                    <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">p95 Latency</th>
-                    <th className="text-right px-6 py-4 text-sm font-semibold text-gray-700">Actions</th>
+                  <tr className="bg-cream border-b border-sand">
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-ink-soft">Status</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-ink-soft">Started</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-ink-soft">Duration</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-ink-soft">Requests</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-ink-soft">Peak VUs</th>
+                    <th className="text-left px-6 py-4 text-sm font-semibold text-ink-soft">p95 Latency</th>
+                    <th className="text-right px-6 py-4 text-sm font-semibold text-ink-soft">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {testRuns.map((run) => (
                     <tr
                       key={run.id}
-                      className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                      className="border-b border-sand hover:bg-cream transition-colors"
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -284,19 +284,19 @@ export default function TestRunsPage({ params }: { params: Promise<{ id: string 
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">
+                      <td className="px-6 py-4 text-sm text-ink-soft">
                         {formatDate(run.started_at)}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900 font-medium">
+                      <td className="px-6 py-4 text-sm text-ink font-medium">
                         {formatDuration(run.duration_seconds)}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
+                      <td className="px-6 py-4 text-sm text-ink">
                         {run.total_requests?.toLocaleString() || '-'}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
+                      <td className="px-6 py-4 text-sm text-ink">
                         {run.peak_vus || '-'}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
+                      <td className="px-6 py-4 text-sm text-ink">
                         {run.summary_metrics?.http_req_duration_p95
                           ? `${run.summary_metrics.http_req_duration_p95.toFixed(0)}ms`
                           : '-'}
@@ -319,25 +319,25 @@ export default function TestRunsPage({ params }: { params: Promise<{ id: string 
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="mt-6 flex items-center justify-between">
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-ink-soft">
                   Showing {(page - 1) * pageSize + 1} to {Math.min(page * pageSize, total)} of {total} runs
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setPage(p => Math.max(1, p - 1))}
                     disabled={page === 1}
-                    className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-ink-soft bg-white border border-line rounded-lg hover:bg-cream disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <ChevronLeft className="w-4 h-4" />
                     Previous
                   </button>
-                  <span className="px-3 py-2 text-sm text-gray-600">
+                  <span className="px-3 py-2 text-sm text-ink-soft">
                     Page {page} of {totalPages}
                   </span>
                   <button
                     onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                     disabled={page === totalPages}
-                    className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium text-ink-soft bg-white border border-line rounded-lg hover:bg-cream disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Next
                     <ChevronRight className="w-4 h-4" />

@@ -103,10 +103,10 @@ export default function DatabaseConnectionDetailsPage() {
   }
 
   const getStatusColor = (status: string) => {
-    if (status === 'active') return 'bg-[#e8f4ee] text-[#2d8b69]'
-    if (status === 'inactive') return 'bg-[#f1eadc] text-[#6e675d]'
-    if (status === 'error') return 'bg-[#fbe9e7] text-[#b44736]'
-    return 'bg-[#f8eed9] text-[#ad7d25]' // pending
+    if (status === 'active') return 'bg-leaf-wash text-leaf'
+    if (status === 'inactive') return 'bg-sand-deep text-ink-mute'
+    if (status === 'error') return 'bg-blush-wash text-danger'
+    return 'bg-sand-deep text-gold' // pending
   }
 
   const getStatusIcon = (status: string) => {
@@ -125,11 +125,11 @@ export default function DatabaseConnectionDetailsPage() {
 
   const getTypeColor = (type: string) => {
     switch (type?.toUpperCase()) {
-      case 'POSTGRESQL': return 'bg-[#e7f0ff] text-[#325b93]'
-      case 'ELASTICSEARCH': return 'bg-[#efe7f7] text-[#6b4d86]'
-      case 'MYSQL': return 'bg-[#f7eadb] text-[#9c6228]'
-      case 'MONGODB': return 'bg-[#e8f4ee] text-[#2d8b69]'
-      default: return 'bg-[#f3ecde] text-[#6e675d]'
+      case 'POSTGRESQL': return 'bg-sky-wash text-azure'
+      case 'ELASTICSEARCH': return 'bg-sand-deep text-ink-soft'
+      case 'MYSQL': return 'bg-sand-deep text-gold'
+      case 'MONGODB': return 'bg-leaf-wash text-leaf'
+      default: return 'bg-sand text-ink-mute'
     }
   }
 
@@ -153,8 +153,8 @@ export default function DatabaseConnectionDetailsPage() {
     return (
       <div className="dashboard-resource-page flex h-screen items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-red-600"></div>
-          <p className="text-gray-600">Loading connection details...</p>
+          <div className="mx-auto mb-4 h-12 w-12 motion-safe:animate-spin rounded-full border-b-2 border-danger"></div>
+          <p className="text-ink-soft">Loading connection details…</p>
         </div>
       </div>
     )
@@ -168,23 +168,23 @@ export default function DatabaseConnectionDetailsPage() {
     <div className="dashboard-resource-page min-h-screen p-4 md:p-6">
       <div className="mx-auto max-w-6xl">
         <div className="mb-4 flex items-center gap-1.5 text-sm">
-          <Link href="/" className="flex items-center gap-1 text-gray-500 transition-colors hover:text-[#171717]">
+          <Link href="/" className="flex items-center gap-1 text-ink-mute transition-colors hover:text-ink">
             <Home className="h-3.5 w-3.5" />
             Home
           </Link>
-          <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
-          <Link href="/database-connections" className="text-gray-500 transition-colors hover:text-[#171717]">
+          <ChevronRight className="h-3.5 w-3.5 text-ash" />
+          <Link href="/database-connections" className="text-ink-mute transition-colors hover:text-ink">
             Database Connections
           </Link>
-          <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
-          <span className="truncate font-medium text-gray-900">{connection.name}</span>
+          <ChevronRight className="h-3.5 w-3.5 text-ash" />
+          <span className="truncate font-medium text-ink">{connection.name}</span>
         </div>
 
-        <div className="mb-6 overflow-hidden rounded-[2rem] border border-[#eadfce] bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.96),_rgba(247,240,231,0.94)_50%,_rgba(237,230,220,0.92)_100%)] shadow-[0_28px_80px_-42px_rgba(88,63,39,0.32)]">
+        <div className="bg-cream mb-6 overflow-hidden rounded-[2rem] border border-sand-deep shadow-soft">
           <div className="flex flex-col gap-6 p-6 md:p-8">
             <Link
               href="/database-connections"
-              className="inline-flex w-fit items-center gap-2 rounded-full border border-[#dbcdb9] bg-white/80 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-[#cdb79d] hover:text-gray-900"
+              className="inline-flex w-fit items-center gap-2 rounded-full border border-line bg-white/80 px-4 py-2 text-sm font-semibold text-ink-soft transition-colors hover:border-tan hover:text-ink"
             >
               <ArrowLeft className="h-4 w-4" />
               Back to Connections
@@ -192,30 +192,26 @@ export default function DatabaseConnectionDetailsPage() {
 
             <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
               <div className="max-w-3xl space-y-3">
-                <div className="inline-flex items-center gap-2 rounded-full border border-[#dfd1be] bg-white/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#7c5d45]">
-                  <Database className="h-3.5 w-3.5" />
-                  Connection Details
-                </div>
 
                 <div className="flex items-start gap-4">
-                  <div className={`rounded-[1.2rem] p-3.5 shadow-[0_16px_30px_-24px_rgba(74,49,22,0.3)] ${getTypeColor(connection.type)}`}>
+                  <div className={`rounded-[1.2rem] p-3.5 shadow-soft ${getTypeColor(connection.type)}`}>
                     <Database className="h-6 w-6" />
                   </div>
                   <div className="min-w-0">
-                    <h1 className="truncate text-3xl font-semibold tracking-[-0.04em] text-gray-950 md:text-[2.6rem]">
+                    <h1 className="truncate text-3xl font-semibold tracking-[-0.04em] text-ink md:text-[2.6rem]">
                       {connection.name}
                     </h1>
                     <div className="mt-2 flex flex-wrap gap-2">
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${getTypeColor(connection.type)}`}>
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${getTypeColor(connection.type)}`}>
                         {connection.type}
                       </span>
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${getStatusColor(connection.status)}`}>
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${getStatusColor(connection.status)}`}>
                         {getStatusIcon(connection.status)}
                         {getStatusText(connection.status)}
                       </span>
                     </div>
                     {connection.description && (
-                      <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600">
+                      <p className="mt-3 max-w-2xl text-sm leading-6 text-ink-soft">
                         {connection.description}
                       </p>
                     )}
@@ -227,11 +223,11 @@ export default function DatabaseConnectionDetailsPage() {
                 <button
                   onClick={testConnection}
                   disabled={testing}
-                  className="inline-flex items-center gap-2 rounded-full bg-[#171717] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
                 >
                   {testing ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Loader2 className="h-4 w-4 motion-safe:animate-spin" />
                       Testing...
                     </>
                   ) : (
@@ -243,14 +239,14 @@ export default function DatabaseConnectionDetailsPage() {
                 </button>
                 <Link
                   href={`/database-connections/${params.id as string}/edit`}
-                  className="inline-flex items-center gap-2 rounded-full border border-[#ddd2c2] bg-white px-5 py-3 text-sm font-semibold text-gray-700 transition-colors hover:border-[#ccb59a] hover:text-gray-900"
+                  className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-5 py-3 text-sm font-semibold text-ink-soft transition-colors hover:border-tan hover:text-ink"
                 >
                   <Edit className="h-4 w-4" />
                   Edit
                 </Link>
                 <button
                   onClick={() => setDeleteModal(true)}
-                  className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-5 py-3 text-sm font-semibold text-red-600 transition-colors hover:bg-red-100"
+                  className="inline-flex items-center gap-2 rounded-full border border-blush bg-blush-wash px-5 py-3 text-sm font-semibold text-danger transition-colors hover:bg-blush-wash"
                 >
                   <Trash2 className="h-4 w-4" />
                   Delete
@@ -262,8 +258,8 @@ export default function DatabaseConnectionDetailsPage() {
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
           <div className="space-y-6">
-            <div className="rounded-[1.7rem] border border-black/10 bg-white/80 p-5 shadow-[0_18px_40px_rgba(0,0,0,0.05)]">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">Status</p>
+            <div className="rounded-[1.7rem] border border-black/10 bg-white/80 p-5 shadow-soft">
+              <p className="text-[11px] font-semibold text-ink-mute">Status</p>
               <div className="mt-4 space-y-4">
                 <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold ${getStatusColor(connection.status)}`}>
                   {getStatusIcon(connection.status)}
@@ -271,103 +267,103 @@ export default function DatabaseConnectionDetailsPage() {
                 </span>
 
                 <div className="grid gap-3">
-                  <div className="rounded-[1.15rem] border border-black/10 bg-[#fcfaf5] px-4 py-3">
-                    <div className="text-[10px] font-medium uppercase tracking-[0.1em] text-gray-500">Last Tested</div>
-                    <div className="mt-1 text-sm font-semibold text-gray-900">{formatDateTime(connection.last_tested_at)}</div>
+                  <div className="rounded-[1.15rem] border border-black/10 bg-cream px-4 py-3">
+                    <div className="text-[10px] font-medium text-ink-mute">Last Tested</div>
+                    <div className="mt-1 text-sm font-semibold text-ink">{formatDateTime(connection.last_tested_at)}</div>
                   </div>
 
-                  <div className="rounded-[1.15rem] border border-black/10 bg-[#eef7f1] px-4 py-3">
-                    <div className="text-[10px] font-medium uppercase tracking-[0.1em] text-gray-500">Last Test Status</div>
-                    <div className="mt-1 text-sm font-semibold text-gray-900">
+                  <div className="rounded-[1.15rem] border border-black/10 bg-leaf-wash px-4 py-3">
+                    <div className="text-[10px] font-medium text-ink-mute">Last Test Status</div>
+                    <div className="mt-1 text-sm font-semibold text-ink">
                       {getLastTestStatusText(connection.last_test_status)}
                     </div>
                   </div>
                 </div>
 
                 {connection.last_error && (
-                  <div className="rounded-[1.2rem] border border-red-200 bg-red-50/90 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-red-700">Last Error</p>
-                    <p className="mt-2 text-sm leading-6 text-red-700">{connection.last_error}</p>
+                  <div className="rounded-[1.2rem] border border-blush bg-blush-wash/90 p-4">
+                    <p className="text-xs font-semibold text-danger">Last Error</p>
+                    <p className="mt-2 text-sm leading-6 text-danger">{connection.last_error}</p>
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="rounded-[1.7rem] border border-black/10 bg-white/80 p-5 shadow-[0_18px_40px_rgba(0,0,0,0.05)]">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gray-500">Metadata</p>
+            <div className="rounded-[1.7rem] border border-black/10 bg-white/80 p-5 shadow-soft">
+              <p className="text-[11px] font-semibold text-ink-mute">Metadata</p>
               <div className="mt-4 grid gap-3">
-                <div className="rounded-[1.15rem] border border-black/10 bg-[#fcfaf5] px-4 py-3">
-                  <div className="text-[10px] font-medium uppercase tracking-[0.1em] text-gray-500">Created</div>
-                  <div className="mt-1 text-sm font-semibold text-gray-900">{formatDateTime(connection.created_at)}</div>
+                <div className="rounded-[1.15rem] border border-black/10 bg-cream px-4 py-3">
+                  <div className="text-[10px] font-medium text-ink-mute">Created</div>
+                  <div className="mt-1 text-sm font-semibold text-ink">{formatDateTime(connection.created_at)}</div>
                 </div>
-                <div className="rounded-[1.15rem] border border-black/10 bg-[#f4efe4] px-4 py-3">
-                  <div className="text-[10px] font-medium uppercase tracking-[0.1em] text-gray-500">Last Updated</div>
-                  <div className="mt-1 text-sm font-semibold text-gray-900">{formatDateTime(connection.updated_at)}</div>
+                <div className="rounded-[1.15rem] border border-black/10 bg-paper px-4 py-3">
+                  <div className="text-[10px] font-medium text-ink-mute">Last Updated</div>
+                  <div className="mt-1 text-sm font-semibold text-ink">{formatDateTime(connection.updated_at)}</div>
                 </div>
               </div>
             </div>
           </div>
 
           <div className="space-y-6">
-            <div className="rounded-[1.8rem] border border-black/10 bg-white/80 p-6 shadow-[0_18px_40px_rgba(0,0,0,0.05)] md:p-7">
+            <div className="rounded-[1.8rem] border border-black/10 bg-white/80 p-6 shadow-soft md:p-7">
               <div className="mb-5 flex items-center gap-3">
-                <div className="rounded-[1rem] bg-[#f3ecde] p-2.5">
-                  <Server className="h-[18px] w-[18px] text-[#171717]" />
+                <div className="rounded-[1rem] bg-sand p-2.5">
+                  <Server className="h-[18px] w-[18px] text-ink" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Connection Details</h2>
-                  <p className="text-sm text-gray-500">Core host and credential information</p>
+                  <h2 className="text-lg font-semibold text-ink">Connection Details</h2>
+                  <p className="text-sm text-ink-mute">Core host and credential information</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="rounded-[1.2rem] border border-black/10 bg-[#fcfaf5] p-4">
-                  <div className="text-[10px] font-medium uppercase tracking-[0.1em] text-gray-500">Host</div>
+                <div className="rounded-[1.2rem] border border-black/10 bg-cream p-4">
+                  <div className="text-[10px] font-medium text-ink-mute">Host</div>
                   <div className="mt-2 flex items-start gap-2">
-                    <p className="min-w-0 flex-1 break-all font-mono text-sm font-semibold text-gray-900">{connection.host}</p>
+                    <p className="min-w-0 flex-1 break-all font-mono text-sm font-semibold text-ink">{connection.host}</p>
                     <button
                       onClick={() => copyToClipboard(connection.host)}
-                      className="rounded-full border border-black/10 p-2 text-gray-500 transition-colors hover:bg-white hover:text-[#171717]"
+                      className="rounded-full border border-black/10 p-2 text-ink-mute transition-colors hover:bg-white hover:text-ink"
                     >
                       <Copy className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
 
-                <div className="rounded-[1.2rem] border border-black/10 bg-[#fcfaf5] p-4">
-                  <div className="text-[10px] font-medium uppercase tracking-[0.1em] text-gray-500">Port</div>
-                  <div className="mt-2 font-mono text-sm font-semibold text-gray-900">{connection.port}</div>
+                <div className="rounded-[1.2rem] border border-black/10 bg-cream p-4">
+                  <div className="text-[10px] font-medium text-ink-mute">Port</div>
+                  <div className="mt-2 font-mono text-sm font-semibold text-ink">{connection.port}</div>
                 </div>
 
-                <div className="rounded-[1.2rem] border border-black/10 bg-[#eef7f1] p-4">
-                  <div className="text-[10px] font-medium uppercase tracking-[0.1em] text-gray-500">Database</div>
-                  <div className="mt-2 font-mono text-sm font-semibold text-gray-900">{connection.database || 'Not configured'}</div>
+                <div className="rounded-[1.2rem] border border-black/10 bg-leaf-wash p-4">
+                  <div className="text-[10px] font-medium text-ink-mute">Database</div>
+                  <div className="mt-2 font-mono text-sm font-semibold text-ink">{connection.database || 'Not configured'}</div>
                 </div>
 
-                <div className="rounded-[1.2rem] border border-black/10 bg-[#f4efe4] p-4">
-                  <div className="text-[10px] font-medium uppercase tracking-[0.1em] text-gray-500">Username</div>
-                  <div className="mt-2 font-mono text-sm font-semibold text-gray-900">{connection.username || 'Not configured'}</div>
+                <div className="rounded-[1.2rem] border border-black/10 bg-paper p-4">
+                  <div className="text-[10px] font-medium text-ink-mute">Username</div>
+                  <div className="mt-2 font-mono text-sm font-semibold text-ink">{connection.username || 'Not configured'}</div>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-[1.8rem] border border-black/10 bg-white/80 p-6 shadow-[0_18px_40px_rgba(0,0,0,0.05)] md:p-7">
+            <div className="rounded-[1.8rem] border border-black/10 bg-white/80 p-6 shadow-soft md:p-7">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Connection String</h2>
-                  <p className="text-sm text-gray-500">Quick copy reference for this connection</p>
+                  <h2 className="text-lg font-semibold text-ink">Connection String</h2>
+                  <p className="text-sm text-ink-mute">Quick copy reference for this connection</p>
                 </div>
                 <button
                   onClick={() => copyToClipboard(connectionString)}
-                  className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-[#fcfaf5] px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-white hover:text-[#171717]"
+                  className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-cream px-4 py-2 text-sm font-semibold text-ink-soft transition-colors hover:bg-white hover:text-ink"
                 >
                   <Copy className="h-4 w-4" />
                   Copy
                 </button>
               </div>
 
-              <div className="rounded-[1.3rem] border border-black/10 bg-[#fcfaf5] p-4">
-                <p className="break-all font-mono text-sm leading-6 text-gray-900">{connectionString}</p>
+              <div className="rounded-[1.3rem] border border-black/10 bg-cream p-4">
+                <p className="break-all font-mono text-sm leading-6 text-ink">{connectionString}</p>
               </div>
             </div>
           </div>
@@ -375,17 +371,17 @@ export default function DatabaseConnectionDetailsPage() {
       </div>
 
       {deleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-[1.8rem] border border-black/10 bg-[#fcfaf5] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.18)]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <div className="w-full max-w-md rounded-[1.8rem] border border-black/10 bg-cream p-6 shadow-soft">
             <div className="mb-4 flex items-center gap-3">
-              <div className="rounded-[1rem] bg-red-50 p-2.5">
-                <Trash2 className="h-6 w-6 text-red-600" />
+              <div className="rounded-[1rem] bg-sand-deep p-2.5">
+                <Trash2 className="h-6 w-6 text-danger" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">Delete Connection</h3>
+              <h3 className="text-lg font-semibold text-ink">Delete Connection</h3>
             </div>
 
-            <p className="mb-6 text-gray-600">
-              Are you sure you want to delete <span className="font-semibold text-gray-900">{connection.name}</span>?
+            <p className="mb-6 text-ink-soft">
+              Are you sure you want to delete <span className="font-semibold text-ink">{connection.name}</span>?
               This action cannot be undone.
             </p>
 
@@ -393,18 +389,18 @@ export default function DatabaseConnectionDetailsPage() {
               <button
                 onClick={() => setDeleteModal(false)}
                 disabled={deleting}
-                className="rounded-[1rem] border border-black/10 bg-[#f1eadc] px-4 py-2.5 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#e8ddc8] disabled:opacity-50"
+                className="rounded-[1rem] border border-black/10 bg-sand-deep px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-line disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
+                className="flex items-center gap-2 rounded-[1rem] bg-ink px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
               >
                 {deleting ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 motion-safe:animate-spin" />
                     Deleting...
                   </>
                 ) : (

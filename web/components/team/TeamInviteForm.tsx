@@ -36,12 +36,12 @@ export function TeamInviteForm({ onInvite, onCancel, isLoading = false }: TeamIn
 
   return (
     <div className="bg-white shadow rounded-lg p-6">
-      <h3 className="text-lg font-medium text-gray-900 mb-4">Invite Team Member</h3>
+      <h3 className="text-lg font-medium text-ink mb-4">Invite Team Member</h3>
       
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Email Input */}
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="email" className="block text-sm font-medium text-ink-soft mb-1">
             Email Address
           </label>
           <input
@@ -50,7 +50,7 @@ export function TeamInviteForm({ onInvite, onCancel, isLoading = false }: TeamIn
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="colleague@example.com"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-taupe rounded-md focus:outline-none focus:ring-2 focus:ring-azure"
             disabled={isLoading}
             required
           />
@@ -58,29 +58,29 @@ export function TeamInviteForm({ onInvite, onCancel, isLoading = false }: TeamIn
 
         {/* Role Selection */}
         <div>
-          <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="role" className="block text-sm font-medium text-ink-soft mb-1">
             Role
           </label>
           <select
             id="role"
             value={role}
             onChange={(e) => setRole(e.target.value as UserRole)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-taupe rounded-md focus:outline-none focus:ring-2 focus:ring-azure"
             disabled={isLoading}
           >
             <option value="admin">{ROLE_LABELS.admin}</option>
             <option value="editor">{ROLE_LABELS.editor}</option>
             <option value="member">{ROLE_LABELS.member}</option>
           </select>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-ink-mute">
             {ROLE_DESCRIPTIONS[role]}
           </p>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-3">
-            <p className="text-sm text-red-800">{error}</p>
+          <div className="bg-blush-wash border border-blush rounded-md p-3">
+            <p className="text-sm text-wine">{error}</p>
           </div>
         )}
 
@@ -91,7 +91,7 @@ export function TeamInviteForm({ onInvite, onCancel, isLoading = false }: TeamIn
               type="button"
               onClick={onCancel}
               disabled={isLoading}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-line text-ink-soft rounded-md hover:bg-taupe focus:outline-none focus:ring-2 focus:ring-ash disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
@@ -99,17 +99,17 @@ export function TeamInviteForm({ onInvite, onCancel, isLoading = false }: TeamIn
           <button
             type="submit"
             disabled={isLoading}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-leaf text-white rounded-md hover:bg-forest focus:outline-none focus:ring-2 focus:ring-leaf disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? 'Sending...' : 'Send Invitation'}
+            {isLoading ? 'Sending…' : 'Send Invitation'}
           </button>
         </div>
       </form>
 
       {/* Info Box */}
-      <div className="mt-6 bg-blue-50 border border-blue-200 rounded-md p-4">
-        <h4 className="text-sm font-medium text-blue-900 mb-2">About Invitations</h4>
-        <ul className="text-sm text-blue-800 space-y-1">
+      <div className="mt-6 bg-sky-wash border border-sky-wash rounded-md p-4">
+        <h4 className="text-sm font-medium text-azure mb-2">About Invitations</h4>
+        <ul className="text-sm text-azure space-y-1">
           <li>• Invitations are sent via email</li>
           <li>• They expire after 7 days</li>
           <li>• Recipients must have or create an account to accept</li>

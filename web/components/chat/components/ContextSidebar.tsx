@@ -101,7 +101,7 @@ export function ContextSidebar({
     >
       {/* Agent Profile Section */}
       {agent && (
-        <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
+        <div className="sticky top-0 z-10 bg-white border-b border-line shadow-sm">
           <AgentProfile
             agentName={agent.agent_name || 'Agent'}
             agentType={agent.agent_type}
@@ -127,7 +127,7 @@ export function ContextSidebar({
                 isExpanded={expandedSections.has('mcp-servers')}
                 onToggle={() => toggleSection('mcp-servers')}
                 primaryColor={primaryColor}
-                gradient="from-blue-500 to-cyan-500"
+                gradient="from-azure to-azure"
               >
                 <div className="space-y-1.5">
                   {mcpServers.map((server: any, index: number) => (
@@ -140,11 +140,11 @@ export function ContextSidebar({
                           <Server size={12} style={{ color: primaryColor }} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-gray-900 text-[11px] truncate leading-tight">
+                          <p className="font-semibold text-ink text-[11px] truncate leading-tight">
                             {server.server_name || server.name}
                           </p>
                           {server.description && (
-                            <p className="text-[10px] text-gray-500 mt-0.5 line-clamp-1 leading-tight">
+                            <p className="text-[10px] text-ink-mute mt-0.5 line-clamp-1 leading-tight">
                               {server.description}
                             </p>
                           )}
@@ -164,7 +164,7 @@ export function ContextSidebar({
                 isExpanded={expandedSections.has('knowledge-bases')}
                 onToggle={() => toggleSection('knowledge-bases')}
                 primaryColor={primaryColor}
-                gradient="from-purple-500 to-pink-500"
+                gradient="from-plum to-plum"
               >
                 <div className="space-y-2">
                   {knowledgeBases.map((kb: any, index: number) => (
@@ -177,9 +177,9 @@ export function ContextSidebar({
                           <Database size={14} style={{ color: primaryColor }} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-gray-900 text-xs truncate">{kb.name}</p>
+                          <p className="font-semibold text-ink text-xs truncate">{kb.name}</p>
                           {kb.description && (
-                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{kb.description}</p>
+                            <p className="text-xs text-ink-mute mt-0.5 line-clamp-2">{kb.description}</p>
                           )}
                         </div>
                       </div>
@@ -197,7 +197,7 @@ export function ContextSidebar({
                 isExpanded={expandedSections.has('tools')}
                 onToggle={() => toggleSection('tools')}
                 primaryColor={primaryColor}
-                gradient="from-orange-500 to-red-500"
+                gradient="from-warn to-brand"
               >
                 <div className="space-y-2">
                   {tools.map((tool: any, index: number) => (
@@ -210,11 +210,11 @@ export function ContextSidebar({
                           <Wrench size={14} style={{ color: primaryColor }} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-gray-900 text-xs truncate">
+                          <p className="font-semibold text-ink text-xs truncate">
                             {tool.tool_name || tool.name}
                           </p>
                           {tool.description && (
-                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{tool.description}</p>
+                            <p className="text-xs text-ink-mute mt-0.5 line-clamp-2">{tool.description}</p>
                           )}
                         </div>
                       </div>
@@ -232,7 +232,7 @@ export function ContextSidebar({
                 isExpanded={expandedSections.has('context-files')}
                 onToggle={() => toggleSection('context-files')}
                 primaryColor={primaryColor}
-                gradient="from-green-500 to-emerald-500"
+                gradient="from-leaf to-leaf"
               >
                 <div className="space-y-2">
                   {contextFiles.map((file: any, index: number) => (
@@ -245,9 +245,9 @@ export function ContextSidebar({
                           <FileText size={14} style={{ color: primaryColor }} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-gray-900 text-xs truncate">{file.filename}</p>
+                          <p className="font-semibold text-ink text-xs truncate">{file.filename}</p>
                           <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-ink-mute">
                               {(file.file_size / 1024).toFixed(1)} KB
                             </span>
                             {file.extraction_status === 'COMPLETED' && (
@@ -285,7 +285,7 @@ export function ContextSidebar({
             isExpanded={expandedSections.has('sources')}
             onToggle={() => toggleSection('sources')}
             primaryColor={primaryColor}
-            gradient="from-teal-500 to-cyan-500"
+            gradient="from-leaf to-azure"
           >
             <div className="space-y-2">
               {sources.map((source, index) => (
@@ -304,7 +304,7 @@ export function ContextSidebar({
             isExpanded={expandedSections.has('people')}
             onToggle={() => toggleSection('people')}
             primaryColor={primaryColor}
-            gradient="from-indigo-500 to-purple-500"
+            gradient="from-azure to-plum"
           >
             <div className="space-y-2">
               {keyPeople.map((person, index) => (
@@ -323,7 +323,7 @@ export function ContextSidebar({
             isExpanded={expandedSections.has('news')}
             onToggle={() => toggleSection('news')}
             primaryColor={primaryColor}
-            gradient="from-rose-500 to-pink-500"
+            gradient="from-brand to-plum"
           >
             <div className="space-y-2">
               {news.map((item, index) => (
@@ -356,13 +356,13 @@ function ModernSection({
   onToggle, 
   children, 
   primaryColor = '#14b8a6',
-  gradient = 'from-teal-500 to-cyan-500'
+  gradient = 'from-leaf to-azure'
 }: ModernSectionProps) {
   return (
-    <div className="rounded-lg overflow-hidden border border-gray-200 bg-white shadow-sm hover:shadow transition-all duration-150">
+    <div className="rounded-lg overflow-hidden border border-line bg-white shadow-sm hover:shadow transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-150">
       <button
         onClick={onToggle}
-        className="w-full px-2.5 py-2 flex items-center justify-between hover:bg-gray-50 transition-colors text-left group"
+        className="w-full px-2.5 py-2 flex items-center justify-between hover:bg-cream transition-colors text-left group"
       >
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
           <div 
@@ -370,7 +370,7 @@ function ModernSection({
           >
             <div className="text-white">{icon}</div>
           </div>
-          <h3 className="font-semibold text-gray-900 text-[11px] truncate">{title}</h3>
+          <h3 className="font-semibold text-ink text-[11px] truncate">{title}</h3>
           <span 
             className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
             style={{ 
@@ -383,14 +383,14 @@ function ModernSection({
         </div>
         <div className="flex-shrink-0 ml-1">
           {isExpanded ? (
-            <ChevronUp size={14} className="text-gray-400 group-hover:text-gray-600 transition-colors" />
+            <ChevronUp size={14} className="text-ash group-hover:text-ink-soft transition-colors" />
           ) : (
-            <ChevronDown size={14} className="text-gray-400 group-hover:text-gray-600 transition-colors" />
+            <ChevronDown size={14} className="text-ash group-hover:text-ink-soft transition-colors" />
           )}
         </div>
       </button>
       {isExpanded && (
-        <div className="px-2.5 pb-2 bg-gray-50/30">
+        <div className="px-2.5 pb-2 bg-cream/30">
           {children}
         </div>
       )}
@@ -408,7 +408,7 @@ function ModernCard({ children, className }: ModernCardProps) {
   return (
     <div 
       className={cn(
-        'p-2 rounded-md border border-gray-100 bg-white hover:border-gray-200 transition-all duration-150 hover:shadow-sm',
+        'p-2 rounded-md border border-sand bg-white hover:border-line transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-150 hover:shadow-sm',
         className
       )}
     >
@@ -425,9 +425,9 @@ interface StatusBadgeProps {
 
 function StatusBadge({ icon, color, children }: StatusBadgeProps) {
   const colors = {
-    green: 'bg-green-100 text-green-700 border-green-200',
-    yellow: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-    red: 'bg-red-100 text-red-700 border-red-200',
+    green: 'bg-leaf-wash text-forest border-mint',
+    yellow: 'bg-sand-deep text-gold border-honey',
+    red: 'bg-blush-wash text-leaf border-blush',
   }
 
   return (
@@ -459,11 +459,11 @@ function SourceCard({ source, primaryColor = '#14b8a6' }: SourceCardProps) {
             <Database size={14} style={{ color: primaryColor }} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-gray-900 line-clamp-2 leading-relaxed">
+            <p className="text-xs font-medium text-ink line-clamp-2 leading-relaxed">
               {ragSource.text || 'Knowledge Base Source'}
             </p>
             {ragSource.full_text && ragSource.full_text !== ragSource.text && (
-              <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">
+              <p className="text-xs text-ink-mute mt-1 line-clamp-2 leading-relaxed">
                 {ragSource.full_text}
               </p>
             )}
@@ -478,7 +478,7 @@ function SourceCard({ source, primaryColor = '#14b8a6' }: SourceCardProps) {
                 {ragSource.kb_name}
               </span>
               {ragSource.score && (
-                <span className="text-xs text-gray-500 flex items-center gap-1">
+                <span className="text-xs text-ink-mute flex items-center gap-1">
                   <TrendingUp size={10} />
                   {(ragSource.score * 100).toFixed(0)}%
                 </span>
@@ -519,17 +519,17 @@ function SourceCard({ source, primaryColor = '#14b8a6' }: SourceCardProps) {
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-gray-900 line-clamp-2 leading-relaxed hover:underline">
+            <p className="text-xs font-semibold text-ink line-clamp-2 leading-relaxed hover:underline">
               {source.title}
             </p>
             {source.description && (
-              <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">
+              <p className="text-xs text-ink-mute mt-1 line-clamp-2 leading-relaxed">
                 {source.description}
               </p>
             )}
             <div className="flex items-center gap-1 mt-2">
-              <ExternalLink size={10} className="text-gray-400" />
-              <span className="text-xs text-gray-400 truncate">
+              <ExternalLink size={10} className="text-ash" />
+              <span className="text-xs text-ash truncate">
                 {new URL(source.url).hostname}
               </span>
             </div>
@@ -559,7 +559,7 @@ function PersonCard({ person, primaryColor = '#14b8a6' }: PersonCardProps) {
             width={40}
             height={40}
             loading="lazy"
-            className="w-10 h-10 rounded-lg object-cover flex-shrink-0 ring-2 ring-gray-100"
+            className="w-10 h-10 rounded-lg object-cover flex-shrink-0 ring-2 ring-sand"
             onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
           />
         ) : (
@@ -575,10 +575,10 @@ function PersonCard({ person, primaryColor = '#14b8a6' }: PersonCardProps) {
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <h4 className="text-xs font-bold text-gray-900 truncate">{person.name}</h4>
-          <p className="text-xs text-gray-600 mt-0.5 truncate">{person.title}</p>
+          <h4 className="text-xs font-bold text-ink truncate">{person.name}</h4>
+          <p className="text-xs text-ink-soft mt-0.5 truncate">{person.title}</p>
           {person.company && (
-            <p className="text-xs text-gray-500 mt-0.5 truncate">{person.company}</p>
+            <p className="text-xs text-ink-mute mt-0.5 truncate">{person.company}</p>
           )}
           {person.linkedin && (
             <a
@@ -626,12 +626,12 @@ function NewsCard({ news, primaryColor = '#14b8a6' }: NewsCardProps) {
               width={64}
               height={64}
               loading="lazy"
-              className="w-16 h-16 rounded-lg object-cover flex-shrink-0 ring-2 ring-gray-100"
+              className="w-16 h-16 rounded-lg object-cover flex-shrink-0 ring-2 ring-sand"
               onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
             />
           )}
           <div className="flex-1 min-w-0">
-            <h4 className="text-xs font-semibold text-gray-900 line-clamp-2 leading-relaxed hover:underline">
+            <h4 className="text-xs font-semibold text-ink line-clamp-2 leading-relaxed hover:underline">
               {news.title}
             </h4>
             <div className="flex items-center gap-2 mt-2">
@@ -644,7 +644,7 @@ function NewsCard({ news, primaryColor = '#14b8a6' }: NewsCardProps) {
               >
                 {news.source}
               </span>
-              <div className="flex items-center gap-1 text-xs text-gray-400">
+              <div className="flex items-center gap-1 text-xs text-ash">
                 <Calendar size={10} />
                 <span>{formatDate(news.date)}</span>
               </div>

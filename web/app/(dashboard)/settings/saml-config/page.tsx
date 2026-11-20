@@ -22,7 +22,7 @@ function CopyButton({ value }: { value: string }) {
     <button
       type="button"
       onClick={copy}
-      className="ml-2 px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 rounded transition-colors whitespace-nowrap"
+      className="ml-2 px-2 py-1 text-xs bg-sand hover:bg-line text-ink-soft rounded transition-colors whitespace-nowrap"
     >
       {copied ? 'Copied!' : 'Copy'}
     </button>
@@ -167,16 +167,16 @@ export default function SAMLConfigPage() {
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">SAML 2.0 SSO</h1>
-            <p className="mt-1 text-gray-600 text-sm">
+            <h1 className="text-2xl md:text-3xl font-extrabold text-ink tracking-tight">SAML 2.0 SSO</h1>
+            <p className="mt-1 text-ink-soft text-sm">
               Connect your Identity Provider (Okta, Azure AD, Google Workspace, Ping) to enable single sign-on
             </p>
           </div>
           {config && (
             <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
               config.is_active
-                ? 'bg-green-100 text-green-800'
-                : 'bg-gray-100 text-gray-600'
+                ? 'bg-leaf-wash text-forest'
+                : 'bg-sand text-ink-soft'
             }`}>
               {config.is_active ? 'Active' : 'Disabled'}
             </span>
@@ -192,13 +192,13 @@ export default function SAMLConfigPage() {
 
       {/* Setup steps — shown when no config yet */}
       {!config && (
-        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h3 className="text-xs font-semibold text-blue-800 uppercase tracking-wide mb-2">How to set up</h3>
-          <ol className="space-y-1 text-xs text-blue-700 list-decimal list-inside">
+        <div className="mb-6 bg-sky-wash border border-sky-wash rounded-lg p-4">
+          <h3 className="text-xs font-semibold text-azure mb-2">How to set up</h3>
+          <ol className="space-y-1 text-xs text-azure list-decimal list-inside">
             <li>Create a SAML application in your IdP (Okta, Azure AD, etc.)</li>
             <li>Enter the SP Entity ID and ACS URL from below into your IdP</li>
             <li>Copy the IdP Metadata URL from your IdP and paste it here</li>
-            <li>Save — your users can now sign in via your IdP</li>
+            <li>Save, your users can now sign in via your IdP</li>
           </ol>
         </div>
       )}
@@ -207,32 +207,32 @@ export default function SAMLConfigPage() {
 
         {/* Service Provider Details */}
         <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-1">Service Provider (SP) Details</h2>
-          <p className="text-sm text-gray-500 mb-5">Copy these values into your Identity Provider when creating the SAML application.</p>
+          <h2 className="text-xl font-semibold text-ink mb-1">Service Provider (SP) Details</h2>
+          <p className="text-sm text-ink-mute mb-5">Copy these values into your Identity Provider when creating the SAML application.</p>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">SP Entity ID (Audience URI)</label>
+              <label className="block text-sm font-medium text-ink-soft mb-1">SP Entity ID (Audience URI)</label>
               <input
                 type="text"
                 value={spEntityId}
                 onChange={(e) => setSpEntityId(e.target.value)}
                 placeholder="https://your-app.com/saml/sp"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
+                className="w-full px-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
               />
-              <p className="mt-1 text-xs text-gray-500">Unique identifier for this application in your IdP.</p>
+              <p className="mt-1 text-xs text-ink-mute">Unique identifier for this application in your IdP.</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">ACS URL (Assertion Consumer Service URL)</label>
+              <label className="block text-sm font-medium text-ink-soft mb-1">ACS URL (Assertion Consumer Service URL)</label>
               <input
                 type="text"
                 value={acsUrl}
                 onChange={(e) => setAcsUrl(e.target.value)}
                 placeholder={`${apiBase}/console/api/auth/saml/YOUR_TENANT_ID/acs`}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
+                className="w-full px-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-ink-mute">
                 The URL your IdP posts the SAML assertion to after authentication.
                 {config && (
                   <span className="ml-1 text-primary-600 font-medium">
@@ -245,23 +245,23 @@ export default function SAMLConfigPage() {
             {/* SP Metadata URL — only shown once config exists */}
             {config && spMetadataUrl && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">SP Metadata URL</label>
-                <div className="flex items-center px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
-                  <code className="text-xs text-gray-700 flex-1 break-all">{spMetadataUrl}</code>
+                <label className="block text-sm font-medium text-ink-soft mb-1">SP Metadata URL</label>
+                <div className="flex items-center px-3 py-2 bg-cream border border-line rounded-lg">
+                  <code className="text-xs text-ink-soft flex-1 break-all">{spMetadataUrl}</code>
                   <CopyButton value={spMetadataUrl} />
                 </div>
-                <p className="mt-1 text-xs text-gray-500">Some IdPs can import SP configuration automatically from this URL.</p>
+                <p className="mt-1 text-xs text-ink-mute">Some IdPs can import SP configuration automatically from this URL.</p>
               </div>
             )}
 
             {config && spLoginUrl && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">SSO Login URL</label>
-                <div className="flex items-center px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
-                  <code className="text-xs text-gray-700 flex-1 break-all">{spLoginUrl}</code>
+                <label className="block text-sm font-medium text-ink-soft mb-1">SSO Login URL</label>
+                <div className="flex items-center px-3 py-2 bg-cream border border-line rounded-lg">
+                  <code className="text-xs text-ink-soft flex-1 break-all">{spLoginUrl}</code>
                   <CopyButton value={spLoginUrl} />
                 </div>
-                <p className="mt-1 text-xs text-gray-500">Direct users here to initiate SAML login. Add to your IdP's login button or email.</p>
+                <p className="mt-1 text-xs text-ink-mute">Direct users here to initiate SAML login. Add to your IdP's login button or email.</p>
               </div>
             )}
           </div>
@@ -269,18 +269,18 @@ export default function SAMLConfigPage() {
 
         {/* Identity Provider Configuration */}
         <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-1">Identity Provider (IdP) Configuration</h2>
-          <p className="text-sm text-gray-500 mb-5">Provide the metadata from your Identity Provider.</p>
+          <h2 className="text-xl font-semibold text-ink mb-1">Identity Provider (IdP) Configuration</h2>
+          <p className="text-sm text-ink-mute mb-5">Provide the metadata from your Identity Provider.</p>
 
           {/* Method tabs */}
-          <div className="flex border-b border-gray-200 mb-5">
+          <div className="flex border-b border-line mb-5">
             <button
               type="button"
               onClick={() => setIdpMethod('url')}
               className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
                 idpMethod === 'url'
                   ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  : 'border-transparent text-ink-mute hover:text-ink-soft'
               }`}
             >
               Metadata URL
@@ -291,7 +291,7 @@ export default function SAMLConfigPage() {
               className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
                 idpMethod === 'xml'
                   ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  : 'border-transparent text-ink-mute hover:text-ink-soft'
               }`}
             >
               Paste XML
@@ -300,32 +300,32 @@ export default function SAMLConfigPage() {
 
           {idpMethod === 'url' ? (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">IdP Metadata URL</label>
+              <label className="block text-sm font-medium text-ink-soft mb-1">IdP Metadata URL</label>
               <input
                 type="url"
                 value={idpMetadataUrl}
                 onChange={(e) => setIdpMetadataUrl(e.target.value)}
                 placeholder="https://company.okta.com/app/abc123/sso/saml/metadata"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
+                className="w-full px-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
               />
-              <div className="mt-2 space-y-1 text-xs text-gray-500">
-                <p><span className="font-medium text-gray-600">Okta:</span> App → Sign On tab → SAML Signing Certificates → Metadata URL</p>
-                <p><span className="font-medium text-gray-600">Azure AD:</span> Enterprise App → Single sign-on → App Federation Metadata Url</p>
-                <p><span className="font-medium text-gray-600">Google:</span> Admin Console → Apps → SAML apps → Download Metadata</p>
+              <div className="mt-2 space-y-1 text-xs text-ink-mute">
+                <p><span className="font-medium text-ink-soft">Okta:</span> App → Sign On tab → SAML Signing Certificates → Metadata URL</p>
+                <p><span className="font-medium text-ink-soft">Azure AD:</span> Enterprise App → Single sign-on → App Federation Metadata Url</p>
+                <p><span className="font-medium text-ink-soft">Google:</span> Admin Console → Apps → SAML apps → Download Metadata</p>
               </div>
             </div>
           ) : (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">IdP Metadata XML</label>
+              <label className="block text-sm font-medium text-ink-soft mb-1">IdP Metadata XML</label>
               <textarea
                 value={idpMetadataXml}
                 onChange={(e) => setIdpMetadataXml(e.target.value)}
                 rows={8}
                 placeholder={'<?xml version="1.0"?>\n<EntityDescriptor ...>...</EntityDescriptor>'}
-                className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white font-mono"
+                className="w-full px-3 py-2 text-xs border border-taupe rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white font-mono"
               />
               {config?.has_idp_metadata_xml && !idpMetadataXml && (
-                <p className="mt-1.5 text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded border border-amber-200">
+                <p className="mt-1.5 text-xs text-warn bg-sand-deep px-3 py-2 rounded border border-honey">
                   Metadata XML is already stored. Paste new XML to replace it, or switch to Metadata URL.
                 </p>
               )}
@@ -335,28 +335,28 @@ export default function SAMLConfigPage() {
 
         {/* Attribute Mapping */}
         <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-1">Attribute Mapping</h2>
-          <p className="text-sm text-gray-500 mb-5">Map SAML assertion attributes to user fields. Defaults work for most IdPs.</p>
+          <h2 className="text-xl font-semibold text-ink mb-1">Attribute Mapping</h2>
+          <p className="text-sm text-ink-mute mb-5">Map SAML assertion attributes to user fields. Defaults work for most IdPs.</p>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email attribute</label>
+              <label className="block text-sm font-medium text-ink-soft mb-1">Email attribute</label>
               <input
                 type="text"
                 value={emailAttribute}
                 onChange={(e) => setEmailAttribute(e.target.value)}
                 placeholder="email"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
+                className="w-full px-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Display name attribute</label>
+              <label className="block text-sm font-medium text-ink-soft mb-1">Display name attribute</label>
               <input
                 type="text"
                 value={nameAttribute}
                 onChange={(e) => setNameAttribute(e.target.value)}
                 placeholder="displayName"
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
+                className="w-full px-3 py-2 text-sm border border-taupe rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
               />
             </div>
           </div>
@@ -364,42 +364,42 @@ export default function SAMLConfigPage() {
 
         {/* Options */}
         <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-5">Options</h2>
+          <h2 className="text-xl font-semibold text-ink mb-5">Options</h2>
 
           <div className="space-y-5">
             {/* Enable toggle */}
-            <div className="flex items-center justify-between py-3 border-b border-gray-100">
+            <div className="flex items-center justify-between py-3 border-b border-sand">
               <div>
-                <p className="text-sm font-medium text-gray-900">Enable SAML SSO</p>
-                <p className="text-xs text-gray-500 mt-0.5">Allow users to sign in via your Identity Provider.</p>
+                <p className="text-sm font-medium text-ink">Enable SAML SSO</p>
+                <p className="text-xs text-ink-mute mt-0.5">Allow users to sign in via your Identity Provider.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setIsActive(!isActive)}
                 className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
-                  isActive ? 'bg-primary-600' : 'bg-gray-200'
+                  isActive ? 'bg-primary-600' : 'bg-line'
                 }`}
               >
-                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform motion-reduce:transition-none ${
                   isActive ? 'translate-x-5' : 'translate-x-0'
                 }`} />
               </button>
             </div>
 
             {/* JIT provisioning */}
-            <div className="flex items-center justify-between py-3 border-b border-gray-100">
+            <div className="flex items-center justify-between py-3 border-b border-sand">
               <div>
-                <p className="text-sm font-medium text-gray-900">Auto-provision accounts (JIT)</p>
-                <p className="text-xs text-gray-500 mt-0.5">Automatically create an account on first SAML login. Disable to require pre-created accounts.</p>
+                <p className="text-sm font-medium text-ink">Auto-provision accounts (JIT)</p>
+                <p className="text-xs text-ink-mute mt-0.5">Automatically create an account on first SAML login. Disable to require pre-created accounts.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setJitProvisioning(!jitProvisioning)}
                 className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
-                  jitProvisioning ? 'bg-primary-600' : 'bg-gray-200'
+                  jitProvisioning ? 'bg-primary-600' : 'bg-line'
                 }`}
               >
-                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform motion-reduce:transition-none ${
                   jitProvisioning ? 'translate-x-5' : 'translate-x-0'
                 }`} />
               </button>
@@ -408,24 +408,24 @@ export default function SAMLConfigPage() {
             {/* Force SAML */}
             <div className="flex items-center justify-between py-3">
               <div>
-                <p className="text-sm font-medium text-gray-900">Require SAML (disable password login)</p>
-                <p className="text-xs text-gray-500 mt-0.5">Block all password-based logins. Users must authenticate via your IdP.</p>
+                <p className="text-sm font-medium text-ink">Require SAML (disable password login)</p>
+                <p className="text-xs text-ink-mute mt-0.5">Block all password-based logins. Users must authenticate via your IdP.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setForceSaml(!forceSaml)}
                 className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
-                  forceSaml ? 'bg-red-500' : 'bg-gray-200'
+                  forceSaml ? 'bg-ink' : 'bg-line'
                 }`}
               >
-                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform motion-reduce:transition-none ${
                   forceSaml ? 'translate-x-5' : 'translate-x-0'
                 }`} />
               </button>
             </div>
 
             {forceSaml && (
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+              <div className="p-3 bg-sand-deep border border-honey rounded-lg text-xs text-gold">
                 Enabling this will immediately block all password-based logins including your own account.
                 Make sure SAML is working and tested before turning this on.
               </div>
@@ -438,7 +438,7 @@ export default function SAMLConfigPage() {
           <button
             type="submit"
             disabled={saving}
-            className="px-5 py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white text-sm font-medium rounded-lg hover:from-primary-600 hover:to-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex items-center gap-2"
+            className="px-5 py-2.5 bg-ink hover:bg-ink/85 text-white text-sm font-medium rounded-lg hover:from-primary-600 hover:to-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-[color,background-color,border-color,box-shadow,opacity,transform] shadow-sm flex items-center gap-2"
           >
             {saving ? (
               <>
@@ -454,7 +454,7 @@ export default function SAMLConfigPage() {
             <button
               type="button"
               onClick={() => setShowDeleteConfirm(true)}
-              className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-4 py-2.5 text-sm font-medium text-ink-soft bg-white border border-taupe rounded-lg hover:bg-cream transition-colors"
             >
               Remove SAML
             </button>
@@ -462,19 +462,19 @@ export default function SAMLConfigPage() {
 
           {showDeleteConfirm && (
             <div className="flex items-center gap-2">
-              <span className="text-sm text-red-600">Remove SAML configuration?</span>
+              <span className="text-sm text-danger">Remove SAML configuration?</span>
               <button
                 type="button"
                 onClick={handleDelete}
                 disabled={deleting}
-                className="px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+                className="px-3 py-1.5 bg-danger text-white text-xs font-medium rounded-lg hover:bg-danger disabled:opacity-50 transition-colors"
               >
-                {deleting ? 'Removing...' : 'Yes, remove'}
+                {deleting ? 'Removing…' : 'Yes, remove'}
               </button>
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(false)}
-                className="px-3 py-1.5 border border-gray-300 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-3 py-1.5 border border-taupe text-ink-soft text-xs font-medium rounded-lg hover:bg-cream transition-colors"
               >
                 Cancel
               </button>
@@ -485,11 +485,11 @@ export default function SAMLConfigPage() {
 
       {/* Help */}
       <div className="bg-primary-50 border border-primary-200 rounded-lg p-4 mt-6">
-        <h3 className="text-xs font-semibold text-primary-800 uppercase tracking-wide mb-2">About SAML 2.0 SSO</h3>
+        <h3 className="text-xs font-semibold text-primary-800 mb-2">About SAML 2.0 SSO</h3>
         <ul className="text-xs text-primary-700 space-y-1.5">
           <li className="flex items-start gap-2">
             <span className="text-primary-500 mt-0.5">•</span>
-            <span>Each organization has its own SAML configuration — fully tenant-isolated</span>
+            <span>Each organization has its own SAML configuration, fully tenant-isolated</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-primary-500 mt-0.5">•</span>
@@ -497,7 +497,7 @@ export default function SAMLConfigPage() {
           </li>
           <li className="flex items-start gap-2">
             <span className="text-primary-500 mt-0.5">•</span>
-            <span>With JIT provisioning, new users are automatically created on first login — no manual user creation needed</span>
+            <span>With JIT provisioning, new users are automatically created on first login, no manual user creation needed</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-primary-500 mt-0.5">•</span>

@@ -60,9 +60,9 @@ export default function ComputeSettingsPage() {
           <button
             onClick={handleTest}
             disabled={testing || !status?.sandbox_available}
-            className="inline-flex items-center gap-2 rounded-[1rem] border border-[#d8e5d9] bg-[linear-gradient(180deg,_rgba(244,249,245,0.98),_rgba(235,245,238,0.95))] px-4 py-3 text-sm font-semibold text-[#24543b] transition-all hover:border-[#b9d2be] hover:text-[#1d4631] disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-[1rem] border border-leaf-wash bg-cream px-4 py-3 text-sm font-semibold text-forest transition-[color,background-color,border-color,box-shadow,opacity,transform] hover:border-paper-dim hover:text-forest disabled:opacity-50"
           >
-            {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <TestTube className="h-4 w-4" />}
+            {testing ? <Loader2 className="h-4 w-4 motion-safe:animate-spin" /> : <TestTube className="h-4 w-4" />}
             Test Sandbox
           </button>
         ) : null
@@ -70,20 +70,20 @@ export default function ComputeSettingsPage() {
     >
       {loading ? (
         <div className="flex items-center justify-center py-24">
-          <Loader2 className="h-8 w-8 animate-spin text-[#171717]" />
+          <Loader2 className="h-8 w-8 motion-safe:animate-spin text-ink" />
         </div>
       ) : (
         <DashboardPagePanel className="space-y-5 p-6 md:p-7">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold tracking-[-0.02em] text-gray-950">synkora-sandbox</h2>
-              <p className="mt-1 text-sm text-gray-500">Execution environment for isolated agent workspaces.</p>
+              <h2 className="text-lg font-semibold tracking-[-0.02em] text-ink">synkora-sandbox</h2>
+              <p className="mt-1 text-sm text-ink-mute">Execution environment for isolated agent workspaces.</p>
             </div>
             <div
               className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${
                 status?.sandbox_available
-                  ? 'bg-[#ebf5ee] text-[#24543b]'
-                  : 'bg-[#f8ecef] text-[#8a445c]'
+                  ? 'bg-leaf-wash text-forest'
+                  : 'bg-blush-wash text-wine'
               }`}
             >
               {status?.sandbox_available ? (
@@ -97,17 +97,17 @@ export default function ComputeSettingsPage() {
 
           {status?.sandbox_service_url ? (
             <div className="rounded-[1.2rem] border border-black/5 bg-white/80 px-4 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#9a7a5e]">Service URL</p>
-              <p className="mt-2 break-all font-mono text-xs text-gray-600">{status.sandbox_service_url}</p>
+              <p className="text-[11px] font-semibold text-clay">Service URL</p>
+              <p className="mt-2 break-all font-mono text-xs text-ink-soft">{status.sandbox_service_url}</p>
             </div>
           ) : null}
 
-          <div className="rounded-[1.25rem] border border-[#e5d9ca] bg-[#fcfaf5] px-4 py-4">
+          <div className="rounded-[1.25rem] border border-line bg-cream px-4 py-4">
             <div className="flex items-start gap-3">
-              <div className="rounded-full bg-[#f1eadc] p-2">
-                <Info className="h-4 w-4 text-[#7c5d45]" />
+              <div className="rounded-full bg-sand-deep p-2">
+                <Info className="h-4 w-4 text-bark" />
               </div>
-              <p className="text-sm leading-6 text-gray-600">
+              <p className="text-sm leading-6 text-ink-soft">
                 Each agent gets an isolated workspace directory. Workspaces are ephemeral and are created at conversation start, then removed when the conversation ends. No additional configuration is required.
               </p>
             </div>

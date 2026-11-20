@@ -12,7 +12,7 @@ const SyntaxHighlighter = dynamic(
   {
     ssr: false,
     loading: () => (
-      <pre className="bg-gray-900 text-gray-100 p-4 text-[13px] font-mono overflow-x-auto whitespace-pre">{}</pre>
+      <pre className="bg-ink text-sand p-4 text-[13px] font-mono overflow-x-auto whitespace-pre">{}</pre>
     ),
   }
 )
@@ -118,7 +118,7 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
   if (error) {
     return (
       <div className="my-3 -mx-2">
-        <div className="text-xs text-amber-600 bg-amber-50 px-3 py-1.5 rounded-t-lg border border-amber-200">
+        <div className="text-xs text-warn bg-sand-deep px-3 py-1.5 rounded-t-lg border border-honey">
           Diagram rendering failed: {error}
         </div>
         <SyntaxHighlighter
@@ -136,9 +136,9 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
 
   if (!svgContent) {
     return (
-      <div className="my-3 flex items-center justify-center h-32 bg-gray-50 rounded-lg border border-gray-200">
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+      <div className="my-3 flex items-center justify-center h-32 bg-cream rounded-lg border border-line">
+        <div className="flex items-center gap-2 text-sm text-ink-mute">
+          <div className="w-4 h-4 border-2 border-ash border-t-transparent rounded-full motion-safe:animate-spin" />
           Rendering diagram...
         </div>
       </div>
@@ -155,35 +155,35 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
 
   return (
     <>
-      <div className="my-3 -mx-2 rounded-lg border border-gray-200 overflow-hidden">
+      <div className="my-3 -mx-2 rounded-lg border border-line overflow-hidden">
         {/* Toolbar */}
-        <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50 border-b border-gray-200">
-          <span className="text-xs text-gray-500 font-medium">Mermaid Diagram</span>
+        <div className="flex items-center justify-between px-3 py-1.5 bg-cream border-b border-line">
+          <span className="text-xs text-ink-mute font-medium">Mermaid Diagram</span>
           <div className="flex items-center gap-1">
             <button
               onClick={handleCopySvg}
-              className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
+              className="p-1 text-ash hover:text-ink-soft rounded transition-colors"
               title="Copy SVG"
             >
               {copied ? <Check size={14} /> : <Copy size={14} />}
             </button>
             <button
               onClick={handleDownloadSvg}
-              className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
+              className="p-1 text-ash hover:text-ink-soft rounded transition-colors"
               title="Download SVG"
             >
               <Download size={14} />
             </button>
             <button
               onClick={handleDownloadPng}
-              className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
+              className="p-1 text-ash hover:text-ink-soft rounded transition-colors"
               title="Download PNG"
             >
               <span className="text-[10px] font-medium">PNG</span>
             </button>
             <button
               onClick={() => setIsFullscreen(true)}
-              className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
+              className="p-1 text-ash hover:text-ink-soft rounded transition-colors"
               title="Fullscreen"
             >
               <Maximize2 size={14} />
@@ -198,26 +198,26 @@ export function MermaidDiagram({ code }: MermaidDiagramProps) {
       {/* Fullscreen overlay */}
       {isFullscreen && (
         <div className="fixed inset-0 z-50 bg-white flex flex-col">
-          <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200">
-            <span className="text-sm font-medium text-gray-700">Mermaid Diagram</span>
+          <div className="flex items-center justify-between px-4 py-2 border-b border-line">
+            <span className="text-sm font-medium text-ink-soft">Mermaid Diagram</span>
             <div className="flex items-center gap-2">
               <button
                 onClick={handleCopySvg}
-                className="p-1.5 text-gray-500 hover:text-gray-700 rounded transition-colors"
+                className="p-1.5 text-ink-mute hover:text-ink-soft rounded transition-colors"
                 title="Copy SVG"
               >
                 <Copy size={16} />
               </button>
               <button
                 onClick={handleDownloadSvg}
-                className="p-1.5 text-gray-500 hover:text-gray-700 rounded transition-colors"
+                className="p-1.5 text-ink-mute hover:text-ink-soft rounded transition-colors"
                 title="Download SVG"
               >
                 <Download size={16} />
               </button>
               <button
                 onClick={() => setIsFullscreen(false)}
-                className="p-1.5 text-gray-500 hover:text-gray-700 rounded transition-colors"
+                className="p-1.5 text-ink-mute hover:text-ink-soft rounded transition-colors"
                 title="Exit fullscreen"
               >
                 <Minimize2 size={16} />

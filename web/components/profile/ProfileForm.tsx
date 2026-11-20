@@ -45,7 +45,7 @@ export function ProfileForm({ profile, onSubmit, onCancel }: ProfileFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div className="bg-blush-wash border border-blush text-danger px-4 py-3 rounded">
           {error}
         </div>
       )}
@@ -53,7 +53,7 @@ export function ProfileForm({ profile, onSubmit, onCancel }: ProfileFormProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Name */}
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="name" className="block text-sm font-medium text-ink-soft mb-2">
             Full Name *
           </label>
           <input
@@ -63,13 +63,13 @@ export function ProfileForm({ profile, onSubmit, onCancel }: ProfileFormProps) {
             value={formData.name}
             onChange={handleChange}
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-taupe rounded-md focus:outline-none focus:ring-2 focus:ring-azure"
           />
         </div>
 
         {/* Email */}
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="email" className="block text-sm font-medium text-ink-soft mb-2">
             Email *
           </label>
           <input
@@ -79,13 +79,13 @@ export function ProfileForm({ profile, onSubmit, onCancel }: ProfileFormProps) {
             value={formData.email}
             onChange={handleChange}
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-taupe rounded-md focus:outline-none focus:ring-2 focus:ring-azure"
           />
         </div>
 
         {/* Phone */}
         <div>
-          <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="phone" className="block text-sm font-medium text-ink-soft mb-2">
             Phone
           </label>
           <input
@@ -94,13 +94,13 @@ export function ProfileForm({ profile, onSubmit, onCancel }: ProfileFormProps) {
             name="phone"
             value={formData.phone}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-taupe rounded-md focus:outline-none focus:ring-2 focus:ring-azure"
           />
         </div>
 
         {/* Company */}
         <div>
-          <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="company" className="block text-sm font-medium text-ink-soft mb-2">
             Company
           </label>
           <input
@@ -109,13 +109,13 @@ export function ProfileForm({ profile, onSubmit, onCancel }: ProfileFormProps) {
             name="company"
             value={formData.company}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-taupe rounded-md focus:outline-none focus:ring-2 focus:ring-azure"
           />
         </div>
 
         {/* Job Title */}
         <div>
-          <label htmlFor="job_title" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="job_title" className="block text-sm font-medium text-ink-soft mb-2">
             Job Title
           </label>
           <input
@@ -124,13 +124,13 @@ export function ProfileForm({ profile, onSubmit, onCancel }: ProfileFormProps) {
             name="job_title"
             value={formData.job_title}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-taupe rounded-md focus:outline-none focus:ring-2 focus:ring-azure"
           />
         </div>
 
         {/* Location */}
         <div>
-          <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="location" className="block text-sm font-medium text-ink-soft mb-2">
             Location
           </label>
           <input
@@ -140,13 +140,13 @@ export function ProfileForm({ profile, onSubmit, onCancel }: ProfileFormProps) {
             value={formData.location}
             onChange={handleChange}
             placeholder="City, Country"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-taupe rounded-md focus:outline-none focus:ring-2 focus:ring-azure"
           />
         </div>
 
         {/* Website */}
         <div className="md:col-span-2">
-          <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="website" className="block text-sm font-medium text-ink-soft mb-2">
             Website
           </label>
           <input
@@ -156,13 +156,13 @@ export function ProfileForm({ profile, onSubmit, onCancel }: ProfileFormProps) {
             value={formData.website}
             onChange={handleChange}
             placeholder="https://example.com"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-taupe rounded-md focus:outline-none focus:ring-2 focus:ring-azure"
           />
         </div>
 
         {/* Bio */}
         <div className="md:col-span-2">
-          <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="bio" className="block text-sm font-medium text-ink-soft mb-2">
             Bio
           </label>
           <textarea
@@ -171,8 +171,8 @@ export function ProfileForm({ profile, onSubmit, onCancel }: ProfileFormProps) {
             value={formData.bio}
             onChange={handleChange}
             rows={4}
-            placeholder="Tell us about yourself..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Tell us about yourself…"
+            className="w-full px-3 py-2 border border-taupe rounded-md focus:outline-none focus:ring-2 focus:ring-azure"
           />
         </div>
       </div>
@@ -184,7 +184,7 @@ export function ProfileForm({ profile, onSubmit, onCancel }: ProfileFormProps) {
             type="button"
             onClick={onCancel}
             disabled={isSubmitting}
-            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            className="px-4 py-2 border border-taupe rounded-md text-ink-soft hover:bg-cream disabled:opacity-50"
           >
             Cancel
           </button>
@@ -192,9 +192,9 @@ export function ProfileForm({ profile, onSubmit, onCancel }: ProfileFormProps) {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+          className="px-4 py-2 bg-azure text-white rounded-md hover:bg-azure disabled:opacity-50"
         >
-          {isSubmitting ? 'Saving...' : 'Save Changes'}
+          {isSubmitting ? 'Saving…' : 'Save Changes'}
         </button>
       </div>
     </form>

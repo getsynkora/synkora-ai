@@ -434,8 +434,8 @@ export default function EditAgentPage() {
       <div className="agent-workspace min-h-full px-4 py-4 md:px-8 md:py-6 xl:px-10">
         <div className="mx-auto flex min-h-[70vh] max-w-[90rem] items-center justify-center">
           <div className="dashboard-surface px-10 py-12 text-center">
-            <div className="mx-auto h-12 w-12 animate-spin rounded-full border-[3px] border-black/10 border-t-[#181818]"></div>
-            <p className="mt-4 text-[14px] text-[#5b564e]">Loading agent details...</p>
+            <div className="mx-auto h-12 w-12 motion-safe:animate-spin rounded-full border-[3px] border-black/10 border-t-ink"></div>
+            <p className="mt-4 text-[14px] text-ink-soft">Loading agent details…</p>
           </div>
         </div>
       </div>
@@ -449,32 +449,28 @@ export default function EditAgentPage() {
         <div className="mb-6">
           <div className="dashboard-surface flex flex-col gap-4 p-5 md:p-6 xl:flex-row xl:items-center xl:justify-between xl:p-7">
             <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/70 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6e675d]">
-                <Sparkles className="h-3 w-3 text-[#ff5f8f]" />
-                Agent Editor
-              </div>
-              <h1 className="text-[1.8rem] font-semibold tracking-[-0.05em] text-[#171717] md:text-[2.65rem]">
+              <h1 className="text-[1.8rem] font-semibold tracking-[-0.05em] text-ink md:text-[2.65rem]">
                 Edit <span className="highlight-mint">Agent</span>
               </h1>
-              <p className="mt-2 text-[13px] text-[#5b564e] md:text-[15px]">
-                Configure <span className="font-semibold text-gray-900">{formData.name}</span> settings
+              <p className="mt-2 text-[13px] text-ink-soft md:text-[15px]">
+                Configure <span className="font-semibold text-ink">{formData.name}</span> settings
               </p>
             </div>
             <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push(`/agents/${agentName}/view`)}
-                className="rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-5 py-3 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white"
+                className="rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-5 py-3 text-[13px] font-medium text-ink transition-colors hover:bg-white"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={saving || !formData.name}
-                className="rounded-[0.35rem] bg-[#181818] px-5 py-3 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-[0.35rem] bg-ink px-5 py-3 text-[13px] font-medium text-paper transition-transform motion-reduce:transition-none hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {saving ? (
                   <span className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full motion-safe:animate-spin"></div>
                     Saving...
                   </span>
                 ) : (
@@ -487,7 +483,7 @@ export default function EditAgentPage() {
 
         {/* Modern Tabs */}
         <div className="dashboard-panel overflow-hidden">
-          <div className="border-b border-black/[0.08] bg-[#f1eadc]">
+          <div className="border-b border-black/[0.08] bg-sand-deep">
             <nav className="flex flex-wrap gap-1 p-2">
               {tabs.map((tab) => {
                 const Icon = tab.icon
@@ -496,10 +492,10 @@ export default function EditAgentPage() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-all rounded-lg ${
+                    className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-[color,background-color,border-color,box-shadow,opacity,transform] rounded-lg ${
                       isActive
-                        ? 'bg-[#181818] text-[#f7f2e7] shadow-[0_18px_40px_rgba(0,0,0,0.12)]'
-                        : 'border border-black/10 bg-white/60 text-gray-600 hover:text-gray-900 hover:bg-white/80'
+                        ? 'bg-ink text-paper shadow-soft'
+                        : 'border border-black/10 bg-white/60 text-ink-soft hover:text-ink hover:bg-white/80'
                     }`}
                   >
                     <Icon size={16} />
@@ -585,13 +581,13 @@ export default function EditAgentPage() {
                     <Globe className="h-5 w-5 text-primary-600" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 mb-1">Landing Page</h3>
-                    <p className="text-sm text-gray-500 mb-4">
+                    <h3 className="font-semibold text-ink mb-1">Landing Page</h3>
+                    <p className="text-sm text-ink-mute mb-4">
                       Hero image, tagline, description, gallery, video, SEO, and publish controls.
                     </p>
                     <a
                       href={`/agents/${agentName}/landing-page`}
-                      className="inline-flex items-center gap-2 rounded-[0.35rem] bg-[#181818] px-4 py-2.5 text-sm font-medium text-white transition-transform hover:-translate-y-0.5"
+                      className="inline-flex items-center gap-2 rounded-[0.35rem] bg-ink px-4 py-2.5 text-sm font-medium text-white transition-transform motion-reduce:transition-none hover:-translate-y-0.5"
                     >
                       <Globe className="h-4 w-4" />
                       Open editor
@@ -599,39 +595,39 @@ export default function EditAgentPage() {
                   </div>
                 </div>
                 <div className="dashboard-surface p-6 flex items-start gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#fff0d9] mt-1">
-                    <DollarSign className="h-5 w-5 text-[#d9a441]" />
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-sand-deep mt-1">
+                    <DollarSign className="h-5 w-5 text-warn" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 mb-1">Monetization</h3>
-                    <p className="text-sm text-gray-500 mb-4">
+                    <h3 className="font-semibold text-ink mb-1">Monetization</h3>
+                    <p className="text-sm text-ink-mute mb-4">
                       Set pricing tiers (session, daily, weekly, monthly), trial messages, email subscription pricing, and revenue share.
                     </p>
                     {agentId ? (
                       <a
                         href={`/billing/agent-pricing/${agentId}?from=${agentName}`}
-                        className="inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-white"
+                        className="inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-white"
                       >
                         <DollarSign className="h-4 w-4" />
                         Configure pricing
                       </a>
                     ) : (
-                      <span className="text-sm text-gray-400">Loading...</span>
+                      <span className="text-sm text-ash">Loading…</span>
                     )}
                   </div>
                 </div>
                 <div className="dashboard-surface p-6 flex items-start gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-red-100 mt-1">
-                    <Tag className="h-5 w-5 text-[#ff5f8f]" />
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-sand-deep mt-1">
+                    <Tag className="h-5 w-5 text-hotpink" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 mb-1">Discount Codes</h3>
-                    <p className="text-sm text-gray-500 mb-4">
+                    <h3 className="font-semibold text-ink mb-1">Discount Codes</h3>
+                    <p className="text-sm text-ink-mute mb-4">
                       Create percentage or flat-credit discount codes for subscribers.
                     </p>
                     <a
                       href={`/agents/${agentName}/discount-codes`}
-                      className="inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-white"
+                      className="inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-white"
                     >
                       <Tag className="h-4 w-4" />
                       Manage codes
@@ -643,13 +639,13 @@ export default function EditAgentPage() {
                     <Users className="h-5 w-5 text-primary-600" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 mb-1">Subscribers</h3>
-                    <p className="text-sm text-gray-500 mb-4">
+                    <h3 className="font-semibold text-ink mb-1">Subscribers</h3>
+                    <p className="text-sm text-ink-mute mb-4">
                       View everyone who has paid for access to this agent.
                     </p>
                     <a
                       href={`/agents/${agentName}/subscribers`}
-                      className="inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-white"
+                      className="inline-flex items-center gap-2 rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-4 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:bg-white"
                     >
                       <Users className="h-4 w-4" />
                       View subscribers
@@ -661,8 +657,8 @@ export default function EditAgentPage() {
             {activeTab === 'email' && (
               <div className="space-y-6 py-4 max-w-2xl">
                 <div>
-                  <h2 className="text-base font-semibold text-gray-900 mb-1">Email <span className="highlight-pink">Template</span></h2>
-                  <p className="text-sm text-gray-500">
+                  <h2 className="text-base font-semibold text-ink mb-1">Email <span className="highlight-pink">Template</span></h2>
+                  <p className="text-sm text-ink-mute">
                     Assign a reusable email template to this agent. When the agent sends emails or renders newsletters,
                     the selected template will be applied automatically.
                   </p>
@@ -670,15 +666,15 @@ export default function EditAgentPage() {
 
                 {/* Currently assigned */}
                 {assignedTemplate ? (
-                  <div className="rounded-lg border border-green-200 bg-green-50 p-4 flex items-start justify-between gap-4">
+                  <div className="rounded-lg border border-mint bg-leaf-wash p-4 flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3">
-                      <Mail className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
+                      <Mail className="h-5 w-5 text-leaf mt-0.5 shrink-0" />
                       <div>
-                        <p className="font-medium text-gray-900 text-sm">{assignedTemplate.name}</p>
+                        <p className="font-medium text-ink text-sm">{assignedTemplate.name}</p>
                         {assignedTemplate.description && (
-                          <p className="text-xs text-gray-500 mt-0.5">{assignedTemplate.description}</p>
+                          <p className="text-xs text-ink-mute mt-0.5">{assignedTemplate.description}</p>
                         )}
-                        <span className="mt-1 inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                        <span className="mt-1 inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-leaf-wash text-forest">
                           {assignedTemplate.template_type}
                         </span>
                       </div>
@@ -686,25 +682,25 @@ export default function EditAgentPage() {
                     <button
                       onClick={handleRemoveTemplate}
                       disabled={emailTabSaving}
-                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                      className="p-1.5 text-ash hover:text-danger hover:bg-blush-wash rounded-lg transition-colors disabled:opacity-50"
                       title="Remove template"
                     >
                       <Trash2 size={15} />
                     </button>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-400 italic">No email template assigned.</p>
+                  <p className="text-sm text-ash italic">No email template assigned.</p>
                 )}
 
                 {/* Assign / change */}
                 <div className="space-y-3">
-                  <label className="block text-sm font-medium text-gray-700">
+                  <label className="block text-sm font-medium text-ink-soft">
                     {assignedTemplate ? 'Change template' : 'Assign a template'}
                   </label>
                   {allTemplates.length === 0 ? (
-                    <div className="rounded-lg border border-dashed border-gray-300 p-5 text-center">
-                      <Mail className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                      <p className="text-sm text-gray-500 mb-3">No email templates found.</p>
+                    <div className="rounded-lg border border-dashed border-taupe p-5 text-center">
+                      <Mail className="h-8 w-8 text-taupe mx-auto mb-2" />
+                      <p className="text-sm text-ink-mute mb-3">No email templates found.</p>
                       <a
                         href="/email-templates"
                         className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700"
@@ -718,7 +714,7 @@ export default function EditAgentPage() {
                       <select
                         value={selectedTemplateId}
                         onChange={e => setSelectedTemplateId(e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        className="flex-1 px-3 py-2 border border-taupe rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                       >
                         <option value="">— select a template —</option>
                         {allTemplates.map(t => (
@@ -736,7 +732,7 @@ export default function EditAgentPage() {
                       </button>
                     </div>
                   )}
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-ash">
                     Manage all templates in{' '}
                     <a href="/email-templates" className="text-primary-600 hover:underline inline-flex items-center gap-1">
                       Email Templates <ExternalLink size={11} />
@@ -748,23 +744,23 @@ export default function EditAgentPage() {
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between border-t border-black/[0.08] bg-[#f1eadc] px-6 py-4 md:px-8">
-            <div className="text-[13px] text-gray-600">
+          <div className="flex items-center justify-between border-t border-black/[0.08] bg-sand-deep px-6 py-4 md:px-8">
+            <div className="text-[13px] text-ink-soft">
               Configure tools and MCP servers from the agent's dedicated pages
             </div>
             <div className="flex gap-3">
               <button
                 onClick={() => router.push(`/agents/${agentName}/view`)}
-                className="rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-6 py-2.5 text-[13px] font-medium text-[#171717] transition-colors hover:bg-white"
+                className="rounded-[0.35rem] border border-black/10 bg-white/[0.72] px-6 py-2.5 text-[13px] font-medium text-ink transition-colors hover:bg-white"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={saving || !formData.name}
-                className="rounded-[0.35rem] bg-[#181818] px-6 py-2.5 text-[13px] font-medium text-[#f7f2e7] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-[0.35rem] bg-ink px-6 py-2.5 text-[13px] font-medium text-paper transition-transform motion-reduce:transition-none hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {saving ? 'Saving...' : 'Save Changes'}
+                {saving ? 'Saving…' : 'Save Changes'}
               </button>
             </div>
           </div>
@@ -780,7 +776,7 @@ function GeneralTab({ formData, setFormData, isEdit, onAvatarUpload, onAvatarRem
     <div className="space-y-6 max-w-3xl">
       <div className="flex items-start gap-6 mb-6">
         <div className="flex-shrink-0">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-ink-soft mb-2">
             Agent Avatar
           </label>
           <AvatarUpload
@@ -790,13 +786,13 @@ function GeneralTab({ formData, setFormData, isEdit, onAvatarUpload, onAvatarRem
           />
         </div>
         <div className="flex-grow">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-ink-soft mb-2">
             Agent Type
           </label>
           <select
             value={formData.agent_type}
             onChange={(e) => setFormData({ ...formData, agent_type: e.target.value })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             required
             disabled={isEdit}
           >
@@ -809,19 +805,19 @@ function GeneralTab({ formData, setFormData, isEdit, onAvatarUpload, onAvatarRem
       </div>
 
       {/* Human Escalation Settings */}
-      <div className="border-t border-gray-200 pt-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Human Escalation (Optional)</h3>
-        <p className="text-sm text-gray-600 mb-4">
+      <div className="border-t border-line pt-6">
+        <h3 className="text-lg font-semibold text-ink mb-4">Human Escalation (Optional)</h3>
+        <p className="text-sm text-ink-soft mb-4">
           Link a human contact for escalation support when the agent needs help.
         </p>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-ink-soft mb-2">
             Human Contact
           </label>
           <select
             value={formData.human_contact_id}
             onChange={(e) => setFormData({ ...formData, human_contact_id: e.target.value })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           >
             <option value="">No human contact</option>
             {humanContacts?.map((contact: any) => (
@@ -830,7 +826,7 @@ function GeneralTab({ formData, setFormData, isEdit, onAvatarUpload, onAvatarRem
               </option>
             ))}
           </select>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-ink-mute">
             The agent can escalate to this person when it needs help
           </p>
         </div>
@@ -839,28 +835,28 @@ function GeneralTab({ formData, setFormData, isEdit, onAvatarUpload, onAvatarRem
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-ink-soft mb-2">
             Agent Name *
           </label>
           <input
             type="text"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             placeholder="my_assistant"
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-ink-soft mb-2">
             Description *
           </label>
           <input
             type="text"
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             placeholder="A helpful AI assistant"
             required
           />
@@ -868,37 +864,37 @@ function GeneralTab({ formData, setFormData, isEdit, onAvatarUpload, onAvatarRem
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-ink-soft mb-2">
           System Prompt *
         </label>
         <textarea
           value={formData.system_prompt}
           onChange={(e) => setFormData({ ...formData, system_prompt: e.target.value })}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           rows={6}
-          placeholder="You are a helpful AI assistant with access to various tools and capabilities..."
+          placeholder="You are a helpful AI assistant with access to various tools and capabilities…"
           required
         />
       </div>
 
       {/* Portal Visibility */}
-      <div className="border-t border-gray-200 pt-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-1">Portal Visibility</h3>
-        <p className="text-sm text-gray-500 mb-4">Control how this agent appears on your white-label portal.</p>
+      <div className="border-t border-line pt-6">
+        <h3 className="text-lg font-semibold text-ink mb-1">Portal Visibility</h3>
+        <p className="text-sm text-ink-mute mb-4">Control how this agent appears on your white-label portal.</p>
         <select
           value={formData.portal_visibility}
           onChange={(e) => setFormData({ ...formData, portal_visibility: e.target.value })}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
         >
-          <option value="hidden">Hidden — not shown on portal public pages</option>
-          <option value="public">Public — visible to anyone on your portal</option>
-          <option value="members_only">Members Only — visible to logged-in portal users</option>
+          <option value="hidden">Hidden, not shown on portal public pages</option>
+          <option value="public">Public, visible to anyone on your portal</option>
+          <option value="members_only">Members Only, visible to logged-in portal users</option>
         </select>
       </div>
 
       {/* Marketplace Settings */}
-      <div className="border-t border-gray-200 pt-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Marketplace Settings</h3>
+      <div className="border-t border-line pt-6">
+        <h3 className="text-lg font-semibold text-ink mb-4">Marketplace Settings</h3>
         
         <div className="space-y-4">
           <div className="flex items-center gap-3">
@@ -907,9 +903,9 @@ function GeneralTab({ formData, setFormData, isEdit, onAvatarUpload, onAvatarRem
               id="is_public"
               checked={formData.is_public}
               onChange={(e) => setFormData({ ...formData, is_public: e.target.checked })}
-              className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+              className="w-4 h-4 text-primary-600 border-taupe rounded focus:ring-primary-500"
             />
-            <label htmlFor="is_public" className="text-sm font-medium text-gray-700">
+            <label htmlFor="is_public" className="text-sm font-medium text-ink-soft">
               Make this agent public in the marketplace
             </label>
           </div>
@@ -917,13 +913,13 @@ function GeneralTab({ formData, setFormData, isEdit, onAvatarUpload, onAvatarRem
           {formData.is_public && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-soft mb-2">
                   Category
                 </label>
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
                   <option value="">Select a category</option>
                   <option value="Productivity">Productivity</option>
@@ -939,17 +935,17 @@ function GeneralTab({ formData, setFormData, isEdit, onAvatarUpload, onAvatarRem
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-soft mb-2">
                   Tags (comma-separated)
                 </label>
                 <input
                   type="text"
                   value={formData.tags}
                   onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   placeholder="e.g., automation, productivity, research"
                 />
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-ink-mute">
                   Add tags to help users discover your agent
                 </p>
               </div>
@@ -959,21 +955,21 @@ function GeneralTab({ formData, setFormData, isEdit, onAvatarUpload, onAvatarRem
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-ink-soft mb-2">
           Suggestion Prompts (Optional)
         </label>
-        <p className="text-sm text-gray-600 mb-3">
+        <p className="text-sm text-ink-soft mb-3">
           Add suggested prompts as a JSON array. Each prompt can be a string or an object with title, description, prompt, and icon.
         </p>
         <textarea
           value={formData.suggestion_prompts}
           onChange={(e) => setFormData({ ...formData, suggestion_prompts: e.target.value })}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono text-sm"
+          className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono text-sm"
           rows={8}
-          placeholder={`[\n  "Simple text prompt",\n  {\n    "title": "Rich Prompt",\n    "description": "A prompt with details",\n    "prompt": "Tell me about...",\n    "icon": "💡"\n  }\n]`}
+          placeholder={`[\n  "Simple text prompt",\n  {\n    "title": "Rich Prompt",\n    "description": "A prompt with details",\n    "prompt": "Tell me about…",\n    "icon": "lightbulb"\n  }\n]`}
         />
-        <div className="mt-2 bg-red-50 border border-primary-200 rounded-lg p-3">
-          <p className="text-sm font-medium text-primary-900 mb-2">📝 Format Examples:</p>
+        <div className="mt-2 bg-sand-deep border border-primary-200 rounded-lg p-3">
+          <p className="text-sm font-medium text-primary-900 mb-2">Format Examples:</p>
           <div className="text-xs text-primary-800 space-y-2">
             <div>
               <strong>Simple strings:</strong>
@@ -989,7 +985,7 @@ function GeneralTab({ formData, setFormData, isEdit, onAvatarUpload, onAvatarRem
     "title": "Get Started",
     "description": "Learn what I can do",
     "prompt": "What are your main capabilities?",
-    "icon": "🚀"
+    "icon": "sparkles"
   }
 ]`}
               </pre>
@@ -1007,16 +1003,16 @@ function ContextTab({ agentName }: { agentName: string }) {
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        <h3 className="text-lg font-semibold text-ink mb-2">
           Skills
         </h3>
-        <p className="text-sm text-gray-600 mb-4">
+        <p className="text-sm text-ink-soft mb-4">
           Upload documents to provide permanent context to your agent. These files will be automatically included in the agent's system prompt.
         </p>
       </div>
 
-      <div className="bg-red-50 border border-primary-200 rounded-lg p-4 mb-6">
-        <h4 className="text-sm font-medium text-primary-900 mb-2">💡 Use Cases</h4>
+      <div className="bg-sand-deep border border-primary-200 rounded-lg p-4 mb-6">
+        <h4 className="text-sm font-medium text-primary-900 mb-2">Use Cases</h4>
         <ul className="text-sm text-primary-800 space-y-1 list-disc list-inside">
           <li>API documentation and technical specifications</li>
           <li>Code style guides and best practices</li>
@@ -1038,16 +1034,16 @@ function ObservabilityTab({ config, setConfig }: any) {
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        <h3 className="text-lg font-semibold text-ink mb-2">
           Langfuse Observability
         </h3>
-        <p className="text-sm text-gray-600 mb-4">
+        <p className="text-sm text-ink-soft mb-4">
           Configure tracing and monitoring for your agent using Langfuse. Track LLM calls, tool usage, and RAG queries.
         </p>
       </div>
 
-      <div className="bg-red-50 border border-primary-200 rounded-lg p-4">
-        <h4 className="text-sm font-medium text-primary-900 mb-2">📊 What is Langfuse?</h4>
+      <div className="bg-sand-deep border border-primary-200 rounded-lg p-4">
+        <h4 className="text-sm font-medium text-primary-900 mb-2">What is Langfuse?</h4>
         <p className="text-sm text-primary-800 mb-2">
           Langfuse is an open-source LLM engineering platform that provides:
         </p>
@@ -1060,12 +1056,12 @@ function ObservabilityTab({ config, setConfig }: any) {
       </div>
 
       <div className="space-y-4">
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <div className="flex items-center justify-between p-4 bg-cream rounded-lg border border-line">
           <div>
-            <label className="text-sm font-medium text-gray-900">
+            <label className="text-sm font-medium text-ink">
               Enable Langfuse Tracing
             </label>
-            <p className="text-xs text-gray-600 mt-1">
+            <p className="text-xs text-ink-soft mt-1">
               Turn on observability for this agent
             </p>
           </div>
@@ -1076,14 +1072,14 @@ function ObservabilityTab({ config, setConfig }: any) {
               onChange={(e) => setConfig({ ...config, langfuse_enabled: e.target.checked })}
               className="sr-only peer"
             />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+            <div className="w-11 h-6 bg-line peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-taupe after:border after:rounded-full after:h-5 after:w-5 after:transition-[color,background-color,border-color,box-shadow,opacity,transform] peer-checked:bg-primary-600"></div>
           </label>
         </div>
 
         {config.langfuse_enabled && (
           <>
-            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <label className="block text-sm font-medium text-gray-900 mb-2">
+            <div className="p-4 bg-cream rounded-lg border border-line">
+              <label className="block text-sm font-medium text-ink mb-2">
                 Sample Rate: {(config.sample_rate * 100).toFixed(0)}%
               </label>
               <input
@@ -1093,19 +1089,19 @@ function ObservabilityTab({ config, setConfig }: any) {
                 step="0.1"
                 value={config.sample_rate}
                 onChange={(e) => setConfig({ ...config, sample_rate: parseFloat(e.target.value) })}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                className="w-full h-2 bg-line rounded-lg appearance-none cursor-pointer"
               />
-              <p className="text-xs text-gray-600 mt-2">
+              <p className="text-xs text-ink-soft mt-2">
                 Percentage of requests to trace (1.0 = 100%, 0.1 = 10%)
               </p>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between p-4 bg-cream rounded-lg border border-line">
               <div>
-                <label className="text-sm font-medium text-gray-900">
+                <label className="text-sm font-medium text-ink">
                   Trace Tool Calls
                 </label>
-                <p className="text-xs text-gray-600 mt-1">
+                <p className="text-xs text-ink-soft mt-1">
                   Track all tool executions as spans
                 </p>
               </div>
@@ -1116,16 +1112,16 @@ function ObservabilityTab({ config, setConfig }: any) {
                   onChange={(e) => setConfig({ ...config, trace_tools: e.target.checked })}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                <div className="w-11 h-6 bg-line peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-taupe after:border after:rounded-full after:h-5 after:w-5 after:transition-[color,background-color,border-color,box-shadow,opacity,transform] peer-checked:bg-primary-600"></div>
               </label>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between p-4 bg-cream rounded-lg border border-line">
               <div>
-                <label className="text-sm font-medium text-gray-900">
+                <label className="text-sm font-medium text-ink">
                   Trace RAG Queries
                 </label>
-                <p className="text-xs text-gray-600 mt-1">
+                <p className="text-xs text-ink-soft mt-1">
                   Track knowledge base queries and retrievals
                 </p>
               </div>
@@ -1136,20 +1132,20 @@ function ObservabilityTab({ config, setConfig }: any) {
                   onChange={(e) => setConfig({ ...config, trace_rag: e.target.checked })}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                <div className="w-11 h-6 bg-line peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-taupe after:border after:rounded-full after:h-5 after:w-5 after:transition-[color,background-color,border-color,box-shadow,opacity,transform] peer-checked:bg-primary-600"></div>
               </label>
             </div>
 
-            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-4">
+            <div className="p-4 bg-cream rounded-lg border border-line space-y-4">
               <div>
-                <h4 className="text-sm font-semibold text-gray-900 mb-1">Langfuse Credentials (Optional)</h4>
-                <p className="text-xs text-gray-600 mb-3">
+                <h4 className="text-sm font-semibold text-ink mb-1">Langfuse Credentials (Optional)</h4>
+                <p className="text-xs text-ink-soft mb-3">
                   Configure per-agent Langfuse credentials to use your own Langfuse instance. Leave blank to use the platform-wide Langfuse settings.
                 </p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-ink-soft mb-1">
                   Langfuse Host URL
                 </label>
                 <input
@@ -1157,12 +1153,12 @@ function ObservabilityTab({ config, setConfig }: any) {
                   value={config.langfuse_host}
                   onChange={(e) => setConfig({ ...config, langfuse_host: e.target.value })}
                   placeholder="https://cloud.langfuse.com"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-taupe rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-ink-soft mb-1">
                   Public Key
                 </label>
                 <input
@@ -1170,12 +1166,12 @@ function ObservabilityTab({ config, setConfig }: any) {
                   value={config.langfuse_public_key}
                   onChange={(e) => setConfig({ ...config, langfuse_public_key: e.target.value })}
                   placeholder="pk-lf-..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-taupe rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-ink-soft mb-1">
                   Secret Key
                 </label>
                 <input
@@ -1183,12 +1179,12 @@ function ObservabilityTab({ config, setConfig }: any) {
                   value={config.langfuse_secret_key}
                   onChange={(e) => setConfig({ ...config, langfuse_secret_key: e.target.value })}
                   placeholder="sk-lf-..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-taupe rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
             </div>
 
-            <div className="bg-red-50 border border-primary-200 rounded-lg p-4">
+            <div className="bg-sand-deep border border-primary-200 rounded-lg p-4">
               <h4 className="text-sm font-medium text-primary-900 mb-2">View Traces</h4>
               <p className="text-sm text-primary-800 mb-3">
                 Access your Langfuse dashboard to view traces and analytics:
@@ -1200,7 +1196,7 @@ function ObservabilityTab({ config, setConfig }: any) {
                 className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm"
               >
                 Open Langfuse Dashboard
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg aria-hidden="true" className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
               </a>
@@ -1209,9 +1205,9 @@ function ObservabilityTab({ config, setConfig }: any) {
         )}
       </div>
 
-      <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-        <h4 className="text-sm font-medium text-orange-900 mb-2">💡 Best Practices</h4>
-        <ul className="text-sm text-orange-800 space-y-1 list-disc list-inside">
+      <div className="bg-sand-deep border border-honey rounded-lg p-4">
+        <h4 className="text-sm font-medium text-gold mb-2">Best Practices</h4>
+        <ul className="text-sm text-gold space-y-1 list-disc list-inside">
           <li>Use 100% sampling during development and testing</li>
           <li>Reduce sample rate in production to manage costs</li>
           <li>Enable tool and RAG tracing for debugging</li>
@@ -1255,25 +1251,25 @@ function VisionTab({ formData, agentLlmConfigs, imageGenLlmConfigId, setImageGen
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        <h3 className="text-lg font-semibold text-ink mb-2">
           Vision & Image Generation
         </h3>
-        <p className="text-sm text-gray-600 mb-4">
+        <p className="text-sm text-ink-soft mb-4">
           Configure image analysis (vision) and image generation capabilities for this agent.
         </p>
       </div>
 
       {/* ---- Image Generation section ---- */}
-      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-        <h4 className="text-sm font-semibold text-gray-900 mb-1">Image Generation Model</h4>
-        <p className="text-xs text-gray-500 mb-4">
+      <div className="bg-white border border-line rounded-xl p-5 shadow-sm">
+        <h4 className="text-sm font-semibold text-ink mb-1">Image Generation Model</h4>
+        <p className="text-xs text-ink-mute mb-4">
           Select which LLM config the image generation tool should use. Only configs with an image
           model (gpt-image-1, gpt-image-2, dall-e-3, dall-e-2, Imagen, grok-2-image) are shown.
         </p>
 
         {imageGenConfigs.length === 0 ? (
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-            <p className="text-sm text-orange-800">
+          <div className="bg-sand-deep border border-honey rounded-lg p-3">
+            <p className="text-sm text-gold">
               No image generation models found. Add an LLM config with an image model (e.g.
               gpt-image-1, gpt-image-2, dall-e-3) in the <strong>AI Model</strong> tab, then come back here to
               assign it.
@@ -1281,13 +1277,13 @@ function VisionTab({ formData, agentLlmConfigs, imageGenLlmConfigId, setImageGen
           </div>
         ) : (
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+            <label className="block text-xs font-medium text-ink-soft mb-1.5">
               Image Generation Config
             </label>
             <select
               value={imageGenLlmConfigId}
               onChange={(e) => setImageGenLlmConfigId(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
+              className="w-full border border-taupe rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
             >
               <option value="">— None (image generation disabled) —</option>
               {imageGenConfigs.map((cfg: AgentLLMConfig) => (
@@ -1297,7 +1293,7 @@ function VisionTab({ formData, agentLlmConfigs, imageGenLlmConfigId, setImageGen
               ))}
             </select>
             {imageGenLlmConfigId && (
-              <p className="text-xs text-emerald-700 mt-1.5">
+              <p className="text-xs text-forest mt-1.5">
                 Image generation tool will use this config. Click <strong>Save Changes</strong> to apply.
               </p>
             )}
@@ -1307,16 +1303,16 @@ function VisionTab({ formData, agentLlmConfigs, imageGenLlmConfigId, setImageGen
 
       {/* ---- Vision (image analysis) section ---- */}
       {!supportsVision(formData.provider) ? (
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-          <h4 className="text-sm font-medium text-orange-900 mb-2">Vision Not Supported</h4>
-          <p className="text-sm text-orange-800">
+        <div className="bg-sand-deep border border-honey rounded-lg p-4">
+          <h4 className="text-sm font-medium text-gold mb-2">Vision Not Supported</h4>
+          <p className="text-sm text-gold">
             The selected provider ({formData.provider}) does not support vision capabilities.
             Please switch to OpenAI, Anthropic Claude, or Google Gemini to enable vision features.
           </p>
         </div>
       ) : (
         <>
-          <div className="bg-red-50 border border-primary-200 rounded-lg p-4">
+          <div className="bg-sand-deep border border-primary-200 rounded-lg p-4">
             <h4 className="text-sm font-medium text-primary-900 mb-2">About Vision</h4>
             <p className="text-sm text-primary-800 mb-2">
               Vision-enabled agents can:
@@ -1330,25 +1326,25 @@ function VisionTab({ formData, agentLlmConfigs, imageGenLlmConfigId, setImageGen
             </ul>
           </div>
 
-          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-emerald-900 mb-2">Current Model Supports Vision</h4>
-            <p className="text-sm text-emerald-800">
+          <div className="bg-leaf-wash border border-mint rounded-lg p-4">
+            <h4 className="text-sm font-medium text-forest mb-2">Current Model Supports Vision</h4>
+            <p className="text-sm text-forest">
               Your selected model <strong>{formData.model_name}</strong> {isVisionModel(formData.provider, formData.model_name) ? 'supports' : 'may support'} vision capabilities.
               {!isVisionModel(formData.provider, formData.model_name) && ' Please verify with your provider.'}
             </p>
           </div>
 
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-orange-900 mb-2">Note</h4>
-            <p className="text-sm text-orange-800">
+          <div className="bg-sand-deep border border-honey rounded-lg p-4">
+            <h4 className="text-sm font-medium text-gold mb-2">Note</h4>
+            <p className="text-sm text-gold">
               Vision configuration is stored in your agent's LLM config. The backend automatically handles vision API calls when images are attached to messages.
-              No additional configuration is needed — vision works automatically with compatible models!
+              No additional configuration is needed, vision works automatically with compatible models!
             </p>
           </div>
 
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-purple-900 mb-2">Supported Providers</h4>
-            <div className="space-y-2 text-sm text-purple-800">
+          <div className="bg-blush-wash border border-blush rounded-lg p-4">
+            <h4 className="text-sm font-medium text-wine mb-2">Supported Providers</h4>
+            <div className="space-y-2 text-sm text-wine">
               <div>
                 <strong>OpenAI:</strong> gpt-4o, gpt-4o-mini, gpt-4-turbo, gpt-4-vision-preview
               </div>
@@ -1361,9 +1357,9 @@ function VisionTab({ formData, agentLlmConfigs, imageGenLlmConfigId, setImageGen
             </div>
           </div>
 
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-900 mb-2">How to Use</h4>
-            <ol className="text-sm text-gray-800 space-y-2 list-decimal list-inside">
+          <div className="bg-cream border border-line rounded-lg p-4">
+            <h4 className="text-sm font-medium text-ink mb-2">How to Use</h4>
+            <ol className="text-sm text-ink space-y-2 list-decimal list-inside">
               <li>Ensure your agent uses a vision-capable model (see supported models above)</li>
               <li>In chat, attach images using the file upload button</li>
               <li>Ask questions about the images in your message</li>
@@ -1371,9 +1367,9 @@ function VisionTab({ formData, agentLlmConfigs, imageGenLlmConfigId, setImageGen
             </ol>
           </div>
 
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-red-900 mb-2">Important Notes</h4>
-            <ul className="text-sm text-red-800 space-y-1 list-disc list-inside">
+          <div className="bg-blush-wash border border-blush rounded-lg p-4">
+            <h4 className="text-sm font-medium text-wine mb-2">Important Notes</h4>
+            <ul className="text-sm text-wine space-y-1 list-disc list-inside">
               <li>Vision API calls are more expensive than text-only calls</li>
               <li>Image tokens count towards your total token limit</li>
               <li>Large images may require more tokens to process</li>
@@ -1466,17 +1462,17 @@ function LLMModelsTab({ agentName }: { agentName: string }) {
       {!showForm && (
         <>
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <h3 className="text-lg font-semibold text-ink mb-2">
               LLM Model Configurations
             </h3>
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-ink-soft mb-4">
               Configure multiple LLM models for your agent. You can switch between different models or use them for specific tasks.
             </p>
           </div>
  
  
-          <div className="bg-red-50 border border-primary-200 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-primary-900 mb-2">💡 Why Multiple Models?</h4>
+          <div className="bg-sand-deep border border-primary-200 rounded-lg p-4">
+            <h4 className="text-sm font-medium text-primary-900 mb-2">Why Multiple Models?</h4>
             <ul className="text-sm text-primary-800 space-y-1 list-disc list-inside">
               <li>Use different models for different tasks (e.g., GPT-4 for complex reasoning, GPT-3.5 for simple queries)</li>
               <li>Fallback to alternative models if primary model fails</li>
@@ -1490,16 +1486,16 @@ function LLMModelsTab({ agentName }: { agentName: string }) {
  
  
       {showForm ? (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="bg-white rounded-lg border border-line p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-ink">
               {editingConfig ? 'Edit Configuration' : 'Add Configuration'}
             </h2>
             <button
               onClick={handleCancel}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-sand rounded-lg transition-colors"
             >
-              <X className="w-5 h-5 text-gray-600" />
+              <X className="w-5 h-5 text-ink-soft" />
             </button>
           </div>
           <LLMConfigForm
@@ -1533,16 +1529,16 @@ function MultiAgentTab({ config, setConfig, agentName }: any) {
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        <h3 className="text-lg font-semibold text-ink mb-2">
           Multi-Agent Configuration
         </h3>
-        <p className="text-sm text-gray-600 mb-4">
+        <p className="text-sm text-ink-soft mb-4">
           Configure how this agent can transfer control to other agents in a multi-agent system.
         </p>
       </div>
 
-      <div className="bg-red-50 border border-primary-200 rounded-lg p-4">
-        <h4 className="text-sm font-medium text-primary-900 mb-2">🤝 What is Multi-Agent?</h4>
+      <div className="bg-sand-deep border border-primary-200 rounded-lg p-4">
+        <h4 className="text-sm font-medium text-primary-900 mb-2">What is Multi-Agent?</h4>
         <p className="text-sm text-primary-800 mb-2">
           Multi-agent systems allow you to:
         </p>
@@ -1555,12 +1551,12 @@ function MultiAgentTab({ config, setConfig, agentName }: any) {
       </div>
 
       <div className="space-y-4">
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <div className="flex items-center justify-between p-4 bg-cream rounded-lg border border-line">
           <div>
-            <label className="text-sm font-medium text-gray-900">
+            <label className="text-sm font-medium text-ink">
               Enable Agent Transfer
             </label>
-            <p className="text-xs text-gray-600 mt-1">
+            <p className="text-xs text-ink-soft mt-1">
               Allow this agent to transfer control to other agents
             </p>
           </div>
@@ -1571,34 +1567,34 @@ function MultiAgentTab({ config, setConfig, agentName }: any) {
               onChange={(e) => setConfig({ ...config, allow_transfer: e.target.checked })}
               className="sr-only peer"
             />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+            <div className="w-11 h-6 bg-line peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-taupe after:border after:rounded-full after:h-5 after:w-5 after:transition-[color,background-color,border-color,box-shadow,opacity,transform] peer-checked:bg-primary-600"></div>
           </label>
         </div>
 
         {config.allow_transfer && (
           <>
-            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <label className="block text-sm font-medium text-gray-900 mb-2">
+            <div className="p-4 bg-cream rounded-lg border border-line">
+              <label className="block text-sm font-medium text-ink mb-2">
                 Transfer Scope
               </label>
               <select
                 value={config.transfer_scope}
                 onChange={(e) => setConfig({ ...config, transfer_scope: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               >
                 <option value="sub_agents">Sub-Agents Only - Can only transfer to linked sub-agents</option>
                 <option value="all">All Agents - Can transfer to any agent in the system</option>
                 <option value="parent">Parent Only - Can only transfer back to parent agent</option>
               </select>
-              <p className="text-xs text-gray-600 mt-2">
+              <p className="text-xs text-ink-soft mt-2">
                 {config.transfer_scope === 'sub_agents' && 'Most common: Agent can only delegate to its configured sub-agents'}
                 {config.transfer_scope === 'all' && 'Flexible: Agent can transfer to any agent (use with caution)'}
                 {config.transfer_scope === 'parent' && 'Restrictive: Agent can only escalate back to its parent'}
               </p>
             </div>
 
-            <div className="bg-red-50 border border-primary-200 rounded-lg p-4">
-              <h4 className="text-sm font-medium text-primary-900 mb-2">📋 How It Works</h4>
+            <div className="bg-sand-deep border border-primary-200 rounded-lg p-4">
+              <h4 className="text-sm font-medium text-primary-900 mb-2">How It Works</h4>
               <ol className="text-sm text-primary-800 space-y-2 list-decimal list-inside">
                 <li>Link sub-agents in the <strong>Sub-Agents</strong> tab</li>
                 <li>Configure your agent's system prompt to include transfer instructions</li>
@@ -1612,33 +1608,33 @@ function MultiAgentTab({ config, setConfig, agentName }: any) {
                 onClick={() => router.push(`/agents/${agentName}/sub-agents`)}
                 className="flex-1 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
               >
-                Manage Sub-Agents →
+                Manage Sub-Agents
               </button>
               <button
                 onClick={() => window.open('/docs/MULTI_AGENT_UI_GUIDE.md', '_blank')}
-                className="px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                className="px-4 py-3 border border-taupe rounded-lg hover:bg-cream transition-colors font-medium"
               >
-                📖 View Guide
+                View Guide
               </button>
             </div>
           </>
         )}
 
         {!config.allow_transfer && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <p className="text-sm text-gray-600">
+          <div className="bg-cream border border-line rounded-lg p-4">
+            <p className="text-sm text-ink-soft">
               Enable agent transfer to use multi-agent capabilities. This allows your agent to delegate tasks to specialized sub-agents.
             </p>
           </div>
         )}
       </div>
 
-      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-        <h4 className="text-sm font-medium text-purple-900 mb-2">🎯 Example Use Case</h4>
-        <p className="text-sm text-purple-800 mb-2">
+      <div className="bg-blush-wash border border-blush rounded-lg p-4">
+        <h4 className="text-sm font-medium text-wine mb-2">Example Use Case</h4>
+        <p className="text-sm text-wine mb-2">
           <strong>Customer Support System:</strong>
         </p>
-        <div className="text-sm text-purple-800 space-y-1">
+        <div className="text-sm text-wine space-y-1">
           <div>• <strong>Help Desk Coordinator</strong> (this agent) - Routes requests</div>
           <div className="ml-4">↳ <strong>Billing Agent</strong> (sub-agent) - Handles payment issues</div>
           <div className="ml-4">↳ <strong>Technical Support</strong> (sub-agent) - Handles bugs</div>
@@ -1646,9 +1642,9 @@ function MultiAgentTab({ config, setConfig, agentName }: any) {
         </div>
       </div>
 
-      <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-        <h4 className="text-sm font-medium text-orange-900 mb-2">💡 Best Practices</h4>
-        <ul className="text-sm text-orange-800 space-y-1 list-disc list-inside">
+      <div className="bg-sand-deep border border-honey rounded-lg p-4">
+        <h4 className="text-sm font-medium text-gold mb-2">Best Practices</h4>
+        <ul className="text-sm text-gold space-y-1 list-disc list-inside">
           <li>Use <strong>sub_agents</strong> scope for contained, predictable systems</li>
           <li>Write clear transfer instructions in the system prompt</li>
           <li>Give sub-agents descriptive names and descriptions</li>
@@ -1675,17 +1671,17 @@ function AdvancedTab({ formData, setFormData, piiRedactionConfig, setPiiRedactio
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        <h3 className="text-lg font-semibold text-ink mb-2">
           Advanced LLM Settings
         </h3>
-        <p className="text-sm text-gray-600 mb-4">
+        <p className="text-sm text-ink-soft mb-4">
           Fine-tune your agent's behavior with advanced parameters.
         </p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-ink-soft mb-2">
             Temperature
           </label>
           <input
@@ -1695,15 +1691,15 @@ function AdvancedTab({ formData, setFormData, piiRedactionConfig, setPiiRedactio
             max="2"
             value={formData.temperature}
             onChange={(e) => setFormData({ ...formData, temperature: parseFloat(e.target.value) })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           />
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-ink-mute">
             Controls randomness (0 = focused, 2 = creative)
           </p>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-ink-soft mb-2">
             Max Tokens
           </label>
           <input
@@ -1713,16 +1709,16 @@ function AdvancedTab({ formData, setFormData, piiRedactionConfig, setPiiRedactio
             max="32768"
             value={formData.max_tokens}
             onChange={(e) => setFormData({ ...formData, max_tokens: parseInt(e.target.value) })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           />
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-ink-mute">
             Maximum response length
           </p>
         </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-ink-soft mb-2">
           Top P
         </label>
         <input
@@ -1732,31 +1728,31 @@ function AdvancedTab({ formData, setFormData, piiRedactionConfig, setPiiRedactio
           max="1"
           value={formData.top_p}
           onChange={(e) => setFormData({ ...formData, top_p: parseFloat(e.target.value) })}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
         />
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-ink-mute">
           Nucleus sampling threshold (0.1 = focused, 1.0 = diverse)
         </p>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-ink-soft mb-2">
           Extra Headers (Optional)
         </label>
         <textarea
           value={formData.extra_headers}
           onChange={(e) => setFormData({ ...formData, extra_headers: e.target.value })}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono text-sm"
+          className="w-full px-4 py-2 border border-taupe rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono text-sm"
           rows={6}
           placeholder='{\n  "anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15"\n}'
         />
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-ink-mute">
           JSON object for custom API headers (e.g., for Claude extended context). Leave empty if not needed.
         </p>
       </div>
 
-      <div className="bg-red-50 border border-primary-200 rounded-lg p-4">
-        <h4 className="text-sm font-medium text-primary-900 mb-2">💡 Claude Extended Context</h4>
+      <div className="bg-sand-deep border border-primary-200 rounded-lg p-4">
+        <h4 className="text-sm font-medium text-primary-900 mb-2">Claude Extended Context</h4>
         <p className="text-sm text-primary-800 mb-2">
           To enable Claude 4.5 Sonnet's 1M token context window, add:
         </p>
@@ -1770,19 +1766,19 @@ function AdvancedTab({ formData, setFormData, piiRedactionConfig, setPiiRedactio
         </p>
       </div>
 
-      <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-        <h4 className="text-sm font-medium text-orange-900 mb-2">⚠️ Advanced Settings</h4>
-        <p className="text-sm text-orange-800">
+      <div className="bg-sand-deep border border-honey rounded-lg p-4">
+        <h4 className="text-sm font-medium text-gold mb-2">Advanced Settings</h4>
+        <p className="text-sm text-gold">
           These settings can significantly affect your agent's behavior. The default values work well for most use cases.
           Only modify if you understand the implications.
         </p>
       </div>
 
       {/* Privacy & PII Redaction */}
-      <div className="border border-gray-200 rounded-lg p-5 space-y-4">
+      <div className="border border-line rounded-lg p-5 space-y-4">
         <div>
-          <h3 className="text-base font-semibold text-gray-900">Privacy & PII Redaction</h3>
-          <p className="text-xs text-gray-500 mt-1">
+          <h3 className="text-base font-semibold text-ink">Privacy & PII Redaction</h3>
+          <p className="text-xs text-ink-mute mt-1">
             Control how personal data is handled when tools return results to the agent.
           </p>
         </div>
@@ -1799,18 +1795,18 @@ function AdvancedTab({ formData, setFormData, piiRedactionConfig, setPiiRedactio
             />
             <div
               className={`w-10 h-6 rounded-full transition-colors ${
-                piiRedactionConfig.redact_for_llm ? 'bg-primary-600' : 'bg-gray-300'
+                piiRedactionConfig.redact_for_llm ? 'bg-primary-600' : 'bg-taupe'
               }`}
             />
             <div
-              className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+              className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform motion-reduce:transition-none ${
                 piiRedactionConfig.redact_for_llm ? 'translate-x-4' : ''
               }`}
             />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-900">Redact PII from LLM</p>
-            <p className="text-xs text-gray-500">
+            <p className="text-sm font-medium text-ink">Redact PII from LLM</p>
+            <p className="text-xs text-ink-mute">
               Replace personal data in tool results with tokens (e.g. [EMAIL_1]) before the LLM
               sees them. Original values are restored in the response shown to users.
             </p>
@@ -1829,26 +1825,26 @@ function AdvancedTab({ formData, setFormData, piiRedactionConfig, setPiiRedactio
             />
             <div
               className={`w-10 h-6 rounded-full transition-colors ${
-                piiRedactionConfig.redact_for_response ? 'bg-primary-600' : 'bg-gray-300'
+                piiRedactionConfig.redact_for_response ? 'bg-primary-600' : 'bg-taupe'
               }`}
             />
             <div
-              className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+              className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform motion-reduce:transition-none ${
                 piiRedactionConfig.redact_for_response ? 'translate-x-4' : ''
               }`}
             />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-900">Redact PII from agent response</p>
-            <p className="text-xs text-gray-500">
-              Mask personal data in the response shown to users as well — users never see raw PII.
+            <p className="text-sm font-medium text-ink">Redact PII from agent response</p>
+            <p className="text-xs text-ink-mute">
+              Mask personal data in the response shown to users as well, users never see raw PII.
             </p>
           </div>
         </label>
 
         {(piiRedactionConfig.redact_for_llm || piiRedactionConfig.redact_for_response) && (
           <div>
-            <p className="text-xs font-medium text-gray-700 mb-2">Patterns to detect:</p>
+            <p className="text-xs font-medium text-ink-soft mb-2">Patterns to detect:</p>
             <div className="flex flex-wrap gap-2">
               {ALL_PII_PATTERNS.map((p) => (
                 <label key={p} className="flex items-center gap-1.5 cursor-pointer">
@@ -1856,9 +1852,9 @@ function AdvancedTab({ formData, setFormData, piiRedactionConfig, setPiiRedactio
                     type="checkbox"
                     checked={piiRedactionConfig.patterns.includes(p)}
                     onChange={() => togglePattern(p)}
-                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                    className="rounded border-taupe text-primary-600 focus:ring-primary-500"
                   />
-                  <span className="text-xs text-gray-700 capitalize">{p.replace('_', ' ')}</span>
+                  <span className="text-xs text-ink-soft capitalize">{p.replace('_', ' ')}</span>
                 </label>
               ))}
             </div>

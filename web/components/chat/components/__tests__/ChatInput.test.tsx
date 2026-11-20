@@ -36,17 +36,17 @@ function typeIntoTextarea(textarea: HTMLTextAreaElement, text: string) {
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
-describe("ChatInput — rendering", () => {
+describe("ChatInput, rendering", () => {
   it("renders a textarea with the default placeholder", () => {
     const { textarea } = renderInput();
-    expect(textarea.placeholder).toBe("Type your message...");
+    expect(textarea.placeholder).toBe("Type your message…");
   });
 
   it("renders with a custom placeholder when chatConfig provides one", () => {
     const { textarea } = renderInput({
-      chatConfig: { chat_placeholder: "Ask me anything..." },
+      chatConfig: { chat_placeholder: "Ask me anything…" },
     });
-    expect(textarea.placeholder).toBe("Ask me anything...");
+    expect(textarea.placeholder).toBe("Ask me anything…");
   });
 
   it("renders with a custom placeholder prop when chatConfig is absent", () => {
@@ -70,7 +70,7 @@ describe("ChatInput — rendering", () => {
   });
 });
 
-describe("ChatInput — input state", () => {
+describe("ChatInput, input state", () => {
   it("updates the textarea value when the user types", () => {
     const { textarea } = renderInput();
     typeIntoTextarea(textarea, "Hello world");
@@ -108,7 +108,7 @@ describe("ChatInput — input state", () => {
   });
 });
 
-describe("ChatInput — send button disabled state", () => {
+describe("ChatInput, send button disabled state", () => {
   it("send button is disabled when the input is empty", () => {
     const { sendButton } = renderInput();
     expect(sendButton).toBeDisabled();
@@ -136,7 +136,7 @@ describe("ChatInput — send button disabled state", () => {
   });
 });
 
-describe("ChatInput — onSend callback", () => {
+describe("ChatInput, onSend callback", () => {
   it("calls onSend with the trimmed message content", async () => {
     const { textarea, sendButton, onSend } = renderInput();
 
@@ -164,14 +164,14 @@ describe("ChatInput — onSend callback", () => {
   });
 });
 
-describe("ChatInput — formatting toolbar", () => {
+describe("ChatInput, formatting toolbar", () => {
   it("formatting toolbar is hidden by default", () => {
     renderInput();
     expect(screen.queryByTitle("Bold (Ctrl+B)")).not.toBeInTheDocument();
   });
 });
 
-describe("ChatInput — voice modal", () => {
+describe("ChatInput, voice modal", () => {
   it("voice modal is not visible initially", () => {
     renderInput();
     expect(screen.queryByTestId("voice-modal")).not.toBeInTheDocument();

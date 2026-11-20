@@ -110,7 +110,7 @@ export default function ExecutionDetailPage() {
   if (!currentExecution) {
     return (
       <div className="dashboard-resource-page flex min-h-screen items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-[#171717]" />
+        <div className="h-6 w-6 motion-safe:animate-spin rounded-full border-2 border-line border-t-ink" />
       </div>
     )
   }
@@ -132,8 +132,8 @@ export default function ExecutionDetailPage() {
       description={
         currentExecution.messagePreview ? (
           <>
-            <span className="font-medium text-gray-900">&ldquo;{currentExecution.messagePreview}&rdquo;</span>
-            <span className="text-gray-500"> Live execution workspace, event timeline, and tool trace for this run.</span>
+            <span className="font-medium text-ink">&ldquo;{currentExecution.messagePreview}&rdquo;</span>
+            <span className="text-ink-mute"> Live execution workspace, event timeline, and tool trace for this run.</span>
           </>
         ) : (
           'Live execution workspace, event timeline, and tool trace for this run.'
@@ -170,15 +170,15 @@ export default function ExecutionDetailPage() {
 
       <DashboardPagePanel className="overflow-hidden p-3">
         <div className="grid min-h-[72vh] gap-3 xl:grid-cols-[280px_minmax(0,1fr)_260px]">
-          <div className="hidden min-h-[24rem] overflow-hidden rounded-[1.6rem] border border-[#eadfce] bg-[linear-gradient(180deg,_rgba(249,244,236,0.98),_rgba(255,255,255,0.92))] md:flex">
+          <div className="hidden min-h-[24rem] overflow-hidden rounded-[1.6rem] border border-sand-deep bg-paper md:flex">
             <ActivityFeed events={currentExecution.events} isLive={isLive} />
           </div>
 
-          <div className="min-h-[32rem] overflow-hidden rounded-[1.75rem] border border-[#eadfce] bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(248,242,233,0.96))] shadow-[0_22px_55px_-44px_rgba(76,52,31,0.4)]">
+          <div className="min-h-[32rem] overflow-hidden rounded-[1.75rem] border border-sand-deep bg-white shadow-soft">
             <LiveWorkspace content={currentExecution.workspaceContent} isStreaming={isLive} />
           </div>
 
-          <div className="hidden min-h-[24rem] overflow-hidden rounded-[1.6rem] border border-[#eadfce] bg-[linear-gradient(180deg,_rgba(255,255,255,0.96),_rgba(246,239,230,0.92))] xl:flex">
+          <div className="hidden min-h-[24rem] overflow-hidden rounded-[1.6rem] border border-sand-deep bg-white xl:flex">
             <ExecutionPlan
               events={currentExecution.events}
               activeTools={currentExecution.activeTools}
@@ -189,14 +189,14 @@ export default function ExecutionDetailPage() {
       </DashboardPagePanel>
 
       {currentExecution.status === 'error' && currentExecution.error ? (
-        <DashboardPagePanel className="mt-6 border-[#efd8dd] bg-[linear-gradient(180deg,_rgba(253,245,246,0.98),_rgba(250,238,240,0.94))] p-4">
+        <DashboardPagePanel className="mt-6 border-blush-wash bg-cream p-4">
           <div className="flex items-start gap-3">
-            <div className="rounded-[1rem] bg-[#f7dfe5] p-2 text-[#a04560]">
+            <div className="rounded-[1rem] bg-blush-wash p-2 text-wine">
               <AlertTriangle className="h-4 w-4" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-[#6d2439]">Execution error</p>
-              <p className="mt-1 text-sm leading-6 text-[#8a445c]">{currentExecution.error}</p>
+              <p className="text-sm font-semibold text-wine">Execution error</p>
+              <p className="mt-1 text-sm leading-6 text-wine">{currentExecution.error}</p>
             </div>
           </div>
         </DashboardPagePanel>

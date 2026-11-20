@@ -146,13 +146,13 @@ export default function AgentKnowledgeBasesPage() {
 
   const getProviderBadgeColor = (provider?: string) => {
     const colors: Record<string, string> = {
-      QDRANT: 'bg-blue-100 text-blue-800',
-      PINECONE: 'bg-purple-100 text-purple-800',
-      WEAVIATE: 'bg-green-100 text-green-800',
-      CHROMA: 'bg-orange-100 text-orange-800',
+      QDRANT: 'bg-sky-wash text-azure',
+      PINECONE: 'bg-blush-wash text-wine',
+      WEAVIATE: 'bg-leaf-wash text-forest',
+      CHROMA: 'bg-sand-deep text-gold',
       MILVUS: 'bg-primary-100 text-primary-800',
     }
-    return colors[(provider || '').toUpperCase()] || 'bg-gray-100 text-gray-800'
+    return colors[(provider || '').toUpperCase()] || 'bg-sand text-ink'
   }
 
   const getUnattachedKBs = () => {
@@ -161,7 +161,7 @@ export default function AgentKnowledgeBasesPage() {
   }
 
   const modalInputClass =
-    'w-full rounded-[1.15rem] border border-black/10 bg-[#fcfaf5] px-4 py-3 text-sm text-gray-900 placeholder-gray-400 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#79dfbc]'
+    'w-full rounded-[1.15rem] border border-black/10 bg-cream px-4 py-3 text-sm text-ink placeholder-ash transition-[color,background-color,border-color,box-shadow,opacity,transform] focus:border-transparent focus:outline-none focus:ring-2 focus:ring-mint'
   const selectedKb = selectedKbId ? getUnattachedKBs().find((kb) => kb.id === selectedKbId) : null
 
   if (loading) {
@@ -176,7 +176,7 @@ export default function AgentKnowledgeBasesPage() {
     <AgentPageShell
       agentName={agentName}
       title="Knowledge Bases"
-      description={<>Configure which knowledge bases <span className="font-semibold text-gray-900">{agent?.name || agentName}</span> can access.</>}
+      description={<>Configure which knowledge bases <span className="font-semibold text-ink">{agent?.name || agentName}</span> can access.</>}
       icon={BookOpen}
       backHref={`/agents/${agentName}/view`}
       backLabel="Back to Agent"
@@ -185,7 +185,7 @@ export default function AgentKnowledgeBasesPage() {
         <button
           onClick={() => setShowAttachModal(true)}
           disabled={getUnattachedKBs().length === 0}
-          className="inline-flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-[1rem] bg-ink px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Plus className="w-4 h-4" />
           Attach Knowledge Base
@@ -203,8 +203,8 @@ export default function AgentKnowledgeBasesPage() {
       {attachedKBs.length === 0 ? (
         <EmptyState
           icon={
-            <svg
-              className="mx-auto h-12 w-12 text-gray-400"
+            <svg aria-hidden="true"
+              className="mx-auto h-12 w-12 text-ash"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -227,7 +227,7 @@ export default function AgentKnowledgeBasesPage() {
           {attachedKBs.map((akb) => (
             <div
               key={akb.id}
-              className="bg-white rounded-lg border border-gray-200 p-5 hover:border-red-300 hover:shadow-md transition-all"
+              className="bg-white rounded-lg border border-line p-5 hover:border-blush hover:shadow-md transition-[color,background-color,border-color,box-shadow,opacity,transform]"
             >
               {/* Header */}
               <div className="flex items-start justify-between mb-4">
@@ -235,10 +235,10 @@ export default function AgentKnowledgeBasesPage() {
                   href={`/knowledge-bases/${akb.id}`}
                   className="flex-1"
                 >
-                  <h3 className="text-base font-semibold text-gray-900 hover:text-primary-600 transition-colors">
+                  <h3 className="text-base font-semibold text-ink hover:text-primary-600 transition-colors">
                     {akb.name || 'Unknown KB'}
                   </h3>
-                  <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                  <p className="text-xs text-ink-soft mt-1 line-clamp-2">
                     {akb.description || ''}
                   </p>
                 </Link>
@@ -252,16 +252,16 @@ export default function AgentKnowledgeBasesPage() {
               </div>
 
               {/* Stats */}
-              <div className="grid grid-cols-2 gap-3 mb-4 py-3 border-t border-b border-gray-100">
+              <div className="grid grid-cols-2 gap-3 mb-4 py-3 border-t border-b border-sand">
                 <div>
-                  <p className="text-xs text-gray-500">Documents</p>
-                  <p className="text-base font-semibold text-gray-900">
+                  <p className="text-xs text-ink-mute">Documents</p>
+                  <p className="text-base font-semibold text-ink">
                     {akb.total_documents ?? 0}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Chunks</p>
-                  <p className="text-base font-semibold text-gray-900">
+                  <p className="text-xs text-ink-mute">Chunks</p>
+                  <p className="text-base font-semibold text-ink">
                     {akb.total_chunks ?? 0}
                   </p>
                 </div>
@@ -269,19 +269,19 @@ export default function AgentKnowledgeBasesPage() {
 
               {/* Retrieval Config */}
               <div className="mb-4">
-                <p className="text-xs text-gray-500 mb-2 font-medium">Retrieval Settings</p>
-                <div className="space-y-1 bg-gray-50 rounded-md p-2.5">
+                <p className="text-xs text-ink-mute mb-2 font-medium">Retrieval Settings</p>
+                <div className="space-y-1 bg-cream rounded-md p-2.5">
                   <div className="flex justify-between text-xs">
-                    <span className="text-gray-600">Top K:</span>
-                    <span className="text-gray-900 font-medium">{akb.retrieval_config?.top_k ?? '—'}</span>
+                    <span className="text-ink-soft">Top K:</span>
+                    <span className="text-ink font-medium">{akb.retrieval_config?.top_k ?? '—'}</span>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span className="text-gray-600">Score Threshold:</span>
-                    <span className="text-gray-900 font-medium">{akb.retrieval_config?.score_threshold ?? '—'}</span>
+                    <span className="text-ink-soft">Score Threshold:</span>
+                    <span className="text-ink font-medium">{akb.retrieval_config?.score_threshold ?? '—'}</span>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span className="text-gray-600">Include Metadata:</span>
-                    <span className="text-gray-900 font-medium">
+                    <span className="text-ink-soft">Include Metadata:</span>
+                    <span className="text-ink font-medium">
                       {akb.retrieval_config?.include_metadata ? 'Yes' : 'No'}
                     </span>
                   </div>
@@ -291,7 +291,7 @@ export default function AgentKnowledgeBasesPage() {
               {/* Actions */}
               <button
                 onClick={() => handleDetach(akb)}
-                className="w-full px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                className="w-full px-3 py-1.5 text-xs font-medium text-leaf bg-blush-wash rounded-lg hover:bg-blush-wash transition-colors"
               >
                 Detach
               </button>
@@ -302,33 +302,33 @@ export default function AgentKnowledgeBasesPage() {
 
       {/* Detach Confirm Modal */}
       {detachingKb && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-[1.8rem] border border-black/10 bg-[#fcfaf5] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.18)]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+          <div className="w-full max-w-md rounded-[1.8rem] border border-black/10 bg-cream p-6 shadow-soft">
             <div className="flex items-center gap-3 mb-4">
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[1rem] bg-red-50">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[1rem] bg-sand-deep">
+                <AlertTriangle className="w-5 h-5 text-danger" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">Detach Knowledge Base</h3>
+              <h3 className="text-lg font-semibold text-ink">Detach Knowledge Base</h3>
             </div>
-            <p className="text-gray-600 mb-6">
+            <p className="text-ink-soft mb-6">
               Are you sure you want to detach{' '}
-              <span className="font-medium text-gray-900">{detachingKb.name}</span>
+              <span className="font-medium text-ink">{detachingKb.name}</span>
               {' '}from this agent? The knowledge base itself will not be deleted.
             </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setDetachingKb(null)}
                 disabled={isDetaching}
-                className="rounded-[1rem] border border-black/10 bg-[#f1eadc] px-4 py-2.5 text-sm font-semibold text-[#171717] transition-colors hover:bg-[#e8ddc8] disabled:opacity-50"
+                className="rounded-[1rem] border border-black/10 bg-sand-deep px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-line disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDetach}
                 disabled={isDetaching}
-                className="flex items-center gap-2 rounded-[1rem] bg-[#171717] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
+                className="flex items-center gap-2 rounded-[1rem] bg-ink px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-50"
               >
-                {isDetaching && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                {isDetaching && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full motion-safe:animate-spin" />}
                 Detach
               </button>
             </div>
@@ -338,13 +338,13 @@ export default function AgentKnowledgeBasesPage() {
 
       {/* Attach Modal */}
       {showAttachModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(17,17,17,0.48)] p-4 backdrop-blur-[6px]">
-          <div className="w-full max-w-3xl overflow-hidden rounded-[1.9rem] border border-black/10 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.96),_rgba(247,240,231,0.96)_55%,_rgba(239,232,223,0.96)_100%)] shadow-[0_36px_110px_rgba(0,0,0,0.24)]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4">
+          <div className="bg-cream w-full max-w-3xl overflow-hidden rounded-[1.9rem] border border-black/10 shadow-soft">
             <div className="flex items-start justify-between border-b border-black/10 bg-white/55 px-8 py-6">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#7c5d45]">Knowledge Access</p>
-                <h2 className="mt-2 text-[2rem] font-semibold tracking-[-0.04em] text-gray-950">Attach Knowledge Base</h2>
-                <p className="mt-2 text-sm leading-6 text-gray-600">
+                <p className="text-[11px] font-semibold text-bark">Knowledge Access</p>
+                <h2 className="mt-2 text-[2rem] font-semibold tracking-[-0.04em] text-ink">Attach Knowledge Base</h2>
+                <p className="mt-2 text-sm leading-6 text-ink-soft">
                   Choose an existing knowledge base and tune how this agent should retrieve content from it.
                 </p>
               </div>
@@ -353,9 +353,9 @@ export default function AgentKnowledgeBasesPage() {
                   setShowAttachModal(false)
                   setSelectedKbId(null)
                 }}
-                className="rounded-full p-2 text-gray-400 transition-colors hover:bg-white hover:text-gray-700"
+                className="rounded-full p-2 text-ash transition-colors hover:bg-white hover:text-ink-soft"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -366,12 +366,12 @@ export default function AgentKnowledgeBasesPage() {
               <div className="mb-6">
                 <div className="mb-3 flex items-end justify-between gap-4">
                   <div>
-                    <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-[#7c5d45]">
+                    <label className="block text-xs font-semibold text-bark">
                       Select Knowledge Base
                     </label>
-                    <p className="mt-1 text-sm text-gray-600">Pick one unattached knowledge base for this agent.</p>
+                    <p className="mt-1 text-sm text-ink-soft">Pick one unattached knowledge base for this agent.</p>
                   </div>
-                  <span className="rounded-full border border-black/10 bg-white/75 px-3 py-1 text-xs font-semibold text-gray-600">
+                  <span className="rounded-full border border-black/10 bg-white/75 px-3 py-1 text-xs font-semibold text-ink-soft">
                     {getUnattachedKBs().length} available
                   </span>
                 </div>
@@ -381,43 +381,43 @@ export default function AgentKnowledgeBasesPage() {
                     <button
                       key={kb.id}
                       onClick={() => setSelectedKbId(kb.id)}
-                      className={`w-full rounded-[1.35rem] border p-4 text-left transition-all ${
+                      className={`w-full rounded-[1.35rem] border p-4 text-left transition-[color,background-color,border-color,box-shadow,opacity,transform] ${
                         selectedKbId === kb.id
-                          ? 'border-[#171717] bg-white shadow-[0_20px_48px_rgba(0,0,0,0.08)]'
-                          : 'border-black/10 bg-[#fcfaf5] hover:border-black/20 hover:bg-white'
+                          ? 'border-ink bg-white shadow-soft'
+                          : 'border-black/10 bg-cream hover:border-black/20 hover:bg-white'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <h3 className="truncate text-[1.05rem] font-semibold tracking-[-0.02em] text-gray-950">{kb.name}</h3>
+                            <h3 className="truncate text-[1.05rem] font-semibold tracking-[-0.02em] text-ink">{kb.name}</h3>
                             {selectedKbId === kb.id && (
-                              <span className="rounded-full bg-[#171717] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white">
+                              <span className="rounded-full bg-ink px-2.5 py-1 text-[10px] font-semibold text-white">
                                 Selected
                               </span>
                             )}
                           </div>
-                          <p className="mt-1 text-sm leading-6 text-gray-600">
+                          <p className="mt-1 text-sm leading-6 text-ink-soft">
                             {kb.description || 'No description available.'}
                           </p>
                           <div className="mt-3 flex flex-wrap gap-2">
                             <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${getProviderBadgeColor(kb.vector_db_provider)}`}>
                               {kb.vector_db_provider}
                             </span>
-                            <span className="inline-flex items-center rounded-full bg-[#edf4f6] px-2.5 py-1 text-xs font-semibold text-[#486c77]">
+                            <span className="inline-flex items-center rounded-full bg-leaf-wash px-2.5 py-1 text-xs font-semibold text-steel">
                               {kb.total_documents} docs
                             </span>
-                            <span className="inline-flex items-center rounded-full bg-[#f1eadc] px-2.5 py-1 text-xs font-semibold text-[#7c5d45]">
+                            <span className="inline-flex items-center rounded-full bg-sand-deep px-2.5 py-1 text-xs font-semibold text-bark">
                               {kb.total_chunks} chunks
                             </span>
                           </div>
                         </div>
                         <div className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border ${
                           selectedKbId === kb.id
-                            ? 'border-[#171717] bg-[#171717] text-white'
+                            ? 'border-ink bg-ink text-white'
                             : 'border-black/15 bg-white text-transparent'
                         }`}>
-                          <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                           </svg>
                         </div>
@@ -429,25 +429,25 @@ export default function AgentKnowledgeBasesPage() {
 
               {/* Retrieval Configuration */}
               {selectedKbId && (
-                <div className="rounded-[1.6rem] border border-black/10 bg-white/78 p-5 shadow-[0_18px_40px_rgba(0,0,0,0.04)]">
+                <div className="rounded-[1.6rem] border border-black/10 bg-white/78 p-5 shadow-soft">
                   <div className="mb-4 flex items-start justify-between gap-4">
                     <div>
-                      <h3 className="text-lg font-semibold tracking-[-0.02em] text-gray-950">Retrieval Configuration</h3>
-                      <p className="mt-1 text-sm leading-6 text-gray-600">
-                        {selectedKb ? <>Tune how <span className="font-semibold text-gray-900">{selectedKb.name}</span> should be queried for this agent.</> : 'Tune retrieval behavior for the selected knowledge base.'}
+                      <h3 className="text-lg font-semibold tracking-[-0.02em] text-ink">Retrieval Configuration</h3>
+                      <p className="mt-1 text-sm leading-6 text-ink-soft">
+                        {selectedKb ? <>Tune how <span className="font-semibold text-ink">{selectedKb.name}</span> should be queried for this agent.</> : 'Tune retrieval behavior for the selected knowledge base.'}
                       </p>
                     </div>
-                    <div className="rounded-[1.1rem] bg-[#f1eadc] px-3 py-2 text-right">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#7c5d45]">Current preset</p>
-                      <p className="mt-1 text-sm font-semibold text-gray-900">
-                        Top {attachConfig.top_k} · {attachConfig.score_threshold}
+                    <div className="rounded-[1.1rem] bg-sand-deep px-3 py-2 text-right">
+                      <p className="text-[11px] font-semibold text-bark">Current preset</p>
+                      <p className="mt-1 text-sm font-semibold text-ink">
+                        Top {attachConfig.top_k}, {attachConfig.score_threshold}
                       </p>
                     </div>
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
-                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[#7c5d45]">
+                      <label className="mb-1.5 block text-xs font-semibold text-bark">
                         Top K Results
                       </label>
                       <input
@@ -458,13 +458,13 @@ export default function AgentKnowledgeBasesPage() {
                         min="1"
                         max="20"
                       />
-                      <p className="mt-1.5 text-xs text-gray-500">
+                      <p className="mt-1.5 text-xs text-ink-mute">
                         Number of relevant chunks to retrieve, from 1 to 20.
                       </p>
                     </div>
 
                     <div>
-                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.18em] text-[#7c5d45]">
+                      <label className="mb-1.5 block text-xs font-semibold text-bark">
                         Score Threshold
                       </label>
                       <input
@@ -476,23 +476,23 @@ export default function AgentKnowledgeBasesPage() {
                         max="1"
                         step="0.1"
                       />
-                      <p className="mt-1.5 text-xs text-gray-500">
+                      <p className="mt-1.5 text-xs text-ink-mute">
                         Minimum similarity score between 0.0 and 1.0.
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-4 rounded-[1.2rem] border border-black/10 bg-[#fcfaf5] px-4 py-3">
+                  <div className="mt-4 rounded-[1.2rem] border border-black/10 bg-cream px-4 py-3">
                     <label className="flex items-center gap-3">
                       <input
                         type="checkbox"
                         checked={attachConfig.include_metadata}
                         onChange={(e) => setAttachConfig({ ...attachConfig, include_metadata: e.target.checked })}
-                        className="h-4 w-4 rounded border-gray-300 text-[#171717] focus:ring-[#79dfbc]"
+                        className="h-4 w-4 rounded border-taupe text-ink focus:ring-mint"
                       />
                       <div>
-                        <span className="block text-sm font-semibold text-gray-900">Include metadata in results</span>
-                        <span className="text-xs text-gray-500">Return additional source context alongside retrieved content.</span>
+                        <span className="block text-sm font-semibold text-ink">Include metadata in results</span>
+                        <span className="text-xs text-ink-mute">Return additional source context alongside retrieved content.</span>
                       </div>
                     </label>
                   </div>
@@ -502,7 +502,7 @@ export default function AgentKnowledgeBasesPage() {
 
             {/* Actions */}
             <div className="flex items-center justify-between gap-3 border-t border-black/10 bg-white/60 px-8 py-5">
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-ink-mute">
                 {selectedKb ? `Ready to attach ${selectedKb.name}.` : 'Select a knowledge base to continue.'}
               </p>
               <div className="flex gap-3">
@@ -511,14 +511,14 @@ export default function AgentKnowledgeBasesPage() {
                     setShowAttachModal(false)
                     setSelectedKbId(null)
                   }}
-                  className="rounded-[1rem] border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-[#fcfaf5]"
+                  className="rounded-[1rem] border border-black/10 bg-white px-4 py-2.5 text-sm font-semibold text-ink-soft transition-colors hover:bg-cream"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleAttach}
                   disabled={!selectedKbId}
-                  className="rounded-[1rem] bg-[#171717] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:bg-gray-400"
+                  className="rounded-[1rem] bg-ink px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:bg-ash"
                 >
                   Attach Knowledge Base
                 </button>

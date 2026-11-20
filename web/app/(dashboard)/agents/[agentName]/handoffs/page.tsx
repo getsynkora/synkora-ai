@@ -106,9 +106,9 @@ function HandoffCard({
 
   const roleBubble = (role: string) => {
     const r = role.toLowerCase()
-    if (r === 'user') return 'bg-[#171717] text-white self-end'
-    if (r === 'operator') return 'bg-emerald-600 text-white self-end'
-    return 'bg-white border border-[#e5d9ca] text-gray-800 self-start'
+    if (r === 'user') return 'bg-ink text-white self-end'
+    if (r === 'operator') return 'bg-leaf text-white self-end'
+    return 'bg-white border border-line text-ink self-start'
   }
 
   const isDarkBubble = (role: string) => {
@@ -129,22 +129,22 @@ function HandoffCard({
         {/* Header row */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3 min-w-0">
-            <div className="rounded-full bg-amber-100 p-2 flex-shrink-0">
-              <User className="w-4 h-4 text-amber-700" />
+            <div className="rounded-full bg-sand-deep p-2 flex-shrink-0">
+              <User className="w-4 h-4 text-gold" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-semibold text-gray-900">
+                <span className="text-sm font-semibold text-ink">
                   {handoff.external_user_name || 'Anonymous User'}
                 </span>
                 {handoff.external_user_email && (
-                  <span className="text-xs text-gray-500">{handoff.external_user_email}</span>
+                  <span className="text-xs text-ink-mute">{handoff.external_user_email}</span>
                 )}
               </div>
               {handoff.handoff_summary && (
-                <p className="mt-1 text-sm text-gray-600 leading-snug">{handoff.handoff_summary}</p>
+                <p className="mt-1 text-sm text-ink-soft leading-snug">{handoff.handoff_summary}</p>
               )}
-              <div className="mt-1.5 flex items-center gap-3 text-xs text-gray-400">
+              <div className="mt-1.5 flex items-center gap-3 text-xs text-ash">
                 <span className="flex items-center gap-1">
                   <MessageCircle className="w-3 h-3" />
                   {handoff.message_count} messages
@@ -163,14 +163,14 @@ function HandoffCard({
           <div className="flex items-center gap-2 flex-shrink-0">
             <button
               onClick={() => setExpanded(e => !e)}
-              className="px-3 py-1.5 text-xs font-medium rounded-[0.35rem] border border-[#dbcdb9] bg-white hover:bg-[#f7f2e7] text-gray-700 transition-colors"
+              className="px-3 py-1.5 text-xs font-medium rounded-[0.35rem] border border-line bg-white hover:bg-paper text-ink-soft transition-colors"
             >
               {expanded ? 'Hide' : 'Open'}
             </button>
             <button
               onClick={resolve}
               disabled={resolving}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[0.35rem] bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-[0.35rem] bg-leaf text-white hover:bg-forest disabled:opacity-50 transition-colors"
             >
               <CheckCircle className="w-3.5 h-3.5" />
               {resolving ? 'Resolving…' : 'Resolve'}
@@ -179,19 +179,19 @@ function HandoffCard({
         </div>
 
         {error && (
-          <p className="mt-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded-[0.35rem] px-3 py-2">
+          <p className="mt-3 text-xs text-danger bg-blush-wash border border-blush rounded-[0.35rem] px-3 py-2">
             {error}
           </p>
         )}
 
         {expanded && (
-          <div className="mt-4 space-y-3 border-t border-[#e5d9ca] pt-4">
+          <div className="mt-4 space-y-3 border-t border-line pt-4">
             {/* Message thread */}
-            <div className="max-h-72 overflow-y-auto flex flex-col gap-2 rounded-[0.45rem] bg-[#faf7f2] border border-[#e5d9ca] p-3">
+            <div className="max-h-72 overflow-y-auto flex flex-col gap-2 rounded-[0.45rem] bg-cream border border-line p-3">
               {loadingMessages ? (
-                <p className="text-xs text-gray-400 text-center py-6">Loading messages…</p>
+                <p className="text-xs text-ash text-center py-6">Loading messages…</p>
               ) : messages.length === 0 ? (
-                <p className="text-xs text-gray-400 text-center py-6">No messages yet.</p>
+                <p className="text-xs text-ash text-center py-6">No messages yet.</p>
               ) : (
                 messages.map(msg => (
                   <div
@@ -202,7 +202,7 @@ function HandoffCard({
                         : 'items-start'
                     }`}
                   >
-                    <span className="text-[10px] text-gray-400 mb-0.5 px-1">{roleLabel(msg.role)}</span>
+                    <span className="text-[10px] text-ash mb-0.5 px-1">{roleLabel(msg.role)}</span>
                     <div className={`rounded-[0.4rem] px-3 py-2 text-xs leading-relaxed ${roleBubble(msg.role)}`}>
                       <div className={`prose prose-sm max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 prose-p:my-1 prose-pre:my-1 prose-ul:my-1 prose-ol:my-1 prose-headings:my-1 ${isDarkBubble(msg.role) ? 'prose-invert' : 'prose-gray'}`}>
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
@@ -226,12 +226,12 @@ function HandoffCard({
                   }
                 }}
                 placeholder="Type your reply… (Enter to send, Shift+Enter for new line)"
-                className="flex-1 rounded-[0.4rem] border border-[#dbcdb9] bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#171717]/20 focus:border-[#c8b89a] resize-none"
+                className="flex-1 rounded-[0.4rem] border border-line bg-white px-3 py-2 text-sm text-ink placeholder:text-ash focus:outline-none focus:ring-2 focus:ring-ink/20 focus:border-tan resize-none"
               />
               <button
                 onClick={sendReply}
                 disabled={sending || !reply.trim()}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-[0.4rem] bg-[#171717] text-white text-sm font-medium hover:bg-gray-800 disabled:opacity-40 transition-colors self-end"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-[0.4rem] bg-ink text-white text-sm font-medium hover:bg-ink disabled:opacity-40 transition-colors self-end"
               >
                 <Send className="w-3.5 h-3.5" />
                 {sending ? '…' : 'Send'}
@@ -287,7 +287,7 @@ export default function HandoffsPage({ params }: { params: Promise<{ agentName: 
       actions={
         <button
           onClick={fetchHandoffs}
-          className="inline-flex items-center gap-2 rounded-[0.35rem] border border-[#dbcdb9] bg-white/80 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-[#cdb79d] hover:text-gray-900"
+          className="inline-flex items-center gap-2 rounded-[0.35rem] border border-line bg-white/80 px-4 py-2 text-sm font-semibold text-ink-soft transition-colors hover:border-tan hover:text-ink"
         >
           <RefreshCw className="w-4 h-4" />
           Refresh
@@ -296,15 +296,15 @@ export default function HandoffsPage({ params }: { params: Promise<{ agentName: 
     >
       {loading ? (
         <AgentPagePanel className="flex items-center justify-center py-20">
-          <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-700 rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-taupe border-t-ink-soft rounded-full motion-safe:animate-spin" />
         </AgentPagePanel>
       ) : handoffs.length === 0 ? (
         <AgentPagePanel className="py-20 text-center">
-          <div className="mx-auto w-12 h-12 rounded-full bg-[#f3ecde] flex items-center justify-center mb-4">
-            <MessageCircle className="w-6 h-6 text-[#7c5d45]" />
+          <div className="mx-auto w-12 h-12 rounded-full bg-sand flex items-center justify-center mb-4">
+            <MessageCircle className="w-6 h-6 text-bark" />
           </div>
-          <p className="text-sm font-medium text-gray-700">No active handoffs</p>
-          <p className="text-xs text-gray-400 mt-1 max-w-xs mx-auto">
+          <p className="text-sm font-medium text-ink-soft">No active handoffs</p>
+          <p className="text-xs text-ash mt-1 max-w-xs mx-auto">
             When a user requests human support the agent will transfer the conversation here.
           </p>
         </AgentPagePanel>

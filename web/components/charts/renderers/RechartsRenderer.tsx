@@ -112,7 +112,7 @@ export function RechartsRenderer({ chart }: { chart: ChartData }) {
 
     default:
       return (
-        <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+        <div className="flex items-center justify-center h-full text-ash text-sm">
           Unsupported type: {chart.chart_type}
         </div>
       )

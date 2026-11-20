@@ -1,7 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ExternalLink, Info, AlertCircle, Check, Zap, ChevronDown, ChevronUp } from 'lucide-react'
+import {
+  AlertCircle, BarChart3, Bot, Brain, Check, ChevronDown, ChevronUp, Cloud, ExternalLink, Hash, Info, Link, Monitor,
+  Mountain, RefreshCw, Rocket, Search, Server, Shuffle, Smile, Sparkles, Triangle, Waves, Wind, Zap,
+  type LucideIcon,
+} from 'lucide-react'
 import toast from 'react-hot-toast'
 import {
   AgentLLMConfig,
@@ -18,14 +22,29 @@ function isReasoningModel(modelName: string): boolean {
   return /^(o1|o3|o4|gpt-5)/.test(base)
 }
 
-const PROVIDER_ICONS: Record<string, string> = {
-  openai: '🤖', anthropic: '🧠', google: '🔮', gemini: '🔮',
-  deepseek: '🐋',
-  ollama: '🦙', huggingface: '🤗', together_ai: '🔗', cohere: '📊',
-  mistral: '🌪️', groq: '⚡', perplexity: '🔍', litellm: '🔗',
-  openrouter: '🛣️', azure_openai: '☁️', bedrock: '🪨', vertex_ai: '🔺',
-  lm_studio: '🖥️', vllm: '🚀', replicate: '♻️', minimax: '🔢',
-  default: '🤖',
+const PROVIDER_ICONS: Record<string, LucideIcon> = {
+  openai: Bot,
+  anthropic: Brain,
+  google: Sparkles,
+  gemini: Sparkles,
+  deepseek: Waves,
+  ollama: Server,
+  huggingface: Smile,
+  together_ai: Link,
+  cohere: BarChart3,
+  mistral: Wind,
+  groq: Zap,
+  perplexity: Search,
+  litellm: Link,
+  openrouter: Shuffle,
+  azure_openai: Cloud,
+  bedrock: Mountain,
+  vertex_ai: Triangle,
+  lm_studio: Monitor,
+  vllm: Rocket,
+  replicate: RefreshCw,
+  minimax: Hash,
+  default: Bot,
 }
 
 interface LLMConfigFormProps {
@@ -235,8 +254,8 @@ export default function LLMConfigForm({
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p className="text-sm text-gray-500">Loading providers...</p>
+          <div className="motion-safe:animate-spin rounded-full h-8 w-8 border-b-2 border-danger mx-auto mb-4"></div>
+          <p className="text-sm text-ink-mute">Loading providers…</p>
         </div>
       </div>
     )
@@ -260,8 +279,8 @@ export default function LLMConfigForm({
 
       {/* ── Config Name ─────────────────────────────────────────── */}
       <div>
-        <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-1.5">
-          Configuration Name <span className="text-red-500">*</span>
+        <label htmlFor="name" className="block text-sm font-semibold text-ink-soft mb-1.5">
+          Configuration Name <span className="text-leaf">*</span>
         </label>
         <input
           type="text"
@@ -269,15 +288,15 @@ export default function LLMConfigForm({
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           placeholder="e.g., Primary GPT-4, Backup Claude"
-          className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+          className="w-full px-4 py-2.5 border border-taupe rounded-xl focus:ring-2 focus:ring-ink focus:border-transparent text-sm"
           disabled={isSubmitting}
         />
       </div>
 
       {/* ── Provider ─────────────────────────────────────────────── */}
       <div>
-        <p className="text-sm font-semibold text-gray-700 mb-3">
-          Provider <span className="text-red-500">*</span>
+        <p className="text-sm font-semibold text-ink-soft mb-3">
+          Provider <span className="text-leaf">*</span>
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-56 overflow-y-auto pr-0.5">
           {providers.map((provider: ProviderPreset) => {
@@ -288,25 +307,26 @@ export default function LLMConfigForm({
                 type="button"
                 onClick={() => handleProviderChange(provider.provider_id)}
                 disabled={isSubmitting}
-                className={`relative flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-2 text-left transition-all duration-150 ${
+                className={`relative flex items-center gap-2.5 px-3 py-2.5 rounded-xl border-2 text-left transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-150 ${
                   isActive
-                    ? 'border-red-500 bg-red-50 shadow-sm'
-                    : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                    ? 'border-ink bg-blush-wash shadow-sm'
+                    : 'border-line bg-white hover:border-taupe hover:bg-cream'
                 }`}
               >
-                <span className="text-xl shrink-0 leading-none">
-                  {PROVIDER_ICONS[provider.provider_id] ?? PROVIDER_ICONS.default}
-                </span>
+                {(() => {
+                  const ProviderIcon = PROVIDER_ICONS[provider.provider_id] ?? PROVIDER_ICONS.default
+                  return <ProviderIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                })()}
                 <div className="min-w-0">
-                  <p className={`text-sm font-semibold truncate leading-tight ${isActive ? 'text-red-700' : 'text-gray-800'}`}>
+                  <p className={`text-sm font-semibold truncate leading-tight ${isActive ? 'text-leaf' : 'text-ink'}`}>
                     {provider.provider_name}
                   </p>
-                  <p className="text-xs text-gray-400 mt-0.5">
+                  <p className="text-xs text-ash mt-0.5">
                     {provider.model_count ?? provider.models?.length ?? 0} models
                   </p>
                 </div>
                 {isActive && (
-                  <div className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+                  <div className="absolute top-1.5 right-1.5 w-4 h-4 bg-ink rounded-full flex items-center justify-center">
                     <Check size={9} className="text-white" />
                   </div>
                 )}
@@ -315,16 +335,16 @@ export default function LLMConfigForm({
           })}
         </div>
         {selectedProvider && (
-          <div className="mt-3 flex items-start gap-2 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl">
-            <Info className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+          <div className="mt-3 flex items-start gap-2 px-3 py-2.5 bg-cream border border-line rounded-xl">
+            <Info className="w-4 h-4 text-ash shrink-0 mt-0.5" />
             <div className="min-w-0">
-              <p className="text-xs text-gray-600 leading-relaxed">{selectedProvider.description}</p>
+              <p className="text-xs text-ink-soft leading-relaxed">{selectedProvider.description}</p>
               {selectedProvider.documentation_url && (
                 <a
                   href={selectedProvider.documentation_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-red-600 hover:text-red-700 font-medium mt-1"
+                  className="inline-flex items-center gap-1 text-xs text-leaf hover:text-leaf font-medium mt-1"
                 >
                   Documentation <ExternalLink className="w-3 h-3" />
                 </a>
@@ -337,14 +357,14 @@ export default function LLMConfigForm({
       {/* ── Model ─────────────────────────────────────────────────── */}
       {formData.provider && (
         <div>
-          <p className="text-sm font-semibold text-gray-700 mb-3">
-            Model <span className="text-red-500">*</span>
+          <p className="text-sm font-semibold text-ink-soft mb-3">
+            Model <span className="text-leaf">*</span>
           </p>
 
           {loadingModels ? (
-            <div className="flex items-center gap-3 py-8 justify-center bg-gray-50 rounded-xl border border-gray-100">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-500" />
-              <span className="text-sm text-gray-500">Loading models…</span>
+            <div className="flex items-center gap-3 py-8 justify-center bg-cream rounded-xl border border-sand">
+              <div className="motion-safe:animate-spin rounded-full h-5 w-5 border-b-2 border-ink" />
+              <span className="text-sm text-ink-mute">Loading models…</span>
             </div>
           ) : models.length > 0 ? (
             <>
@@ -355,7 +375,7 @@ export default function LLMConfigForm({
                     value={modelSearch}
                     onChange={(e) => setModelSearch(e.target.value)}
                     placeholder="Search models…"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className="w-full px-4 py-2.5 border border-line rounded-xl text-sm focus:ring-2 focus:ring-ink focus:border-transparent"
                   />
                 </div>
               )}
@@ -366,10 +386,10 @@ export default function LLMConfigForm({
                   const score = model.quality_score
                   const qualityPct = score !== null ? (score / 10) * 100 : null
                   const qualityBarColor = score !== null
-                    ? score >= 9 ? 'bg-green-500' : score >= 8 ? 'bg-amber-400' : 'bg-gray-300'
+                    ? score >= 9 ? 'bg-leaf' : score >= 8 ? 'bg-honey' : 'bg-taupe'
                     : ''
                   const qualityTextColor = score !== null
-                    ? score >= 9 ? 'text-green-600' : score >= 8 ? 'text-amber-600' : 'text-gray-500'
+                    ? score >= 9 ? 'text-leaf' : score >= 8 ? 'text-warn' : 'text-ink-mute'
                     : ''
 
                   return (
@@ -378,85 +398,85 @@ export default function LLMConfigForm({
                       type="button"
                       onClick={() => handleModelChange(model.model_name)}
                       disabled={isSubmitting}
-                      className={`relative flex flex-col rounded-xl border-2 text-left transition-all duration-150 overflow-hidden ${
+                      className={`relative flex flex-col rounded-xl border-2 text-left transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-150 overflow-hidden ${
                         isSelected
-                          ? 'border-red-500 shadow-md shadow-red-500/10'
-                          : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+                          ? 'border-ink shadow-md shadow-red-500/10'
+                          : 'border-line bg-white hover:border-taupe hover:shadow-sm'
                       }`}
                     >
                       {/* Accent strip */}
-                      <div className={`h-0.5 w-full ${isSelected ? 'bg-red-500' : 'bg-transparent'}`} />
+                      <div className={`h-0.5 w-full ${isSelected ? 'bg-ink' : 'bg-transparent'}`} />
 
                       {/* Card body */}
-                      <div className={`flex-1 px-4 pt-3 pb-2.5 ${isSelected ? 'bg-red-50' : ''}`}>
+                      <div className={`flex-1 px-4 pt-3 pb-2.5 ${isSelected ? 'bg-blush-wash' : ''}`}>
                         <div className="flex items-start justify-between gap-2 mb-0.5">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className={`font-bold text-sm leading-tight ${isSelected ? 'text-red-800' : 'text-gray-900'}`}>
+                            <span className={`font-bold text-sm leading-tight ${isSelected ? 'text-wine' : 'text-ink'}`}>
                               {model.name}
                             </span>
                             {index === 0 && !modelSearch && (
-                              <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold rounded-full">
+                              <span className="px-1.5 py-0.5 bg-leaf-wash text-forest text-[10px] font-bold rounded-full">
                                 Best
                               </span>
                             )}
                             {model.is_open_source && (
-                              <span className="px-1.5 py-0.5 bg-violet-100 text-violet-700 text-[10px] font-bold rounded-full">
+                              <span className="px-1.5 py-0.5 bg-sand-deep text-ink-soft text-[10px] font-bold rounded-full">
                                 OSS
                               </span>
                             )}
                           </div>
                           {isSelected && (
-                            <div className="shrink-0 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                            <div className="shrink-0 w-5 h-5 bg-ink rounded-full flex items-center justify-center">
                               <Check size={11} className="text-white" />
                             </div>
                           )}
                         </div>
-                        <p className="text-[11px] text-gray-400 font-mono truncate mb-2">{model.model_name}</p>
-                        <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{model.description}</p>
+                        <p className="text-[11px] text-ash font-mono truncate mb-2">{model.model_name}</p>
+                        <p className="text-xs text-ink-mute leading-relaxed line-clamp-2">{model.description}</p>
                       </div>
 
                       {/* Metrics footer */}
                       <div className={`grid grid-cols-3 divide-x border-t text-left ${
                         isSelected
-                          ? 'bg-red-100/50 border-red-200 divide-red-200'
-                          : 'bg-gray-50 border-gray-100 divide-gray-100'
+                          ? 'bg-blush-wash/50 border-blush divide-blush'
+                          : 'bg-cream border-sand divide-sand'
                       }`}>
                         <div className="px-3 py-2">
-                          <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400 mb-1">Quality</p>
+                          <p className="text-[9px] font-bold text-ash mb-1">Quality</p>
                           {score !== null ? (
                             <>
                               <p className={`text-base font-bold tabular-nums leading-none ${qualityTextColor}`}>{score.toFixed(1)}</p>
-                              <div className="mt-1 h-1 w-full bg-gray-200 rounded-full overflow-hidden">
+                              <div className="mt-1 h-1 w-full bg-line rounded-full overflow-hidden">
                                 <div className={`h-full rounded-full ${qualityBarColor}`} style={{ width: `${qualityPct}%` }} />
                               </div>
                             </>
-                          ) : <p className="text-sm text-gray-400">—</p>}
+                          ) : <p className="text-sm text-ash">—</p>}
                         </div>
 
                         <div className="px-3 py-2">
-                          <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400 mb-1.5">Speed</p>
+                          <p className="text-[9px] font-bold text-ash mb-1.5">Speed</p>
                           {model.speed_tier ? (
                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold ${
-                              model.speed_tier === 'fast'   ? 'bg-green-100 text-green-700' :
-                              model.speed_tier === 'medium' ? 'bg-amber-100 text-amber-700' :
-                                                              'bg-red-100 text-red-700'
+                              model.speed_tier === 'fast'   ? 'bg-leaf-wash text-forest' :
+                              model.speed_tier === 'medium' ? 'bg-sand-deep text-gold' :
+                                                              'bg-blush-wash text-leaf'
                             }`}>
                               {model.speed_tier === 'fast' && <Zap className="w-2.5 h-2.5" />}
                               {model.speed_tier.charAt(0).toUpperCase() + model.speed_tier.slice(1)}
                             </span>
-                          ) : <p className="text-sm text-gray-400">—</p>}
+                          ) : <p className="text-sm text-ash">—</p>}
                         </div>
 
                         <div className="px-3 py-2">
-                          <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400 mb-1">Cost /1M</p>
+                          <p className="text-[9px] font-bold text-ash mb-1">Cost /1M</p>
                           {model.cost_input_per_1m === null ? (
-                            <p className="text-sm text-gray-400">—</p>
+                            <p className="text-sm text-ash">—</p>
                           ) : model.cost_input_per_1m === 0 ? (
-                            <p className="text-sm font-bold text-green-600">Free</p>
+                            <p className="text-sm font-bold text-leaf">Free</p>
                           ) : (
                             <>
-                              <p className="text-sm font-bold text-gray-800 tabular-nums leading-tight">${model.cost_input_per_1m}</p>
-                              <p className="text-[10px] text-gray-400 tabular-nums">${model.cost_output_per_1m} out</p>
+                              <p className="text-sm font-bold text-ink tabular-nums leading-tight">${model.cost_input_per_1m}</p>
+                              <p className="text-[10px] text-ash tabular-nums">${model.cost_output_per_1m} out</p>
                             </>
                           )}
                         </div>
@@ -467,19 +487,19 @@ export default function LLMConfigForm({
               </div>
 
               {filteredModels.length === 0 && modelSearch && imageModels.length === 0 && videoModels.length === 0 && (
-                <p className="text-sm text-gray-500 text-center py-6">No models match "{modelSearch}"</p>
+                <p className="text-sm text-ink-mute text-center py-6">No models match "{modelSearch}"</p>
               )}
 
               {/* Image generation models section */}
               {imageModels.length > 0 && (
                 <div className="mt-4">
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="h-px flex-1 bg-gray-100" />
-                    <span className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
-                      <span className="inline-block w-2 h-2 rounded-full bg-violet-400" />
+                    <div className="h-px flex-1 bg-sand" />
+                    <span className="text-xs font-bold text-ash flex items-center gap-1.5">
+                      <span className="inline-block w-2 h-2 rounded-full bg-plum" />
                       Image Generation
                     </span>
-                    <div className="h-px flex-1 bg-gray-100" />
+                    <div className="h-px flex-1 bg-sand" />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {imageModels.map((model: ModelPreset) => {
@@ -490,38 +510,38 @@ export default function LLMConfigForm({
                           type="button"
                           onClick={() => handleModelChange(model.model_name)}
                           disabled={isSubmitting}
-                          className={`relative flex flex-col rounded-xl border-2 text-left transition-all duration-150 overflow-hidden ${
+                          className={`relative flex flex-col rounded-xl border-2 text-left transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-150 overflow-hidden ${
                             isSelected
-                              ? 'border-violet-500 shadow-md shadow-violet-500/10'
-                              : 'border-gray-200 bg-white hover:border-violet-300 hover:shadow-sm'
+                              ? 'border-plum shadow-md shadow-violet-500/10'
+                              : 'border-line bg-white hover:border-blush hover:shadow-sm'
                           }`}
                         >
-                          <div className={`h-0.5 w-full ${isSelected ? 'bg-violet-500' : 'bg-transparent'}`} />
-                          <div className={`px-4 pt-3 pb-3 ${isSelected ? 'bg-violet-50' : ''}`}>
+                          <div className={`h-0.5 w-full ${isSelected ? 'bg-plum' : 'bg-transparent'}`} />
+                          <div className={`px-4 pt-3 pb-3 ${isSelected ? 'bg-blush-wash' : ''}`}>
                             <div className="flex items-start justify-between gap-2 mb-0.5">
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className={`font-bold text-sm leading-tight ${isSelected ? 'text-violet-800' : 'text-gray-900'}`}>
+                                <span className={`font-bold text-sm leading-tight ${isSelected ? 'text-wine' : 'text-ink'}`}>
                                   {model.name}
                                 </span>
-                                <span className="px-1.5 py-0.5 bg-violet-100 text-violet-700 text-[10px] font-bold rounded-full">
+                                <span className="px-1.5 py-0.5 bg-sand-deep text-ink-soft text-[10px] font-bold rounded-full">
                                   Image
                                 </span>
                               </div>
                               {isSelected && (
-                                <div className="shrink-0 w-5 h-5 bg-violet-500 rounded-full flex items-center justify-center">
+                                <div className="shrink-0 w-5 h-5 bg-plum rounded-full flex items-center justify-center">
                                   <Check size={11} className="text-white" />
                                 </div>
                               )}
                             </div>
-                            <p className="text-[11px] text-gray-400 font-mono truncate mb-1">{model.model_name}</p>
-                            <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{model.description}</p>
+                            <p className="text-[11px] text-ash font-mono truncate mb-1">{model.model_name}</p>
+                            <p className="text-xs text-ink-mute leading-relaxed line-clamp-2">{model.description}</p>
                           </div>
                         </button>
                       )
                     })}
                   </div>
-                  <p className="mt-2 text-[11px] text-gray-400">
-                    Image models are used by the Image Generation tool — not for chat.
+                  <p className="mt-2 text-[11px] text-ash">
+                    Image models are used by the Image Generation tool, not for chat.
                     Enable the tool in the agent&apos;s Tools tab.
                   </p>
                 </div>
@@ -530,12 +550,12 @@ export default function LLMConfigForm({
               {videoModels.length > 0 && (
                 <div className="mt-4">
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="h-px flex-1 bg-gray-100" />
-                    <span className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
-                      <span className="inline-block w-2 h-2 rounded-full bg-sky-400" />
+                    <div className="h-px flex-1 bg-sand" />
+                    <span className="text-xs font-bold text-ash flex items-center gap-1.5">
+                      <span className="inline-block w-2 h-2 rounded-full bg-steel" />
                       Video Generation
                     </span>
-                    <div className="h-px flex-1 bg-gray-100" />
+                    <div className="h-px flex-1 bg-sand" />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {videoModels.map((model: ModelPreset) => {
@@ -546,44 +566,44 @@ export default function LLMConfigForm({
                           type="button"
                           onClick={() => handleModelChange(model.model_name)}
                           disabled={isSubmitting}
-                          className={`relative flex flex-col rounded-xl border-2 text-left transition-all duration-150 overflow-hidden ${
+                          className={`relative flex flex-col rounded-xl border-2 text-left transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-150 overflow-hidden ${
                             isSelected
-                              ? 'border-sky-500 shadow-md shadow-sky-500/10'
-                              : 'border-gray-200 bg-white hover:border-sky-300 hover:shadow-sm'
+                              ? 'border-azure shadow-md shadow-sky-500/10'
+                              : 'border-line bg-white hover:border-steel hover:shadow-sm'
                           }`}
                         >
-                          <div className={`h-0.5 w-full ${isSelected ? 'bg-sky-500' : 'bg-transparent'}`} />
-                          <div className={`px-4 pt-3 pb-3 ${isSelected ? 'bg-sky-50' : ''}`}>
+                          <div className={`h-0.5 w-full ${isSelected ? 'bg-azure' : 'bg-transparent'}`} />
+                          <div className={`px-4 pt-3 pb-3 ${isSelected ? 'bg-sky-wash' : ''}`}>
                             <div className="flex items-start justify-between gap-2 mb-0.5">
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className={`font-bold text-sm leading-tight ${isSelected ? 'text-sky-800' : 'text-gray-900'}`}>
+                                <span className={`font-bold text-sm leading-tight ${isSelected ? 'text-azure' : 'text-ink'}`}>
                                   {model.name}
                                 </span>
-                                <span className="px-1.5 py-0.5 bg-sky-100 text-sky-700 text-[10px] font-bold rounded-full">
+                                <span className="px-1.5 py-0.5 bg-sky-wash text-azure text-[10px] font-bold rounded-full">
                                   Video
                                 </span>
                               </div>
                               {isSelected && (
-                                <div className="shrink-0 w-5 h-5 bg-sky-500 rounded-full flex items-center justify-center">
+                                <div className="shrink-0 w-5 h-5 bg-azure rounded-full flex items-center justify-center">
                                   <Check size={11} className="text-white" />
                                 </div>
                               )}
                             </div>
-                            <p className="text-[11px] text-gray-400 font-mono truncate mb-1">{model.model_name}</p>
-                            <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{model.description}</p>
+                            <p className="text-[11px] text-ash font-mono truncate mb-1">{model.model_name}</p>
+                            <p className="text-xs text-ink-mute leading-relaxed line-clamp-2">{model.description}</p>
                           </div>
                         </button>
                       )
                     })}
                   </div>
-                  <p className="mt-2 text-[11px] text-gray-400">
-                    Video models are for media generation workflows — not for chat completions.
+                  <p className="mt-2 text-[11px] text-ash">
+                    Video models are for media generation workflows, not for chat completions.
                   </p>
                 </div>
               )}
             </>
           ) : (
-            <p className="text-sm text-gray-500 text-center py-8 bg-gray-50 rounded-xl border border-gray-100">
+            <p className="text-sm text-ink-mute text-center py-8 bg-cream rounded-xl border border-sand">
               No models available for this provider
             </p>
           )}
@@ -593,8 +613,8 @@ export default function LLMConfigForm({
       {/* ── API Key ──────────────────────────────────────────────── */}
       {selectedProvider?.requires_api_key && (
         <div>
-          <label htmlFor="api_key" className="block text-sm font-semibold text-gray-700 mb-1.5">
-            API Key {!config && <span className="text-red-500">*</span>}
+          <label htmlFor="api_key" className="block text-sm font-semibold text-ink-soft mb-1.5">
+            API Key {!config && <span className="text-leaf">*</span>}
           </label>
           <div className="relative">
             <input
@@ -603,25 +623,25 @@ export default function LLMConfigForm({
               value={formData.api_key}
               onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
               placeholder={config ? 'Leave blank to keep existing key' : 'Paste your API key here'}
-              className="w-full px-4 py-2.5 pr-20 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm font-mono"
+              className="w-full px-4 py-2.5 pr-20 border border-taupe rounded-xl focus:ring-2 focus:ring-ink focus:border-transparent text-sm font-mono"
               disabled={isSubmitting}
             />
             <button
               type="button"
               onClick={() => setShowApiKey(!showApiKey)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-500 hover:text-gray-700 px-2 py-1 rounded-md hover:bg-gray-100 transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-ink-mute hover:text-ink-soft px-2 py-1 rounded-md hover:bg-sand transition-colors"
             >
               {showApiKey ? 'Hide' : 'Show'}
             </button>
           </div>
           {selectedProvider.setup_instructions && (
-            <p className="flex items-start gap-1.5 text-xs text-gray-500 mt-1.5">
-              <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-gray-400" />
+            <p className="flex items-start gap-1.5 text-xs text-ink-mute mt-1.5">
+              <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-ash" />
               {selectedProvider.setup_instructions}
             </p>
           )}
           {config && (
-            <p className="text-xs text-gray-400 mt-1">Leave blank to keep the existing key.</p>
+            <p className="text-xs text-ash mt-1">Leave blank to keep the existing key.</p>
           )}
         </div>
       )}
@@ -629,8 +649,8 @@ export default function LLMConfigForm({
       {/* ── API Base URL ─────────────────────────────────────────── */}
       {selectedProvider && (selectedProvider.requires_api_base || selectedProvider.default_api_base) && (
         <div>
-          <label htmlFor="api_base" className="block text-sm font-semibold text-gray-700 mb-1.5">
-            API Base URL {selectedProvider.requires_api_base && <span className="text-red-500">*</span>}
+          <label htmlFor="api_base" className="block text-sm font-semibold text-ink-soft mb-1.5">
+            API Base URL {selectedProvider.requires_api_base && <span className="text-leaf">*</span>}
           </label>
           <input
             type="url"
@@ -638,21 +658,21 @@ export default function LLMConfigForm({
             value={formData.api_base}
             onChange={(e) => setFormData({ ...formData, api_base: e.target.value })}
             placeholder={selectedProvider.default_api_base ?? 'https://api.example.com/v1'}
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm font-mono"
+            className="w-full px-4 py-2.5 border border-taupe rounded-xl focus:ring-2 focus:ring-ink focus:border-transparent text-sm font-mono"
             disabled={isSubmitting}
           />
-          <p className="text-xs text-gray-400 mt-1">Custom API endpoint (e.g., for self-hosted models)</p>
+          <p className="text-xs text-ash mt-1">Custom API endpoint (e.g., for self-hosted models)</p>
         </div>
       )}
 
       {/* ── Special-provider warning ─────────────────────────────── */}
       {selectedProvider && ['bedrock', 'vertex_ai', 'azure_openai'].includes(selectedProvider.provider_id) && (
-        <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-          <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 p-4 bg-sand-deep border border-honey rounded-xl">
+          <AlertCircle className="w-5 h-5 text-warn shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-amber-900">Additional setup required</p>
-            <p className="text-sm text-amber-800 mt-0.5">{selectedProvider.setup_instructions}</p>
-            <p className="text-xs text-amber-600 mt-1">
+            <p className="text-sm font-semibold text-gold">Additional setup required</p>
+            <p className="text-sm text-gold mt-0.5">{selectedProvider.setup_instructions}</p>
+            <p className="text-xs text-warn mt-1">
               You may need to add credentials in additional_params via the API.
             </p>
           </div>
@@ -660,11 +680,11 @@ export default function LLMConfigForm({
       )}
 
       {/* ── Advanced Settings ────────────────────────────────────── */}
-      <div className="border-t border-gray-100 pt-6">
-        <p className="text-sm font-semibold text-gray-700 mb-4">Advanced Settings</p>
+      <div className="border-t border-sand pt-6">
+        <p className="text-sm font-semibold text-ink-soft mb-4">Advanced Settings</p>
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <label htmlFor="temperature" className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+            <label htmlFor="temperature" className="block text-xs font-semibold text-ink-mute mb-1.5">
               Temperature
             </label>
             <input
@@ -675,19 +695,19 @@ export default function LLMConfigForm({
               min="0" max="2" step="0.1"
               className={`w-full px-3 py-2 border rounded-lg text-sm ${
                 isReasoningModel(formData.model_name)
-                  ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
-                  : 'border-gray-200 focus:ring-2 focus:ring-red-500 focus:border-transparent'
+                  ? 'border-line bg-cream text-ash cursor-not-allowed'
+                  : 'border-line focus:ring-2 focus:ring-ink focus:border-transparent'
               }`}
               disabled={isSubmitting || isReasoningModel(formData.model_name)}
             />
             {isReasoningModel(formData.model_name) ? (
-              <p className="text-[11px] text-amber-500 mt-1">Fixed at 1 — not supported by this model</p>
+              <p className="text-[11px] text-warn mt-1">Fixed at 1, not supported by this model</p>
             ) : (
-              <p className="text-[11px] text-gray-400 mt-1">0 – 2</p>
+              <p className="text-[11px] text-ash mt-1">0 – 2</p>
             )}
           </div>
           <div>
-            <label htmlFor="max_tokens" className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+            <label htmlFor="max_tokens" className="block text-xs font-semibold text-ink-mute mb-1.5">
               Max Tokens
             </label>
             <input
@@ -698,10 +718,10 @@ export default function LLMConfigForm({
               min="1"
               max={selectedModel?.max_output_tokens ?? 200000}
               step="1"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+              className="w-full px-3 py-2 border border-line rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent text-sm"
               disabled={isSubmitting}
             />
-            <p className="text-[11px] text-gray-400 mt-1">
+            <p className="text-[11px] text-ash mt-1">
               {selectedModel?.max_output_tokens
                 ? `Max ${selectedModel.max_output_tokens.toLocaleString()}`
                 : selectedModel?.default_max_tokens
@@ -710,7 +730,7 @@ export default function LLMConfigForm({
             </p>
           </div>
           <div>
-            <label htmlFor="top_p" className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+            <label htmlFor="top_p" className="block text-xs font-semibold text-ink-mute mb-1.5">
               Top P
             </label>
             <input
@@ -719,19 +739,19 @@ export default function LLMConfigForm({
               value={formData.top_p}
               onChange={(e) => setFormData({ ...formData, top_p: e.target.value })}
               min="0" max="1" step="0.1"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+              className="w-full px-3 py-2 border border-line rounded-lg focus:ring-2 focus:ring-ink focus:border-transparent text-sm"
               disabled={isSubmitting}
             />
-            <p className="text-[11px] text-gray-400 mt-1">0 – 1</p>
+            <p className="text-[11px] text-ash mt-1">0 – 1</p>
           </div>
         </div>
       </div>
 
       {/* ── Enable toggle ────────────────────────────────────────── */}
-      <div className="flex items-center justify-between px-4 py-3 bg-gray-50 rounded-xl border border-gray-200">
+      <div className="flex items-center justify-between px-4 py-3 bg-cream rounded-xl border border-line">
         <div>
-          <p className="text-sm font-semibold text-gray-800">Enable this configuration</p>
-          <p className="text-xs text-gray-500 mt-0.5">Disabled configs won't be used by the agent</p>
+          <p className="text-sm font-semibold text-ink">Enable this configuration</p>
+          <p className="text-xs text-ink-mute mt-0.5">Disabled configs won't be used by the agent</p>
         </div>
         <button
           type="button"
@@ -739,33 +759,33 @@ export default function LLMConfigForm({
           aria-checked={formData.enabled}
           onClick={() => setFormData({ ...formData, enabled: !formData.enabled })}
           disabled={isSubmitting}
-          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 ${
-            formData.enabled ? 'bg-red-500' : 'bg-gray-200'
+          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 ${
+            formData.enabled ? 'bg-ink' : 'bg-line'
           }`}
         >
-          <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform duration-200 ${
+          <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform motion-reduce:transition-none duration-200 ${
             formData.enabled ? 'translate-x-5' : 'translate-x-0'
           }`} />
         </button>
       </div>
 
       {/* ── Routing Rules ────────────────────────────────────────── */}
-      <div className="border-t border-gray-100 pt-5">
+      <div className="border-t border-sand pt-5">
         <button
           type="button"
           onClick={() => setShowRoutingRules(!showRoutingRules)}
-          className="flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-gray-900"
+          className="flex items-center gap-2 text-sm font-semibold text-ink-soft hover:text-ink"
         >
           {showRoutingRules ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           Routing Rules
-          <span className="text-xs font-normal text-gray-400">(optional — controls when this model is selected)</span>
+          <span className="text-xs font-normal text-ash">(optional, controls when this model is selected)</span>
         </button>
 
         {showRoutingRules && (
           <div className="mt-4 space-y-4">
             {/* Intent tags */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              <label className="block text-xs font-semibold text-ink-mute mb-2">
                 Handle These Intents
               </label>
               <div className="flex flex-wrap gap-2">
@@ -786,8 +806,8 @@ export default function LLMConfigForm({
                       }}
                       className={`px-3 py-1 text-xs rounded-full border transition-colors ${
                         selected
-                          ? 'bg-red-100 border-red-400 text-red-700 font-medium'
-                          : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-gray-300'
+                          ? 'bg-blush-wash border-hotpink text-leaf font-medium'
+                          : 'bg-cream border-line text-ink-soft hover:border-taupe'
                       }`}
                     >
                       {label}
@@ -795,7 +815,7 @@ export default function LLMConfigForm({
                   )
                 })}
               </div>
-              <p className="text-[11px] text-gray-400 mt-1.5">
+              <p className="text-[11px] text-ash mt-1.5">
                 Leave empty to match any intent.
               </p>
             </div>
@@ -803,7 +823,7 @@ export default function LLMConfigForm({
             {/* Complexity range */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                <label className="block text-xs font-semibold text-ink-mute mb-1.5">
                   Min Complexity
                 </label>
                 <input
@@ -819,12 +839,12 @@ export default function LLMConfigForm({
                   min={0}
                   max={1}
                   step={0.1}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-line rounded-lg text-sm focus:ring-2 focus:ring-ink focus:border-transparent"
                 />
-                <p className="text-[11px] text-gray-400 mt-1">0.0 = trivial query</p>
+                <p className="text-[11px] text-ash mt-1">0.0 = trivial query</p>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                <label className="block text-xs font-semibold text-ink-mute mb-1.5">
                   Max Complexity
                 </label>
                 <input
@@ -840,16 +860,16 @@ export default function LLMConfigForm({
                   min={0}
                   max={1}
                   step={0.1}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-line rounded-lg text-sm focus:ring-2 focus:ring-ink focus:border-transparent"
                 />
-                <p className="text-[11px] text-gray-400 mt-1">1.0 = very complex</p>
+                <p className="text-[11px] text-ash mt-1">1.0 = very complex</p>
               </div>
             </div>
 
             {/* Cost and priority */}
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                <label className="block text-xs font-semibold text-ink-mute mb-1.5">
                   Cost / 1k Input (USD)
                 </label>
                 <input
@@ -864,12 +884,12 @@ export default function LLMConfigForm({
                   placeholder="0.003"
                   min={0}
                   step={0.0001}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-line rounded-lg text-sm focus:ring-2 focus:ring-ink focus:border-transparent"
                 />
-                <p className="text-[11px] text-gray-400 mt-1">Used by cost_opt mode</p>
+                <p className="text-[11px] text-ash mt-1">Used by cost_opt mode</p>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                <label className="block text-xs font-semibold text-ink-mute mb-1.5">
                   Priority
                 </label>
                 <input
@@ -884,12 +904,12 @@ export default function LLMConfigForm({
                   placeholder="1"
                   min={1}
                   step={1}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-line rounded-lg text-sm focus:ring-2 focus:ring-ink focus:border-transparent"
                 />
-                <p className="text-[11px] text-gray-400 mt-1">Lower = preferred</p>
+                <p className="text-[11px] text-ash mt-1">Lower = preferred</p>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                <label className="block text-xs font-semibold text-ink-mute mb-1.5">
                   Weight (round robin)
                 </label>
                 <input
@@ -900,17 +920,17 @@ export default function LLMConfigForm({
                   min={0}
                   max={1}
                   step={0.1}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-line rounded-lg text-sm focus:ring-2 focus:ring-ink focus:border-transparent"
                 />
-                <p className="text-[11px] text-gray-400 mt-1">0.0 – 1.0</p>
+                <p className="text-[11px] text-ash mt-1">0.0 – 1.0</p>
               </div>
             </div>
 
             {/* Fallback only toggle */}
-            <div className="flex items-center justify-between px-4 py-3 bg-gray-50 rounded-xl border border-gray-200">
+            <div className="flex items-center justify-between px-4 py-3 bg-cream rounded-xl border border-line">
               <div>
-                <p className="text-sm font-medium text-gray-800">Fallback only</p>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-sm font-medium text-ink">Fallback only</p>
+                <p className="text-xs text-ink-mute mt-0.5">
                   Only use this model when all other configs fail or circuit breaks
                 </p>
               </div>
@@ -921,12 +941,12 @@ export default function LLMConfigForm({
                 onClick={() =>
                   setRoutingRules({ ...routingRules, is_fallback: !(routingRules.is_fallback ?? false) })
                 }
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 ${
-                  routingRules.is_fallback ? 'bg-red-500' : 'bg-gray-200'
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 ${
+                  routingRules.is_fallback ? 'bg-ink' : 'bg-line'
                 }`}
               >
                 <span
-                  className={`inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform duration-200 ${
+                  className={`inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform motion-reduce:transition-none duration-200 ${
                     routingRules.is_fallback ? 'translate-x-5' : 'translate-x-0'
                   }`}
                 />
@@ -937,19 +957,19 @@ export default function LLMConfigForm({
       </div>
 
       {/* ── Actions ──────────────────────────────────────────────── */}
-      <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
+      <div className="flex items-center justify-end gap-3 pt-2 border-t border-sand">
         <button
           type="button"
           onClick={onCancel}
           disabled={isSubmitting}
-          className="px-5 py-2.5 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50 text-sm font-medium"
+          className="px-5 py-2.5 border border-line text-ink-soft rounded-xl hover:bg-cream transition-colors disabled:opacity-50 text-sm font-medium"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={isSubmitting}
-          className="px-6 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-colors shadow-sm disabled:opacity-50 text-sm font-semibold"
+          className="px-6 py-2.5 bg-ink hover:bg-danger text-white rounded-xl transition-colors shadow-sm disabled:opacity-50 text-sm font-semibold"
         >
           {isSubmitting ? 'Saving…' : config ? 'Update Configuration' : 'Create Configuration'}
         </button>
