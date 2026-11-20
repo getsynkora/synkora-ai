@@ -222,14 +222,6 @@ PLATFORM_TOOL_CATALOG = {
         ),
         "requires_oauth": [],
     },
-    "micromobility_event_tools": {
-        "description": (
-            "Event impact analysis, network health, parking compliance, battery degradation, and "
-            "ranger performance for a micromobility fleet. Requires a micromobility API integration."
-        ),
-        "requires_oauth": ["micromobility"],
-        "requires_integration": ["micromobility"],
-    },
     "document_tools": {
         "description": "Parse and extract text from PDFs, Word docs, Excel files",
         "requires_oauth": [],
@@ -994,13 +986,6 @@ TOOL_CATEGORY_TO_PATTERNS: dict[str, list[str]] = {
     ],
     "openweather_tools": ["internal_get_weather_forecast", "internal_get_current_weather"],
     "openmeteo_tools": ["internal_get_openmeteo_forecast", "internal_get_openmeteo_current"],
-    "micromobility_event_tools": [
-        "internal_micromobility_analyze_event_impact",
-        "internal_micromobility_get_network_health",
-        "internal_micromobility_get_parking_compliance",
-        "internal_micromobility_get_battery_degradation",
-        "internal_micromobility_get_ranger_performance",
-    ],
     "github_tools": [
         "internal_github_*",
         "internal_git_*",

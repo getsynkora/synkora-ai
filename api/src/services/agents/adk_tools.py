@@ -322,27 +322,6 @@ class ADKToolRegistry:
 
         register_zoho_crm_tools(self)
 
-        # Micromobility tools - use modular registry
-        from src.services.agents.tool_registrations.micromobility_tools_registry import (
-            register_micromobility_tools,
-        )
-
-        register_micromobility_tools(self)
-
-        # Micromobility intelligence tools - computed fleet analytics
-        from src.services.agents.tool_registrations.micromobility_intelligence_tools_registry import (
-            register_micromobility_intelligence_tools,
-        )
-
-        register_micromobility_intelligence_tools(self)
-
-        # Micromobility event impact & IoT intelligence tools
-        from src.services.agents.tool_registrations.micromobility_event_tools_registry import (
-            register_micromobility_event_tools,
-        )
-
-        register_micromobility_event_tools(self)
-
         # OpenWeather tools - weather forecast and current conditions (requires API key)
         from src.services.agents.tool_registrations.openweather_tools_registry import (
             register_openweather_tools,

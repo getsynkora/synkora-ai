@@ -935,30 +935,6 @@ class FunctionCallingHandler:
                             },
                         }
 
-                # Fleet health / intelligence — emit as fleet_card
-                if func_name in [
-                    "internal_micromobility_get_fleet_health",
-                    "internal_micromobility_get_zone_demand_supply",
-                    "internal_micromobility_predict_demand",
-                    "internal_micromobility_get_rebalancing_plan",
-                    "internal_micromobility_get_trip_performance",
-                    "internal_micromobility_analyze_event_impact",
-                    "internal_micromobility_get_network_health",
-                    "internal_micromobility_get_parking_compliance",
-                    "internal_micromobility_get_battery_degradation",
-                    "internal_micromobility_get_ranger_performance",
-                ]:
-                    if isinstance(result, dict) and result.get("success"):
-                        yield {
-                            "type": "fleet_card",
-                            "card": {
-                                "id": f"fleet_{uuid.uuid4().hex[:8]}",
-                                "tool": func_name,
-                                "data": result,
-                                "created_at": datetime.datetime.now().isoformat(),
-                            },
-                        }
-
                 # Image generation tool detection
                 if func_name in ("internal_generate_image", "internal_higgsfield_generate_image"):
                     if isinstance(result, dict) and result.get("success"):
