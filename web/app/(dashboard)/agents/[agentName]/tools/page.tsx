@@ -419,22 +419,6 @@ const TOOL_GROUPS: ToolGroup[] = [
     expanded: false
   },
   {
-    id: 'micromobility',
-    name: 'Micromobility',
-    description: 'Manage fleet vehicles, trips, riders, tasks, pricing, invoices, and analytics via Dashboard',
-    icon: Globe,
-    tools: [],
-    expanded: false
-  },
-  {
-    id: 'micromobility_intelligence',
-    name: 'Micromobility Intelligence',
-    description: 'AI-powered fleet analytics: health scoring, demand prediction, rebalancing plans, and batch task creation',
-    icon: Database,
-    tools: [],
-    expanded: false
-  },
-  {
     id: 'openweather',
     name: 'Weather',
     description: 'Get current weather conditions and hourly forecasts for any location with demand impact scoring',
@@ -662,7 +646,7 @@ export default function AgentToolsPage() {
 
   const loadAllOAuthApps = async () => {
     try {
-      const providers = ['github', 'gitlab', 'SLACK', 'gmail', 'mailisk', 'zoom', 'google_calendar', 'google_drive', 'clickup', 'jira', 'twitter', 'linkedin', 'recall', 'newsapi', 'micromobility', 'openweather', 'predicthq', 'ticketmaster', 'mapbox', 'higgsfield', 'aws', 'gcp', 'azure', 'digitalocean'];
+      const providers = ['github', 'gitlab', 'SLACK', 'gmail', 'mailisk', 'zoom', 'google_calendar', 'google_drive', 'clickup', 'jira', 'twitter', 'linkedin', 'recall', 'newsapi', 'openweather', 'predicthq', 'ticketmaster', 'mapbox', 'higgsfield', 'aws', 'gcp', 'azure', 'digitalocean'];
       const allApps: any[] = [];
       
       for (const provider of providers) {
@@ -723,7 +707,7 @@ export default function AgentToolsPage() {
 
   const getAuthMethodForProvider = (provider: string) => {
     // Providers that only support API tokens (no OAuth flow)
-    const apiTokenOnlyProviders = ['recall', 'TELEGRAM', 'onepassword', 'mailisk', 'newsapi', 'micromobility', 'openweather', 'predicthq', 'ticketmaster', 'mapbox', 'higgsfield', 'aws', 'gcp', 'azure', 'digitalocean'];
+    const apiTokenOnlyProviders = ['recall', 'TELEGRAM', 'onepassword', 'mailisk', 'newsapi', 'openweather', 'predicthq', 'ticketmaster', 'mapbox', 'higgsfield', 'aws', 'gcp', 'azure', 'digitalocean'];
     if (apiTokenOnlyProviders.includes(provider.toLowerCase()) ||
         apiTokenOnlyProviders.includes(provider)) {
       return 'api_token';
@@ -751,7 +735,7 @@ export default function AgentToolsPage() {
       const app = providerApps[0]; // Use first available app
 
       // Providers that only support API tokens (no OAuth flow)
-      const apiTokenOnlyProviders = ['recall', 'TELEGRAM', 'onepassword', 'mailisk', 'newsapi', 'micromobility', 'openweather', 'predicthq', 'ticketmaster', 'mapbox', 'higgsfield', 'aws', 'gcp', 'azure', 'digitalocean'];
+      const apiTokenOnlyProviders = ['recall', 'TELEGRAM', 'onepassword', 'mailisk', 'newsapi', 'openweather', 'predicthq', 'ticketmaster', 'mapbox', 'higgsfield', 'aws', 'gcp', 'azure', 'digitalocean'];
       const isApiTokenOnly = apiTokenOnlyProviders.includes(provider.toLowerCase()) ||
                              apiTokenOnlyProviders.includes(provider);
 
@@ -850,15 +834,6 @@ export default function AgentToolsPage() {
         groupId = 'linkedin';
       } else if (toolName.includes('recall')) {
         groupId = 'recall';
-      } else if (toolName.includes('micromobility_get_fleet_health') ||
-                 toolName.includes('micromobility_get_zone_demand') ||
-                 toolName.includes('micromobility_predict_demand') ||
-                 toolName.includes('micromobility_get_rebalancing') ||
-                 toolName.includes('micromobility_batch_create') ||
-                 toolName.includes('micromobility_get_trip_performance')) {
-        groupId = 'micromobility_intelligence';
-      } else if (toolName.includes('micromobility')) {
-        groupId = 'micromobility';
       } else if (toolName.includes('get_weather_forecast') || toolName.includes('get_current_weather') || toolName.includes('openmeteo')) {
         groupId = 'openweather';
       } else if (toolName.includes('predicthq')) {
@@ -1143,22 +1118,6 @@ export default function AgentToolsPage() {
           ];
         }
 
-        // Add OAuth selector for ALL Micromobility tools (raw + intelligence)
-        if (tool.name.includes('micromobility')) {
-          baseTool.configurable = true;
-          baseTool.oauthProvider = 'micromobility';
-          baseTool.requiredFields = [
-            {
-              key: 'oauth_app_id',
-              label: 'Micromobility Integration',
-              description: 'Select a configured Dashboard integration (API token or username/password)',
-              placeholder: 'Select integration',
-              type: 'select',
-              options: []
-            }
-          ];
-        }
-
         // OpenWeather tools
         if (tool.name.includes('get_weather_forecast') || tool.name.includes('get_current_weather')) {
           baseTool.configurable = true;
@@ -1363,7 +1322,6 @@ export default function AgentToolsPage() {
 
   const getToolIcon = (toolName: string): string => {
     const name = toolName.toLowerCase();
-    if (name.includes('micromobility')) return '🛴';
     if (name.includes('weather')) return '🌤️';
     if (name.includes('predicthq') || name.includes('ticketmaster')) return '🎟️';
     if (name.includes('higgsfield')) return '🎬';
@@ -1994,8 +1952,6 @@ export default function AgentToolsPage() {
                 if (group.id === 'twitter') return 'twitter';
                 if (group.id === 'linkedin') return 'linkedin';
                 if (group.id === 'recall') return 'recall';
-                if (group.id === 'micromobility') return 'micromobility';
-                if (group.id === 'micromobility_intelligence') return 'micromobility';
                 if (group.id === 'openweather') return 'openweather';
                 if (group.id === 'events_predicthq') return 'predicthq';
                 if (group.id === 'events_ticketmaster') return 'ticketmaster';

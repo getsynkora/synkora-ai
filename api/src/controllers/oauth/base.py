@@ -526,7 +526,7 @@ async def initiate_oauth(
 
         provider = oauth_app.provider.lower()
         # Keep provider-specific configuration and PKCE behavior in their handlers.
-        if provider in {"hubspot", "salesforce", "intercom", "micromobility"} and oauth_app.auth_method == "oauth":
+        if provider in {"hubspot", "salesforce", "intercom"} and oauth_app.auth_method == "oauth":
             from importlib import import_module
 
             handler = getattr(import_module(f"src.controllers.oauth.{provider}"), f"{provider}_authorize")

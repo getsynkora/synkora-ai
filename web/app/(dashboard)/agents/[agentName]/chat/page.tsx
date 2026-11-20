@@ -408,7 +408,7 @@ export default function AdvancedChatPage() {
           if (loaded.length === 0 && prev.length > 0) return prev
 
           if (preserveEphemeral) {
-            // Merge back streaming-only metadata (fleet_cards, charts, diagrams, etc.) that
+            // Merge back streaming-only metadata (charts, diagrams, etc.) that
             // the backend doesn't persist. Match by index since order is stable.
             // Also preserve the existing client-side `id` as the React key so that
             // ChatMessage components are NOT remounted when we swap in real DB UUIDs —
@@ -424,10 +424,9 @@ export default function AdvancedChatPage() {
               newMsg.id = existing.id
 
               if (newMsg.role !== 'assistant' || existing.role !== 'assistant') return
-              const { fleet_cards, charts, diagrams, infographics, vehicle_maps, generated_images, generated_videos, forms } = existing.metadata || {}
+              const { charts, diagrams, infographics, vehicle_maps, generated_images, generated_videos, forms } = existing.metadata || {}
               newMsg.metadata = {
                 ...newMsg.metadata,
-                ...(fleet_cards?.length && { fleet_cards }),
                 ...(charts?.length && { charts }),
                 ...(diagrams?.length && { diagrams }),
                 ...(infographics?.length && { infographics }),
@@ -727,22 +726,6 @@ export default function AdvancedChatPage() {
                 metadata: {
                   ...currentMetadata,
                   vehicle_maps: [...(currentMetadata.vehicle_maps || []), (event as any).map],
-                },
-              }
-            }
-            return newMessages
-          })
-        } else if (event.type === 'fleet_card' && (event as any).card) {
-          setMessages((prev) => {
-            const newMessages = [...prev]
-            const lastIndex = newMessages.length - 1
-            if (lastIndex >= 0 && newMessages[lastIndex].role === 'assistant') {
-              const currentMetadata = newMessages[lastIndex].metadata || {}
-              newMessages[lastIndex] = {
-                ...newMessages[lastIndex],
-                metadata: {
-                  ...currentMetadata,
-                  fleet_cards: [...(currentMetadata.fleet_cards || []), (event as any).card],
                 },
               }
             }

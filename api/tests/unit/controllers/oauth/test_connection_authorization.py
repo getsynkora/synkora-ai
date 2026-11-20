@@ -178,7 +178,6 @@ async def test_authorized_github_roundtrip_binds_identity_and_updates_token(conn
         ("hubspot", "HubSpotOAuth"),
         ("salesforce", "SalesforceOAuth"),
         ("intercom", "IntercomOAuth"),
-        ("micromobility", "MicromobilityOAuth"),
     ],
 )
 async def test_dashboard_initiation_binds_shared_connection_identity(connection, monkeypatch, provider, class_name):

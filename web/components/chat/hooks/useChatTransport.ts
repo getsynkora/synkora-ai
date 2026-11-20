@@ -24,7 +24,6 @@ export type ChatEvent =
   | { type: 'diagram'; diagram?: unknown; [key: string]: unknown }
   | { type: 'infographic'; infographic?: unknown; [key: string]: unknown }
   | { type: 'vehicle_map'; map?: unknown; [key: string]: unknown }
-  | { type: 'fleet_card'; card?: unknown; [key: string]: unknown }
   | { type: 'generated_image'; generated_image?: unknown; [key: string]: unknown }
   | { type: 'generated_video'; generated_video?: unknown; [key: string]: unknown }
   | { type: 'form'; form?: unknown; [key: string]: unknown }

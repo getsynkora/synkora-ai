@@ -126,7 +126,6 @@ def build_message_metadata(
     generated_images: list[dict[str, Any]] | None = None,
     generated_videos: list[dict[str, Any]] | None = None,
     forms: list[dict[str, Any]] | None = None,
-    fleet_cards: list[dict[str, Any]] | None = None,
     workflow_type: str | None = None,
     execution_log: list[dict[str, Any]] | None = None,
     workflow_state: dict[str, Any] | None = None,
@@ -170,9 +169,6 @@ def build_message_metadata(
 
     if forms:
         metadata["forms"] = forms
-
-    if fleet_cards:
-        metadata["fleet_cards"] = fleet_cards
 
     if workflow_type:
         metadata["workflow_type"] = workflow_type

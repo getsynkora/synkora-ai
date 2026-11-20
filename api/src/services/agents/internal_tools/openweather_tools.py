@@ -3,7 +3,7 @@ OpenWeather Tools.
 
 Provides current weather and hourly forecast for any lat/lng.
 Computes a demand_modifier (0.0–2.0) that can be used by any agent
-— not limited to micromobility.
+— usable by any agent.
 
 Auth: api_key stored in OAuthApp (provider='openweather', auth_method='api_token').
 All thresholds are configurable via OAuthApp.config so operators can tune them.

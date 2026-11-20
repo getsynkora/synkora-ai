@@ -48,7 +48,6 @@ from .hubspot import router as hubspot_router
 from .intercom import router as intercom_router
 from .jira import router as jira_router
 from .linkedin import router as linkedin_router
-from .micromobility import router as micromobility_router
 from .salesforce import router as salesforce_router
 from .slack import router as slack_router
 from .tokens import router as tokens_router
@@ -70,7 +69,6 @@ router.include_router(google_router)
 router.include_router(slack_router)
 router.include_router(zoom_router)
 router.include_router(jira_router)
-router.include_router(micromobility_router)
 router.include_router(clickup_router)
 router.include_router(twitter_router)
 router.include_router(linkedin_router)

@@ -94,65 +94,6 @@ async def test_handoff_enforces_request_controls(monkeypatch, case, status):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("legacy", [False, True])
-@pytest.mark.parametrize("identity", ["member", "no_user", "no_tenant", "nonmember"])
-async def test_micromobility_personal_token_boundary(monkeypatch, legacy, identity):
-    tenant, user = uuid4(), uuid4()
-    record = UserOAuthToken(account_id=user, oauth_app_id=12)
-    record.access_token = encrypt_value("synthetic-token") if legacy else "synthetic-token"
-    app = SimpleNamespace(
-        id=12,
-        app_name="Provider",
-        auth_method="oauth",
-        is_platform_app=True,
-        config={"base_url": "https://example.invalid"},
-        api_token=None,
-        access_token=encrypt_value("platform-secret"),
-    )
-    db = AsyncMock()
-    statements = []
-
-    async def execute(stmt):
-        statements.append(stmt)
-        entity = stmt.column_descriptions[0]["entity"]
-        if entity is UserOAuthToken:
-            params = stmt.compile().params.values()
-            assert tenant in params and user in params and 12 in params
-            assert "JOIN tenant_account_joins" in str(stmt)
-        value = {
-            AgentTool: SimpleNamespace(oauth_app_id=12),
-            OAuthApp: app,
-            UserOAuthToken: record if identity == "member" else None,
-        }[entity]
-        if entity is OAuthApp:
-            assert tenant in stmt.compile().params.values()
-        return SimpleNamespace(scalar_one_or_none=lambda: value)
-
-    db.execute.side_effect = execute
-
-    @asynccontextmanager
-    async def session():
-        yield db
-
-    monkeypatch.setattr("src.core.database.get_async_session_factory", lambda: session)
-    outer_db = AsyncMock()
-    context = SimpleNamespace(
-        tenant_id=None if identity == "no_tenant" else tenant,
-        user_id=None if identity == "no_user" else user,
-        agent_id=uuid4(),
-        db_session=outer_db,
-    )
-    result = await CredentialResolver(context).get_micromobility_credentials("tool")
-    if identity == "member":
-        assert result["access_token"] == "synthetic-token"
-    else:
-        assert result is None
-    if identity in ("no_user", "no_tenant"):
-        assert all(stmt.column_descriptions[0]["entity"] is not UserOAuthToken for stmt in statements)
-    outer_db.execute.assert_not_awaited()
-
-
-@pytest.mark.asyncio
 async def test_personal_lookup_executes_tenant_and_account_scope():
     from sqlalchemy import create_engine, text
 
@@ -179,35 +120,3 @@ async def test_personal_lookup_executes_tenant_and_account_scope():
         assert await resolver._get_personal_provider_token_record(12) is None
         context.user_id = user
         assert await resolver._get_personal_provider_token_record(13) is None
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("platform", [False, True])
-async def test_background_micromobility_only_uses_tenant_app_token(monkeypatch, platform):
-    app = SimpleNamespace(
-        id=12,
-        app_name="Provider",
-        auth_method="oauth",
-        is_platform_app=platform,
-        config={"base_url": "https://example.invalid"},
-        api_token=None,
-        access_token=encrypt_value("tenant-app-token"),
-    )
-    db = AsyncMock()
-    db.execute.side_effect = [
-        SimpleNamespace(scalar_one_or_none=lambda: SimpleNamespace(oauth_app_id=12)),
-        SimpleNamespace(scalar_one_or_none=lambda: app),
-    ]
-
-    @asynccontextmanager
-    async def session():
-        yield db
-
-    monkeypatch.setattr("src.core.database.get_async_session_factory", lambda: session)
-    context = SimpleNamespace(tenant_id=uuid4(), user_id=None, agent_id=uuid4(), db_session=AsyncMock())
-    result = await CredentialResolver(context).get_micromobility_credentials("tool")
-    if platform:
-        assert result is None
-    else:
-        assert result["access_token"] == "tenant-app-token"
-    assert db.execute.await_count == 2

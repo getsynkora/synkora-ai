@@ -57,7 +57,6 @@ class StreamState:
     generated_images_data: list[dict[str, Any]] = None
     generated_videos_data: list[dict[str, Any]] = None
     forms_data: list[dict[str, Any]] = None
-    fleet_card_data: list[dict[str, Any]] = None
     total_output_tokens: int = 0
     first_token_time: float | None = None
     tool_start_times: dict[str, float] = None  # Track tool execution start times
@@ -73,8 +72,6 @@ class StreamState:
             self.generated_videos_data = []
         if self.forms_data is None:
             self.forms_data = []
-        if self.fleet_card_data is None:
-            self.fleet_card_data = []
         if self.tool_start_times is None:
             self.tool_start_times = {}
 
@@ -769,8 +766,6 @@ class ChatStreamService:
                     logger.info(f"💾 Saving {len(state.diagram_data)} diagrams to database metadata")
                 if state.infographic_data:
                     logger.info(f"💾 Saving {len(state.infographic_data)} infographics to database metadata")
-                if state.fleet_card_data:
-                    logger.info(f"💾 Saving {len(state.fleet_card_data)} fleet cards to database metadata")
                 if state.forms_data:
                     logger.info(f"💾 Saving {len(state.forms_data)} forms to database metadata")
 
@@ -788,7 +783,6 @@ class ChatStreamService:
                         generated_images=state.generated_images_data,
                         generated_videos=state.generated_videos_data,
                         forms=state.forms_data,
-                        fleet_cards=state.fleet_card_data,
                         timing=timing_metrics,
                         usage={
                             "input_tokens": total_input_tokens,
@@ -2618,11 +2612,6 @@ class ChatStreamService:
                     elif event["type"] == "vehicle_map":
                         map_payload = {k: v for k, v in event.items() if k != "type"}
                         yield await generate_sse_event("vehicle_map", map_payload)
-
-                    elif event["type"] == "fleet_card":
-                        card_payload = {k: v for k, v in event.items() if k != "type"}
-                        state.fleet_card_data.append(card_payload.get("card", card_payload))
-                        yield await generate_sse_event("fleet_card", card_payload)
 
             # Flush any partial PII token held back in the streaming buffer
             if pii_redactor and pii_redactor.config.redact_for_llm and not pii_redactor.config.redact_for_response:

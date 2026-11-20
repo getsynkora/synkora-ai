@@ -168,7 +168,6 @@ export default function EditOAuthAppPage() {
   }
 
   const availableScopes = DEFAULT_SCOPES[app.provider] || []
-  const isMicromobility = app.provider === 'micromobility'
   const isMailisk = app.provider === 'mailisk'
 
   return (
@@ -310,78 +309,6 @@ export default function EditOAuthAppPage() {
                 <p className="mt-1 text-sm text-gray-500">These settings are used to fetch and refresh access tokens.</p>
               </div>
               <div className="space-y-4">
-                {isMicromobility && (
-                  <>
-                    <div>
-                      <label className={labelClassName}>Base URL *</label>
-                      <input
-                        type="url"
-                        required
-                        value={formData.config.base_url || ''}
-                        onChange={(e) => setFormData({ ...formData, config: { ...formData.config, base_url: e.target.value } })}
-                        className={monoInputClassName}
-                        placeholder="https://api.your-oto-instance.com"
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClassName}>Login Endpoint *</label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.config.login_endpoint || ''}
-                        onChange={(e) => setFormData({ ...formData, config: { ...formData.config, login_endpoint: e.target.value } })}
-                        className={monoInputClassName}
-                        placeholder="/admin-login-jwt/"
-                      />
-                      <p className={helperClassName}>Endpoint to POST username/password to receive a JWT.</p>
-                    </div>
-                    <div>
-                      <label className={labelClassName}>Token Field in Response *</label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.config.token_response_field || ''}
-                        onChange={(e) => setFormData({ ...formData, config: { ...formData.config, token_response_field: e.target.value } })}
-                        className={monoInputClassName}
-                        placeholder="token"
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClassName}>Username *</label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.config.username || ''}
-                        onChange={(e) => setFormData({ ...formData, config: { ...formData.config, username: e.target.value } })}
-                        className={inputClassName}
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className={labelClassName}>Username Field Name</label>
-                        <input
-                          type="text"
-                          value={formData.config.login_username_field || ''}
-                          onChange={(e) => setFormData({ ...formData, config: { ...formData.config, login_username_field: e.target.value } })}
-                          className={monoInputClassName}
-                          placeholder="username"
-                        />
-                        <p className={helperClassName}>JSON body field name for username.</p>
-                      </div>
-                      <div>
-                        <label className={labelClassName}>Password Field Name</label>
-                        <input
-                          type="text"
-                          value={formData.config.login_password_field || ''}
-                          onChange={(e) => setFormData({ ...formData, config: { ...formData.config, login_password_field: e.target.value } })}
-                          className={monoInputClassName}
-                          placeholder="password"
-                        />
-                        <p className={helperClassName}>JSON body field name for password.</p>
-                      </div>
-                    </div>
-                  </>
-                )}
                 <div>
                   <label className={labelClassName}>Password {formData.api_token ? '*' : '(leave blank to keep current)'}</label>
                   <input
@@ -407,41 +334,6 @@ export default function EditOAuthAppPage() {
                 <p className="mt-1 text-sm text-gray-500">Token-based authentication with optional custom headers.</p>
               </div>
               <div className="space-y-4">
-                {isMicromobility && (
-                  <>
-                    <div>
-                      <label className={labelClassName}>Base URL *</label>
-                      <input
-                        type="url"
-                        required
-                        value={formData.config.base_url || ''}
-                        onChange={(e) => setFormData({ ...formData, config: { ...formData.config, base_url: e.target.value } })}
-                        className={monoInputClassName}
-                        placeholder="https://api.your-oto-instance.com"
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClassName}>API Key Header</label>
-                      <input
-                        type="text"
-                        value={formData.config.api_key_header || 'Authorization'}
-                        onChange={(e) => setFormData({ ...formData, config: { ...formData.config, api_key_header: e.target.value } })}
-                        className={monoInputClassName}
-                        placeholder="Authorization"
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClassName}>API Key Format</label>
-                      <input
-                        type="text"
-                        value={formData.config.api_key_format || 'Bearer {token}'}
-                        onChange={(e) => setFormData({ ...formData, config: { ...formData.config, api_key_format: e.target.value } })}
-                        className={monoInputClassName}
-                        placeholder="Bearer {token}"
-                      />
-                    </div>
-                  </>
-                )}
                 {isMailisk && (
                   <>
                     <div>

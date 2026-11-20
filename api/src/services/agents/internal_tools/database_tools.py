@@ -884,7 +884,7 @@ async def internal_generate_chart(
     try:
         # Normalize query_result — the LLM may pass data in several shapes:
         #   0. A JSON string — parse it first
-        #   1. A plain list of rows (e.g. from micromobility tool results aggregated by LLM)
+        #   1. A plain list of rows (e.g. rows aggregated by the LLM)
         #   2. A flat dict of key→value pairs (e.g. {"total_reports": 276, "pending": 216})
         #   3. The standard {"success": True, "data": [...]} format from internal_query_database
         if isinstance(query_result, str):
@@ -923,7 +923,7 @@ async def internal_generate_chart(
         # DRF format: {"count": N, "results": [...]}
         if isinstance(data, dict) and "results" in data:
             data = data["results"]
-        # Micromobility format: {"meta": {...}, "data": [...]}
+        # Wrapped format: {"meta": {...}, "data": [...]}
         elif isinstance(data, dict) and "data" in data and isinstance(data["data"], list):
             data = data["data"]
 

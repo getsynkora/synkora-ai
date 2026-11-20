@@ -142,17 +142,6 @@ const RecallIcon = () => (
   </svg>
 )
 
-const MicromobilityIcon = () => (
-  <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
-    <rect width="24" height="24" rx="6" fill="#10B981"/>
-    <circle cx="6.5" cy="17" r="2.5" stroke="white" strokeWidth="1.5"/>
-    <circle cx="17.5" cy="17" r="2.5" stroke="white" strokeWidth="1.5"/>
-    <path d="M6.5 17H11L14 8H17.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M12 8H16" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-    <circle cx="17.5" cy="8" r="1" fill="white"/>
-  </svg>
-)
-
 const OpenWeatherIcon = () => (
   <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
     <rect width="24" height="24" rx="6" fill="#EB6E4B"/>
@@ -530,21 +519,6 @@ const PROVIDERS = [
     supportsOAuth: false,
     supportsApiToken: true,
     apiTokenDescription: 'Use a YouTube Data API v3 key from Google Cloud Console (APIs & Services → Credentials → Create API Key, then restrict to YouTube Data API v3)'
-  },
-  {
-    value: 'micromobility',
-    label: 'Micromobility',
-    icon: <MicromobilityIcon />,
-    color: 'text-emerald-700',
-    bgColor: 'bg-emerald-50',
-    description: 'Fleet management for scooters, bikes, and micromobility vehicles via Dashboard',
-    defaultScopes: [],
-    redirectUri: `${API_URL}/api/v1/oauth/micromobility/callback`,
-    setupGuide: 'https://example.com',
-    supportsOAuth: false,
-    supportsApiToken: true,
-    supportsBasicAuth: true,
-    apiTokenDescription: 'Paste the JWT token obtained from the login endpoint',
   },
   {
     value: 'openweather',
@@ -1466,71 +1440,6 @@ export default function CreateOAuthAppPage() {
                       </>
                     )}
 
-                    {/* Micromobility-specific fields */}
-                    {formData.provider === 'micromobility' && (
-                      <>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                            Base URL *
-                          </label>
-                          <input
-                            type="url"
-                            required
-                            value={formData.config.base_url || ''}
-                            onChange={(e) => setFormData({
-                              ...formData,
-                              config: { ...formData.config, base_url: e.target.value }
-                            })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-sm"
-                            placeholder="https://api.your-oto-instance.com"
-                          />
-                          <p className="text-xs text-gray-500 mt-1">
-                            The base URL of your API (must be HTTPS)
-                          </p>
-                        </div>
-                        {formData.auth_method === 'api_token' && (
-                          <>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                API Key Header
-                              </label>
-                              <input
-                                type="text"
-                                value={formData.config.api_key_header || 'Authorization'}
-                                onChange={(e) => setFormData({
-                                  ...formData,
-                                  config: { ...formData.config, api_key_header: e.target.value }
-                                })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-sm"
-                                placeholder="Authorization"
-                              />
-                              <p className="text-xs text-gray-500 mt-1">
-                                HTTP header name to send the token in (default: Authorization)
-                              </p>
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                                API Key Format
-                              </label>
-                              <input
-                                type="text"
-                                value={formData.config.api_key_format || 'Bearer {token}'}
-                                onChange={(e) => setFormData({
-                                  ...formData,
-                                  config: { ...formData.config, api_key_format: e.target.value }
-                                })}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#ff444f] focus:border-transparent font-mono text-sm"
-                                placeholder="Bearer {token}"
-                              />
-                              <p className="text-xs text-gray-500 mt-1">
-                                Format string for the token value. Use <code className="bg-gray-100 px-1 rounded">{'{token}'}</code> as the placeholder (default: Bearer {'{token}'})
-                              </p>
-                            </div>
-                          </>
-                        )}
-                      </>
-                    )}
-                    
                     {/* OpenWeather-specific fields */}
                     {formData.provider === 'openweather' && (
                       <div className="grid grid-cols-2 gap-3">
@@ -1803,7 +1712,6 @@ export default function CreateOAuthAppPage() {
                         {formData.provider === 'onepassword' && ' For 1Password, use a Service Account Token.'}
                         {formData.provider === 'mailisk' && ' For Mailisk, use the API key from your Mailisk dashboard.'}
                         {formData.provider === 'recall' && ' For Recall.ai, use your API key from the Recall.ai dashboard.'}
-                        {formData.provider === 'micromobility' && ' For Micromobility, use the JWT token returned by the admin login endpoint (POST /admin-login-jwt/).'}
                         {formData.provider === 'openweather' && ' Get your API key from openweathermap.org after signing up.'}
                         {formData.provider === 'predicthq' && ' Find your API token in the PredictHQ Control Center under API Credentials.'}
                         {formData.provider === 'ticketmaster' && ' Use the Consumer Key from your app at developer.ticketmaster.com.'}

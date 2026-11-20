@@ -432,22 +432,6 @@ export function useChatMessages({ agentName }: UseChatMessagesProps): UseChatMes
                 }
                 return newMessages
               })
-            } else if (data.type === 'fleet_card' && data.card) {
-              setMessages((prev: Message[]) => {
-                const newMessages = [...prev]
-                const lastIndex = newMessages.length - 1
-                if (lastIndex >= 0 && newMessages[lastIndex].role === 'assistant') {
-                  const currentMetadata = newMessages[lastIndex].metadata || {}
-                  newMessages[lastIndex] = {
-                    ...newMessages[lastIndex],
-                    metadata: {
-                      ...currentMetadata,
-                      fleet_cards: [...(currentMetadata.fleet_cards || []), data.card]
-                    }
-                  }
-                }
-                return newMessages
-              })
             } else if (data.type === 'error') {
               console.error('Streaming error:', data.error)
               if (elapsedInterval) {
