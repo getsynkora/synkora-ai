@@ -147,7 +147,6 @@ export interface MessageMetadata {
   timing?: TimingInfo
   workflow?: WorkflowMetadata
   vehicle_maps?: VehicleMapData[]
-  fleet_cards?: FleetCardData[]
   mindset_result?: MindsetResultData
   confidence?: number
 }
@@ -162,13 +161,6 @@ export interface VehicleMapData {
   distance_km?: number
   duration_min?: number
   profile?: string
-  created_at?: string
-}
-
-export interface FleetCardData {
-  id: string
-  tool: string
-  data: Record<string, any>
   created_at?: string
 }
 

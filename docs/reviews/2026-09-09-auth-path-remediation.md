@@ -9,14 +9,14 @@ The three high-priority findings and related portal finding in `2026-09-09-post-
 | WebSocket authentication bypass | Shared checks run at the handshake and before every new chat turn, using a fresh database session. Authentication rejection closes the socket with code 1008. | Expired or revoked tokens, disabled accounts, old authentication versions and removed memberships cannot start another chat turn. This does not forcibly cancel a turn already running. |
 | Members-only portal exposure | Member-only visibility uses the same validated account and membership context. Invalid credentials give public-only listing results; members-only detail requires authorization. | An old tenant claim alone no longer grants member-only portal visibility. |
 
-The dashboard's connection buttons now use authenticated `POST /api/v1/oauth/initiate`, then navigate to the returned provider URL. This preserves browser connection setup after anonymous initiation is removed. Provider-specific initiation is retained for HubSpot, Salesforce, Intercom and Micromobility. Salesforce state now carries its tenant, and app-level Salesforce credentials and instance configuration go to a tenant clone when connecting a platform app.
+The dashboard's connection buttons now use authenticated `POST /api/v1/oauth/initiate`, then navigate to the returned provider URL. This preserves browser connection setup after anonymous initiation is removed. Provider-specific initiation is retained for HubSpot, Salesforce and Intercom. Salesforce state now carries its tenant, and app-level Salesforce credentials and instance configuration go to a tenant clone when connecting a platform app.
 
 ## Validation
 
 - **449 backend tests passed**, including the new alternate-authentication and OAuth authorization regressions and the earlier security regression suites.
 - All 19 provider authorization routes reject anonymous requests. All 19 callbacks reject legacy state lacking the initiating identity.
 - Authorized GitHub connection roundtrips pass for tenant-owned and platform apps; platform credentials remain unchanged while the clone receives the token.
-- Dashboard initiation tests pass for GitHub, HubSpot, Salesforce, Intercom and Micromobility. Salesforce app-level clone storage is separately tested.
+- Dashboard initiation tests pass for GitHub, HubSpot, Salesforce and Intercom. Salesforce app-level clone storage is separately tested.
 - WebSocket tests exercise a successful first turn followed by rejection after expiry, revocation, account deactivation, membership removal or authentication-version change.
 - **122 frontend tests passed**. The production webpack build, including TypeScript checking, passed. Targeted frontend ESLint, Python Ruff and `git diff --check` passed.
 
